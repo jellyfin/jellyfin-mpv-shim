@@ -911,6 +911,90 @@ ok(dear_frames * DEAR <= SPAN * 0.7,
                  dear_frames, DEAR * 1000,
                  dear_frames * DEAR / SPAN * 100, SPAN * 1000))
 
+-- ================================================== overlay slot order
+--
+-- mpv composites overlay bitmaps in ascending slot order, so slot order IS
+-- stacking order for anything that overlaps. Two things have to hold at
+-- once, and they pull against each other:
+--
+--   * correctness -- a bitmap drawn over another (the hover play chip over
+--     its row's artwork) must hold a HIGHER slot than the one it covers;
+--   * cheapness -- getting there must not re-issue every other overlay on
+--     the page. renumber_overlays is the fallback that does, and it is
+--     visible as the whole page flickering.
+--
+-- The trap is that the two are only in tension once something has left a
+-- LOW slot behind, which on a library page is constant: every row that
+-- scrolls out of view frees one. A chip taking the lowest free slot then
+-- lands under the very row it is drawn on.
+
+--- Full-width artwork rows, `n` of them, optionally with a chip drawn on
+--- one and optionally missing the first (scrolled out of view).
+local function strip_page(opts)
+    opts = opts or {}
+    local nodes = {}
+    for r = (opts.drop_first and 2 or 1), 5 do
+        nodes[#nodes + 1] = { id = "strip" .. r, t = "img",
+                              src = "/strip" .. r, x = 0, y = (r - 1) * 140,
+                              w = 1200, h = 130, iw = 1200, ih = 130 }
+    end
+    if opts.chip then
+        nodes[#nodes + 1] = { id = "chip", t = "img", src = "/chip",
+                              x = 60, y = (opts.chip - 1) * 140 + 40,
+                              w = 64, h = 64, iw = 64, ih = 64 }
+    end
+    return nodes
+end
+
+--- Paint a scene and report the overlay traffic it cost.
+local function paint(nodes)
+    local before = #fake.log.commands
+    scene(nodes)
+    fake.advance(1.0)
+    fake.fire_timers()
+    local adds, removes = 0, 0
+    for i = before + 1, #fake.log.commands do
+        local c = fake.log.commands[i]
+        if c[1] == "overlay-add" then adds = adds + 1
+        elseif c[1] == "overlay-remove" then removes = removes + 1 end
+    end
+    return adds, removes
+end
+
+--- The slot an overlay src was last issued to. Slot is argument 2 and the
+--- source is argument 5 of overlay-add (x, y, src, offset, ...).
+local function slot_of(src)
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" and c[5] == src then
+            found = tonumber(c[2])
+        end
+    end
+    return found
+end
+
+scene({})                       -- drop every prior overlay
+paint(strip_page())
+local freed_adds = paint(strip_page({ drop_first = true }))
+eq(freed_adds, 0, "a row leaving the page re-issued the others")
+
+local chip_adds = paint(strip_page({ drop_first = true, chip = 4 }))
+eq(chip_adds, 1, "showing the hover chip re-issued more than the chip")
+ok(slot_of("/chip") > slot_of("/strip4"),
+   "the chip is composited above the row it is drawn on",
+   string.format("chip is slot %s, its row is slot %s",
+                 tostring(slot_of("/chip")), tostring(slot_of("/strip4"))))
+
+-- Moving the pointer between rows is one departure and one arrival, and
+-- must stay that cheap however many times it happens.
+paint(strip_page({ drop_first = true }))
+local moved_adds = paint(strip_page({ drop_first = true, chip = 2 }))
+eq(moved_adds, 1, "hovering a second row re-issued more than the chip")
+ok(slot_of("/chip") > slot_of("/strip2"),
+   "the chip stays above the row after moving to another",
+   string.format("chip is slot %s, its row is slot %s",
+                 tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
+
 -- ========================================================== teardown
 
 scene({})

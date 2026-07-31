@@ -863,15 +863,53 @@ local function flush_overlays()
             freeable[#freeable + 1] = slot
         end
     end
-    -- phase 1: assign slots (sticky; new keys take free slots)
-    local next_free = 1
+    -- phase 1: assign slots (sticky; new keys take free slots).
+    --
+    -- Sticky slots go on first, so a new overlay can see where everything
+    -- staying already sits and land on the right side of it. Slot order IS
+    -- stacking order, so a bitmap floated over another — the hover play
+    -- chip over its row's artwork — has to take a HIGHER slot than the one
+    -- it covers, and the lowest free slot is very often a lower one: any
+    -- row that scrolled off left its slot behind. Taking it contradicts
+    -- paint order, which sends phase 2 to renumber_overlays, which re-issues
+    -- every visible bitmap to a new slot. That is what a hover chip
+    -- appearing used to cost, and it is visible as the whole page flickering
+    -- for something the size of a coin.
     for _, ov in ipairs(overlay_list) do
-        local slot = state.ov_slots[ov.key]
+        ov.slot = state.ov_slots[ov.key]
+    end
+    local next_free = 1
+    for i, ov in ipairs(overlay_list) do
+        local slot = ov.slot
         if slot == nil then
-            for s = 0, MAX_OVERLAYS - 1 do
+            -- The window paint order allows: above everything already
+            -- placed that this covers and is painted under, below anything
+            -- it covers and is painted over.
+            local lo, hi = -1, MAX_OVERLAYS
+            for j, b in ipairs(overlay_list) do
+                if b.slot and j ~= i and rects_overlap(ov, b) then
+                    if j < i then
+                        if b.slot > lo then lo = b.slot end
+                    elseif b.slot < hi then
+                        hi = b.slot
+                    end
+                end
+            end
+            for s = lo + 1, hi - 1 do
                 if state.ov_keys[s] == nil then
                     slot = s
                     break
+                end
+            end
+            if slot == nil and (lo >= 0 or hi < MAX_OVERLAYS) then
+                -- Nothing free where this belongs. Take any slot and let
+                -- phase 2 sort the stacking out the expensive way; a
+                -- correct picture beats a cheap one.
+                for s = 0, MAX_OVERLAYS - 1 do
+                    if state.ov_keys[s] == nil then
+                        slot = s
+                        break
+                    end
                 end
             end
             if slot == nil and next_free <= #freeable then
