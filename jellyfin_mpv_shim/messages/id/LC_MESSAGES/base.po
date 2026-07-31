@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 01:51-0400\n"
+"POT-Creation-Date: 2026-07-31 19:44-0400\n"
 "PO-Revision-Date: 2026-07-28 10:04+0000\n"
 "Last-Translator: arz <arizmuajianisan@gmail.com>\n"
 "Language-Team: Indonesian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -867,6 +867,18 @@ msgid "200%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Continuous"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Aligned to rows"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "One row per notch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr ""
 
@@ -1114,15 +1126,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Pixels one wheel notch scrolls. The scrollbar glides while the content snaps "
-"to the nearest row, so a trackpad or trackball no longer overshoots. Raise "
-"it to scroll faster, lower it for finer control."
+"Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
+"of notches spans one row, whichever scroll mode you are in — a trackpad or "
+"trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
+"lower it for finer control."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Make each wheel notch jump exactly one row (or one home-screen section) "
-"instead of gliding. Turn this on if you prefer the older stepped scrolling."
+"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
+"lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
+"rows\" if scrolling still stutters — on a very large display, a slow or "
+"remote one, or with an external MPV. Pick \"One row per notch\" to move a "
+"whole row (or one home-screen section) at a time."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1326,6 +1342,10 @@ msgid "Auto"
 msgstr "Putar Otomatis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Poster"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
 msgstr ""
 
@@ -1352,7 +1372,9 @@ msgid "Artwork"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "“Auto” shapes the tiles from the artwork itself."
+msgid ""
+"“Auto” shapes the tiles from the artwork itself, which usually comes out as "
+"posters. Choose “Poster” to insist on them."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2195,6 +2217,7 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 msgid "Resume"
 msgstr "Lanjutkan"
@@ -2308,6 +2331,12 @@ msgstr "Peringkat Orang Tua"
 msgid "Random"
 msgstr "Acak"
 
+# seeded from jellyfin-web: OptionDateAdded
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+msgid "Date Episode Added"
+msgstr "Tanggal di Tambahkan"
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
 msgstr ""
@@ -2383,6 +2412,7 @@ msgid "That view setting could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to play."
 msgstr ""
 
@@ -3316,6 +3346,10 @@ msgstr "Artis"
 #, fuzzy
 msgid "Album"
 msgstr "Album"
+
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Play from Beginning"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
