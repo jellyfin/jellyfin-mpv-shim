@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 01:51-0400\n"
-"PO-Revision-Date: 2026-07-30 17:13+0000\n"
+"PO-Revision-Date: 2026-07-31 22:01+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -316,10 +316,9 @@ msgid "Middle"
 msgstr "ناوەندێ"
 
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "کوالێتی تڕانسکۆدی دوورە دەست {0:01f} مێگابایت لە هەر چرکەك"
+msgstr "کوالێتی وەرگێڕانی دوورودرێژ (یاخود دوور): {0:0.1f} مێگابیت لە چرکەیەکدا"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -353,10 +352,9 @@ msgid "Disable Direct Play"
 msgstr "لە کارخستنی کارپێکردنی ڕاستەوخۆ"
 
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Video Profile Subtype: {0}"
+#, python-brace-format
 msgid "Video Profile Subtype: {0}"
-msgstr "بەشەجۆری لاڕووی ڤیدیۆ"
+msgstr "ژێرچەشنی پرۆفایلی ڤیدیۆ: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Video Profile Subtype"
@@ -437,10 +435,8 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr "پەڕەی پێشوو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Next page"
@@ -495,14 +491,8 @@ msgid "Retry"
 msgstr "دووبارە هەوڵدانەوە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "هێشتا ناتوانرێت پەیوەندی بە ڕاژەکارەوە (سێرڤەر) بکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -531,10 +521,9 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "ڕاژە:"
+msgstr "دانانی کۆدی پین (PIN) بۆ %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -594,10 +583,8 @@ msgid "Connect to Jellyfin"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr "ئەو ڕاژەکارانەی پێشتر زیادکراون"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -612,28 +599,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "ڕیکخستنی SVP"
+msgstr "داواکاری دەکرێت…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "ناونیشانی ڕاژەکار: "
+msgstr "بەستەری ڕاژەکار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "ناوی بەکار‌هێنەر:"
+msgstr "ناوی بەکارهێنەر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "وشەی نهێنی:"
+msgstr "وشەی نهێنی"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
@@ -648,14 +627,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "پەیوەندیکردن بە ڕاژەکارەوە…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -670,14 +643,8 @@ msgid "Connecting…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت پەیوەندی بكرێت. تکایە وردەکارییەکانت بپشکنە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
@@ -726,10 +693,8 @@ msgid "Ready to cast"
 msgstr "ئامادەیە بۆ پەخشکردن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "میدیای خۆت هەڵبژێرە لە جێلی فین وە کاری پێ بکە لێرە"
+msgstr "میدیاکەت لە جێلیڤین (Jellyfin) هەڵبژێرە و لێرە لێیبدە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
@@ -781,10 +746,8 @@ msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (تڕانسکۆد)"
+msgstr "وەرگێڕانی کۆد"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -1197,10 +1160,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "لابردنی ڕاژە"
+msgstr "کۆکردنەوەکان…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1214,16 +1175,12 @@ msgid "Add to Collection"
 msgstr "لابردنی ڕاژە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "لابردنی ڕاژە"
+msgstr "هێشتا هیچ کۆمەڵەیەک نییە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "ناوی بەکار‌‌هێنەر: "
+msgstr "ناوی کۆمەڵەی نوێ…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1232,20 +1189,12 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "نەتوانرا پشکنین بۆ ئەوە بکرێت کە پێویستی بە داگرتنە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "ڕیکخستنی SVP"
+msgstr "خەمڵاندنی…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1415,34 +1364,16 @@ msgid "Refresh"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "نەتوانرا بەشداری گروپی SyncPlay بکات."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "نەتوانرا گروپی SyncPlay دروست بکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "نەتوانرا لە گروپی SyncPlay دەربچێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
@@ -1636,10 +1567,8 @@ msgid "Previous"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr "بابەتی پێشوو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -1671,10 +1600,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "ڕیکخستنی SVP"
+msgstr "ڕێکخستنەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -1743,10 +1670,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "لابردنی ڕاژە"
+msgstr "سڕینەوەی کۆپی دابەزێنراوی %s؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1777,17 +1703,13 @@ msgid "Series Options"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (تڕانسکۆد)"
+msgstr "تۆمارکردن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (تڕانسکۆد)"
+msgstr "تۆمار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
@@ -1795,7 +1717,6 @@ msgstr ""
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All episodes"
 msgstr "هەموو ئەڵقەکان"
 
@@ -1821,7 +1742,6 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 
 # seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All channels"
 msgstr "هەموو کەناڵەکان"
 
@@ -1977,14 +1897,8 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت ئەم بابەتە لێبدرێت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -2261,10 +2175,8 @@ msgid "No programs are listed right now."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr "ڕۆژی پێشوو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
@@ -2288,10 +2200,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "سەرکەوتووانە ڕاژەکار زیادکرا."
+msgstr "کەناڵەکانی پێشوو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -2317,10 +2227,8 @@ msgid "Recording Folders"
 msgstr "کردنەوەی بوخچەی ڕیکخستن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "ڕێکخستنی ڕاژە"
+msgstr "تا ئێستا هیچ تۆمار نەکراوە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -2348,10 +2256,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکراوەکان"
+msgstr "سەیرکردن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2420,10 +2326,9 @@ msgid "Instant Mix"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "دیاریکردنی بەشەدەنگ"
+msgstr "%d تراکەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Album Artists"
@@ -2508,10 +2413,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "ناوی بەکار‌هێنەر:"
+msgstr "ناوی بگۆڕە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -2524,10 +2427,9 @@ msgid "Delete Playlist"
 msgstr "لابردنی ڕاژە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "لابردنی ڕاژە"
+msgstr "سڕینەوەی پلەی لیستەکە %s؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -2562,10 +2464,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "ڕاژە:"
+msgstr "ئەنجامەکان بۆ \"%s\""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "People"
@@ -2602,24 +2503,12 @@ msgid "Seasons"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت بڕگەی زیاتر باربکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "نەتوانرا ئەم لاپەڕەیە باربکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "On Now"
@@ -2733,28 +2622,16 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load your display settings."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت ڕێکخستنەکانی ڕوونماکەت باربکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Display settings saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save your display settings."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت ڕێکخستنەکانی ڕوونماکەت پاشەکەوت بکرێن."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -2778,10 +2655,9 @@ msgid "watched"
 msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکراوەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "لابردنی ڕاژە"
+msgstr "ئایا داگرتنە سەیرکراوەکانی ناو %s بسڕدرێنەوە؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Show advanced settings"
@@ -2850,14 +2726,8 @@ msgid "Nothing downloaded to browse offline."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت پەیوەندی بە ڕاژەکارێکەوە (سێرڤەر) بکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home Screen Layout"
@@ -2886,28 +2756,16 @@ msgid "Section %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen layout."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت ڕووکاری شاشەی سەرەکی باربکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت ڕووکاری شاشەی سەرەکی پاشەکەوت بکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "General"
@@ -2918,10 +2776,8 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "ناونیشانی ڕاژەکار: "
+msgstr "ڕاژەکارەکان و بەکارهێنەران"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -2945,14 +2801,8 @@ msgid "There is nothing to copy yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the log."
-msgstr ""
-"ناتوانرا ڕاژە زیاد بکرێ. \n"
-"تکایە هێڵی ئینتەرنێتەکەت بپشکنەوە."
+msgstr "ناتوانرێت تۆمارەکە (لۆگ) کۆپی بکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -2965,10 +2815,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "ناوی بەکار‌‌هێنەر: "
+msgstr "ناوی بەکارهێنەری نوێ…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -2977,16 +2825,12 @@ msgid "Add User"
 msgstr "زیادکردنی ڕاژە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "ڕێکخستنی ڕاژە"
+msgstr "هیچ ڕاژەکارێک (سێرڤەر) تا ئێستا ڕێکنەخراوە."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "ناوی بەکار‌هێنەر:"
+msgstr "بەکارهێنەران"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -2995,16 +2839,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "ڕاژە:"
+msgstr "ڕاژەکارەکان بۆ %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "ڕاژە:"
+msgstr "ڕاژەکارەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3013,10 +2854,8 @@ msgid "Change PIN"
 msgstr "گۆڕینی دەنگ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "ڕاژە:"
+msgstr "PIN دابنێ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3044,10 +2883,9 @@ msgid "Auto-download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "لابردنی ڕاژە"
+msgstr "ئایا %s و زانیارییە پاشەکەوتکراوەکانی چوونەژوورەوەی بسڕدرێنەوە؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3112,16 +2950,14 @@ msgid "Remove from Collection"
 msgstr "لابردنی ڕاژە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "لابردنی ڕاژە"
+msgstr "ئایا %s لەم لیستی لێدانە بسڕدرێتەوە؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "لابردنی ڕاژە"
+msgstr "ئایا %s لەم کۆمەڵەیە بسڕدرێتەوە؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -3137,10 +2973,8 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "ڕاژە:"
+msgstr "ڕاژەکار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "User"
@@ -3263,7 +3097,7 @@ msgstr "وەرز {0} - ئەڵقە {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Disabled"
-msgstr "لەکارخراو"
+msgstr "ناچالاککراو"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Select SVP Profile"
