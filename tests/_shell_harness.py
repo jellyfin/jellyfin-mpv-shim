@@ -118,16 +118,18 @@ class FakeSource:
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,
                           sort_by="SortName", sort_order="Ascending",
-                          limit=100, filters=None):
+                          limit=100, filters=None, image_type=None):
         # Recorded, not swallowed. This took **kw and discarded sort/filters
         # entirely, so every filter, sort, unplayed-toggle and letter-jump
         # test asserted only on the browser's own scratch dict — if the view
         # stopped passing filters= to the source, all of them stayed green
-        # and every filter in the app silently did nothing.
+        # and every filter in the app silently did nothing. image_type is
+        # recorded for the same reason: it is what makes a Banner view show
+        # banners, and a fake that dropped it would hide the whole feature.
         self.queries.append({
             "parent_id": parent_id, "start_index": start_index,
             "sort_by": sort_by, "sort_order": sort_order,
-            "filters": dict(filters or {}),
+            "filters": dict(filters or {}), "image_type": image_type,
         })
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)

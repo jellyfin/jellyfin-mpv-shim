@@ -525,7 +525,13 @@ class StripStore:
             # any static analysis. Spelling it Resampling.LANCZOS instead
             # would require Pillow >= 9.1, which this project does not pin.
             lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
-            if rounded:
+            # Artwork on a transparent background is never cover-cropped:
+            # a logo or a banner wordmark is the whole of what the tile
+            # says, and "fill the frame edge to edge" takes a bite out of
+            # both ends of it. The plate is the same test the card colour
+            # was chosen by, so this needs nothing plumbed through Tile,
+            # and it is what _plated already does for an art cell.
+            if rounded and plate is None:
                 if poster.size != (g.tile_w, g.tile_h):
                     # Cover-crop, like CSS object-fit: cover — scale to FILL
                     # the tile and crop the overflow, so odd-aspect art fills

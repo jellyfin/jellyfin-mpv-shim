@@ -52,6 +52,34 @@ log = logging.getLogger("mpvtk_browser.repository")
 # why doing so was invisible; a stricter server would 400 the whole query.
 LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
 
+# Image types every browse query asks for. Primary is the artwork itself,
+# Thumb and Backdrop are what the landscape shapes fall back through
+# (image_spec's preferThumb ladder), and a view asking for one of the other
+# kinds gets it added -- see GRID_IMAGE_TYPES.
+BROWSE_IMAGE_TYPES = "Primary,Thumb,Backdrop"
+
+# Artwork a library view can be *set* to, which the server only sends when the
+# query asks for it. This is the whole of the Banner bug: Banner, Logo and Disc
+# are absent from BROWSE_IMAGE_TYPES, so ImageTags never carried one, so
+# image_spec fell through to the item's thumbnail and drew it letterboxed in a
+# 5.4:1 frame. jellyfin-web asks for exactly the type the view is set to
+# (useFetchItems.ts: `enableImageTypes: [ImageType, Backdrop]`).
+GRID_IMAGE_TYPES = ("Banner", "Logo", "Disc")
+
+
+def browse_image_types(image_type=None):
+    """``EnableImageTypes`` for a grid drawn with ``image_type``.
+
+    The base three plus the requested one. The base set stays because our
+    fallback chains are wider than web's: a view set to Banner still draws
+    the item's Primary where it has no banner, and one set to Logo still
+    reaches a thumb.
+    """
+    extra = (image_type or "").strip().capitalize()
+    if extra in GRID_IMAGE_TYPES:
+        return BROWSE_IMAGE_TYPES + "," + extra
+    return BROWSE_IMAGE_TYPES
+
 # Concurrent home-screen fetches. The rows are independent, so this is bounded
 # only to keep a many-library server from opening a burst of connections at
 # once — well above the usual library count, so in practice the whole home
@@ -1473,7 +1501,13 @@ class LibrarySource:
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
-                          filters=None):
+                          filters=None, image_type=None):
+        """One page of a library grid.
+
+        ``image_type`` is the artwork the view is set to draw (see
+        :func:`browse_image_types`); without it a library set to Banner gets
+        no banner tags back and falls through to its thumbnails.
+        """
         api = self._conn(server_uuid).api
         result = api.get_user_items(
             parent_id=parent_id,
@@ -1483,13 +1517,13 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS,
             image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
+            enable_image_types=browse_image_types(image_type),
             **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_movie_collections(self, server_uuid, sort_by="SortName",
                               sort_order="Ascending", start_index=0, limit=100,
-                              filters=None):
+                              filters=None, image_type=None):
         """Collections (BoxSets) as a paged grid, for the Movies-library
         Collections toggle. Server-wide and recursive (a BoxSet can gather
         items from several libraries), mirroring jellyfin-web's Collections
@@ -1507,7 +1541,7 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS,
             image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
+            enable_image_types=browse_image_types(image_type),
             **self._filter_kwargs(filters)) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
@@ -1898,6 +1932,23 @@ class LibrarySource:
         backdrops = item.get("BackdropImageTags") or []
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
+
+        if image_type in GRID_IMAGE_TYPES:
+            # Banner / Logo / Disc are asked for by name and have no ladder of
+            # their own: web tries the tag, then the parent's logo for a Logo
+            # request, then drops straight into the Primary chain
+            # (url.ts:42-52). Half a library has no banner, and what those
+            # tiles want is the poster the card would otherwise carry --
+            # cropped wide, as web crops it -- not the thumbnail the generic
+            # chain reaches first. That fall-through is why a Banner view
+            # looked like a row of letterboxed stills.
+            if image_type == "Logo" and item.get("ParentLogoItemId") \
+                    and item.get("ParentLogoImageTag"):
+                return (item["ParentLogoItemId"], "Logo",
+                        item["ParentLogoImageTag"])
+            image_type = "Primary"
+            if image_type in tags:
+                return item["Id"], image_type, tags[image_type]
 
         if item.get("Type") == "Playlist":
             # A playlist has its own (square) Primary image — ask the server
@@ -2329,7 +2380,9 @@ class OfflineLibrarySource:
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
-                          filters=None):
+                          filters=None, image_type=None):
+        # image_type is accepted and ignored: it asks the server for a kind of
+        # artwork, and a downloaded item has one file per type on disk.
         snap = self._snap
         if parent_id == "offline:movies":
             items = [i for i in snap.items if i.get("Type") == "Movie"]

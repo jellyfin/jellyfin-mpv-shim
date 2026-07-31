@@ -71,6 +71,17 @@ GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
 log = logging.getLogger("mpvtk_browser.pages.grid")
 
 
+def _image_type_of(view):
+    """The artwork name to ask the server for, given a view-settings dict.
+
+    ``None`` for "Auto", which asks for nothing beyond the browse defaults --
+    the grid is shaped by whatever artwork comes back.
+    """
+    stored = (view or {}).get("imageType")
+    named = view_prefs.shape_for(stored[0] if stored else None)
+    return named[1] if named else None
+
+
 def _fmt_runtime(ticks):
     """``1h 42m`` for a list row, or "" with no runtime."""
     mins = int((ticks or 0) // 600000000)
@@ -101,28 +112,34 @@ class GridPage(Page):
         collections = bool(route.get("_collections"))
 
         def work():
+            # The view settings come FIRST, and not because render wants
+            # them: they say which artwork this library is drawn with, and
+            # that has to reach the item query as EnableImageTypes. Read
+            # after the items and a library set to Banner asks for banners
+            # it has already been answered without. It comes off a cached
+            # blob (one document per server), so this is not a round trip
+            # per library.
+            get_view = getattr(source, "get_view_settings", None)
+            view = (get_view(srv, parent, route.get("collection_type"))
+                    if get_view else dict(_DEFAULT_VIEW))
+            image_type = _image_type_of(view)
             if collections:
                 # Collections are server-wide and recursive (a BoxSet
                 # can gather items from several libraries), so this is a
                 # different query, not a filter on the library.
                 items, total = source.get_movie_collections(
                     srv, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters)
+                    filters=filters, image_type=image_type)
             else:
                 items, total = source.get_library_items(
                     srv, parent, sort_by=sort_by, sort_order=sort_order,
-                    filters=filters)
+                    filters=filters, image_type=image_type)
             vals = route.get("_filtervals")
             if vals is None:
                 try:
                     vals = source.get_filter_values(srv, parent)
                 except Exception:
                     vals = {"genres": [], "years": []}
-            # Read here rather than in render: it comes off a cached blob,
-            # but "cached" is not "free" and render runs every frame.
-            get_view = getattr(source, "get_view_settings", None)
-            view = (get_view(srv, parent, route.get("collection_type"))
-                    if get_view else dict(_DEFAULT_VIEW))
             return items, total, vals, view
 
         def done(res):
@@ -342,19 +359,24 @@ class GridPage(Page):
     # -- data ---------------------------------------------------------------
 
     def _bound_query(self):
-        """``(sort_by, sort_order, filters, person, srv)`` read NOW, on the
-        loop thread. The sort/filters a page is fetched with must be the ones
-        it was asked for, not whatever they are when it lands."""
+        """``(sort_by, sort_order, filters, person, srv, image_type)`` read
+        NOW, on the loop thread. The sort/filters a page is fetched with must
+        be the ones it was asked for, not whatever they are when it lands --
+        and the artwork it asks the server for must be the one the grid is
+        being drawn with, or page two of a Banner view arrives with no
+        banners."""
         _n, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
         return (sort_by, sort_order,
                 self.route.get("_filters") or {},
                 self.route.get("person_id"),
-                self.route.get("server") or self.ctx.server)
+                self.route.get("server") or self.ctx.server,
+                _image_type_of(self.route.get("_view")))
 
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
-        sort_by, sort_order, filters, person, srv = bound or self._bound_query()
+        (sort_by, sort_order, filters, person, srv,
+         image_type) = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -368,10 +390,12 @@ class GridPage(Page):
         if self.route.get("_collections"):
             return source.get_movie_collections(
                 srv, start_index=start, sort_by=sort_by,
-                sort_order=sort_order, filters=filters, **kw)
+                sort_order=sort_order, filters=filters,
+                image_type=image_type, **kw)
         return source.get_library_items(
             srv, self.route["parent_id"], start_index=start,
-            sort_by=sort_by, sort_order=sort_order, filters=filters, **kw)
+            sort_by=sort_by, sort_order=sort_order, filters=filters,
+            image_type=image_type, **kw)
 
     def _on_scroll_end(self, offset, maximum):
         route = self.route
@@ -778,12 +802,14 @@ class ListPage(GridPage):
         return sort_by, sort_order
 
     def _bound_query(self):
+        # No image type: a list route's shape comes from its spec, not from
+        # a library's view settings (see SHAPES below).
         sort_by, sort_order = self._sort_args()
         return (sort_by, sort_order, self.route.get("_filters") or {}, None,
-                self.route.get("server") or self.ctx.server)
+                self.route.get("server") or self.ctx.server, None)
 
     def _fetch_at(self, start, limit=None, bound=None):
-        sort_by, sort_order, filters, _person, srv = (
+        sort_by, sort_order, filters, _person, srv, _itype = (
             bound or self._bound_query())
         kw = {} if limit is None else {"limit": limit}
         return self.ctx.source.get_list(

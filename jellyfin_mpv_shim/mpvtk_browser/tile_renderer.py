@@ -388,8 +388,16 @@ class TileRenderer:
             return None, ""
         item_id, itype, itag = spec
         key = make_key(item_id, itype, itag, w, h)
+        # fill crops server-side to the tile's exact aspect, which is right
+        # for a poster, a still or a banner -- all of them are photographs of
+        # a frame and lose nothing at the edges. A LOGO is not: it is a
+        # wordmark on transparency, and cropping it to 16:9 cuts the name in
+        # half. Ask for it scaled instead; the compositor centres it (see
+        # StripStore._paint_poster, which does not cover-crop plated art).
+        # Derived from the type the chain RESOLVED to, so it stays a pure
+        # function of the cache key above.
         url = self.art.source.image_url(self.art.server, item_id, itype, itag,
-                                    w, h, fill=True)
+                                    w, h, fill=itype != "Logo")
         return self._request_image(key, url, (w, h)), key
     def art_cell(self, item, size=28):
         """Small square album-art bitmap for a table cell (track lists);
