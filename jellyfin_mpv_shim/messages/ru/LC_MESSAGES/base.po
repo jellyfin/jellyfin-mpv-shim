@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 01:51-0400\n"
-"PO-Revision-Date: 2026-07-30 11:39+0000\n"
+"PO-Revision-Date: 2026-07-31 22:01+0000\n"
 "Last-Translator: Knockspoke <mezhogskikharseniy0@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
@@ -314,8 +314,7 @@ msgid "Middle"
 msgstr "Посередине"
 
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
 msgstr "Качество удалённого перекодирования: {0: 0.1f} Мбит/с"
 
@@ -451,7 +450,6 @@ msgstr "Изменения не могут быть применены."
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Live TV"
 msgstr "Эфир"
 
