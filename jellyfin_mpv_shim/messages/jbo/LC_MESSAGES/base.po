@@ -1238,9 +1238,11 @@ msgstr "zmiku"
 msgid "Thumbnail"
 msgstr ""
 
+# seeded from jellyfin-web: Banner
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Banner"
-msgstr ""
+msgstr "lo lanci"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Logo"

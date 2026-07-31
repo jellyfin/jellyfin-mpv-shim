@@ -3123,9 +3123,11 @@ msgstr ""
 msgid "That user could not be renamed."
 msgstr ""
 
+# seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Year"
-msgstr ""
+msgstr "वर्ष"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"

@@ -1335,13 +1335,17 @@ msgstr ""
 msgid "Banner"
 msgstr "Renunță și Marchează ca Nevăzut"
 
+# seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Logo"
-msgstr ""
+msgstr "Siglă"
 
+# seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Disc"
-msgstr ""
+msgstr "Placă"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Artwork"
@@ -2912,10 +2916,12 @@ msgstr ""
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
 msgstr ""
 
+# seeded from jellyfin-web: Display
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
 msgid "Display"
-msgstr ""
+msgstr "Afișare"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Connect to a server to change these settings."
@@ -3289,9 +3295,11 @@ msgstr ""
 msgid "That user could not be renamed."
 msgstr ""
 
+# seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Year"
-msgstr ""
+msgstr "Anul"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"

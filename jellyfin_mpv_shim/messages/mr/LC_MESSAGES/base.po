@@ -1276,9 +1276,11 @@ msgstr "सबटायटल बदला"
 msgid "Logo"
 msgstr ""
 
+# seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Disc"
-msgstr ""
+msgstr "डिस्क"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Artwork"

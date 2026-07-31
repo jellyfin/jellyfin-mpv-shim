@@ -1235,9 +1235,11 @@ msgstr "އޮޓޯ"
 msgid "Thumbnail"
 msgstr ""
 
+# seeded from jellyfin-web: Banner
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Banner"
-msgstr ""
+msgstr "ބެނާރ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Logo"
