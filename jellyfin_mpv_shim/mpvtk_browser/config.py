@@ -117,8 +117,7 @@ SECTIONS = [
                                  "skip_credits_enable", "skip_credits_always",
                                  "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
-                            "snapped_scrolling", "force_scroll_snapping",
-                            "paginated"]),
+                            "scroll_mode", "paginated"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
                       "auto_download_enable", "auto_download_next_up",
                       "auto_download_next_up_limit",
@@ -152,6 +151,11 @@ LABELED_ENUMS = {
     # "theme" is deliberately NOT here: themes are JSON files and the user can
     # add their own, so the list is built at display time by
     # settings.general._dynamic_enum.
+    "scroll_mode": [
+        (_("Continuous"), "continuous"),
+        (_("Aligned to rows"), "aligned"),
+        (_("One row per notch"), "row"),
+    ],
     "poster_scale": [
         (_("Theme default"), None),
         (_("Small"), 1.0),
@@ -255,21 +259,24 @@ NOTES = {
                   "TV nobody should be able to browse from."),
     "osc_style": _("Requires restart to change. MPV keybinds are used by default. Press ENTER to drive "
                    "the player controls by keyboard."),
-    "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. The scrollbar "
-                             "glides while the content snaps to the nearest "
-                             "row, so a trackpad or trackball no longer "
-                             "overshoots. Raise it to scroll faster, lower it "
-                             "for finer control."),
-    "snapped_scrolling": _("Make each wheel notch jump exactly one row (or one "
-                           "home-screen section) instead of gliding. Turn this "
-                           "on if you prefer the older stepped scrolling."),
-    "force_scroll_snapping": _("Force scroll snapping (mitigates lag). "
-                               "Scrolling normally glides, and only snaps to "
-                               "rows when the browser measures itself drawing "
-                               "slower than the scroll is asking for. Turn "
-                               "this on if scrolling still stutters — on a "
-                               "very large display, a slow or remote one, or "
-                               "with an external MPV."),
+    "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. On a grid this "
+                             "is rounded so a whole number of notches spans "
+                             "one row, whichever scroll mode you are in — a "
+                             "trackpad or trackball never leaves you a sliver "
+                             "of a row off. Raise it to scroll faster, lower "
+                             "it for finer control."),
+    # Names no mechanism and no measurement: the reason to pick one of these
+    # is what you can see happening, so the note is written as symptoms.
+    # "Continuous" says what it does rather than promising smoothness --
+    # "Smooth scrolling" would be read as *animated* scrolling, and someone
+    # who turned it on and got no animation would report it broken.
+    "scroll_mode": _("\"Continuous\" scrolls by pixels and lands wherever the "
+                     "wheel puts it; it lines rows up by itself if the "
+                     "display cannot keep up. Pick \"Aligned to rows\" if "
+                     "scrolling still stutters — on a very large display, a "
+                     "slow or remote one, or with an external MPV. Pick "
+                     "\"One row per notch\" to move a whole row (or one "
+                     "home-screen section) at a time."),
     # Deliberately says nothing about the pypresence dependency: the Windows
     # build bundles it, so naming a package most users will never have to
     # think about only invites questions. The dynamic note in

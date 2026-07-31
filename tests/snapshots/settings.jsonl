@@ -24,7 +24,7 @@
 {"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 532.0, "y": 82.0}
 {"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 649.4, "y": 72.0}
 {"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.5.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 659.4, "y": 82.0}
-{"axis": "y", "bar": true, "ch": 3660.5, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
+{"axis": "y", "bar": true, "ch": 3615.0, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "Interface", "w": 1238.0, "x": 16.0, "y": 145.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 186.4}
 {"h": 38.0, "id": "set-player_name", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 178.0}
@@ -211,54 +211,49 @@
 {"h": 38.0, "id": "set-library_image_cache_mb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "256", "w": 340.0, "x": 368.0, "y": 2904.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.78.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Wheel Pixels", "w": 340.0, "x": 16.0, "y": 2958.4}
 {"h": 38.0, "id": "set-scroll_wheel_pixels", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "80", "w": 340.0, "x": 368.0, "y": 2950.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79", "sc": "settings", "size": 14, "t": "text", "text": "Pixels one wheel notch scrolls. The scrollbar glides while the content snaps to the nearest row, so a trackpad or trackball no longer overshoots. Raise it to scroll faster, lower it for finer", "w": 1238.0, "x": 16.0, "y": 2996.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79.l1", "sc": "settings", "size": 14, "t": "text", "text": "control.", "w": 1238.0, "x": 16.0, "y": 3013.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-snapped_scrolling", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3039.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.80.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3041.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.80.1", "sc": "settings", "size": 20, "t": "text", "text": "Snapped Scrolling", "w": 162.8, "x": 46.0, "y": 3039.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81", "sc": "settings", "size": 14, "t": "text", "text": "Make each wheel notch jump exactly one row (or one home-screen section) instead of gliding. Turn this on if you prefer the older stepped scrolling.", "w": 1238.0, "x": 16.0, "y": 3072.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-force_scroll_snapping", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3097.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.82.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3100.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.82.1", "sc": "settings", "size": 20, "t": "text", "text": "Force Scroll Snapping", "w": 197.2, "x": 46.0, "y": 3097.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83", "sc": "settings", "size": 14, "t": "text", "text": "Force scroll snapping (mitigates lag). Scrolling normally glides, and only snaps to rows when the browser measures itself drawing slower than the scroll is asking for. Turn this on if scrolling", "w": 1238.0, "x": 16.0, "y": 3130.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83.l1", "sc": "settings", "size": 14, "t": "text", "text": "still stutters \u2014 on a very large display, a slow or remote one, or with an external MPV.", "w": 1238.0, "x": 16.0, "y": 3148.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-paginated", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3173.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.84.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3176.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.84.1", "sc": "settings", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 46.0, "y": 3173.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.85", "sc": "settings", "size": 14, "t": "text", "text": "Page the library and music tile grids instead of scrolling: each page is one screenful with First / Previous / Next / Last controls and a page number you can type into. Easier than precise", "w": 1238.0, "x": 16.0, "y": 3206.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.85.l1", "sc": "settings", "size": 14, "t": "text", "text": "scrolling on a trackpad.", "w": 1238.0, "x": 16.0, "y": 3224.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.86", "sc": "settings", "size": 20, "t": "text", "text": "Downloads", "w": 1238.0, "x": 16.0, "y": 3249.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.87.0", "sc": "settings", "size": 17, "t": "text", "text": "Download Folder", "w": 340.0, "x": 16.0, "y": 3294.4}
-{"h": 38.0, "id": "set-sync_path", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 250.0, "x": 368.0, "y": 3286.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "set-sync-move", "radius": 6, "sc": "settings", "t": "rect", "w": 69.4, "x": 626.0, "y": 3282.5}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.87.1.1.0", "sc": "settings", "size": 20, "t": "text", "text": "Move", "w": 49.4, "x": 636.0, "y": 3292.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_downloaded", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3335.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.88.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3338.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.88.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3338.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.88.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Downloaded Copy", "w": 218.2, "x": 46.0, "y": 3335.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3368.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.89.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3371.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.89.1", "sc": "settings", "size": 20, "t": "text", "text": "Automatically Download Upcoming Episodes", "w": 404.2, "x": 46.0, "y": 3368.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.90", "sc": "settings", "size": 14, "t": "text", "text": "Applies to srv1, enable other servers in servers tab.", "w": 1238.0, "x": 16.0, "y": 3401.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_next_up", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3427.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.91.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3429.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.91.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3430.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.91.1", "sc": "settings", "size": 20, "t": "text", "text": "Include Next Up", "w": 140.4, "x": 46.0, "y": 3427.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.92.0", "sc": "settings", "size": 17, "t": "text", "text": "Next Up Entries to Consider", "w": 340.0, "x": 16.0, "y": 3468.4}
-{"h": 38.0, "id": "set-auto_download_next_up_limit", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10", "w": 340.0, "x": 368.0, "y": 3460.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.93.0", "sc": "settings", "size": 17, "t": "text", "text": "Episodes to Keep Ahead (0 = off)", "w": 340.0, "x": 16.0, "y": 3514.4}
-{"h": 38.0, "id": "set-auto_download_lookahead", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2", "w": 340.0, "x": 368.0, "y": 3506.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.94.0", "sc": "settings", "size": 17, "t": "text", "text": "Storage Limit for Automatic Downloads (GB)", "w": 340.0, "x": 16.0, "y": 3560.4}
-{"h": 38.0, "id": "set-auto_download_max_gb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "20", "w": 340.0, "x": 368.0, "y": 3552.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_delete_watched", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3598.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.95.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3600.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.95.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3601.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.95.1", "sc": "settings", "size": 20, "t": "text", "text": "Delete Automatic Downloads Once Watched", "w": 392.6, "x": 46.0, "y": 3598.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.96.0", "sc": "settings", "size": 17, "t": "text", "text": "Delete Unwatched After (days, 0 = never)", "w": 340.0, "x": 16.0, "y": 3639.4}
-{"h": 38.0, "id": "set-auto_download_keep_days", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 3631.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.97.0", "sc": "settings", "size": 17, "t": "text", "text": "Check Every (minutes)", "w": 340.0, "x": 16.0, "y": 3685.4}
-{"h": 38.0, "id": "set-auto_download_interval_mins", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "60", "w": 340.0, "x": 368.0, "y": 3677.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3723.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.98.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3725.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.98.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 3723.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.99", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 3756.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79", "sc": "settings", "size": 14, "t": "text", "text": "Pixels one wheel notch scrolls. On a grid this is rounded so a whole number of notches spans one row, whichever scroll mode you are in \u2014 a trackpad or trackball never leaves you a sliver of a", "w": 1238.0, "x": 16.0, "y": 2996.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79.l1", "sc": "settings", "size": 14, "t": "text", "text": "row off. Raise it to scroll faster, lower it for finer control.", "w": 1238.0, "x": 16.0, "y": 3013.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.80.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Mode", "w": 340.0, "x": 16.0, "y": 3047.4}
+{"force": true, "h": 38.0, "id": "set-scroll_mode", "items": ["Continuous", "Aligned to rows", "One row per notch"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3039.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81", "sc": "settings", "size": 14, "t": "text", "text": "\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it lines rows up by itself if the display cannot keep up. Pick \"Aligned to rows\" if scrolling still stutters \u2014 on a very large", "w": 1238.0, "x": 16.0, "y": 3085.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81.l1", "sc": "settings", "size": 14, "t": "text", "text": "display, a slow or remote one, or with an external MPV. Pick \"One row per notch\" to move a whole row (or one home-screen section) at a time.", "w": 1238.0, "x": 16.0, "y": 3102.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-paginated", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3128.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.82.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3130.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.82.1", "sc": "settings", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 46.0, "y": 3128.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83", "sc": "settings", "size": 14, "t": "text", "text": "Page the library and music tile grids instead of scrolling: each page is one screenful with First / Previous / Next / Last controls and a page number you can type into. Easier than precise", "w": 1238.0, "x": 16.0, "y": 3161.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83.l1", "sc": "settings", "size": 14, "t": "text", "text": "scrolling on a trackpad.", "w": 1238.0, "x": 16.0, "y": 3178.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.84", "sc": "settings", "size": 20, "t": "text", "text": "Downloads", "w": 1238.0, "x": 16.0, "y": 3204.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.85.0", "sc": "settings", "size": 17, "t": "text", "text": "Download Folder", "w": 340.0, "x": 16.0, "y": 3248.9}
+{"h": 38.0, "id": "set-sync_path", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 250.0, "x": 368.0, "y": 3240.5}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "set-sync-move", "radius": 6, "sc": "settings", "t": "rect", "w": 69.4, "x": 626.0, "y": 3237.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.85.1.1.0", "sc": "settings", "size": 20, "t": "text", "text": "Move", "w": 49.4, "x": 636.0, "y": 3247.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_downloaded", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3290.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.86.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3292.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.86.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3293.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.86.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Downloaded Copy", "w": 218.2, "x": 46.0, "y": 3290.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3323.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.87.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3325.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.87.1", "sc": "settings", "size": 20, "t": "text", "text": "Automatically Download Upcoming Episodes", "w": 404.2, "x": 46.0, "y": 3323.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.88", "sc": "settings", "size": 14, "t": "text", "text": "Applies to srv1, enable other servers in servers tab.", "w": 1238.0, "x": 16.0, "y": 3356.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_next_up", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3381.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.89.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3384.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.89.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3384.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.89.1", "sc": "settings", "size": 20, "t": "text", "text": "Include Next Up", "w": 140.4, "x": 46.0, "y": 3381.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.90.0", "sc": "settings", "size": 17, "t": "text", "text": "Next Up Entries to Consider", "w": 340.0, "x": 16.0, "y": 3422.9}
+{"h": 38.0, "id": "set-auto_download_next_up_limit", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10", "w": 340.0, "x": 368.0, "y": 3414.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.91.0", "sc": "settings", "size": 17, "t": "text", "text": "Episodes to Keep Ahead (0 = off)", "w": 340.0, "x": 16.0, "y": 3468.9}
+{"h": 38.0, "id": "set-auto_download_lookahead", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2", "w": 340.0, "x": 368.0, "y": 3460.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.92.0", "sc": "settings", "size": 17, "t": "text", "text": "Storage Limit for Automatic Downloads (GB)", "w": 340.0, "x": 16.0, "y": 3514.9}
+{"h": 38.0, "id": "set-auto_download_max_gb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "20", "w": 340.0, "x": 368.0, "y": 3506.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_delete_watched", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3552.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.93.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3555.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.93.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3555.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.93.1", "sc": "settings", "size": 20, "t": "text", "text": "Delete Automatic Downloads Once Watched", "w": 392.6, "x": 46.0, "y": 3552.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.94.0", "sc": "settings", "size": 17, "t": "text", "text": "Delete Unwatched After (days, 0 = never)", "w": 340.0, "x": 16.0, "y": 3593.9}
+{"h": 38.0, "id": "set-auto_download_keep_days", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 3585.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.95.0", "sc": "settings", "size": 17, "t": "text", "text": "Check Every (minutes)", "w": 340.0, "x": 16.0, "y": 3639.9}
+{"h": 38.0, "id": "set-auto_download_interval_mins", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "60", "w": 340.0, "x": 368.0, "y": 3631.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3677.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.96.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3680.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.96.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 3677.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.97", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 3710.5}

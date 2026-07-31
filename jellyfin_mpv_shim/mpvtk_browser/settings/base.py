@@ -65,9 +65,13 @@ class SettingsBase:
             self._seed_auto_download_server()
         if ok and key.startswith("audio_"):
             self._apply_audio_settings()
-        if ok and key in ("scroll_wheel_pixels", "snapped_scrolling"):
-            # Wheel step / snapped toggle apply live -- the renderer just
-            # re-derives, no reload needed.
+        if ok and key in ("scroll_wheel_pixels", "scroll_mode"):
+            # Wheel step and scroll mode apply live -- the renderer just
+            # re-derives, no reload needed. force_scroll_snapping, one of the
+            # two settings scroll_mode replaced, was never listed here: it
+            # took a restart, silently, which for a setting whose whole
+            # purpose is "try this if scrolling feels wrong" meant trying it
+            # and seeing nothing happen.
             if self.app is not None and hasattr(self.app, "push_scroll_config"):
                 self.app.push_scroll_config()
         if ok and key == "theme":

@@ -128,25 +128,38 @@ class Settings(SettingsBase):
     # notches spans one row (consistent, not a 2-3-2-3 cadence). Raise it to
     # scroll faster, lower it for finer control.
     scroll_wheel_pixels: int = 80
-    # Accessibility escape hatch: restore one-notch-one-detent stepping (each
-    # wheel notch jumps exactly one row / one home-screen section, and the
-    # scrollbar snaps with it) instead of the continuous-pixel behavior above.
-    snapped_scrolling: bool = False
-    # Quantize the content to row/section boundaries for the whole time the
-    # browser is open, instead of only when the renderer measures itself
-    # falling behind.
+    # How much of a row the wheel is allowed to land in the middle of. Three
+    # states, in order of how much they quantize:
     #
-    # It already does this for a gesture asking for frames faster than it
-    # can draw them, because a changed scroll offset re-lays the whole OSD
-    # and re-issues every visible overlay — expensive at 4K, and dearer
-    # again on an external mpv. Anything that keeps up scrolls freely, which
-    # is smoother and costs nothing. This forces the mitigation on for what
-    # the measurement cannot see: it times the Lua side of a frame, and
-    # libass laying the result out at output resolution happens on the VO
-    # thread afterwards. An external mpv used to switch it on regardless;
-    # that cost turned out to be inside what is measured, so it is left to
-    # the measurement and this is the override if that proves wrong.
-    force_scroll_snapping: bool = False
+    #   continuous  scroll by pixels, draw wherever that lands. The renderer
+    #               still aligns to rows on its own for a gesture asking for
+    #               frames faster than it can draw them (see state.rcost in
+    #               renderer.lua) -- that is a mitigation, not a mode.
+    #   aligned     always draw aligned to the nearest row or home-screen
+    #               section. The wheel still moves by pixels and the
+    #               scrollbar still glides; only the content steps. Makes the
+    #               above mitigation permanent, for the cost the measurement
+    #               cannot see: it times the Lua side of a frame, and libass
+    #               laying the result out at output resolution happens on the
+    #               VO thread afterwards.
+    #   row         one wheel notch moves exactly one row or section, and the
+    #               scrollbar steps with it. An accessibility escape hatch,
+    #               and the oldest behaviour.
+    #
+    # Was two booleans, snapped_scrolling and force_scroll_snapping, which
+    # named the same word twice for different things and could be combined
+    # into a state that meant nothing (`row` already draws aligned, so
+    # forcing alignment on top of it did nothing at all).
+    #
+    # Deliberately NOT migrated, though snapped_scrolling shipped in
+    # pre-releases and people did set it. They set it because continuous
+    # scrolling had been taken away, so it is a record of the best thing
+    # available at the time rather than a preference for stepping -- and
+    # carrying it forward would keep exactly the people who worked around
+    # that on the workaround, with the fix sitting one dropdown away and no
+    # reason to look for it. Both old keys load as "ignored" (which is
+    # logged) and everyone starts on continuous.
+    scroll_mode: str = "continuous"
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to
     # move between pages; adjacent pages are prefetched so paging is instant.

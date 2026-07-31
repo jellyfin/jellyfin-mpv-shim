@@ -410,10 +410,17 @@ class MpvtkApp:
         )
 
     def push_scroll_config(self):
-        """Forward the wheel step (px per notch) and the two scroll-snapping
-        toggles to the renderer. All are safe to re-push live: the renderer
+        """Forward the wheel step (px per notch) and what ``scroll_mode``
+        means to the renderer. All are safe to re-push live: the renderer
         just re-derives its step and thumb-tracking, no cached state to drop.
         Sent on ready and again whenever the Library Browser settings change.
+
+        The mode is one setting here and two flags there, because the
+        renderer's two mechanisms really are separate: ``snapped`` changes
+        what a NOTCH moves, ``force_snap`` changes what is DRAWN between
+        notches. Only three of their four combinations mean anything -- a
+        notch that lands on a row boundary is already drawn on one -- so the
+        setting offers three and this maps them back.
 
         ``force_snap`` is the user's setting and nothing else.
 
@@ -437,12 +444,12 @@ class MpvtkApp:
         """
         from ..conf import settings
 
+        mode = getattr(settings, "scroll_mode", "continuous")
         self.backend.command(
             "script-message", "mpvtk-wheel", json.dumps({
                 "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),
-                "snapped": bool(getattr(settings, "snapped_scrolling", False)),
-                "force_snap": bool(
-                    getattr(settings, "force_scroll_snapping", False)),
+                "snapped": mode == "row",
+                "force_snap": mode != "continuous",
             })
         )
 

@@ -61,31 +61,43 @@ class TestAdoptBackend(unittest.TestCase):
                        if c[0] == "script-message" and c[1] == "mpvtk-wheel")
         return json.loads(payload[2])
 
-    def test_the_backend_does_not_force_scroll_snapping(self):
+    def test_the_backend_does_not_decide_how_scrolling_looks(self):
         """Out of process an image is a file mpv opens and mmaps rather than
         an address in this process, and a scrolling frame re-issues every
         visible one — which used to be reason enough to force quantizing
         there, sight unseen.
 
         The renderer times its own frames now, and that mmap happens inside
-        the overlay-add calls it times, so an external mpv should be observed
-        to be expensive rather than assumed to be. Forcing it made that
-        impossible to find out. Off in BOTH backends until it has been tested
-        on a real one."""
-        self.assertFalse(
-            self._scroll_config(ext=True,
-                                force_scroll_snapping=False)["force_snap"])
-        self.assertFalse(
-            self._scroll_config(ext=False,
-                                force_scroll_snapping=False)["force_snap"])
+        the overlay-add calls it times, so an external mpv is observed to be
+        expensive rather than assumed to be — confirmed on a real one, where
+        continuous scrolling holds up. So the payload depends on the setting
+        and nothing else, and both backends answer identically."""
+        for mode in ("continuous", "aligned", "row"):
+            self.assertEqual(self._scroll_config(ext=True, scroll_mode=mode),
+                             self._scroll_config(ext=False, scroll_mode=mode),
+                             "%r differs between backends" % mode)
 
-    def test_the_setting_forces_it_on_either_backend(self):
-        self.assertTrue(
-            self._scroll_config(ext=False,
-                                force_scroll_snapping=True)["force_snap"])
-        self.assertTrue(
-            self._scroll_config(ext=True,
-                                force_scroll_snapping=True)["force_snap"])
+    def test_continuous_asks_the_renderer_for_neither_mitigation(self):
+        cfg = self._scroll_config(ext=False, scroll_mode="continuous")
+        self.assertFalse(cfg["snapped"])
+        self.assertFalse(cfg["force_snap"])
+
+    def test_aligned_quantizes_the_drawing_but_not_the_notch(self):
+        """The distinction the two old booleans kept losing: the wheel still
+        moves by pixels and the scrollbar still glides, and only what is
+        drawn is pulled onto a row."""
+        cfg = self._scroll_config(ext=False, scroll_mode="aligned")
+        self.assertFalse(cfg["snapped"])
+        self.assertTrue(cfg["force_snap"])
+
+    def test_a_row_per_notch_is_drawn_aligned_too(self):
+        """Not redundant, and the reason the setting is three states rather
+        than two checkboxes: stepping a whole row per notch means every
+        offset is already on a boundary, so asking for both is the one
+        combination that never meant anything."""
+        cfg = self._scroll_config(ext=False, scroll_mode="row")
+        self.assertTrue(cfg["snapped"])
+        self.assertTrue(cfg["force_snap"])
 
     def test_attach_requires_ext(self):
         with self.assertRaises(ValueError):

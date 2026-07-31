@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 18:51-0400\n"
+"POT-Creation-Date: 2026-07-31 19:05-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -782,6 +782,18 @@ msgid "200%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Continuous"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Aligned to rows"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "One row per notch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr ""
 
@@ -1021,23 +1033,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Pixels one wheel notch scrolls. The scrollbar glides while the content snaps "
-"to the nearest row, so a trackpad or trackball no longer overshoots. Raise "
-"it to scroll faster, lower it for finer control."
+"Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
+"of notches spans one row, whichever scroll mode you are in — a trackpad or "
+"trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
+"lower it for finer control."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Make each wheel notch jump exactly one row (or one home-screen section) "
-"instead of gliding. Turn this on if you prefer the older stepped scrolling."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid ""
-"Force scroll snapping (mitigates lag). Scrolling normally glides, and only "
-"snaps to rows when the browser measures itself drawing slower than the "
-"scroll is asking for. Turn this on if scrolling still stutters — on a very "
-"large display, a slow or remote one, or with an external MPV."
+"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
+"lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
+"rows\" if scrolling still stutters — on a very large display, a slow or "
+"remote one, or with an external MPV. Pick \"One row per notch\" to move a "
+"whole row (or one home-screen section) at a time."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
