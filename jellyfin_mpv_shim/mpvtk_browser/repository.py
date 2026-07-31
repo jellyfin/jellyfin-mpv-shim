@@ -949,13 +949,20 @@ class LibrarySource:
         provider with a deeper guide does not look like it has a shallower
         one).
 
-        **No image fields**, which is jellyfin-web's call here too
-        (``EnableImages: false``) and the same one ``get_guide`` makes for
-        the same reason: these rows are text. ``ChannelImage`` in particular
-        costs a channel lookup per programme -- across a thousand of them --
-        for a tag nothing on this screen draws. A row that is clicked still
-        seeds the program page, which re-reads the authoritative DTO anyway
-        and already draws its heading as text while artwork is absent.
+        **No image fields**, which is jellyfin-web's call here too and the
+        same one ``get_guide`` makes for the same reason: these rows are
+        text. ``ChannelImage`` in particular costs a channel lookup per
+        programme -- across a thousand of them -- for a tag nothing on this
+        screen draws. A row that is clicked still seeds the program page,
+        which re-reads the authoritative DTO anyway and already draws its
+        heading as text while artwork is absent.
+
+        Web also sends ``EnableImages: false``, which suppresses the tags
+        themselves (~12% of the body here). We cannot: ``get_programs`` has
+        no such argument, and passing one raised a TypeError that took the
+        whole channel page down. Leaving the tags in is the cheap half of
+        the wrong answer; the fields above are the expensive half, and they
+        are gone.
         """
         api = self._conn(server_uuid).api
         channel = None
@@ -972,10 +979,6 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS + ",ChannelInfo",
             enable_user_data=False,
-            # The docstring above has always said this; the call did not
-            # send it, so the server was resolving image tags for a
-            # thousand programmes to fill a screen of text rows.
-            enable_images=False,
             enable_total_record_count=False) or {}
         programs = result.get("Items", [])
         return {"channel": channel, "programs": programs,
