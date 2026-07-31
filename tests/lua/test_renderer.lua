@@ -629,6 +629,70 @@ ok(kept ~= nil and kept.id ~= "play",
    "an arrow key cancels a parked autofocus",
    kept and kept.id or "nothing focused")
 
+-- ================================ hover enter/leave (hev)
+
+-- The play chip on a tile is drawn by PYTHON, so the renderer has to say
+-- which tile the pointer is on. Only nodes carrying `hev` are reported --
+-- a row of cast members should not cost a scene rebuild per face crossed.
+
+local function point(x, y)
+    fake.observe("mouse-pos", { x = x, y = y, hover = true })
+end
+
+local function hover_events()
+    local out = {}
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and (e.t == "hover" or e.t == "hover_end") then
+            out[#out + 1] = e.t .. ":" .. tostring(e.id)
+        end
+    end
+    return table.concat(out, " ")
+end
+
+scene({ tile("tile-a", 0, 0, { hev = true }),
+        tile("tile-b", 200, 0, { hev = true }),
+        tile("plain", 400, 0) })
+point(1000, 600)                       -- start clear of everything
+fake.reset_events()
+point(50, 40)
+eq(hover_events(), "hover:tile-a", "entering a tile reports it")
+
+fake.reset_events()
+point(250, 40)
+-- ENTER BEFORE LEAVE. The app draws from the id it is entering, and a leave
+-- that arrived first would describe a state already over: it would blank the
+-- control that had just been asked for.
+eq(hover_events(), "hover:tile-b hover_end:tile-a",
+   "crossing tiles reports the arrival before the departure")
+
+fake.reset_events()
+point(450, 40)
+eq(hover_events(), "hover_end:tile-b",
+   "a tile that does not opt in reports nothing but the departure")
+
+-- The chip sits INSIDE its tile and is its own node, so reaching it is
+-- leaving the tile. Both are reported; the app resolves them to one tile.
+scene({ tile("tile-a", 0, 0, { hev = true }),
+        { id = "tile-a-play", t = "rect", x = 30, y = 20, w = 40, h = 40,
+          click = true, hev = true } })
+point(5, 5)
+fake.reset_events()
+point(50, 40)
+eq(hover_events(), "hover:tile-a-play hover_end:tile-a",
+   "moving onto the control over a tile reports it before the tile's leave")
+
+fake.reset_events()
+point(1000, 600)
+eq(hover_events(), "hover_end:tile-a-play", "leaving the window reports it")
+
+-- A node that goes away mid-hover has to be reported too: the app is
+-- holding a control open for it and will never hear otherwise.
+point(50, 40)
+fake.reset_events()
+scene({})
+eq(hover_events(), "hover_end:tile-a-play",
+   "a hovered node leaving the scene reported no departure")
+
 -- ========================================================== teardown
 
 scene({})

@@ -106,6 +106,72 @@ class TilesMixin:
     #: played into a queue, and a program is not itself playable at all.
     MENU_LIVE = {"TvChannel", "Program"}
 
+    #: Containers the hover play chip offers, on top of MENU_PLAYABLE and
+    #: MENU_LIVE: things whose contents are a queue in the order the grid is
+    #: already showing them.
+    #:
+    #: **A LIBRARY IS NOT ONE.** A CollectionFolder or a UserView can answer
+    #: Play All perfectly well -- the grid header offers exactly that once
+    #: you are inside -- and it is still the wrong thing to put under the
+    #: pointer on the home screen. Those tiles are the doors to the app: the
+    #: gesture people make on them is "take me in", made quickly and often,
+    #: and a play button there is a 1300-film queue one slip away from
+    #: whatever they were actually going to do. Deciding to play a whole
+    #: library should cost the click that gets you in first.
+    CHIP_CONTAINERS = {"BoxSet", "Folder", "PhotoAlbum"}
+
+    def _tile_playable(self, item):
+        """Whether a hovered tile gets a play chip. Cheap and pure: this runs
+        for every tile of every strip that is built."""
+        t = item.get("Type")
+        if t in self.MENU_LIVE or t in self.MENU_PLAYABLE:
+            # Photo is deliberately absent from MENU_PLAYABLE, and should
+            # stay absent here: clicking the picture already shows it.
+            return True
+        # CollectionType is what makes a folder a library -- a plain Folder
+        # inside one has none -- so this is the test for "is this a door".
+        return t in self.CHIP_CONTAINERS and not item.get("CollectionType")
+
+    def _play_tile(self, item):
+        """What the hover chip does. The tile's own click still opens the
+        page -- these are different questions for anything with contents."""
+        server = self.route.get("server") or self.server
+        t = item.get("Type")
+        if t == "Series":
+            # Next Up, not the whole series from episode one: it is what
+            # jellyfin-web's overlay button does on a series card, and the
+            # only reading of "play this show" that does not throw away
+            # where you had got to.
+            self._actions.play_next_up(item.get("Id"), server)
+            return
+        if t in self.CHIP_CONTAINERS:
+            self._play_container(item, server)
+            return
+        self._menu_play(item, server)
+
+    def _play_container(self, item, server):
+        """A collection, a folder or a library: its contents, in the order
+        the grid shows them."""
+        source = self.source
+        parent = item.get("Id")
+        ctype = item.get("CollectionType")
+        ep = self._epoch
+
+        def work():
+            return source.get_play_all_ids(server, parent,
+                                           collection_type=ctype)
+
+        def done(ids):
+            if ids:
+                # pause_stills=False for the same reason Play All has it: the
+                # gesture means "run it", and a queue that opens on a photo
+                # would otherwise sit paused on frame one.
+                self._actions.play_list(ids, server, 0, pause_stills=False)
+            else:
+                self.set_status(_("There is nothing here to play."))
+
+        self.run_async(work, done, ep)
+
     def _live_menu_entries(self, item):
         """Menu for a channel or a guide entry.
 

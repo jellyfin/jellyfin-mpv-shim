@@ -572,6 +572,10 @@ def _arrange_image(ctx, el, x, y, w, h, sc, path):
         _reg(ctx, node["id"], "click", el.on_click)
     if el.hover:
         node["hover"] = el.hover
+    if el.on_hover is not None or el.on_hover_end is not None:
+        node["hev"] = True
+        _reg(ctx, node["id"], "hover", el.on_hover)
+        _reg(ctx, node["id"], "hover_end", el.on_hover_end)
     ctx.nodes.append(node)
     return
 
@@ -610,6 +614,12 @@ def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
         if reg.get("on_context"):
             rnode["ctx"] = True
             _reg(ctx, rid, "context", reg["on_context"])
+        if reg.get("on_hover") or reg.get("on_hover_end"):
+            # Enter/leave notification, for a region that wants a control
+            # drawn over it while the pointer is there.
+            rnode["hev"] = True
+            _reg(ctx, rid, "hover", reg.get("on_hover"))
+            _reg(ctx, rid, "hover_end", reg.get("on_hover_end"))
         if reg.get("autofocus"):
             # As Element.autofocus, for the one node in a strip that can
             # be a page's default (the first search result). A tile is a

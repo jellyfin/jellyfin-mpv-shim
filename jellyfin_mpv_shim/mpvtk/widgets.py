@@ -222,7 +222,7 @@ class Image(Element):
     """
 
     def __init__(self, src, iw, ih, on_click=None, hover=None, v=0,
-                 repeat=False, **kw):
+                 repeat=False, on_hover=None, on_hover_end=None, **kw):
         _check_raster(src, iw, ih, kw)
         super().__init__(**kw)
         self.src = src
@@ -235,6 +235,12 @@ class Image(Element):
         self.on_click = on_click
         self.hover = hover
         self.repeat = repeat
+        # Pointer enter/leave, for an image that is only on screen BECAUSE
+        # something is hovered — a control floated over a tile has to hear
+        # about its own hover, or the pointer moving onto it reads as
+        # leaving the tile and the app takes it away again.
+        self.on_hover = on_hover
+        self.on_hover_end = on_hover_end
 
 
 class ImageMap(Element):

@@ -169,6 +169,71 @@ def page_target(offset, direction, view, count, geom):
     return min(max(0.0, float(target)), max_offset)
 
 
+#: Diameter of the hover play chip, as a fraction of the tile's SHORT side,
+#: and the bounds it is clamped to. Proportional because the tiles it lands
+#: on run from a 90px banner strip to a 225px poster, and a fixed size is
+#: either lost on one or covering the artwork on the other.
+CHIP_FRACTION = 0.34
+CHIP_MIN = 28
+CHIP_MAX = 56
+
+#: How much the chip grows when the pointer is on the chip ITSELF rather than
+#: just on the tile. The tile-level state says "there is something to press
+#: here"; this one says "you are on it", which is the answer every other
+#: control in the app gives -- a HUD button takes an accent wash on hover and
+#: this is the same gesture, baked into a bitmap because it has to composite
+#: over artwork (see _play_chip_bitmap).
+CHIP_HOT_SCALE = 1.18
+
+#: Opacity of the accent wash behind the lit chip, 0-255. The number the HUD
+#: buttons use (widgets.Button's flat mode -> renderer draw_rect a=70): a
+#: translucent accent disc under a solid accent glyph. Copied rather than
+#: approximated so the two controls answer the pointer identically.
+CHIP_HOT_ALPHA = 70
+
+
+def _play_chip_bitmap(size, hot=False):
+    """The round play button that appears on a hovered tile, at physical size.
+
+    A BITMAP for the same reason the carousel arrows are one: mpv composites
+    overlay bitmaps above all script ASS, so anything drawn as a node would
+    be *under* the poster strip it is meant to sit on (GUIDE §6). Same
+    supersample-and-shrink, which is what makes the circle read as round
+    rather than as a notch cut out of the artwork.
+
+    ``hot`` is the pointer being on the chip: the HUD button's hover, which
+    is a translucent accent wash under a solid accent glyph. The renderer
+    cannot do this for us -- it restyles nodes, and a bitmap has no style to
+    change -- so the state is baked into a second bitmap and cached under its
+    own key.
+    """
+    from PIL import Image as PILImage, ImageDraw
+
+    active = theme.active() or {}
+    w = px(size)
+    ss = 3
+    big_w = w * ss
+    big = PILImage.new("RGBA", (big_w, big_w), (0, 0, 0, 0))
+    d = ImageDraw.Draw(big)
+    fill = (theme.rgb(theme.ACCENT, CHIP_HOT_ALPHA) if hot
+            else theme.rgb(active.get("arrow_bg", ARROW_BG),
+                           int(active.get("arrow_alpha", ARROW_ALPHA))))
+    d.ellipse([0, 0, big_w - 1, big_w - 1], fill=fill)
+    # A filled triangle, nudged right of centre: a play glyph centred on its
+    # bounding box reads as sitting left of centre in a circle.
+    c = big_w / 2.0
+    r = big_w * 0.22
+    d.polygon([(c - r * 0.75 + r * 0.25, c - r),
+               (c - r * 0.75 + r * 0.25, c + r),
+               (c + r * 0.95, c)],
+              # Solid accent on the wash, which is the HUD's icon tint --
+              # the glyph is what has to read, and the disc behind it is
+              # only there to say the pointer is on a control.
+              fill=theme.rgb(theme.ACCENT if hot else theme.TEXT_FG, 255))
+    lanczos = PILImage.LANCZOS  # type: ignore[attr-defined]
+    return big.resize((w, w), lanczos)
+
+
 def _arrow_bitmap(direction, disabled=False):
     """A round, translucent carousel page button as a PIL bitmap at physical
     size, for the ``overlay`` arrow mode.
@@ -223,7 +288,8 @@ class TileRenderer:
     BANNER_RATIO = 9 / 16 * 2 / 3
 
     def __init__(self, art, scroll,
-                 on_open=None, nav_mode=None, get_app=None):
+                 on_open=None, nav_mode=None, get_app=None,
+                 on_play=None, can_play=None):
         #: Live resource provider. Read through rather than snapshotted:
         #: `source` and `server` are swapped by set_source at arbitrary
         #: moments (a reconnect, a user switch) and the stores are replaced
@@ -237,6 +303,18 @@ class TileRenderer:
         self.nav_mode = nav_mode or (lambda: False)
         #: The live MpvtkApp, for the page-scroll buttons.
         self.get_app = get_app or (lambda: None)
+        #: What the hover play chip does, and which items get one. Separate
+        #: from ``on_open``: a tile click opens the page, the chip starts
+        #: playback -- and for a container those are genuinely different
+        #: (see MpvtkBrowser._play_tile).
+        self.on_play = on_play
+        self.can_play = can_play or (lambda _item: False)
+        #: Which tile the pointer is on, and which NODE it is actually on --
+        #: the tile or the chip drawn inside it. The second is what a leave
+        #: event is matched against; the first is what gets a chip. Set from
+        #: the renderer's enter/leave events (see set_hover).
+        self._hover = None
+        self._hover_node = None
 
         # Decoded posters and the dedup/backoff bookkeeping around fetching
         # them. Private: nothing outside tile rendering reads these.
@@ -251,6 +329,44 @@ class TileRenderer:
         self._downloaded_series = set()
         self._downloaded_seasons = set()
         self._downloaded_playlists = set()
+
+    #: Suffix marking the chip's own node. The chip sits INSIDE the tile it
+    #: belongs to, so the pointer moving onto it is the pointer leaving the
+    #: tile as far as the renderer is concerned; both ids resolve back to the
+    #: same tile here, or the chip would take itself away on contact.
+    CHIP_SUFFIX = "-play"
+
+    def set_hover(self, node_id):
+        """Pointer entered a tile, or the chip drawn on one. Repaints if the
+        TILE changed -- moving from a tile onto its own chip is still the
+        same tile, and repainting there would take the chip away under the
+        pointer that had just reached it. The chip's own appearance does
+        change on arrival -- it lights up, like every other control -- so the
+        repaint happens for either."""
+        was_node, was_tile = self._hover_node, self._hover
+        self._hover_node = node_id
+        self._hover = self._tile_of(node_id)
+        if (was_node, was_tile) == (self._hover_node, self._hover):
+            return
+        invalidate = getattr(self.art, "invalidate", None)
+        if invalidate is not None:
+            invalidate()
+
+    def end_hover(self, node_id):
+        """Pointer left ``node_id``. Ignored unless that is still where the
+        pointer was last known to be: the renderer reports the arrival before
+        the departure (see update_slider_hover), so a leave for something
+        already moved on from describes a state that is over -- and taking it
+        at face value would blank the chip that had just been asked for."""
+        if node_id == self._hover_node:
+            self.set_hover(None)
+
+    def _tile_of(self, node_id):
+        """The tile a hovered node belongs to. The chip is its own node
+        inside the tile it is drawn on, so both answer the same tile."""
+        if node_id and node_id.endswith(self.CHIP_SUFFIX):
+            return node_id[:-len(self.CHIP_SUFFIX)]
+        return node_id
 
     def set_downloaded(self, items, series, seasons, playlists):
         """Install fresh downloaded-id sets (from the sync catalog)."""
@@ -772,19 +888,68 @@ class TileRenderer:
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self.on_open
+        chip = None
         for i, (r, it) in enumerate(zip(s["regions"], items)):
+            rid = "%s-%s" % (prefix, r["key"])
+            playable = self.on_play is not None and self.can_play(it)
             regions.append(dict(
                 r,
-                id="%s-%s" % (prefix, r["key"]),
+                id=rid,
                 on_click=(lambda i=it: act(i)),
                 on_context=(lambda x, y, i=it: self.on_context(i, x, y)),
+                # Only tiles that would DO something with a hover ask to hear
+                # about one: a row of people or genres is not worth a scene
+                # rebuild per tile the pointer crosses.
+                on_hover=((lambda _v=None, k=rid: self.set_hover(k))
+                          if playable else None),
+                on_hover_end=((lambda k=rid: self.end_hover(k))
+                              if playable else None),
                 # The page's default for a keyboard/remote arrival. Only
                 # ever the first tile: it is "where this row starts", not a
                 # judgement about the item.
                 autofocus=(autofocus_first and i == 0),
             ))
-        return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
+            if playable and self._hover == rid:
+                chip = self._play_chip(rid, it, r, geom)
+        node = ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
                         v=s.get("v", 0), w=s["lw"], h=s["lh"])
+        if chip is None:
+            return node
+        # Inside the strip's own rect, so it travels with the row when a
+        # carousel scrolls -- a Stack around the HScroll would leave the chip
+        # parked in mid-air over whatever slid under it.
+        return Stack([node, chip], w=s["lw"], h=s["lh"])
+
+    def _play_chip(self, region_id, item, region, geom):
+        """The round play button drawn over the hovered tile.
+
+        Centred on the ARTWORK rather than the tile: the region includes the
+        caption block underneath, and a chip centred on that sits visibly low
+        on the picture.
+        """
+        cid = region_id + self.CHIP_SUFFIX
+        # Grown around its own centre, so the pointer that triggered the
+        # growth is still inside afterwards -- a chip that grew downwards
+        # would slide out from under the pointer, un-hover itself, shrink,
+        # and do it again.
+        hot = self._hover_node == cid
+        size = int(max(CHIP_MIN, min(CHIP_MAX,
+                                     min(geom.tile_w, geom.tile_h)
+                                     * CHIP_FRACTION))
+                   * (CHIP_HOT_SCALE if hot else 1.0))
+        img = _play_chip_bitmap(size, hot=hot)
+        bm = self.art.strips.bitmap(("play-chip", px(size), hot), img,
+                                    lsize=(size, size))
+        dx = region["x"] + (geom.tile_w - size) / 2
+        dy = region["y"] + (geom.tile_h - size) / 2
+        return Image(bm["src"], bm["iw"], bm["ih"], v=bm.get("v", 0),
+                     w=bm["lw"], h=bm["lh"],
+                     id=cid,
+                     anchor="nw", dx=dx, dy=dy,
+                     on_click=lambda: self.on_play(item),
+                     # It has to hear its own hover -- see CHIP_SUFFIX.
+                     on_hover=lambda _v=None, k=cid: self.set_hover(k),
+                     on_hover_end=lambda k=cid: self.end_hover(k))
     def row_view_w(self, bleed):
         """Laid-out width of a carousel's scroll viewport. Both the overflow
         test and the paging arithmetic measure against this."""

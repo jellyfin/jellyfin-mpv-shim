@@ -365,7 +365,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             art=self, scroll=self._scroll,
             on_open=lambda item: self._open_item(item),
             nav_mode=lambda: self._nav_mode,
-            get_app=lambda: self.app)
+            get_app=lambda: self.app,
+            on_play=lambda item: self._play_tile(item),
+            can_play=lambda item: self._tile_playable(item))
         self.tiles.on_context = lambda *a, **k: self._open_tile_menu(*a, **k)
         # The action counterpart to TileRenderer. `services=self` is a live
         # provider (source/controller/offline/invalidate/set_status), read
@@ -489,6 +491,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_scroll()
         if not self._nav.push(route, reset=reset, force=force):
             return          # refused by the headless lockdown
+        # The tile under the pointer is not on the next screen. The renderer
+        # would only say so on the next pointer MOVE, and a navigation
+        # triggered by a click leaves the pointer exactly where it was.
+        self.tiles.set_hover(None)
         self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
