@@ -114,9 +114,10 @@ local state = {
     glow = false,
     active = true,          -- false while yielded to playback (see mpvtk-active)
     snapped = false,        -- snapped_scrolling: one notch = one detent (mpvtk-wheel)
-    -- force_scroll_snapping (mpvtk-wheel), and always on for an external
-    -- mpv, where an image is a file mpv opens and mmaps rather than an
-    -- address in this process, so re-issuing one is dear at any rate.
+    -- force_scroll_snapping (mpvtk-wheel). An external mpv used to turn
+    -- this on unconditionally — an image is a file mpv opens and mmaps
+    -- there rather than an address in this process — but that cost is
+    -- inside what rcost measures, so it is left to be measured.
     force_snap = false,
     -- What one render actually costs, in seconds: a smoothed measurement
     -- taken around render() in request_render. Everything the renderer does
@@ -531,7 +532,7 @@ end
 local function snap_round(node, off)
     -- Whether the display quantizes at all right now. Three ways in, and
     -- the middle one is the reason this test exists:
-    --   * force_snap — the user's opt-in, and the default on external mpv;
+    --   * force_snap — the user's opt-in;
     --   * snap_live — this gesture is outrunning the renderer (see
     --     on_wheel);
     --   * snapped — snapped_scrolling, where the stored offset already sits
@@ -2094,7 +2095,7 @@ render = function()
                 'draw:%dms/%dms | mouse:%d,%d hover:%s',
                 state.wheel_count or 0, lw.scale or 0,
                 tostring(lw.target), tostring(lw.off),
-                -- 'F' forced (setting or external mpv), 'g' this gesture,
+                -- 'F' forced by the setting, 'g' this gesture,
                 -- '-' free. The whole point of the feature is that most
                 -- scrolling reads '-', so it is worth being able to see.
                 state.force_snap and 'F'

@@ -143,8 +143,9 @@ class Settings(SettingsBase):
     # is smoother and costs nothing. This forces the mitigation on for what
     # the measurement cannot see: it times the Lua side of a frame, and
     # libass laying the result out at output resolution happens on the VO
-    # thread afterwards. It is always on with an external mpv, where the
-    # per-overlay cost applies to every frame regardless of rate.
+    # thread afterwards. An external mpv used to switch it on regardless;
+    # that cost turned out to be inside what is measured, so it is left to
+    # the measurement and this is the override if that proves wrong.
     force_scroll_snapping: bool = False
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to

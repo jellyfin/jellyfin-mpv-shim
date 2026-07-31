@@ -881,8 +881,8 @@ class Scroll(Element):
 
     **It is a capability, not a mode.** The renderer applies it only when a
     gesture is asking for frames faster than it can measurably draw them, or
-    when the user forces it on, or on an external mpv — see ``snap_round``
-    and ``state.rcost`` in renderer.lua. Ordinary scrolling glides.
+    when the user forces it on — see ``snap_round`` and ``state.rcost`` in
+    renderer.lua. Ordinary scrolling glides.
     Declaring ``snap`` therefore costs nothing on a machine that keeps up,
     and the quantization is there for one that does not: a changed offset
     re-lays the whole OSD at output resolution and re-issues every visible

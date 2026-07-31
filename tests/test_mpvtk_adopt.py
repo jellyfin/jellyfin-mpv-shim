@@ -61,26 +61,30 @@ class TestAdoptBackend(unittest.TestCase):
                        if c[0] == "script-message" and c[1] == "mpvtk-wheel")
         return json.loads(payload[2])
 
-    def test_scroll_snapping_is_forced_out_of_process(self):
+    def test_the_backend_does_not_force_scroll_snapping(self):
         """Out of process an image is a file mpv opens and mmaps rather than
         an address in this process, and a scrolling frame re-issues every
-        visible one — so the cost is high there at any rate.
+        visible one — which used to be reason enough to force quantizing
+        there, sight unseen.
 
-        Decided here rather than by importing player.py into the toolkit;
-        in_process is the backend's own answer to the same question."""
-        self.assertTrue(
+        The renderer times its own frames now, and that mmap happens inside
+        the overlay-add calls it times, so an external mpv should be observed
+        to be expensive rather than assumed to be. Forcing it made that
+        impossible to find out. Off in BOTH backends until it has been tested
+        on a real one."""
+        self.assertFalse(
             self._scroll_config(ext=True,
                                 force_scroll_snapping=False)["force_snap"])
-
-    def test_scroll_snapping_is_not_forced_in_process(self):
-        # libmpv: free-running scrolling unless the user asks otherwise.
         self.assertFalse(
             self._scroll_config(ext=False,
                                 force_scroll_snapping=False)["force_snap"])
 
-    def test_the_setting_forces_it_in_process_too(self):
+    def test_the_setting_forces_it_on_either_backend(self):
         self.assertTrue(
             self._scroll_config(ext=False,
+                                force_scroll_snapping=True)["force_snap"])
+        self.assertTrue(
+            self._scroll_config(ext=True,
                                 force_scroll_snapping=True)["force_snap"])
 
     def test_attach_requires_ext(self):

@@ -268,8 +268,8 @@ NOTES = {
                                "rows when the browser measures itself drawing "
                                "slower than the scroll is asking for. Turn "
                                "this on if scrolling still stutters — on a "
-                               "very large display, or a slow or remote one. "
-                               "Always on with an external MPV."),
+                               "very large display, a slow or remote one, or "
+                               "with an external MPV."),
     # Deliberately says nothing about the pypresence dependency: the Windows
     # build bundles it, so naming a package most users will never have to
     # think about only invites questions. The dynamic note in

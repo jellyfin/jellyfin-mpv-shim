@@ -415,20 +415,25 @@ class MpvtkApp:
         just re-derives its step and thumb-tracking, no cached state to drop.
         Sent on ready and again whenever the Library Browser settings change.
 
-        ``force_snap`` is the user's setting OR'd with "this is an external
-        mpv". Out of process an image reaches mpv as a *file* it opens and
-        mmaps, rather than the ``&<address>`` into shared memory MemoryStore
-        hands it (see rawimage.py), and a scrolling frame re-issues every
-        visible overlay — so the per-overlay cost is high there whatever the
-        wheel is doing. ``self.in_process`` is the backend's own answer to
-        which one this is (mirroring ``player.is_using_ext_mpv``), which is
-        why it is decided here rather than by importing player into the
-        toolkit.
+        ``force_snap`` is the user's setting and nothing else.
 
-        That cost now lands *inside* what the renderer times, so its own
-        measurement should reach the same conclusion unaided. This stays
-        belt-and-braces until someone has confirmed that on a real external
-        mpv; if it holds, this clause is the thing to delete.
+        It used to be OR'd with "this is an external mpv", because out of
+        process an image reaches mpv as a *file* it opens and mmaps rather
+        than the ``&<address>`` into shared memory MemoryStore hands it (see
+        rawimage.py), and a scrolling frame re-issues every visible overlay
+        — so the per-overlay cost is high there whatever the wheel is doing.
+
+        That reasoning predates the renderer measuring its own frames. The
+        mmap happens inside the ``overlay-add`` calls the measurement is
+        taken around, so an external mpv should now be *observed* to be
+        expensive rather than assumed to be, and quantize on its own. Forcing
+        it made that impossible to find out: the fallback was hiding whether
+        the measurement works where it matters most.
+
+        So this is off while it is tested on a real external mpv. If
+        scrolling there stutters, the honest fix is a measurement that sees
+        the cost — not this clause back. ``self.in_process`` is still the
+        backend's own answer to which one this is, if it needs reviving.
         """
         from ..conf import settings
 
@@ -437,8 +442,7 @@ class MpvtkApp:
                 "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),
                 "snapped": bool(getattr(settings, "snapped_scrolling", False)),
                 "force_snap": bool(
-                    getattr(settings, "force_scroll_snapping", False)
-                    or not self.in_process),
+                    getattr(settings, "force_scroll_snapping", False)),
             })
         )
 
