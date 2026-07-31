@@ -945,6 +945,30 @@ class ViewImageTypeTest(unittest.TestCase):
                     "vs-listview"):
             self.assertIn(nid, got)
 
+    def test_the_buttons_clear_the_note_above_them(self):
+        """The dialog's height came from a width-aware measure and its
+        contents from an intrinsic one, so every wrapped note under a
+        setting was allotted a single line -- and the button row was laid
+        out where that short reckoning put it, with Done sitting on top of
+        the paragraph it should have followed."""
+        b, _src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        nodes, _h = build_scene(b)
+        notes = [n for n in nodes if n["t"] == "text"
+                 and n.get("y", 0) > 0
+                 and "one page of tiles" in str(n.get("text", ""))]
+        self.assertTrue(notes, "the pagination note is not on screen")
+        # The wrapped continuation lines are their own nodes, and it is the
+        # LAST of them the button has to clear.
+        note = notes[0]
+        lines = [n for n in nodes if n["t"] == "text"
+                 and str(n.get("id", "")).startswith(str(note.get("id")))]
+        bottom = max(n["y"] + n.get("h", 0) for n in lines)
+        done = [n for n in nodes if n.get("id") == "vs-done"][0]
+        self.assertGreaterEqual(
+            done["y"], bottom,
+            "Done overlaps the note by %.0fpx" % (bottom - done["y"]))
+
     def test_the_modal_also_carries_pagination(self):
         """Not a view setting of this library's -- it is the application's,
         and lives in conf.json rather than on the server -- but it is the

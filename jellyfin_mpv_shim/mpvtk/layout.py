@@ -1109,9 +1109,18 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             wrap_w = c.w if c.w is not None else max(1.0, inner_cross)
             nl = len(_wrap_lines(c, wrap_w))
             sizes.append(float(nl * c.size * LINE_H))
+        elif not row:
+            # measure_h, not measure: intrinsic height answers "how tall
+            # would this like to be with no width to wrap against", which
+            # for anything CONTAINING wrapped text is one line short per
+            # wrap. The line above catches a wrapped Text that is a direct
+            # child; a wrapped Text one Column deeper was measured at a
+            # single line, so whatever followed its container was laid out
+            # over the top of it -- the View Settings dialog's Done button
+            # sat on the note above it.
+            sizes.append(clamp_main(c, measure_h(c, inner_cross)))
         else:
-            mw, mh = measure(c)
-            sizes.append(clamp_main(c, float(mw if row else mh)))
+            sizes.append(clamp_main(c, float(measure(c)[0])))
 
     leftover = inner_main - sum(s for s in sizes if s is not None)
     for i, c in enumerate(box.children):
