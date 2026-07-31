@@ -834,21 +834,42 @@ class LibrarySource:
         return {"channel": channel, "programs": programs,
                 "capped": len(programs) >= limit}
 
+    def programs_page(self, server_uuid, start_index=0, limit=24,
+                      with_total=False, **filters):
+        """``(items, total)`` from ``LiveTv/Programs``.
+
+        The paged form, for the "see all" list route. ``get_programs``
+        below is the same query without the paging — the twelve-item rows
+        want a plain list and would pay for a count they never draw.
+
+        ``with_total`` is what buys a real ``TotalRecordCount``: the rows
+        turn it off deliberately (it is a second, wider query server-side),
+        but a paginated screen cannot page without it — falling back to
+        ``len(items)`` tells the paginator the first page is the whole
+        list, which is how it came to re-serve page 1 as page 2.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_programs(
+            start_index=start_index,
+            limit=limit,
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=with_total,
+            **filters) or {}
+        items = result.get("Items", [])
+        # No count asked for: report the page, not a total we do not have.
+        total = (result.get("TotalRecordCount", len(items)) if with_total
+                 else len(items))
+        return items, total
+
     def get_programs(self, server_uuid, limit=24, **filters):
         """Upcoming guide entries for the Programs screen's category rows.
 
         ``filters`` are the ``is_movie``/``is_sports``/… flags plus
         ``has_aired``; they go straight through to ``LiveTv/Programs``.
         """
-        api = self._conn(server_uuid).api
-        result = api.get_programs(
-            limit=limit,
-            fields=LIST_FIELDS + PROGRAM_FIELDS,
-            image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
-            enable_total_record_count=False,
-            **filters) or {}
-        return result.get("Items", [])
+        return self.programs_page(server_uuid, limit=limit, **filters)[0]
 
     def get_recommended_programs(self, server_uuid, limit=24, **filters):
         """The server's own recommendations — the "On Now" strip."""
@@ -966,10 +987,12 @@ class LibrarySource:
             log.debug("program %s unavailable", program_id, exc_info=True)
             return None
 
-    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
-                       series_timer_id=None):
-        """Recordings, newest first. In-progress ones with
-        ``is_in_progress=True``; everything else is the recordings library.
+    def recordings_page(self, server_uuid, start_index=0, limit=60,
+                        with_total=False, is_in_progress=None,
+                        series_timer_id=None):
+        """``(items, total)`` of recordings, newest first. In-progress ones
+        with ``is_in_progress=True``; everything else is the recordings
+        library.
 
         An in-progress result is stamped ``_recording`` — a recording DTO
         carries no timer state, so the *query* is the only thing that knows
@@ -977,21 +1000,33 @@ class LibrarySource:
         dot and a broadcast-progress bar rather than a resume bar). Stamped
         here rather than at each of the three call sites so none of them can
         forget.
+
+        See ``programs_page`` for why paging and ``with_total`` go together.
         """
         api = self._conn(server_uuid).api
         result = api.get_live_tv_recordings(
+            start_index=start_index,
             limit=limit,
             is_in_progress=is_in_progress,
             series_timer_id=series_timer_id,
             fields=LIST_FIELDS + ",CanDelete",
             image_type_limit=1,
             enable_image_types="Primary,Thumb,Backdrop",
-            enable_total_record_count=False) or {}
+            enable_total_record_count=with_total) or {}
         items = result.get("Items", [])
         if is_in_progress:
             for item in items:
                 item["_recording"] = True
-        return items
+        total = (result.get("TotalRecordCount", len(items)) if with_total
+                 else len(items))
+        return items, total
+
+    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
+                       series_timer_id=None):
+        """Recordings for a row: the list alone, unpaged."""
+        return self.recordings_page(
+            server_uuid, limit=limit, is_in_progress=is_in_progress,
+            series_timer_id=series_timer_id)[0]
 
     def get_recording_folders(self, server_uuid):
         """The virtual folders recordings are filed under. These are ordinary
@@ -1251,12 +1286,20 @@ class LibrarySource:
             # The six Programs rows cap at twelve with nothing behind them;
             # this is that nothing. The flags ride in the spec exactly as
             # PROGRAM_SECTIONS holds them.
-            items = self.get_programs(server_uuid, limit=limit,
-                                      **(spec.get("filters") or {}))
-            return items, len(items)
+            #
+            # start_index and with_total are both load-bearing here, and
+            # were both missing: the row form of this query takes neither,
+            # so page 2 re-fetched page 1 and then reported len(items) as
+            # the total, which shrank the page count back to one. A
+            # 40-programme listing rendered as its first twelve, labelled
+            # "1 / 1".
+            return self.programs_page(
+                server_uuid, start_index=start_index, limit=limit,
+                with_total=True, **(spec.get("filters") or {}))
         if kind == "recordings":
-            items = self.get_recordings(server_uuid, limit=limit)
-            return items, len(items)
+            return self.recordings_page(
+                server_uuid, start_index=start_index, limit=limit,
+                with_total=True)
         if kind == "studios":
             # A flat list of Studio items rather than media -- the by-name
             # counterpart to genres. They render in the same grid because

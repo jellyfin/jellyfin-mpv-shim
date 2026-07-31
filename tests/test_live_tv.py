@@ -524,6 +524,52 @@ class RecordingApi(unittest.TestCase):
                 with self.subTest(call=call):
                     self.assertIn("ChannelImage", kw["fields"])
 
+    def test_a_paged_list_asks_for_the_page_it_was_given(self):
+        """The "see all" behind a Programs or Recordings row is paginated,
+        and these two branches of get_list took the start index and dropped
+        it — so page 2 re-fetched page 1, and reporting ``len(items)`` as
+        the total then shrank the page count back to one. A 40-programme
+        listing rendered as its first twelve, labelled "1 / 1", with the
+        rest unreachable.
+
+        Asserted against the REAL source, because the bug was the source
+        being less correct than the fake standing in for it: the harness's
+        FakeSource.get_list slices by start_index, so every ListPage test
+        exercised a source that did not have the bug.
+        """
+        for kind, call in (("programs", "get_programs"),
+                           ("recordings", "get_live_tv_recordings")):
+            with self.subTest(kind):
+                src, api = self.source()
+                src.get_list("srv", {"type": kind}, start_index=24, limit=12)
+                kw = self.kwargs(api, call)
+                self.assertEqual(kw["start_index"], 24)
+                self.assertEqual(kw["limit"], 12)
+                self.assertTrue(kw["enable_total_record_count"],
+                                "without a count the paginator cannot page")
+
+    def test_a_paged_list_reports_the_servers_total(self):
+        src, api = self.source()
+        api.calls = []
+        src._conn = lambda _uuid: type("C", (), {"api": type("A", (), {
+            "get_programs": staticmethod(
+                lambda **kw: {"Items": [{"Id": "p"}], "TotalRecordCount": 40}),
+        })()})()
+        _items, total = src.get_list("srv", {"type": "programs"},
+                                     start_index=0, limit=12)
+        self.assertEqual(total, 40, "reported the page as the whole list")
+
+    def test_a_row_still_pays_for_no_count(self):
+        """The twelve-item rows never draw a total, and asking for one is a
+        second, wider query server-side. Only the paged form buys it."""
+        src, api = self.source()
+        src.get_programs("srv")
+        src.get_recordings("srv")
+        for call in ("get_programs", "get_live_tv_recordings"):
+            with self.subTest(call):
+                self.assertFalse(self.kwargs(api, call)
+                                 ["enable_total_record_count"])
+
     def test_the_guide_does_not_pay_for_a_logo_it_cannot_draw(self):
         # A guide cell is text; the channel column's art comes off the
         # channel DTO. Asking for the tag would cost a channel lookup per
