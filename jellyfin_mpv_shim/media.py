@@ -29,6 +29,17 @@ def set_video_factory(factory):
     _video_factory = factory
 
 
+#: Image containers mpv's ffmpeg commonly cannot decode, so the server is
+#: asked to convert them instead of handing over the original bytes. HEIC is
+#: the one that matters -- it is what every recent iPhone writes.
+_SERVER_CONVERTED_IMAGES = {"heic", "heif", "avif", "cr2", "nef", "arw",
+                            "dng", "orf", "raf", "rw2"}
+
+#: Cap for a server-converted photo. Large enough for any display we draw on,
+#: small enough that the conversion is not the reason the slideshow stalls.
+_PHOTO_MAX_WIDTH = 3840
+
+
 def build_video(item_id, parent, aid=None, sid=None, srcid=None,
                 explicit_tracks=False):
     if _video_factory is not None:
@@ -84,6 +95,21 @@ class Video(object):
         self.item = self.client.jellyfin.get_item(item_id)
 
         self.is_tv = self.item.get("Type") == "Episode"
+        #: A still image rather than a moving one. mpv plays it happily --
+        #: it holds an image for --image-display-duration and moves on --
+        #: but everything *around* playback has to know: it starts paused,
+        #: it reports nothing, and the seek controls are meaningless. The
+        #: player sets that duration per start (see _play_media); the
+        #: browser leaves it at "inf" while it owns the window, and a photo
+        #: inheriting that is a photo that never advances. See
+        #: get_playback_url for why this skips PlaybackInfo.
+        self.is_photo = self.item.get("Type") == "Photo"
+        #: Set by the player before it asks for a URL: True once mpv has been
+        #: handed this server's Authorization header, in which case the URL
+        #: leaves the token out. A token in a URL is a token in logs, in
+        #: ``ps`` output and in every proxy in the path -- and it is a query
+        #: parameter whose accepted spelling has already changed twice.
+        self.auth_via_header = False
 
         self.subtitle_seq = {}
         self.subtitle_uid = {}
@@ -98,6 +124,44 @@ class Video(object):
         self.srcid = srcid
         self.intros: List[Intro] = []
         self.intro_tried = False
+
+    def foreign_subtitle_hosts(self):
+        """Hosts, other than our server, that mpv would fetch a subtitle from.
+
+        ``--http-header-fields`` is a **global** mpv option: it applies to
+        every HTTP request mpv makes, not just the stream. An external
+        subtitle whose Path is an absolute URI is handed to ``sub_add``
+        unchanged (see map_streams), so setting the header while one of
+        those is in play would send our access token to whoever hosts it.
+
+        Read off the item rather than the media source because this has to
+        be answerable *before* PlaybackInfo -- the header has to be decided
+        before the stream URL is built. IsExternalUrl is set by the server
+        exactly when a subtitle's Path is an absolute http(s) URI
+        (StreamInfo.cs:1264-1274), so the same test on Path is the honest
+        pre-check.
+        """
+        try:
+            base = urllib.parse.urlparse(
+                self.client.config.data.get("auth.server") or "")
+        except Exception:
+            return set()
+        mine = (base.scheme, base.hostname, base.port)
+        foreign = set()
+        for source in self.item.get("MediaSources") or []:
+            for stream in source.get("MediaStreams") or []:
+                if stream.get("Type") != "Subtitle":
+                    continue
+                path = stream.get("Path") or ""
+                if not path.lower().startswith(("http://", "https://")):
+                    continue
+                try:
+                    parts = urllib.parse.urlparse(path)
+                except Exception:
+                    continue
+                if (parts.scheme, parts.hostname, parts.port) != mine:
+                    foreign.add(parts.hostname)
+        return foreign
 
     def map_streams(self):
         self.subtitle_seq = {}
@@ -372,8 +436,15 @@ class Video(object):
             query_params = {
                 "static": "true",
                 "MediaSourceId": self.media_source["Id"],
-                "api_key": self.client.config.data["auth.token"],
             }
+            if not self.auth_via_header:
+                # Only when the player could not be given the Authorization
+                # header. ApiKey, not api_key: the server reads both in the
+                # same place, but api_key is gated on
+                # EnableLegacyAuthorization, off by default from Jellyfin v12
+                # (AuthorizationContext.GetAuthorizationInfoFromDictionary).
+                query_params["ApiKey"] = (
+                    self.client.config.data["auth.token"])
 
             if "LiveStreamId" in self.media_source:
                 query_params["LiveStreamId"] = self.media_source["LiveStreamId"]
@@ -515,6 +586,35 @@ class Video(object):
         Returns the URL to use for the transcoded file.
         """
         self.terminate_transcode()
+
+        if self.is_photo:
+            # Photos do not go through PlaybackInfo at all. That endpoint
+            # answers about MediaSources, and a Photo has none -- so there is
+            # no source to negotiate, no play-session id, and nothing to
+            # transcode. jellyfin-web fetches the file itself, which is what
+            # this is (confirmed against a live server).
+            #
+            # HEIC goes the other way, through the image endpoint, because
+            # that is where the server will convert it: mpv's ffmpeg often
+            # cannot decode HEIC, and finding out at decode time gives a
+            # black window rather than a fallback. Branching on the container
+            # up front is the cheap version of that test.
+            # Both of these take the header like every other url below, and
+            # for the same reason -- this branch returns before the one that
+            # drops the token, so leaving them at the apiclient's default
+            # sent both, and a photo was the one thing still putting a token
+            # in a query string after all of the above.
+            keep_token = not self.auth_via_header
+            container = (self.item.get("Container") or "").lower()
+            path = (self.item.get("Path") or "").lower()
+            if container in _SERVER_CONVERTED_IMAGES or any(
+                    path.endswith("." + ext)
+                    for ext in _SERVER_CONVERTED_IMAGES):
+                return self.client.jellyfin.artwork(
+                    self.item_id, "Primary", _PHOTO_MAX_WIDTH,
+                    include_apikey=keep_token)
+            return self.client.jellyfin.download_url(
+                self.item_id, include_apikey=keep_token)
 
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr

@@ -710,6 +710,37 @@ class TestEditorExitReload(unittest.TestCase):
         self.b.go_back()
         self.assertEqual([i["Id"] for i in self.b.route["_data"]], ["fresh"])
 
+    def test_jumping_back_past_the_editor_refetches_it_too(self):
+        """The history menu (right-click Back) jumps rather than pressing
+        Back N times, and it used to reload only Home — so picking the
+        playlist out of the menu showed the pre-edit membership as fresh,
+        with removed tracks still listed and clickable, while pressing Back
+        for the same move refetched. Both go through _land_back now."""
+        self.b.nav_stack = [
+            {"kind": "home", "server": "srv1"},
+            {"kind": "playlist", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_data": [{"Id": "stale"}]},
+            {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_items": []},
+        ]
+        self.b.go_back_to(2)                 # the playlist, past the editor
+        self.assertEqual(self.b.route["kind"], "playlist")
+        self.assertEqual([i["Id"] for i in self.b.route["_data"]], ["fresh"])
+
+    def test_a_jump_that_steps_over_the_editor_from_further_in(self):
+        """The editor need not be the page directly left: a jump can clear
+        several at once, and any of them being the editor makes what is
+        underneath stale."""
+        self.b.nav_stack = [
+            {"kind": "playlist", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_data": [{"Id": "stale"}]},
+            {"kind": "playlist_edit", "server": "srv1", "item_id": "P",
+             "title": "Mix", "_items": []},
+            {"kind": "detail", "server": "srv1", "item_id": "m1"},
+        ]
+        self.b.go_back_to(1)
+        self.assertEqual([i["Id"] for i in self.b.route["_data"]], ["fresh"])
+
     def test_other_pages_are_not_refetched(self):
         self.b.nav_stack = [
             {"kind": "detail", "server": "srv1", "item_id": "m1",

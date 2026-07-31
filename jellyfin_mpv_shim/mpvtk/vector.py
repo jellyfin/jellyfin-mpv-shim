@@ -16,6 +16,7 @@ it.
 """
 
 import logging
+import math
 
 from ..ui_icon_paths import ICON_PATHS
 from ..svgpath import svg_path_to_ass
@@ -142,33 +143,83 @@ def _contours(name):
     return contours
 
 
+def _nonzero_mask(contours, big, scale):
+    """An ``L`` mask of the icon's ink, filled by the **nonzero winding
+    rule** — SVG's default, and the one this path data is authored for.
+
+    Contours used to be filled independently, on the reasoning that no icon
+    in the set relied on an inner contour punching a hole. Material's filled
+    ``photo`` and ``photo_album`` do exactly that: one subpath traces the
+    frame and a second, wound the other way, cuts the mountain out of it.
+    Filled independently they came out as solid squares — which is the
+    graceful-degradation the old comment promised, and also completely
+    unreadable as a type indicator.
+
+    A scanline fill rather than "fill the outer contours, erase the inner
+    ones": the winding number is what the rule is defined on, so counting it
+    is both simpler than classifying contours and correct for the nesting
+    depths that classification gets wrong. Cost is one pass over the edge
+    list per raster row of a ≤24px glyph, and the result is cached.
+    """
+    from PIL import Image, ImageDraw
+
+    mask = Image.new("L", (big, big), 0)
+    edges = []
+    for contour in contours:
+        pts = [(x * scale, y * scale) for x, y in contour]
+        for i in range(len(pts)):
+            (x0, y0), (x1, y1) = pts[i], pts[(i + 1) % len(pts)]
+            if y0 != y1:
+                # Horizontal edges contribute no crossings; skipping them
+                # also keeps the division below safe.
+                edges.append((x0, y0, x1, y1))
+    if not edges:
+        return mask
+    draw = ImageDraw.Draw(mask)
+    for row in range(big):
+        y = row + 0.5                      # sample at the pixel centre
+        crossings = []
+        for x0, y0, x1, y1 in edges:
+            # Half-open in y so a vertex shared by two edges is counted
+            # once, not twice or zero times.
+            if (y0 <= y < y1) or (y1 <= y < y0):
+                t = (y - y0) / (y1 - y0)
+                crossings.append((x0 + t * (x1 - x0), 1 if y1 > y0 else -1))
+        if not crossings:
+            continue
+        crossings.sort()
+        winding = 0
+        for i in range(len(crossings) - 1):
+            winding += crossings[i][1]
+            if winding == 0:
+                continue
+            # Pixel centres inside [a, b) are ink.
+            start = int(math.ceil(crossings[i][0] - 0.5))
+            end = int(math.ceil(crossings[i + 1][0] - 0.5)) - 1
+            if end >= start:
+                draw.line((max(start, 0), row, min(end, big - 1), row),
+                          fill=255)
+    return mask
+
+
 def icon_image(name, size, color):
     """A Material icon as an RGBA PIL image, ``size`` px square.
 
     ``color`` is an ``(r, g, b)`` tuple. Cached per (name, size, colour):
     these are drawn per tile, i.e. potentially dozens per composited row.
-
-    Contours are filled independently (no winding rule), which is right for
-    every icon in this set — none of them relies on an inner contour
-    punching a hole. A future one that does would fill solid rather than
-    fail, which is the correct way for a decoration to degrade.
     """
     key = ("image", name, int(size), tuple(color))
     hit = _raster_cache.get(key)
     if hit is not None:
         return hit
-    from PIL import Image, ImageDraw
+    from PIL import Image
 
     contours = _contours(name)
     big = int(size) * _SS
     canvas = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     if contours:
-        draw = ImageDraw.Draw(canvas)
-        scale = big / 24.0
-        fill = tuple(color) + (255,)
-        for contour in contours:
-            draw.polygon([(x * scale, y * scale) for x, y in contour],
-                         fill=fill)
+        canvas.paste(tuple(color) + (255,), (0, 0),
+                     _nonzero_mask(contours, big, big / 24.0))
     lanczos = Image.LANCZOS  # type: ignore[attr-defined]
     out = canvas.resize((int(size), int(size)), lanczos)
     _raster_cache[key] = out

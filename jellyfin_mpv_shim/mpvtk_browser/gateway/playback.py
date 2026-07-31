@@ -156,7 +156,7 @@ class PlaybackMixin(GatewayCore):
                        offset_ticks=offset_ticks, srcid=srcid, aid=aid, sid=sid)
 
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
-                  srcid=None, aid=None, sid=None):
+                  srcid=None, aid=None, sid=None, pause_stills=True):
         from ...event_handler import start_playback
         from ...sync.manager import syncManager
         client = deps.clientManager.clients.get(server_uuid)
@@ -180,6 +180,7 @@ class PlaybackMixin(GatewayCore):
             start_playback(
                 client, list(item_ids), start_index=start_index,
                 offset_ticks=offset_ticks, aid=aid, sid=sid, srcid=srcid,
-                explicit_tracks=(aid is not None or sid is not None))
+                explicit_tracks=(aid is not None or sid is not None),
+                pause_stills=pause_stills)
         except Exception:
             log.error("mpvtk browser failed to start playback", exc_info=True)

@@ -277,6 +277,12 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        # called when the mouse's forward button is pressed while the UI
+        # owns the pointer. No node and no argument: it means "go forward
+        # in whatever history you keep", which the app owns -- the
+        # renderer has no idea what is behind it. Its counterpart, the
+        # back button, needs no hook because it presses ESC.
+        self.on_forward = None
         # called (op, need) when a textbox copy/paste found no clipboard at
         # all -- neither mpv's clipboard/text nor a desktop helper. ``op``
         # is "copy" or "paste"; ``need`` names the package to install, or
@@ -568,6 +574,13 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_hud_skip handler failed")
             return
+        if t == "forward":
+            if self.on_forward is not None:
+                try:
+                    self.on_forward()
+                except Exception:
+                    log.exception("on_forward handler failed")
+            return
         if t == "clipboard":
             if self.on_clipboard_error is not None:
                 try:
@@ -710,6 +723,25 @@ class MpvtkApp:
         if on and opts is not None:
             args.append(json.dumps(opts))
         self.backend.command(*args)
+
+    def focus(self, node_id=None):
+        """Put spatial-nav focus somewhere, for a gesture that named a
+        destination rather than a direction.
+
+        With ``node_id``: that node, and a textbox also takes the keyboard
+        (a remote's search button means "let me type"). Without one: the
+        node the next scene marks ``autofocus`` — a page's own default,
+        which is how one opened by remote lands on its Play button.
+
+        The request is **parked** until the node appears, because a page is
+        a spinner before it is a page. The renderer drops it the moment the
+        user steers (arrows, Tab, any click), so one that never finds its
+        node cannot resurface on an unrelated screen later.
+        """
+        self.backend.command(
+            "script-message", "mpvtk-focus",
+            json.dumps({"id": node_id} if node_id else {}),
+        )
 
     def summon_hud(self):
         """Wake an idle HUD as if a nav key were pressed (no pause

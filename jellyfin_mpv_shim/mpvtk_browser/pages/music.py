@@ -9,7 +9,7 @@ a mixin was the only place two pages could both reach; a base class is what
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Button, Checkbox, Column, Row, Spacer, Text, VScroll)
+    Checkbox, Column, Row, Spacer, Text, VScroll)
 from .. import theme
 from ..components import chrome, controls, detail as detail_components
 from ..tile_renderer import GRID_GAP
@@ -172,11 +172,9 @@ class MusicLibraryPage(MusicPage):
         return Column([tabbar, body], flex=1, align="stretch")
 
     def _tab_button(self, label, tab):
-        active = self.route.get("_tab", "albums") == tab
-        return Button(label, id="mtab-" + tab,
-                      bg=theme.ACCENT if active else theme.BUTTON_BG,
-                      fg=theme.ACCENT_FG if active else theme.TEXT_FG,
-                      on_click=lambda: self._set_tab(tab))
+        return controls.tab_btn(label, "mtab-" + tab,
+                                self.route.get("_tab", "albums") == tab,
+                                lambda: self._set_tab(tab))
 
     def _songs_body(self, data):
         art = self.ctx.art
@@ -201,7 +199,12 @@ class MusicLibraryPage(MusicPage):
 
     def _grid_body(self, data, size, tab):
         art = self.ctx.art
-        geom = art.geom_wide if tab == "genres" else art.geom_square
+        # Every music tab is square, genres included. jellyfin-web renders a
+        # MusicGenre as shape:'auto' with nothing to measure -- a genre carries
+        # no Primary image -- and setCardData's no-aspect-ratio fallback is
+        # square, so square is what it draws. The modern app says it outright:
+        # Music -> SquareOverflow, everything else PortraitOverflow.
+        geom = art.geom_square
         return VScroll(
             Column(art.tiles.grid_of(data, "music", size, geom=geom,
                                      scroll_id="music-grid"),

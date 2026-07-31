@@ -19,6 +19,7 @@ not just an in-memory LRU.
 import hashlib
 import logging
 import os
+from urllib.parse import urlparse
 import queue
 import threading
 from collections import OrderedDict
@@ -124,6 +125,16 @@ class ThumbnailStore:
         )
         self._session.mount("http://", adapter)
         self._session.mount("https://", adapter)
+        # origin -> Authorization header, registered by the source when its
+        # connections are built. Images are by far the highest-volume
+        # first-party requests this app makes, and putting the token in the
+        # query string means an admin cannot put Jellyfin behind a proxy
+        # that rejects unauthenticated traffic -- every tile would 401.
+        #
+        # Keyed by origin rather than held as one header because a session
+        # can hold several servers at once, and a token is only ever sent to
+        # the server it came from.
+        self._auth: dict = {}
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="thumb")
         self._results: "queue.Queue[tuple[str, Optional[Image.Image]]]" = \
@@ -319,6 +330,27 @@ class ThumbnailStore:
             measure_transparency(image)
         return image
 
+    def set_auth(self, origins):
+        """``{origin: authorization-header}`` for the servers now connected.
+
+        Replaced wholesale rather than merged: a server the user has just
+        signed out of must stop receiving its old token.
+        """
+        self._auth = dict(origins or {})
+
+    def _headers_for(self, url):
+        """The Authorization header for ``url``, or none.
+
+        Matched on scheme+host+port, so a token never travels to another
+        host -- nor over plain http to a server we reached by https.
+        """
+        try:
+            parts = urlparse(url)
+        except Exception:
+            return {}
+        header = self._auth.get((parts.scheme, parts.hostname, parts.port))
+        return {"Authorization": header} if header else {}
+
     def _load_remote(self, key, url):
         path = os.path.join(self.cache_dir, key + ".img")
         if os.path.exists(path):
@@ -329,7 +361,8 @@ class ThumbnailStore:
             except OSError:
                 pass
 
-        resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl)
+        resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl,
+                                 headers=self._headers_for(url))
         resp.raise_for_status()
         data = resp.content
         tmp = path + ".tmp"

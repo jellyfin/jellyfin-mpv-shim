@@ -1,6 +1,7 @@
 """Browsing video libraries: tiles, grids, detail pages and their actions.
 """
 
+import re
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
@@ -10,6 +11,7 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 from tests._shell_harness import (
     FakeController,
     FakeSource,
+    StubHudApp,
     _SyncPool,
     build_scene,
     detail_page,
@@ -21,6 +23,440 @@ from tests._shell_harness import (
     series_page,
     types,
 )
+
+
+class TestBannerFetchIsQuantised(unittest.TestCase):
+    """Issue #592: resizing the window re-requested the header image.
+
+    The artwork cache keys on exact pixel dimensions, so a banner width that
+    followed the window pixel-for-pixel meant a request and a decode per
+    pixel of drag, all resident until the LRU pushed them out.
+
+    The fix quantises the FETCH, not the layout. Quantising the layout is
+    what the first attempt did, and it overhung the scrollbar when the
+    rounded-up width exceeded the space available.
+    """
+
+    def _r(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer.__new__(TileRenderer)
+
+    def _layout(self, lo, hi):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        return [TileRenderer.banner_box(r, w)[0] for w in range(lo, hi)]
+
+    def _fetches(self, lo, hi):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        return [TileRenderer._banner_fetch_w(r, w) for w in self._layout(lo, hi)]
+
+    def test_the_drawn_banner_never_exceeds_the_space_it_has(self):
+        """The regression the first attempt caused: a rounded-up layout
+        width paints over the scrollbar."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (500, 700, 913, 1024, 1280, 1600):
+            with self.subTest(w=w):
+                got, _h = TileRenderer.banner_box(r, w)
+                self.assertLessEqual(got, w - 2 * chrome.CONTENT_PAD)
+
+    def test_and_leaves_no_gap_beside_full_width_content(self):
+        """Which is why the layout is not quantised at all: rounding down
+        would leave the header short of content that does reach the edge."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (913, 1001, 1077):
+            with self.subTest(w=w):
+                got, _h = TileRenderer.banner_box(r, w)
+                self.assertEqual(got, w - 2 * chrome.CONTENT_PAD)
+
+    def test_a_long_drag_asks_for_only_a_handful_of_images(self):
+        self.assertLessEqual(len(set(self._fetches(400, 1600))), 10,
+                             "a resize still asks for an image per pixel")
+
+    def test_neighbouring_widths_share_a_fetch(self):
+        """The property that matters: moving the edge by one pixel almost
+        never costs a request."""
+        f = self._fetches(400, 1600)
+        changes = sum(1 for a, b in zip(f, f[1:]) if a != b)
+        self.assertLessEqual(changes, 10)
+
+    def test_the_fetch_is_never_smaller_than_the_drawn_banner(self):
+        """compose_banner crops the fetched image into the banner, so larger
+        costs nothing and smaller would have to be upscaled."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for drawn in (300, 512, 513, 1000, 1084):
+            with self.subTest(drawn=drawn):
+                self.assertGreaterEqual(
+                    TileRenderer._banner_fetch_w(r, drawn), drawn)
+
+    def test_a_degenerate_width_does_not_go_negative(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        self.assertEqual(TileRenderer._banner_fetch_w(self._r(), 0), 0)
+        self.assertEqual(TileRenderer._banner_fetch_w(self._r(), -5), 0)
+
+    def _asked_for(self, width=1280):
+        """Drive the real backdrop_node and record what it asks the server
+        for. `thumbs=None` stops _request_image before any fetch, which is
+        all this needs — the URL is built first."""
+        from types import SimpleNamespace
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        asked = {}
+
+        class _Source:
+            @staticmethod
+            def backdrop_spec(_item):
+                return ("m1", "tag9")
+
+            @staticmethod
+            def backdrop_url(_server, _item, width=None, height=None,
+                             fill=False):
+                asked.update(width=width, height=height, fill=fill)
+                return "http://srv/bd.jpg"
+
+        r = self._r()
+        r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
+        r._posters, r._requested, r._img_retry = {}, set(), {}
+        box = TileRenderer.banner_box(r, width)
+        TileRenderer.backdrop_node(r, {"Id": "m1"}, box, "detail-bd")
+        return asked, box
+
+    def test_the_banner_is_fetched_at_the_banners_aspect(self):
+        """`fill=True` is fillWidth+fillHeight: the server CROPS to the shape
+        asked for. Asking for a square hands back the centre square of a
+        16:9 backdrop, and compose_banner's cover then blows that up to the
+        full width — every detail header zoomed ~1.8x, for 2.7x the pixels,
+        in the commit whose point was making banners cheaper.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        asked, _box = self._asked_for()
+        self.assertTrue(asked["fill"], "without fill the server squashes")
+        self.assertLess(asked["height"], asked["width"], "asked for a square")
+        r = self._r()
+        self.assertAlmostEqual(asked["height"] / asked["width"],
+                               TileRenderer.BANNER_RATIO, delta=0.01)
+
+    def test_the_fetched_height_still_covers_the_drawn_banner(self):
+        """The other half: a crop that came back shorter than the box would
+        have to be upscaled to cover it."""
+        for width in (700, 1024, 1280, 1600):
+            with self.subTest(width=width):
+                asked, box = self._asked_for(width)
+                from jellyfin_mpv_shim.mpvtk import scaling
+                self.assertGreaterEqual(asked["height"],
+                                        scaling.raster(*box)[1])
+
+    def test_the_aspect_ratio_survives(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        w, h = TileRenderer.banner_box(r, 1280)
+        self.assertEqual(h, int(w * TileRenderer.BANNER_RATIO))
+
+
+class TestLibraryGridShape(unittest.TestCase):
+    """A library grid is shaped by its own artwork, like jellyfin-web's.
+
+    It used to be poster for every collection type, which is why a Home
+    Videos library -- 16:9 clips with no poster art to crop -- came out
+    portrait. Web asks for CardShape.Auto everywhere and lets the median
+    PrimaryImageAspectRatio decide; movies look like posters because movie
+    posters are 2:3, not because anything says "movies are posters".
+    """
+
+    def _grid(self, ratios, kind="grid"):
+        src = FakeSource()
+        src.grid_items = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Video",
+             **({"PrimaryImageAspectRatio": r} if r else {})}
+            for i, r in enumerate(ratios)]
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": kind, "server": "srv1", "parent_id": "lib1",
+                    "title": "Lib"})
+        return b
+
+    def _tile_size(self, ratios):
+        b = self._grid(ratios)
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if re.match(r"^grid-\d+-", str(n.get("id", "")))
+               and n["t"] == "rect"]
+        self.assertTrue(hit, "no grid tiles")
+        return hit[0]["w"], hit[0]["h"]
+
+    def test_posters_stay_posters(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        w, _h = self._tile_size([2 / 3] * 6)
+        self.assertEqual(w, POSTER_GEOM.tile_w)
+
+    def test_sixteen_by_nine_clips_get_landscape_tiles(self):
+        """The Home Videos complaint."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([16 / 9] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_four_three_clips_get_landscape_tiles_too(self):
+        """4/3 is 1.3333 and the threshold is 1.33 -- a 0.0033 margin, so
+        this is arithmetic worth pinning rather than trusting."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([4 / 3] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_phone_verticals_get_poster_tiles(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        w, _h = self._tile_size([0.5625] * 6)
+        self.assertEqual(w, POSTER_GEOM.tile_w)
+
+    def test_square_art_gets_square_tiles(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import SQUARE_GEOM
+        w, _h = self._tile_size([1.0] * 6)
+        self.assertEqual(w, SQUARE_GEOM.tile_w)
+
+    def test_no_artwork_at_all_falls_back_to_square(self):
+        """Web's fallback (cardBuilder.js:102-104). It fires precisely for
+        an art-less grid -- the server sets the ratio from the Primary
+        image -- and square placeholders tile better than tall ones."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import SQUARE_GEOM
+        w, _h = self._tile_size([None] * 6)
+        self.assertEqual(w, SQUARE_GEOM.tile_w)
+
+    def test_the_median_ignores_items_with_no_ratio(self):
+        """A handful of art-less items in a real library must not drag the
+        shape to the fallback."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([16 / 9, None, 16 / 9, None, 16 / 9])
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_a_median_near_four_three_snaps_up_to_landscape(self):
+        """jellyfin-web rounds the median onto a canonical ratio before
+        bucketing (imageLoader.js:209-233), and the bands overlap the
+        thresholds: 1.19 is inside 4:3's +/-0.15 and outside square's, so
+        web calls it 4:3 and draws landscape. Without the snap it is 1.19,
+        which is > 0.8 and < 1.33 -- square. Real libraries sit near these
+        numbers rather than on them, which is why web rounds at all."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+        w, _h = self._tile_size([1.19] * 6)
+        self.assertEqual(w, LANDSCAPE_GEOM.tile_w)
+
+    def test_a_median_below_every_band_is_left_alone(self):
+        """The snap must not invent a shape for content that is genuinely
+        between the canonical ratios."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import _snap_ratio
+        self.assertEqual(_snap_ratio(0.82), 0.82)
+        self.assertEqual(_snap_ratio(2.4), 2.4)
+
+    def test_the_snap_bands_are_webs(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import _snap_ratio
+        self.assertAlmostEqual(_snap_ratio(0.5625), 2 / 3)
+        self.assertAlmostEqual(_snap_ratio(0.75), 2 / 3)
+        self.assertAlmostEqual(_snap_ratio(1.6), 16 / 9)
+        self.assertAlmostEqual(_snap_ratio(1.05), 1.0)
+
+    def test_the_shape_is_parked_so_paging_cannot_change_it(self):
+        """A median taken per page would change the grid's shape as you
+        scroll one library. A route is one folder, so the first page's
+        median is the folder's."""
+        b = self._grid([16 / 9] * 6)
+        build_scene(b)
+        first = b.route["_grid_shape"]
+        # A later page of nothing but posters must not re-shape the grid.
+        b.route["_items"] = b.route["_items"] + [
+            {"Id": "p%d" % i, "Name": "P", "Type": "Movie",
+             "PrimaryImageAspectRatio": 2 / 3} for i in range(40)]
+        build_scene(b)
+        self.assertEqual(b.route["_grid_shape"], first)
+
+    def test_a_filter_change_takes_a_fresh_look(self):
+        """_reload drops the items, so the parked shape has to go with them
+        -- a different set of items deserves a different answer."""
+        b = self._grid([16 / 9] * 6)
+        build_scene(b)
+        self.assertIn("_grid_shape", b.route)
+        page = b._page_for(b.route)
+        page._set_filter("genre", "Action")
+        self.assertNotIn("_grid_shape", b.route)
+
+
+class TestSearchEpisodeArtwork(unittest.TestCase):
+    """A search result row of episodes is about the episodes.
+
+    Inheriting draws one show's thumb over several of them, which is what
+    made a season grid useless. jellyfin-web gets to the same place by a
+    different route -- its search Episodes row sets no preferThumb at all,
+    so it lands on the episode's own Primary -- but asking for a landscape
+    image of the episode first fits the tile better.
+    """
+
+    def test_episode_results_do_not_inherit_series_artwork(self):
+        seen = {}
+        src = FakeSource()
+        src.search = lambda server, term, limit=60: [
+            {"Id": "ep1", "Name": "Ep", "Type": "Episode", "SeriesId": "S1"},
+            {"Id": "mv1", "Name": "Film", "Type": "Movie"},
+        ]
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen[str(item.get("Id"))] = (image_type, inherit)
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        build_scene(b)
+        self.assertEqual(seen.get("ep1"), ("Thumb", False))
+        # Everything else keeps inheriting -- a Movie has no series to
+        # borrow from, but the flag must not have been flipped wholesale.
+        self.assertEqual(seen.get("mv1"), ("Primary", True))
+
+
+class TestChapterTileShape(unittest.TestCase):
+    """A chapter thumbnail is a frame of the video, so the tile has to be the
+    video's shape rather than 16:9 by assumption.
+
+    jellyfin-web reads the first video stream and goes square at <= 1.2
+    (chaptercardbuilder.js:30-39). Same rule, same threshold, because the
+    alternative is a 4:3 or portrait source letterboxed inside a landscape
+    card with black down both sides.
+    """
+
+    def _scene_tile(self, width, height):
+        src = FakeSource()
+        item = dict(src.get_item("srv1", "m1"))
+        item["Chapters"] = [
+            {"Name": "One", "StartPositionTicks": 0, "ImageTag": "t0"},
+            {"Name": "Two", "StartPositionTicks": 10 ** 8, "ImageTag": "t1"},
+        ]
+        streams = [{"Type": "Audio", "Index": 1}]
+        if width:
+            streams.insert(0, {"Type": "Video", "Width": width,
+                               "Height": height})
+        item["MediaSources"] = [{"Id": "src1", "MediaStreams": streams}]
+        src.get_item = lambda server, item_id: dict(item)
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1",
+                    "title": "Movie"})
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if str(n.get("id", "")).startswith("detail-scenes-")
+               and n["t"] == "rect"]
+        self.assertTrue(hit, "no scene tiles")
+        return hit[0]["w"], hit[0]["h"]
+
+    def test_a_widescreen_source_gets_landscape_scenes(self):
+        self.assertEqual(self._scene_tile(1920, 1080),
+                         self._scene_tile(1280, 720))
+
+    def test_a_four_three_source_gets_square_scenes(self):
+        """4:3 is 1.333, comfortably over the threshold, so it stays
+        landscape -- the square case is 1.2 and below."""
+        self.assertEqual(self._scene_tile(640, 480),
+                         self._scene_tile(1920, 1080))
+
+    def test_a_portrait_source_gets_square_scenes(self):
+        wide = self._scene_tile(1920, 1080)
+        tall = self._scene_tile(1080, 1920)
+        self.assertNotEqual(tall, wide,
+                            "a portrait video drew landscape scene tiles")
+
+    def test_a_square_source_gets_square_scenes(self):
+        self.assertNotEqual(self._scene_tile(1000, 1000),
+                            self._scene_tile(1920, 1080))
+
+    def test_no_video_stream_falls_back_to_landscape(self):
+        """Audio-only or a DTO without MediaStreams: the old behaviour, not
+        a crash and not an accidental square."""
+        self.assertEqual(self._scene_tile(None, None),
+                         self._scene_tile(1920, 1080))
+
+
+class TestEpisodeImagesPreference(unittest.TestCase):
+    """``useEpisodeImagesInNextUpAndResume`` reaches the tiles.
+
+    The preference is web's and defaults to *off*, meaning series artwork
+    wins over the episode still -- the spoiler complaint. It applies to
+    Continue Watching / Listening and Next Up, and to nothing else.
+    """
+
+    def _rows_asking(self, episode_images, kinds):
+        """``{row kind: inherit}`` for a home screen built with the setting
+        at ``episode_images`` and one row of each of ``kinds``."""
+        src = FakeSource()
+        src.get_user_prefs = (
+            lambda server, refresh=False: {"episode_images": episode_images})
+        src.home_rows = [
+            {"title": k, "kind": k, "collection_type": None, "slot": i,
+             "items": [{"Id": "%s1" % k, "Name": "X", "Type": "Episode",
+                        "SeriesId": "S1"}]}
+            for i, k in enumerate(kinds)]
+
+        seen = {}
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        real = b.tiles.image_map
+
+        def spy(items, prefix, geom=None, image_type="Primary", **kw):
+            for it in items:
+                seen[str(it.get("Id"))] = kw.get("inherit", True)
+            return real(items, prefix, geom, image_type, **kw)
+
+        b.tiles.image_map = spy
+        b.navigate({"kind": "home", "server": "srv1"})
+        build_scene(b)
+        self.assertTrue(seen, "no tiles were built at all")
+        return seen
+
+    def test_the_default_inherits_series_artwork(self):
+        seen = self._rows_asking(False, ["resume", "nextup"])
+        self.assertEqual(seen.get("resume1"), True)
+        self.assertEqual(seen.get("nextup1"), True)
+
+    def test_turning_it_on_stops_inheriting(self):
+        seen = self._rows_asking(True, ["resume", "nextup", "resumeaudio"])
+        self.assertEqual(seen.get("resume1"), False)
+        self.assertEqual(seen.get("nextup1"), False)
+        self.assertEqual(seen.get("resumeaudio1"), False)
+
+    def test_latest_rows_never_follow_the_setting(self):
+        """The trap. A Latest-Episodes row sets preferThumb with no
+        inheritThumb at all in web (utils/sections.ts:135-144), so it always
+        prefers series artwork -- and ours goes further, drawing those rows
+        as the *show* (ParentPrimary, captioned with the series name). If
+        LATEST followed the setting, turning it on would scatter episode
+        stills through a row that is a list of shows.
+        """
+        seen = self._rows_asking(True, ["latestmedia"])
+        self.assertEqual(seen.get("latestmedia1"), True,
+                         "a Latest row followed the episode-images setting")
+
+    def test_an_unknown_row_kind_inherits(self):
+        seen = self._rows_asking(True, ["activerecordings"])
+        self.assertEqual(seen.get("activerecordings1"), True)
+
+    def test_a_source_without_the_method_still_loads(self):
+        """The offline source has no display preferences. It must fall back
+        to the default rather than raise inside the home fan-out -- that
+        exception re-triggers the fallback that got us there."""
+        src = FakeSource()
+        self.assertFalse(hasattr(src, "get_user_prefs"))
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        nodes, _h = build_scene(b)
+        self.assertTrue(nodes, "the home screen did not render at all")
 
 
 class TestTileShapes(unittest.TestCase):
@@ -59,8 +495,9 @@ class TestTileShapes(unittest.TestCase):
     def test_only_episodes_swap_to_the_series_poster(self):
         """The Series entries the same row carries keep their own poster."""
         seen = []
-        self.b.source.image_spec = lambda i, t="Primary", w=280: seen.append(
-            (i.get("Id"), t))
+        self.b.source.image_spec = (
+            lambda i, t="Primary", w=280, inherit=True:
+            seen.append((i.get("Id"), t, inherit)))
         self.b.tiles._tile({"Id": "e1", "Type": "Episode"}, self.b.geom,
                            "Primary", True)
         self.b.tiles._tile({"Id": "s1", "Type": "Series"}, self.b.geom,
@@ -68,8 +505,12 @@ class TestTileShapes(unittest.TestCase):
         # ...and elsewhere an episode still shows its own still.
         self.b.tiles._tile({"Id": "e2", "Type": "Episode"}, self.b.geom_wide,
                            "Thumb")
-        self.assertEqual(seen, [("e1", "ParentPrimary"), ("s1", "Primary"),
-                                ("e2", "Thumb")])
+        # inherit rides along unchanged: parent_item is a different mechanism
+        # (it overrides the requested *type*), and a row that has not opted
+        # out still inherits.
+        self.assertEqual(seen, [("e1", "ParentPrimary", True),
+                                ("s1", "Primary", True),
+                                ("e2", "Thumb", True)])
 
     def test_live_tv_falls_back_to_a_landscape_row(self):
         """Live TV rows are shaped by their artwork (see
@@ -659,6 +1100,97 @@ class TestRemoteDisplayContent(unittest.TestCase):
 
     def test_unknown_command_is_declined(self):
         self.assertFalse(self.b.on_nav_command("nope"))
+
+    def _play(self, audio):
+        self.b.on_playstate({"stopped": False, "is_audio": audio,
+                             "id": "v1", "title": "Something",
+                             "position": 1, "duration": 10})
+
+    def test_go_home_over_a_video_stops_it(self):
+        """"Go home" cannot mean "go home behind this film". The navigate
+        happens first so the home screen is loaded by the time stopping
+        hands it the window."""
+        self._play(audio=False)
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_home_over_music_stops_it_too(self):
+        """Video and audio playstates are held in different attributes, so
+        one check covers one of them and quietly misses the other."""
+        self._play(audio=True)
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_home_with_nothing_playing_stops_nothing(self):
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertNotIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_to_search_puts_the_cursor_in_the_search_box(self):
+        """jellyfin-web's search button opens a search page; the box lives
+        in our top bar on every screen, so this is the same gesture with
+        one less screen. It is a renderer operation — only the renderer
+        knows what has focus — so the assertion is on the request."""
+        self.b.app = StubHudApp()
+        self.assertTrue(self.b.on_nav_command("search"))
+        self.assertEqual(_focus_calls(self.b.app), ["nav-search"])
+
+    def test_search_is_declined_while_the_library_is_not_up(self):
+        """Mid-playback the browser is not on screen; there is nothing to
+        put a cursor into, and claiming the command would swallow it."""
+        self.b.app = StubHudApp()
+        self.b._browsing = False
+        self.assertFalse(self.b.on_nav_command("search"))
+        self.assertEqual(_focus_calls(self.b.app), [])
+
+
+def _focus_calls(app):
+    return [node for name, node in app.calls if name == "focus"]
+
+
+class TestRemoteArrivalFocusesThePage(unittest.TestCase):
+    """A page opened by remote or arrow key lands on its own default
+    action, so the first press of anything is not a hunt for the Play
+    button from wherever focus happened to be.
+
+    Split across two sides on purpose. The browser only ever *asks* — it
+    cannot know what has focus, or whether the pointer took over since —
+    and the renderer decides (tests/lua/test_renderer.lua). What is
+    checked here is that the ask happens and that a page nominates a node
+    for it to land on."""
+
+    def setUp(self):
+        self.app = StubHudApp()
+        self.b = MpvtkBrowser(app=self.app, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def test_navigating_asks_for_the_page_default(self):
+        self.app.calls.clear()
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        self.assertIn(None, _focus_calls(self.app),
+                      "no autofocus request went out on a navigation")
+
+    def test_a_movie_page_nominates_its_play_button(self):
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        nodes, _h = build_scene(self.b)
+        af = [n["id"] for n in nodes if n.get("af")]
+        self.assertEqual(len(af), 1, "a page needs exactly one default")
+        self.assertIn(af[0], ("btn-play", "btn-resume"))
+
+    def test_it_is_resume_when_there_is_something_to_resume(self):
+        """Watching is why the page was opened; where from is the item's
+        business, not the button's."""
+        item = dict(self.b.source.get_item("srv1", "m1") or {})
+        item["UserData"] = {"PlaybackPositionTicks": 600000000}
+        self.b.source.get_item = lambda s, i, _it=item: _it
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        nodes, _h = build_scene(self.b)
+        af = [n["id"] for n in nodes if n.get("af")]
+        self.assertEqual(af, ["btn-resume"])
 
     def test_a_missing_item_is_a_no_op(self):
         self.b.source.get_item = lambda s, i: None

@@ -89,8 +89,13 @@ class FakeSource:
                  "ProductionYear": 2001}],
              "collection_type": None},
         ]
+        # PrimaryImageAspectRatio because a real Jellyfin sets it from the
+        # Primary image, and the library grid is shaped by the median of it
+        # (GridPage._grid_shape). A fixture without one exercises only the
+        # no-artwork fallback, which is not what a movies library is.
         self.grid_items = [
-            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie",
+             "PrimaryImageAspectRatio": 2 / 3}
             for i in range(30)
         ]
         # What the view actually asked the source for. See
@@ -127,13 +132,65 @@ class FakeSource:
         page = self.grid_items[start_index:start_index + 20]
         return page, len(self.grid_items)
 
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        return dict(getattr(self, "view_settings", {}))
+
+    def save_view_setting(self, server_uuid, parent_id, collection_type,
+                          setting, value, key=None):
+        self.saved_view_settings = getattr(self, "saved_view_settings", [])
+        if getattr(self, "save_view_fails", False):
+            raise RuntimeError("server refused")
+        self.saved_view_settings.append((parent_id, setting, value, key))
+
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        self.byname_specs = getattr(self, "byname_specs", [])
+        self.byname_specs.append(dict(spec or {}))
+        return getattr(self, "byname_rows", [
+            {"key": "movies", "title": "Movies", "types": "Movie",
+             "total": 40,
+             "items": [{"Id": "bm1", "Name": "Film", "Type": "Movie"}]},
+        ])
+
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        return getattr(self, "genre_rows", [
+            {"key": "g1", "title": "Action", "types": "Movie",
+             "items": [{"Id": "gm1", "Name": "Film", "Type": "Movie",
+                        "PrimaryImageAspectRatio": 2 / 3}]},
+        ])
+
+    def get_favorite_sections(self, server_uuid, limit=24):
+        return getattr(self, "favorite_rows", [
+            {"key": "movies", "title": "Movies", "types": "Movie",
+             "items": [{"Id": "fm1", "Name": "Fav", "Type": "Movie"}]},
+        ])
+
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        self.list_specs = getattr(self, "list_specs", [])
+        self.list_specs.append(dict(spec or {}))
+        items = getattr(self, "list_items", None)
+        if items is None:
+            items = self.grid_items
+        page = items[start_index:start_index + 20]
+        return page, len(items)
+
     def get_filter_values(self, server_uuid, parent_id=None):
         return {"genres": ["Action", "Comedy"], "years": [2020, 2021]}
 
     def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
         return ["g0", "g5", "g9"]
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        # Echoes what it was asked with, so a caller that drops the sort or
+        # the filters is visible rather than merely untested.
+        self.play_all_args = (parent_id, sort_by, sort_order, filters)
+        return ["g0", "g1", "g2"]
+
+    def image_spec(self, item, image_type="Primary", width=280,
+                   inherit=True):
         return None  # no artwork in tests -> placeholder tiles, no network
 
     def image_url(self, *a, **k):
@@ -447,8 +504,9 @@ class FakeController:
             {"srcid": srcid, "aid": aid, "sid": sid})
 
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
-                  srcid=None, aid=None, sid=None):
+                  srcid=None, aid=None, sid=None, pause_stills=True):
         self.played.append((list(item_ids), server_uuid, start_index))
+        self.__dict__.setdefault("pause_stills", []).append(pause_stills)
         self.__dict__.setdefault("tracks", []).append(
             {"srcid": srcid, "aid": aid, "sid": sid})
 
@@ -559,6 +617,7 @@ class StubHudApp:
         self.on_hud = None
         self.on_hud_skip = None
         self.on_clipboard_error = None
+        self.on_forward = None
 
     def invalidate(self):
         pass
@@ -572,6 +631,11 @@ class StubHudApp:
 
     def set_hud_skip(self, label):
         self.calls.append(("skip", label))
+
+    def focus(self, node_id=None):
+        # None is "the node this scene nominates" (a page's Play button);
+        # an id is a specific node (the chrome's search box).
+        self.calls.append(("focus", node_id))
 
 class FakeConfig:
     # Mirrors the real mpvtk_browser.config surface the Settings view uses:

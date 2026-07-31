@@ -12,6 +12,7 @@ dialog), and ``_dl`` (download dialog). All are loop-thread only.
 
 from ..i18n import _, _p
 from ..mpvtk.widgets import (
+    Box,
     Button,
     Checkbox,
     Column,
@@ -343,6 +344,90 @@ class DialogsMixin:
         self._dialog = None
         self.invalidate()
 
+    # ---------------------------------------------------------- view settings
+
+    def view_settings(self, current, on_set, paginated=None):
+        """A library's view settings, in a modal.
+
+        Same shape as the guide's settings dialog and for the same reason:
+        controls that are read once and then rarely touched do not earn
+        permanent space on the filter row, which is already carrying the
+        sort, three filters, Play All and Shuffle.
+
+        ``current(setting)`` reads a live value and ``on_set(setting,
+        value)`` writes one -- applied immediately rather than on a Save
+        button, because each is a one-click change the user can see happen
+        and undo. There is nothing to validate and nothing to batch.
+
+        ``paginated`` is ``(is_on, toggle)`` for the pagination switch, or
+        None to leave it out. A separate argument rather than another
+        ``current``/``on_set`` name because it is not the same kind of
+        setting: the others are this library's and live on the server, this
+        one is the application's and lives in ``conf.json``. The dialog says
+        so rather than quietly filing it with them.
+        """
+        from . import view_prefs
+
+        def build():
+            image_types = [
+                ("primary", _("Auto")), ("thumb", _("Thumbnail")),
+                ("banner", _("Banner")), ("logo", _("Logo")),
+                ("disc", _("Disc")),
+            ]
+            values = [v for v, _l in image_types]
+            stored = current("imageType")
+            body = [
+                self._picker(
+                    _("Artwork"), "vs-imagetype",
+                    [lbl for _v, lbl in image_types],
+                    values.index(stored) if stored in values else 0,
+                    lambda i, v: on_set("imageType", values[i])),
+                Text(_("“Auto” shapes the tiles from the artwork itself."),
+                     size=13, color=theme.SUBTLE_FG, wrap=True),
+                Checkbox(_("Show titles"), bool(current("showTitle")),
+                         id="vs-showtitle",
+                         on_toggle=lambda: on_set(
+                             "showTitle", not current("showTitle"))),
+                Checkbox(_("Show years"), bool(current("showYear")),
+                         id="vs-showyear",
+                         on_toggle=lambda: on_set(
+                             "showYear", not current("showYear"))),
+                Checkbox(_("List instead of a grid"),
+                         view_prefs.is_list_view(current("viewType")),
+                         id="vs-listview",
+                         on_toggle=lambda: on_set(
+                             "viewType",
+                             view_prefs.GRID_VIEW
+                             if view_prefs.is_list_view(current("viewType"))
+                             else view_prefs.LIST_VIEW)),
+                Text(_("These are stored on your server and shared with "
+                       "Jellyfin Web."), size=13, color=theme.SUBTLE_FG,
+                     wrap=True),
+            ]
+            if paginated is not None:
+                is_on, toggle = paginated
+                body += [
+                    # A rule, because what follows is not one of the above:
+                    # everything over the line is this library's and lives
+                    # on the server, everything under it is this device's.
+                    Box(h=1, bg=theme.BORDER),
+                    Checkbox(_("Paginated"), bool(is_on()), id="vs-paginated",
+                             on_toggle=toggle),
+                    Text(_("Show one page of tiles at a time instead of "
+                           "scrolling. Applies to every library on this "
+                           "device."), size=13, color=theme.SUBTLE_FG,
+                         wrap=True),
+                ]
+            return Dialog("viewcfg", self._dialog_shell("viewcfg", [
+                Text(_("View Settings"), size=22, bold=True),
+                Column(body, gap=12, align="stretch"),
+                self._dialog_buttons([
+                    Button(_("Done"), id="vs-done",
+                           on_click=self._close_dialog)]),
+            ], w=440), on_dismiss=self._close_dialog)
+
+        self._show_dialog(build)
+
     @staticmethod
     def _dialog_shell(node_id, children, w=440):
         # align="stretch" so button rows fill the shell's width; without it
@@ -455,6 +540,11 @@ class DialogsMixin:
                             id="sp-join-%d" % i,
                             bg=theme.ACCENT if here else None,
                             fg=theme.ACCENT_FG if here else theme.TEXT_FG,
+                            # Same rule as a tab: being the joined group
+                            # outranks being under the pointer, and the
+                            # default hover fill would paint the accent out.
+                            hover={"fill": theme.ACCENT_HOVER if here
+                                   else theme.BUTTON_ACTIVE},
                             on_click=(self._close_dialog if here else
                                       (lambda gid=gid, srv=g.get("server_uuid"):
                                        self._sync_join(srv or server, gid)))),

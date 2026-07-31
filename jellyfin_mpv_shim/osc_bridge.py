@@ -235,6 +235,15 @@ class OscBridge:
                 and settings.shader_pack_subtype not in profile["subtype"]
             ):
                 continue
+            # Both filters, or this list is not the same list. A profile can
+            # be built around something that exists on one OS -- RTX Video
+            # Super Resolution is a Direct3D 11 video filter -- and
+            # load_profile refuses those, so offering one here was an entry
+            # that could only log an error. The OSD menu has always filtered
+            # them; this list, which replaced it under the in-window OSC,
+            # dropped half the rule.
+            if not manager.profile_is_available(profile):
+                continue
             pairs.append((profile["displayname"], profile_name))
         current = manager.current_profile or "none"
         options = self._options(pairs, current)

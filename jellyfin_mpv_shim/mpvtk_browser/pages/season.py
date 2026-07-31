@@ -72,6 +72,20 @@ class SeasonPage(Page):
                   Row(acts, gap=8, align="center")]
         rows = header + tiles.grid_of(
             episodes, "ep", size, geom=geom, image_type="Thumb",
+            # inherit=False: a season listing is a list of *episodes*, so
+            # every cell must be that episode's own still. The Thumb chain
+            # otherwise borrows the series' thumb/backdrop -- correct for a
+            # Continue Watching card, which is a pointer back to the show,
+            # and useless here: it draws the same series artwork in every
+            # cell of the grid and the screen stops distinguishing anything.
+            #
+            # Pinned by our own test rather than against jellyfin-web,
+            # because web has no equivalent to compare with: it renders a
+            # season's episodes as a *list view* with a leading image
+            # (itemDetails/index.js:1423-1435), not as a card grid, so the
+            # question of which artwork a season-page card takes never
+            # arises there.
+            inherit=False,
             scroll_id="season", head_h=100)
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
                        id="season", flex=1,

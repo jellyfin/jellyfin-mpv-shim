@@ -9,6 +9,9 @@ from .timeline import timelineManager
 log = logging.getLogger("event_handler")
 bindings = {}
 
+#: Remote navigation commands -> the action names playerManager.menu_action
+#: takes. Its keys are also the dispatch list below: the two used to be
+#: separate, so a command could be translated here and still never routed.
 NAVIGATION_DICT = {
     "Back": "back",
     "Select": "ok",
@@ -18,6 +21,11 @@ NAVIGATION_DICT = {
     "MoveLeft": "left",
     "GoHome": "home",
     "GoToSettings": "settings",
+    # jellyfin-web's hamburger. It means "the menu for what I am looking
+    # at", which is a tile's context menu while browsing and the HUD's
+    # settings menu during playback — see PlayerManager.menu_action.
+    "ToggleContextMenu": "menu",
+    "GoToSearch": "search",
 }
 
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -45,6 +53,7 @@ def start_playback(
     srcid=None,
     sync_play_group=None,
     explicit_tracks=False,
+    pause_stills=True,
 ):
     """Begin playback of one or more items from the beginning of `item_ids`.
 
@@ -55,6 +64,11 @@ def start_playback(
     `explicit_tracks` marks aid/sid as a deliberate user choice (the library
     browser's track pickers) that should be used as-is, bypassing the
     language_config and server-default selection in Media.map_streams.
+
+    `pause_stills` is whether a photo at the head of the queue opens paused.
+    True is "show me this picture" (a click on one); False is "run the
+    slideshow" (Play All / Shuffle), where pausing on frame one would be a
+    queue that never starts.
     """
     media = Media(
         client,
@@ -77,7 +91,8 @@ def start_playback(
 
     if settings.pre_media_cmd:
         os.system(settings.pre_media_cmd)
-    playerManager.play(video, offset, is_initial_play=True)
+    playerManager.play(video, offset, is_initial_play=True,
+                       pause_stills=pause_stills)
     timelineManager.send_timeline()
     if sync_play_group is not None:
         playerManager.syncplay.join_group(sync_play_group)
@@ -167,16 +182,7 @@ class EventHandler(object):
                 except Exception:
                     log.warning("Could not display remote content.",
                                 exc_info=True)
-        elif command in (
-            "Back",
-            "Select",
-            "MoveUp",
-            "MoveDown",
-            "MoveRight",
-            "MoveLeft",
-            "GoHome",
-            "GoToSettings",
-        ):
+        elif command in NAVIGATION_DICT:
             playerManager.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
             playerManager.set_mute(command == "Mute")

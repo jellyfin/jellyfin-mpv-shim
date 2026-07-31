@@ -11,6 +11,7 @@ same shapes work whether they came from the server or a local cache.
 import datetime
 import json
 import logging
+from urllib.parse import urlparse
 import os
 import random
 
@@ -24,6 +25,8 @@ from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
 from . import home_sections
 from . import live_tv
+from . import user_prefs
+from . import view_prefs
 
 
 def _iso_utc(when):
@@ -106,17 +109,50 @@ LIVE_TV_COLLECTION = "livetv"
 # server and plays like any other item. Servers before 10.7 label them that
 # way; newer ones hand back a Movie/Episode/Video, which was already covered.
 PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo", "Recording"}
+
+#: Photos play, but they are deliberately NOT in PLAYABLE_TYPES: that set
+#: also drives the tile context menu, and Download / Add to Playlist /
+#: Mark Watched are all either meaningless or broken for a still image.
+#: A photo click is routed on its own in ``app._open_item``.
+PHOTO_TYPE = "Photo"
 # Item types that drill into a series view.
 SERIES_TYPES = {"Series"}
 # Live TV entries, which play immediately rather than opening a detail view.
 # A Program plays its ChannelId, not its own id.
 LIVE_TYPES = {"Program", "TvChannel"}
 # Item types that drill into another grid (by ParentId).
-FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView"}
+# "PhotoAlbum" is a folder that Jellyfin gives its own type: a Home Videos
+# directory holding both clips and images comes back as PhotoAlbum with
+# IsFolder true. Without it here those folders dead-ended at _open_item's
+# else branch -- the single reason a mixed home-video library had holes
+# in it.
+FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView",
+                "PhotoAlbum"}
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
 # only these are surfaced (and downloaded). Audio is included so music
 # playlists play, queue, and download (the now-playing bar drives them).
 PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
+
+#: What Play All and Shuffle will put in a queue.
+#:
+#: **MediaType, not Type.** Type is the concrete entity the library scanner
+#: resolved to, so it depends on which resolver ran: the same clip is a
+#: ``Video`` under a Home Videos library and a ``Movie`` under a movies one
+#: (MovieResolver.cs:158-215). MediaType is the question actually being
+#: asked -- is this a stream, or a container? -- and it is also the axis
+#: jellyfin-web's playbackManager filters on.
+#:
+#: Photos are in. "Play all" in an album of pictures means the slideshow,
+#: and leaving them out made that button dead in exactly the folders it was
+#: added for. What keeps it from being a queue that stalls on every still is
+#: that the pause-on-open rule is a property of the *request* -- clicking one
+#: picture opens a viewer, Play All starts a slideshow (see
+#: PlayerManager.play's pause_stills).
+QUEUEABLE_MEDIA = frozenset({"Video", "Audio", "Photo"})
+
+#: The same set as a ``MediaTypes`` query parameter. Sorted so the URL is
+#: stable, which matters only for reading logs.
+QUEUEABLE_MEDIA_PARAM = ",".join(sorted(QUEUEABLE_MEDIA))
 
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
@@ -199,6 +235,9 @@ class LibrarySource:
         # _home_prefs, cached separately: the home screen reads on startup
         # and the guide may never be opened at all.
         self._live_tv_prefs: dict[str, Any] = {}
+        self._user_prefs: dict[str, Any] = {}
+        # The whole CustomPrefs blob, shared by every consumer of it.
+        self._custom_prefs: dict[str, Any] = {}
         # uuid -> whether this server offers Live TV to this user. Derived for
         # free from the /Views response get_libraries already fetches; see
         # has_live_tv for why that answer is authoritative.
@@ -217,6 +256,32 @@ class LibrarySource:
 
     def servers(self):
         return [{"uuid": uuid, "name": self._conns[uuid].name} for uuid in self._order]
+
+    def auth_origins(self):
+        """``{(scheme, host, port): authorization-header}`` for every server
+        this source is connected to.
+
+        For the thumbnail store, which fetches image URLs on its own session
+        and would otherwise have to carry the token in the query string. The
+        header is the apiclient's own -- the non-legacy MediaBrowser scheme
+        -- so there is one spelling of it in the app.
+        """
+        out = {}
+        for conn in self._conns.values():
+            try:
+                client = conn.client
+                base = client.config.data.get("auth.server") or ""
+                header = client.http._get_authenication_header()
+            except Exception:
+                log.debug("no auth header for a browse connection",
+                          exc_info=True)
+                continue
+            if not header or "Token=" not in header:
+                continue
+            parts = urlparse(base)
+            if parts.hostname:
+                out[(parts.scheme, parts.hostname, parts.port)] = header
+        return out
 
     def _conn(self, server_uuid) -> ServerConn:
         return self._conns[server_uuid]
@@ -322,6 +387,126 @@ class LibrarySource:
         excludes = self._home_prefs.get(server_uuid, (None, frozenset()))[1]
         self._home_prefs[server_uuid] = (list(layout), excludes)
 
+    def get_user_prefs(self, server_uuid, refresh=False):
+        """Per-user display preferences, cached. See ``user_prefs``.
+
+        Shares the DisplayPreferences document the home layout and the guide
+        settings live in, cached separately for the same reason they are:
+        each screen wants its own without paying for the others.
+
+        Never raises: an unreachable or ancient server gets jellyfin-web's
+        defaults, which is the behaviour we had before the setting existed.
+        """
+        if not refresh and server_uuid in self._user_prefs:
+            return self._user_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        try:
+            custom = self._display_prefs_dto(api).get("CustomPrefs") or {}
+        except Exception:
+            log.warning("Failed to read display preferences; using defaults",
+                        exc_info=True)
+            custom = {}
+        prefs = user_prefs.resolve_prefs(custom)
+        self._user_prefs[server_uuid] = prefs
+        return prefs
+
+    def save_user_prefs(self, server_uuid, prefs):
+        """Persist the display preferences. Raises on failure.
+
+        Read-modify-write of the whole DTO, for the same reason
+        ``save_home_layout`` and ``save_live_tv_prefs`` do it: there is no
+        partial-update path on this API, so posting only our keys would drop
+        jellyfin-web's home layout, guide settings and landing screens.
+
+        The cache is adopted before the write and rolled back if it fails --
+        the alternative is a cache that disagrees with the server for the
+        rest of the session.
+        """
+        api = self._conn(server_uuid).api
+        previous = self._user_prefs.get(server_uuid)
+        self._user_prefs[server_uuid] = dict(prefs)
+        try:
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom.update(user_prefs.prefs_to_custom(prefs))
+            dto["CustomPrefs"] = custom
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+        except Exception:
+            if previous is None:
+                self._user_prefs.pop(server_uuid, None)
+            else:
+                self._user_prefs[server_uuid] = previous
+            raise
+
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        """``{setting: (value, key)}`` for a library's saved view settings.
+
+        All four in one read, because they live in one document -- and the
+        key each came from rides along so a save lands where the user's web
+        client will look for it (see ``view_prefs``).
+        """
+        try:
+            custom = self._display_prefs_custom(server_uuid)
+        except Exception:
+            log.debug("could not read view preferences", exc_info=True)
+            custom = {}
+        out = {
+            "imageType": view_prefs.resolve_image_type(
+                custom, parent_id, collection_type),
+            "viewType": view_prefs.resolve_view_type(
+                custom, parent_id, collection_type),
+        }
+        for setting in view_prefs.BOOL_SETTINGS:
+            out[setting] = view_prefs.resolve_bool(
+                custom, parent_id, collection_type, setting)
+        return out
+
+    def _display_prefs_custom(self, server_uuid, refresh=False):
+        """The raw CustomPrefs blob, cached.
+
+        One cache for the whole document rather than one per consumer: the
+        home layout, the guide settings, the display prefs and the per-view
+        settings are all in it, and re-fetching it per screen would be four
+        round trips for one document.
+        """
+        if not refresh and server_uuid in self._custom_prefs:
+            return self._custom_prefs[server_uuid]
+        api = self._conn(server_uuid).api
+        custom = self._display_prefs_dto(api).get("CustomPrefs") or {}
+        self._custom_prefs[server_uuid] = custom
+        return custom
+
+    def save_view_setting(self, server_uuid, parent_id, collection_type,
+                          setting, value, key=None):
+        """Persist one of a library's view settings. Raises on failure.
+
+        ``key`` is the one it was read from, so a change lands where the
+        user's web client will look for it; with none stored yet the first
+        candidate is used. Read-modify-write of the whole DTO, as every
+        other writer here does.
+
+        Booleans go out as ``"true"``/``"false"`` strings for the reason
+        every other boolean in this document does: web compares them as
+        strings, so a JSON boolean reads there as false.
+        """
+        api = self._conn(server_uuid).api
+        if not key:
+            candidates = view_prefs.keys_for(parent_id, collection_type,
+                                             setting)
+            if not candidates:
+                return
+            key = candidates[0]
+        if isinstance(value, bool):
+            value = "true" if value else "false"
+        dto = self._display_prefs_dto(api)
+        custom = dict(dto.get("CustomPrefs") or {})
+        custom[key] = value
+        dto["CustomPrefs"] = custom
+        api.update_user_settings(dto,
+                                 client=home_sections.DISPLAY_PREFS_CLIENT)
+        self._custom_prefs[server_uuid] = custom
+
     def get_latest_excludes(self, server_uuid):
         """Library ids excluded from the home screen's generated rows.
 
@@ -402,7 +587,7 @@ class LibrarySource:
                     # (jellyfin-web passes this on all three home queries).
                     enable_total_record_count=False,
                     **extra) or {}
-                return (title, resume.get("Items", []), collection_type)
+                return (title, resume.get("Items", []), collection_type, None)
             return fetch
 
         def video_resume_row():
@@ -414,14 +599,24 @@ class LibrarySource:
             # media_types rather than include_item_types, matching
             # jellyfin-web: it catches Audio and AudioBook without enumerating
             # types. The music collection_type gives the row square art.
+            #
+            # Square is a DELIBERATE divergence, not a side effect of that
+            # tag. jellyfin-web shapes every resume row 16:9 except Book
+            # (homesections/sections/resume.ts:557) -- audio included -- which
+            # crops a square cover on both sides for no gain. Album art is
+            # square; the row that lists it should be too.
             return resume_row(_("Continue Listening"), collection_type="music",
                               media_types="Audio")()
 
         def next_up_row():
             nextup = api.get_next(
                 limit=20, fields=LIST_FIELDS,
-                enable_image_types="Primary,Thumb,Backdrop") or {}
-            return (_("Next Up"), nextup.get("Items", []), None)
+                enable_image_types="Primary,Thumb,Backdrop",
+                # Every other home query caps this; Next Up was the one that
+                # did not, so a series with twenty backdrops sent twenty tags
+                # per card for the one the tile draws.
+                image_type_limit=1) or {}
+            return (_("Next Up"), nextup.get("Items", []), None, None)
 
         def live_tv_row():
             # jellyfin-web's Live TV home section is a row of nav buttons plus
@@ -449,7 +644,7 @@ class LibrarySource:
                 image_type_limit=1,
                 enable_total_record_count=False,
             ) or {}
-            return (_("On Now"), onnow.get("Items", []), "livetv")
+            return (_("On Now"), onnow.get("Items", []), "livetv", None)
 
         def latest_row(lib):
             def fetch():
@@ -470,15 +665,19 @@ class LibrarySource:
                 # /Latest answers with a bare list, not an Items dict.
                 items = (latest.get("Items", []) if isinstance(latest, dict)
                          else (latest or []))
+                # The library id rides along so the row's heading can link
+                # to it. Nothing else in the tuple identifies which library
+                # a Latest row came from -- the title is a translated
+                # string and the collection type is shared.
                 return (_("Latest %s") % lib.get("Name", ""), items,
-                        lib.get("CollectionType"))
+                        lib.get("CollectionType"), lib.get("Id"))
             return fetch
 
         def active_recordings_row():
             return (_("Active Recordings"),
                     self.get_recordings(server_uuid, limit=12,
                                         is_in_progress=True),
-                    "livetv")
+                    "livetv", None)
 
         builders = {
             home_sections.RESUME: video_resume_row,
@@ -545,8 +744,8 @@ class LibrarySource:
         # landscape by library kind — a TV "Latest" row mixes Series and stray
         # Episodes, so scanning item types alone mis-classifies it.
         return [{"title": t, "items": i, "collection_type": c,
-                 "slot": slot, "kind": kind}
-                for slot, kind, t, i, c in rows if i]
+                 "slot": slot, "kind": kind, "parent_id": pid}
+                for slot, kind, t, i, c, pid in rows if i]
 
     # -- Live TV -----------------------------------------------------------
     #
@@ -745,10 +944,43 @@ class LibrarySource:
             limit=limit,
             fields=LIST_FIELDS + ",ChannelInfo",
             enable_user_data=False,
+            # The docstring above has always said this; the call did not
+            # send it, so the server was resolving image tags for a
+            # thousand programmes to fill a screen of text rows.
+            enable_images=False,
             enable_total_record_count=False) or {}
         programs = result.get("Items", [])
         return {"channel": channel, "programs": programs,
                 "capped": len(programs) >= limit}
+
+    def programs_page(self, server_uuid, start_index=0, limit=24,
+                      with_total=False, **filters):
+        """``(items, total)`` from ``LiveTv/Programs``.
+
+        The paged form, for the "see all" list route. ``get_programs``
+        below is the same query without the paging — the twelve-item rows
+        want a plain list and would pay for a count they never draw.
+
+        ``with_total`` is what buys a real ``TotalRecordCount``: the rows
+        turn it off deliberately (it is a second, wider query server-side),
+        but a paginated screen cannot page without it — falling back to
+        ``len(items)`` tells the paginator the first page is the whole
+        list, which is how it came to re-serve page 1 as page 2.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_programs(
+            start_index=start_index,
+            limit=limit,
+            fields=LIST_FIELDS + PROGRAM_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            enable_total_record_count=with_total,
+            **filters) or {}
+        items = result.get("Items", [])
+        # No count asked for: report the page, not a total we do not have.
+        total = (result.get("TotalRecordCount", len(items)) if with_total
+                 else len(items))
+        return items, total
 
     def get_programs(self, server_uuid, limit=24, **filters):
         """Upcoming guide entries for the Programs screen's category rows.
@@ -756,15 +988,7 @@ class LibrarySource:
         ``filters`` are the ``is_movie``/``is_sports``/… flags plus
         ``has_aired``; they go straight through to ``LiveTv/Programs``.
         """
-        api = self._conn(server_uuid).api
-        result = api.get_programs(
-            limit=limit,
-            fields=LIST_FIELDS + PROGRAM_FIELDS,
-            image_type_limit=1,
-            enable_image_types="Primary,Thumb,Backdrop",
-            enable_total_record_count=False,
-            **filters) or {}
-        return result.get("Items", [])
+        return self.programs_page(server_uuid, limit=limit, **filters)[0]
 
     def get_recommended_programs(self, server_uuid, limit=24, **filters):
         """The server's own recommendations — the "On Now" strip."""
@@ -819,7 +1043,11 @@ class LibrarySource:
                 else:
                     items = self.get_programs(server_uuid, limit=limit,
                                               **query)
-                return {"key": key, "title": title(), "items": items}
+                # The query rides along: the row's own predicate is what a
+                # "see all" listing re-runs without the limit, and keeping
+                # it here means the destination cannot drift from the row.
+                return {"key": key, "title": title(), "items": items,
+                        "filters": dict(query)}
             return work
 
         tasks = [fetch(key, title, query)
@@ -878,10 +1106,12 @@ class LibrarySource:
             log.debug("program %s unavailable", program_id, exc_info=True)
             return None
 
-    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
-                       series_timer_id=None):
-        """Recordings, newest first. In-progress ones with
-        ``is_in_progress=True``; everything else is the recordings library.
+    def recordings_page(self, server_uuid, start_index=0, limit=60,
+                        with_total=False, is_in_progress=None,
+                        series_timer_id=None):
+        """``(items, total)`` of recordings, newest first. In-progress ones
+        with ``is_in_progress=True``; everything else is the recordings
+        library.
 
         An in-progress result is stamped ``_recording`` — a recording DTO
         carries no timer state, so the *query* is the only thing that knows
@@ -889,21 +1119,33 @@ class LibrarySource:
         dot and a broadcast-progress bar rather than a resume bar). Stamped
         here rather than at each of the three call sites so none of them can
         forget.
+
+        See ``programs_page`` for why paging and ``with_total`` go together.
         """
         api = self._conn(server_uuid).api
         result = api.get_live_tv_recordings(
+            start_index=start_index,
             limit=limit,
             is_in_progress=is_in_progress,
             series_timer_id=series_timer_id,
             fields=LIST_FIELDS + ",CanDelete",
             image_type_limit=1,
             enable_image_types="Primary,Thumb,Backdrop",
-            enable_total_record_count=False) or {}
+            enable_total_record_count=with_total) or {}
         items = result.get("Items", [])
         if is_in_progress:
             for item in items:
                 item["_recording"] = True
-        return items
+        total = (result.get("TotalRecordCount", len(items)) if with_total
+                 else len(items))
+        return items, total
+
+    def get_recordings(self, server_uuid, limit=60, is_in_progress=None,
+                       series_timer_id=None):
+        """Recordings for a row: the list alone, unpaged."""
+        return self.recordings_page(
+            server_uuid, limit=limit, is_in_progress=is_in_progress,
+            series_timer_id=series_timer_id)[0]
 
     def get_recording_folders(self, server_uuid):
         """The virtual folders recordings are filed under. These are ordinary
@@ -968,6 +1210,266 @@ class LibrarySource:
         elif letter:
             kwargs["name_starts_with"] = letter
         return kwargs
+
+    #: The by-name screens' rows: (key, title-factory, item types).
+    #: jellyfin-web's ``itemsByName.js``, in its order. A genre, a studio or
+    #: a person spans several kinds of thing, and one flat grid of all of
+    #: them sorted by name is a worse answer than a row each.
+    BY_NAME_SECTIONS = (
+        ("movies", lambda: _("Movies"), "Movie"),
+        ("shows", lambda: _("Shows"), "Series"),
+        ("episodes", lambda: _("Episodes"), "Episode"),
+        ("videos", lambda: _("Videos"), "Video,MusicVideo"),
+        ("trailers", lambda: _("Trailers"), "Trailer"),
+        ("albums", lambda: _("Albums"), "MusicAlbum"),
+        ("songs", lambda: _("Songs"), "Audio"),
+    )
+
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        """``[{"key", "title", "items", "types", "total"}]`` for a by-name
+        screen -- everything a genre, studio or person is attached to,
+        grouped by what kind of thing it is.
+
+        ``spec`` is a :meth:`get_list` ``items`` spec minus the item types;
+        each row adds its own. Fanned out, empty rows dropped, and ``total``
+        rides along so a row only offers "see all" when there is more behind
+        it than it is showing -- which is jellyfin-web's rule for its own
+        More button (``itemsByName.js:96``).
+        """
+        def fetch(key, title, types):
+            def work():
+                row_spec = dict(spec or {})
+                row_spec["include_item_types"] = types
+                items, total = self._list_items(
+                    server_uuid, row_spec, "SortName", "Ascending", 0,
+                    limit, None)
+                return {"key": key, "title": title(), "items": items,
+                        "types": types, "total": total}
+            return work
+
+        rows = []
+        tasks = [fetch(*section) for section in self.BY_NAME_SECTIONS]
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, max(1, len(tasks))),
+                thread_name_prefix="byname") as pool:
+            for future in [pool.submit(task) for task in tasks]:
+                try:
+                    row = future.result()
+                except Exception:
+                    log.warning("Failed to load a by-name row", exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
+    #: Item type a genre row lists, by the library's collection type.
+    #: jellyfin-web's per-collection view definitions (``views/movies.ts``,
+    #: ``views/tvshows.ts``): a movies library's genres are rows of films, a
+    #: TV library's are rows of *shows* rather than episodes.
+    GENRE_ITEM_TYPES = {"movies": "Movie", "tvshows": "Series"}
+
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        """``[{"key", "title", "items", "types"}]`` -- one row per genre.
+
+        jellyfin-web's ``moviegenres`` / ``tvgenres``: a heading per genre
+        over a random sample of that genre's items, with the heading linking
+        to the unbounded listing. ``SortBy: Random`` is theirs too, and it is
+        the point -- a fixed sample of ten would make the screen the same
+        ten films forever.
+
+        ``max_genres`` bounds the fan-out. A library can have a hundred
+        genres and each row is a request; web lazy-loads them on scroll
+        (IntersectionObserver), which we have no equivalent for, so a cap is
+        the honest version. It is logged when it bites rather than silently
+        truncating.
+        """
+        types = self.GENRE_ITEM_TYPES.get(collection_type)
+        if not types:
+            return []
+        api = self._conn(server_uuid).api
+        result = api.get_genres(parent_id, include_item_types=types) or {}
+        genres = [g for g in result.get("Items", []) if g.get("Id")]
+        if len(genres) > max_genres:
+            log.info("Showing %d of %d genres; the rest need the search or "
+                     "the genre filter.", max_genres, len(genres))
+            genres = genres[:max_genres]
+
+        def fetch(genre):
+            def work():
+                items, _total = self._list_items(
+                    server_uuid,
+                    {"type": "items", "genre_ids": genre["Id"],
+                     "include_item_types": types, "parent_id": parent_id},
+                    "Random", "Ascending", 0, limit, None)
+                return {"key": genre["Id"], "title": genre.get("Name") or "",
+                        "items": items, "types": types}
+            return work
+
+        rows = []
+        if not genres:
+            return rows
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, len(genres)),
+                thread_name_prefix="genres") as pool:
+            for future in [pool.submit(fetch(g)) for g in genres]:
+                try:
+                    row = future.result()
+                except Exception:
+                    log.warning("Failed to load a genre row", exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
+    #: The Favorites screen's rows: (key, title-factory, item types).
+    #: jellyfin-web's favoriteitems.js, in its order -- which is roughly
+    #: "biggest thing first" and worth keeping, because a favourites screen
+    #: is read top-down rather than searched.
+    FAVORITE_SECTIONS = (
+        ("movies", lambda: _("Movies"), "Movie"),
+        ("shows", lambda: _("Shows"), "Series"),
+        ("episodes", lambda: _("Episodes"), "Episode"),
+        ("videos", lambda: _("Videos"), "Video,MusicVideo"),
+        ("artists", lambda: _("Artists"), "MusicArtist"),
+        ("albums", lambda: _("Albums"), "MusicAlbum"),
+        ("songs", lambda: _("Songs"), "Audio"),
+    )
+
+    def get_favorite_sections(self, server_uuid, limit=24):
+        """The Favorites screen's rows as ``[{"key", "title", "items",
+        "types"}]``.
+
+        Fanned out for the same reason the Programs screen is: seven
+        independent queries walked serially is seven round trips before
+        anything draws. Empty rows are dropped, so a user with no favourite
+        albums has no Albums heading rather than an empty one.
+
+        ``types`` rides along so the row's heading can link to the unbounded
+        listing, exactly as the Live TV rows carry their filters.
+        """
+        def fetch(key, title, types):
+            def work():
+                items, _total = self._list_items(
+                    server_uuid, {"type": "items", "include_item_types": types,
+                                  "is_favorite": True},
+                    "SortName", "Ascending", 0, limit, None)
+                return {"key": key, "title": title(), "items": items,
+                        "types": types}
+            return work
+
+        rows = []
+        tasks = [fetch(*section) for section in self.FAVORITE_SECTIONS]
+        with ThreadPoolExecutor(
+                max_workers=min(HOME_FANOUT, max(1, len(tasks))),
+                thread_name_prefix="favorites") as pool:
+            for future in [pool.submit(task) for task in tasks]:
+                try:
+                    row = future.result()
+                except Exception:
+                    # One dead row must not cost the whole screen.
+                    log.warning("Failed to load a favourites row",
+                                exc_info=True)
+                    continue
+                if row["items"]:
+                    rows.append(row)
+        return rows
+
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        """``(items, total)`` for a generic list route -- jellyfin-web's
+        ``#/list?type=…``.
+
+        One entry point for every "see all" destination, because they are the
+        same screen with different `where`: Next Up in full, a Live TV
+        category beyond the twelve a row shows, everything in a genre, a
+        studio's catalogue, the favourites.
+
+        ``spec`` is a plain dict so it can live in a route and survive
+        back-navigation. ``spec["type"]`` selects the query; everything else
+        in it is that query's arguments. Unknown types raise rather than
+        quietly returning an empty list -- a typo in a route should not look
+        like an empty library.
+        """
+        kind = (spec or {}).get("type")
+        if kind == "nextup":
+            api = self._conn(server_uuid).api
+            result = api.get_next(
+                index=start_index, limit=limit, fields=LIST_FIELDS,
+                enable_image_types="Primary,Thumb,Backdrop",
+                image_type_limit=1) or {}
+            return (result.get("Items", []),
+                    result.get("TotalRecordCount", 0))
+        if kind == "programs":
+            # The six Programs rows cap at twelve with nothing behind them;
+            # this is that nothing. The flags ride in the spec exactly as
+            # PROGRAM_SECTIONS holds them.
+            #
+            # start_index and with_total are both load-bearing here, and
+            # were both missing: the row form of this query takes neither,
+            # so page 2 re-fetched page 1 and then reported len(items) as
+            # the total, which shrank the page count back to one. A
+            # 40-programme listing rendered as its first twelve, labelled
+            # "1 / 1".
+            return self.programs_page(
+                server_uuid, start_index=start_index, limit=limit,
+                with_total=True, **(spec.get("filters") or {}))
+        if kind == "recordings":
+            return self.recordings_page(
+                server_uuid, start_index=start_index, limit=limit,
+                with_total=True)
+        if kind == "studios":
+            # A flat list of Studio items rather than media -- the by-name
+            # counterpart to genres. They render in the same grid because
+            # they are tiles like any other; only the query differs.
+            api = self._conn(server_uuid).api
+            result = api.get_studios(
+                parent_id=spec.get("parent_id"),
+                include_item_types=spec.get("include_item_types"),
+                start_index=start_index, limit=limit) or {}
+            return (result.get("Items", []),
+                    result.get("TotalRecordCount", 0))
+        if kind == "items":
+            return self._list_items(server_uuid, spec, sort_by, sort_order,
+                                    start_index, limit, filters)
+        raise ValueError("unknown list type %r" % (kind,))
+
+    def _list_items(self, server_uuid, spec, sort_by, sort_order,
+                    start_index, limit, filters):
+        """The ``Users/{id}/Items`` half of :meth:`get_list`.
+
+        Genre, studio, person and favourites are all one query with a
+        different predicate, which is also how jellyfin-web routes them
+        (``#/list?genreId=…``, ``&IsFavorite=true``).
+        """
+        api = self._conn(server_uuid).api
+        kwargs = dict(self._filter_kwargs(filters))
+        for key in ("genre_ids", "person_ids", "artist_ids",
+                    "include_item_types", "parent_id"):
+            if spec.get(key) is not None:
+                kwargs[key] = spec[key]
+        if spec.get("is_favorite"):
+            kwargs["is_favorite"] = "true"
+        # StudioIds has no named argument on get_user_items; params is the
+        # documented way through for query parameters the signature does not
+        # spell out, and it merges last.
+        if spec.get("studio_ids") is not None:
+            kwargs["params"] = {"StudioIds": spec["studio_ids"]}
+        result = api.get_user_items(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_index=start_index,
+            limit=limit,
+            # Recursive: these predicates are about the whole library, not
+            # one folder's direct children -- a genre listing that stopped at
+            # the top level would be empty on any library with folders in it.
+            recursive=True,
+            fields=LIST_FIELDS,
+            image_type_limit=1,
+            enable_image_types="Primary,Thumb,Backdrop",
+            **kwargs) or {}
+        return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_library_items(self, server_uuid, parent_id, sort_by="SortName",
                           sort_order="Ascending", start_index=0, limit=100,
@@ -1117,6 +1619,13 @@ class LibrarySource:
         Batched: a big queue's ids as one ``Ids=`` param overflows the server's
         request-URI limit (HTTP 414). A partial (failed) batch just leaves those
         rows without metadata rather than losing the whole list.
+
+        No fields: the only caller is the queue table, whose columns (index,
+        name, artist, album, runtime) are all unconditional BaseItemDto
+        properties — see LIST_FIELDS. It draws no artwork (``art=False``), so
+        neither ``PrimaryImageAspectRatio`` nor ``ItemCounts`` reaches a pixel,
+        and a field nothing reads is pure server work on a request that is
+        already 100 ids wide.
         """
         ids = [i for i in ids if i]
         if not ids:
@@ -1128,7 +1637,7 @@ class LibrarySource:
         for start in range(0, len(unique), CHUNK):
             chunk = unique[start:start + CHUNK]
             try:
-                result = api.get_items(chunk, fields=MUSIC_FIELDS) or {}
+                result = api.get_items(chunk, fields="") or {}
             except Exception:
                 log.warning("Failed to fetch a metadata batch of %d items",
                             len(chunk), exc_info=True)
@@ -1153,9 +1662,18 @@ class LibrarySource:
         return result.get("Items", [])
 
     def get_instant_mix(self, server_uuid, item_id, limit=200):
+        """A radio-style queue seeded from an album/artist/genre/song.
+
+        Asks for **no** fields, as jellyfin-web does. The caller only wants the
+        ids — it hands them to the player, which fetches the one item it is
+        about to start. The apiclient's default here is the ``music_info()``
+        set, and ``MediaStreams``/``People``/``ItemCounts`` are per-item
+        lookups the server repeats for every one of the 200 results: it turned
+        a single query into hundreds and took ~25s on a spinning-disk server.
+        """
         api = self._conn(server_uuid).api
         try:
-            result = api.get_instant_mix(item_id, limit=limit) or {}
+            result = api.get_instant_mix(item_id, limit=limit, fields="") or {}
         except Exception:
             return []
         return result.get("Items", [])
@@ -1232,9 +1750,54 @@ class LibrarySource:
         api = self._conn(server_uuid).api
         result = api.get_random_items(
             parent_id=parent_id,
-            include_item_types="Movie,Episode,Video",
+            media_types=QUEUEABLE_MEDIA_PARAM,
             limit=limit,
             enable_images=False) or {}
+        return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
+
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        """Ids Play All should queue, in the grid's own order.
+
+        **Deliberately the grid's own query.** This used to ask a different
+        one -- ``Recursive`` plus ``IncludeItemTypes=Movie,Episode,Video`` --
+        and on a Home Videos album holding photos and clips it came back
+        empty, so a folder whose videos were on screen reported nothing to
+        play. Asking the same question the grid asks makes that class of
+        disagreement unrepresentable: whatever is drawn is what is queued,
+        and the answer cannot depend on a second query's filters agreeing
+        with the first's.
+
+        The filter is then :data:`QUEUEABLE_MEDIA`, on **MediaType**, not on
+        ``Type``. Type is the concrete entity the scanner chose, which
+        depends on which resolver ran -- the same clip is a ``Video`` in a
+        Home Videos library and a ``Movie`` in a movies one -- whereas
+        MediaType is the question actually being asked: is this a stream or
+        a container?
+
+        The recursive query survives only as the fallback for a level that
+        is *all folders*, which is the top of a Home Videos library and the
+        one case a flat listing genuinely cannot answer.
+
+        Capped at ``limit``; a queue is not a library export.
+        """
+        items, _total = self.get_library_items(
+            server_uuid, parent_id, sort_by=sort_by, sort_order=sort_order,
+            limit=limit, filters=filters)
+        ids = [i["Id"] for i in items
+               if i.get("Id") and i.get("MediaType") in QUEUEABLE_MEDIA]
+        if ids or not any(i.get("IsFolder") for i in items):
+            return ids
+        api = self._conn(server_uuid).api
+        result = api.get_user_items(
+            parent_id=parent_id,
+            recursive=True,
+            media_types=QUEUEABLE_MEDIA_PARAM,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            limit=limit,
+            enable_images=False,
+            **self._filter_kwargs(filters)) or {}
         return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_playlist_items(self, server_uuid, playlist_id):
@@ -1286,7 +1849,8 @@ class LibrarySource:
         """The next episode to watch for a series (resume or next unwatched)."""
         api = self._conn(server_uuid).api
         result = api.get_next(limit=1, series_id=series_id, fields=LIST_FIELDS,
-                              enable_image_types="Primary,Thumb,Backdrop") or {}
+                              enable_image_types="Primary,Thumb,Backdrop",
+                              image_type_limit=1) or {}
         items = result.get("Items", [])
         return items[0] if items else None
 
@@ -1301,14 +1865,37 @@ class LibrarySource:
 
     # -- images ------------------------------------------------------------
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def image_spec(self, item, image_type="Primary", width=280, inherit=True):
         """Resolve which (item_id, type, tag) actually carries the image.
 
         Falls back from an item's own image to its series/parent image so
         episodes and seasons still show art. Returns ``None`` when there is no
         usable image (caller shows a placeholder).
+
+        ``image_type`` is a *request*, not a promise: ``"Thumb"`` means "this
+        is a landscape tile, find me something landscape-shaped", and is
+        jellyfin-web's ``preferThumb: true`` (``cardbuilder/utils/url.ts``).
+        ``"Primary"`` means a poster or square one. The type actually returned
+        is whatever the chain found.
+
+        ``inherit`` is web's ``inheritThumb``: with it off, a Thumb request
+        stops borrowing from the series and the season and resolves against
+        the item alone. Default on, matching web's default (its
+        ``useEpisodeImagesInNextUpAndResume`` setting defaults to *false*,
+        which reads as ``inheritThumb: true``).
+
+        **The Thumb chain used to reach the item's own Primary second**, so a
+        recorded episode -- which typically carries only a Primary while its
+        series carries Thumb and Backdrop -- put a 2:3 poster in a 16:9 tile.
+        Four landscape-shaped candidates come first now, which is web's order.
+
+        **The Primary chain is deliberately not web's.** Ours ends with the
+        channel logo (see below), which web has no equivalent for, and unlike
+        web it does not fall back to a Backdrop -- that would put 16:9 art in
+        a 2:3 tile, the same defect in the other direction.
         """
         tags = item.get("ImageTags") or {}
+        backdrops = item.get("BackdropImageTags") or []
         if image_type in tags:
             return item["Id"], image_type, tags[image_type]
 
@@ -1332,7 +1919,36 @@ class LibrarySource:
                 return owner, "Primary", item.get("SeriesPrimaryImageTag")
 
         if image_type == "Thumb":
-            # Fall back to a primary image, then the series thumb/primary.
+            # jellyfin-web's preferThumb ladder, url.ts:55-82. Everything
+            # landscape-shaped is tried before the item's own poster: a
+            # recorded Episode usually has only a Primary of its own while
+            # the Series carries the Thumb and the Backdrop, which is why
+            # recorded TV showed this worst.
+            if inherit and item.get("SeriesId") \
+                    and item.get("SeriesThumbImageTag"):
+                return item["SeriesId"], "Thumb", item["SeriesThumbImageTag"]
+
+            if (inherit and item.get("ParentThumbItemId")
+                    and item.get("ParentThumbImageTag")
+                    # web excludes photos here (url.ts:59): a photo's parent
+                    # is its album, whose thumb is some other photo.
+                    and item.get("MediaType") != "Photo"):
+                return (item["ParentThumbItemId"], "Thumb",
+                        item["ParentThumbImageTag"])
+
+            if backdrops:
+                return item["Id"], "Backdrop", backdrops[0]
+
+            # Episodes only, exactly as web has it (url.ts:67-70). The reason
+            # is not obvious -- a season's backdrop is a fine landscape image
+            # for anything -- but the gate is cheap and being bug-compatible
+            # here is worth more than being clever.
+            parent_backdrops = item.get("ParentBackdropImageTags") or []
+            if (inherit and item.get("Type") == "Episode"
+                    and item.get("ParentBackdropItemId") and parent_backdrops):
+                return (item["ParentBackdropItemId"], "Backdrop",
+                        parent_backdrops[0])
+
             if "Primary" in tags:
                 return item["Id"], "Primary", tags["Primary"]
 
@@ -1369,8 +1985,12 @@ class LibrarySource:
             # before it borrows the channel's.
             return item["Id"], "Thumb", tags["Thumb"]
 
-        if item.get("ParentThumbItemId") and item.get("ParentThumbImageTag"):
-            # Live TV programs inherit the channel's thumb this way.
+        if (inherit and item.get("ParentThumbItemId")
+                and item.get("ParentThumbImageTag")):
+            # Live TV programs inherit the channel's thumb this way. Gated on
+            # inherit to match web (url.ts:126), though only a Thumb request
+            # ever passes inherit=False today -- and that one tried this
+            # above.
             return (item["ParentThumbItemId"], "Thumb",
                     item["ParentThumbImageTag"])
 
@@ -1406,13 +2026,26 @@ class LibrarySource:
         if conn is None:
             return None
         api = conn.api
+        if index is None and image_type == "Backdrop":
+            # Backdrops are a numbered set, and image_spec resolves to the
+            # first one (BackdropImageTags[0]) without room in its 3-tuple to
+            # say so. The server does serve /Images/Backdrop unindexed, but
+            # only the indexed form is guaranteed to match the tag we cached
+            # the bitmap under -- backdrop_url has always passed index=0 for
+            # the same reason.
+            index = 0
+        # include_apikey=False throughout: the thumbnail store sends the
+        # Authorization header instead (see auth_origins). Images are the
+        # highest-volume first-party traffic here, so a token in these query
+        # strings is a token in the access log of every one of them.
         if fill and height:
             # Crop to the exact tile aspect so wide library/banner art still
             # reads as a uniform poster instead of a letterboxed thumbnail.
             return api.image_url(item_id, image_type, index=index, tag=tag,
-                                 fill_width=int(width), fill_height=int(height))
+                                 fill_width=int(width), fill_height=int(height),
+                                 include_apikey=False)
         return api.image_url(item_id, image_type, index=index, tag=tag,
-                             max_width=int(width))
+                             max_width=int(width), include_apikey=False)
 
     def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
                           width=320):
@@ -1771,6 +2404,21 @@ class OfflineLibrarySource:
         random.shuffle(ids)
         return ids[:limit]
 
+    def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
+                         sort_order="Ascending", filters=None, limit=200):
+        """Downloaded items of a library, in the grid's order.
+
+        Reuses the grid loader rather than re-deriving the pools: it already
+        knows how each offline parent id maps onto the snapshot, and the two
+        drifting is how Play All would come to queue something the grid does
+        not show.
+        """
+        items, _total = self.get_library_items(
+            server_uuid, parent_id, sort_by=sort_by, sort_order=sort_order,
+            limit=limit, filters=filters)
+        return [i["Id"] for i in items
+                if i.get("Id") and i.get("MediaType") in QUEUEABLE_MEDIA]
+
     def chapter_image_url(self, server_uuid, item_id, chapter_index, chapter,
                           width=320):
         return None  # chapter thumbnails aren't downloaded
@@ -1899,6 +2547,43 @@ class OfflineLibrarySource:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
 
+    def get_by_name_sections(self, server_uuid, spec, limit=20):
+        """Empty offline: every row is a server-side predicate over the
+        whole library. Signature parity with the live source."""
+        return []
+
+    def get_genre_sections(self, server_uuid, parent_id, collection_type,
+                           limit=10, max_genres=40):
+        """Empty offline: a genre row is a server-side GenreIds query over
+        the whole library. Signature parity, as with every other source
+        method -- the offline catalog is the failure path's fallback."""
+        return []
+
+    def get_view_settings(self, server_uuid, parent_id, collection_type):
+        """No server, no saved view settings. Signature parity."""
+        return {}
+
+    def get_favorite_sections(self, server_uuid, limit=24):
+        """Empty offline, and hidden rather than shown empty -- see the
+        Favorites nav button. Present for signature parity: the offline
+        source is what a failed load falls back TO."""
+        return []
+
+    def get_list(self, server_uuid, spec, sort_by="SortName",
+                 sort_order="Ascending", start_index=0, limit=100,
+                 filters=None):
+        """Signature parity with the live source, which is load-bearing: the
+        offline catalog is what a failed load falls back TO, so a call it
+        cannot accept makes the fallback itself raise.
+
+        Answers empty rather than guessing. Every list type is a server-side
+        predicate -- still-to-air programmes, a genre across a library, the
+        favourites -- and a downloaded subset cannot stand in for any of
+        them; a partial answer here would read as "you have nothing in this
+        genre" rather than "this needs the server".
+        """
+        return [], 0
+
     def get_next_up(self, server_uuid, series_id):
         eps = self.get_series_queue(server_uuid, series_id)
         for ep in eps:
@@ -2019,7 +2704,10 @@ class OfflineLibrarySource:
                     return path
         return None
 
-    def image_spec(self, item, image_type="Primary", width=280):
+    def image_spec(self, item, image_type="Primary", width=280, inherit=True):
+        # inherit is accepted and ignored: it selects between an item's own
+        # artwork and its series', and a downloaded item has exactly one file
+        # per type on disk (_art_path already falls back season -> series).
         if self._art_path(item.get("Id"), image_type):
             return item["Id"], image_type, "offline"
         return None

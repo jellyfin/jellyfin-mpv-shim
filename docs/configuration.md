@@ -571,6 +571,10 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `playback_timeout` - Timeout to wait for MPV to start loading video in seconds. Default: `30`
   - If you're hitting this, it means files on your server probably got corrupted or deleted.
   - It could also happen if you try to play an unsupported video format. These are rare.
+- `photo_display_secs` - How long a photo is shown before the queue moves on, in seconds. Default: `5`
+  - Photos open paused, so this is the slideshow speed once you press play.
+  - This is MPV's `--image-display-duration`, but setting it in `mpv.conf` will not work: the library browser
+    holds the same option at `inf` while it is on screen, so the player has to set it for each photo.
 - `lang` - Allows overriding system locale. (Enter a language code.) Default: `null`
   - MPV Shim should use your OS language by default.
 - `ignore_ssl_cert` - Ignore SSL certificates. Default: `false`

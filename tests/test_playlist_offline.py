@@ -35,7 +35,15 @@ def make_row(item_id, **overrides):
 
 class FakeConfig:
     def __init__(self):
-        self.data = {"auth.server-id": "srv"}
+        # auth.server matches the host the artwork fakes below hand back, so
+        # _headers_for sees a same-origin url and actually attaches the
+        # header here rather than short-circuiting to {}.
+        self.data = {"auth.server-id": "srv", "auth.server": "http://s"}
+
+
+class FakeHttp:
+    def _get_authenication_header(self):
+        return 'MediaBrowser Client="test", Token="TESTTOKEN"'
 
 
 class FakeJellyfin:
@@ -54,6 +62,7 @@ class FakeClient:
     def __init__(self, jf):
         self.jellyfin = jf
         self.config = FakeConfig()
+        self.http = FakeHttp()
 
 
 def make_manager(root, jf):
@@ -441,8 +450,10 @@ class TestPlaylistArtDownload(TmpTest):
         self.addCleanup(lambda: setattr(mgr, "requests", real))
 
         jf = FakeJellyfin([])
-        jf.artwork = lambda item_id, kind, size: "http://s/%s/%s" % (item_id,
-                                                                    kind)
+        # include_apikey mirrors the apiclient signature; the sync manager
+        # passes False and sends the token as a header instead.
+        jf.artwork = (lambda item_id, kind, size, include_apikey=True:
+                      "http://s/%s/%s" % (item_id, kind))
         m = make_manager(self.tmp, jf)
         self.addCleanup(m.db.close)
         return m

@@ -860,6 +860,26 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.put_task(self.unwatched_quit)
 
     def _on_menu_key(self):
+        if self._library_has_input():
+            # Browsing, the menu key is the context menu of whatever is
+            # focused — the same thing the remote's hamburger does, and
+            # the same key the renderer binds for it. The library's own
+            # settings are a page, reached from the top bar.
+            try:
+                self._player.command("keypress", "MENU")
+            except Exception:
+                log.debug("context menu keypress failed", exc_info=True)
+            return
+        self.toggle_settings_menu()
+
+    def toggle_settings_menu(self):
+        """The player's own settings menu, toggled.
+
+        Two callers with one meaning: the kb_menu key, and a remote whose
+        cog or hamburger found no page to open (menu_action). Which surface
+        that is depends on the OSC — the HUD's gear menu under mpvtk, the
+        OSD menu otherwise — and deciding it twice is how they would drift.
+        """
         if self.do_not_handle_pause:
             self._player.show_text(_("Please wait, loading..."), 1000, 1)
             return
@@ -1162,6 +1182,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.menu.mouse_select(int(args[1]))
             elif args[0] == "shim-menu-click":
                 self.menu.menu_action("ok")
+            elif args[0] == "shim-menu-back":
+                self.menu.menu_action("back")
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 
@@ -1445,6 +1467,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
         apply_memory: bool = True,
+        pause_stills: bool = True,
     ):
         if video is None:
             # build_video returns None when fully offline with no downloaded
@@ -1461,14 +1484,97 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._load_cancelled = False
         self._start_in_progress = True
         try:
+            # BEFORE the url is built: whether the header took decides
+            # whether the url has to carry the token itself.
+            video.auth_via_header = self._apply_auth_headers(video)
             url = video.get_playback_url()
             if not url:
                 log.error("PlayerManager::play no URL found")
                 return
             self._play_media(video, url, offset, no_initial_timeline,
-                             is_initial_play, apply_memory)
+                             is_initial_play, apply_memory, pause_stills)
         finally:
             self._start_in_progress = False
+
+    def _apply_auth_headers(self, video):
+        """Hand mpv this server's Authorization header. True if it took.
+
+        Everything mpv fetches for this file goes through it -- the stream,
+        any external subtitle sidecar -- so one option covers them all, and
+        none of those URLs then needs a token in its query string.
+
+        ``Authorization: MediaBrowser Token="…"`` is the one header scheme
+        the server does not gate behind ``EnableLegacyAuthorization``
+        (``AuthorizationContext``); ``X-Emby-Token`` and friends are all
+        legacy. The apiclient already builds exactly this line for its own
+        requests, so it is borrowed rather than re-spelled here.
+
+        Returns False rather than raising on any failure, and the caller
+        falls back to putting the token in the url. mpv has had
+        ``http-header-fields`` for over a decade so this should not happen,
+        but the cost of being wrong is that nothing plays at all.
+
+        **The clear at the top is load-bearing.** ``http-header-fields`` is
+        a global, persistent mpv option and mpv is not re-created between
+        queue items, so a header installed for one item is still installed
+        for the next — including a next item we deliberately *refuse* to
+        set it for. That refusal is this guard's entire purpose, and
+        without the clear it defeated itself: auto-advance from a normal
+        item to one whose subtitle lives on a third-party host, and mpv
+        sent the previous item's ``Authorization`` to that host while the
+        log said it had not. Clearing here rather than on each ``return
+        False`` is the point — every exit path past this line leaves mpv
+        holding nothing, including the ones nobody has written yet.
+        """
+        if not self._mpv_alive:
+            # mpv is DOWN — idle-quit, a crash, a window the user closed —
+            # and _play_media re-creates it moments from now, in
+            # _ensure_mpv, which runs after this. Touching the dead handle
+            # from here is not an exception to catch: libmpv's property
+            # write on a destroyed handle takes the process with it, and
+            # the try/except below cannot see that coming. The re-opened
+            # mpv holds no header of ours in any case, so the honest
+            # answer is this method's documented fallback — let the url
+            # carry the token, and the next start install the header.
+            return False
+        try:
+            self._player.http_header_fields = []
+        except Exception:
+            log.debug("could not clear http-header-fields", exc_info=True)
+        client = getattr(video, "client", None)
+        if client is None:
+            return False
+        try:
+            header = client.http._get_authenication_header()
+        except Exception:
+            log.debug("could not build an auth header", exc_info=True)
+            return False
+        if not header or "Token=" not in header:
+            # No token yet (an unauthenticated probe): nothing to send, and
+            # claiming success would strip a url that needs one.
+            return False
+        try:
+            foreign = video.foreign_subtitle_hosts()
+        except Exception:
+            log.debug("could not check for foreign subtitle hosts",
+                      exc_info=True)
+            foreign = {"unknown"}
+        if foreign:
+            # http-header-fields is GLOBAL: mpv would send this token to
+            # whoever hosts that subtitle. There is no per-URL header option,
+            # so the only safe answer is to not set it at all and let the
+            # stream URL carry its own token, which is where it was before.
+            log.info("Not sending the auth header to mpv: this item has a "
+                     "subtitle on %s, and the option is not per-URL.",
+                     ", ".join(sorted(str(h) for h in foreign)))
+            return False
+        try:
+            self._player.http_header_fields = ["Authorization: " + header]
+        except Exception:
+            log.warning("mpv would not take http-header-fields; falling back "
+                        "to a token in the URL", exc_info=True)
+            return False
+        return True
 
     @synchronous("_lock")
     def _play_media(
@@ -1479,6 +1585,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         no_initial_timeline: bool = False,
         is_initial_play: bool = False,
         apply_memory: bool = True,
+        pause_stills: bool = True,
     ):
         self._ensure_mpv()
 
@@ -1516,6 +1623,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
+        # How long mpv holds a still. BEFORE play(), not after the load
+        # succeeds: this is what mpv reports as the file's `duration`, so
+        # the duration wait below and the HUD's scrub bar both depend on it
+        # already being right.
+        #
+        # It has to be set at all because the in-window browser parks it at
+        # "inf" while it owns the window (set_browse_window) and browse_yield
+        # deliberately does not undo that -- so a photo opened from the
+        # library inherited "inf", displayed forever, and never reached
+        # end-of-file. That is the whole of "photo auto-advance is broken":
+        # the queue was waiting on an EOF mpv had been told never to send.
+        if getattr(video, "is_photo", False):
+            try:
+                self._player.image_display_duration = max(
+                    1, int(settings.photo_display_secs))
+            except (_mpv_errors, ValueError, TypeError):
+                log.debug("could not set the photo display duration",
+                          exc_info=True)
         # Arm load-failure detection before play(): mpv can report the file
         # unloadable before the duration wait below even starts.
         self._load_generation += 1
@@ -1596,6 +1721,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A start that got this far succeeded; nothing is left to retry.
         self._failed_playback = None
         self._video = video
+        if getattr(video, "is_photo", False) and pause_stills and is_initial_play:
+            # A photo is a video that happens to be still: mpv holds it for
+            # --image-display-duration and then advances, which is a
+            # slideshow nobody asked for when they opened one picture. Paused
+            # it is a viewer; unpause and the album plays through, which is
+            # the slideshow they *would* ask for.
+            #
+            # Both guards earn their place, and neither did on its own:
+            #
+            # `is_initial_play` -- this used to pause on EVERY load, so the
+            # queue advanced onto the next picture and paused there too. The
+            # slideshow moved exactly one frame and stopped. Pausing is about
+            # the picture you opened, not about every picture after it.
+            #
+            # `pause_stills` -- what the *request* asked for. Clicking one
+            # photo is "show me this", and pausing is the whole point; Play
+            # All on an album is "run the slideshow", and pausing on frame
+            # one would be a queue that never starts.
+            try:
+                self._player.pause = True
+            except _mpv_errors:
+                log.debug("could not pause on a photo", exc_info=True)
         # Music has no picture — going fullscreen for it just blanks the
         # screen (and, with the in-window browser, hides the library the
         # now-playing bar belongs to).
@@ -2915,16 +3062,33 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # forced nav bindings catch these; during video playback they fall
     # through to kb_seek as before.
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
-                     "right": "RIGHT", "ok": "ENTER", "back": "ESC"}
+                     "right": "RIGHT", "ok": "ENTER", "back": "ESC",
+                     # jellyfin-web's hamburger, while the library is up:
+                     # the context menu of whatever is focused. That menu
+                     # holds Play / Queue / Watched / Favorite / Download,
+                     # so this is the whole of those actions from ten feet
+                     # away, with no second UI for them.
+                     "menu": "MENU"}
 
-    # Remote commands the in-window browser answers with a real page. The
-    # OSD menu has neither, so for it both still just open the menu.
-    _NAV_COMMANDS = ("home", "settings")
+    # Remote commands the in-window browser answers with a real page (or,
+    # for search, with the cursor in its search box). The OSD menu has
+    # none of them, so for it settings still just opens the menu.
+    _NAV_COMMANDS = ("home", "settings", "search")
+
+    #: ...and the one of them that still means something over a playing
+    #: video. "Go home" is a way OUT of what is playing — the browser stops
+    #: playback and shows the home screen — where settings and search would
+    #: be opening a library page behind a film nobody asked to leave.
+    _NAV_COMMANDS_WHILE_PLAYING = ("home",)
+
     _MENU_ALIAS = {"settings": "home"}
 
     def _nav_command(self, action):
         handler = self.on_nav_command
-        if handler is None or not self.mpvtk_active or self._video is not None:
+        if handler is None or not self.mpvtk_active:
+            return False
+        if (not self._library_showing()
+                and action not in self._NAV_COMMANDS_WHILE_PLAYING):
             return False
         try:
             return bool(handler(action))
@@ -2957,6 +3121,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         renderer mirrors it into user-data on every transition)."""
         return self._mpvtk_userdata("user-data/mpvtk/active")
 
+    def _library_showing(self):
+        """Whether the library is the thing on screen.
+
+        A video PICTURE is what takes it away; **music does not**. Audio
+        keeps `_video` set and keeps the browser up — that is what the
+        now-playing bar is for — so `_video is None` answers "is the
+        library up?" with a no while the user is looking straight at it.
+        Same pairing as `_stats_key` and `_play_media`, for the same
+        reason.
+        """
+        return self._video is None or self._current_is_audio()
+
+    def _library_has_input(self):
+        """The *library* owns input — not merely the renderer.
+
+        A summoned playback HUD owns input too (same bindings, same
+        user-data flag: it is what lets a remote's arrows drive the HUD),
+        so `_mpvtk_input_active` alone answers this with a yes over a
+        playing video. Anything that means one thing in a library and
+        another in a player has to ask here.
+        """
+        return self._library_showing() and self._mpvtk_input_active()
+
     def _mpvtk_hud_idle(self):
         """True while the playback HUD is attached but hidden: remote
         Move*/Select should reach the renderer's summon bindings (the
@@ -2965,6 +3152,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         return self._mpvtk_userdata("user-data/mpvtk/hud")
 
     def menu_action(self, action):
+        if action == "search":
+            # Browsing, this puts the cursor in the chrome's search box.
+            # During playback it is deliberately nothing: there is no
+            # search surface over a video, and jellyfin-web's own player
+            # does nothing with its search button either. Returning here
+            # keeps it out of the OSD-menu fallback below.
+            self._nav_command("search")
+            return
+        if action == "menu" and not self._library_has_input():
+            # The hamburger with no library to point at — mid-playback
+            # (summoned HUD or not), or a UI-less build. It means the
+            # player's settings menu, and it toggles, exactly as the
+            # kb_menu key does. Ahead of the OSD-menu branch so that a
+            # second press closes that menu rather than re-showing its
+            # root, and ahead of the keypress branch because a summoned
+            # HUD holds the same input the library does.
+            self.toggle_settings_menu()
+            return
         if self.menu.is_menu_shown:
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
@@ -2976,6 +3181,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     "keypress", self._NAV_KEYPRESS[action])
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
+        elif action == "settings":
+            # The cog, with no Settings page to open: mid-playback, or a
+            # build with no in-window UI. The player's own settings menu —
+            # the HUD's gear under mpvtk, the OSD menu otherwise. It used
+            # to be `kb_seek("home")`, which under mpvtk drew the OSD menu
+            # *under* the overlay bitmaps and took the arrow keys with it.
+            self.toggle_settings_menu()
         elif (action in ("up", "down", "left", "right", "ok")
               and self._mpvtk_hud_idle()):
             # Hidden HUD: remote Move*/Select wake it via a script

@@ -71,8 +71,18 @@ class SeriesPage(Page):
         if people is not None:
             blocks.append(people)
         if data.get("similar"):
+            # Shaped by its own artwork, like jellyfin-web
+            # (shape: autooverflow, itemDetails/index.js:1245).
+            # "More Like This" for a film is posters and for a
+            # music album is square covers; one fixed poster row
+            # cropped the second case. Poster stays the fallback
+            # for a row where nothing carries an aspect ratio.
+            sim_geom, sim_type = tiles.auto_geom(
+                data["similar"], default=tiles.art.geom,
+                default_type="Primary")
             blocks.append(tiles.tile_row(
-                _("More Like This"), data["similar"], "series-similar"))
+                _("More Like This"), data["similar"], "series-similar",
+                geom=sim_geom, image_type=sim_type))
         return VScroll(Column(blocks, pad=16, gap=16), id="series", flex=1)
 
     def _series_actions(self, item, server, series_id, trailers=None):

@@ -610,6 +610,12 @@ def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
         if reg.get("on_context"):
             rnode["ctx"] = True
             _reg(ctx, rid, "context", reg["on_context"])
+        if reg.get("autofocus"):
+            # As Element.autofocus, for the one node in a strip that can
+            # be a page's default (the first search result). A tile is a
+            # region rather than an element, so it cannot say this any
+            # other way.
+            rnode["af"] = True
         rnode["hover"] = reg.get(
             "hover", {"bc": theme.ACCENT, "bw": 3})
         ctx.nodes.append(rnode)

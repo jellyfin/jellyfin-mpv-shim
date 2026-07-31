@@ -21,6 +21,11 @@ CAPABILITIES = {
         "ToggleFullscreen",
         "GoHome",
         "GoToSettings",
+        # The two buttons jellyfin-web's remote draws but would not send:
+        # its hamburger (a tile's context menu here, and the HUD's settings
+        # menu during playback) and its search.
+        "ToggleContextMenu",
+        "GoToSearch",
         "TakeScreenshot",
         "VolumeUp",
         "VolumeDown",

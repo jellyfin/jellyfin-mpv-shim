@@ -35,13 +35,29 @@ def _short_join_timeout(seconds=0.1):
 
 
 class FakeJellyfin:
-    def download_url(self, item_id):
+    # include_apikey mirrors the apiclient's own signature. The sync manager
+    # passes False and authenticates by header instead; a fake that did not
+    # take the argument would make every download here a TypeError.
+    def download_url(self, item_id, include_apikey=True):
         return "http://example/download/%s" % item_id
+
+
+class FakeHttp:
+    def _get_authenication_header(self):
+        return 'MediaBrowser Client="test", Token="TESTTOKEN"'
+
+
+class FakeConfig:
+    # Same origin as FakeJellyfin's urls, so _headers_for actually attaches
+    # the header in these tests rather than short-circuiting to {}.
+    data = {"auth.server": "http://example", "auth.token": "TESTTOKEN"}
 
 
 class FakeClient:
     def __init__(self):
         self.jellyfin = FakeJellyfin()
+        self.http = FakeHttp()
+        self.config = FakeConfig()
 
 
 class FakeResp:
@@ -134,8 +150,11 @@ class DownloadCommitTest(TmpTest):
         add_row(m, "a", size_bytes=100)
         item_dir = m._item_dir(m.db.get("a"))
 
+        # headers= is passed by _download so the media request carries the
+        # Authorization header; a fake without it makes the download a
+        # TypeError and the row lands in 'error'.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None):
+                        stopping=None, headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -157,8 +176,11 @@ class DownloadCommitTest(TmpTest):
         add_row(m, "a", size_bytes=100)
         item_dir = m._item_dir(m.db.get("a"))
 
+        # headers= is passed by _download so the media request carries the
+        # Authorization header; a fake without it makes the download a
+        # TypeError and the row lands in 'error'.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None):
+                        stopping=None, headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -175,8 +197,11 @@ class DownloadCommitTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, "a", size_bytes=100)
 
+        # headers= is passed by _download so the media request carries the
+        # Authorization header; a fake without it makes the download a
+        # TypeError and the row lands in 'error'.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None):
+                        stopping=None, headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)

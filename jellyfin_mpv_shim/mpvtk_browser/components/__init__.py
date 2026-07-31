@@ -20,6 +20,7 @@ from .labels import (
     tile_lines,
     track_artists,
     track_duration,
+    type_indicator_icon,
 )
 from .banner import compose_banner, wrap_pil
 
@@ -34,5 +35,6 @@ __all__ = [
     "tile_lines",
     "track_artists",
     "track_duration",
+    "type_indicator_icon",
     "wrap_pil",
 ]

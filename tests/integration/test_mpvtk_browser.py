@@ -54,7 +54,8 @@ def _make_source():
                      for i in range(24)]
             return items[start_index:start_index + 24], len(items)
 
-        def image_spec(self, item, image_type="Primary", width=280):
+        def image_spec(self, item, image_type="Primary", width=280,
+                       inherit=True):
             return None  # placeholder tiles -> no network
 
         def image_url(self, *a, **k):

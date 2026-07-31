@@ -314,9 +314,20 @@ def _ctl_get(b, name, default):
         return default
 
 
-def _menu_rows(b, st):
+#: Width at which the bar grows its own Video Quality button. Read by both
+#: build_hud's tiers and _menu_rows, because "is that button on screen?" is
+#: exactly the question the gear's Quality row has to answer.
+QUALITY_BTN_W = 560
+
+
+def _menu_rows(b, st, w=None):
     """(label, icon, action) rows for the open settings-menu level.
-    ``st`` is the osc_bridge state blob ({} when unavailable)."""
+    ``st`` is the osc_bridge state blob ({} when unavailable).
+
+    ``w`` is the window width, for the one row whose presence depends on
+    whether the bar already has a button for it. Without it (a caller that
+    does not know) the row is kept: an unreachable setting is worse than a
+    duplicated one."""
     kind = b.hud.menu
     rows = []
     # Declared up front because the name is reused by two loops with
@@ -344,7 +355,11 @@ def _menu_rows(b, st):
     sub_style = st.get("sub_style") or {}
     if kind == "root":
         quality = st.get("quality") or {}
-        if quality.get("options"):
+        # Only when the bar's own Video Quality button is NOT on screen.
+        # It drops out below QUALITY_BTN_W, and there the gear is the only
+        # way to reach the setting; above it, this row is a second door to
+        # a sheet whose button is a few pixels away.
+        if quality.get("options") and (w is None or w < QUALITY_BTN_W):
             rows.append((with_current(_("Change Video Quality"),
                                       quality.get("current")), None,
                          lambda: _open_hud_menu(b, "quality")))
@@ -367,11 +382,10 @@ def _menu_rows(b, st):
                 rows.append((with_current(label, group.get("current")),
                              None,
                              lambda k=key: _open_hud_menu(b, "sub_" + k)))
-        syncplay = st.get("syncplay")
-        if syncplay is not None:
-            rows.append((with_current(_("SyncPlay"),
-                                      syncplay.get("current")), None,
-                         lambda: _open_hud_menu(b, "syncplay")))
+        # No SyncPlay row: the bar carries its own SyncPlay button under
+        # exactly the same condition this row had (a state blob with
+        # media), so it was never the only way in — and unlike Quality it
+        # has no width tier to drop out at.
         rows.append((_("Night Mode (Auto Volume Adj)"),
                      "check" if settings.audio_night_mode else None,
                      leaf(lambda: b._ctl(lambda c: c.toggle_night_mode()))))
@@ -438,10 +452,10 @@ def _settings_menu(b, menu_state, size):
     if not b.hud.menu:
         return None
     st = menu_state if menu_state and menu_state.get("has_media") else {}
-    rows = _menu_rows(b, st)
+    w, h = size
+    rows = _menu_rows(b, st, w)
     if not rows:
         return None
-    w, h = size
     x, y = w - 300, h - 160
     anchor = b.hud.menu_anchor or "hud-settings"
     if b.app is not None and hasattr(b.app, "node_rect"):
@@ -514,15 +528,26 @@ def build_hud(b, size):
     def sz(v):
         return int(v * scale + 0.5)
 
+    # A still has no timeline and no sound. mpv reports a duration for one
+    # -- --image-display-duration, i.e. when the NEXT photo arrives -- and
+    # dressing that up as playback is worse than saying nothing: ±10s either
+    # does nothing or skips the picture, and a clock counting 0:00 / 0:05
+    # across a photograph reads as a video about to end. Volume is simply
+    # not a question a picture answers.
+    #
+    # What survives is what an album needs: pause (stop it moving on), and
+    # prev/next (move through it).
+    photo = bool(st.get("is_photo"))
     tiers = {
-        "seek_btns": w >= 500,   # ±10s/±30s step buttons
-        "clock": w >= 500,
-        "quality": w >= 560,
+        "seek_btns": w >= 500 and not photo,   # ±10s/±30s step buttons
+        "clock": w >= 500 and not photo,
+        "quality": w >= QUALITY_BTN_W,
         "favorite": w >= 560,
         "ch_btns": w >= 700,     # chapter prev/next buttons
         "chapters": w >= 700,    # chapter list dropdown
-        "volbar": w >= 760,      # volume slider (mute button always)
-        "ends_at": w >= 1000,    # wall-clock end time
+        "volume": not photo,     # mute button
+        "volbar": w >= 760 and not photo,      # volume slider
+        "ends_at": w >= 1000 and not photo,    # wall-clock end time
     }
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
@@ -622,11 +647,12 @@ def build_hud(b, size):
     right.extend(_pickers(b, menu_state, pos, chapters, tiers))
     muted = bool(st.get("muted"))
     vol = st.get("volume", 100) or 0
-    right.append(tbtn(
-        "volume_off" if muted else
-        ("volume_up" if vol >= 50 else "volume_down"),
-        "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
-        tip=_("Mute")))
+    if tiers["volume"]:
+        right.append(tbtn(
+            "volume_off" if muted else
+            ("volume_up" if vol >= 50 else "volume_down"),
+            "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
+            tip=_("Mute")))
     if tiers["volbar"]:
         right.append(Slider(
             "hud-vol", value=0 if muted else vol, min=0, max=100,
@@ -644,16 +670,18 @@ def build_hud(b, size):
 
     transport = Row(controls + right, gap=sz(6), align="center")
 
-    bar = Column(
-        [
-            # the Slider has a fixed default width, so stretch can't
-            # touch it directly: an unsized Row wrapper stretches to the
-            # column width and flex=1 spreads the slider inside it
-            Row([seek], align="center"),
-            transport,
-        ],
-        gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
-        align="stretch")
+    # A photo has a duration -- mpv's --image-display-duration, i.e. when the
+    # next one arrives -- but scrubbing inside it means nothing, and a
+    # progress bar crawling across a picture reads as a video about to end.
+    # Prev/next and pause stay: those are how you move through an album and
+    # how you stop it moving on its own.
+    bar_rows = ([] if st.get("is_photo") else [
+        # the Slider has a fixed default width, so stretch can't
+        # touch it directly: an unsized Row wrapper stretches to the
+        # column width and flex=1 spreads the slider inside it
+        Row([seek], align="center")]) + [transport]
+    bar = Column(bar_rows, gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
+                 align="stretch")
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.

@@ -72,6 +72,16 @@ ICON_NAMES = [
     "edit",
     "movie",
     "radio",
+    # by-name screens (genres, networks) -- the same two jellyfin-web uses
+    # for them, so a user coming from that client recognises the buttons.
+    "label",
+    "apartment",
+    # type indicators on a card -- jellyfin-web's getTypeIndicator set
+    # (indicators.js:140-149), exactly: Video, Folder, PhotoAlbum, Photo.
+    # "folder" is already above, for the settings panels.
+    "videocam",
+    "photo",
+    "photo_album",
     # navigation / arrows
     "arrow_back",
     "chevron_left",

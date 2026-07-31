@@ -488,6 +488,147 @@ fake.advance(1.0)
 fake.fire_timers()
 eq(offset("row3"), after_cancel, "the cancelled slide does not resume")
 
+-- ========================================== mouse back button
+
+-- The thumb button is Back, and it must stay Back by *being* ESC rather
+-- than by reimplementing it: ESC's ladder (scrub -> popup -> menu ->
+-- modal -> HUD, then Python for "one page off the nav stack") is spread
+-- across bindings that come and go with what is on screen, and a second
+-- copy of it would go stale on the first layer anyone adds.
+--
+-- What this cannot test is the scoping, because the fake cannot model
+-- mpv's section stack: mbtn_back lives in the mpvtk_mouse group, which
+-- is disabled while video plays, so mpv's own MBTN_BACK (playlist-prev)
+-- survives mid-playback.
+fake.log.commands = {}
+fake.key("mbtn_back")
+local sent_esc = false
+for _, c in ipairs(fake.log.commands) do
+    if type(c) == "table" and c[1] == "keypress" and c[2] == "ESC" then
+        sent_esc = true
+    end
+end
+ok(sent_esc, "the mouse back button presses ESC")
+
+-- Its pair has no key to press: nothing in mpv or the app means
+-- "forward", so it is an event and the app decides what history it has.
+-- Windowless like `nav`, not addressed to whatever the pointer is over.
+fake.reset_events()
+fake.key("mbtn_forward")
+local fwd = 0
+for _, e in ipairs(fake.log.events) do
+    if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
+end
+eq(fwd, 1, "the mouse forward button sends one forward event")
+
+-- ============================== the MENU key and mpvtk-focus
+
+-- Two gestures that name a destination rather than a direction, and the
+-- only two ways the 10ft user reaches things the pointer gets for free:
+-- a tile's context menu (right-click) and the search box (a click).
+
+local function navkey(k) fake.key("mpvtk_nav_" .. k) end
+
+local function tile(id, x, y, extra)
+    local node = { id = id, t = "rect", x = x, y = y, w = 100, h = 80,
+                   click = true }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+-- MENU opens the context menu of the FOCUSED node. Anchored below the
+-- node rather than over it: the menu is about that tile.
+scene({ tile("t1", 0, 0, { ctx = true }), tile("t2", 200, 0, { ctx = true }) })
+navkey("DOWN")                 -- engage nav mode, focus lands on a tile
+navkey("RIGHT")                -- ...move it somewhere deterministic
+fake.reset_events()
+navkey("MENU")
+local ctx = last_event("context")
+ok(ctx ~= nil, "MENU opens a context menu")
+if ctx then
+    ok(ctx.y >= 80, "the menu opens below the node, not over it",
+       "y = " .. tostring(ctx.y))
+end
+
+-- A node with no context menu is a no-op, exactly as right-clicking one
+-- is -- not a menu belonging to some other node.
+scene({ tile("plain", 0, 0) })
+navkey("DOWN")
+fake.reset_events()
+navkey("MENU")
+ok(last_event("context") == nil, "MENU on a node with no menu does nothing")
+
+-- Focus by id: what a remote's search button asks for. A textbox takes
+-- the keyboard too, or "focus the search box" would leave the user
+-- unable to type in it.
+scene({ tile("t1", 0, 0), textbox("nav-search", "") })
+fake.send("mpvtk-focus", fake.token({ id = "nav-search" }))
+type_text("hi")
+local ch = last_event("change")
+ok(ch ~= nil and ch.id == "nav-search",
+   "focusing the search box lets the user type into it")
+
+-- No id: "whatever the next scene nominates". Parked, because the page a
+-- navigation lands on is a spinner first and the button it is asking for
+-- does not exist yet.
+scene({ tile("t1", 0, 0) })
+navkey("DOWN")                          -- nav mode on
+fake.send("mpvtk-focus", fake.token({}))
+scene({ tile("spinner", 0, 0) })        -- still loading: nothing to focus
+fake.reset_events()
+scene({ tile("other", 0, 0), tile("play", 0, 100, { af = true, ctx = true }) })
+navkey("MENU")
+local af = last_event("context")
+ok(af ~= nil and af.id == "play",
+   "a parked autofocus lands on the page's own default when it arrives",
+   af and af.id or "nothing focused")
+
+-- The page being LEFT must not answer it. navigate() sends the request
+-- while the outgoing scene is still up, and that scene often nominates a
+-- node of its own (a detail page's Play button) -- which would swallow
+-- the request and leave the arriving page with nothing focused.
+scene({ tile("leaving", 0, 0, { af = true, ctx = true }),
+        tile("other", 0, 100, { ctx = true }) })
+-- Focus by id rather than by arrow keys: where a spatial move lands
+-- depends on the nav_rect the previous test left behind, and this test
+-- is about the `af` node, not about direction picking.
+fake.send("mpvtk-focus", fake.token({ id = "other" }))
+fake.send("mpvtk-focus", fake.token({}))
+fake.reset_events()
+navkey("MENU")
+local stayed = last_event("context")
+ok(stayed ~= nil and stayed.id ~= "leaving",
+   "the page being left does not answer an autofocus request",
+   stayed and stayed.id or "nothing focused")
+-- ...and the request is still live for the page that arrives.
+scene({ tile("arrived", 0, 0, { ctx = true }),
+        tile("play", 0, 100, { af = true, ctx = true }) })
+fake.reset_events()
+navkey("MENU")
+local landed = last_event("context")
+ok(landed ~= nil and landed.id == "play",
+   "it lands on the arriving page instead",
+   landed and landed.id or "nothing focused")
+
+-- ...but the user steering outranks it: an arrow key before the page
+-- lands cancels the request, or focus would be yanked away mid-move.
+-- The nodes the user is moving between survive the push, or this would
+-- prove nothing but "a vanished focus is dropped".
+local moving = { tile("top", 0, 0, { ctx = true }),
+                 tile("below", 0, 100, { ctx = true }) }
+scene(moving)
+navkey("DOWN")
+fake.send("mpvtk-focus", fake.token({}))
+navkey("DOWN")                          -- the user moves focus themselves
+scene({ moving[1], moving[2],
+        tile("play", 0, 200, { af = true, ctx = true }) })
+fake.reset_events()
+navkey("MENU")
+local kept = last_event("context")
+ok(kept ~= nil and kept.id ~= "play",
+   "an arrow key cancels a parked autofocus",
+   kept and kept.id or "nothing focused")
+
 -- ========================================================== teardown
 
 scene({})

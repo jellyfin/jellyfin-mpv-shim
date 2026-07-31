@@ -12,8 +12,11 @@ consulted first, which is exactly the silent-winner hazard
 """
 
 from .base import Page, PageContext
+from .byname import ByNamePage
 from .detail import DetailPage
-from .grid import GridPage, PersonPage
+from .favorites import FavoritesPage
+from .genres import GenresPage
+from .grid import GridPage, ListPage, PersonPage
 from .music import MusicLibraryPage
 from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
 from .playlist import PlaylistPage
@@ -26,10 +29,14 @@ from .series import SeriesPage
 
 #: kind -> Page subclass.
 PAGES = {
+    ByNamePage.kind: ByNamePage,
     DetailPage.kind: DetailPage,
+    FavoritesPage.kind: FavoritesPage,
+    GenresPage.kind: GenresPage,
     AlbumPage.kind: AlbumPage,
     ArtistPage.kind: ArtistPage,
     GridPage.kind: GridPage,
+    ListPage.kind: ListPage,
     MusicGenrePage.kind: MusicGenrePage,
     MusicLibraryPage.kind: MusicLibraryPage,
     PlaylistEditPage.kind: PlaylistEditPage,

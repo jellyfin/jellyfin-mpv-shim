@@ -7,7 +7,7 @@ it later.
 """
 
 
-def episode_subtitle(item):
+def episode_subtitle(item, show_year=True):
     """The line under a tile's title.
 
     Was ``TilesMixin._subtitle``.
@@ -49,7 +49,11 @@ def episode_subtitle(item):
         current = (item.get("CurrentProgram") or {}).get("Name") or ""
         number = str(item.get("Number") or "").strip()
         return "   ·   ".join(p for p in (number, current) if p)
-    return str(item.get("ProductionYear") or "")
+    # The year is the ONLY thing show_year governs. Every branch above is a
+    # channel, an air time or an episode number -- a Live TV listing with
+    # "showYear off" must still say which channel and when, because that is
+    # not a year and switching it off was not a request to blank the line.
+    return str(item.get("ProductionYear") or "") if show_year else ""
 
 
 def _a_time(item, live_tv):
@@ -57,7 +61,7 @@ def _a_time(item, live_tv):
     return live_tv.fmt_time(start) if start else ""
 
 
-def tile_lines(item, parent_item=False):
+def tile_lines(item, parent_item=False, show_year=True):
     """``(title, subtitle)`` for a tile.
 
     ``parent_item`` flips an episode around: the series becomes the title
@@ -71,7 +75,7 @@ def tile_lines(item, parent_item=False):
         series = item.get("SeriesName")
         if series:
             return series, item.get("Name", "")
-    return item.get("Name", ""), episode_subtitle(item)
+    return item.get("Name", ""), episode_subtitle(item, show_year)
 
 
 def is_watched(item):
@@ -97,10 +101,65 @@ def placeholder_glyph(item):
 
     Was ``TilesMixin._glyph``.
     """
-    if item.get("Type") in ("Audio", "MusicAlbum", "MusicArtist"):
-        return "♪"  # ♪
+    glyph = _TYPE_GLYPHS.get(item.get("Type"))
+    if glyph:
+        return glyph
     name = (item.get("Name") or "").strip()
     return name[0].upper() if name else "?"
+
+
+#: Types that get a marker in the corner of their tile, and the Material
+#: icon for each. jellyfin-web's ``getTypeIndicator``
+#: (``components/indicators/indicators.js:140-149``) verbatim -- these four
+#: types and no others.
+#:
+#: The point is a Home Videos library, which holds folders, photo albums,
+#: photos and clips side by side: with artwork on all four there is nothing
+#: in the tile that says which will open and which will start playing.
+#: Nothing else in a library has this problem, which is why the map is
+#: short rather than why the *drawing* is conditional -- see below.
+#:
+#: **Per item, not per row.** This was briefly decided per row ("only chip a
+#: row holding more than one kind"), reasoning that a uniform row needs no
+#: telling apart. It reads as icons flickering in and out as you scroll: the
+#: rows are a grid of one folder, and whether the four videos and one album
+#: you are looking at happen to share a row is not something a user can see
+#: or should have to. Web draws it for every card of these types, in every
+#: view, and that is both simpler and what a user coming from it expects.
+TYPE_INDICATOR_ICONS = {
+    "Video": "videocam",
+    "Folder": "folder",
+    "PhotoAlbum": "photo_album",
+    "Photo": "photo",
+}
+
+
+def type_indicator_icon(item):
+    """The corner type marker for a tile, or "" for types that get none."""
+    return TYPE_INDICATOR_ICONS.get(item.get("Type"), "")
+
+
+#: Types whose placeholder says *what it is* rather than what it is called.
+#:
+#: A first initial is a decent label when the name distinguishes things --
+#: films, shows, people. It is useless where the name does not: a Home Videos
+#: library is folders and albums named "2019", "2020", "Holiday", and a wall
+#: of digits says nothing about which tiles you can open and which will start
+#: playing. jellyfin-web draws an icon for exactly these
+#: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
+#:
+#: Glyphs rather than the Material icons used elsewhere in the chrome because
+#: this is baked into the tile bitmap by the strip compositor, which draws
+#: text, not icon fonts.
+_TYPE_GLYPHS = {
+    "Audio": "♪",
+    "MusicAlbum": "♪",
+    "MusicArtist": "♪",
+    "Folder": "▸",
+    "CollectionFolder": "▸",
+    "PhotoAlbum": "▣",
+    "Photo": "▣",
+}
 
 
 def heading_for(item):

@@ -10,7 +10,10 @@ the machine. Every way into the library funnels through :meth:`push` — a
 tile click, the tray's "Show Library Browser", a remote's GoHome, the
 now-playing bar's Queue button, a ``DisplayContent`` from a phone — so
 refusing here is what makes the mode mean something rather than hiding one
-entry point and leaving five others open.
+entry point and leaving five others open. :meth:`unpop` is the one other
+door — the forward stack can outlive the setting being switched on — and it
+asks :meth:`allows` again rather than trusting that its route was legal when
+it was pushed.
 
 It is deliberately **not a security boundary**: the tray still reaches
 Settings. ``tests/test_mpvtk_headless.py`` enumerates every door and has a
@@ -44,6 +47,10 @@ class Navigator:
         self._default_route = default_route
         self._is_headless = is_headless or (lambda: False)
         self._stack = [default_route()]
+        #: Routes popped by :meth:`pop`, oldest first, so the top is the page
+        #: an immediate forward returns to. Browser semantics: it survives
+        #: going back and forth, and any *new* navigation discards it.
+        self._forward = []
 
     # -- reading -----------------------------------------------------------
 
@@ -70,6 +77,15 @@ class Navigator:
     def can_go_back(self):
         return len(self._stack) > 1
 
+    @property
+    def forward(self):
+        """The forward stack, oldest first. Read for the history menu."""
+        return self._forward
+
+    @property
+    def can_go_forward(self):
+        return bool(self._forward) and self.allows(self._forward[-1])
+
     # -- the lockdown ------------------------------------------------------
 
     def allows(self, route, force=False):
@@ -93,6 +109,9 @@ class Navigator:
         if reset:
             self._stack = []
         self._stack.append(route)
+        # Branching away drops the forward history, as a browser does: the
+        # pages it held are no longer "where you were going".
+        self._forward = []
         return True
 
     def pop(self):
@@ -100,7 +119,64 @@ class Navigator:
         root (where there is nothing to go back to)."""
         if not self.can_go_back:
             return None
-        return self._stack.pop()
+        left = self._stack.pop()
+        self._forward.append(left)
+        return left
+
+    def unpop(self):
+        """Go forward again: return to the last route :meth:`pop` left.
+        Returns that route, or None when there is nothing ahead.
+
+        The lockdown is re-checked rather than assumed. Headless can be
+        switched on from Settings while library pages sit in the forward
+        stack, and a route that was legal when it was pushed is not
+        evidence about now — this is the one entry to the library that does
+        not come through :meth:`push`.
+        """
+        if not self._forward:
+            return None
+        route = self._forward[-1]
+        if not self.allows(route):
+            log.debug("headless: refusing forward to %r", route.get("kind"))
+            return None
+        self._forward.pop()
+        self._stack.append(route)
+        return route
+
+    def fast_forward(self, depth):
+        """Go forward until the stack is ``depth`` deep. Returns the route
+        landed on, or None if nothing moved.
+
+        The history menu's other half. Stops early at the first route the
+        lockdown refuses, which is the same answer repeated forward presses
+        would give.
+        """
+        landed = None
+        while len(self._stack) < depth:
+            route = self.unpop()
+            if route is None:
+                break
+            landed = route
+        return landed
+
+    def rewind_to(self, depth):
+        """Go back to ``depth`` pages deep (1 is the root), pushing every
+        route left onto the forward stack. Returns the routes left, nearest
+        first — empty if nothing moved.
+
+        The history menu's jump. Repeated `pop` rather than a slice so the
+        forward stack ends up exactly as it would after that many single
+        back presses. It returns *what* it left for the same reason: the
+        shell's half of a back press is decided by the page being left (a
+        playlist editor makes what is underneath stale), so a caller that
+        only knew the destination could not reproduce it.
+        """
+        if not 1 <= depth < len(self._stack):
+            return []
+        left = []
+        while len(self._stack) > depth:
+            left.append(self.pop())
+        return left
 
     def replace(self, routes):
         """Set the whole stack, falling back to the default route if what is
@@ -110,16 +186,30 @@ class Navigator:
         deleted, the data source changed underneath). The headless guarantee
         rests on ``default_route()`` being headless-aware, which is why that
         is a callback rather than a constant.
+
+        The forward stack goes with it. It was collected against the stack
+        being replaced, so keeping it would offer a way forward into pages
+        from a history that just stopped applying.
         """
         self._stack = list(routes) or [self._default_route()]
+        self._forward = []
 
     def reset_to_default(self):
         self._stack = [self._default_route()]
+        self._forward = []
 
     def prune(self, keep):
         """Drop every route for which ``keep(route)`` is false.
 
         Used when the thing a route points at stops existing — a deleted
         playlist. Never empties the stack; the default route backfills.
+
+        Filters the forward stack and keeps what is left, rather than
+        letting `replace` clear it wholesale: a deleted playlist is no
+        reason to forget a history that mostly does not mention it. Without
+        the filter the dead page this method exists to remove would still
+        be one forward press away.
         """
+        ahead = [r for r in self._forward if keep(r)]
         self.replace([r for r in self._stack if keep(r)])
+        self._forward = ahead

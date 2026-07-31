@@ -17,7 +17,7 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.1", "sc": "detail", "size": 26, "t": "text", "text": "Detail m1", "w": 1238.0, "x": 16.0, "y": 504.0}
 {"align": "left", "c": "9aa0a6", "h": 22.5, "id": "r.1.0.2", "sc": "detail", "size": 18, "t": "text", "text": "2010   \u00b7   1:30:00", "w": 141.8, "x": 16.0, "y": 552.5}
 {"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.3", "sc": "detail", "size": 15, "t": "text", "text": "1080p HEVC   \u00b7   HDR   \u00b7   MKV   \u00b7   Ends at 04:33", "w": 328.0, "x": 16.0, "y": 591.0}
-{"click": true, "fill": "00a4dc", "h": 42.5, "hover": {"fill": "1cb6e8"}, "id": "btn-resume", "radius": 6, "sc": "detail", "t": "rect", "w": 157.0, "x": 16.0, "y": 625.8}
+{"af": true, "click": true, "fill": "00a4dc", "h": 42.5, "hover": {"fill": "1cb6e8"}, "id": "btn-resume", "radius": 6, "sc": "detail", "t": "rect", "w": 157.0, "x": 16.0, "y": 625.8}
 {"c": "ffffff", "h": 20.0, "id": "r.1.0.4.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "detail", "t": "icon", "w": 20.0, "x": 26.0, "y": 637.0}
 {"align": "left", "c": "ffffff", "h": 22.5, "id": "r.1.0.4.0.1", "sc": "detail", "size": 18, "t": "text", "text": "Resume  0:30", "w": 110.0, "x": 53.0, "y": 635.8}
 {"click": true, "fill": "2e3138", "h": 42.5, "hover": {"fill": "3a3e46"}, "id": "btn-play", "radius": 6, "sc": "detail", "t": "rect", "w": 82.3, "x": 183.0, "y": 625.8}

@@ -1,6 +1,7 @@
 """Music browsing: albums, artists, genres and track lists.
 """
 
+import re
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
@@ -39,6 +40,38 @@ class TestMusicDepth(unittest.TestCase):
         for t in ("mtab-albums", "mtab-albumartists", "mtab-artists",
                   "mtab-songs", "mtab-genres"):
             self.assertIn(t, ids(nodes))
+
+    def _first_music_tile(self, tab):
+        """``(w, h)`` of the first tile on a music tab.
+
+        Matches ``music-<row>-<itemid>`` specifically. A ``music-`` prefix
+        test does not work: the tab bar's Paginated checkbox is
+        ``music-paginated`` and the scroller is ``music-grid``, both of which
+        sort ahead of the tiles and are the same size on every tab -- so the
+        loose selector compared the checkbox against itself and passed no
+        matter what shape the tiles were.
+        """
+        nodes, _h = self._music(tab=tab)
+        hit = [n for n in nodes
+               if re.match(r"^music-\d+-", str(n.get("id", "")))
+               and n["t"] == "rect"]
+        self.assertTrue(hit, "no tiles on the %s tab" % tab)
+        return hit[0]["w"], hit[0]["h"]
+
+    def test_genre_tiles_are_square_like_every_other_music_tile(self):
+        """jellyfin-web draws a MusicGenre as shape:'auto' with nothing to
+        measure -- genres carry no Primary image -- and setCardData's
+        no-aspect-ratio fallback is square. The modern app says it outright
+        (Music -> SquareOverflow). Ours was landscape.
+
+        Asserted against the albums tab in the same shape of scene rather
+        than against a geom constant, because "is it square" cannot be read
+        off one tile: every geom is taller than wide once the caption is
+        added. Albums have always been square, so they are the reference.
+        """
+        self.assertEqual(self._first_music_tile("genres"),
+                         self._first_music_tile("albums"),
+                         "genre tiles are not the same shape as album tiles")
 
     def test_songs_tab_is_track_list(self):
         _n, h = self._music(tab="songs")

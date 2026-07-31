@@ -9,9 +9,11 @@ tests come at it from the other side.
 
 import sys
 import unittest
+from unittest import mock
 
 sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 
+from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.player import PlayerManager  # noqa: E402
 
 
@@ -25,6 +27,14 @@ class _Player:
     mute = False
     fullscreen = False
     demuxer_cache_state = None
+
+
+class _EmptyQueue:
+    """update() drains its task queue first; there is nothing to drain."""
+
+    @staticmethod
+    def empty():
+        return True
 
 
 class _Video:
@@ -56,6 +66,7 @@ EPISODE = {
     "SeriesName": "The Show", "ParentIndexNumber": 1, "IndexNumber": 2,
 }
 MOVIE = {"Name": "The Movie", "Type": "Movie", "MediaType": "Video"}
+PHOTO = {"Name": "A Photo", "Type": "Photo", "MediaType": "Photo"}
 SONG = {"Name": "A Song", "Type": "Audio", "MediaType": "Audio",
         "Artists": ["A Band"], "Album": "An Album"}
 
@@ -194,6 +205,128 @@ class TestTheServerTheItemCameFrom(unittest.TestCase):
         is how "it works on my machine" starts."""
         state = self._snapshot_with_client(object(), {})
         self.assertIn("server_uuid", state)
+
+
+class TestPhotoFlag(unittest.TestCase):
+    """The HUD hides its scrubber for a still.
+
+    mpv reports a duration for a photo -- --image-display-duration, i.e.
+    when the next one arrives -- which is real but not seekable, and a
+    progress bar crawling across a picture reads as a video about to end.
+    """
+
+    def test_a_photo_is_flagged(self):
+        self.assertTrue(snapshot(PHOTO)["is_photo"])
+
+    def test_a_video_is_not(self):
+        self.assertFalse(snapshot(MOVIE)["is_photo"])
+
+    def test_the_key_is_always_present(self):
+        self.assertIn("is_photo", snapshot(SONG))
+
+
+class TestSkipButtonIsIndependentOfSeekToSkip(unittest.TestCase):
+    """The Skip Intro *button* and seek-to-skip are two different features
+    that happen to call the same verb.
+
+    ``skip_intro_on_seek`` is off by default: hijacking a seek the user
+    asked for is opt-in. The button is not -- it is gated on
+    ``skip_intro_enable`` (default on) and surfaces through this payload's
+    ``skip_label``. Turning the seek behaviour off must not take the button
+    with it, which is the regression this pins; nothing else asserts the
+    two are separate.
+    """
+
+    def _label(self, seg_type):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = _Video(EPISODE)
+        pm._player = _Player()
+        pm._hud_skip = type("Seg", (), {"type": seg_type})()
+        pm.repeat_mode = "none"
+        PlayerManager.push_playstate(pm)
+        return got[0]["skip_label"]
+
+    def test_the_two_labels_are_distinct(self):
+        """The payload half: ``_hud_skip`` carries the live segment and its
+        type picks the wording. Whether that segment gets SET is decided in
+        ``update()`` — see TestTheButtonSurvivesSeekToSkipBeingOff, which is
+        where the coupling this class used to claim actually lives.
+        """
+        self.assertEqual(self._label("Intro"), "Skip Intro")
+        self.assertEqual(self._label("Outro"), "Skip Credits")
+
+    def test_no_live_segment_means_no_button(self):
+        self.assertIsNone(snapshot(EPISODE)["skip_label"])
+
+
+class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
+    """Seek-to-skip is opt-in; the Skip button is not, and turning the first
+    off must not take the second with it.
+
+    Driven through the real ``update()``, because that is where ``_hud_skip``
+    is decided. The previous version of this patched ``skip_intro_on_seek``
+    around ``push_playstate``, which never reads it — the setting appears
+    nowhere in ``player_reporting.py`` — so it asserted the labels and
+    guaranteed nothing about the coupling its docstring named. Injecting the
+    regression (making the button honour the seek setting) left the whole
+    suite green.
+    """
+
+    class _Intro:
+        type = "Intro"
+        has_triggered = False
+
+    def _pm(self):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.evt_queue = _EmptyQueue()
+        pm._pump_trickplay = lambda: None
+        pm.push_playstate = lambda: None
+        pm._hud_skip = None
+        pm.is_in_intro = False
+        pm._last_intro_msg_time = 0
+        pm.mpvtk_active = True
+        pm._osc_style_resolved = "mpvtk"
+        pm.syncplay = type("S", (), {"is_enabled": staticmethod(
+            lambda: False)})()
+        pm._player = _Player()
+        pm._video = _Video(EPISODE)
+        pm._video.get_current_intro = lambda _t: (False, self._Intro())
+        # The tail of update() polls for a lost EOF; give it the state that
+        # makes it a no-op, so this test is about the branch above it and
+        # update() still runs to the end unguarded.
+        pm.last_update = type("T", (), {"restart": staticmethod(
+            lambda: None)})()
+        pm.is_paused = lambda: False
+        pm.should_send_timeline = False
+        return pm
+
+    def _hud_skip_after_update(self, **flags):
+        pm = self._pm()
+        patches = [mock.patch.object(settings, k, v)
+                   for k, v in flags.items()]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        PlayerManager.update(pm)
+        return pm._hud_skip
+
+    def test_the_button_is_offered_with_seek_to_skip_turned_off(self):
+        self.assertIsNotNone(
+            self._hud_skip_after_update(skip_intro_on_seek=False,
+                                        skip_intro_enable=True),
+            "turning seek-to-skip off took the button with it")
+
+    def test_turning_the_button_itself_off_does_remove_it(self):
+        """The other direction, or the test above passes on a button that
+        can never be turned off at all."""
+        self.assertIsNone(
+            self._hud_skip_after_update(skip_intro_on_seek=True,
+                                        skip_intro_enable=False,
+                                        skip_intro_always=False,
+                                        skip_credits_enable=False,
+                                        skip_credits_always=False))
 
 
 class TestReportingIsWiredIn(unittest.TestCase):

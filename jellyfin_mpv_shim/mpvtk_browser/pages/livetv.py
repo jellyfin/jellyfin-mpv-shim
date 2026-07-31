@@ -196,11 +196,8 @@ class LiveTvPage(Page):
                       align="stretch")
 
     def _tab_bar(self, current):
-        tabs = [Button(label, id="lttab-" + key,
-                       bg=theme.ACCENT if key == current else theme.BUTTON_BG,
-                       fg=(theme.ACCENT_FG if key == current
-                           else theme.TEXT_FG),
-                       on_click=lambda k=key: self._set_tab(k))
+        tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
+                                 lambda k=key: self._set_tab(k))
                 for key, label in self.TABS]
         return Row(tabs, gap=8, pad=12, align="center")
 
@@ -234,12 +231,49 @@ class LiveTvPage(Page):
             return chrome.busy()
         if not rows:
             return chrome.error(_("No programs are listed right now."))
-        return self._scroll([self._auto_row(row["title"], row["items"],
-                                            "lt-" + row["key"])
-                             for row in rows],
+        return self._scroll([self._program_row(row) for row in rows],
                             "livetv-programs")
 
-    def _auto_row(self, title, items, row_id, on_click=None):
+    def _program_row(self, row):
+        """One Programs-tab row.
+
+        Upcoming Movies is the exception jellyfin-web also makes: it forces
+        portrait with preferThumb off (``livetvsuggested.js:87-91``) rather
+        than letting the artwork decide. Films are the one guide category
+        that reliably carries poster art, and a median over a handful of
+        them lands on landscape often enough to make the row inconsistent
+        between refreshes.
+        """
+        art = self.ctx.art
+        # Each of these caps at twelve with nothing behind it, which is the
+        # sharpest missing-destination case in the app: six rows, and the
+        # thirteenth upcoming film was unreachable.
+        see_all = self._see_all_programs(row)
+        if row["key"] == "movies":
+            return art.tiles.tile_row(row["title"], row["items"],
+                                      "lt-" + row["key"], geom=art.geom,
+                                      image_type="Primary", see_all=see_all)
+        return self._auto_row(row["title"], row["items"], "lt-" + row["key"],
+                              see_all=see_all)
+
+    def _see_all_programs(self, row):
+        """``on_click`` for a Programs row heading.
+
+        The row's own query is the listing's query -- PROGRAM_SECTIONS holds
+        the flags, so the destination is the same predicate without the
+        limit. Rows the source did not describe (a stand-in in a test, a
+        future section) simply get no chevron rather than a broken one.
+        """
+        filters = row.get("filters")
+        if not filters:
+            return None
+        server = self._srv()
+        title = row["title"]
+        return lambda: self.ctx.nav.navigate({
+            "kind": "list", "server": server, "title": title,
+            "list": {"type": "programs", "filters": dict(filters)}})
+
+    def _auto_row(self, title, items, row_id, on_click=None, see_all=None):
         """A row shaped by its own artwork, like jellyfin-web's.
 
         Its card builder resolves one shape per row from the items' median
@@ -252,7 +286,8 @@ class LiveTvPage(Page):
         geom, image_type = art.tiles.auto_geom(items, default=art.geom_wide,
                                                default_type="Thumb")
         return art.tiles.tile_row(title, items, row_id, geom=geom,
-                                  image_type=image_type, on_click=on_click)
+                                  image_type=image_type, on_click=on_click,
+                                  see_all=see_all)
 
     # -- Guide -------------------------------------------------------------
 
@@ -502,8 +537,17 @@ class LiveTvPage(Page):
             return chrome.busy()
         rows = []
         if data.get("latest"):
-            rows.append(self._auto_row(_("Latest Recordings"),
-                                       data["latest"], "lt-recent"))
+            title = _("Latest Recordings")
+            server = self._srv()
+            rows.append(self._auto_row(
+                title, data["latest"], "lt-recent",
+                # Capped at 24 with nothing behind it. jellyfin-web links
+                # this one too (#/list?type=Recordings) -- as a <button>
+                # rather than an anchor, which is a quirk of theirs, not a
+                # different destination.
+                see_all=lambda: self.ctx.nav.navigate({
+                    "kind": "list", "server": server, "title": title,
+                    "list": {"type": "recordings"}})))
         if data.get("folders"):
             rows.append(self._auto_row(_("Recording Folders"),
                                        data["folders"], "lt-recfolders"))

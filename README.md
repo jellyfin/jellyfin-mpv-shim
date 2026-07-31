@@ -88,7 +88,20 @@ The menu enables you to:
 - Take screenshots.
 
 On your computer, use the mouse or arrow keys, enter, and escape to navigate.
-On your phone, use the arrow buttons, ok, back, and home to navigate.
+The mouse's thumb buttons go back and forward a page — back is the same as
+escape, and forward has no on-screen button, so **right-click Back** to see the
+page history and jump anywhere in it (at the top of the stack, where there is no
+Back button, right-click **Home** instead). On your phone, use the arrow
+buttons, ok, back, and home to navigate.
+
+The remote's other two buttons work as well. **Menu** (the hamburger) opens the
+context menu of whatever is selected — the same menu you get by right-clicking,
+holding Play, Queue, Mark Watched, Favorite and Download, so those actions are
+reachable without a keyboard. During playback it opens the player's settings
+menu instead. **Search** puts the cursor in the search box; it does nothing
+during playback. Your keyboard's menu key does the same as the remote's, and
+opening a movie or episode from a remote or the arrow keys lands on its Play
+button, so pressing ok twice plays it.
 
 ### Fast User Switching
 

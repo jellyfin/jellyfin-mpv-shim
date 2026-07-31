@@ -50,6 +50,110 @@ class TestRouting(unittest.TestCase):
         self.assertEqual(len(self.b.nav_stack), 1)
         self.assertEqual(self.b.route["kind"], "home")
 
+    # -- the forward stack (the mouse's forward button) -------------------
+    #
+    # Mouse-only by design, so these drive the browser methods directly:
+    # there is no forward arrow in the chrome to click, and the button
+    # itself is renderer-side (tests/lua/test_renderer.lua).
+
+    def _grid(self, ident, title):
+        return {"kind": "grid", "server": "srv1", "parent_id": ident,
+                "title": title, "_data": []}
+
+    def test_back_then_forward_returns_to_the_page(self):
+        self.b.navigate(self._grid("lib1", "Movies"))
+        self.b.go_back()
+        self.b.go_forward()
+        self.assertEqual(self.b.route["parent_id"], "lib1")
+        self.assertEqual(len(self.b.nav_stack), 2)
+
+    def test_forward_at_the_end_does_nothing(self):
+        self.b.navigate(self._grid("lib1", "Movies"))
+        depth = len(self.b.nav_stack)
+        self.b.go_forward()
+        self.assertEqual(len(self.b.nav_stack), depth)
+
+    def test_navigating_somewhere_new_discards_the_forward_stack(self):
+        """Browser semantics: branching off the history abandons it. Without
+        this, Back-then-a-tile leaves a forward press jumping to a page that
+        is no longer anywhere in the history you can see."""
+        self.b.navigate(self._grid("lib1", "Movies"))
+        self.b.go_back()
+        self.b.navigate(self._grid("lib2", "Shows"))
+        self.b.go_forward()
+        self.assertEqual(self.b.route["parent_id"], "lib2")
+
+    def test_forward_survives_going_back_more_than_one_page(self):
+        self.b.navigate(self._grid("lib1", "Movies"))
+        self.b.navigate(self._grid("lib2", "Shows"))
+        self.b.go_back()
+        self.b.go_back()
+        self.b.go_forward()
+        self.b.go_forward()
+        self.assertEqual(self.b.route["parent_id"], "lib2")
+
+    def test_a_page_left_before_it_loaded_is_reloaded_on_the_way_forward(self):
+        """Back bumps the epoch, so an in-flight fetch is dropped. Nothing
+        else re-issues it: the route would come back with no data and no
+        error, which the render path draws as a spinner forever."""
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies",
+                         "_loading": True})
+        self.b.go_back()
+        loaded = []
+        self.b._load_route = lambda route, epoch=None: loaded.append(route)
+        self.b.go_forward()
+        self.assertEqual([r["parent_id"] for r in loaded], ["lib1"])
+        self.assertNotIn("_loading", self.b.route,
+                         "the paging guard would cap the list for good")
+
+    def test_a_loaded_page_is_not_refetched_on_the_way_forward(self):
+        self.b.navigate(self._grid("lib1", "Movies"))
+        self.b.go_back()
+        loaded = []
+        self.b._load_route = lambda route, epoch=None: loaded.append(route)
+        self.b.go_forward()
+        self.assertEqual(loaded, [])
+
+    def test_a_deleted_playlist_is_pruned_from_the_forward_stack_too(self):
+        """The same dead-page bug after_playlist_deleted exists to prevent,
+        on the other stack: the page is gone from the history behind you and
+        still one forward press away."""
+        self.b.navigate({"kind": "playlist", "server": "srv1",
+                         "item_id": "PL9", "title": "PL", "_data": []})
+        self.b.go_back()
+        self.b.after_playlist_deleted("PL9")
+        self.b.go_forward()
+        self.assertNotEqual(self.b.route.get("item_id"), "PL9")
+
+    def test_the_history_menu_jumps_backward_and_forward(self):
+        from jellyfin_mpv_shim.mpvtk_browser import window_chrome
+
+        for i in range(1, 4):
+            self.b.navigate(self._grid("lib%d" % i, "L%d" % i))
+        self.b.go_back()                      # now on lib2, lib3 ahead
+        rows = window_chrome.history_entries(self.b)
+        self.assertEqual([r[0] for r in rows],
+                         ["Home", "L1", "L2", "L3"])
+        self.assertEqual([r[1] for r in rows],
+                         ["chevron_left", "chevron_left", "check",
+                          "chevron_right"])
+        self.b.go_back_to(1)                  # the root
+        self.assertEqual(self.b.route["kind"], "home")
+        self.b.go_forward_to(4)               # all the way back out
+        self.assertEqual(self.b.route["parent_id"], "lib3")
+
+    def test_the_history_menu_keeps_the_current_page_when_it_is_trimmed(self):
+        from jellyfin_mpv_shim.mpvtk_browser import window_chrome
+
+        for i in range(30):
+            self.b.navigate(self._grid("lib%d" % i, "L%d" % i))
+        rows = window_chrome.history_entries(self.b)
+        self.assertEqual(len(rows), window_chrome.HISTORY_MAX)
+        self.assertIn("check", [r[1] for r in rows],
+                      "a deep stack trimmed the page you are on")
+        self.assertEqual(rows[-1][0], "L29")
+
     def test_epoch_bumps_on_navigation(self):
         e0 = self.b._epoch
         self.b.navigate({"kind": "grid", "parent_id": "lib1"})
@@ -846,6 +950,58 @@ class TestRenderErrorBoundary(unittest.TestCase):
         app._build = boom
         app._render()          # must not raise
         self.assertFalse(app._dirty)
+
+class TestSeasonGridUsesEpisodeStills(unittest.TestCase):
+    """A season listing is a list of episodes, so every cell must be that
+    episode's own artwork.
+
+    The Thumb chain inherits from the series (its thumb, then the season's,
+    then their backdrops) before falling back to the episode's own image.
+    That is right for a Continue Watching card -- which is a pointer back to
+    the show -- and wrong here: it draws the same series artwork in every
+    cell and the grid stops distinguishing anything.
+
+    jellyfin-web is no help as a reference: it renders a season's episodes
+    as a *list view* with a leading image (itemDetails/index.js:1423-1435),
+    never as a card grid, so this behaviour is ours to pin.
+    """
+
+    def _specs_for(self, route):
+        """Every (item, image_type, inherit) the page asked artwork for."""
+        seen = []
+        src = FakeSource()
+        real = src.image_spec
+
+        def spy(item, image_type="Primary", width=280, inherit=True):
+            seen.append((item.get("Id"), image_type, inherit))
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = spy
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate(route)
+        b.route["_data"] = {
+            "episodes": [{"Id": "ep1", "Type": "Episode", "Name": "One",
+                          "SeriesId": "sh1"},
+                         {"Id": "ep2", "Type": "Episode", "Name": "Two",
+                          "SeriesId": "sh1"}],
+            "seasons": [{"Id": "sea1", "Name": "Season 1"}]}
+        build_scene(b)
+        return seen
+
+    def test_the_season_grid_does_not_inherit_series_artwork(self):
+        specs = self._specs_for({"kind": "season", "server": "srv1",
+                                 "item_id": "sea1", "series_id": "sh1",
+                                 "title": "Season 1"})
+        eps = [s for s in specs if s[0] in ("ep1", "ep2")]
+        self.assertTrue(eps, "the season grid asked for no episode artwork")
+        for item_id, image_type, inherit in eps:
+            self.assertEqual(image_type, "Thumb",
+                             "%s is not a landscape tile" % item_id)
+            self.assertFalse(inherit,
+                             "%s inherited the series artwork" % item_id)
+
 
 class TestPageNavigationHandlersActuallyRun(unittest.TestCase):
     """Click the navigation buttons the converted pages build.

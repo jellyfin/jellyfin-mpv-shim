@@ -98,6 +98,32 @@ PAGE_SLIDE_MS = 180
 _EDGE_EPS = 1.0
 
 
+#: Canonical aspect ratios a measured median is rounded onto, with the
+#: tolerance jellyfin-web uses for each (``imageLoader.js:209-233``). Order
+#: matters -- the first match wins, and the bands overlap.
+#:
+#: This is not cosmetic. The buckets are decided *after* snapping, so a
+#: library whose median lands at 1.19 -- inside 4:3's band and outside
+#: square's -- is landscape in web and would be square without this step.
+#: Real libraries sit near these numbers rather than on them, which is the
+#: whole reason web rounds.
+_SNAP_RATIOS = (
+    (2 / 3, 0.15),      # poster
+    (16 / 9, 0.2),      # still / backdrop
+    (1.0, 0.15),        # square
+    (4 / 3, 0.15),      # 4:3 video
+)
+
+
+def _snap_ratio(value):
+    """Round a measured median onto the nearest canonical ratio, or leave it
+    alone. jellyfin-web's ``getPrimaryImageAspectRatio`` tail."""
+    for target, tolerance in _SNAP_RATIOS:
+        if abs(target - value) <= tolerance:
+            return target
+    return value
+
+
 def page_geometry(view, count, geom):
     """``(pitch, per_page, max_offset)`` for a carousel of ``count`` tiles of
     ``geom`` laid out in a ``view``-wide viewport. All logical px.
@@ -275,6 +301,7 @@ class TileRenderer:
         middle = len(ratios) // 2
         median = (ratios[middle] if len(ratios) % 2
                   else (ratios[middle - 1] + ratios[middle]) / 2.0)
+        median = _snap_ratio(median)
         if median >= self.LANDSCAPE_RATIO:
             return self.art.geom_wide, "Thumb"
         if median > self.SQUARE_RATIO:
@@ -333,9 +360,16 @@ class TileRenderer:
             attempts,
             time.time() + self.IMG_RETRY_BACKOFF * (2 ** (attempts - 1)))
         self._requested.discard(key)
-    def poster_for(self, item, geom, image_type="Primary"):
+    def poster_for(self, item, geom, image_type="Primary", inherit=True):
         """Return (PIL image or None, cache tag). Requests the poster once
-        if absent; the strip recomposites when it arrives (tag changes)."""
+        if absent; the strip recomposites when it arrives (tag changes).
+
+        ``inherit`` is passed straight to ``image_spec`` — see there. It is
+        not part of the cache key because it does not need to be: the key is
+        built from the spec the chain *resolved to*, so two rows asking about
+        the same item with different inherit settings land on different keys
+        whenever they resolve to different images, and share one when they
+        do not."""
         # Art is fetched at physical size: the renderer crops rather than
         # resamples, so a 1x poster under a 2x UI would render as a corner
         # fragment. Jellyfin resizes server-side, so this costs nothing but
@@ -349,7 +383,7 @@ class TileRenderer:
                 return None, ""
             key = make_key(spec[0], spec[1], spec[2], w, h)
             return self._request_image(key, url, (w, h)), key
-        spec = self.art.source.image_spec(item, image_type, w)
+        spec = self.art.source.image_spec(item, image_type, w, inherit=inherit)
         if not spec or self.art.server is None:
             return None, ""
         item_id, itype, itag = spec
@@ -423,9 +457,55 @@ class TileRenderer:
         if t == "Season":
             return iid in self._downloaded_seasons
         return t == "Playlist" and iid in self._downloaded_playlists
+    #: Banner widths are rounded up to a multiple of this before they reach
+    #: the artwork cache.
+    #:
+    #: The cache keys on exact pixel dimensions, and the banner used to be a
+    #: *continuous* function of the window width -- so dragging a window edge
+    #: across 400px asked the server for up to 400 different backdrops, decoded
+    #: 400 bitmaps and kept them all resident until the LRU pushed them out.
+    #: That is issue #592, and it is why a resize both hammered the access log
+    #: and ballooned memory.
+    #:
+    #: jellyfin-web does the same thing for the same stated reason -- it rounds
+    #: the screen width down to a multiple of 100 "to improve cache hits"
+    #: (cardBuilder.js:126-129). 128 rather than 100 because these are pixels
+    #: in a cache key, not a CSS breakpoint: it makes at most nine distinct
+    #: banner widths between a small window and the 1100 cap.
+    #:
+    #: Rounding UP, not down, so the bitmap is never asked to upscale -- a
+    #: banner drawn slightly wider than requested is cropped by the compositor,
+    #: which is invisible; one drawn narrower is soft.
+    BANNER_STEP = 128
+
     def banner_box(self, width):
+        """The banner's LAID-OUT size: exactly the space it has.
+
+        Deliberately not quantised. The header spans the content width, so
+        rounding this up overhangs the scrollbar and rounding it down leaves
+        a gap beside content that does reach the edge. What gets quantised is
+        the *fetch* -- see ``_banner_fetch_w``.
+        """
         bw = min(width - 2 * chrome.CONTENT_PAD, 1100)
         return bw, int(bw * self.BANNER_RATIO)
+
+    def _banner_fetch_w(self, physical_w):
+        """Physical width to ask the server for, given the drawn width.
+
+        Rounded UP to a step so a resize stops minting a new request per
+        pixel (issue #592) -- the artwork cache keys on exact dimensions, so
+        a continuous width meant a continuous stream of misses. Up rather
+        than down because the fetched image is *cropped* into the banner by
+        compose_banner: larger than needed costs nothing, smaller would have
+        to be upscaled.
+
+        Only the fetch. The composed banner is still built at the exact drawn
+        size, because that one has to match the box it is drawn in.
+        """
+        step = self.BANNER_STEP
+        if physical_w <= 0:
+            return 0
+        return int(-(-physical_w // step) * step)
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
         """A backdrop banner for detail/series headers.
@@ -448,11 +528,26 @@ class TileRenderer:
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
-            url = self.art.source.backdrop_url(self.art.server, item, width=pbox[0],
-                                           height=pbox[1], fill=True)
-            # Request at the *source* aspect and crop to the banner below, so
-            # a shallow banner doesn't ask the server for a squashed image.
-            img = self._request_image(key, url, (pbox[0], pbox[0]))
+            # Request at the BANNER's aspect, at a quantised width so that
+            # dragging the window edge does not ask for a new image every
+            # pixel.
+            #
+            # The height is not incidental. `fill=True` is fillWidth +
+            # fillHeight, i.e. the server *crops* to the shape asked for
+            # (it does not squash), and compose_banner's scale_to_cover
+            # then centre-crops to the same shape — so asking for the
+            # banner's own aspect is the identical picture for a third of
+            # the pixels. Asking for a square instead, as this briefly
+            # did, hands back the centre square of a 16:9 backdrop, which
+            # cover then blows up to the full width: every header zoomed
+            # ~1.8x, in the commit whose point was making banners cheaper.
+            fetch_w = self._banner_fetch_w(pbox[0])
+            fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
+            fetch_key = make_key(owner_id, "Backdrop", tag, fetch_w, fetch_h)
+            url = self.art.source.backdrop_url(self.art.server, item,
+                                               width=fetch_w, height=fetch_h,
+                                               fill=True)
+            img = self._request_image(fetch_key, url, (fetch_w, fetch_h))
             if img is not None:
                 b = self.art.strips.bitmap(key, components.compose_banner(
                     img, pbox, title, meta, context), lsize=box)
@@ -460,7 +555,8 @@ class TileRenderer:
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
-    def _tile(self, item, geom, image_type="Primary", parent_item=False):
+    def _tile(self, item, geom, image_type="Primary", parent_item=False,
+              inherit=True, labels=None):
         """One tile. ``parent_item`` draws an Episode as its *series* —
         the show's name and the show's poster instead of the episode's name
         over the episode still — which is what a Latest-TV row is a list of.
@@ -492,8 +588,15 @@ class TileRenderer:
             # LibrarySource.image_spec. Poster art, so it fits the poster
             # tile the row is already drawing.
             image_type = "ParentPrimary"
-        poster, tag = self.poster_for(item, geom, image_type)
-        title, subtitle = components.tile_lines(item, parent_item)
+        poster, tag = self.poster_for(item, geom, image_type,
+                                      inherit=inherit)
+        # labels: (show_title, show_year) from the library's view settings.
+        # None means "as always", which is both on.
+        show_title, show_year = labels or (True, True)
+        title, subtitle = components.tile_lines(item, parent_item,
+                                                show_year=show_year)
+        if not show_title:
+            title = subtitle = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
@@ -505,11 +608,13 @@ class TileRenderer:
             badge=int(ud.get("UnplayedItemCount") or 0),
             progress=progress,
             downloaded=self.is_downloaded(item),
+            kind=components.type_indicator_icon(item),
             recording=recording,
             record=record,
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
-                  bleed=False, on_click=None, parent_item=False):
+                  bleed=False, on_click=None, parent_item=False,
+                  inherit=True, see_all=None, autofocus_first=False):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
@@ -519,8 +624,27 @@ class TileRenderer:
         geom = geom or self.art.geom
         # Section-title size is theme-controlled (24 = the stock value), so a
         # theme with larger covers can size its headings to match.
-        heading = Text(title, size=(theme.active() or {}).get(
-            "heading_size", 24), bold=True)
+        title_size = (theme.active() or {}).get("heading_size", 24)
+        heading: object = Text(title, size=title_size, bold=True)
+        if see_all is not None:
+            # jellyfin-web's chevron: the heading becomes the link to the
+            # full listing, because a row is a top-N of something and this
+            # is the only route to the rest of it.
+            #
+            # A Box with on_click, not a bare Text, so the toolkit picks it
+            # up: renderer.lua's nav_candidates collects any node carrying
+            # click, which is what makes the heading a D-pad target with a
+            # focus ring for free. We draw it in every layout -- web hides
+            # it in its TV layout, but that is web having two layouts and
+            # hiding the affordance in one, not a judgement that a remote
+            # cannot use it.
+            heading = Box(
+                [Text(title, size=title_size, bold=True),
+                 Icon("chevron_right", int(title_size * 0.9),
+                      color=theme.TEXT_FG)],
+                id="%s-more" % row_id, direction="row", align="center",
+                gap=2, pad=(6, 2), radius=6,
+                hover={"fill": theme.BUTTON_BG}, on_click=see_all)
         head = [heading]
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
@@ -550,7 +674,9 @@ class TileRenderer:
                 self.hscroll_row(
                     self.image_map(items, row_id, geom, image_type,
                                     on_click=on_click,
-                                    parent_item=parent_item),
+                                    parent_item=parent_item,
+                                    inherit=inherit,
+                                    autofocus_first=autofocus_first),
                     row_id, geom.strip_h + 2 * RING_PAD,
                     len(items), geom, bleed),
             ],
@@ -572,7 +698,7 @@ class TileRenderer:
                 + sum(measure(h)[1] for h in hs))
     def grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
-                 on_click=None):
+                 on_click=None, inherit=True, labels=None):
         """Tile rows for a vertical grid.
 
         With ``scroll_id`` the rows are **virtualized**: only those within a
@@ -601,6 +727,8 @@ class TileRenderer:
                                             "%s-%d" % (prefix, start),
                                             geom, image_type,
                                             on_click=on_click,
+                                            inherit=inherit,
+                                            labels=labels,
                                             # Grid rows share one bounded blank
                                             # shape, so composite them off the
                                             # loop thread (see StripStore.strip).
@@ -613,19 +741,25 @@ class TileRenderer:
         return rows
 
     def image_map(self, items, prefix, geom=None, image_type="Primary",
-                   on_click=None, async_=False, parent_item=False):
+                   on_click=None, async_=False, parent_item=False,
+                   inherit=True, labels=None, autofocus_first=False):
         geom = geom or self.art.geom
-        tiles = [self._tile(it, geom, image_type, parent_item)
+        tiles = [self._tile(it, geom, image_type, parent_item, inherit,
+                            labels)
                  for it in items]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self.on_open
-        for r, it in zip(s["regions"], items):
+        for i, (r, it) in enumerate(zip(s["regions"], items)):
             regions.append(dict(
                 r,
                 id="%s-%s" % (prefix, r["key"]),
                 on_click=(lambda i=it: act(i)),
                 on_context=(lambda x, y, i=it: self.on_context(i, x, y)),
+                # The page's default for a keyboard/remote arrival. Only
+                # ever the first tile: it is "where this row starts", not a
+                # judgement about the item.
+                autofocus=(autofocus_first and i == 0),
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
                         v=s.get("v", 0), w=s["lw"], h=s["lh"])
@@ -785,6 +919,46 @@ class TileRenderer:
         # and the last one is clipped.
         return max(1, int(
             (self.body_w(w) + geom.gap) // (geom.tile_w + geom.gap)))
+    def item_list(self, rows, prefix, on_click, scroll_id=None, head_h=0):
+        """A library as a plain table -- jellyfin-web's List view type.
+
+        Deliberately without an art column, unlike ``track_list``: the point
+        of choosing this view is that the artwork was not helping, and it is
+        also what makes it cheap — no strips, and no overlays to spend.
+
+        **Virtualized all the same.** "No overlays" was read as "no need to
+        virtualize", and it is only half the cost: a row is still a Row, two
+        margin Spacers and three cell Boxes to build, lay out and serialize,
+        on the loop thread, every repaint. Infinite scroll grows this list
+        without bound and List view is the one people pick *because* the
+        library is large — at 2000 rows that measured ~8k nodes, 85ms and
+        1.4MB per push, repeated every 120px of scroll.
+        """
+        columns = [{"label": _("Name"), "flex": 4},
+                   {"label": _("Year"), "w": 80},
+                   {"label": _("Length"), "w": 110, "align": "right"}]
+        table_rows = []
+        for i, row in enumerate(rows):
+            table_rows.append({
+                "id": "%s-%d-%s" % (prefix, i,
+                                    (row.get("item") or {}).get("Id", "")),
+                "cells": row["cells"],
+                "on_click": (lambda i=i: on_click(i)),
+                "on_context": (lambda x, y, it=row.get("item"):
+                               self.on_context(it, x, y)),
+            })
+        # Same window track_list computes, and for the same reason minus
+        # the overlays. Only when the caller names its scroll container:
+        # without one there is no live offset to window against.
+        virtual = None
+        if scroll_id is not None and self.art._size is not None:
+            virtual = {
+                "offset": max(0.0, self.scroll.offset(scroll_id) - head_h),
+                "height": float(self.art._size[1]),
+            }
+        return Table(columns, table_rows, row_h=TRACK_ROW_H,
+                     id=(scroll_id or prefix) + "-table", virtual=virtual)
+
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
                     art=False, scroll_id=None, head_h=0, menu=False):

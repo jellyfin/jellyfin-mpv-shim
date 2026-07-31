@@ -182,7 +182,23 @@ end
 function mp.remove_key_binding(name) M.log.keybinds[name] = nil end
 function mp.enable_key_bindings() end
 function mp.disable_key_bindings() end
-function mp.set_key_bindings() end
+
+-- Mouse and wheel bindings arrive as a whole *group*, and an entry may
+-- carry two handlers: {key, on_up, on_down}. Recorded under the key name
+-- so M.key('mbtn_back') reaches them; this was a no-op, which left every
+-- binding in those groups invisible to the tests. The down half is the
+-- one that acts (the renderer's up handlers finish a press it started),
+-- so that is what M.key drives.
+--
+-- enable/disable_key_bindings stay no-ops: a fake cannot model mpv's
+-- section stack, so a test can call a binding that is currently
+-- suspended. Which group a binding lives in is therefore a claim only
+-- real mpv can settle.
+function mp.set_key_bindings(list, _name, _flags)
+    for _, entry in ipairs(list or {}) do
+        M.log.keybinds[entry[1]] = entry[3] or entry[2]
+    end
+end
 function mp.register_event() end
 function mp.register_idle() end
 function mp.get_script_name() return "mpvtk" end

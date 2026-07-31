@@ -238,6 +238,12 @@ class Settings(SettingsBase):
     sanitize_output: bool = True
     write_logs: bool = False
     playback_timeout: int = 30
+    #: Seconds a photo is held before the queue moves to the next item --
+    #: mpv's --image-display-duration, set per start. It cannot simply be
+    #: left to mpv.conf: the in-window browser parks the same option at
+    #: "inf" while it owns the window. mpv's own default of 1s is a
+    #: slideshow you cannot read; 5 is roughly what the other clients use.
+    photo_display_secs: int = 5
     sync_max_delay_speed: int = 50
     sync_max_delay_skip: int = 300
     sync_method_thresh: int = 2000

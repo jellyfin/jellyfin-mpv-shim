@@ -96,9 +96,9 @@ from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
 from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
-                         PLAYABLE_TYPES, SERIES_TYPES)
-from .strips import (LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM, StripStore,
-                     TileGeom)
+                         PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
+from .strips import (BANNER_GEOM, LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM,
+                     StripStore, TileGeom)
 from .dialogs import DialogsMixin
 from .livetv_dialogs import LiveTvDialogsMixin
 from .auth import AuthMixin
@@ -310,6 +310,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 tile_w=_lw, tile_h=_lh,
                 caption_h=LANDSCAPE_GEOM.caption_h)
         self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
+        # ~5.4:1. Only a user asking for the Banner image type reaches this.
+        self.geom_banner = BANNER_GEOM.scaled(_cs)
         # A theme may also pin the tile caption font so it does NOT grow with
         # the cover (big art, modest labels), which lets a long title show
         # more of itself before it is ellipsized. Section headings are
@@ -388,7 +390,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             timer_editor=lambda server, timer, series=False, on_change=None:
                 self._open_timer_editor(server, timer, series, on_change),
             guide_settings=lambda server, prefs, categories, on_save=None:
-                self._open_guide_settings(server, prefs, categories, on_save))
+                self._open_guide_settings(server, prefs, categories, on_save),
+            view_settings=lambda current, on_set, paginated=None:
+                self.view_settings(current, on_set, paginated))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,
@@ -488,6 +492,18 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
+        # Ask the renderer to land focus on the page's own default action —
+        # a movie's Play. Asked for every navigation and answered by very
+        # few: only a page that nominates a node has one, and the renderer
+        # ignores the request outright while the pointer is driving, so
+        # clicking a tile with a mouse is unaffected. Parked until the page
+        # stops being a spinner (see MpvtkApp.focus).
+        focus = getattr(self.app, "focus", None)
+        if focus is not None:
+            try:
+                focus()
+            except Exception:
+                log.debug("autofocus request failed", exc_info=True)
         self.invalidate()
 
     def _poll_live_tv(self, route):
@@ -569,21 +585,84 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_scroll()
         left = self._nav.pop()
         if left is not None:
-            self._reset_scroll()
-            self._bump_epoch()
-            # Stale-while-revalidate: refresh Home on return (watched/resume
-            # state may have changed) while showing the cached view meanwhile.
-            if self.route.get("kind") == "home":
-                self._load_route(self.route)
-            # Coming out of the playlist editor, whatever is underneath is
-            # showing the order and membership from before the edits.
-            elif (left.get("kind") == "playlist_edit"
-                  and self.route.get("kind") in ("playlist", "grid")):
-                self.route.pop("_data", None)
-                self.route.pop("_items", None)
-                self.route.pop("_loading", None)
-                self._load_route(self.route)
-            self.invalidate()
+            self._land_back([left])
+
+    def _land_back(self, left):
+        """Settle on whatever a back move landed on. ``left`` is the routes
+        it left, nearest first — one for a Back press, several for a jump
+        through the history menu.
+
+        Shared so the two cannot diverge: the menu's jump used to reload
+        only Home, so jumping past the playlist editor showed the pre-edit
+        membership as fresh while pressing Back the same number of times
+        refetched it.
+        """
+        self._reset_scroll()
+        self._bump_epoch()
+        # Stale-while-revalidate: refresh Home on return (watched/resume
+        # state may have changed) while showing the cached view meanwhile.
+        if self.route.get("kind") == "home":
+            self._load_route(self.route)
+        # Coming out of the playlist editor, whatever is underneath is
+        # showing the order and membership from before the edits. Asked of
+        # every route left, not just the nearest: a jump can step over the
+        # editor from further in.
+        elif (any((r or {}).get("kind") == "playlist_edit" for r in left)
+              and self.route.get("kind") in ("playlist", "grid")):
+            self.route.pop("_data", None)
+            self.route.pop("_items", None)
+            self.route.pop("_loading", None)
+            self._load_route(self.route)
+        self.invalidate()
+
+    def go_forward(self):
+        """Return to a page ``go_back`` left. Mouse-only (the thumb button),
+        by design: it exists so an accidental Back is cheap to undo, which
+        does not earn a permanent arrow in the top bar. The history menu on
+        the Back button is where it becomes visible.
+
+        No stale-while-revalidate counterpart to go_back's Home reload: a
+        page reached by going forward was on screen moments ago, and the one
+        case that reloads on the way back — leaving the playlist editor —
+        cannot be ahead of you, because editing pushes rather than pops.
+        """
+        self._park_scroll()
+        self._land_forward(self._nav.unpop())
+
+    def go_forward_to(self, depth):
+        """Jump forward to the page ``depth`` deep — the history menu's
+        pick on the other side of the current page."""
+        self._park_scroll()
+        self._land_forward(self._nav.fast_forward(depth))
+
+    def _land_forward(self, route):
+        """Settle on a route the forward stack gave back. None means
+        nothing moved: an empty stack, or the headless lockdown."""
+        if route is None:
+            return
+        self._reset_scroll()
+        self._bump_epoch()
+        # A page can be left before its fetch ever landed — Back bumps the
+        # epoch, which drops the result on the floor. Going *back* to such
+        # a page is impossible (it was never below you), going forward to
+        # one is a press away, and nothing else re-issues the load: the
+        # render path spins on a route with no data and no error. Same
+        # shape as _retry_route, including clearing the paging guard,
+        # which would otherwise cap the list for the rest of the session.
+        if route.get("_data") is None and not route.get("_items"):
+            route.pop("_loading", None)
+            self._load_route(route)
+        self.invalidate()
+
+    def go_back_to(self, depth):
+        """Jump back to the page ``depth`` deep in the stack (1 is the root)
+        — the history menu's pick. Everything skipped goes onto the forward
+        stack, and lands exactly as pressing Back that many times would."""
+        self._park_scroll()
+        left = self._nav.rewind_to(depth)
+        if not left:
+            return
+        self._land_back(left)
 
     def after_playlist_deleted(self, playlist_id):
         """Drop every route pointing at a now-deleted playlist and reload
@@ -676,17 +755,52 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def on_nav_command(self, name):
         """Remote menu commands that map onto real pages here (GoHome /
-        GoToSettings). Returns True when handled; the OSD menu has no such
-        pages, so for every other path both still just open the menu."""
+        GoToSettings), or onto the chrome (GoToSearch). Returns True when
+        handled; the OSD menu has none of them, so for every other path
+        settings still just opens the menu."""
         if self.headless:
             # A remote is input like any other. Declining here lets the
             # player fall back to its own OSD menu, which is transport-only.
             return False
+        if name == "search":
+            # jellyfin-web opens a search page; the search box lives in our
+            # top bar on every screen, so putting the cursor in it is the
+            # same gesture with one less screen. Nothing to focus unless
+            # the library is actually up.
+            if not self._browsing:
+                return False
+            focus = getattr(self.app, "focus", None)
+            if focus is None:
+                return False
+            try:
+                focus("nav-search")
+            except Exception:
+                log.debug("search focus failed", exc_info=True)
+                return False
+            return True
         if name == "settings":
             self.open_settings()
             return True
         if name == "home":
+            # Home means the home screen, from anywhere — including over a
+            # playing video, where it used to fall through to the legacy
+            # OSD menu (the player declined the command while a video was
+            # up, and the OSD menu was the fallback for everything it
+            # declined). So stop first: "go home" cannot mean "go home
+            # behind this film".
+            #
+            # Navigate before stopping. The browser is not on screen yet,
+            # so the home route loads while the video is still up, and
+            # stopping hands the window to a screen that has already
+            # arrived rather than to a spinner. Same reason the HUD's own
+            # Back button just stops: what is underneath is already right.
             self.navigate({"kind": "home", "server": self.server}, reset=True)
+            # Audio and video are tracked in different places: `_now_playing`
+            # is the now-playing BAR's state and is None for video, whose
+            # playstate lives in hud.state. Asking either one alone stops
+            # music and not films, or the reverse.
+            if self._now_playing is not None or self.hud.state is not None:
+                self._ctl(lambda c: c.stop())
             return True
         return False
 
@@ -704,6 +818,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.go_back()
             return True
         return False
+
+    def _on_mouse_forward(self):
+        """The mouse's forward button, from the renderer.
+
+        Guarded where ESC is *layered*. Back peels one layer at a time
+        because ESC means "out of this"; forward means "the page I left",
+        and there is no sense in which a dialog or a context menu is
+        between you and it — navigating underneath one would leave it
+        floating over a page it was never opened from. So an open overlay
+        makes this a no-op rather than something to close first.
+
+        The renderer's mouse group is also live while the playback HUD is
+        summoned, where the library is not on screen at all.
+        """
+        if not self._browsing or self._dialog is not None \
+                or self._menu is not None:
+            return
+        self.go_forward()
 
     def _on_nav_mode(self, active):
         """Renderer 'nav' event: keyboard/remote engaged or the mouse
@@ -1019,6 +1151,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             strips=self.strips, thumbs=self.thumbs,
             geom=self.geom, geom_wide=self.geom_wide,
             geom_square=self.geom_square,
+            geom_banner=self.geom_banner,
             tiles=self.tiles, scroll=self._scroll, pages=self._pages)
 
     def _page_context(self):
@@ -1187,6 +1320,31 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == "Studio":
+            # A studio spans films and shows, so it opens as a row per kind
+            # rather than one grid of everything sorted by name.
+            self.navigate(dict(base, kind="byname",
+                               list={"type": "items",
+                                     "studio_ids": item.get("Id")}))
+        elif t == "Genre":
+            # A video genre, from a search result or a detail page's Genres
+            # line. It spans films, shows and albums, so it opens as a row
+            # per kind -- jellyfin-web's ItemsByName. The Genres *screen*
+            # links its headings straight to a single-type listing instead,
+            # because there the type is already known.
+            self.navigate(dict(base, kind="byname",
+                               list={"type": "items",
+                                     "genre_ids": item.get("Id")}))
+        elif t == PHOTO_TYPE:
+            # Straight to the picture, like Audio and unlike everything in
+            # PLAYABLE_TYPES -- a detail page for a photo would be a
+            # heading, a date and no reason to be there.
+            #
+            # The rest of the album rides along as the queue, starting at
+            # this one, so next/prev walk the folder and unpausing plays it
+            # through at mpv's --image-display-duration. That is the whole
+            # slideshow, and it costs one already-loaded list.
+            self._play_photo(item, server)
         elif item.get("CollectionType") == LIVE_TV_COLLECTION:
             # The Live TV view is a destination, not a folder: its children
             # are channels, and browsing them as a grid loses the guide, the
@@ -1268,6 +1426,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_hud_skip = self.hud.on_skip
         if hasattr(app, "on_clipboard_error"):
             app.on_clipboard_error = self._on_clipboard_error
+        if hasattr(app, "on_forward"):
+            app.on_forward = self._on_mouse_forward
 
     def reassert_window_state(self):
         """Re-assert window ownership on a FRESH renderer (which starts
@@ -1387,6 +1547,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def _play_list(self, ids, server, start_index=0, audio=False, items=None):
         self._actions.play_list(ids, server, start_index, audio, items)
+
+    def _play_photo(self, item, server):
+        """Open a photo, with the rest of its album queued behind it.
+
+        The album is whatever the grid this was clicked in is showing, which
+        is already loaded -- no fetch, and it matches what the user can see.
+        Falls back to the one photo when the route has no list (a search
+        result, say), which still opens the picture.
+        """
+        items = [i for i in (self.route.get("_items") or [])
+                 if i.get("Type") == PHOTO_TYPE and i.get("Id")]
+        ids = [i["Id"] for i in items]
+        try:
+            start = ids.index(item.get("Id"))
+        except ValueError:
+            ids, items, start = [item.get("Id")], [item], 0
+        self._play_list(ids, server, start, items=items)
 
     # ------------------------------------------------- browse <-> playback
 
@@ -1640,6 +1817,27 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
         self._start_daemon("_np_thread", "mpvtk-np-tick", tick)
 
+    def _publish_auth_origins(self):
+        """Tell the thumbnail store which token belongs to which server.
+
+        Images are fetched on the store's own session, so this is how they
+        authenticate by header rather than by query string. Called on every
+        source swap, which is also what revokes a signed-out server's token
+        -- the store replaces its map wholesale.
+        """
+        origins = {}
+        get = getattr(self.source, "auth_origins", None)
+        if get is not None:
+            try:
+                origins = get()
+            except Exception:
+                log.debug("could not publish auth origins", exc_info=True)
+        try:
+            self.thumbs.set_auth(origins)
+        except Exception:
+            log.debug("thumbnail store would not take auth origins",
+                      exc_info=True)
+
     def set_source(self, source, server_uuid=None, keep_place=False):
         """Swap in a live data source once servers connect (the browser opens
         immediately on a spinner and populates when the network settles).
@@ -1664,6 +1862,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.set_offline(isinstance(source, OfflineLibrarySource))
         self._locked = False
         self.source = source
+        self._publish_auth_origins()
         try:
             servers = source.servers()
         except Exception:
@@ -1786,7 +1985,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 and route["kind"] not in NO_NOW_PLAYING):
             children.append(self._now_playing_bar(w))
         if self._menu is not None:
-            menu = self._tile_menu_node()
+            # One slot, two kinds of context menu: a tile's actions, or the
+            # Back button's history. Only one can be open — they are opened
+            # by the same gesture on different targets — so they share the
+            # state, the ESC handling and the "defer a Live TV refresh
+            # while a menu is up" rule.
+            menu = (window_chrome.history_menu_node(self)
+                    if self._menu.get("kind") == "history"
+                    else self._tile_menu_node())
             if menu is not None:
                 children.append(menu)
         if self._dialog is not None:

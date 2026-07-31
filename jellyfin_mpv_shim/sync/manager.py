@@ -9,10 +9,10 @@ import json
 import logging
 import math
 import os
+from urllib.parse import urlparse
 import shutil
 import threading
 import time
-import urllib.parse
 
 import requests
 
@@ -39,6 +39,21 @@ class _Stopped(Exception):
 
 class _Cancelled(Exception):
     """Raised inside the worker when the active download is being deleted."""
+
+
+def _same_origin(url, server):
+    """Whether ``url`` is on the same host as ``server``.
+
+    Scheme and port count: an http URL is not the same origin as the https
+    server we authenticated to, and sending a bearer token over the first
+    would hand it to anyone on the path.
+    """
+    try:
+        a, b = urlparse(url), urlparse(server)
+    except Exception:
+        return False
+    return bool(a.hostname) and (a.scheme, a.hostname, a.port) == (
+        b.scheme, b.hostname, b.port)
 
 
 def _sub_format(codec):
@@ -815,10 +830,11 @@ class SyncManager:
 
             media_path = os.path.join(item_dir, "media." + (row["ext"] or "mkv"))
             tmp = media_path + ".part"
-            url = client.jellyfin.download_url(item_id)
+            url = client.jellyfin.download_url(item_id, include_apikey=False)
             expected = row.get("size_bytes") or 0
             size, total = self._stream(url, media_path, item_id, row.get("name"),
-                                       expected, stopping=stopping)
+                                       expected, stopping=stopping,
+                                       headers=self._headers_for(client, url))
 
             # Never record a short/truncated response as complete: keep the
             # .part and leave the row pending so a later pass resumes it. Don't
@@ -912,8 +928,42 @@ class SyncManager:
                 self._cancelled.discard(item_id)
         self._notify_change()
 
+    def _headers_for(self, client, url):
+        """Credentials for ``url``, as a headers dict, or ``{}``.
+
+        The single way this module authenticates an outbound request. It is
+        one function rather than a line at each call site because the call
+        sites are the failure mode: the subtitle sidecar was converted to
+        the header and the other six requests in here were not, so an
+        offline download went on quietly fetching its media, artwork and
+        trickplay tiles with ``?ApiKey=`` in the url. Six of those seven
+        swallow their own exceptions, so against a proxy that requires the
+        header they do not fail loudly -- the download completes and the
+        artwork is simply absent. ``test_sync_auth_headers`` now enumerates
+        the call sites so a new one cannot repeat it.
+
+        Same-origin gated like everything else. Every url here is built by
+        the apiclient from ``auth.server``, so the test is true by
+        construction today; it is applied anyway because "true by
+        construction today" is exactly what stops being true when someone
+        threads a server-supplied path through one of these.
+        """
+        try:
+            server = client.config.data.get("auth.server", "") or ""
+            if not _same_origin(url, server):
+                return {}
+            return {"Authorization": client.http._get_authenication_header()}
+        except Exception:
+            # {} is this function's documented answer, and the whole body is
+            # inside the guard so a half-built client cannot take a download
+            # down with an AttributeError instead. The request that follows
+            # then fails as an honest 401 rather than a traceback on a
+            # background worker.
+            log.debug("could not build an auth header", exc_info=True)
+            return {}
+
     def _stream(self, url, dest, item_id, name, expected,
-                stopping=None):
+                stopping=None, headers=None):
         """Download `url` to `dest`.part, resuming a partial file where possible.
 
         Returns ``(downloaded, total)``. The caller promotes the .part to `dest`
@@ -931,7 +981,7 @@ class SyncManager:
             return expected, expected
         try:
             return self._stream_request(url, tmp, item_id, name, expected,
-                                        resume, stopping)
+                                        resume, stopping, headers)
         except requests.HTTPError as exc:
             resp = getattr(exc, "response", None)
             if resp is None or resp.status_code != 416:
@@ -948,12 +998,17 @@ class SyncManager:
             except OSError:
                 pass
             return self._stream_request(url, tmp, item_id, name, expected,
-                                        0, stopping)
+                                        0, stopping, headers)
 
     def _stream_request(self, url, tmp, item_id, name, expected,
-                        resume, stopping=None):
+                        resume, stopping=None, headers=None):
         verify = not settings.ignore_ssl_cert
-        headers = {"Range": "bytes=%d-" % resume} if resume else {}
+        # Range and Authorization both, not one or the other: this used to
+        # build the dict from scratch here, which is why the resume header
+        # arrived and the credentials did not.
+        headers = dict(headers or {})
+        if resume:
+            headers["Range"] = "bytes=%d-" % resume
         with requests.get(url, stream=True, headers=headers, verify=verify,
                           timeout=(10, 60)) as resp:
             if resume and resp.status_code == 200:
@@ -1012,9 +1067,11 @@ class SyncManager:
         tp_dir = os.path.join(item_dir, "trickplay", str(width))
         os.makedirs(tp_dir, exist_ok=True)
         for i in range(tiles):
-            url = api.trickplay_tile_url(item_id, width, i, source.get("Id"))
+            url = api.trickplay_tile_url(item_id, width, i, source.get("Id"),
+                                         include_apikey=False)
             try:
-                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                    headers=self._headers_for(client, url))
                 resp.raise_for_status()
                 with open(os.path.join(tp_dir, "%d.jpg" % i), "wb") as fh:
                     fh.write(resp.content)
@@ -1040,12 +1097,15 @@ class SyncManager:
         os.makedirs(series_dir, exist_ok=True)
         jobs = []
         if not os.path.exists(poster):
-            jobs.append((poster, api.artwork(series_id, "Primary", 600)))
+            jobs.append((poster, api.artwork(series_id, "Primary", 600,
+                                             include_apikey=False)))
         if not os.path.exists(backdrop):
-            jobs.append((backdrop, api.artwork(series_id, "Backdrop", 1280)))
+            jobs.append((backdrop, api.artwork(series_id, "Backdrop", 1280,
+                                               include_apikey=False)))
         for path, url in jobs:
             try:
-                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                    headers=self._headers_for(client, url))
                 resp.raise_for_status()
                 with open(path, "wb") as fh:
                     fh.write(resp.content)
@@ -1064,10 +1124,12 @@ class SyncManager:
         if os.path.exists(poster):
             return
         os.makedirs(pl_dir, exist_ok=True)
-        url = client.jellyfin.artwork(playlist_id, "Primary", 600)
+        url = client.jellyfin.artwork(playlist_id, "Primary", 600,
+                                      include_apikey=False)
         try:
             resp = requests.get(url, timeout=(10, 30),
-                                verify=not settings.ignore_ssl_cert)
+                                verify=not settings.ignore_ssl_cert,
+                                headers=self._headers_for(client, url))
             resp.raise_for_status()
             with open(poster, "wb") as fh:
                 fh.write(resp.content)
@@ -1101,9 +1163,11 @@ class SyncManager:
             return
         os.makedirs(season_dir, exist_ok=True)
         verify = not settings.ignore_ssl_cert
+        url = client.jellyfin.artwork(season_id, "Primary", 600,
+                                      include_apikey=False)
         try:
-            resp = requests.get(client.jellyfin.artwork(season_id, "Primary", 600),
-                                timeout=(10, 30), verify=verify)
+            resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                headers=self._headers_for(client, url))
             resp.raise_for_status()
             with open(poster, "wb") as fh:
                 fh.write(resp.content)
@@ -1115,15 +1179,19 @@ class SyncManager:
         tags = item.get("ImageTags") or {}
         jobs = []
         if "Primary" in tags:
-            jobs.append(("poster.jpg", api.artwork(item["Id"], "Primary", 600)))
+            jobs.append(("poster.jpg", api.artwork(item["Id"], "Primary", 600,
+                                                   include_apikey=False)))
         if item.get("BackdropImageTags"):
-            jobs.append(("backdrop.jpg", api.artwork(item["Id"], "Backdrop", 1280)))
+            jobs.append(("backdrop.jpg", api.artwork(item["Id"], "Backdrop", 1280,
+                                                     include_apikey=False)))
         if "Thumb" in tags:
-            jobs.append(("thumb.jpg", api.artwork(item["Id"], "Thumb", 600)))
+            jobs.append(("thumb.jpg", api.artwork(item["Id"], "Thumb", 600,
+                                                  include_apikey=False)))
         verify = not settings.ignore_ssl_cert
         for name, url in jobs:
             try:
-                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                    headers=self._headers_for(client, url))
                 resp.raise_for_status()
                 with open(os.path.join(item_dir, name), "wb") as fh:
                     fh.write(resp.content)
@@ -1139,7 +1207,6 @@ class SyncManager:
         the downloaded original file and need no sidecar.
         """
         server = client.config.data.get("auth.server", "").rstrip("/")
-        token = client.config.data.get("auth.token", "")
         verify = not settings.ignore_ssl_cert
         media_source_id = source.get("Id") or item_id
         subs_dir = os.path.join(item_dir, "subs")
@@ -1151,16 +1218,32 @@ class SyncManager:
                 continue
             fmt = _sub_format(stream.get("Codec"))
             delivery = stream.get("DeliveryUrl")
+            external = bool(stream.get("IsExternalUrl"))
             if delivery:
-                base = delivery if stream.get("IsExternalUrl") else (server + delivery)
-                sep = "&" if "?" in base else "?"
-                url = "%s%sapi_key=%s" % (base, sep, urllib.parse.quote(token))
+                url = delivery if external else (server + delivery)
             else:
                 url = client.jellyfin.subtitle_url(
-                    item_id, media_source_id, index, fmt)
+                    item_id, media_source_id, index, fmt,
+                    include_apikey=False)
+            # We issue this request ourselves, so the token goes in a header
+            # rather than the query string -- no token in logs, in ps output
+            # or in any proxy in the path.
+            #
+            # But only to our own server. IsExternalUrl does NOT mean "third
+            # party": it means the stream's Path was already an absolute
+            # http(s) URI, so the server handed that over instead of
+            # proxying it (StreamInfo.cs:1264-1274). That host is often the
+            # same one -- a plugin, a co-located file server -- and
+            # sometimes not, and the DTO does not say which. So the test is
+            # the origin, not the flag: same host as the server we are
+            # logged in to, send the header; anything else, send nothing.
+            #
+            # The old code attached api_key to these unconditionally, which
+            # handed our access token to whatever host the path named.
             try:
                 os.makedirs(subs_dir, exist_ok=True)
-                resp = requests.get(url, timeout=(10, 30), verify=verify)
+                resp = requests.get(url, timeout=(10, 30), verify=verify,
+                                    headers=self._headers_for(client, url))
                 resp.raise_for_status()
                 with open(os.path.join(subs_dir, "%s.%s" % (index, fmt)), "wb") as fh:
                     fh.write(resp.content)

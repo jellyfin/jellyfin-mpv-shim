@@ -112,6 +112,12 @@ class TileGeom:
 POSTER_GEOM = TileGeom(tile_w=150, tile_h=225, caption_h=46)        # 2:3
 LANDSCAPE_GEOM = TileGeom(tile_w=240, tile_h=135, caption_h=44)     # 16:9
 SQUARE_GEOM = TileGeom(tile_w=170, tile_h=170, caption_h=44)        # 1:1
+# ~5.4:1, jellyfin-web's banner (card.scss's cardPadder-banner is
+# padding-bottom: 18.5%). Only reachable by a user explicitly choosing the
+# Banner image type for a library -- nothing infers it, and auto_geom folds
+# its own >=3 bucket into landscape instead. Wider than the poster row is
+# tall, so it is sized to sit two-across rather than to match the others.
+BANNER_GEOM = TileGeom(tile_w=486, tile_h=90, caption_h=44)         # ~5.4:1
 WIDE_GEOM = LANDSCAPE_GEOM  # backwards-compatible alias
 
 
@@ -134,6 +140,10 @@ class Tile:
     badge: int = 0
     progress: float = 0.0
     downloaded: bool = False
+    #: Material icon name marking what kind of thing this is ("folder",
+    #: "photo", "videocam"...), or "" for the types that get no marker --
+    #: see components.type_indicator_icon.
+    kind: str = ""
     glyph: str = ""
     #: Being written to disk right now. Turns the progress bar (which for
     #: these is how far through the *broadcast* is, not how far through you
@@ -226,6 +236,7 @@ class StripStore:
             int(t.badge),
             round(float(t.progress), 2),
             bool(t.downloaded),
+            t.kind,
             bool(t.recording),
             t.record,
             t.glyph if t.poster is None else "",
@@ -559,37 +570,43 @@ class StripStore:
         # into a physical bitmap, so it goes through _px(). g is already
         # physical (see _compose); mixing the two silently is how a scaled
         # tile ends up with 1x decorations pinned to its corner.
-        lw = max(1, _px(2))          # decoration stroke width
         if t.watched:
-            dr.ellipse([x + _px(6), _px(6), x + _px(28), _px(28)],
-                       fill=theme.rgb(theme.ACCENT, 255))
-            dr.line([(x + _px(12), _px(17)), (x + _px(16), _px(22)),
-                     (x + _px(23), _px(12))],
-                    fill=(255, 255, 255, 255), width=lw)
-        # Top-right corner: a recording symbol outranks both of the others.
-        # It is the only one about something happening *now*, and an
-        # unplayed count on a programme being taped tells you nothing.
+            # A real Material `check`, not two hand-drawn strokes. Same
+            # reason _paint_record gives for the record dot: this glyph is
+            # drawn elsewhere in the app from `ui_icon_paths`, and a
+            # hand-rolled second copy of one symbol drifts from the first.
+            self._paint_glyph_badge(img, dr, x + _px(17), _px(17), "check",
+                                    theme.ACCENT)
+        # The top-right stack, filled from the corner leftwards. These used
+        # to be an if/elif chain -- one badge won and the rest silently did
+        # not draw, so a downloaded clip in a Home Videos library lost the
+        # type marker that says it is a clip and not a folder. jellyfin-web
+        # lays its indicators out in one flex row (`.cardIndicators`) for
+        # the same reason: they answer different questions and any pair of
+        # them can be true at once.
+        #
+        # Precedence is what sits IN the corner, not what draws at all: a
+        # recording is the only one of these about something happening right
+        # now, so it keeps the spot the eye goes to first.
+        cy = _px(17)
+        cx = x + g.tile_w - _px(17)
         if t.record:
-            self._paint_record(img, x + g.tile_w - _px(17), _px(17), t.record)
-        elif t.downloaded:
-            cx, cy = x + g.tile_w - _px(17), _px(17)
-            r = _px(11)
-            dr.ellipse([cx - r, cy - r, cx + r, cy + r],
-                       fill=theme.rgb(theme.ACCENT, 255))
-            dr.line([(cx, cy - _px(5)), (cx, cy + _px(4))],
-                    fill=(255, 255, 255, 255), width=lw)
-            dr.line([(cx - _px(4), cy), (cx, cy + _px(4)), (cx + _px(4), cy)],
-                    fill=(255, 255, 255, 255), width=lw)
-            dr.line([(cx - _px(5), cy + _px(7)), (cx + _px(5), cy + _px(7))],
-                    fill=(255, 255, 255, 255), width=lw)
-        elif t.badge:
+            self._paint_record(img, cx, cy, t.record)
+            cx -= _px(self.BADGE_PITCH)
+        if t.downloaded:
+            self._paint_glyph_badge(img, dr, cx, cy, "file_download",
+                                    theme.ACCENT)
+            cx -= _px(self.BADGE_PITCH)
+        if t.kind:
+            self._paint_kind(img, dr, cx, cy, t.kind)
+            cx -= _px(self.BADGE_PITCH)
+        if t.badge:
             bw = _px(26)
             dr.rounded_rectangle(
-                [x + g.tile_w - bw - _px(5), _px(5),
-                 x + g.tile_w - _px(5), _px(25)],
+                [cx - bw // 2, _px(5), cx + bw // 2, _px(25)],
                 radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
-            dr.text((x + g.tile_w - _px(5) - bw / 2, _px(15)), str(t.badge),
+            dr.text((cx, _px(15)), str(t.badge),
                     font=_font(g.badge_size, bold=True), anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:
@@ -636,6 +653,61 @@ class StripStore:
     #: are a circle of radius 8 on a 24 canvas, so this gives a dot about
     #: 18px across at 1x — the size the other corner badges are.
     RECORD_BOX = 27
+
+    #: Centre-to-centre spacing of the top-right badges. The discs are 22
+    #: across, so this is them plus a 4px gap.
+    BADGE_PITCH = 26
+
+    #: Glyph box for a LINE icon on a badge (check, file_download), and for
+    #: a SOLID one (folder, photo, videocam). Different on purpose, in a
+    #: 22px disc that has to hold both.
+    #:
+    #: Material's 24-unit canvas carries its own padding, and the disc is
+    #: more padding, so a glyph sized to the disc draws the symbol at about
+    #: two thirds of it. That is invisible on a solid icon and ruinous on a
+    #: line one: `check` is a ~2.2-unit stroke, which at a 15px box lands at
+    #: 1.4 physical pixels -- thinner than the hand-drawn 2px strokes these
+    #: replaced, which is exactly what they looked like. 20 puts the stroke
+    #: back at ~1.8px. The solid icons stay smaller because their ink fills
+    #: most of the canvas and 20 would have them touching the disc's edge.
+    LINE_GLYPH = 20
+    SOLID_GLYPH = 16
+
+    @staticmethod
+    def _paint_glyph_badge(img, dr, cx, cy, name, fill, size=None):
+        """A Material glyph in white on a filled disc, centred on (cx, cy).
+
+        The shape the watched check and the downloaded arrow share; the type
+        marker (``_paint_kind``) is the same disc in the window colour,
+        because it labels the item rather than reporting a state and should
+        not read as another accent badge.
+        """
+        from ..mpvtk import vector
+
+        r = _px(11)
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
+                   fill=theme.rgb(fill, 255))
+        size = _px(size or StripStore.LINE_GLYPH)
+        glyph = vector.icon_image(name, size, (255, 255, 255))
+        img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
+
+    @staticmethod
+    def _paint_kind(img, dr, cx, cy, name):
+        """The type marker, centred on (cx, cy).
+
+        Same disc as the state badges beside it but in the window colour,
+        not the accent: this one says what the item *is*, permanently, and
+        an accent chip on every tile in a Home Videos library reads as
+        something having happened to all of them.
+        """
+        from ..mpvtk import vector
+
+        r = _px(11)
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
+                   fill=theme.rgb(theme.WINDOW_BG, 210))
+        size = _px(StripStore.SOLID_GLYPH)
+        glyph = vector.icon_image(name, size, theme.rgb(theme.TEXT_FG))
+        img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     @staticmethod
     def _paint_record(img, cx, cy, state):

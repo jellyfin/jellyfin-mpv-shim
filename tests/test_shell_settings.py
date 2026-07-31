@@ -43,7 +43,8 @@ class TestSettings(unittest.TestCase):
     def test_settings_tabs_present(self):
         self.b._open_settings()
         nodes, _h = build_scene(self.b)
-        for tab in ("general", "servers", "downloads", "logs"):
+        for tab in ("general", "home", "display", "servers", "downloads",
+                    "logs"):
             self.assertIn("stab-" + tab, ids(nodes))
 
     def test_advanced_section_is_collapsed_by_default(self):
@@ -771,6 +772,148 @@ class TestOfflineGates(unittest.TestCase):
             {"id": "u1", "name": "A", "active": True},
             {"id": "u2", "name": "B", "active": False}]
         self.assertIn("nav-user", ids(build_scene(b)[0]))
+
+class TestDisplayTab(unittest.TestCase):
+    """The Display tab: per-user preferences held on the *server*.
+
+    Everything here is shared with jellyfin-web, which is why it loads and
+    saves asynchronously and why a stale read must never be written back.
+    """
+
+    def _browser(self, prefs=None, fail=None):
+        src = FakeSource()
+        self.saved = []
+        self.reads = []
+
+        def get_user_prefs(server, refresh=False):
+            self.reads.append(refresh)
+            if fail == "load":
+                raise RuntimeError("server refused")
+            return dict(prefs if prefs is not None else
+                        {"episode_images": False})
+
+        def save_user_prefs(server, values):
+            if fail == "save":
+                raise RuntimeError("server refused")
+            self.saved.append(dict(values))
+
+        src.get_user_prefs = get_user_prefs
+        src.save_user_prefs = save_user_prefs
+        b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._open_settings()
+        b.route["_tab"] = "display"
+        # These preferences live on the server, so the first frame of the tab
+        # is a spinner that kicks the fetch off -- exactly as the Home Screen
+        # tab behaves. Under _SyncPool the fetch completes inside that frame,
+        # so one throwaway build leaves the tab showing its real contents.
+        build_scene(b)
+        return b
+
+    def test_the_toggle_renders_with_the_servers_value(self):
+        b = self._browser({"episode_images": True})
+        nodes, _h = build_scene(b)
+        self.assertIn("display-episode-images", ids(nodes))
+
+    def test_it_forces_a_refresh_rather_than_trusting_the_cache(self):
+        """The user may have changed this in Jellyfin Web since we started;
+        a stale value here gets written back over their real one.
+
+        The home screen reads it too, on the way past and off the cache
+        (``refresh=False``) -- it repaints constantly and must not re-fetch
+        a server preference every time. Only the tab forces one, so this
+        asserts on the tab's read rather than on the whole list.
+        """
+        b = self._browser()
+        self.assertTrue(self.reads, "the tab never read the preferences")
+        self.assertIs(self.reads[-1], True,
+                      "the settings tab trusted the cache")
+
+    def test_toggling_saves_the_flipped_value(self):
+        b = self._browser({"episode_images": False})
+        _n, handlers = build_scene(b)
+        handlers["display-episode-images"]["click"]()
+        self.assertEqual(self.saved, [{"episode_images": True}])
+
+    def test_the_tick_moves_before_the_round_trip(self):
+        """Optimistic: a checkbox that only ticks after the network reads as
+        a dead control."""
+        b = self._browser({"episode_images": False})
+        _n, handlers = build_scene(b)
+        handlers["display-episode-images"]["click"]()
+        self.assertTrue(b.route["_display_prefs"]["episode_images"])
+
+    def test_a_rejected_save_rolls_the_tick_back(self):
+        b = self._browser({"episode_images": False}, fail="save")
+        _n, handlers = build_scene(b)
+        handlers["display-episode-images"]["click"]()
+        self.assertFalse(b.route["_display_prefs"]["episode_images"],
+                         "a rejected change stayed on screen")
+
+    def test_a_failed_load_offers_a_retry_and_no_toggles(self):
+        """Not the defaults: editable toggles we never read let the user
+        'keep' a value that was never loaded, then save that guess."""
+        b = self._browser(fail="load")
+        nodes, _h = build_scene(b)
+        self.assertIn("display-retry", ids(nodes))
+        self.assertNotIn("display-episode-images", ids(nodes))
+
+    def test_offline_says_so_instead_of_failing_at_save_time(self):
+        src = FakeSource()
+        self.assertFalse(hasattr(src, "save_user_prefs"))
+        b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
+        b._pool = _SyncPool()
+        b._open_settings()
+        b.route["_tab"] = "display"
+        build_scene(b)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("display-episode-images", ids(nodes))
+        self.assertNotIn("display-retry", ids(nodes))
+
+    def test_a_superseded_fetch_does_not_strand_the_tab(self):
+        """`on_done` is epoch-gated, so a fetch overtaken by a background
+        reconnect (set_source bumps the epoch) or by leaving and coming
+        back runs NEITHER callback. With the loading guard cleared only in
+        those two, it stayed set — and the tab then short-circuits on it
+        every frame: a permanent spinner, no error, no retry, escapable
+        only by switching tabs.
+
+        Driven by bumping the epoch mid-fetch, which is what actually
+        happens, rather than by poking the flag.
+        """
+        src = FakeSource()
+        b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+
+        def get_user_prefs(_server, refresh=False):
+            b._bump_epoch()          # a reconnect lands while we are out
+            return {"episode_images": False}
+
+        src.get_user_prefs = get_user_prefs
+        src.save_user_prefs = lambda *a: None
+        b._open_settings()
+        b.route["_tab"] = "display"
+        build_scene(b)
+        self.assertFalse(b.route.get("_display_loading"),
+                         "the tab is stuck on a spinner for good")
+        # ...and the next visit actually re-fetches rather than returning
+        # early on the stale guard.
+        reads = []
+        src.get_user_prefs = lambda _s, refresh=False: (
+            reads.append(refresh) or {"episode_images": True})
+        build_scene(b)
+        self.assertEqual(reads, [True])
+
+    def test_leaving_the_tab_drops_the_cached_read(self):
+        """Same rule as the home layout: a cached copy goes stale the moment
+        the user touches Jellyfin Web."""
+        b = self._browser()
+        self.assertIsNotNone(b.route.get("_display_prefs"))
+        b._set_settings_tab(b.route, "general")
+        self.assertIsNone(b.route.get("_display_prefs"))
+
 
 class TestSeriesTrailerAndSettingsSafety(unittest.TestCase):
     def test_a_series_with_trailers_offers_the_button(self):

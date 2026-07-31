@@ -123,6 +123,7 @@ local state = {
     nav = nil,              -- spatial-nav focused node id (10ft keys)
     nav_pidx = nil,         -- keyboard index inside an open popup/menu
     nav_adjust = nil,       -- slider value-adjust mode (ENTER toggles)
+    focus_req = nil,        -- parked mpvtk-focus: {id=…} or {} for `af`
     drag = nil,             -- {sc=id, axis, start_m, start_off} scrollbar drag
     scroll = {},            -- id -> offset (px)
     snap_accum = {},        -- snaps container id -> fractional notch carry
@@ -2690,6 +2691,8 @@ local function on_mouse_down()
     state.nav_adjust = nil
     state.nav_rect = nil
     state.nav_pending = nil
+    -- ...including from a focus the app parked but never got to apply
+    state.focus_req = nil
     if state.nav_mode then
         state.nav_mode = false
         send({ t = 'nav', active = false })
@@ -3142,6 +3145,59 @@ local function set_nav_mode(on)
     send({ t = 'nav', active = on })
 end
 
+-- A focus request from the app (mpvtk-focus): either a node id -- the
+-- search box, when a remote's search button asks for it -- or, with no
+-- id, "whatever this scene nominates", which is how a page opened from a
+-- remote lands on its Play button.
+--
+-- PARKED, not applied on the spot. The page a navigation lands on is a
+-- spinner first: the node being asked for usually does not exist until a
+-- later push, so a request that insisted on the current scene would do
+-- nothing at all on exactly the screens it is for.
+--
+-- What keeps a parked request from surfacing on some unrelated page later
+-- is that every user input cancels it (arrows, Tab, any mouse press) and
+-- an `af` request is dropped outright once the pointer is driving --
+-- landing on a page is the app's suggestion, and the person holding the
+-- mouse outranks it.
+--
+-- Global, like blur() and phud_touch(): this chunk is at LuaJIT's ceiling
+-- of 200 locals and one more top-level `local function` fails to compile
+-- at load, silently, as a blank UI. Still defined here rather than
+-- earlier, because it calls set_nav_mode and nav_set, which are locals.
+function apply_focus_req()
+    local req = state.focus_req
+    if not req then return end
+    if not req.id and not state.nav_mode then
+        state.focus_req = nil
+        return
+    end
+    local node
+    if req.id then
+        node = state.byid[req.id]
+    else
+        for _, n in ipairs(state.nodes or {}) do
+            if n.af then node = n; break end
+        end
+    end
+    if not node then return end     -- not on screen yet; keep waiting
+    state.focus_req = nil
+    -- Same pair as nav_tab. A textbox wants the keyboard, not just the
+    -- ring: asking for the search box means asking to type in it. And
+    -- landing anywhere else has to LEAVE a field that had it, or the
+    -- arrows keep moving a caret -- which is exactly the search case,
+    -- where submitting from the box is what opened the page being
+    -- focused.
+    if node.t == 'textbox' then
+        focus_textbox(node)
+    else
+        blur()
+    end
+    set_nav_mode(true)
+    nav_set(node)
+    request_render()
+end
+
 -- Does candidate ``c`` overlap ``cur`` on the axis orthogonal to the
 -- move? Same row for horizontal moves, same column for vertical —
 -- the tier-1 requirement that stops RIGHT at the end of a carousel
@@ -3257,6 +3313,8 @@ end
 local function nav_move(dx, dy)
     phud_touch()
     set_nav_mode(true)
+    -- steering by hand outranks a focus the app parked
+    state.focus_req = nil
     -- a focused textbox owns the arrows (caret movement) whichever
     -- forced binding mpv happens to prefer — delegate, don't navigate
     if state.focus then
@@ -3434,6 +3492,35 @@ local function nav_activate()
     end
 end
 
+-- The MENU key (and a remote's hamburger, which the player sends as a
+-- keypress) opens the context menu of the FOCUSED node — the keyboard's
+-- answer to a right-click, and the only way the actions on a tile's menu
+-- are reachable from ten feet away.
+--
+-- Anchored below the node's leading edge rather than at its centre: the
+-- menu is about that node, so covering it is the one place it must not
+-- open. menu_geometry clamps and flips it back into the window from
+-- there, exactly as it does for a pointer near an edge.
+--
+-- A node with no context menu is a no-op, as right-clicking one is. So is
+-- an unfocused scene: with nothing selected there is nothing for the menu
+-- to be *about*, and picking a node on the user's behalf would be a
+-- different gesture than the one they made.
+--
+-- Global for the same reason as apply_focus_req: the 200-locals ceiling.
+function nav_context()
+    phud_touch()
+    if state.focus or state.dd_open or active_menu() or state.tb_menu then
+        return          -- a popup or an edited field owns the keyboard
+    end
+    local node = state.nav and state.byid[state.nav]
+    if not node or not node.ctx then return end
+    set_nav_mode(true)
+    local ex, ey = eff(node)
+    send({ t = 'context', id = node.id,
+           x = ex + ui_px(12), y = ey + node.h })
+end
+
 -- Linear focus order for Tab: the scene is built in document order, and
 -- nav_candidates() preserves state.nodes order, so "next candidate in the
 -- list" is reading order — the same sequence a form's fields sit in. Unlike
@@ -3441,6 +3528,7 @@ end
 -- so Tab always reaches every field/button regardless of layout.
 local function nav_tab(dir)
     phud_touch()
+    state.focus_req = nil       -- as nav_move: the user is steering
     -- A popup owns the keyboard while open; leave arrows/ENTER to drive it.
     if state.dd_open or active_menu() or state.tb_menu then return end
     local cands = nav_candidates()
@@ -3477,6 +3565,7 @@ local NAV_KEYS = {
     { 'ENTER', function() nav_activate() end },
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
+    { 'MENU', function() nav_context() end },
 }
 
 local function bind_nav_keys()
@@ -3504,6 +3593,24 @@ mp.set_key_bindings({
     { 'shift+mbtn_left_dbl', function() end },
     { 'ctrl+mbtn_left_dbl', function() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
+    -- The thumb button is Back wherever the pointer is ours, and it is
+    -- routed as a synthetic ESC rather than given a handler of its own:
+    -- ESC already steps out exactly one layer (scrub -> popup ->
+    -- menu/dialog -> the HUD, or one page off the browser's nav stack,
+    -- whose base case lives in Python on the player's ESC binding), and
+    -- a second implementation of that ladder would drift from it.
+    -- Deliberately in this group and not a forced binding of its own:
+    -- the group is disabled while video plays, which leaves mpv's own
+    -- MBTN_BACK (playlist-prev -> previous queue item) alone.
+    { 'mbtn_back', function() end,
+      function() mp.commandv('keypress', 'ESC') end },
+    -- Its pair has no key to ride on -- nothing in mpv or the app means
+    -- "forward" -- so it is an event and the app decides. Windowless like
+    -- `nav`/`hud` rather than addressed to a node: history belongs to the
+    -- app, not to whatever the pointer happens to be over. An app that
+    -- registers no handler simply ignores it. Scoped like mbtn_back, so
+    -- playlist-next survives mid-playback.
+    { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
@@ -3843,8 +3950,28 @@ mp.register_script_message('mpvtk-scene', function(json)
         -- first HUD scene after a key/remote summon: focus lands on
         -- the autofocus node (play/pause)
         phud_focus_autofocus()
+    else
+        -- a parked mpvtk-focus, now that the page it was asking for may
+        -- finally be on screen
+        apply_focus_req()
     end
     request_render()
+end)
+
+mp.register_script_message('mpvtk-focus', function(json)
+    local t = json and utils.parse_json(json) or nil
+    local id = t and t.id or nil
+    state.focus_req = { id = id }
+    -- Only a request that NAMES a node may be answered by the scene
+    -- already up (the search box is in the chrome, on screen now).
+    -- "Whatever the next scene nominates" must NOT be: navigate() sends
+    -- it while the page being LEFT is still the current scene, and that
+    -- page may well nominate a node of its own -- a detail page's Play
+    -- button -- which would swallow the request, move focus to a node
+    -- about to be reconciled away, and leave the arriving page with
+    -- nothing focused. Deterministic, and only in the keyboard/remote
+    -- mode the whole feature is for.
+    if id then apply_focus_req() end
 end)
 
 -- Full-UI input ownership, shared by browse (mpvtk-active) and a

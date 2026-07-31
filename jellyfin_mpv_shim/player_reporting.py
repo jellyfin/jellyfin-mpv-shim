@@ -147,6 +147,13 @@ class ReportingMixin:
                 "stopped": False,
                 "is_audio": (item.get("MediaType") == "Audio"
                              or item.get("Type") == "Audio"),
+                # A still image. The HUD hides its scrubber and time
+                # readout for one: mpv reports a 5s "duration" from
+                # --image-display-duration, which is real -- that is when
+                # the next photo arrives -- but scrubbing within it means
+                # nothing, and a progress bar crawling across a photo reads
+                # as a video about to end.
+                "is_photo": item.get("Type") == "Photo",
                 "skip_label": (
                     (_("Skip Credits") if skip.type == "Outro"
                      else _("Skip Intro"))
@@ -206,6 +213,16 @@ class ReportingMixin:
         if video is None:
             video = self._video
         if video is None:
+            return None
+        if getattr(video, "is_photo", False) or video.playback_info is None:
+            # A photo never went through PlaybackInfo -- it has no media
+            # source, no play session and nothing to report progress
+            # against. Reporting one anyway would also put every picture
+            # you looked at into Continue Watching.
+            #
+            # The playback_info check is the belt: anything else that
+            # reaches here without one is equally unreportable, and this
+            # used to be an AttributeError three frames deep in stop().
             return None
         player = self._player
 
@@ -436,6 +453,16 @@ class ReportingMixin:
     # send_timeline_stopped so the webview and Discord presence cleanup run
     # like any other stop.
     def _report_stopped_offline(self, video):
+        if getattr(video, "is_photo", False) or video.playback_info is None:
+            # The second site of the same rule as get_timeline_options: a
+            # photo never went through PlaybackInfo, so there is no play
+            # session to free and no stop to report -- and reporting one
+            # would put every picture looked at into Continue Watching.
+            # Only this site is reached on a daemon thread with nothing
+            # catching it, so the missing guard showed up as a bare
+            # TypeError traceback whenever the window was closed on a photo.
+            log.debug("no playback info to report a stop against")
+            return
         options = {
             "PositionTicks": int((self.last_seek or 0) * 10000000),
             "PlaybackStartTimeTicks": int((self.start_time or 0) * 10000000),

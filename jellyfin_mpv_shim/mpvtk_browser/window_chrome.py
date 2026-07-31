@@ -28,6 +28,7 @@ from ..mpvtk.widgets import (
     Float,
     Gradient,
     Icon,
+    Menu,
     Progress,
     Row,
     Spacer,
@@ -97,7 +98,7 @@ def chrome_bar(b, compact, probe=False, servers=None,
     # with the Settings tabs so the two rows always match.
     accent_style = theme.chrome_button_style()
 
-    def nav_button(label, node_id, icon, cb):
+    def nav_button(label, node_id, icon, cb, on_context=None):
         # Icon-only when compact — the icons are the same ones the
         # labels sit next to, so nothing new has to be learned. The
         # tooltip carries the label in that state: compact is exactly
@@ -105,16 +106,47 @@ def chrome_bar(b, compact, probe=False, servers=None,
         # only mode with neither a label nor a tip.
         return Button("" if compact else label, id=node_id, icon=icon,
                       on_click=cb, tip=label if compact else None,
-                      **accent_style)
+                      on_context=on_context, **accent_style)
 
     left = []
     if b._nav.can_go_back:
-        left.append(nav_button(_("Back"), "nav-back", "arrow_back",
-                               b.go_back))
+        # Right-click is where the history becomes visible. The mouse's
+        # forward button has no arrow of its own — it is there so an
+        # accidental Back costs nothing, which does not earn permanent
+        # chrome — so without this menu nothing on screen ever says the
+        # forward stack exists.
+        left.append(nav_button(
+            _("Back"), "nav-back", "arrow_back", b.go_back,
+            on_context=lambda x, y: open_history_menu(b, x, y)))
     left.append(nav_button(
         _("Home"), "nav-home", "home",
         lambda: b.navigate({"kind": "home", "server": b.server},
-                              reset=True)))
+                              reset=True),
+        # Home inherits the history menu at the root, where there is no
+        # Back button to right-click — which is exactly where a forward
+        # stack is most likely to exist, since backing all the way out is
+        # how you get one. Only when there is history to show: an
+        # otherwise-empty menu listing the page you are on is the same
+        # "nothing on offer" a tile with no actions declines to open.
+        on_context=(None if b._nav.can_go_back or not b._nav.forward
+                    else lambda x, y: open_history_menu(b, x, y))))
+    # Home only, and not while offline.
+    #
+    # Not offline because every row on it is a server-side IsFavorite query
+    # and a downloaded subset cannot stand in for one -- an empty screen
+    # would read as "you have no favourites" rather than "this needs the
+    # server". Same reasoning as the Live TV tile, which is also hidden.
+    #
+    # Home only because on a library "favorites" already means something
+    # else and better: the Favorites *filter* on that library's own filter
+    # row. A top-bar button that jumps to a global screen instead is the
+    # same word doing two jobs one bar apart, and dropping it gives the
+    # title the space back.
+    if not b._offline and (b.route or {}).get("kind") == "home":
+        left.append(nav_button(
+            _("Favorites"), "nav-favorites", "favorite",
+            lambda: b.navigate({"kind": "favorites", "server": b.server,
+                                "title": _("Favorites")})))
 
     right = []
     if servers is None:
@@ -173,6 +205,70 @@ def chrome_bar(b, compact, probe=False, servers=None,
     # Several jellyfin-web themes run a horizontal ramp across the header
     # rather than a flat fill; Purple Haze's is most of its identity.
     return Stack([Gradient(stops=stops, axis="x", h=60), bar], h=60)
+
+
+#: Longest history menu. A deep stack outruns the window before it outruns
+#: anyone's patience, and a floating Menu does not scroll — so it is
+#: trimmed at the ends furthest from the current page, which are the two
+#: least likely picks.
+HISTORY_MAX = 12
+
+
+def history_entries(b):
+    """The page stack as (label, icon, depth) rows, root first.
+
+    Ordered as a stack rather than as two "recent first" lists, because
+    that is the question the menu answers: where am I, and what is on
+    either side of me. ``depth`` is the 1-based stack position a pick
+    rewinds to; the pages ahead carry the depth they would occupy, so
+    picking one is that many forward steps.
+    """
+    stack = list(b._nav.stack)
+    ahead = list(reversed(b._nav.forward))     # nearest first -> in order
+    here = len(stack)
+
+    def label(route):
+        # Same fallback as the top bar's title, so a page reads in the
+        # menu exactly as it does in the bar above it.
+        return route.get("title") or _("Home")
+
+    rows = [(label(r), "chevron_left", i + 1) for i, r in enumerate(stack)]
+    rows[-1] = (label(stack[-1]), "check", here)
+    rows += [(label(r), "chevron_right", here + i + 1)
+             for i, r in enumerate(ahead)]
+    if len(rows) <= HISTORY_MAX:
+        return rows
+    # Keep the current page in the window: it is the anchor the rest is
+    # read against, and trimming from one end alone would drop it off a
+    # deep stack. Biased toward the pages behind, which are the ones
+    # anyone is likely to want.
+    lo = min(max(0, here - 1 - HISTORY_MAX // 2),
+             len(rows) - HISTORY_MAX)
+    return rows[lo:lo + HISTORY_MAX]
+
+
+def open_history_menu(b, x, y):
+    b._menu = {"kind": "history", "x": x, "y": y}
+    b.invalidate()
+
+
+def history_menu_node(b):
+    m = b._menu
+    entries = history_entries(b)
+
+    def pick(index, _value):
+        b._close_menu()
+        if not 0 <= index < len(entries):
+            return
+        depth = entries[index][2]
+        if depth < b._nav.depth:
+            b.go_back_to(depth)
+        elif depth > b._nav.depth:
+            b.go_forward_to(depth)
+
+    return Menu("historymenu", [e[0] for e in entries], m["x"], m["y"],
+                icons=[e[1] for e in entries],
+                on_select=pick, on_dismiss=b._close_menu)
 
 
 def banner(b):
