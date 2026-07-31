@@ -596,14 +596,22 @@ class Video(object):
             # cannot decode HEIC, and finding out at decode time gives a
             # black window rather than a fallback. Branching on the container
             # up front is the cheap version of that test.
+            # Both of these take the header like every other url below, and
+            # for the same reason -- this branch returns before the one that
+            # drops the token, so leaving them at the apiclient's default
+            # sent both, and a photo was the one thing still putting a token
+            # in a query string after all of the above.
+            keep_token = not self.auth_via_header
             container = (self.item.get("Container") or "").lower()
             path = (self.item.get("Path") or "").lower()
             if container in _SERVER_CONVERTED_IMAGES or any(
                     path.endswith("." + ext)
                     for ext in _SERVER_CONVERTED_IMAGES):
                 return self.client.jellyfin.artwork(
-                    self.item_id, "Primary", _PHOTO_MAX_WIDTH)
-            return self.client.jellyfin.download_url(self.item_id)
+                    self.item_id, "Primary", _PHOTO_MAX_WIDTH,
+                    include_apikey=keep_token)
+            return self.client.jellyfin.download_url(
+                self.item_id, include_apikey=keep_token)
 
         if self.trs_ovr:
             video_bitrate, force_transcode = self.trs_ovr

@@ -28,18 +28,27 @@ class _Jellyfin:
     def __init__(self, item):
         self._item = item
         self.calls = []
+        self.apikeys = []
 
     def get_item(self, item_id):
         return dict(self._item, Id=item_id)
 
-    def download_url(self, item_id):
+    # Both mirror the apiclient's own signature, ApiKey spelling and
+    # include_apikey default. The default is the point: it is what made a
+    # photo url carry a token nobody passed, so a fixture that ignored the
+    # argument would have agreed the bug was fixed while it was not.
+    def download_url(self, item_id, include_apikey=True):
         self.calls.append(("download", item_id))
-        return "http://srv/Items/%s/Download?api_key=k" % item_id
+        self.apikeys.append(include_apikey)
+        return "http://srv/Items/%s/Download%s" % (
+            item_id, "?ApiKey=k" if include_apikey else "")
 
-    def artwork(self, item_id, art, max_width, ext="jpg", index=None):
+    def artwork(self, item_id, art, max_width, ext="jpg", index=None,
+                include_apikey=True):
         self.calls.append(("artwork", item_id, art, max_width))
-        return "http://srv/Items/%s/Images/%s?MaxWidth=%d" % (
-            item_id, art, max_width)
+        self.apikeys.append(include_apikey)
+        return "http://srv/Items/%s/Images/%s?MaxWidth=%d%s" % (
+            item_id, art, max_width, "&ApiKey=k" if include_apikey else "")
 
     def get_play_info(self, *a, **kw):        # must never be reached
         raise AssertionError("a photo asked PlaybackInfo for a media source")
@@ -106,6 +115,59 @@ class PhotoUrlTest(unittest.TestCase):
 
     def test_heic_is_in_the_converted_set(self):
         self.assertIn("heic", _SERVER_CONVERTED_IMAGES)
+
+
+class PhotoUrlAuthTest(unittest.TestCase):
+    """A photo obeys the auth header like every other playback url.
+
+    Driven through ``get_playback_url`` rather than ``_get_url_from_source``
+    on purpose: the photo branch returns *above* the one that drops the
+    token, so the tests that exercise the source url walk straight past it.
+    That is how both of these paths kept sending a token in the query
+    string after the header was installed for them -- mpv held the header
+    and the url held the token, and every assertion in the suite was about
+    one or the other.
+    """
+
+    def _url(self, header, **item):
+        item.setdefault("Type", PHOTO_TYPE)
+        parent = _Parent(item)
+        v = Video("ph1", parent)
+        v.auth_via_header = header
+        return v.get_playback_url(), parent.client.jellyfin
+
+    def test_a_downloaded_photo_drops_the_token(self):
+        url, jf = self._url(True, Container="jpg", Path="/pics/a.jpg")
+        self.assertNotIn("ApiKey", url)
+        self.assertNotIn("api_key", url)
+        self.assertEqual(jf.apikeys, [False])
+
+    def test_a_converted_photo_drops_it_too(self):
+        url, jf = self._url(True, Container="heic", Path="/pics/a.HEIC")
+        self.assertNotIn("ApiKey", url)
+        self.assertNotIn("api_key", url)
+        self.assertEqual(jf.apikeys, [False])
+
+    def test_a_downloaded_photo_keeps_it_without_the_header(self):
+        """The fallback has to still work: no header means the url is the
+        only thing carrying credentials, and a photo that 401s is a black
+        window."""
+        url, jf = self._url(False, Container="jpg", Path="/pics/a.jpg")
+        self.assertIn("ApiKey=", url)
+        self.assertEqual(jf.apikeys, [True])
+
+    def test_a_converted_photo_keeps_it_without_the_header(self):
+        url, jf = self._url(False, Container="heic", Path="/pics/a.HEIC")
+        self.assertIn("ApiKey=", url)
+        self.assertEqual(jf.apikeys, [True])
+
+    def test_the_default_is_still_to_send_one(self):
+        """``auth_via_header`` defaults to False, so a caller that never
+        went through ``play()`` is unchanged rather than unauthenticated."""
+        parent = _Parent({"Type": PHOTO_TYPE, "Container": "jpg"})
+        v = Video("ph1", parent)
+        self.assertFalse(v.auth_via_header)
+        self.assertIn("ApiKey=", v.get_playback_url())
 
 
 class PhotoTypeSetsTest(unittest.TestCase):
