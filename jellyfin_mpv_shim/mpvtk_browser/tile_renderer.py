@@ -360,9 +360,25 @@ class TileRenderer:
             attempts,
             time.time() + self.IMG_RETRY_BACKOFF * (2 ** (attempts - 1)))
         self._requested.discard(key)
+    #: Artwork that must be shown WHOLE, by the type it resolved to and the
+    #: type that was asked for. Everything else is cover-cropped: a poster, a
+    #: still and a backdrop are all photographs of a frame, and a crop takes
+    #: scenery off the edges. A wordmark loses the name.
+    #:
+    #: A Logo never covers -- it is a wordmark on transparency and there is no
+    #: frame it was cut for. A Banner covers only its own strip: standing in
+    #: for a missing logo on a 16:9 card, cropping it to that card would trim
+    #: exactly the title it was borrowed for.
+    @staticmethod
+    def _contains(resolved, requested):
+        return resolved == "Logo" or (resolved == "Banner"
+                                      and requested != "Banner")
+
     def poster_for(self, item, geom, image_type="Primary", inherit=True):
-        """Return (PIL image or None, cache tag). Requests the poster once
-        if absent; the strip recomposites when it arrives (tag changes).
+        """Return (PIL image or None, cache tag, contain). Requests the
+        poster once if absent; the strip recomposites when it arrives (tag
+        changes). ``contain`` says the artwork must be drawn whole rather
+        than filling the tile -- see :meth:`_contains`.
 
         ``inherit`` is passed straight to ``image_spec`` — see there. It is
         not part of the cache key because it does not need to be: the key is
@@ -380,25 +396,22 @@ class TileRenderer:
             # art is indexed, so it isn't addressable through image_spec.
             spec, url = item.get("_image_spec"), item.get("_image_url")
             if not spec or not url:
-                return None, ""
+                return None, "", False
             key = make_key(spec[0], spec[1], spec[2], w, h)
-            return self._request_image(key, url, (w, h)), key
+            return self._request_image(key, url, (w, h)), key, False
         spec = self.art.source.image_spec(item, image_type, w, inherit=inherit)
         if not spec or self.art.server is None:
-            return None, ""
+            return None, "", False
         item_id, itype, itag = spec
-        key = make_key(item_id, itype, itag, w, h)
-        # fill crops server-side to the tile's exact aspect, which is right
-        # for a poster, a still or a banner -- all of them are photographs of
-        # a frame and lose nothing at the edges. A LOGO is not: it is a
-        # wordmark on transparency, and cropping it to 16:9 cuts the name in
-        # half. Ask for it scaled instead; the compositor centres it (see
-        # StripStore._paint_poster, which does not cover-crop plated art).
-        # Derived from the type the chain RESOLVED to, so it stays a pure
-        # function of the cache key above.
+        contain = self._contains(itype, image_type)
+        # In the key as well as in the request: fill and fit are two different
+        # pictures of one source at one size, and the store caches them to
+        # disk.
+        key = make_key(item_id, itype, itag, w, h,
+                       fit="fit" if contain else "")
         url = self.art.source.image_url(self.art.server, item_id, itype, itag,
-                                    w, h, fill=itype != "Logo")
-        return self._request_image(key, url, (w, h)), key
+                                        w, h, fill=not contain)
+        return self._request_image(key, url, (w, h)), key, contain
     def art_cell(self, item, size=28):
         """Small square album-art bitmap for a table cell (track lists);
         a placeholder box while it loads or when the item has none.
@@ -596,8 +609,8 @@ class TileRenderer:
             # LibrarySource.image_spec. Poster art, so it fits the poster
             # tile the row is already drawing.
             image_type = "ParentPrimary"
-        poster, tag = self.poster_for(item, geom, image_type,
-                                      inherit=inherit)
+        poster, tag, contain = self.poster_for(item, geom, image_type,
+                                               inherit=inherit)
         # labels: (show_title, show_year) from the library's view settings.
         # None means "as always", which is both on.
         show_title, show_year = labels or (True, True)
@@ -619,6 +632,7 @@ class TileRenderer:
             kind=components.type_indicator_icon(item),
             recording=recording,
             record=record,
+            contain=contain,
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False,

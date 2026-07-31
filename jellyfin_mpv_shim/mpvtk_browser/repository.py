@@ -99,19 +99,31 @@ BROWSE_IMAGE_TYPES = "Primary,Thumb,Backdrop"
 # (useFetchItems.ts: `enableImageTypes: [ImageType, Backdrop]`).
 GRID_IMAGE_TYPES = ("Banner", "Logo", "Disc")
 
+# What each of those tries before giving up and taking the poster. A banner
+# and a logo are the same thing at different margins -- the show's name, drawn
+# to be read on a bar -- so they stand in for each other. A disc has no
+# stand-in: nothing else in a library is a round label.
+_WORDMARK_CHAIN = {
+    "Banner": ("Banner", "Logo"),
+    "Logo": ("Logo", "Banner"),
+    "Disc": ("Disc",),
+}
+
 
 def browse_image_types(image_type=None):
     """``EnableImageTypes`` for a grid drawn with ``image_type``.
 
-    The base three plus the requested one. The base set stays because our
-    fallback chains are wider than web's: a view set to Banner still draws
-    the item's Primary where it has no banner, and one set to Logo still
-    reaches a thumb.
+    The base three plus everything that view can *resolve* to -- the whole
+    wordmark chain, not just the name asked for, or the Banner fallback to a
+    logo would be looking for a tag the query told the server to leave out.
+    The base set stays because our fallback chains are wider than web's: a
+    view set to Banner still draws the item's Primary where it has neither.
     """
     extra = (image_type or "").strip().capitalize()
-    if extra in GRID_IMAGE_TYPES:
-        return BROWSE_IMAGE_TYPES + "," + extra
-    return BROWSE_IMAGE_TYPES
+    chain = _WORDMARK_CHAIN.get(extra)
+    if not chain:
+        return BROWSE_IMAGE_TYPES
+    return BROWSE_IMAGE_TYPES + "," + ",".join(chain)
 
 # Concurrent home-screen fetches. The rows are independent, so this is bounded
 # only to keep a many-library server from opening a burst of connections at
@@ -1995,18 +2007,27 @@ class LibrarySource:
             return item["Id"], image_type, tags[image_type]
 
         if image_type in GRID_IMAGE_TYPES:
-            # Banner / Logo / Disc are asked for by name and have no ladder of
-            # their own: web tries the tag, then the parent's logo for a Logo
-            # request, then drops straight into the Primary chain
-            # (url.ts:42-52). Half a library has no banner, and what those
-            # tiles want is the poster the card would otherwise carry --
-            # cropped wide, as web crops it -- not the thumbnail the generic
-            # chain reaches first. That fall-through is why a Banner view
-            # looked like a row of letterboxed stills.
-            if image_type == "Logo" and item.get("ParentLogoItemId") \
-                    and item.get("ParentLogoImageTag"):
-                return (item["ParentLogoItemId"], "Logo",
-                        item["ParentLogoImageTag"])
+            # Banner / Logo / Disc are asked for by name, and about half a TV
+            # library carries no banner (measured: 107 of 200 on one server,
+            # 199 of 200 on another). jellyfin-web drops straight into the
+            # Primary chain for those (url.ts:42-52), which puts a poster in a
+            # 5.4:1 frame; ours goes through the OTHER wordmark first.
+            #
+            # A banner and a logo are the same artwork wearing different
+            # margins -- the show's name, drawn to be read on a bar -- so each
+            # stands in for the other far better than the poster does, and a
+            # mixed library comes out as one row instead of half title cards
+            # and half poster slices. That is the whole divergence from web
+            # here, and it is deliberate.
+            for candidate in _WORDMARK_CHAIN.get(image_type, ()):
+                if candidate in tags:
+                    return item["Id"], candidate, tags[candidate]
+                if candidate == "Logo" and item.get("ParentLogoItemId") \
+                        and item.get("ParentLogoImageTag"):
+                    # web's url.ts:51 -- an episode has no logo of its own
+                    # and its series does.
+                    return (item["ParentLogoItemId"], "Logo",
+                            item["ParentLogoImageTag"])
             image_type = "Primary"
             if image_type in tags:
                 return item["Id"], image_type, tags[image_type]

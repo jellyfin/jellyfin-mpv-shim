@@ -33,13 +33,23 @@ class EnableImageTypesTest(unittest.TestCase):
     def test_the_chosen_type_is_added(self):
         for value in ("Banner", "Logo", "Disc"):
             with self.subTest(value):
-                self.assertEqual(browse_image_types(value),
-                                 "Primary,Thumb,Backdrop," + value)
+                self.assertIn(value, browse_image_types(value).split(","))
+
+    def test_the_whole_fallback_chain_is_asked_for(self):
+        """Not just the name asked for: a Banner view falls back to the
+        logo, and a query that left Logo out would be looking for a tag it
+        told the server not to send."""
+        self.assertEqual(browse_image_types("Banner"),
+                         "Primary,Thumb,Backdrop,Banner,Logo")
+        self.assertEqual(browse_image_types("Logo"),
+                         "Primary,Thumb,Backdrop,Logo,Banner")
+        self.assertEqual(browse_image_types("Disc"),
+                         "Primary,Thumb,Backdrop,Disc")
 
     def test_the_stored_spelling_is_accepted(self):
         """view_prefs stores lower case; the server's enum is capitalised."""
         self.assertEqual(browse_image_types("banner"),
-                         "Primary,Thumb,Backdrop,Banner")
+                         "Primary,Thumb,Backdrop,Banner,Logo")
 
 
 class SpecTest(unittest.TestCase):
@@ -57,15 +67,42 @@ class SpecTest(unittest.TestCase):
                       "Banner"),
             ("s1", "Banner", "b"))
 
-    def test_without_a_banner_it_is_the_poster_not_the_thumbnail(self):
-        """The defect: the generic chain reaches ImageTags.Thumb before
-        ImageTags.Primary, so half a TV library came out as letterboxed
+    def test_a_banner_view_borrows_the_logo_before_the_poster(self):
+        """A banner and a logo are the same artwork at different margins,
+        and about half a TV library has one and not the other (measured:
+        107 banners against 156 logos over 200 series). Web goes straight
+        to the poster here; a row of poster slices among title cards is
+        what that looks like."""
+        self.assertEqual(
+            self.spec({"Id": "s1", "Type": "Series",
+                       "ImageTags": {"Logo": "lg", "Thumb": "t",
+                                     "Primary": "p"}}, "Banner"),
+            ("s1", "Logo", "lg"))
+
+    def test_a_logo_view_borrows_the_banner(self):
+        self.assertEqual(
+            self.spec({"Id": "s1", "Type": "Series",
+                       "ImageTags": {"Banner": "b", "Primary": "p"}},
+                      "Logo"),
+            ("s1", "Banner", "b"))
+
+    def test_with_neither_it_is_the_poster_not_the_thumbnail(self):
+        """The original defect: the generic chain reaches ImageTags.Thumb
+        before ImageTags.Primary, so those tiles came out as letterboxed
         stills. Web's card builder falls through to Primary."""
         self.assertEqual(
             self.spec({"Id": "s1", "Type": "Series",
                        "ImageTags": {"Thumb": "t", "Primary": "p"}},
                       "Banner"),
             ("s1", "Primary", "p"))
+
+    def test_a_disc_has_no_stand_in(self):
+        """Nothing else in a library is a round label, so it goes straight
+        to the poster rather than borrowing a wordmark."""
+        self.assertEqual(
+            self.spec({"Id": "m1", "Type": "Movie",
+                       "ImageTags": {"Logo": "lg", "Primary": "p"}}, "Disc"),
+            ("m1", "Primary", "p"))
 
     def test_disc_falls_through_the_same_way(self):
         self.assertEqual(
@@ -98,6 +135,51 @@ class SpecTest(unittest.TestCase):
                        "BackdropImageTags": ["bd"],
                        "ImageTags": {"Primary": "p"}}, "Thumb"),
             ("e1", "Backdrop", "bd"))
+
+
+class CoverOrContainTest(unittest.TestCase):
+    """A poster, a still and a backdrop are photographs of a frame: cropping
+    one takes scenery off the edges. A wordmark loses the name."""
+
+    def _contains(self, resolved, requested):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer._contains(resolved, requested)
+
+    def test_a_banner_fills_its_own_strip(self):
+        """Asked for and delivered: the artwork was cut for this shape, and
+        the user asked for it to cover rather than letterbox."""
+        self.assertFalse(self._contains("Banner", "Banner"))
+
+    def test_a_poster_standing_in_still_fills_the_strip(self):
+        self.assertFalse(self._contains("Primary", "Banner"))
+
+    def test_a_borrowed_banner_is_drawn_whole(self):
+        """On a 16:9 logo card, cropping the banner would trim exactly the
+        title it was borrowed for."""
+        self.assertTrue(self._contains("Banner", "Logo"))
+
+    def test_a_logo_is_never_cropped(self):
+        for requested in ("Logo", "Banner", "Primary", "Thumb"):
+            with self.subTest(requested):
+                self.assertTrue(self._contains("Logo", requested))
+
+    def test_photographs_are_untouched(self):
+        for resolved in ("Primary", "Thumb", "Backdrop", "Disc"):
+            with self.subTest(resolved):
+                self.assertFalse(self._contains(resolved, "Primary"))
+
+    def test_the_two_crops_are_cached_apart(self):
+        """Fill and fit are different pictures of one source at one size,
+        and the store keeps them on disk."""
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import make_key
+        self.assertNotEqual(make_key("i", "Banner", "t", 240, 135),
+                            make_key("i", "Banner", "t", 240, 135, fit="fit"))
+
+    def test_existing_keys_are_unchanged(self):
+        """Every bitmap already cached to disk stays addressable."""
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import make_key
+        self.assertEqual(make_key("i", "Primary", "t", 150, 225),
+                         make_key("i", "Primary", "t", 150, 225, fit=""))
 
 
 class GridAsksForItTest(unittest.TestCase):
