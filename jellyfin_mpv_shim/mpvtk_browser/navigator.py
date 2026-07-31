@@ -161,17 +161,22 @@ class Navigator:
 
     def rewind_to(self, depth):
         """Go back to ``depth`` pages deep (1 is the root), pushing every
-        route left onto the forward stack. Returns True if anything moved.
+        route left onto the forward stack. Returns the routes left, nearest
+        first — empty if nothing moved.
 
         The history menu's jump. Repeated `pop` rather than a slice so the
         forward stack ends up exactly as it would after that many single
-        back presses.
+        back presses. It returns *what* it left for the same reason: the
+        shell's half of a back press is decided by the page being left (a
+        playlist editor makes what is underneath stale), so a caller that
+        only knew the destination could not reproduce it.
         """
         if not 1 <= depth < len(self._stack):
-            return False
+            return []
+        left = []
         while len(self._stack) > depth:
-            self.pop()
-        return True
+            left.append(self.pop())
+        return left
 
     def replace(self, routes):
         """Set the whole stack, falling back to the default route if what is

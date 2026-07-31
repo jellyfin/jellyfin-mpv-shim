@@ -585,21 +585,35 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_scroll()
         left = self._nav.pop()
         if left is not None:
-            self._reset_scroll()
-            self._bump_epoch()
-            # Stale-while-revalidate: refresh Home on return (watched/resume
-            # state may have changed) while showing the cached view meanwhile.
-            if self.route.get("kind") == "home":
-                self._load_route(self.route)
-            # Coming out of the playlist editor, whatever is underneath is
-            # showing the order and membership from before the edits.
-            elif (left.get("kind") == "playlist_edit"
-                  and self.route.get("kind") in ("playlist", "grid")):
-                self.route.pop("_data", None)
-                self.route.pop("_items", None)
-                self.route.pop("_loading", None)
-                self._load_route(self.route)
-            self.invalidate()
+            self._land_back([left])
+
+    def _land_back(self, left):
+        """Settle on whatever a back move landed on. ``left`` is the routes
+        it left, nearest first — one for a Back press, several for a jump
+        through the history menu.
+
+        Shared so the two cannot diverge: the menu's jump used to reload
+        only Home, so jumping past the playlist editor showed the pre-edit
+        membership as fresh while pressing Back the same number of times
+        refetched it.
+        """
+        self._reset_scroll()
+        self._bump_epoch()
+        # Stale-while-revalidate: refresh Home on return (watched/resume
+        # state may have changed) while showing the cached view meanwhile.
+        if self.route.get("kind") == "home":
+            self._load_route(self.route)
+        # Coming out of the playlist editor, whatever is underneath is
+        # showing the order and membership from before the edits. Asked of
+        # every route left, not just the nearest: a jump can step over the
+        # editor from further in.
+        elif (any((r or {}).get("kind") == "playlist_edit" for r in left)
+              and self.route.get("kind") in ("playlist", "grid")):
+            self.route.pop("_data", None)
+            self.route.pop("_items", None)
+            self.route.pop("_loading", None)
+            self._load_route(self.route)
+        self.invalidate()
 
     def go_forward(self):
         """Return to a page ``go_back`` left. Mouse-only (the thumb button),
@@ -643,15 +657,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def go_back_to(self, depth):
         """Jump back to the page ``depth`` deep in the stack (1 is the root)
         — the history menu's pick. Everything skipped goes onto the forward
-        stack, exactly as pressing Back that many times would leave it."""
+        stack, and lands exactly as pressing Back that many times would."""
         self._park_scroll()
-        if not self._nav.rewind_to(depth):
+        left = self._nav.rewind_to(depth)
+        if not left:
             return
-        self._reset_scroll()
-        self._bump_epoch()
-        if self.route.get("kind") == "home":
-            self._load_route(self.route)    # as go_back does
-        self.invalidate()
+        self._land_back(left)
 
     def after_playlist_deleted(self, playlist_id):
         """Drop every route pointing at a now-deleted playlist and reload

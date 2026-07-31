@@ -695,6 +695,28 @@ class PhotoReportingTest(unittest.TestCase):
         pm = self._pm(None)
         self.assertIsNone(PlayerManager.get_timeline_options(pm))
 
+    def test_the_offline_stop_report_obeys_the_same_rule(self):
+        """The second site, and the one that actually crashed. Closing the
+        mpv window hands the video to `_report_stopped_offline` on a bare
+        daemon thread with nothing catching it, so subscripting the absent
+        playback_info printed a TypeError traceback.
+
+        There is nothing to report either way: a photo has no play session
+        to free and no transcode to terminate, and reporting a stop for one
+        would put every picture looked at into Continue Watching.
+        """
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        for is_photo in (True, False):
+            with self.subTest(is_photo=is_photo):
+                pm = self._pm(self._video(is_photo, None))
+                pm.last_seek = 12.0
+                pm.start_time = 0.0
+                sent = []
+                pm.send_timeline_stopped = lambda **kw: sent.append(kw)
+                PlayerManager._report_stopped_offline(pm, pm._video)
+                self.assertEqual(sent, [], "reported a stop it cannot make")
+
 
 class PhotoPauseRuleTest(unittest.TestCase):
     """When a still opens paused.

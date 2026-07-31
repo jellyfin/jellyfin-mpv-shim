@@ -453,6 +453,16 @@ class ReportingMixin:
     # send_timeline_stopped so the webview and Discord presence cleanup run
     # like any other stop.
     def _report_stopped_offline(self, video):
+        if getattr(video, "is_photo", False) or video.playback_info is None:
+            # The second site of the same rule as get_timeline_options: a
+            # photo never went through PlaybackInfo, so there is no play
+            # session to free and no stop to report -- and reporting one
+            # would put every picture looked at into Continue Watching.
+            # Only this site is reached on a daemon thread with nothing
+            # catching it, so the missing guard showed up as a bare
+            # TypeError traceback whenever the window was closed on a photo.
+            log.debug("no playback info to report a stop against")
+            return
         options = {
             "PositionTicks": int((self.last_seek or 0) * 10000000),
             "PlaybackStartTimeTicks": int((self.start_time or 0) * 10000000),
