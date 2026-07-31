@@ -253,11 +253,11 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         nodes, handlers = build_scene(b, (1280, 720))
         menu = next(n for n in nodes if n.get("id") == "hud-menu")
         labels = menu["items"]
-        # parity with the lua gear sheet (+ SyncPlay, which the lua
-        # keeps on its top bar the HUD doesn't have)
-        for want in ("Quality", "Speed", "Aspect", "Profile",
+        # parity with the lua gear sheet, minus what this HUD puts on the
+        # bar itself — see TestTheGearDoesNotRepeatTheBar below.
+        for want in ("Speed", "Aspect", "Profile",
                      "Subtitle Size", "Subtitle Position",
-                     "Subtitle Color", "SyncPlay", "Playback Data",
+                     "Subtitle Color", "Playback Data",
                      "Screenshot", "Unwatched"):
             self.assertTrue(any(want.lower() in l.lower()
                                 for l in labels),
@@ -276,6 +276,37 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         handlers["hud-menu"]["select"](two, "2x")
         self.assertIn(("set_speed", (2.0,)), ctl.transport)
         self.assertIsNone(b.hud.menu, "leaf selection closes the menu")
+
+    def test_the_gear_does_not_repeat_the_bar(self):
+        """SyncPlay and Video Quality have their own buttons on the bar, so
+        a row for each in the gear's root is a second door to the same
+        sheet a few pixels away."""
+        b, _ctl = self._browser()
+        b.hud.menu = "root"
+        nodes, _handlers = build_scene(b, (1280, 720))
+        self.assertIn("hud-syncplay", ids(nodes), "no SyncPlay button")
+        self.assertIn("hud-quality", ids(nodes), "no Quality button")
+        labels = next(n for n in nodes
+                      if n.get("id") == "hud-menu")["items"]
+        for gone in ("SyncPlay", "Quality"):
+            self.assertFalse(any(gone.lower() in l.lower() for l in labels),
+                             "%r is in both the bar and the gear: %r"
+                             % (gone, labels))
+
+    def test_quality_returns_to_the_gear_when_its_button_is_gone(self):
+        """Below 560px the bar drops the Quality button, and there the gear
+        row is the only way to reach it. Dropping it unconditionally would
+        make the setting unreachable on a narrow window rather than
+        un-duplicated."""
+        b, _ctl = self._browser()
+        b.hud.menu = "root"
+        nodes, _handlers = build_scene(b, (460, 640))
+        self.assertNotIn("hud-quality", ids(nodes))
+        labels = next(n for n in nodes
+                      if n.get("id") == "hud-menu")["items"]
+        self.assertTrue(any("quality" in l.lower() for l in labels),
+                        "Video Quality is unreachable at this width: %r"
+                        % (labels,))
 
     def test_settings_menu_back_and_dismiss(self):
         b, _ctl = self._browser()

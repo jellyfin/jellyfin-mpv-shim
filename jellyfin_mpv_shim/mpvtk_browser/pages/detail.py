@@ -134,6 +134,11 @@ class DetailPage(Page):
                  or ((item.get("MediaSources") or [{}])[0]).get("Id"))
         aid, sid = self._effective_tracks(item)
         buttons = []
+        # Opened from a remote or the arrow keys, this page lands focused on
+        # whichever of the two is the call to action -- Resume when there is
+        # a position to resume from, Play otherwise. Watching something is
+        # the reason the page was opened, and without this the first press
+        # of any arrow key had to hunt for it from wherever focus last was.
         if pos > 0:
             buttons.append(controls.action_btn(
                 "play_arrow",
@@ -141,11 +146,11 @@ class DetailPage(Page):
                 "btn-resume",
                 lambda: actions.play(item, server, offset_ticks=pos,
                                      srcid=srcid, aid=aid, sid=sid),
-                primary=True, size=18))
+                primary=True, size=18, autofocus=True))
         buttons.append(controls.action_btn(
             "play_arrow", _("Play"), "btn-play",
             lambda: actions.play(item, server, srcid=srcid, aid=aid, sid=sid),
-            primary=(pos <= 0), size=18))
+            primary=(pos <= 0), size=18, autofocus=(pos <= 0)))
         tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
         if tids:
             buttons.append(controls.action_btn(

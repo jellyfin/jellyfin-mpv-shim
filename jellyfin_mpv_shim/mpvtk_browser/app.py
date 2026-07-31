@@ -492,6 +492,18 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._reset_scroll()
         self._bump_epoch()
         self._load_route(route)
+        # Ask the renderer to land focus on the page's own default action —
+        # a movie's Play. Asked for every navigation and answered by very
+        # few: only a page that nominates a node has one, and the renderer
+        # ignores the request outright while the pointer is driving, so
+        # clicking a tile with a mouse is unaffected. Parked until the page
+        # stops being a spinner (see MpvtkApp.focus).
+        focus = getattr(self.app, "focus", None)
+        if focus is not None:
+            try:
+                focus()
+            except Exception:
+                log.debug("autofocus request failed", exc_info=True)
         self.invalidate()
 
     def _poll_live_tv(self, route):
@@ -732,17 +744,52 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
 
     def on_nav_command(self, name):
         """Remote menu commands that map onto real pages here (GoHome /
-        GoToSettings). Returns True when handled; the OSD menu has no such
-        pages, so for every other path both still just open the menu."""
+        GoToSettings), or onto the chrome (GoToSearch). Returns True when
+        handled; the OSD menu has none of them, so for every other path
+        settings still just opens the menu."""
         if self.headless:
             # A remote is input like any other. Declining here lets the
             # player fall back to its own OSD menu, which is transport-only.
             return False
+        if name == "search":
+            # jellyfin-web opens a search page; the search box lives in our
+            # top bar on every screen, so putting the cursor in it is the
+            # same gesture with one less screen. Nothing to focus unless
+            # the library is actually up.
+            if not self._browsing:
+                return False
+            focus = getattr(self.app, "focus", None)
+            if focus is None:
+                return False
+            try:
+                focus("nav-search")
+            except Exception:
+                log.debug("search focus failed", exc_info=True)
+                return False
+            return True
         if name == "settings":
             self.open_settings()
             return True
         if name == "home":
+            # Home means the home screen, from anywhere — including over a
+            # playing video, where it used to fall through to the legacy
+            # OSD menu (the player declined the command while a video was
+            # up, and the OSD menu was the fallback for everything it
+            # declined). So stop first: "go home" cannot mean "go home
+            # behind this film".
+            #
+            # Navigate before stopping. The browser is not on screen yet,
+            # so the home route loads while the video is still up, and
+            # stopping hands the window to a screen that has already
+            # arrived rather than to a spinner. Same reason the HUD's own
+            # Back button just stops: what is underneath is already right.
             self.navigate({"kind": "home", "server": self.server}, reset=True)
+            # Audio and video are tracked in different places: `_now_playing`
+            # is the now-playing BAR's state and is None for video, whose
+            # playstate lives in hud.state. Asking either one alone stops
+            # music and not films, or the reverse.
+            if self._now_playing is not None or self.hud.state is not None:
+                self._ctl(lambda c: c.stop())
             return True
         return False
 

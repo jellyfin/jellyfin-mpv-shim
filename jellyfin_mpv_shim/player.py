@@ -860,6 +860,26 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.put_task(self.unwatched_quit)
 
     def _on_menu_key(self):
+        if self._library_has_input():
+            # Browsing, the menu key is the context menu of whatever is
+            # focused — the same thing the remote's hamburger does, and
+            # the same key the renderer binds for it. The library's own
+            # settings are a page, reached from the top bar.
+            try:
+                self._player.command("keypress", "MENU")
+            except Exception:
+                log.debug("context menu keypress failed", exc_info=True)
+            return
+        self.toggle_settings_menu()
+
+    def toggle_settings_menu(self):
+        """The player's own settings menu, toggled.
+
+        Two callers with one meaning: the kb_menu key, and a remote whose
+        cog or hamburger found no page to open (menu_action). Which surface
+        that is depends on the OSC — the HUD's gear menu under mpvtk, the
+        OSD menu otherwise — and deciding it twice is how they would drift.
+        """
         if self.do_not_handle_pause:
             self._player.show_text(_("Please wait, loading..."), 1000, 1)
             return
@@ -3042,16 +3062,33 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # forced nav bindings catch these; during video playback they fall
     # through to kb_seek as before.
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
-                     "right": "RIGHT", "ok": "ENTER", "back": "ESC"}
+                     "right": "RIGHT", "ok": "ENTER", "back": "ESC",
+                     # jellyfin-web's hamburger, while the library is up:
+                     # the context menu of whatever is focused. That menu
+                     # holds Play / Queue / Watched / Favorite / Download,
+                     # so this is the whole of those actions from ten feet
+                     # away, with no second UI for them.
+                     "menu": "MENU"}
 
-    # Remote commands the in-window browser answers with a real page. The
-    # OSD menu has neither, so for it both still just open the menu.
-    _NAV_COMMANDS = ("home", "settings")
+    # Remote commands the in-window browser answers with a real page (or,
+    # for search, with the cursor in its search box). The OSD menu has
+    # none of them, so for it settings still just opens the menu.
+    _NAV_COMMANDS = ("home", "settings", "search")
+
+    #: ...and the one of them that still means something over a playing
+    #: video. "Go home" is a way OUT of what is playing — the browser stops
+    #: playback and shows the home screen — where settings and search would
+    #: be opening a library page behind a film nobody asked to leave.
+    _NAV_COMMANDS_WHILE_PLAYING = ("home",)
+
     _MENU_ALIAS = {"settings": "home"}
 
     def _nav_command(self, action):
         handler = self.on_nav_command
-        if handler is None or not self.mpvtk_active or self._video is not None:
+        if handler is None or not self.mpvtk_active:
+            return False
+        if (not self._library_showing()
+                and action not in self._NAV_COMMANDS_WHILE_PLAYING):
             return False
         try:
             return bool(handler(action))
@@ -3084,6 +3121,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         renderer mirrors it into user-data on every transition)."""
         return self._mpvtk_userdata("user-data/mpvtk/active")
 
+    def _library_showing(self):
+        """Whether the library is the thing on screen.
+
+        A video PICTURE is what takes it away; **music does not**. Audio
+        keeps `_video` set and keeps the browser up — that is what the
+        now-playing bar is for — so `_video is None` answers "is the
+        library up?" with a no while the user is looking straight at it.
+        Same pairing as `_stats_key` and `_play_media`, for the same
+        reason.
+        """
+        return self._video is None or self._current_is_audio()
+
+    def _library_has_input(self):
+        """The *library* owns input — not merely the renderer.
+
+        A summoned playback HUD owns input too (same bindings, same
+        user-data flag: it is what lets a remote's arrows drive the HUD),
+        so `_mpvtk_input_active` alone answers this with a yes over a
+        playing video. Anything that means one thing in a library and
+        another in a player has to ask here.
+        """
+        return self._library_showing() and self._mpvtk_input_active()
+
     def _mpvtk_hud_idle(self):
         """True while the playback HUD is attached but hidden: remote
         Move*/Select should reach the renderer's summon bindings (the
@@ -3092,6 +3152,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         return self._mpvtk_userdata("user-data/mpvtk/hud")
 
     def menu_action(self, action):
+        if action == "search":
+            # Browsing, this puts the cursor in the chrome's search box.
+            # During playback it is deliberately nothing: there is no
+            # search surface over a video, and jellyfin-web's own player
+            # does nothing with its search button either. Returning here
+            # keeps it out of the OSD-menu fallback below.
+            self._nav_command("search")
+            return
+        if action == "menu" and not self._library_has_input():
+            # The hamburger with no library to point at — mid-playback
+            # (summoned HUD or not), or a UI-less build. It means the
+            # player's settings menu, and it toggles, exactly as the
+            # kb_menu key does. Ahead of the OSD-menu branch so that a
+            # second press closes that menu rather than re-showing its
+            # root, and ahead of the keypress branch because a summoned
+            # HUD holds the same input the library does.
+            self.toggle_settings_menu()
+            return
         if self.menu.is_menu_shown:
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
@@ -3103,6 +3181,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     "keypress", self._NAV_KEYPRESS[action])
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
+        elif action == "settings":
+            # The cog, with no Settings page to open: mid-playback, or a
+            # build with no in-window UI. The player's own settings menu —
+            # the HUD's gear under mpvtk, the OSD menu otherwise. It used
+            # to be `kb_seek("home")`, which under mpvtk drew the OSD menu
+            # *under* the overlay bitmaps and took the arrow keys with it.
+            self.toggle_settings_menu()
         elif (action in ("up", "down", "left", "right", "ok")
               and self._mpvtk_hud_idle()):
             # Hidden HUD: remote Move*/Select wake it via a script

@@ -614,7 +614,7 @@ class TileRenderer:
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False,
-                  inherit=True, see_all=None):
+                  inherit=True, see_all=None, autofocus_first=False):
         """A titled horizontal carousel.
 
         ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
@@ -675,7 +675,8 @@ class TileRenderer:
                     self.image_map(items, row_id, geom, image_type,
                                     on_click=on_click,
                                     parent_item=parent_item,
-                                    inherit=inherit),
+                                    inherit=inherit,
+                                    autofocus_first=autofocus_first),
                     row_id, geom.strip_h + 2 * RING_PAD,
                     len(items), geom, bleed),
             ],
@@ -741,7 +742,7 @@ class TileRenderer:
 
     def image_map(self, items, prefix, geom=None, image_type="Primary",
                    on_click=None, async_=False, parent_item=False,
-                   inherit=True, labels=None):
+                   inherit=True, labels=None, autofocus_first=False):
         geom = geom or self.art.geom
         tiles = [self._tile(it, geom, image_type, parent_item, inherit,
                             labels)
@@ -749,12 +750,16 @@ class TileRenderer:
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self.on_open
-        for r, it in zip(s["regions"], items):
+        for i, (r, it) in enumerate(zip(s["regions"], items)):
             regions.append(dict(
                 r,
                 id="%s-%s" % (prefix, r["key"]),
                 on_click=(lambda i=it: act(i)),
                 on_context=(lambda x, y, i=it: self.on_context(i, x, y)),
+                # The page's default for a keyboard/remote arrival. Only
+                # ever the first tile: it is "where this row starts", not a
+                # judgement about the item.
+                autofocus=(autofocus_first and i == 0),
             ))
         return ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
                         v=s.get("v", 0), w=s["lw"], h=s["lh"])

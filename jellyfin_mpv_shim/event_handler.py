@@ -9,6 +9,9 @@ from .timeline import timelineManager
 log = logging.getLogger("event_handler")
 bindings = {}
 
+#: Remote navigation commands -> the action names playerManager.menu_action
+#: takes. Its keys are also the dispatch list below: the two used to be
+#: separate, so a command could be translated here and still never routed.
 NAVIGATION_DICT = {
     "Back": "back",
     "Select": "ok",
@@ -18,6 +21,11 @@ NAVIGATION_DICT = {
     "MoveLeft": "left",
     "GoHome": "home",
     "GoToSettings": "settings",
+    # jellyfin-web's hamburger. It means "the menu for what I am looking
+    # at", which is a tile's context menu while browsing and the HUD's
+    # settings menu during playback — see PlayerManager.menu_action.
+    "ToggleContextMenu": "menu",
+    "GoToSearch": "search",
 }
 
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -174,16 +182,7 @@ class EventHandler(object):
                 except Exception:
                     log.warning("Could not display remote content.",
                                 exc_info=True)
-        elif command in (
-            "Back",
-            "Select",
-            "MoveUp",
-            "MoveDown",
-            "MoveRight",
-            "MoveLeft",
-            "GoHome",
-            "GoToSettings",
-        ):
+        elif command in NAVIGATION_DICT:
             playerManager.menu_action(NAVIGATION_DICT[command])
         elif command in ("Mute", "Unmute"):
             playerManager.set_mute(command == "Mute")

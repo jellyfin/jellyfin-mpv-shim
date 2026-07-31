@@ -15,7 +15,8 @@ from ...mpvtk.widgets import Button, Icon, Row, Text
 from .. import theme
 
 
-def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16):
+def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16,
+               autofocus=False):
     """An icon+label action button.
 
     ``primary`` is the accent-filled call to action (Play, Next Up); ``on``
@@ -25,6 +26,13 @@ def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16):
     Every button in an action row must come from here, icon or not: the
     plain Button widget defaults to a 20px label against this one's 16,
     which made the odd trailing button ~5px taller than its neighbours.
+
+    ``autofocus`` nominates this button as the page's default for a
+    keyboard or remote arrival (the renderer only honours it on a
+    navigation it was asked to focus, and never while the pointer is
+    driving). Off by default and set deliberately: on a page with two
+    accented buttons, "the primary one" is not the same question as "the
+    one a remote should land on".
 
     Was ``ViewsMixin._action_btn``.
     """
@@ -41,7 +49,7 @@ def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16):
                bg=theme.ACCENT if accent else theme.BUTTON_BG,
                hover={"fill": theme.ACCENT_HOVER if accent
                       else theme.BUTTON_ACTIVE},
-               radius=6, align="center", on_click=cb)
+               radius=6, align="center", on_click=cb, autofocus=autofocus)
 
 
 def tab_btn(label, node_id, active, cb, style=None):

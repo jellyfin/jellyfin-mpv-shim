@@ -11,6 +11,7 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 from tests._shell_harness import (
     FakeController,
     FakeSource,
+    StubHudApp,
     _SyncPool,
     build_scene,
     detail_page,
@@ -1099,6 +1100,97 @@ class TestRemoteDisplayContent(unittest.TestCase):
 
     def test_unknown_command_is_declined(self):
         self.assertFalse(self.b.on_nav_command("nope"))
+
+    def _play(self, audio):
+        self.b.on_playstate({"stopped": False, "is_audio": audio,
+                             "id": "v1", "title": "Something",
+                             "position": 1, "duration": 10})
+
+    def test_go_home_over_a_video_stops_it(self):
+        """"Go home" cannot mean "go home behind this film". The navigate
+        happens first so the home screen is loaded by the time stopping
+        hands it the window."""
+        self._play(audio=False)
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_home_over_music_stops_it_too(self):
+        """Video and audio playstates are held in different attributes, so
+        one check covers one of them and quietly misses the other."""
+        self._play(audio=True)
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_home_with_nothing_playing_stops_nothing(self):
+        self.assertTrue(self.b.on_nav_command("home"))
+        self.assertNotIn("stop", [c[0] for c in self.ctl.transport])
+
+    def test_go_to_search_puts_the_cursor_in_the_search_box(self):
+        """jellyfin-web's search button opens a search page; the box lives
+        in our top bar on every screen, so this is the same gesture with
+        one less screen. It is a renderer operation — only the renderer
+        knows what has focus — so the assertion is on the request."""
+        self.b.app = StubHudApp()
+        self.assertTrue(self.b.on_nav_command("search"))
+        self.assertEqual(_focus_calls(self.b.app), ["nav-search"])
+
+    def test_search_is_declined_while_the_library_is_not_up(self):
+        """Mid-playback the browser is not on screen; there is nothing to
+        put a cursor into, and claiming the command would swallow it."""
+        self.b.app = StubHudApp()
+        self.b._browsing = False
+        self.assertFalse(self.b.on_nav_command("search"))
+        self.assertEqual(_focus_calls(self.b.app), [])
+
+
+def _focus_calls(app):
+    return [node for name, node in app.calls if name == "focus"]
+
+
+class TestRemoteArrivalFocusesThePage(unittest.TestCase):
+    """A page opened by remote or arrow key lands on its own default
+    action, so the first press of anything is not a hunt for the Play
+    button from wherever focus happened to be.
+
+    Split across two sides on purpose. The browser only ever *asks* — it
+    cannot know what has focus, or whether the pointer took over since —
+    and the renderer decides (tests/lua/test_renderer.lua). What is
+    checked here is that the ask happens and that a page nominates a node
+    for it to land on."""
+
+    def setUp(self):
+        self.app = StubHudApp()
+        self.b = MpvtkBrowser(app=self.app, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def test_navigating_asks_for_the_page_default(self):
+        self.app.calls.clear()
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        self.assertIn(None, _focus_calls(self.app),
+                      "no autofocus request went out on a navigation")
+
+    def test_a_movie_page_nominates_its_play_button(self):
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        nodes, _h = build_scene(self.b)
+        af = [n["id"] for n in nodes if n.get("af")]
+        self.assertEqual(len(af), 1, "a page needs exactly one default")
+        self.assertIn(af[0], ("btn-play", "btn-resume"))
+
+    def test_it_is_resume_when_there_is_something_to_resume(self):
+        """Watching is why the page was opened; where from is the item's
+        business, not the button's."""
+        item = dict(self.b.source.get_item("srv1", "m1") or {})
+        item["UserData"] = {"PlaybackPositionTicks": 600000000}
+        self.b.source.get_item = lambda s, i, _it=item: _it
+        self.b.navigate({"kind": "detail", "server": "srv1",
+                         "item_id": "m1", "title": "A Movie"})
+        nodes, _h = build_scene(self.b)
+        af = [n["id"] for n in nodes if n.get("af")]
+        self.assertEqual(af, ["btn-resume"])
 
     def test_a_missing_item_is_a_no_op(self):
         self.b.source.get_item = lambda s, i: None

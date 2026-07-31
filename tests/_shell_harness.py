@@ -632,6 +632,11 @@ class StubHudApp:
     def set_hud_skip(self, label):
         self.calls.append(("skip", label))
 
+    def focus(self, node_id=None):
+        # None is "the node this scene nominates" (a page's Play button);
+        # an id is a specific node (the chrome's search box).
+        self.calls.append(("focus", node_id))
+
 class FakeConfig:
     # Mirrors the real mpvtk_browser.config surface the Settings view uses:
     # a schema, curated sections, enum tables and friendly labels.

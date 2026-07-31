@@ -149,6 +149,16 @@ state is mirrored to `user-data/mpvtk/active` so the player can route
 Jellyfin remote commands (MoveUp/Select/…) into these keys only while
 the UI owns them.
 
+**MENU opens the focused node's context menu** — the keyboard's
+right-click, and the only way a tile's actions (Play, Queue, Watched,
+Favorite, Download) are reachable from ten feet away. A remote's
+hamburger arrives as this key, like every other remote nav command. It
+is anchored *below* the node, never over it: the menu is about that
+node. A node with no `ctx` is a no-op, as right-clicking one is, and so
+is an unfocused scene — with nothing selected there is nothing for the
+menu to be about, and choosing a node on the user's behalf would be a
+different gesture from the one they made.
+
 **The mouse's back button is ESC.** `mbtn_back` sits in the mouse
 group and its handler is a synthetic `keypress ESC`, not a ladder of
 its own: ESC already steps out exactly one layer (slider scrub →
@@ -193,7 +203,18 @@ the renderer subtracts live offsets and clips. `ring` marks transparent
 hit-rects over bitmaps whose hover ring draws *outside* their bounds.
 
 Other messages: `mpvtk-metrics` (measured glyph widths + font family,
-pushed once at ready), `mpvtk-debug` (test hooks, §7).
+pushed once at ready), `mpvtk-focus` (below), `mpvtk-debug` (test
+hooks, §7).
+
+`mpvtk-focus {"id": …}` puts spatial-nav focus on a node — a textbox
+also takes the keyboard, because asking for the search box means asking
+to type in it. With **no** id it means "whatever the next scene marks
+`af`" (`autofocus=True` on any element), which is how a page opened by
+remote lands on its Play button. Either form is **parked** until the
+node appears, since a page is a spinner before it is a page; any user
+input (arrows, Tab, a click) drops the request, and an `af` request is
+dropped outright once the pointer is driving. `af` is also what a
+key-summoned playback HUD focuses (§9).
 
 ## 4. Events (Lua → Python)
 

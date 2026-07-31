@@ -407,15 +407,48 @@ class RemoteMenuCommandTest(unittest.TestCase):
         pm = self._player(mpvtk=False)
         pm.on_nav_command = None
         pm.menu_action("settings")
-        # kb_seek routes unknown actions to the menu; "settings" is aliased
-        # to "home" so it still opens it.
-        self.assertEqual(pm.menu.actions, ["home"])
+        # The OSD menu is the only settings surface a build with no
+        # in-window UI has. It opens through the same toggle the kb_menu
+        # key uses (it used to be an aliased kb_seek("home"), which could
+        # only ever open it — pressing the cog twice re-showed the root).
+        self.assertTrue(pm.menu.is_menu_shown)
 
-    def test_during_playback_settings_opens_the_osd_menu(self):
+    def test_during_playback_settings_opens_the_players_own_menu(self):
+        """With no in-window OSC resolved, that is still the OSD menu.
+        Under mpvtk it is the HUD's gear instead — see
+        test_during_playback_settings_opens_the_hud_menu."""
         pm = self._player(mpvtk=True, video=object())
         pm.menu_action("settings")
         self.assertEqual(pm.handled, [], "browser must not take over mid-play")
-        self.assertEqual(pm.menu.actions, ["home"])
+        self.assertTrue(pm.menu.is_menu_shown)
+
+    def test_during_playback_settings_opens_the_hud_menu(self):
+        """The in-window OSC's gear replaces the OSD menu entirely: OSD
+        text draws *under* the mpvtk overlay bitmaps and takes the arrow
+        keys with it, so opening it over the HUD is a dead menu behind a
+        live one."""
+        pm = self._player(mpvtk=True, video=object())
+        pm._osc_style_resolved = "mpvtk"
+        opened = []
+        pm.on_hud_menu = lambda: opened.append(True)
+        pm.menu_action("settings")
+        self.assertEqual(len(opened), 1)
+        self.assertFalse(pm.menu.is_menu_shown)
+
+    def test_during_playback_the_hamburger_opens_the_hud_menu_too(self):
+        pm = self._player(mpvtk=True, video=object())
+        pm._osc_style_resolved = "mpvtk"
+        opened = []
+        pm.on_hud_menu = lambda: opened.append(True)
+        pm.menu_action("menu")
+        self.assertEqual(len(opened), 1)
+
+    def test_search_during_playback_does_nothing(self):
+        pm = self._player(mpvtk=True, video=object())
+        pm.menu_action("search")
+        self.assertEqual(pm.handled, [])
+        self.assertEqual(pm.menu.actions, [])
+        self.assertFalse(pm.menu.is_menu_shown)
 
     def test_an_open_osd_menu_wins(self):
         pm = self._player(mpvtk=True)

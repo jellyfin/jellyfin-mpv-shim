@@ -64,9 +64,21 @@ class SearchPage(Page):
         items = data.get("items") or []
         people = data.get("people") or []
         rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
+        # Searching is a keyboard gesture even from a remote (the search
+        # button puts the cursor in the box), so the results land focused
+        # on the first of them — otherwise submitting leaves focus in the
+        # box, where the arrow keys still move the caret. Whichever row
+        # comes first owns it; `first` is claimed by the first row built.
+        first = [True]
+
+        def claim():
+            got, first[0] = first[0], False
+            return got
+
         if people:
             rows.append(tiles.tile_row(_("People"), people, "search-people",
-                                       geom=art.geom))
+                                       geom=art.geom,
+                                       autofocus_first=claim()))
         # Group by type, each with its natural tile shape (like the Tk browser).
         # The last column is ``inherit``: whether a tile may fall back to its
         # series' artwork. Episodes say no -- a result row of episodes is
@@ -92,7 +104,8 @@ class SearchPage(Page):
                 used.update(types_)
                 rows.append(tiles.tile_row(
                     label, group, "search-" + label, geom=geom,
-                    image_type=itype, inherit=inherit))
+                    image_type=itype, inherit=inherit,
+                    autofocus_first=claim()))
         songs = [it for it in items if it.get("Type") == "Audio"]
         if songs:
             server = route.get("server") or self.ctx.server

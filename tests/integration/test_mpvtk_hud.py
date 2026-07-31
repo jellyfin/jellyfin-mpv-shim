@@ -180,6 +180,32 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         else:
             self.handle.pause = paused
 
+    def _menu_row_index(self, label):
+        """Where ``label`` sits in the open menu, read from the scene the
+        renderer was actually given — not from the row builder, which
+        would be this test agreeing with itself."""
+        menu = next((n for n in (self.app._nodes or [])
+                     if n.get("id") == "hud-menu"), None)
+        self.assertIsNotNone(menu, "no menu in the pushed scene")
+        for i, item in enumerate(menu["items"]):
+            if label.lower() in item.lower():
+                return i
+        self.fail("no %r row in %r" % (label, menu["items"]))
+
+    def _highlight_menu_row(self, label):
+        """Walk the keyboard highlight onto ``label``'s row, and prove it
+        landed there before the caller presses ENTER.
+
+        The highlight starts *unset* and the first arrow computes from 0,
+        so one DOWN lands on row 1 while one UP clamps onto row 0 — which
+        makes row 0 the one row a DOWN cannot reach first.
+        """
+        idx = self._menu_row_index(label)
+        for _ in range(1 if idx == 0 else idx):
+            self._keypress("UP" if idx == 0 else "DOWN")
+        self._wait(lambda: self._state().get("nav_pidx") == idx,
+                   msg="highlight never reached the %r row" % label)
+
     def _press_until(self, key, cond, timeout=6, msg=""):
         """Press ``key`` until ``cond`` holds. mpv applies script
         key-binding section updates asynchronously, so a single press
@@ -426,10 +452,13 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="gear click never opened the settings menu")
         self._wait(lambda: self._state().get("menu_open"),
                    msg="menu never reached the renderer")
-        # DOWN highlights row index 1 (menu nav starts un-highlighted,
-        # so the first DOWN lands past row 0) = Playback Speed; ENTER
-        # swaps in its submenu
-        self._keypress("DOWN")
+        # Walk the highlight to the Playback Speed row, then ENTER to swap
+        # in its submenu. Located by label rather than by a fixed index:
+        # the gear's root is conditional (a row drops out when the bar has
+        # its own button for it, or when the state offers nothing), so a
+        # hardcoded index quietly selects a neighbour and the test then
+        # fails somewhere other than where it broke.
+        self._highlight_menu_row("Playback Speed")
         self._press_until(
             "ENTER", lambda: self.browser.hud.menu == "speed",
             msg="menu selection never opened the speed submenu")

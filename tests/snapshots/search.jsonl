@@ -17,7 +17,7 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "People", "w": 81.7, "x": 16.0, "y": 118.0}
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "search-people", "sc": "search", "t": "scroll", "w": 160.0, "x": 16.0, "y": 158.0}
 {"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-people", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 21.0, "y": 163.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-people-p1", "ring": true, "sc": "search-people", "t": "rect", "w": 150, "x": 21.0, "y": 163.0}
+{"af": true, "click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-people-p1", "ring": true, "sc": "search-people", "t": "rect", "w": 150, "x": 21.0, "y": 163.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0", "sc": "search", "size": 24, "t": "text", "text": "Movies", "w": 90.0, "x": 16.0, "y": 451.0}
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "search-Movies", "sc": "search", "t": "scroll", "w": 160.0, "x": 16.0, "y": 491.0}
 {"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-Movies", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 21.0, "y": 496.0}
