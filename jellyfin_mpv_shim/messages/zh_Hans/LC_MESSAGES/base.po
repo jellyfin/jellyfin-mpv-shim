@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 01:51-0400\n"
-"PO-Revision-Date: 2026-07-30 05:22+0000\n"
+"PO-Revision-Date: 2026-07-31 22:01+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -1242,57 +1242,46 @@ msgstr "自动"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "缩略图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Channel"
 msgid "Banner"
-msgstr "频道"
+msgstr "横幅图"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Logo"
 msgstr "徽标"
 
 # seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Disc"
 msgstr "光盘封面图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Artwork"
-msgstr ""
+msgstr "艺术图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "“Auto” shapes the tiles from the artwork itself."
-msgstr ""
+msgstr "“自动”功能会根据艺术图本身来塑造图块。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle"
 msgid "Show titles"
-msgstr "字幕"
+msgstr "显示标题"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Shows"
 msgid "Show years"
-msgstr "节目"
+msgstr "显示年份"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "列表而不是网格"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "These sections are stored on your server and shared with Jellyfin Web."
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr "这些部分存储在您的服务器上，并与 Jellyfin Web 共享。"
+msgstr "这些信息存储在您的服务器上，并与 Jellyfin Web 共享。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -1303,17 +1292,15 @@ msgstr "已分页"
 msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
-msgstr ""
+msgstr "一次显示一页图块，无需滚动。适用于此设备上的所有媒体库。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Guide Settings"
 msgid "View Settings"
-msgstr "指南设置"
+msgstr "视图设置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "完成"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
@@ -2007,11 +1994,11 @@ msgstr "于 %s 结束"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
-msgstr ""
+msgstr "目前还没有任何内容被标记为收藏。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
 msgid "No genres to show for this library."
-msgstr ""
+msgstr "此媒体库中没有可显示的类型。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -2063,7 +2050,7 @@ msgstr "随机"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "视图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
@@ -2072,7 +2059,7 @@ msgstr "%(shown)d of %(total)d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "网络"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2122,16 +2109,12 @@ msgid "Sort"
 msgstr "排序"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Guide settings could not be saved."
 msgid "That view setting could not be saved."
-msgstr "指南设置无法保存。"
+msgstr "该视图设置无法保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "There is nothing here to queue."
 msgid "There is nothing here to play."
-msgstr "无可加入队列的媒体。"
+msgstr "这里没有内容可播放。"
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -2541,8 +2524,6 @@ msgid "Upcoming News"
 msgstr "即将播出新闻"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Trailer"
 msgid "Trailers"
 msgstr "预告片"
 
@@ -2593,21 +2574,16 @@ msgstr "已保存：%(key)s（同时也关闭 \"%(other)s\"）"
 # seeded from jellyfin-web: Display
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Display"
 msgstr "显示"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Connect to a server to change the home screen sections."
 msgid "Connect to a server to change these settings."
-msgstr "连接到服务器以更改主屏幕版块。"
+msgstr "连接服务器以更改这些设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "The layout could not be loaded from your server."
 msgid "These settings could not be loaded from your server."
-msgstr "无法从您的服务器加载布局。"
+msgstr "这些设置无法从您的服务器加载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -2615,39 +2591,30 @@ msgid "Try Again"
 msgstr "再试一次"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "These sections are stored on your server and shared with Jellyfin Web."
 msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr "这些部分存储在您的服务器上，并与 Jellyfin Web 共享。"
+msgstr "这些设置存储在您的服务器上，并与 Jellyfin Web 共享。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Use episode images in Next Up and Continue Watching"
-msgstr ""
+msgstr "在“下一集”和“继续观看”中使用剧集图片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
-msgstr ""
+msgstr "默认关闭：会使用剧集封面图，因为剧集图片可能会剧透你尚未观看的剧集内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Could not load more items."
 msgid "Could not load your display settings."
-msgstr "无法加载更多项目。"
+msgstr "无法加载您的显示设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Recording settings saved."
 msgid "Display settings saved."
-msgstr "录制设置已保存。"
+msgstr "显示设置已保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Could not save the home screen layout."
 msgid "Could not save your display settings."
-msgstr "无法保存主屏幕布局。"
+msgstr "无法保存您的显示设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -2926,14 +2893,12 @@ msgid "That user could not be renamed."
 msgstr "无法重命名该用户。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "All Years"
 msgid "Year"
-msgstr "所有年份"
+msgstr "年份"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "长度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Artist"
