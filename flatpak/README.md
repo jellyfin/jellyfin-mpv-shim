@@ -27,6 +27,12 @@ keyed on this manifest.
 
 The packaging Flathub publishes lives in
 [flathub/com.github.iwalton3.jellyfin-mpv-shim](https://github.com/flathub/com.github.iwalton3.jellyfin-mpv-shim).
+It also pins `libdir` in the top-level `build-options`. flatpak-builder only
+started passing one to meson and cmake in 1.4.4, and Ubuntu 24.04 — what CI
+runs on — ships 1.4.2, where each build system picks for itself and both land
+on `lib64`: meson does it on x86_64, cmake on aarch64, and either way the `.pc`
+files end up off the pkg-config path.
+
 The mpv module here is a copy of the one there, except that mujs is fetched by
 git commit instead of as a tarball — Codeberg regenerates that archive, so the
 sha256 the Flathub manifest pins no longer matches what it serves (the tar
@@ -47,3 +53,17 @@ The real difference is the app module:
 
 So a dependency change needs no work here, and still needs
 `pypi-dependencies.json` regenerated in the Flathub repo at release time.
+
+## Checking the pins
+
+`tools/check_flatpak_pins.py` downloads every pinned source and verifies its
+sha256, and asks `git ls-remote` whether each pinned tag still names the commit
+beside it. A cold build otherwise discovers a stale pin one source at a time,
+minutes in. Point it at the Flathub manifest to check that one too — that is
+where it earns its keep, since `pypi-dependencies.json` pins several dozen
+files:
+
+```sh
+./tools/check_flatpak_pins.py
+./tools/check_flatpak_pins.py ~/src/flathub-shim/com.github.iwalton3.jellyfin-mpv-shim.json
+```

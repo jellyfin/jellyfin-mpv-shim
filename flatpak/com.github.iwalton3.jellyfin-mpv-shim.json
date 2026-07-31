@@ -15,6 +15,10 @@
         "--talk-name=org.gnome.SessionManager",
         "--env=LC_NUMERIC=C"
     ],
+    "//build-options-note": "flatpak-builder only passes a libdir to meson and cmake by default from 1.4.4 on; Ubuntu 24.04 ships 1.4.2, which lets each build system pick. Both then choose lib64 -- meson on x86_64, cmake on aarch64 -- and the .pc files land off the pkg-config path, so mpv cannot find libplacebo and libayatana-indicator cannot find ayatana-ido. Pinning it here makes every builder version agree, and would put libmpv.so where python-mpv looks for it even if nothing failed at build time.",
+    "build-options": {
+        "libdir": "/app/lib"
+    },
     "cleanup": [
         "/include",
         "/lib/pkgconfig",
