@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 01:47-0400\n"
+"POT-Creation-Date: 2026-07-31 01:51-0400\n"
 "PO-Revision-Date: 2026-07-30 11:39+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1327,8 +1327,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid ""
-"Install the \"%s\" package (for example \"apt install %s\"), or use MPV 0.41 "
-"or newer."
+"Install the \"%(package)s\" package (for example \"apt install "
+"%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2845,7 +2845,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
-msgid "Saved: %s (also turned off \"%s\")"
+msgid "Saved: %(key)s (also turned off \"%(other)s\")"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py

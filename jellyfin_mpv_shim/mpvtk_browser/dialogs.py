@@ -469,8 +469,9 @@ class DialogsMixin:
             text = _("Pasting from the clipboard is not available.")
         if need:
             text += " " + (
-                _('Install the "%s" package (for example "apt install %s"), '
-                  "or use MPV 0.41 or newer.") % (need, need))
+                _('Install the "%(package)s" package (for example '
+                  '"apt install %(package)s"), or use MPV 0.41 or newer.')
+                % {"package": need})
         else:
             text += " " + _("Use MPV 0.41 or newer.")
         self._message(text, title=_("Clipboard"))
