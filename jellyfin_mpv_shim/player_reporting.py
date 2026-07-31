@@ -443,6 +443,37 @@ class ReportingMixin:
             except Exception:
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
 
+    def release_stream(self, video):
+        """Free ``video``'s server-side stream without blocking the caller.
+
+        ``terminate_transcode`` is one or two blocking HTTP calls, and every
+        teardown that reaches it is on a path the window is waiting on:
+        ``stop()`` runs inline on the browser's loop thread whenever the
+        player's lock happens to be free (run_action's fast path), and
+        ``finished_callback`` holds the browser in the finished video until it
+        returns. Against a server that is unreachable rather than refusing,
+        those calls hang for the full socket timeout — which is exactly when
+        the UI most obviously wedges, and it wedged *after* the picture was
+        gone, so there was nothing on screen to explain it.
+
+        The session reporter is the right worker rather than a fresh thread:
+        one FIFO, so the release still lands in submission order with the stop
+        report it accompanies, and ``terminate()`` drains it on the way out —
+        so a live TV tuner is still freed by quitting the app.
+
+        Callers that must know the stream is gone before asking for another
+        one keep calling ``terminate_transcode`` directly; ``Video`` does that
+        against its own source in ``get_playback_url``, which is what keeps
+        re-resolving one item ordered. What is no longer ordered is stopping
+        live TV and tuning a *different* channel: on a single-tuner box the
+        close now has to win a race it used to be ahead of by construction.
+        It is submitted before the browser has even repainted the library, so
+        it has the whole of the user's navigation to land in.
+        """
+        if video is None:
+            return
+        self._reporter.submit(video.terminate_transcode, "terminate_transcode")
+
     def upd_player_hide(self):
         video = self._video
         if video:
@@ -481,7 +512,7 @@ class ReportingMixin:
             self.send_timeline_stopped(options=options, client=video.client)
         except Exception:
             log.warning("Could not report playback stop to server.", exc_info=True)
-        try:
-            video.terminate_transcode()
-        except Exception:
-            pass
+        # Same worker as the stop report above, so the two still arrive in
+        # this order — and this path runs while the window is being torn
+        # down, which is not the moment to block on an unreachable server.
+        self.release_stream(video)

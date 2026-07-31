@@ -304,6 +304,73 @@ class ShutdownTeardownTest(unittest.TestCase):
         self.assertEqual(ran, [True])
 
 
+class TeardownDoesNotHoldTheWindowTest(unittest.TestCase):
+    """The browser must get its window back before the server teardown runs.
+
+    ``stop()`` runs inline on the browser's loop thread whenever the player's
+    lock is free (run_action's fast path), and ``finished_callback`` is what
+    the browser waits on at the end of a queue. Freeing the stream is a
+    blocking round trip that hangs for the whole socket timeout against a
+    server that accepts connections and never answers — which is where these
+    tests put it.
+    """
+
+    class BlockingVideo(FakeVideo):
+        def __init__(self, **kw):
+            super().__init__(**kw)
+            self.released = threading.Event()
+            self.may_return = threading.Event()
+
+        def terminate_transcode(self):
+            self.released.set()
+            # An unreachable server, modelled: never answers on its own.
+            self.may_return.wait(5)
+            self.terminated = True
+
+    def _player(self, video):
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        # Something is playing: stop() early-returns on an aborted player,
+        # which is the FakeMPV's idle default.
+        pm._player.playback_abort = False
+        pm._video = video
+        pm.pushed = []
+        pm.push_playstate = lambda stopped=False: pm.pushed.append(stopped)
+        pm.send_timeline_stopped = lambda *a, **k: None
+        pm.get_timeline_options = lambda *a, **k: {"PositionTicks": 0}
+        return pm
+
+    def _drain(self, pm, video):
+        video.may_return.set()
+        pm._reporter.drain(5.0)
+
+    def test_stop_returns_without_waiting_for_the_release(self):
+        video = self.BlockingVideo()
+        pm = self._player(video)
+        with mock.patch.object(player_module.PlayerManager, "exec_stop_cmd",
+                               staticmethod(lambda: None)):
+            pm.stop()
+        # set_paused pushes one of its own on the way past, so it is the last
+        # word that matters here.
+        self.assertEqual(pm.pushed[-1:], [True],
+                         "the browser was not told playback stopped")
+        self.assertTrue(video.released.wait(5), "the release never ran")
+        self.assertFalse(video.terminated,
+                         "stop() waited for the release to come back")
+        self._drain(pm, video)
+        self.assertTrue(video.terminated)
+
+    def test_end_of_queue_returns_without_waiting_for_the_release(self):
+        video = self.BlockingVideo()
+        pm = self._player(video)
+        pm.finished_callback(True, pm._play_epoch)
+        self.assertEqual(pm.pushed, [True])
+        self.assertTrue(video.released.wait(5))
+        self.assertFalse(video.terminated)
+        self._drain(pm, video)
+        self.assertTrue(video.terminated)
+
+
 class BackendMatrixTest(unittest.TestCase):
     """Assertions that must hold identically on both mpv backends. Run once per
     backend by run_integration.py (JMS_TEST_BACKEND); the divergence is in which
