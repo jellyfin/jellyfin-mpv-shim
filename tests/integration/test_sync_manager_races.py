@@ -42,8 +42,12 @@ class DeleteAtCommitRaceTest(h.TmpDirTest):
 
         at_finish = threading.Barrier(2)
 
+        # headers= is passed by _download so the media request carries the
+        # Authorization header; a fake without it makes the download a
+        # TypeError, which here is a worker that dies before the barrier and
+        # a BrokenBarrierError over in the test thread.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None):
+                        stopping=None, headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -139,8 +143,11 @@ class StopMidDownloadTest(h.TmpDirTest):
 
         streaming = threading.Event()
 
+        # headers=: see fake_stream in DeleteAtCommitRaceTest. Without it the
+        # worker raises before it ever streams, which reads as "worker never
+        # began the download".
         def parked_stream(url, dest, item_id, name, expected,
-                          stopping=None):
+                          stopping=None, headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 20)     # a partial download on disk
