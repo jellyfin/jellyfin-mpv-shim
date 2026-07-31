@@ -224,7 +224,18 @@ class TilesMixin:
                             "favorite"))
             return out
         if t in self.MENU_PLAYABLE:
-            out.append((_("Play"), "play_arrow", "play"))
+            # Two entries where there is a position to resume from, as
+            # jellyfin-web's card menu has: "Play" now means resume (see
+            # _menu_play), so without the second one restarting a
+            # part-watched item from a tile became impossible. Only for the
+            # single-item types -- a container's Play resolves to a queue and
+            # has no one position to carry.
+            pos = (ud.get("PlaybackPositionTicks") or 0) if t in PLAYABLE_TYPES else 0
+            if pos > 0:
+                out.append((_("Resume"), "play_arrow", "play"))
+                out.append((_("Play from Beginning"), "first_page", "restart"))
+            else:
+                out.append((_("Play"), "play_arrow", "play"))
             out.append((_("Add to Queue"), "playlist_add", "queue"))
         if t in self.MENU_WATCHED:
             out.append((_("Mark Unwatched") if watched
@@ -272,6 +283,8 @@ class TilesMixin:
         action = entries[index][2]
         if action == "play":
             self._menu_play(item, server)
+        elif action == "restart":
+            self._menu_play(item, server, resume=False)
         elif action == "queue":
             self._menu_queue(item, server)
         elif action == "watched":
@@ -440,7 +453,7 @@ class TilesMixin:
             return []
         return [iid]
 
-    def _menu_play(self, item, server):
+    def _menu_play(self, item, server, resume=True):
         t = item.get("Type")
         if t in self.MENU_LIVE:
             # What you watch is the channel, never the guide entry — the
@@ -452,7 +465,17 @@ class TilesMixin:
             self._play_list([item.get("Id")], server, audio=True)
             return
         if t in PLAYABLE_TYPES:
-            self._play(item, server)
+            # Resume, like the overlay play button on a jellyfin-web card
+            # (which carries the item's data-positionticks into the start).
+            # A half-watched film under the play chip means "carry on with
+            # this", and starting it at zero threw that away silently --
+            # there was nothing to say the position had been lost. Beginning
+            # is still one menu entry away.
+            offset = None
+            if resume:
+                offset = ((item.get("UserData") or {})
+                          .get("PlaybackPositionTicks")) or None
+            self._play(item, server, offset_ticks=offset)
             return
         # A container: resolve it to its items and play those, rather than
         # navigating (a "Play" that browses instead is just a lie).
