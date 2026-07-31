@@ -255,5 +255,139 @@ class GridAsksForItTest(unittest.TestCase):
         self.assertEqual({q["image_type"] for q in src.queries}, {"Banner"})
 
 
+class SettingsSurviveTheRestOfTheLoadTest(unittest.TestCase):
+    """The load publishes twice -- items first, filter pickers after -- and
+    the grid is on screen and its View settings reachable for the whole gap
+    between them. That gap is the point of the split (Items/Filters is
+    seconds against a real library), so what the user does inside it has to
+    stick."""
+
+    class _SlowFilters(FakeSource):
+        """Runs a callback while the filter pickers are 'in flight'."""
+
+        interrupt = None
+
+        def get_filter_values(self, server_uuid, parent_id=None,
+                              collection_type=None):
+            if self.interrupt is not None:
+                cb, self.interrupt = self.interrupt, None
+                cb()
+            return {"genres": [], "years": []}
+
+    def _grid(self, during):
+        src = self._SlowFilters()
+        src.view_settings = {"imageType": ("primary", None),
+                             "showTitle": (True, None),
+                             "showYear": (True, None)}
+        src.grid_items = [{"Id": "g1", "Name": "I", "Type": "Movie"}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "collection_type": "movies", "title": "Movies"}
+        src.interrupt = lambda: during(b, route)
+        b.navigate(route)
+        return b, src, route
+
+    def test_a_change_made_while_the_pickers_load_is_not_undone(self):
+        """It was undone *silently*: the save had already reached the server,
+        so the screen was left disagreeing with what is stored, with nothing
+        on it to say so."""
+        def during(b, route):
+            self.assertIsNotNone(route.get("_items"),
+                                 "the tiles had not been published yet")
+            b._page_for(route)._set_view("showTitle", False)
+
+        _b, src, route = self._grid(during)
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("showTitle", False)])
+        self.assertEqual(route["_view"]["showTitle"][0], False)
+
+    def test_the_artwork_choice_survives_it_too(self):
+        """Auto/Poster/Thumbnail all resolve to the same query, so they take
+        the repaint branch and never bump the epoch -- which is what would
+        otherwise have dropped the stale publish."""
+        def during(b, route):
+            b._page_for(route)._set_view("imageType", "poster")
+
+        _b, _src, route = self._grid(during)
+        self.assertEqual(route["_view"]["imageType"][0], "poster")
+
+    def test_a_first_load_still_publishes_what_it_read(self):
+        """The guard is "the route already has one", which is the same rule
+        load() applies when it decides whether to ask the server at all."""
+        _b, _src, route = self._grid(lambda _b, _r: None)
+        self.assertEqual(route["_view"]["imageType"][0], "primary")
+
+
+class AFailedSaveLandingLateTest(unittest.TestCase):
+    """``on_error`` is deliberately not epoch-gated (see AsyncRunner), so a
+    view save that fails can land after the user has walked away."""
+
+    def _setup(self):
+        from tests._shell_harness import _DeferredPool
+
+        src = FakeSource()
+        src.view_settings = {"imageType": ("primary", None)}
+        src.grid_items = [{"Id": "g1", "Name": "I", "Type": "Movie"}]
+        src.save_view_fails = True
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        left = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                "collection_type": "movies", "title": "Movies"}
+        b.navigate(left)
+        pool = _DeferredPool()
+        b._pool = pool
+        # A change the server will refuse, and one whose query differs, so
+        # the rollback takes the refetch branch rather than the repaint one.
+        b._page_for(left)._set_view("imageType", "banner")
+        here = {"kind": "grid", "server": "srv1", "parent_id": "lib2",
+                "collection_type": "movies", "title": "Other"}
+        b.navigate(here)
+        return b, pool, left, here
+
+    def test_it_does_not_strand_the_screen_the_user_is_on(self):
+        """The rollback reloaded the route it belonged to, and a reload bumps
+        the epoch -- which cancelled the in-flight load of whatever was
+        actually on screen. Nothing re-issues that load, so the library the
+        user had just opened sat on a spinner for the rest of the session."""
+        b, pool, _left, here = self._setup()
+        epoch = b._epoch
+        pool.drain()
+        self.assertEqual(b._epoch, epoch, "the epoch was bumped from a route "
+                                          "nobody is looking at")
+        self.assertTrue(here.get("_items"), "the current screen never loaded")
+
+    def test_the_route_it_belongs_to_is_still_put_back(self):
+        """Quietly -- nav.load, which re-runs the loader without touching the
+        epoch or repainting. The rollback is still real, it just does not get
+        to interrupt a screen it is not on."""
+        b, pool, left, _here = self._setup()
+        pool.drain()
+        self.assertEqual(left["_view"]["imageType"][0], "primary")
+
+    def test_a_failure_on_the_CURRENT_route_still_reloads_it(self):
+        """The guard must not cost the case it was always for."""
+        from tests._shell_harness import _DeferredPool
+
+        src = FakeSource()
+        src.view_settings = {"imageType": ("primary", None)}
+        src.grid_items = [{"Id": "g1", "Name": "I", "Type": "Movie"}]
+        src.save_view_fails = True
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "collection_type": "movies", "title": "Movies"}
+        b.navigate(route)
+        b._pool = pool = _DeferredPool()
+        b._page_for(route)._set_view("imageType", "banner")
+        pool.drain()
+        self.assertEqual(route["_view"]["imageType"][0], "primary")
+        self.assertEqual(src.queries[-1]["image_type"], None,
+                         "the rolled-back grid was not re-fetched")
+
+
 if __name__ == "__main__":
     unittest.main()

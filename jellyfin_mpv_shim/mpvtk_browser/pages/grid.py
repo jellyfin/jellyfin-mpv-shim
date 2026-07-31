@@ -207,7 +207,16 @@ class GridPage(Page):
         idempotent."""
         route = self.route
         route["_items"] = items
-        route["_view"] = view
+        # Only where the route has none, which is the same rule ``load``
+        # applies when it decides whether to ask the server at all. The two
+        # calls are seconds apart -- the filter pickers are the slow half --
+        # and the grid is on screen and its View settings reachable for all
+        # of it, so re-publishing what the worker read would throw away a
+        # change the user has made in the meantime. It is thrown away
+        # *silently*: the save has already gone to the server, so the screen
+        # would be left disagreeing with what is stored.
+        if route.get("_view") is None:
+            route["_view"] = view
         # Random reshuffles server-side on every request, so page two is
         # drawn from a different ordering than page one: paging it yields
         # duplicates and silently skips items. Reporting the first page as
@@ -675,6 +684,15 @@ class GridPage(Page):
         The test is what the QUERY would be, not which setting was picked:
         Auto and Poster ask for exactly the same artwork and differ only in
         the shape it is drawn at, so switching between them is a repaint.
+
+        ``nav.load`` rather than ``nav.reload`` for a route that is no longer
+        on screen. The rollback path reaches here from ``on_error``, which is
+        deliberately NOT epoch-gated (see AsyncRunner), so a save that fails
+        after the user has walked away lands on the route they left --
+        and ``reload`` bumps the epoch, which would cancel the in-flight load
+        of whatever IS on screen and strand it on a spinner with nothing left
+        to re-issue it. ``load`` re-runs this route's own loader without
+        touching the epoch or repainting, which is exactly what it is for.
         """
         from ..repository import browse_image_types
 
@@ -682,7 +700,10 @@ class GridPage(Page):
         if browse_image_types(was) == browse_image_types(now):
             self.ctx.invalidate()
             return
-        self.ctx.nav.reload(self.route)
+        if self.ctx.nav.is_current(self.route):
+            self.ctx.nav.reload(self.route)
+        else:
+            self.ctx.nav.load(self.route)
 
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
