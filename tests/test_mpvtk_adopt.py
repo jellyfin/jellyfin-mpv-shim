@@ -42,6 +42,90 @@ class TestAdoptBackend(unittest.TestCase):
         self.assertTrue(MpvtkApp.attach(FakeMPV(), ext=False).in_process)
         self.assertFalse(MpvtkApp.attach(FakeMPV(), ext=True).in_process)
 
+    def _scroll_config(self, ext, **settings):
+        """The mpvtk-wheel payload the app forwards for a backend flavour."""
+        import json
+
+        from jellyfin_mpv_shim import conf
+
+        app = MpvtkApp.attach(FakeMPV(), ext=ext)
+        saved = {k: getattr(conf.settings, k) for k in settings}
+        for key, value in settings.items():
+            setattr(conf.settings, key, value)
+        try:
+            app.push_scroll_config()
+        finally:
+            for key, value in saved.items():
+                setattr(conf.settings, key, value)
+        payload = next(c for c in app.backend.mpv.commands
+                       if c[0] == "script-message" and c[1] == "mpvtk-wheel")
+        return json.loads(payload[2])
+
+    def test_the_backend_does_not_decide_how_scrolling_looks(self):
+        """Out of process an image is a file mpv opens and mmaps rather than
+        an address in this process, and a scrolling frame re-issues every
+        visible one — which used to be reason enough to force quantizing
+        there, sight unseen.
+
+        The renderer times its own frames now, and that mmap happens inside
+        the overlay-add calls it times, so an external mpv is observed to be
+        expensive rather than assumed to be — confirmed on a real one, where
+        continuous scrolling holds up. So the payload depends on the setting
+        and nothing else, and both backends answer identically."""
+        for mode in ("continuous", "aligned", "row"):
+            self.assertEqual(self._scroll_config(ext=True, scroll_mode=mode),
+                             self._scroll_config(ext=False, scroll_mode=mode),
+                             "%r differs between backends" % mode)
+
+    def test_continuous_asks_the_renderer_for_neither_mitigation(self):
+        cfg = self._scroll_config(ext=False, scroll_mode="continuous")
+        self.assertFalse(cfg["snapped"])
+        self.assertFalse(cfg["force_snap"])
+
+    def test_aligned_quantizes_the_drawing_but_not_the_notch(self):
+        """The distinction the two old booleans kept losing: the wheel still
+        moves by pixels and the scrollbar still glides, and only what is
+        drawn is pulled onto a row."""
+        cfg = self._scroll_config(ext=False, scroll_mode="aligned")
+        self.assertFalse(cfg["snapped"])
+        self.assertTrue(cfg["force_snap"])
+
+    def test_an_unknown_mode_falls_back_to_the_default(self):
+        """A hand-edited typo must land on continuous, not on a mitigation.
+
+        The trap is that the obvious spelling of the test -- `force_snap =
+        mode != "continuous"` -- fails the other way, and silently: the
+        settings dropdown falls back to displaying option 0 for a value it
+        does not recognise, so "Continuous" with the capital C the dropdown
+        itself DISPLAYS would quantize permanently while Settings went on
+        showing the mode the user thought they had. `snapped_scrolling` got
+        this for free by going through adv_bool; a bare str does not."""
+        for junk in ("Continuous", "", "aligne", "true", "row ", "0"):
+            cfg = self._scroll_config(ext=False, scroll_mode=junk)
+            self.assertFalse(cfg["force_snap"], "%r quantized" % junk)
+            self.assertFalse(cfg["snapped"], "%r stepped" % junk)
+
+    def test_the_dropdown_offers_exactly_the_modes_conf_understands(self):
+        """Two lists, one meaning. The dropdown is where a user picks a
+        value and conf.SCROLL_MODES is what decides behaviour, so a value in
+        one and not the other is either an unreachable mode or a menu entry
+        that falls back to the default when chosen."""
+        from jellyfin_mpv_shim.conf import SCROLL_MODES
+        from jellyfin_mpv_shim.mpvtk_browser import config as browser_config
+
+        offered = [v for _label, v in
+                   browser_config.LABELED_ENUMS["scroll_mode"]]
+        self.assertEqual(offered, list(SCROLL_MODES))
+
+    def test_a_row_per_notch_is_drawn_aligned_too(self):
+        """Not redundant, and the reason the setting is three states rather
+        than two checkboxes: stepping a whole row per notch means every
+        offset is already on a boundary, so asking for both is the one
+        combination that never meant anything."""
+        cfg = self._scroll_config(ext=False, scroll_mode="row")
+        self.assertTrue(cfg["snapped"])
+        self.assertTrue(cfg["force_snap"])
+
     def test_attach_requires_ext(self):
         with self.assertRaises(ValueError):
             MpvtkApp(mpv_handle=FakeMPV())  # ext omitted

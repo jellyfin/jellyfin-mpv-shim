@@ -95,6 +95,8 @@ class DocsCoverageTest(unittest.TestCase):
             # audio_mode / osc_style / ui_scale / theme values
             "auto", "stereo", "optical", "hdmi", "mpvtk", "mpv", "default",
             "null", "jellyfin", "nebula",
+            # scroll_mode values
+            "continuous", "aligned", "row",
             # language_config rule keys
             "type", "subtype", "alang", "slang", "amatch", "smatch",
             "aprefer", "sprefer", "aexclude", "sexclude",

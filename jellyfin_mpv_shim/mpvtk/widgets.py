@@ -873,14 +873,21 @@ class Scroll(Element):
     and the content height at the same instant; a Python round-trip would
     always be pinning against the *previous* frame's height.
 
-    ``snap`` (logical px, along the scroll axis) turns the container into a
-    row-quantized scroller: the renderer displays and hit-tests the offset
-    snapped to the nearest ``snap_off + k*snap`` boundary, and a wheel notch
-    moves exactly one step. The internal offset stays continuous, so
-    virtualization/paging are unaffected — only what's drawn snaps. Used for
-    the library grid, where fast scrolling otherwise smears every visible row
-    across the frame and forces a full recomposite per frame (see
-    renderer.lua's snap_round).
+    ``snap`` (logical px, along the scroll axis) declares where the rows of
+    a container ARE, so the renderer can quantize to them: it displays and
+    hit-tests the offset snapped to the nearest ``snap_off + k*snap``
+    boundary. The internal offset stays continuous, so virtualization and
+    paging are unaffected — only what's drawn snaps.
+
+    **It is a capability, not a mode.** The renderer applies it only when a
+    gesture is asking for frames faster than it can measurably draw them, or
+    when the user forces it on — see ``snap_round`` and ``state.rcost`` in
+    renderer.lua. Ordinary scrolling glides.
+    Declaring ``snap`` therefore costs nothing on a machine that keeps up,
+    and the quantization is there for one that does not: a changed offset
+    re-lays the whole OSD at output resolution and re-issues every visible
+    overlay, and quantizing is what makes consecutive frames identical so
+    both are skipped.
 
     ``snaps`` is the same idea for **unequal** breakpoints: an explicit list
     of logical offsets (e.g. the content-y of each home-screen section

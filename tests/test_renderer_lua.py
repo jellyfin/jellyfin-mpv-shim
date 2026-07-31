@@ -86,7 +86,70 @@ class TestRendererLua(unittest.TestCase):
         proc = subprocess.run(
             [LUA, "-e", "assert(loadfile(%r))" % RENDERER],
             capture_output=True, text=True, timeout=60)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            proc.returncode, 0,
+            proc.stderr + "\n\n" + self.LOCAL_CEILING_HELP
+            if "local variables" in proc.stderr else proc.stderr)
+
+    #: Shown when the parse fails on Lua's per-function local limit, because
+    #: the raw message ("main function has more than 200 local variables")
+    #: names neither the cause nor the fix, and points at the last line of a
+    #: 4,500-line file rather than at whatever was just added.
+    LOCAL_CEILING_HELP = (
+        "renderer.lua's main chunk is at Lua's 200-local ceiling, so the\n"
+        "file-scope `local` that was just added is one too many. It is not\n"
+        "the line the error points at — that is simply where the compiler\n"
+        "gave up.\n\n"
+        "Options, cheapest first:\n"
+        "  * put single-use helpers inside their one caller;\n"
+        "  * hang new tunables off the `state` table (rcost and render_duty do);\n"
+        "  * group a family of related constants into one table local.\n\n"
+        "tests/test_renderer_lua.py::test_there_is_a_local_budget_left\n"
+        "reports how much room is left before this happens again.")
+
+    #: Locals to probe for when measuring headroom. Above this we stop
+    #: caring — anything that far from the ceiling is not a hazard.
+    HEADROOM_PROBE = 24
+
+    def _headroom(self):
+        """How many more file-scope locals renderer.lua could take."""
+        with open(RENDERER, encoding="utf-8") as fh:
+            source = fh.read()
+        # After the first line, so the shebang-less header comment stays put
+        # and the padding is unambiguously file scope.
+        head, _nl, rest = source.partition("\n")
+        for n in range(self.HEADROOM_PROBE + 1):
+            pad = "\n".join("local __pad%d = %d" % (i, i) for i in range(n))
+            probe = "%s\n%s\n%s" % (head, pad, rest)
+            check = subprocess.run(
+                [LUA, "-e",
+                 "local f, e = load(io.read('*a')); if not f then "
+                 "io.stderr:write(e or 'err'); os.exit(1) end"],
+                input=probe, capture_output=True, text=True, timeout=60)
+            if check.returncode != 0:
+                return n - 1
+        return self.HEADROOM_PROBE
+
+    def test_there_is_a_local_budget_left(self):
+        """The ceiling is not a wall you should discover by hitting it.
+
+        Lua allows 200 locals per function, and renderer.lua's main chunk is
+        one function — every top-level `local`, constant or helper, spends
+        from the same budget. It has been hit more than once, and the
+        failure is opaque: a load error naming a line at the end of the file
+        that has nothing to do with the change.
+
+        This reports the remaining room, so running out is a decision rather
+        than a surprise.
+        """
+        headroom = self._headroom()
+        self.assertGreaterEqual(
+            headroom, 0,
+            "renderer.lua does not compile.\n\n" + self.LOCAL_CEILING_HELP)
+        if headroom == 0:
+            self.skipTest(
+                "renderer.lua is AT the 200-local ceiling: the next "
+                "file-scope local will break it.\n" + self.LOCAL_CEILING_HELP)
 
 
 if __name__ == "__main__":

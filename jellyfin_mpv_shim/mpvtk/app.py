@@ -410,16 +410,54 @@ class MpvtkApp:
         )
 
     def push_scroll_config(self):
-        """Forward the wheel step (px per notch) and the snapped-scrolling
-        toggle to the renderer. Both are safe to re-push live: the renderer
+        """Forward the wheel step (px per notch) and what ``scroll_mode``
+        means to the renderer. All are safe to re-push live: the renderer
         just re-derives its step and thumb-tracking, no cached state to drop.
-        Sent on ready and again whenever the Library Browser settings change."""
-        from ..conf import settings
+        Sent on ready and again whenever the Library Browser settings change.
 
+        The mode is one setting here and two flags there, because the
+        renderer's two mechanisms really are separate: ``snapped`` changes
+        what a NOTCH moves, ``force_snap`` changes what is DRAWN between
+        notches. Only three of their four combinations mean anything -- a
+        notch that lands on a row boundary is already drawn on one -- so the
+        setting offers three and this maps them back.
+
+        ``force_snap`` is the user's setting and nothing else.
+
+        It used to be OR'd with "this is an external mpv", because out of
+        process an image reaches mpv as a *file* it opens and mmaps rather
+        than the ``&<address>`` into shared memory MemoryStore hands it (see
+        rawimage.py), and a scrolling frame re-issues every visible overlay
+        — so the per-overlay cost is high there whatever the wheel is doing.
+
+        That reasoning predates the renderer measuring its own frames. The
+        mmap happens inside the ``overlay-add`` calls the measurement is
+        taken around, so an external mpv should now be *observed* to be
+        expensive rather than assumed to be, and quantize on its own. Forcing
+        it made that impossible to find out: the fallback was hiding whether
+        the measurement works where it matters most.
+
+        So this is off while it is tested on a real external mpv. If
+        scrolling there stutters, the honest fix is a measurement that sees
+        the cost — not this clause back. ``self.in_process`` is still the
+        backend's own answer to which one this is, if it needs reviving.
+        """
+        from ..conf import SCROLL_MODES, settings
+
+        mode = getattr(settings, "scroll_mode", SCROLL_MODES[0])
+        if mode not in SCROLL_MODES:
+            # A hand-edited typo falls back to the default rather than to a
+            # mitigation. Worth stating because the obvious spelling of this
+            # test -- `force_snap = mode != "continuous"` -- fails the other
+            # way: "Continuous" with the capital the dropdown DISPLAYS would
+            # quantize permanently while Settings went on showing the mode
+            # the user thought they had.
+            mode = SCROLL_MODES[0]
         self.backend.command(
             "script-message", "mpvtk-wheel", json.dumps({
                 "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),
-                "snapped": bool(getattr(settings, "snapped_scrolling", False)),
+                "snapped": mode == "row",
+                "force_snap": mode != "continuous",
             })
         )
 

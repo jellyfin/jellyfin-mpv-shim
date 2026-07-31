@@ -693,6 +693,406 @@ scene({})
 eq(hover_events(), "hover_end:tile-a-play",
    "a hovered node leaving the scene reported no departure")
 
+-- ===================================================== scroll snapping
+--
+-- Scrolling glides. It quantizes to row boundaries only when the frames a
+-- gesture asks for cost more than the time between them -- or when the user
+-- (or an external mpv) forces it on. Neither half is sufficient alone, and
+-- both of those are tested below, because each is a rule this replaced: a
+-- rate threshold snapped a brisk flick on a machine that draws in 3ms, and
+-- snapping unconditionally (what came before that) charged everyone for a
+-- mitigation almost nobody needed.
+--
+-- fake.set_draw_cost is what makes any of it testable. The renderer times
+-- its own frames, so "this machine is slow" is a number a test can state
+-- rather than a symptom it has to imitate.
+--
+-- Two observables, deliberately different things:
+--   * where the offset SETTLES. During a gesture the stored offset stays
+--     continuous and only the drawing is quantized, so the visible
+--     consequence is at the end: a gesture that outran the renderer is
+--     released onto the detent it was already showing, and one that did not
+--     is left exactly where the pixels put it.
+--   * how many frames were PAINTED. The cadence comes from the same
+--     measurement, so an expensive scene draws the same gesture in fewer.
+
+-- Row height. The wheel step is quantized to divide a row evenly (see
+-- on_wheel: n = floor(250/80) = 3, step = 83.33), so EVERY THIRD NOTCH lands
+-- on a boundary with nothing snapping at all. There is no row height that
+-- avoids this -- the quantization is the point of it -- so the assertions
+-- below do not lean on where the offset happens to land. They read what was
+-- painted.
+local SNAP = 250
+
+--- A snapping container with a marker image inside it.
+---
+--- The marker is what makes the DRAWN offset observable, and observing it is
+--- the whole business here: during a gesture the stored offset stays
+--- continuous by design and only the drawing is quantized, so a suite that
+--- watches `user-data/mpvtk/scroll` is watching the one number this feature
+--- does not change. (Measured: with the offset as the only observable, both
+--- "quantize always" and "quantize never" passed the entire suite.)
+---
+--- It is taller than any offset under test, so it is always on screen, and
+--- `overlay-add` reports the source pixel it started copying from -- which is
+--- exactly the scroll offset the renderer drew. See drawn_offset.
+local MARK_W, MARK_H = 40, 400000
+
+local function snapper(id, ch)
+    return { { id = id, t = "scroll", axis = "y", x = 0, y = 0,
+               w = 400, h = 300, cw = 400, ch = ch or 3000,
+               snap = SNAP, snap_off = 0 },
+             { id = id .. "-mark", t = "img", sc = id, src = "/" .. id,
+               x = 0, y = 0, w = MARK_W, h = MARK_H,
+               iw = MARK_W, ih = MARK_H } }
+end
+
+--- The offset the renderer last PAINTED for a container, in pixels.
+---
+--- overlay-add is (slot, x, y, src, byte-offset, fmt, w, h, stride). The
+--- marker starts at content y=0 and the viewport at screen y=0, so the piece
+--- painted always begins `drawn offset` rows down the source bitmap, and the
+--- byte offset is that times the stride.
+local function drawn_offset(id)
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" and c[5] == "/" .. id then
+            found = tonumber(c[6]) / tonumber(c[10])
+        end
+    end
+    return found
+end
+
+--- Did the renderer paint this container at `want`?
+---
+--- Within a pixel, because a bitmap is copied from whole source pixels:
+--- draw_image floors, so a stored offset of 833.33 is painted at 834. That
+--- rounding is the difference between "glides" and "steps by 250" by a
+--- factor of 250, so a pixel of slack costs the assertion nothing.
+local function painted_at(id, want)
+    local got = drawn_offset(id)
+    return got ~= nil and math.abs(got - want) < 1.5
+end
+
+--- Was the last painted frame aligned to a row boundary?
+local function drawn_on_row(id)
+    local off = drawn_offset(id)
+    if off == nil then return nil end
+    return math.abs(off - math.floor(off / SNAP + 0.5) * SNAP) < 0.5
+end
+
+--- Is the stored offset sitting on a row boundary? Used only where the
+--- question really is about the stored offset: where a gesture RELEASED.
+local function on_row(id)
+    local off = offset(id)
+    return math.abs(off - math.floor(off / SNAP + 0.5) * SNAP) < 0.5
+end
+
+--- Let every pending timer come due: the gesture release, and the frame it
+--- is meant to outlive.
+local function settle()
+    fake.advance(1.0)
+    fake.fire_timers()
+end
+
+--- `n` wheel notches `gap` apart, painting after every second one.
+---
+--- Painting DURING the gesture is the point: the renderer has no idea what
+--- a frame costs until it has drawn one, and a still frame is cheaper than
+--- a scrolling one (at rest every overlay re-issue is skipped), so a
+--- gesture is judged on its own first frames rather than on an estimate
+--- from before it began.
+---
+--- Every second notch rather than every one because that is the shape mpv
+--- delivers: the script cannot take an event while it is inside a frame, so
+--- what arrives during one is handed over together afterwards. Painting on
+--- every notch would charge the whole draw to the gap between two events
+--- and make the gesture look slower than the wheel actually is.
+local function fling(n, gap)
+    for i = 1, n do
+        fake.advance(gap)
+        fake.key("wheel_down")
+        if i % 2 == 0 then fake.fire_timers() end
+    end
+end
+
+--- A fresh container over a settled renderer: no inherited offset, no
+--- latched gesture, and -- because the cost estimate is smoothed rather
+--- than reset -- no memory of how expensive the last scenario was.
+local function fresh(id, cost, ch)
+    fake.set_draw_cost(0)
+    settle()
+    for _ = 1, 8 do
+        scene(snapper(id, ch))
+        fake.advance(0.2)
+        fake.fire_timers()
+    end
+    fake.mouse(10, 10)
+    fake.advance(5.0)
+    fake.set_draw_cost(cost or 0)
+end
+
+-- A fling on a renderer that keeps up glides. This is the case the rate
+-- rule got wrong: the wheel here is going as fast as any fling, and that on
+-- its own is not a reason to make anyone's scrolling step.
+--
+-- Asserted on the PAINTED frame, mid-gesture, before any release: what the
+-- user sees is the claim, and it is the only form of it that can fail for
+-- the right reason.
+fresh("quick", 0)
+fling(10, 0.02)
+ok(drawn_offset("quick") > 0, "a fling on a fast renderer scrolls")
+ok(painted_at("quick", offset("quick")),
+   "a fling paints where the wheel put it when frames keep up",
+   string.format("painted %s, wheel left it at %s",
+                 tostring(drawn_offset("quick")), tostring(offset("quick"))))
+settle()
+ok(not on_row("quick"), "and it is left there when the gesture ends",
+   string.format("offset %s was pulled to a row boundary",
+                 tostring(offset("quick"))))
+
+-- The same fling where a frame costs 50ms cannot have one per notch, and
+-- quantizing is what buys the frames back.
+fresh("dear", 0.05)
+fling(10, 0.02)
+ok(drawn_offset("dear") > 0, "a fling on a slow renderer still scrolls")
+ok(drawn_on_row("dear"),
+   "a slow renderer paints on a row boundary while the fling is live",
+   string.format("painted %s, which is not on one",
+                 tostring(drawn_offset("dear"))))
+ok(drawn_offset("dear") ~= offset("dear"),
+   "quantizing moved the stored offset instead of just the picture",
+   "the scroller itself must stay continuous; only the drawing snaps")
+settle()
+ok(on_row("dear"), "and the gesture releases onto the detent it was showing",
+   string.format("offset %s is not on one", tostring(offset("dear"))))
+
+-- ...and cost alone is not a reason either. The same 50ms frames, asked for
+-- one a second, are latency rather than stutter: each notch gets a whole
+-- second of budget and there is nothing to save.
+fresh("dear-slow", 0.05)
+fling(4, 1.0)
+settle()
+ok(offset("dear-slow") > 0, "a slow scroll on a slow renderer scrolls")
+ok(not on_row("dear-slow"),
+   "an expensive frame asked for once a second still glides",
+   string.format("offset %s snapped", tostring(offset("dear-slow"))))
+
+-- The test is per gesture, so a fling that ends hands scrolling back: the
+-- next unhurried notch must not be dragged to a boundary by the last one.
+fresh("again", 0.05)
+fling(10, 0.02)
+settle()
+ok(on_row("again"), "the fling landed aligned")
+fake.advance(1.0)
+fake.key("wheel_down")
+settle()
+ok(not on_row("again"), "scrolling is free again once the fling ends",
+   string.format("offset %s snapped", tostring(offset("again"))))
+
+-- And the estimate lets go as readily as it latches: the same fast fling
+-- over the same container, once the frames are cheap again, glides.
+fake.set_draw_cost(0)
+for _ = 1, 8 do
+    scene(snapper("again"))
+    fake.advance(0.2)
+    fake.fire_timers()
+end
+fake.advance(5.0)
+local before_cheap = offset("again")
+fling(10, 0.02)
+settle()
+ok(offset("again") > before_cheap, "the cheap fling scrolled")
+ok(not on_row("again"), "a scene that got cheap again stops snapping",
+   string.format("offset %s snapped", tostring(offset("again"))))
+
+-- A container with no snap declared has nothing to quantize to, and a
+-- fling over it must not wedge anything.
+fake.set_draw_cost(0)
+settle()
+scene({ vscroll("plainfling", 300, 3000) })
+fake.mouse(10, 10)
+fake.advance(5.0)
+fake.set_draw_cost(0.05)
+fling(10, 0.02)
+settle()
+ok(offset("plainfling") > 0, "a fling over an unsnapped container scrolls",
+   string.format("offset stayed at %s", tostring(offset("plainfling"))))
+
+-- force_scroll_snapping (and external mpv) quantize the DRAWING at any
+-- cost and any rate. The stored offset still glides -- the setting changes
+-- what is painted, not where the scroller is -- so a slow scroll under it
+-- is left off the boundary exactly as it is without.
+fake.send("mpvtk-wheel", fake.token({ force_snap = true }))
+fresh("forced", 0)
+fling(4, 1.0)
+ok(offset("forced") > 0, "forced snapping still scrolls")
+ok(drawn_on_row("forced"), "forced snapping paints on a row boundary",
+   string.format("painted %s, which is not on one",
+                 tostring(drawn_offset("forced"))))
+ok(not on_row("forced"), "forced snapping does not move the scroller",
+   string.format("offset %s was pulled to a boundary",
+                 tostring(offset("forced"))))
+fake.send("mpvtk-wheel", fake.token({ force_snap = false }))
+-- ...and turning it back off paints freely again on the same container.
+fresh("unforced", 0)
+fling(4, 1.0)
+ok(painted_at("unforced", offset("unforced")),
+   "clearing force_snap left the drawing quantized",
+   string.format("painted %s, wheel left it at %s",
+                 tostring(drawn_offset("unforced")),
+                 tostring(offset("unforced"))))
+
+-- ================================================= duration-aware cadence
+--
+-- The other half of the same measurement. Frames are scheduled at what one
+-- costs, not at a rate picked for the worst machine: a gesture over an
+-- expensive scene is painted fewer times, which is what leaves the script
+-- room to take the events still arriving (mpv drops them -- "too many
+-- queued events" -- when it does not).
+
+--- Frames painted while scrolling for `span` seconds of clock.
+---
+--- The pump is finer than any cadence under test, so what is counted is
+--- how often the renderer chose to draw and not how often it was asked.
+local SPAN, DEAR = 1.0, 0.05
+
+local function frames_for(id, cost)
+    -- Content far taller than the gesture can exhaust: a scroller that
+    -- reaches the bottom stops asking to be drawn, and the count would
+    -- become "how long the container is" instead of "how often it drew".
+    fresh(id, cost, 200000)
+    local t0, drawn = fake.clock(), fake.log.draws
+    while fake.clock() - t0 < SPAN do
+        fake.advance(0.005)
+        fake.key("wheel_down")
+        fake.fire_timers()
+    end
+    return fake.log.draws - drawn
+end
+
+local quick_frames = frames_for("pace-quick", 0)
+local dear_frames = frames_for("pace-dear", DEAR)
+ok(quick_frames > 0, "a cheap scene paints while scrolling")
+ok(dear_frames > 0, "an expensive scene still paints while scrolling",
+   "a fling over it painted nothing at all")
+
+-- There used to be a `dear_frames < quick_frames` assertion here. It could
+-- not fail: the fake's osd:update advances its own clock by draw_cost, so a
+-- 50ms frame arithmetically cannot fit as many draws into a fixed span as a
+-- 0ms one, whatever the renderer decides. It passed with pacing removed
+-- entirely. What follows is the invariant that actually distinguishes them:
+-- drawing never takes more than its declared share of the clock. Scheduling
+-- frames one rcost apart would satisfy "fewer than a cheap scene" too, and
+-- leave the script no room to take the wheel events still coming.
+ok(dear_frames * DEAR <= SPAN * 0.7,
+   "drawing leaves the clock room for the events still arriving",
+   string.format("%d frames x %.0fms fills %.0f%% of a %.0fms gesture",
+                 dear_frames, DEAR * 1000,
+                 dear_frames * DEAR / SPAN * 100, SPAN * 1000))
+
+-- The cost that removing the external-mpv override rests on. Out of process
+-- an image is a file mpv opens and mmaps rather than an address in this
+-- process, so the expensive part of a scrolling frame is the overlay
+-- re-issues -- and the claim is that those happen INSIDE the timed region,
+-- so an external mpv is measured to be slow rather than assumed to be.
+--
+-- Here the osd update is free and only overlay-add costs anything. If the
+-- measurement stopped before flush_overlays, this scene would read as cheap
+-- and glide.
+fresh("mmap", 0)
+fake.set_overlay_cost(0.05)
+fling(10, 0.02)
+ok(drawn_on_row("mmap"),
+   "an expensive overlay-add is not counted as part of a frame",
+   string.format("painted %s, which is not on a row boundary",
+                 tostring(drawn_offset("mmap"))))
+fake.set_overlay_cost(0)
+
+-- ================================================== overlay slot order
+--
+-- mpv composites overlay bitmaps in ascending slot order, so slot order IS
+-- stacking order for anything that overlaps. Two things have to hold at
+-- once, and they pull against each other:
+--
+--   * correctness -- a bitmap drawn over another (the hover play chip over
+--     its row's artwork) must hold a HIGHER slot than the one it covers;
+--   * cheapness -- getting there must not re-issue every other overlay on
+--     the page. renumber_overlays is the fallback that does, and it is
+--     visible as the whole page flickering.
+--
+-- The trap is that the two are only in tension once something has left a
+-- LOW slot behind, which on a library page is constant: every row that
+-- scrolls out of view frees one. A chip taking the lowest free slot then
+-- lands under the very row it is drawn on.
+
+--- Full-width artwork rows, `n` of them, optionally with a chip drawn on
+--- one and optionally missing the first (scrolled out of view).
+local function strip_page(opts)
+    opts = opts or {}
+    local nodes = {}
+    for r = (opts.drop_first and 2 or 1), 5 do
+        nodes[#nodes + 1] = { id = "strip" .. r, t = "img",
+                              src = "/strip" .. r, x = 0, y = (r - 1) * 140,
+                              w = 1200, h = 130, iw = 1200, ih = 130 }
+    end
+    if opts.chip then
+        nodes[#nodes + 1] = { id = "chip", t = "img", src = "/chip",
+                              x = 60, y = (opts.chip - 1) * 140 + 40,
+                              w = 64, h = 64, iw = 64, ih = 64 }
+    end
+    return nodes
+end
+
+--- Paint a scene and report the overlay traffic it cost.
+local function paint(nodes)
+    local before = #fake.log.commands
+    scene(nodes)
+    fake.advance(1.0)
+    fake.fire_timers()
+    local adds, removes = 0, 0
+    for i = before + 1, #fake.log.commands do
+        local c = fake.log.commands[i]
+        if c[1] == "overlay-add" then adds = adds + 1
+        elseif c[1] == "overlay-remove" then removes = removes + 1 end
+    end
+    return adds, removes
+end
+
+--- The slot an overlay src was last issued to. Slot is argument 2 and the
+--- source is argument 5 of overlay-add (x, y, src, offset, ...).
+local function slot_of(src)
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" and c[5] == src then
+            found = tonumber(c[2])
+        end
+    end
+    return found
+end
+
+scene({})                       -- drop every prior overlay
+paint(strip_page())
+local freed_adds = paint(strip_page({ drop_first = true }))
+eq(freed_adds, 0, "a row leaving the page re-issued the others")
+
+local chip_adds = paint(strip_page({ drop_first = true, chip = 4 }))
+eq(chip_adds, 1, "showing the hover chip re-issued more than the chip")
+ok(slot_of("/chip") > slot_of("/strip4"),
+   "the chip is composited above the row it is drawn on",
+   string.format("chip is slot %s, its row is slot %s",
+                 tostring(slot_of("/chip")), tostring(slot_of("/strip4"))))
+
+-- Moving the pointer between rows is one departure and one arrival, and
+-- must stay that cheap however many times it happens.
+paint(strip_page({ drop_first = true }))
+local moved_adds = paint(strip_page({ drop_first = true, chip = 2 }))
+eq(moved_adds, 1, "hovering a second row re-issued more than the chip")
+ok(slot_of("/chip") > slot_of("/strip2"),
+   "the chip stays above the row after moving to another",
+   string.format("chip is slot %s, its row is slot %s",
+                 tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
+
 -- ========================================================== teardown
 
 scene({})

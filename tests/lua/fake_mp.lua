@@ -17,6 +17,10 @@ M.log = {
     props = {},         -- set_property_native by name
     timers = {},        -- live timers, so a test can fire them
     keybinds = {},
+    -- osd updates, ie frames actually painted. The renderer paces itself to
+    -- what a frame costs, so how many of them a gesture got is an
+    -- observable and not just a detail.
+    draws = 0,
 }
 
 -- Property names mpv answers "property unavailable" for, in both
@@ -63,24 +67,48 @@ end
 
 -- --------------------------------------------------------------- timers
 
+-- The clock. Read by mp.get_time, jumped by M.advance, and what every
+-- timer's deadline is measured against; declared up here because the Timer
+-- methods below need it.
+local now = 0
+
 local Timer = {}
 Timer.__index = Timer
 
 function Timer:is_enabled() return self.enabled end
-function Timer:resume() self.enabled = true end
 function Timer:stop() self.enabled = false end
 function Timer:kill() self.enabled = false; self.dead = true end
 
---- Run every armed timer once, newest arming first. Timers are how the
---- renderer defers drawing; a test that never calls this exercises the
+--- Re-arms from *now*, as mpv's does: resuming a stopped timer restarts its
+--- countdown rather than resuming a partly-elapsed one. The renderer leans
+--- on this — request_render sets `timeout` and resumes to schedule the next
+--- frame, so the deadline has to follow the new timeout.
+function Timer:resume()
+    self.enabled = true
+    self.deadline = now + (self.timeout or 0)
+end
+
+--- Run every armed timer that is DUE, oldest arming first. Timers are how
+--- the renderer defers drawing; a test that never calls this exercises the
 --- logic without ever painting.
+---
+--- Deadlines are honoured, so a test drives the clock and this fires
+--- whatever that reached. Ignoring them (as this used to) collapses every
+--- pending timer onto the same instant, which makes anything the renderer
+--- decides from timing untestable: a 300ms gesture-release and the 30ms
+--- frame it is supposed to outlive both fire, in arming order, and the
+--- gesture is over before its first frame is drawn.
 ---
 --- A periodic timer stays armed afterwards, as the real one does — an
 --- animation driven by one has to be able to tick more than once.
 function M.fire_timers()
     for _, t in ipairs(M.log.timers) do
-        if t.enabled and not t.dead then
-            if not t.periodic then t.enabled = false end
+        if t.enabled and not t.dead and (t.deadline or 0) <= now then
+            if t.periodic then
+                t.deadline = now + (t.timeout or 0)
+            else
+                t.enabled = false
+            end
             t.fn()
         end
     end
@@ -91,15 +119,42 @@ end
 local mp = {}
 local msg_handlers = {}
 local prop_observers = {}
-local now = 0
+
+--- Seconds an osd update "takes". The renderer times its own frames and
+--- decides from that how fast to schedule them and whether scrolling has to
+--- quantize, so how expensive drawing is has to be something a test can
+--- state. Charged on the clock inside `update`, which is where the real
+--- cost lands: it is the last thing render() does, and the measurement is
+--- taken around the whole of it.
+M.draw_cost = 0
+
+--- ...and what one `overlay-add` costs. Separate knob, because the two are
+--- separate claims: the renderer times the whole of render(), and the reason
+--- that is worth anything is that the overlay re-issues -- the part that
+--- scales with resolution, and that an external mpv pays a file mmap for --
+--- happen INSIDE the timed region. A test that only ever charges draw_cost
+--- cannot tell that apart from a measurement that stops before them.
+M.overlay_cost = 0
+
+function M.set_draw_cost(seconds) M.draw_cost = seconds or 0 end
+
+function M.set_overlay_cost(seconds) M.overlay_cost = seconds or 0 end
 
 function mp.create_osd_overlay()
-    return { data = "", update = function() end, remove = function() end }
+    return {
+        data = "",
+        update = function()
+            M.log.draws = M.log.draws + 1
+            M.advance(M.draw_cost)
+        end,
+        remove = function() end,
+    }
 end
 
 function mp.add_timeout(timeout, fn)
     local t = setmetatable(
-        { timeout = timeout, fn = fn, enabled = true }, Timer)
+        { timeout = timeout, fn = fn, enabled = true,
+          deadline = now + (timeout or 0) }, Timer)
     table.insert(M.log.timers, t)
     return t
 end
@@ -114,6 +169,10 @@ end
 -- without a test having to drive time by hand. M.advance jumps it, for the
 -- tests that DO care -- an animation asked to run for 0.2s would otherwise
 -- need 200 reads to get there.
+--
+-- The creep is also a floor under anything the renderer times: it reads the
+-- clock either side of a frame, so no frame ever measures as free. Tests
+-- that care what a frame costs set M.draw_cost rather than counting on it.
 function mp.get_time() now = now + 0.001; return now end
 
 function M.advance(dt) now = now + dt end
@@ -121,6 +180,9 @@ function M.advance(dt) now = now + dt end
 function mp.commandv(...)
     local args = { ... }
     table.insert(M.log.commands, args)
+    if args[1] == "overlay-add" and M.overlay_cost > 0 then
+        M.advance(M.overlay_cost)
+    end
     if args[1] == "script-message" and args[2] == "mpvtk-event" then
         table.insert(M.log.events, args[3])
     end
@@ -232,13 +294,23 @@ function M.observe(name, value)
     for _, fn in ipairs(prop_observers[name] or {}) do fn(name, value) end
 end
 
-function M.key(name)
+function M.key(name, ...)
     local fn = M.log.keybinds[name]
     if not fn then error("no key binding: " .. name) end
-    return fn()
+    return fn(...)
+end
+
+--- Park the pointer, so hit-tested input (the wheel) has a target.
+function M.mouse(x, y)
+    M.observe("mouse-pos", { x = x, y = y, hover = true })
 end
 
 function M.scroll_prop() return M.log.props["user-data/mpvtk/scroll"] or {} end
+
+--- The clock, without the creep mp.get_time adds. For tests that measure a
+--- span of it (how many frames a gesture of a given length was painted in),
+--- where reading the time must not itself move it along.
+function M.clock() return now end
 
 function M.reset_events() M.log.events = {} end
 

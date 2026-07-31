@@ -231,11 +231,16 @@ class HomePage(Page):
         # pad=0: home carousels bleed to the window edges so their page
         # arrows sit flush against them (see TileRenderer.hscroll_row).
         #
-        # Snap vertical scroll to section headings: the home screen is
-        # bitmap-heavy (a wide carousel strip per section) and scrolled fast,
-        # so a continuous offset repositions every section every frame. Section
-        # heights differ (poster vs landscape rows), so the breakpoints are the
-        # explicit content-y of each section top, not a uniform pitch.
+        # Declare where the sections START, so the renderer can align to
+        # them. It does not always: alignment is applied when a gesture
+        # outruns what a frame measurably costs, or when scroll_mode asks for
+        # it (widgets.Scroll, state.rcost) -- so this costs nothing on a
+        # machine that keeps up. It is declared because the home screen is
+        # bitmap-heavy, a wide carousel strip per section, and on one that
+        # does not keep up a continuous offset repositions every section
+        # every frame. Section heights differ (poster vs landscape rows), so
+        # the breakpoints are the explicit content-y of each section top,
+        # not a uniform pitch.
         return VScroll(Column(rows, gap=20), id="home", flex=1,
                        offset=self.parked_scroll("home"),
                        snaps=components.section_offsets(rows, 20))
