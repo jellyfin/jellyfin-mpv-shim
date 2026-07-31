@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 04:04-0400\n"
+"POT-Creation-Date: 2026-07-31 01:51-0400\n"
 "PO-Revision-Date: 2024-08-20 19:12+0000\n"
 "Last-Translator: houching <houching.online2@gmail.com>\n"
 "Language-Team: Khmer (Central) <https://translate.jellyfin.org/projects/"
@@ -1280,6 +1280,76 @@ msgid "The download could not be started."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+msgid "Auto"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Thumbnail"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Banner"
+msgstr "ចាកចេញ ហើយចំណាំទុកក្នុង Unwatched"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Logo"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Disc"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Artwork"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "“Auto” shapes the tiles from the artwork itself."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Select Subtitle Size"
+msgid "Show titles"
+msgstr "រើសទំហំអក្សររត់"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Show years"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "List instead of a grid"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "These are stored on your server and shared with Jellyfin Web."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Paginated"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid ""
+"Show one page of tiles at a time instead of scrolling. Applies to every "
+"library on this device."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "View Settings"
+msgstr "ការកំណត់ SVP"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
 msgstr ""
 
@@ -1298,8 +1368,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid ""
-"Install the \"%s\" package (for example \"apt install %s\"), or use MPV 0.41 "
-"or newer."
+"Install the \"%(package)s\" package (for example \"apt install "
+"%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1545,10 +1615,6 @@ msgstr "ជ្រើសរើសពណ៌អក្សររត់"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-msgid "Auto"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -1960,6 +2026,11 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Nothing here yet."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
 msgstr ""
@@ -2017,7 +2088,16 @@ msgstr ""
 msgid "Ends at %s"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
+msgid "Nothing is marked as a favourite yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
+msgid "No genres to show for this library."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Name"
 msgstr ""
 
@@ -2058,14 +2138,21 @@ msgid "Random"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
-msgid "Collections"
-msgstr "លុបម៉ាស៊ីនមេ"
+msgid "View"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "%(shown)d of %(total)d"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Networks"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Genres"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2082,15 +2169,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Favorites"
 msgstr "លុបម៉ាស៊ីនមេ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Paginated"
-msgstr ""
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Collections"
+msgstr "លុបម៉ាស៊ីនមេ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Play All"
+msgstr "ចាក់ដំណាលគ្នា"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -2101,6 +2197,14 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Sort"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "That view setting could not be saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "There is nothing here to play."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -2281,6 +2385,7 @@ msgstr "ចាកចេញ ហើយចំណាំទុកក្នុង Unwa
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Albums"
 msgstr ""
 
@@ -2309,23 +2414,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Artists"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Songs"
 msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Genres"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
-msgid "Play All"
-msgstr "ចាក់ដំណាលគ្នា"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -2458,6 +2555,7 @@ msgid "People"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
 msgstr ""
 
@@ -2536,6 +2634,12 @@ msgid "Upcoming News"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+#| msgid "Fail"
+msgid "Trailers"
+msgstr "បរាជ័យ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
 msgstr ""
 
@@ -2576,8 +2680,64 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
-msgid "Saved: %s (also turned off \"%s\")"
+msgid "Saved: %(key)s (also turned off \"%(other)s\")"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Display"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Connect to a server to change these settings."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "These settings could not be loaded from your server."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Try Again"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "These settings are stored on your server and shared with Jellyfin Web."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Use episode images in Next Up and Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid ""
+"Off by default: the show's artwork is used instead, because an episode image "
+"can spoil the episode you have not watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not load your display settings."
+msgstr ""
+"មិនអាចបន្ថែមម៉ាស៊ីនមេបានទេ.\n"
+"សូមពិនិត្យមើលព័ត៌មានការតភ្ជាប់របស់អ្នក."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Display settings saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not save your display settings."
+msgstr ""
+"មិនអាចបន្ថែមម៉ាស៊ីនមេបានទេ.\n"
+"សូមពិនិត្យមើលព័ត៌មានការតភ្ជាប់របស់អ្នក."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -2692,10 +2852,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "The layout could not be loaded from your server."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Try Again"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -2897,7 +3053,11 @@ msgid "That user could not be renamed."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Nothing here yet."
+msgid "Year"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Length"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py

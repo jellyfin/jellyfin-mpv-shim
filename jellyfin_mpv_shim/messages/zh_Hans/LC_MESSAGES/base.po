@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 04:04-0400\n"
+"POT-Creation-Date: 2026-07-31 01:51-0400\n"
 "PO-Revision-Date: 2026-07-30 05:22+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
@@ -998,9 +998,9 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
-"配合“启动时最小化”和“全屏”选项，这就构成了经典的投屏接收设置：应用在后台静候"
-"，接收到投屏内容时自动全屏播放，而在视频结束或你按下 Q 键后，便会恢复到待机状"
-"态。"
+"配合“启动时最小化”和“全屏”选项，这就构成了经典的投屏接收设置：应用在后台静"
+"候，接收到投屏内容时自动全屏播放，而在视频结束或你按下 Q 键后，便会恢复到待机"
+"状态。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1236,6 +1236,86 @@ msgid "The download could not be started."
 msgstr "无法发起下载任务。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+msgid "Auto"
+msgstr "自动"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Thumbnail"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Channel"
+msgid "Banner"
+msgstr "频道"
+
+# seeded from jellyfin-web: Logo
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Logo"
+msgstr "徽标"
+
+# seeded from jellyfin-web: Disc
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Disc"
+msgstr "光盘封面图"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Artwork"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "“Auto” shapes the tiles from the artwork itself."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitle"
+msgid "Show titles"
+msgstr "字幕"
+
+# seeded from jellyfin-web: Shows
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Shows"
+msgid "Show years"
+msgstr "节目"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "List instead of a grid"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid ""
+#| "These sections are stored on your server and shared with Jellyfin Web."
+msgid "These are stored on your server and shared with Jellyfin Web."
+msgstr "这些部分存储在您的服务器上，并与 Jellyfin Web 共享。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Paginated"
+msgstr "已分页"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid ""
+"Show one page of tiles at a time instead of scrolling. Applies to every "
+"library on this device."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Guide Settings"
+msgid "View Settings"
+msgstr "指南设置"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
 msgstr "提示"
 
@@ -1254,10 +1334,11 @@ msgstr "无法从剪贴板粘贴。"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid ""
-"Install the \"%s\" package (for example \"apt install %s\"), or use MPV 0.41 "
-"or newer."
+"Install the \"%(package)s\" package (for example \"apt install "
+"%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
-"请安装「%s」Package（例如 apt install %s），或升级 MPV 至 0.41 及以上版本。"
+"请安装「%(package)s」Package（例如 apt install %(package)s），或升级 MPV 至 "
+"0.41 及以上版本。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
@@ -1467,10 +1548,6 @@ msgstr "字幕颜色"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
 msgstr "播放信息"
-
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-msgid "Auto"
-msgstr "自动"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
@@ -1866,6 +1943,11 @@ msgstr "添加到收藏"
 msgid "Volume"
 msgstr "音量"
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Nothing here yet."
+msgstr "暂无内容。"
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Item not available."
 msgstr "该项目不可用。"
@@ -1923,7 +2005,16 @@ msgstr "%.1f Mbps"
 msgid "Ends at %s"
 msgstr "于 %s 结束"
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
+msgid "Nothing is marked as a favourite yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/genres.py
+msgid "No genres to show for this library."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Name"
 msgstr "名称"
 
@@ -1971,13 +2062,23 @@ msgid "Random"
 msgstr "随机"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "Collections"
-msgstr "合集"
+msgid "View"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "%(shown)d of %(total)d"
 msgstr "%(shown)d of %(total)d"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Networks"
+msgstr ""
+
+# seeded from jellyfin-web: Genres
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Genres"
+msgstr "类型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "All Genres"
@@ -1994,13 +2095,18 @@ msgstr "未播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Favorites"
 msgstr "收藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Paginated"
-msgstr "已分页"
+msgid "Collections"
+msgstr "合集"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
+msgid "Play All"
+msgstr "播放全部"
 
 # seeded from jellyfin-web: Shuffle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2014,6 +2120,18 @@ msgstr "随机播放"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Sort"
 msgstr "排序"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Guide settings could not be saved."
+msgid "That view setting could not be saved."
+msgstr "指南设置无法保存。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "There is nothing here to queue."
+msgid "There is nothing here to play."
+msgstr "无可加入队列的媒体。"
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -2185,6 +2303,7 @@ msgstr "频道"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Albums"
 msgstr "专辑"
 
@@ -2214,23 +2333,16 @@ msgstr "专辑艺术家"
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Artists"
 msgstr "艺术家"
 
 # seeded from jellyfin-web: Songs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Songs"
 msgstr "歌曲"
-
-# seeded from jellyfin-web: Genres
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Genres"
-msgstr "类型"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-msgid "Play All"
-msgstr "播放全部"
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2360,6 +2472,7 @@ msgstr "演职人员"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
 msgstr "节目"
 
@@ -2428,6 +2541,12 @@ msgid "Upcoming News"
 msgstr "即将播出新闻"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+#| msgid "Trailer"
+msgid "Trailers"
+msgstr "预告片"
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
 msgstr "已缓存"
 
@@ -2468,8 +2587,67 @@ msgstr "无效值：%s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
-msgid "Saved: %s (also turned off \"%s\")"
-msgstr "已保存：%s（同时也关闭 \"%s\"）"
+msgid "Saved: %(key)s (also turned off \"%(other)s\")"
+msgstr "已保存：%(key)s（同时也关闭 \"%(other)s\"）"
+
+# seeded from jellyfin-web: Display
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
+msgid "Display"
+msgstr "显示"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid "Connect to a server to change the home screen sections."
+msgid "Connect to a server to change these settings."
+msgstr "连接到服务器以更改主屏幕版块。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid "The layout could not be loaded from your server."
+msgid "These settings could not be loaded from your server."
+msgstr "无法从您的服务器加载布局。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Try Again"
+msgstr "再试一次"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid ""
+#| "These sections are stored on your server and shared with Jellyfin Web."
+msgid "These settings are stored on your server and shared with Jellyfin Web."
+msgstr "这些部分存储在您的服务器上，并与 Jellyfin Web 共享。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid "Use episode images in Next Up and Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+msgid ""
+"Off by default: the show's artwork is used instead, because an episode image "
+"can spoil the episode you have not watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid "Could not load more items."
+msgid "Could not load your display settings."
+msgstr "无法加载更多项目。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid "Recording settings saved."
+msgid "Display settings saved."
+msgstr "录制设置已保存。"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
+#, fuzzy
+#| msgid "Could not save the home screen layout."
+msgid "Could not save your display settings."
+msgstr "无法保存主屏幕布局。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -2581,10 +2759,6 @@ msgid "The layout could not be loaded from your server."
 msgstr "无法从您的服务器加载布局。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Try Again"
-msgstr "再试一次"
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These sections are stored on your server and shared with Jellyfin Web."
 msgstr "这些部分存储在您的服务器上，并与 Jellyfin Web 共享。"
 
@@ -2680,7 +2854,8 @@ msgstr "用户"
 msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
-msgstr "每个用户都有各自的服务器和设备标识；切换到已锁定的用户时，需要输入 PIN 码。"
+msgstr ""
+"每个用户都有各自的服务器和设备标识；切换到已锁定的用户时，需要输入 PIN 码。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -2751,8 +2926,14 @@ msgid "That user could not be renamed."
 msgstr "无法重命名该用户。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Nothing here yet."
-msgstr "暂无内容。"
+#, fuzzy
+#| msgid "All Years"
+msgid "Year"
+msgstr "所有年份"
+
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Length"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Artist"

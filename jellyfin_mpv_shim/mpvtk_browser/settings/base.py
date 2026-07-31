@@ -55,8 +55,10 @@ class SettingsBase:
             # undo. Say so rather than resetting it silently.
             if settings.start_minimized and cfg.set_setting(
                     "start_minimized", False):
-                self.set_status(_("Saved: %s (also turned off \"%s\")")
-                                % (key, cfg.label_for("start_minimized")))
+                self.set_status(
+                    _("Saved: %(key)s (also turned off \"%(other)s\")")
+                    % {"key": key,
+                       "other": cfg.label_for("start_minimized")})
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:
