@@ -145,3 +145,52 @@ jobs:
       with:
         name: windows-legacy32
         path: ${{ github.workspace }}/publish/InstallerLegacy/*.exe
+  build-flatpak:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: amd64
+          runner: ubuntu-24.04
+        - arch: arm64
+          runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Install Flatpak
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y flatpak flatpak-builder gettext
+        # flatpak-builder needs unprivileged user namespaces, which Ubuntu
+        # restricts through AppArmor. The runner images normally relax this
+        # already, so don't fail the build if the knob isn't there.
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    - name: Fetch shared modules
+      run: |
+        git clone --depth=1 https://github.com/flathub/shared-modules.git flatpak/shared-modules
+    - name: Cache flatpak-builder state
+      uses: actions/cache@v6
+      with:
+        # mpv and its dependencies are built from source and dominate the run.
+        # The key only moves when the manifest does, so the mpv build is
+        # restored until it actually changes.
+        path: ${{ github.workspace }}/.flatpak-builder
+        key: flatpak-${{ matrix.arch }}-${{ hashFiles('flatpak/*.json') }}
+        restore-keys: flatpak-${{ matrix.arch }}-
+    - name: Install dependencies
+      run: |
+        ./gen_pkg.sh --skip-build
+    - name: Main Build
+      run: |
+        flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json \
+          --force-clean --repo=repo --user --install-deps-from=flathub
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh flatpak ${{ matrix.arch }}
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: flatpak-${{ matrix.arch }}
+        path: ${{ github.workspace }}/publish/Flatpak/*.flatpak

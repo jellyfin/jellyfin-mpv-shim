@@ -16,5 +16,8 @@ jellyfin_mpv_shim/default_shader_pack/*
 debug.log
 publish
 pyinstaller
+.flatpak-builder
+flatpak/shared-modules
+repo
 
 .vscode/
