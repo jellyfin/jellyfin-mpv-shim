@@ -1109,6 +1109,58 @@ class ViewLabelsAndListTest(unittest.TestCase):
         _n, _h, types = self._scene(b)
         self.assertIn("img", types, "it stayed a table")
 
+    def test_leaving_a_LEGACY_list_retires_the_key_holding_it_there(self):
+        """The checkbox writes web's key; ``is_list`` also honours the one
+        earlier builds of this client wrote. Writing only the first left a
+        library that was already in list view stuck in it -- the legacy key
+        went on outvoting the save and the box came back ticked, which reads
+        as a dead control."""
+        b, src = self._grid(viewType="List")
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertIn(("viewType", "Poster"),
+                      [s[1:3] for s in src.saved_view_settings],
+                      "the legacy key was left forcing the list")
+        b._dialog = None
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_the_legacy_key_is_retired_by_the_artwork_picker_too(self):
+        """Same door, other handle: picking any artwork type is how you leave
+        the list in web, so it has to leave this one as well."""
+        b, src = self._grid(viewType="List", imageType="primary")
+        page = b._page_for(b.route)
+        page._set_view("imageType", "thumb")
+        self.assertIn(("viewType", "Poster"),
+                      [s[1:3] for s in src.saved_view_settings])
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types, "it stayed a table")
+
+    def test_retiring_the_legacy_key_survives_a_no_op_artwork_write(self):
+        """The box unticks by writing the imageType the library already had.
+        That write is a no-op and returns early, so the retire cannot ride
+        *behind* it -- nor behind the snapshot _set_view takes of the view,
+        which would put the legacy value straight back."""
+        b, src = self._grid(viewType="List", imageType="primary")
+        page = b._page_for(b.route)
+        page._set_view("imageType", "primary")   # the no-op
+        self.assertEqual([s[1:3] for s in src.saved_view_settings],
+                         [("viewType", "Poster")])
+        self.assertEqual(page._view("viewType"), "Poster")
+        _n, _h, types = self._scene(b)
+        self.assertIn("img", types)
+
+    def test_turning_the_list_ON_does_not_write_the_legacy_key(self):
+        """It is a migration, not a setting: nothing writes ``viewType`` any
+        more, and reviving it would put the door back."""
+        b, src = self._grid()
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-listview"]["click"]()
+        self.assertEqual([s[1] for s in src.saved_view_settings],
+                         ["imageType"])
+
     def test_the_artwork_picker_reads_as_auto_while_listing(self):
         """There is no artwork being drawn to point at, and choosing an
         entry is how you leave the list."""

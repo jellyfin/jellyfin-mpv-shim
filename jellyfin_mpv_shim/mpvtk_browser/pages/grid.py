@@ -593,6 +593,8 @@ class GridPage(Page):
         frame and rolls back if the server refuses.
         """
         route = self.route
+        if setting == "imageType" and value != view_prefs.LIST_IMAGE_TYPE:
+            self._retire_legacy_list_view()
         view = dict(route.get("_view") or _DEFAULT_VIEW)
         previous, key = view.get(setting) or (None, None)
         if value == previous:
@@ -628,6 +630,31 @@ class GridPage(Page):
 
         self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
                          on_error=failed)
+
+    def _retire_legacy_list_view(self):
+        """Clear a ``viewType`` an earlier build of this client wrote.
+
+        ``view_prefs.is_list`` still honours that key -- a library put in
+        list view before the setting moved onto web's shared ``imageType``
+        has to keep coming up as a list -- which means nothing that writes
+        only ``imageType`` can take such a library back OUT of the list. The
+        checkbox saved the grid value, the legacy key went on outvoting it,
+        and it came back ticked on the next frame: a control that read as
+        dead.
+
+        Called from the top of :meth:`_set_view`, ahead of *both* the no-op
+        check and the snapshot it takes of ``_view``. Ahead of the check
+        because the box unticks by writing the imageType the library already
+        had, so the write it rides on is very often no write at all; ahead of
+        the snapshot because this sets ``_view`` itself, and a caller holding
+        an older copy puts the legacy value straight back.
+
+        One-way, and deliberately so. Nothing writes ``viewType`` any more,
+        so this is a migration rather than a setting: once the shared key has
+        been asked the question, it is the only one that answers it.
+        """
+        if view_prefs.is_list_view(self._view("viewType")):
+            self._set_view("viewType", view_prefs.GRID_VIEW)
 
     def _redraw_or_refetch(self, was):
         """Repaint after a view change -- and re-ask the server when the
