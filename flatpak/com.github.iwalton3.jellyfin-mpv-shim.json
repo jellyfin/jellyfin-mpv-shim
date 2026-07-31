@@ -1,0 +1,278 @@
+{
+    "app-id": "com.github.iwalton3.jellyfin-mpv-shim",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "50",
+    "sdk": "org.gnome.Sdk",
+    "command": "jellyfin-mpv-shim",
+    "finish-args": [
+        "--share=ipc",
+        "--socket=fallback-x11",
+        "--socket=wayland",
+        "--device=dri",
+        "--share=network",
+        "--socket=pulseaudio",
+        "--filesystem=xdg-run/pipewire-0:ro",
+        "--talk-name=org.gnome.SessionManager",
+        "--env=LC_NUMERIC=C"
+    ],
+    "cleanup": [
+        "/include",
+        "/lib/pkgconfig",
+        "/man",
+        "/share/doc",
+        "/share/ladspa",
+        "/share/man",
+        "/share/vala",
+        "*.la",
+        "*.a"
+    ],
+    "modules": [
+        {
+            "name": "mpv",
+            "buildsystem": "meson",
+            "config-opts": [
+                "-Dlibmpv=true",
+                "-Dcplayer=false",
+                "-Dbuild-date=false",
+                "-Dmanpage-build=disabled",
+                "-Dvaapi=enabled",
+                "-Dcuda-hwaccel=enabled",
+                "-Dpulse=enabled",
+                "-Dpipewire=enabled",
+                "-Dalsa=enabled",
+                "-Duchardet=enabled",
+                "-Dwayland=enabled",
+                "-Degl-wayland=enabled",
+                "-Ddmabuf-wayland=enabled",
+                "-Dvulkan=enabled",
+                "-Dlcms2=enabled",
+                "-Djpeg=enabled",
+                "-Dlibarchive=enabled",
+                "-Dcplugins=enabled"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/mpv-player/mpv.git",
+                    "tag": "v0.41.0",
+                    "commit": "41f6a645068483470267271e1d09966ca3b9f413",
+                    "x-checker-data": {
+                        "type": "git",
+                        "tag-pattern": "^v([\\d.]+)$"
+                    }
+                }
+            ],
+            "modules": [
+                {
+                    "name": "libXmu",
+                    "buildsystem": "autotools",
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://xorg.freedesktop.org/archive/individual/lib/libXmu-1.3.1.tar.gz",
+                            "sha256": "5c8f44e26ccc9b14188599524e67ce788a205b38e297834babdeb12090be835b"
+                        }
+                    ]
+                },
+                {
+                    "name": "xclip",
+                    "buildsystem": "autotools",
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://github.com/astrand/xclip/archive/0.13.tar.gz",
+                            "sha256": "ca5b8804e3c910a66423a882d79bf3c9450b875ac8528791fb60ec9de667f758"
+                        }
+                    ]
+                },
+                {
+                    "name": "libXpresent",
+                    "buildsystem": "autotools",
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://xorg.freedesktop.org/archive/individual/lib/libXpresent-1.0.2.tar.xz",
+                            "sha256": "4e5b21b4812206a4b223013606ae31170502c1043038777a1ef8f70c09d37602"
+                        }
+                    ]
+                },
+                {
+                    "name": "zimg",
+                    "config-opts": [
+                        "--disable-static"
+                    ],
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz",
+                            "archive-type": "tar",
+                            "sha256": "be89390f13a5c9b2388ce0f44a5e89364a20c1c57ce46d382b1fcc3967057577"
+                        }
+                    ]
+                },
+                {
+                    "name": "rubberband",
+                    "buildsystem": "meson",
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://breakfastquay.com/files/releases/rubberband-4.0.0.tar.bz2",
+                            "sha256": "af050313ee63bc18b35b2e064e5dce05b276aaf6d1aa2b8a82ced1fe2f8028e9"
+                        }
+                    ]
+                },
+                {
+                    "name": "mujs",
+                    "no-autogen": true,
+                    "make-args": [
+                        "release"
+                    ],
+                    "make-install-args": [
+                        "prefix=/app",
+                        "install-shared"
+                    ],
+                    "cleanup": [
+                        "/bin"
+                    ],
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://codeberg.org/ccxvii/mujs/archive/1.3.8.tar.gz",
+                            "sha256": "10e8548033924ada0828a821777371861ea3e127d472e8423ad87426118291d9"
+                        },
+                        {
+                            "//note": "The unicode character database files are downloaded in the makefile rules `UnicodeData.txt` and `SpecialCasing.txt`.",
+                            "type": "file",
+                            "url": "https://www.unicode.org/Public/16.0.0/ucd/UnicodeData.txt",
+                            "sha256": "ff58e5823bd095166564a006e47d111130813dcf8bf234ef79fa51a870edb48f"
+                        },
+                        {
+                            "type": "file",
+                            "url": "https://www.unicode.org/Public/16.0.0/ucd/SpecialCasing.txt",
+                            "sha256": "8d5de354eef79f2395a54c9c7dcebbaf3d30fc962d0f85611ea97aa973a0c451"
+                        }
+                    ]
+                },
+                "shared-modules/luajit/luajit.json",
+                {
+                    "name": "libass",
+                    "config-opts": [
+                        "--enable-shared",
+                        "--disable-static"
+                    ],
+                    "sources": [
+                        {
+                            "type": "git",
+                            "url": "https://github.com/libass/libass.git",
+                            "tag": "0.17.5",
+                            "commit": "4a05d8127f525943ebf45fdc6497c9e665947f0d",
+                            "x-checker-data": {
+                                "type": "git",
+                                "tag-pattern": "^([\\d.]+)$"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "uchardet",
+                    "buildsystem": "cmake-ninja",
+                    "config-opts": [
+                        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+                        "-DCMAKE_BUILD_TYPE=Release",
+                        "-DCMAKE_INSTALL_LIBDIR=lib",
+                        "-DBUILD_BINARY=OFF"
+                    ],
+                    "sources": [
+                        {
+                            "type": "archive",
+                            "url": "https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz",
+                            "sha256": "e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0",
+                            "x-checker-data": {
+                                "type": "html",
+                                "url": "https://www.freedesktop.org/software/uchardet/releases/",
+                                "version-pattern": "uchardet-(\\d+\\.\\d+\\.\\d+)\\.tar\\.xz",
+                                "url-template": "https://www.freedesktop.org/software/uchardet/releases/uchardet-$version.tar.xz"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "libplacebo",
+                    "buildsystem": "meson",
+                    "config-opts": [
+                        "-Dvulkan=enabled",
+                        "-Dshaderc=enabled"
+                    ],
+                    "sources": [
+                        {
+                            "type": "git",
+                            "url": "https://code.videolan.org/videolan/libplacebo.git",
+                            "tag": "v7.360.1",
+                            "commit": "cee9b076f2c63104ccfd497fa79c39a867293ec4",
+                            "x-checker-data": {
+                                "type": "git",
+                                "tag-pattern": "^v([\\d.]+)$"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "mpv_inhibit_gnome",
+            "buildsystem": "simple",
+            "build-commands": [
+                "make",
+                "install -D lib/mpv_inhibit_gnome.so /app/etc/mpv/scripts/mpv_inhibit_gnome.so"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/Guldoman/mpv_inhibit_gnome.git",
+                    "tag": "v0.1.3",
+                    "commit": "9069be0f15fa2c222d78a183d4aa1477d8a8f2cd",
+                    "x-checker-data": {
+                        "type": "git",
+                        "tag-pattern": "^v([\\d.]+)$"
+                    }
+                }
+            ]
+        },
+        "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
+        {
+            "name": "jellyfin-mpv-shim",
+            "buildsystem": "simple",
+            "//note": "Built from the checkout this manifest lives in, with network access, so the dependencies come straight from PyPI. That is deliberately NOT what Flathub publishes -- Flathub forbids network in the build and pins every wheel in flathub/com.github.iwalton3.jellyfin-mpv-shim's pypi-dependencies.json. This manifest is for CI and local test bundles of the working tree.",
+            "build-options": {
+                "build-args": [
+                    "--share=network"
+                ]
+            },
+            "build-commands": [
+                "pip3 install --prefix=${FLATPAK_DEST} --no-warn-script-location '.[all]'",
+                "install -Dm644 jellyfin_mpv_shim/integration/jellyfin-256.png /app/share/icons/hicolor/256x256/apps/com.github.iwalton3.jellyfin-mpv-shim.png",
+                "install -Dm644 jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.desktop /app/share/applications/com.github.iwalton3.jellyfin-mpv-shim.desktop",
+                "install -Dm644 jellyfin_mpv_shim/integration/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml /app/share/metainfo/com.github.iwalton3.jellyfin-mpv-shim.appdata.xml"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "..",
+                    "skip": [
+                        ".git",
+                        ".flatpak-builder",
+                        "build",
+                        "dist",
+                        "publish",
+                        "repo",
+                        "flatpak/build",
+                        "flatpak/repo",
+                        "flatpak/shared-modules",
+                        "jellyfin_mpv_shim.egg-info",
+                        "pyinstaller"
+                    ]
+                }
+            ]
+        }
+    ]
+}
