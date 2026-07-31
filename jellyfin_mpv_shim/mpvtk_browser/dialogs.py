@@ -370,7 +370,8 @@ class DialogsMixin:
 
         def build():
             image_types = [
-                ("primary", _("Auto")), ("thumb", _("Thumbnail")),
+                ("primary", _("Auto")), ("poster", _("Poster")),
+                ("thumb", _("Thumbnail")),
                 ("banner", _("Banner")), ("logo", _("Logo")),
                 ("disc", _("Disc")),
             ]
@@ -382,7 +383,9 @@ class DialogsMixin:
                     [lbl for _v, lbl in image_types],
                     values.index(stored) if stored in values else 0,
                     lambda i, v: on_set("imageType", values[i])),
-                Text(_("“Auto” shapes the tiles from the artwork itself."),
+                Text(_("“Auto” shapes the tiles from the artwork itself, "
+                       "which usually comes out as posters. Choose "
+                       "“Poster” to insist on them."),
                      size=13, color=theme.SUBTLE_FG, wrap=True),
                 Checkbox(_("Show titles"), bool(current("showTitle")),
                          id="vs-showtitle",

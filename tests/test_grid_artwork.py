@@ -218,12 +218,15 @@ class GridAsksForItTest(unittest.TestCase):
 
     def test_it_does_not_re_ask_when_the_query_is_the_same(self):
         """Titles, years and list-vs-grid change nothing the server was
-        told; a refetch for those would be a round trip per checkbox."""
+        told; a refetch for those would be a round trip per checkbox. Nor
+        does Poster, which asks for exactly what Auto asks for and differs
+        only in the shape it draws at."""
         b, src = self._grid()
         before = len(src.queries)
         page = b._page_for(b.route)
         page._set_view("showTitle", False)
         page._set_view("showYear", False)
+        page._set_view("imageType", "poster")
         self.assertEqual(len(src.queries), before)
 
     def test_the_refetch_reads_the_setting_it_just_changed(self):

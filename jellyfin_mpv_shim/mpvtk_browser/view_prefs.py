@@ -34,6 +34,17 @@ IMAGE_TYPES = {
     "banner": ("geom_banner", "Banner"),
     "disc": ("geom_square", "Disc"),
     "logo": ("geom_wide", "Logo"),
+    # OURS, not web's. "Primary" there means "shape the row by its artwork",
+    # and usually that comes out as posters -- but a Home Videos library
+    # holding a few portrait clips among landscape ones has a median that
+    # says landscape, and no way to say "posters anyway". This is that.
+    #
+    # It asks the server for exactly what Auto does, so the two never
+    # disagree about which artwork exists; only the shape is forced. A web
+    # client reading this value does not recognise it and falls through to
+    # its Auto branch (ItemsView.tsx:75-88), which is the closest thing it
+    # has -- so sharing the setting degrades rather than breaks.
+    "poster": ("geom", "Primary"),
 }
 
 #: Web's default for every view except Studios (``settings.ts:22``), which we

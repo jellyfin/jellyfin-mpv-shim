@@ -644,8 +644,15 @@ class GridPage(Page):
         of blinking a spinner over it. The reload re-reads the view settings,
         and now prefers the route's own copy (see :meth:`load`) -- the save
         is still in flight, so the server would answer with the old value.
+
+        The test is what the QUERY would be, not which setting was picked:
+        Auto and Poster ask for exactly the same artwork and differ only in
+        the shape it is drawn at, so switching between them is a repaint.
         """
-        if was == _image_type_of(self.route.get("_view")):
+        from ..repository import browse_image_types
+
+        now = _image_type_of(self.route.get("_view"))
+        if browse_image_types(was) == browse_image_types(now):
             self.ctx.invalidate()
             return
         self.ctx.nav.reload(self.route)

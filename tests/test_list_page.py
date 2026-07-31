@@ -920,6 +920,17 @@ class ViewImageTypeTest(unittest.TestCase):
         b, _src = self._grid(imageType="banner")
         self.assertEqual(self._tile_w(b), BANNER_GEOM.tile_w)
 
+    def test_poster_insists_where_auto_would_not(self):
+        """A Home Videos library of landscape clips with a few portrait ones
+        has a median that says landscape. Auto follows it; Poster does not."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (
+            LANDSCAPE_GEOM, POSTER_GEOM)
+        wide = (16 / 9,) * 5 + (2 / 3,)
+        auto, _src = self._grid(ratios=wide)
+        self.assertEqual(self._tile_w(auto), LANDSCAPE_GEOM.tile_w)
+        forced, _src2 = self._grid(ratios=wide, imageType="poster")
+        self.assertEqual(self._tile_w(forced), POSTER_GEOM.tile_w)
+
     def test_the_modal_shows_what_is_stored(self):
         """The controls moved off the filter row into a modal -- four
         settings read once and rarely touched did not earn permanent space

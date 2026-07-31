@@ -96,6 +96,27 @@ class ShapeTest(unittest.TestCase):
         self.assertEqual(view_prefs.shape_for("disc"), ("geom_square", "Disc"))
         self.assertEqual(view_prefs.shape_for("logo"), ("geom_wide", "Logo"))
 
+    def test_poster_forces_what_auto_usually_infers(self):
+        """Ours, not web's. Auto usually comes out as posters, but a Home
+        Videos library with a few portrait clips among landscape ones has a
+        median that says otherwise and no way to argue."""
+        self.assertEqual(view_prefs.shape_for("poster"), ("geom", "Primary"))
+        self.assertIsNone(view_prefs.shape_for("primary"),
+                          "Auto must stay 'shape it from the artwork'")
+
+    def test_poster_asks_the_server_for_what_auto_asks_for(self):
+        """Only the shape is forced. If it asked for something else the two
+        could disagree about which artwork exists."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            browse_image_types)
+        self.assertEqual(browse_image_types(view_prefs.shape_for("poster")[1]),
+                         browse_image_types(None))
+
+    def test_a_stored_poster_is_read_back(self):
+        value, _key = view_prefs.resolve_image_type(
+            {"items-PID-imageType": "poster"}, "PID", "homevideos")
+        self.assertEqual(value, "poster")
+
     def test_an_unknown_value_is_no_override(self):
         self.assertIsNone(view_prefs.shape_for("wat"))
         self.assertIsNone(view_prefs.shape_for(None))
