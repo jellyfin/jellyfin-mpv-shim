@@ -952,6 +952,14 @@ class TileRenderer:
                      id=cid,
                      anchor="nw", dx=dx, dy=dy,
                      on_click=lambda: self.on_play(item),
+                     # The tile's own menu, because the chip covers the
+                     # middle of the artwork and a hit test answers with one
+                     # node: without this, right-clicking a poster does
+                     # nothing whenever the pointer is where the chip put
+                     # itself -- which is exactly where a pointer resting on
+                     # a tile tends to be.
+                     on_context=(lambda x, y, i=item:
+                                 self.on_context(i, x, y)),
                      # It has to hear its own hover -- see CHIP_SUFFIX.
                      on_hover=lambda _v=None, k=cid: self.set_hover(k),
                      on_hover_end=lambda k=cid: self.end_hover(k))

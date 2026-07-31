@@ -222,6 +222,23 @@ class ChipTest(unittest.TestCase):
         self.assertEqual(b.route.get("parent_id"), "lib1",
                          "the chip navigated instead of playing")
 
+    def test_right_clicking_it_opens_the_tile_menu(self):
+        """A hit test answers with ONE node, and a node with no context menu
+        is a no-op rather than a fall-through to whatever is underneath. The
+        chip covers the middle of the artwork, which is where a pointer that
+        has settled on a tile is -- so without its own copy of the menu,
+        right-clicking a poster did nothing most of the time."""
+        b, _src = self._browser()
+        tid = self._tile_id(b)
+        nodes, handlers = self._hover(b, tid)
+        chip = [n for n in nodes if n.get("id") == tid + "-play"][0]
+        self.assertTrue(chip.get("ctx"),
+                        "the renderer will not send a right-click here")
+        handlers[tid + "-play"]["context"](120, 90)
+        self.assertIsNotNone(b._menu, "no menu opened")
+        self.assertEqual(b._menu["item"]["Id"], "g0")
+        self.assertEqual((b._menu["x"], b._menu["y"]), (120, 90))
+
     def test_a_series_plays_next_up(self):
         """Not the whole show from episode one, which throws away where you
         had got to. What reaches the player is the series queue STARTING at

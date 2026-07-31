@@ -570,6 +570,9 @@ def _arrange_image(ctx, el, x, y, w, h, sc, path):
         if el.repeat:
             node["rpt"] = True
         _reg(ctx, node["id"], "click", el.on_click)
+    if el.on_context:
+        node["ctx"] = True
+        _reg(ctx, node["id"], "context", el.on_context)
     if el.hover:
         node["hover"] = el.hover
     if el.on_hover is not None or el.on_hover_end is not None:
