@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 01:51-0400\n"
+"POT-Creation-Date: 2026-07-31 19:44-0400\n"
 "PO-Revision-Date: 2026-07-31 22:01+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
@@ -785,6 +785,18 @@ msgid "200%"
 msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Continuous"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Aligned to rows"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "One row per notch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr "主题默认"
 
@@ -1033,10 +1045,16 @@ msgstr ""
 "修改后需重启生效。默认使用 MPV 快捷键，按下 ENTER 可通过键盘操控播放控件。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Pixels one wheel notch scrolls. The scrollbar glides while the content "
+#| "snaps to the nearest row, so a trackpad or trackball no longer "
+#| "overshoots. Raise it to scroll faster, lower it for finer control."
 msgid ""
-"Pixels one wheel notch scrolls. The scrollbar glides while the content snaps "
-"to the nearest row, so a trackpad or trackball no longer overshoots. Raise "
-"it to scroll faster, lower it for finer control."
+"Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
+"of notches spans one row, whichever scroll mode you are in — a trackpad or "
+"trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
+"lower it for finer control."
 msgstr ""
 "滚动时，内容会吸附对齐至最近的行，而滚动条则平滑移动，从而避免了触控板或鼠标"
 "滚动球操作时常见的滚动过头问题。调高该设置可加快滚动速度，调低则有助于实现更"
@@ -1044,11 +1062,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Make each wheel notch jump exactly one row (or one home-screen section) "
-"instead of gliding. Turn this on if you prefer the older stepped scrolling."
+"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
+"lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
+"rows\" if scrolling still stutters — on a very large display, a slow or "
+"remote one, or with an external MPV. Pick \"One row per notch\" to move a "
+"whole row (or one home-screen section) at a time."
 msgstr ""
-"滚轮每格直接跳转一行（或首页分区），取消平滑滚动。偏好老式分段滚动可开启此"
-"项。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Discord Rich Presence. Takes effect after a restart."
@@ -1241,6 +1260,10 @@ msgid "Auto"
 msgstr "自动"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Poster"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
 msgstr "缩略图"
 
@@ -1263,8 +1286,10 @@ msgid "Artwork"
 msgstr "艺术图"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "“Auto” shapes the tiles from the artwork itself."
-msgstr "“自动”功能会根据艺术图本身来塑造图块。"
+msgid ""
+"“Auto” shapes the tiles from the artwork itself, which usually comes out as "
+"posters. Choose “Poster” to insist on them."
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Show titles"
@@ -1951,6 +1976,7 @@ msgstr "转到节目"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Resume"
 msgstr "恢复播放"
 
@@ -2048,6 +2074,13 @@ msgstr "家长分级"
 msgid "Random"
 msgstr "随机"
 
+# seeded from jellyfin-web: OptionDateAdded
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+#| msgid "Date Added"
+msgid "Date Episode Added"
+msgstr "添加日期"
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
 msgstr "视图"
@@ -2113,6 +2146,7 @@ msgid "That view setting could not be saved."
 msgstr "该视图设置无法保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to play."
 msgstr "这里没有内容可播放。"
 
@@ -2602,7 +2636,8 @@ msgstr "在“下一集”和“继续观看”中使用剧集图片"
 msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
-msgstr "默认关闭：会使用剧集封面图，因为剧集图片可能会剧透你尚未观看的剧集内容。"
+msgstr ""
+"默认关闭：会使用剧集封面图，因为剧集图片可能会剧透你尚未观看的剧集内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Could not load your display settings."
@@ -2907,6 +2942,10 @@ msgstr "艺术家"
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Album"
 msgstr "专辑"
+
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Play from Beginning"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
@@ -3253,6 +3292,17 @@ msgstr "ArtCNN High（C4F32）"
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "选择着色器配置预设"
+
+#~ msgid ""
+#~ "Make each wheel notch jump exactly one row (or one home-screen section) "
+#~ "instead of gliding. Turn this on if you prefer the older stepped "
+#~ "scrolling."
+#~ msgstr ""
+#~ "滚轮每格直接跳转一行（或首页分区），取消平滑滚动。偏好老式分段滚动可开启此"
+#~ "项。"
+
+#~ msgid "“Auto” shapes the tiles from the artwork itself."
+#~ msgstr "“自动”功能会根据艺术图本身来塑造图块。"
 
 #~ msgid "Select your media in Jellyfin and play it here"
 #~ msgstr "在 Jellyfin 中选择您的媒体并在此处播放"
