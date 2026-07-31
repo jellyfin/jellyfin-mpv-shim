@@ -1114,6 +1114,100 @@ class TestInvalidateIsNotLost(unittest.TestCase):
         self.assertFalse(app._dirty, "a settled loop kept re-rendering")
         self.assertEqual(len(self.builds), 1)
 
+    def test_artwork_arriving_in_a_burst_costs_a_handful_of_frames(self):
+        """A library grid asks for a hundred thumbnails and six decode
+        workers answer one at a time. Each answer used to be a frame -- a
+        full build and layout of the whole screen to change the picture on
+        one tile, ~43 of them for one screenful. They coalesce now."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+        import time as _time
+
+        self.builds = []
+
+        def build(size):
+            self.builds.append(1)
+            return Column([Text("x")])
+
+        app = self._app(build)
+        app.ART_RENDER_INTERVAL = 0.05
+        start = _time.perf_counter()
+        for _ in range(100):
+            app.invalidate(soon=True)
+            app._render_if_due()
+        elapsed = _time.perf_counter() - start
+        self.assertLessEqual(
+            len(self.builds), int(elapsed / 0.05) + 2,
+            "a hundred posters landing cost %d frames" % len(self.builds))
+        self.assertGreaterEqual(len(self.builds), 1,
+                                "the first poster was never drawn")
+
+    def test_the_last_poster_of_a_burst_is_not_left_undrawn(self):
+        """The throttle defers; it must not drop. Nothing else is coming to
+        wake the loop once the pool goes quiet, so the pending repaint has
+        to come due on its own."""
+        import time as _time
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+
+        self.builds = []
+
+        def build(size):
+            self.builds.append(1)
+            return Column([Text("x")])
+
+        app = self._app(build)
+        app.ART_RENDER_INTERVAL = 0.02
+        app._render()                      # stamps the clock
+        drawn = len(self.builds)
+        app.invalidate(soon=True)
+        app._render_if_due()
+        self.assertEqual(len(self.builds), drawn, "it drew inside the gap")
+        # The loop's own wait is bounded by when the repaint comes due.
+        self.assertLessEqual(app._wait_for(), 0.02)
+        _time.sleep(0.03)
+        app._render_if_due()
+        self.assertEqual(len(self.builds), drawn + 1,
+                         "the deferred repaint never happened")
+
+    def test_an_ordinary_invalidate_is_not_throttled(self):
+        """Only artwork is deferred. A click, a load landing, a status
+        message: those draw on the next pass as they always did."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+
+        self.builds = []
+
+        def build(size):
+            self.builds.append(1)
+            return Column([Text("x")])
+
+        app = self._app(build)
+        app._render()
+        drawn = len(self.builds)
+        app.invalidate()
+        app._render_if_due()
+        self.assertEqual(len(self.builds), drawn + 1)
+
+    def test_a_real_invalidate_takes_the_pending_artwork_with_it(self):
+        """No point drawing twice: the frame it earns is built from the same
+        state the deferred one was waiting to show."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Text
+
+        self.builds = []
+
+        def build(size):
+            self.builds.append(1)
+            return Column([Text("x")])
+
+        app = self._app(build)
+        app._render()
+        app.invalidate(soon=True)
+        app.invalidate()
+        app._render_if_due()
+        drawn = len(self.builds)
+        app._render_if_due()
+        self.assertEqual(len(self.builds), drawn,
+                         "the artwork repaint fired again after the frame "
+                         "that already drew it")
+
     def test_a_write_during_a_FAILED_build_is_not_lost_either(self):
         """The exception path cleared the flag too. A view that throws once
         while data lands would strand the recovered state."""
