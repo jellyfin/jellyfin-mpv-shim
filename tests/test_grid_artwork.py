@@ -207,6 +207,41 @@ class GridAsksForItTest(unittest.TestCase):
         _b, src = self._grid()
         self.assertEqual([q["image_type"] for q in src.queries], [None])
 
+    def test_switching_to_banner_re_asks_the_server(self):
+        """The reported bug. The setting only reshaped the grid, and the
+        items in hand had been fetched WITHOUT Banner in EnableImageTypes --
+        so every tile fell back to the poster it already had, and the debug
+        log showed the query still asking for Primary,Thumb,Backdrop."""
+        b, src = self._grid()
+        b._page_for(b.route)._set_view("imageType", "banner")
+        self.assertEqual(src.queries[-1]["image_type"], "Banner")
+
+    def test_it_does_not_re_ask_when_the_query_is_the_same(self):
+        """Titles, years and list-vs-grid change nothing the server was
+        told; a refetch for those would be a round trip per checkbox."""
+        b, src = self._grid()
+        before = len(src.queries)
+        page = b._page_for(b.route)
+        page._set_view("showTitle", False)
+        page._set_view("showYear", False)
+        self.assertEqual(len(src.queries), before)
+
+    def test_the_refetch_reads_the_setting_it_just_changed(self):
+        """The save is still in flight, so asking the source again would
+        answer with the value the user changed away from -- refetching the
+        old tags and drawing the grid straight back."""
+        b, src = self._grid()
+        # The source keeps insisting on "auto", as a server mid-save would.
+        src.view_settings = {"imageType": ("primary", None)}
+        b._page_for(b.route)._set_view("imageType", "banner")
+        self.assertEqual(src.queries[-1]["image_type"], "Banner")
+
+    def test_the_grid_does_not_blink_while_it_refetches(self):
+        """In place: the items are not stale, only the tags on them."""
+        b, _src = self._grid()
+        b._page_for(b.route)._set_view("imageType", "banner")
+        self.assertTrue(b.route.get("_items"))
+
     def test_the_next_page_asks_for_it_too(self):
         """Page two used to arrive with no banner tags, so scrolling a
         Banner view turned it back into thumbnails halfway down."""

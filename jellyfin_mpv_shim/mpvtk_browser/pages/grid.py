@@ -144,9 +144,16 @@ class GridPage(Page):
             # it has already been answered without. It comes off a cached
             # blob (one document per server), so this is not a round trip
             # per library.
-            get_view = getattr(source, "get_view_settings", None)
-            view = (get_view(srv, parent, ctype)
-                    if get_view else dict(_DEFAULT_VIEW))
+            # The route's own copy wins where it has one: a reload triggered
+            # by changing the artwork setting runs while that save is still
+            # in flight, and the server would answer with the value the user
+            # just changed away from -- fetching the wrong tags and drawing
+            # the grid back the way it was. Only a first load asks.
+            view = route.get("_view")
+            if view is None:
+                get_view = getattr(source, "get_view_settings", None)
+                view = (get_view(srv, parent, ctype)
+                        if get_view else dict(_DEFAULT_VIEW))
             image_type = _image_type_of(view)
             if collections:
                 # Collections are server-wide and recursive (a BoxSet
@@ -583,14 +590,14 @@ class GridPage(Page):
         """Persist one view setting and redraw with it.
 
         Optimistic, like every other edit here: the grid changes on the next
-        frame and rolls back if the server refuses. No reload -- the items
-        are the same, only how they are drawn changes.
+        frame and rolls back if the server refuses.
         """
         route = self.route
         view = dict(route.get("_view") or _DEFAULT_VIEW)
         previous, key = view.get(setting) or (None, None)
         if value == previous:
             return
+        was = _image_type_of(route.get("_view"))
         view[setting] = (value, key)
         route["_view"] = view
         # The parked median is only consulted when there is no override, but
@@ -598,7 +605,7 @@ class GridPage(Page):
         # "Primary" measures afresh.
         # The parked median was measured for a different shape.
         route.pop("_grid_shape", None)
-        self.ctx.invalidate()
+        self._redraw_or_refetch(was)
         server = route.get("server") or self.ctx.server
         parent = route.get("parent_id")
         ctype = route.get("collection_type")
@@ -611,15 +618,37 @@ class GridPage(Page):
             save(server, parent, ctype, setting, value, key=key)
 
         def failed(_exc):
+            was_rolled = _image_type_of(route.get("_view"))
             rolled = dict(route.get("_view") or {})
             rolled[setting] = (previous, key)
             route["_view"] = rolled
             route.pop("_grid_shape", None)
             self.ctx.status(_("That view setting could not be saved."))
-            self.ctx.invalidate()
+            self._redraw_or_refetch(was_rolled)
 
         self.ctx.run.run(work, lambda _r: None, self.ctx.run.epoch,
                          on_error=failed)
+
+    def _redraw_or_refetch(self, was):
+        """Repaint after a view change -- and re-ask the server when the
+        change was one it needs to hear about.
+
+        Which artwork the tiles are drawn with is part of the QUERY: the
+        server only sends the image tags a request names, so a grid fetched
+        as Auto has no Banner in its ImageTags and switching to Banner can
+        only fall back to the poster it already has. Redrawing was the whole
+        of this, and it is why the setting looked like it did nothing.
+
+        In place rather than through ``_reload``: the items are not stale,
+        only the tags on them, so the grid keeps what it is showing instead
+        of blinking a spinner over it. The reload re-reads the view settings,
+        and now prefers the route's own copy (see :meth:`load`) -- the save
+        is still in flight, so the server would answer with the old value.
+        """
+        if was == _image_type_of(self.route.get("_view")):
+            self.ctx.invalidate()
+            return
+        self.ctx.nav.reload(self.route)
 
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
