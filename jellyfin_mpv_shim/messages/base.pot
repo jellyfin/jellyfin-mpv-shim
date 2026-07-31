@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 01:51-0400\n"
+"POT-Creation-Date: 2026-07-31 13:15-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1974,6 +1974,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Random"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Date Episode Added"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py

@@ -37,7 +37,29 @@ SORTS = [
     (_("Parental Rating"), "OfficialRating", "Ascending"),
     (_("Random"), "Random", "Ascending"),
 ]
+
+#: Sorts only some libraries offer, APPENDED to SORTS -- a route stores its
+#: sort as an index into that list, so anything inserted would silently
+#: re-point every route already carrying one.
+#:
+#: "Date Added" on a TV library is when the *series* was created, which for a
+#: show you have followed for three years is three years ago -- so the
+#: library's own "what is new" question has no answer in the base list.
+#: DateLastContentAdded is the newest episode, and is what jellyfin-web
+#: offers there under this label (SortButton.tsx: OptionDateEpisodeAdded).
+#: The name is the server's: DateLastMediaAdded is not in its sort enum, and
+#: an unknown sort is *ignored* rather than refused -- the grid silently
+#: comes back in name order.
+EXTRA_SORTS = {
+    "tvshows": [(_("Date Episode Added"), "DateLastContentAdded",
+                 "Descending")],
+}
 _LETTERS = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def sorts_for(collection_type):
+    """The sort menu for a library of this kind."""
+    return SORTS + EXTRA_SORTS.get(collection_type or "", [])
 
 #: A view with nothing stored: web's defaults, which are also what the shim
 #: did before any of this existed, so an untouched library is unchanged.
@@ -109,7 +131,7 @@ class GridPage(Page):
         invalidate = self.ctx.invalidate
         srv = route.get("server") or self.ctx.server
         parent = route["parent_id"]
-        _n, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        _n, sort_by, sort_order = self._sorts()[route.get("_sort", 0)]
         filters = route.get("_filters") or {}
         collections = bool(route.get("_collections"))
         ctype = route.get("collection_type")
@@ -306,7 +328,7 @@ class GridPage(Page):
         if filters.get("year") in years:
             yi = years.index(filters["year"]) + 1
         bar = Row([
-            Dropdown("grid-sort", [s[0] for s in SORTS],
+            Dropdown("grid-sort", [s[0] for s in self._sorts()],
                      selected=route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
             Dropdown("grid-genre", [_("All Genres")] + genres, selected=gi,
@@ -389,6 +411,12 @@ class GridPage(Page):
 
     # -- data ---------------------------------------------------------------
 
+    def _sorts(self):
+        """This route's sort menu. A TV library has one the others do not --
+        see EXTRA_SORTS -- and a route's stored ``_sort`` is an index into
+        whichever list its own screen offers."""
+        return sorts_for(self.route.get("collection_type"))
+
     def _bound_query(self):
         """``(sort_by, sort_order, filters, person, srv, image_type)`` read
         NOW, on the loop thread. The sort/filters a page is fetched with must
@@ -396,7 +424,7 @@ class GridPage(Page):
         and the artwork it asks the server for must be the one the grid is
         being drawn with, or page two of a Banner view arrives with no
         banners."""
-        _n, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
+        _n, sort_by, sort_order = self._sorts()[self.route.get("_sort", 0)]
         return (sort_by, sort_order,
                 self.route.get("_filters") or {},
                 self.route.get("person_id"),
@@ -502,7 +530,7 @@ class GridPage(Page):
         """
         return Row([
             Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
-            Dropdown("%s-sort" % self.kind, [s[0] for s in SORTS],
+            Dropdown("%s-sort" % self.kind, [s[0] for s in self._sorts()],
                      selected=self.route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
         ], gap=10, align="center")
@@ -834,7 +862,8 @@ class ListPage(GridPage):
     def _sort_args(self):
         if not self._sortable():
             return None, None
-        _label, sort_by, sort_order = SORTS[self.route.get("_sort", 0)]
+        _label, sort_by, sort_order = self._sorts()[
+            self.route.get("_sort", 0)]
         return sort_by, sort_order
 
     def _bound_query(self):
@@ -899,7 +928,7 @@ class PersonPage(GridPage):
         # The repository has taken sort_by/sort_order since it was written;
         # this was the one caller that never passed them, so the dropdown had
         # nowhere to land.
-        _label, sort_by, sort_order = SORTS[route.get("_sort", 0)]
+        _label, sort_by, sort_order = self._sorts()[route.get("_sort", 0)]
 
         def work():
             return source.get_person_items(

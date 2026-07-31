@@ -142,5 +142,54 @@ class FirstPaintTest(unittest.TestCase):
         self.assertEqual(len(src.filter_value_calls), 1)
 
 
+class TvSortTest(unittest.TestCase):
+    """"Date Added" on a TV library is when the series was created, which
+    for a show you have followed for years is years ago. The question that
+    library is actually asked -- what has new episodes -- had no answer."""
+
+    def _grid(self, ctype):
+        src = FakeSource()
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": ctype, "title": "L"})
+        return b, src
+
+    def _labels(self, b):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import sorts_for
+        return [s[0] for s in sorts_for(b.route.get("collection_type"))]
+
+    def test_a_tv_library_offers_it(self):
+        b, _src = self._grid("tvshows")
+        self.assertIn("Date Episode Added", self._labels(b))
+
+    def test_a_movie_library_does_not(self):
+        b, _src = self._grid("movies")
+        self.assertNotIn("Date Episode Added", self._labels(b))
+
+    def test_the_base_sorts_keep_their_indices(self):
+        """A route stores its sort as an index. Anything inserted rather
+        than appended would silently re-point every route carrying one."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import SORTS, sorts_for
+        self.assertEqual(sorts_for("tvshows")[:len(SORTS)], SORTS)
+
+    def test_choosing_it_sorts_by_the_newest_episode(self):
+        b, src = self._grid("tvshows")
+        labels = self._labels(b)
+        b._page_for(b.route)._set("_sort", labels.index("Date Episode Added"))
+        self.assertEqual((src.queries[-1]["sort_by"],
+                          src.queries[-1]["sort_order"]),
+                         ("DateLastContentAdded", "Descending"))
+
+    def test_the_name_is_the_servers(self):
+        """DateLastMediaAdded is not in the server's sort enum, and an
+        unknown sort is ignored rather than refused -- the grid would come
+        back in name order with nothing to say it had."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import EXTRA_SORTS
+        self.assertEqual([s[1] for s in EXTRA_SORTS["tvshows"]],
+                         ["DateLastContentAdded"])
+
+
 if __name__ == "__main__":
     unittest.main()
