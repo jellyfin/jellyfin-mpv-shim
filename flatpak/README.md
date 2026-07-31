@@ -27,8 +27,13 @@ keyed on this manifest.
 
 The packaging Flathub publishes lives in
 [flathub/com.github.iwalton3.jellyfin-mpv-shim](https://github.com/flathub/com.github.iwalton3.jellyfin-mpv-shim).
-The mpv module here is a copy of the one there; the difference is the app
-module:
+The mpv module here is a copy of the one there, except that mujs is fetched by
+git commit instead of as a tarball — Codeberg regenerates that archive, so the
+sha256 the Flathub manifest pins no longer matches what it serves (the tar
+stream inside is unchanged; only the gzip wrapper differs). Flathub's own
+builds will hit this whenever their download cache misses.
+
+The real difference is the app module:
 
 - **Flathub** installs the *released* `jellyfin-mpv-shim` from PyPI, with every
   wheel and sdist pinned in `pypi-dependencies.json` (generated with

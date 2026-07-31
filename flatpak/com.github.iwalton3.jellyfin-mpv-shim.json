@@ -136,9 +136,11 @@
                     ],
                     "sources": [
                         {
-                            "type": "archive",
-                            "url": "https://codeberg.org/ccxvii/mujs/archive/1.3.8.tar.gz",
-                            "sha256": "10e8548033924ada0828a821777371861ea3e127d472e8423ad87426118291d9"
+                            "//note": "Fetched by commit rather than as the archive the Flathub manifest uses. Codeberg regenerates that tarball -- the tar stream inside it is still byte-identical, but the gzip wrapper is not, so the pinned sha256 stops matching and a cold build fails on it.",
+                            "type": "git",
+                            "url": "https://codeberg.org/ccxvii/mujs.git",
+                            "tag": "1.3.8",
+                            "commit": "307f18c4216420f2f56e22d8e7040baa39a6304a"
                         },
                         {
                             "//note": "The unicode character database files are downloaded in the makefile rules `UnicodeData.txt` and `SpecialCasing.txt`.",
