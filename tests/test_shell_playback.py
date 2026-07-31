@@ -357,6 +357,7 @@ class TestHudLifecycleWiring(unittest.TestCase):
         self.assertEqual(app.on_hud, b.hud.on_hud)
         self.assertEqual(app.on_hud_skip, b.hud.on_skip)
         self.assertEqual(app.on_clipboard_error, b._on_clipboard_error)
+        self.assertEqual(app.on_forward, b._on_mouse_forward)
         self.assertFalse(b.hud.shown,
                          "a fresh renderer has no summoned HUD")
 

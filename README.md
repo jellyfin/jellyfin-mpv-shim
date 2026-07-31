@@ -88,7 +88,11 @@ The menu enables you to:
 - Take screenshots.
 
 On your computer, use the mouse or arrow keys, enter, and escape to navigate.
-On your phone, use the arrow buttons, ok, back, and home to navigate.
+The mouse's thumb buttons go back and forward a page — back is the same as
+escape, and forward has no on-screen button, so **right-click Back** to see the
+page history and jump anywhere in it (at the top of the stack, where there is no
+Back button, right-click **Home** instead). On your phone, use the arrow
+buttons, ok, back, and home to navigate.
 
 ### Fast User Switching
 

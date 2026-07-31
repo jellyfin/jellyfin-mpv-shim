@@ -277,6 +277,12 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        # called when the mouse's forward button is pressed while the UI
+        # owns the pointer. No node and no argument: it means "go forward
+        # in whatever history you keep", which the app owns -- the
+        # renderer has no idea what is behind it. Its counterpart, the
+        # back button, needs no hook because it presses ESC.
+        self.on_forward = None
         # called (op, need) when a textbox copy/paste found no clipboard at
         # all -- neither mpv's clipboard/text nor a desktop helper. ``op``
         # is "copy" or "paste"; ``need`` names the package to install, or
@@ -567,6 +573,13 @@ class MpvtkApp:
                     self.on_hud_skip()
                 except Exception:
                     log.exception("on_hud_skip handler failed")
+            return
+        if t == "forward":
+            if self.on_forward is not None:
+                try:
+                    self.on_forward()
+                except Exception:
+                    log.exception("on_forward handler failed")
             return
         if t == "clipboard":
             if self.on_clipboard_error is not None:

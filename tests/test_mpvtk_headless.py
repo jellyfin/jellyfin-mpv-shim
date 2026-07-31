@@ -244,6 +244,47 @@ class _HeadlessConfig:
         return []
 
 
+class TestTheForwardStackIsNotADoor(unittest.TestCase):
+    """The mouse's forward button is the one way into the library that does
+    not go through navigate(): the forward stack is filled while the box is
+    browsable and outlives the setting being switched on in Settings. A
+    route that was legal when it was pushed is not evidence about now."""
+
+    def _browsable(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.headless = False
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"}, reset=True)
+        return b
+
+    # Deliberately no show_cast() between the flip and the forward press.
+    # Any navigation clears the forward stack, so a test that let one
+    # happen would pass with the lockdown check deleted — it would be
+    # asserting that push() empties the stack, which is a different claim.
+    # Saving Settings need not navigate, so this state is reachable.
+
+    def test_going_forward_into_the_library_is_refused(self):
+        b = self._browsable()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        b.go_back()
+        b.headless = True         # the operator flips it on in Settings
+        b.go_forward()
+        self.assertNotEqual(b.route["kind"], "grid",
+                            "the forward stack walked back into the library")
+
+    def test_the_history_menu_cannot_jump_forward_either(self):
+        b = self._browsable()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib2"})
+        b.go_back()
+        b.go_back()
+        b.headless = True
+        b.go_forward_to(3)
+        self.assertNotEqual(b.route["kind"], "grid")
+
+
 class TestNoRouteEscapesTheLockdown(unittest.TestCase):
     """The catch-all. Every route kind the browser declares must either be
     on the headless allow-list or be refused by navigate(). A new route

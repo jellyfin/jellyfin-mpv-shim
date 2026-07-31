@@ -258,6 +258,84 @@ class TestChromePolish(unittest.TestCase):
             self.assertLessEqual(bar["x"] + bar["w"], w,
                                  "top bar overflows at %dpx" % w)
 
+class TestBackButtonHistoryMenu(unittest.TestCase):
+    """Right-clicking Back lists the page stack and jumps anywhere in it.
+
+    This is the only place the forward stack is visible: the mouse's
+    forward button has no on-screen counterpart, by design. Driven through
+    the scene rather than by calling the opener, because the wiring is the
+    part that breaks — a Button that never got the on_context through
+    leaves the whole feature unreachable while every unit below it passes.
+    """
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+        for i in range(1, 3):
+            self.b.navigate({"kind": "grid", "server": "srv1",
+                             "parent_id": "lib%d" % i, "title": "L%d" % i,
+                             "_data": []})
+
+    def _scene(self):
+        return build_scene(self.b, size=(1280, 720))
+
+    def test_the_back_button_accepts_a_right_click(self):
+        _nodes, handlers = self._scene()
+        self.assertIn("context", handlers.get("nav-back", {}),
+                      "right-clicking Back does nothing")
+
+    def test_it_lists_the_stack_and_jumps(self):
+        _nodes, handlers = self._scene()
+        handlers["nav-back"]["context"](40, 60)
+        nodes, handlers = self._scene()
+        menu = next(n for n in nodes if n.get("id") == "historymenu")
+        self.assertEqual(menu["items"], ["Home", "L1", "L2"])
+        # Pick the root; the menu closes and the stack rewinds to it.
+        handlers["historymenu"]["select"](0, "Home")
+        self.assertIsNone(self.b._menu)
+        self.assertEqual(self.b.route["kind"], "home")
+        self.assertEqual(len(self.b.nav_stack), 1)
+
+    def test_the_pages_it_rewound_past_are_then_ahead_of_you(self):
+        _nodes, handlers = self._scene()
+        handlers["nav-back"]["context"](40, 60)
+        _nodes, handlers = self._scene()
+        handlers["historymenu"]["select"](0, "Home")
+        _nodes, handlers = self._scene()
+        self.assertNotIn("nav-back", handlers, "at the root, no Back button")
+        self.b.go_forward()
+        self.b.go_forward()
+        self.assertEqual(self.b.route["parent_id"], "lib2")
+
+    def test_at_the_root_home_carries_the_menu_instead(self):
+        """The gap Back cannot cover: backing all the way out is how you get
+        a forward stack, and it is also what takes the Back button away."""
+        self.b.go_back()
+        self.b.go_back()
+        _nodes, handlers = self._scene()
+        self.assertNotIn("nav-back", handlers, "still at a sub-page")
+        handlers["nav-home"]["context"](20, 60)
+        nodes, handlers = self._scene()
+        menu = next(n for n in nodes if n.get("id") == "historymenu")
+        self.assertEqual(menu["items"], ["Home", "L1", "L2"])
+        handlers["historymenu"]["select"](2, "L2")
+        self.assertEqual(self.b.route["parent_id"], "lib2")
+
+    def test_home_offers_no_menu_with_no_history_either_way(self):
+        """An empty menu listing only the page you are on is the same
+        "nothing on offer" a tile with no actions declines to open."""
+        self.b.navigate({"kind": "home", "server": "srv1"}, reset=True)
+        _nodes, handlers = self._scene()
+        self.assertNotIn("nav-back", handlers)
+        self.assertNotIn("context", handlers.get("nav-home", {}))
+
+    def test_home_leaves_the_menu_to_back_when_there_is_one(self):
+        """Two identical menus one button apart is worse than one."""
+        _nodes, handlers = self._scene()
+        self.assertIn("context", handlers["nav-back"])
+        self.assertNotIn("context", handlers.get("nav-home", {}))
+
+
 class TestButtonColors(unittest.TestCase):
     def setUp(self):
         self.b = MpvtkBrowser(app=None, source=FakeSource(),

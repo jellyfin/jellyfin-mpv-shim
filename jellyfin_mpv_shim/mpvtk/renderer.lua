@@ -3504,6 +3504,24 @@ mp.set_key_bindings({
     { 'shift+mbtn_left_dbl', function() end },
     { 'ctrl+mbtn_left_dbl', function() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
+    -- The thumb button is Back wherever the pointer is ours, and it is
+    -- routed as a synthetic ESC rather than given a handler of its own:
+    -- ESC already steps out exactly one layer (scrub -> popup ->
+    -- menu/dialog -> the HUD, or one page off the browser's nav stack,
+    -- whose base case lives in Python on the player's ESC binding), and
+    -- a second implementation of that ladder would drift from it.
+    -- Deliberately in this group and not a forced binding of its own:
+    -- the group is disabled while video plays, which leaves mpv's own
+    -- MBTN_BACK (playlist-prev -> previous queue item) alone.
+    { 'mbtn_back', function() end,
+      function() mp.commandv('keypress', 'ESC') end },
+    -- Its pair has no key to ride on -- nothing in mpv or the app means
+    -- "forward" -- so it is an event and the app decides. Windowless like
+    -- `nav`/`hud` rather than addressed to a node: history belongs to the
+    -- app, not to whatever the pointer happens to be over. An app that
+    -- registers no handler simply ignores it. Scoped like mbtn_back, so
+    -- playlist-next survives mid-playback.
+    { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
 }, 'mpvtk_mouse', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },

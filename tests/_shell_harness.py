@@ -617,6 +617,7 @@ class StubHudApp:
         self.on_hud = None
         self.on_hud_skip = None
         self.on_clipboard_error = None
+        self.on_forward = None
 
     def invalidate(self):
         pass

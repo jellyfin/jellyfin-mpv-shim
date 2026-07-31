@@ -488,6 +488,39 @@ fake.advance(1.0)
 fake.fire_timers()
 eq(offset("row3"), after_cancel, "the cancelled slide does not resume")
 
+-- ========================================== mouse back button
+
+-- The thumb button is Back, and it must stay Back by *being* ESC rather
+-- than by reimplementing it: ESC's ladder (scrub -> popup -> menu ->
+-- modal -> HUD, then Python for "one page off the nav stack") is spread
+-- across bindings that come and go with what is on screen, and a second
+-- copy of it would go stale on the first layer anyone adds.
+--
+-- What this cannot test is the scoping, because the fake cannot model
+-- mpv's section stack: mbtn_back lives in the mpvtk_mouse group, which
+-- is disabled while video plays, so mpv's own MBTN_BACK (playlist-prev)
+-- survives mid-playback.
+fake.log.commands = {}
+fake.key("mbtn_back")
+local sent_esc = false
+for _, c in ipairs(fake.log.commands) do
+    if type(c) == "table" and c[1] == "keypress" and c[2] == "ESC" then
+        sent_esc = true
+    end
+end
+ok(sent_esc, "the mouse back button presses ESC")
+
+-- Its pair has no key to press: nothing in mpv or the app means
+-- "forward", so it is an event and the app decides what history it has.
+-- Windowless like `nav`, not addressed to whatever the pointer is over.
+fake.reset_events()
+fake.key("mbtn_forward")
+local fwd = 0
+for _, e in ipairs(fake.log.events) do
+    if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
+end
+eq(fwd, 1, "the mouse forward button sends one forward event")
+
 -- ========================================================== teardown
 
 scene({})

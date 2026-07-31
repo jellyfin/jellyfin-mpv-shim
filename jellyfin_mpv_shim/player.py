@@ -1162,6 +1162,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.menu.mouse_select(int(args[1]))
             elif args[0] == "shim-menu-click":
                 self.menu.menu_action("ok")
+            elif args[0] == "shim-menu-back":
+                self.menu.menu_action("back")
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 

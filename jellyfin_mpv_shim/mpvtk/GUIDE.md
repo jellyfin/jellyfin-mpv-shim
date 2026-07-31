@@ -149,6 +149,24 @@ state is mirrored to `user-data/mpvtk/active` so the player can route
 Jellyfin remote commands (MoveUp/Select/…) into these keys only while
 the UI owns them.
 
+**The mouse's back button is ESC.** `mbtn_back` sits in the mouse
+group and its handler is a synthetic `keypress ESC`, not a ladder of
+its own: ESC already steps out exactly one layer (slider scrub →
+dropdown → menu → modal → the playback HUD, with "one page off the
+nav stack" as the base case in Python, on the player's ESC binding),
+and those bindings come and go with what is on screen, so a second
+implementation would go stale on the first layer anyone adds. Being
+in the *group* is what scopes it: the group is suspended during
+playback, which leaves mpv's own weak `MBTN_BACK` (playlist-prev →
+previous queue item) in force there.
+
+Its pair has no key to ride on — nothing in mpv or the app means
+"forward" — so `mbtn_forward` is the `forward` **event** instead, and
+the app decides what history it has. Windowless like `nav`/`hud`
+rather than addressed to a node: history belongs to the app, not to
+whatever the pointer happens to be over. An app that registers no
+`on_forward` ignores it.
+
 ## 3. Scene protocol (Python → Lua)
 
 `script-message mpvtk-scene <json>`:
@@ -188,6 +206,7 @@ handlers registered during layout:
 | click | id, shift?, ctrl? | press+release on same target (`rpt` nodes: on press, refiring while held) |
 | dbl | id | double-click on a node with on_dbl (after its two clicks) |
 | nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
+| forward | — | the mouse's forward button, while the UI owns the pointer (`MpvtkApp.on_forward`) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |

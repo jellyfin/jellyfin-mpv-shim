@@ -589,6 +589,58 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._load_route(self.route)
             self.invalidate()
 
+    def go_forward(self):
+        """Return to a page ``go_back`` left. Mouse-only (the thumb button),
+        by design: it exists so an accidental Back is cheap to undo, which
+        does not earn a permanent arrow in the top bar. The history menu on
+        the Back button is where it becomes visible.
+
+        No stale-while-revalidate counterpart to go_back's Home reload: a
+        page reached by going forward was on screen moments ago, and the one
+        case that reloads on the way back — leaving the playlist editor —
+        cannot be ahead of you, because editing pushes rather than pops.
+        """
+        self._park_scroll()
+        self._land_forward(self._nav.unpop())
+
+    def go_forward_to(self, depth):
+        """Jump forward to the page ``depth`` deep — the history menu's
+        pick on the other side of the current page."""
+        self._park_scroll()
+        self._land_forward(self._nav.fast_forward(depth))
+
+    def _land_forward(self, route):
+        """Settle on a route the forward stack gave back. None means
+        nothing moved: an empty stack, or the headless lockdown."""
+        if route is None:
+            return
+        self._reset_scroll()
+        self._bump_epoch()
+        # A page can be left before its fetch ever landed — Back bumps the
+        # epoch, which drops the result on the floor. Going *back* to such
+        # a page is impossible (it was never below you), going forward to
+        # one is a press away, and nothing else re-issues the load: the
+        # render path spins on a route with no data and no error. Same
+        # shape as _retry_route, including clearing the paging guard,
+        # which would otherwise cap the list for the rest of the session.
+        if route.get("_data") is None and not route.get("_items"):
+            route.pop("_loading", None)
+            self._load_route(route)
+        self.invalidate()
+
+    def go_back_to(self, depth):
+        """Jump back to the page ``depth`` deep in the stack (1 is the root)
+        — the history menu's pick. Everything skipped goes onto the forward
+        stack, exactly as pressing Back that many times would leave it."""
+        self._park_scroll()
+        if not self._nav.rewind_to(depth):
+            return
+        self._reset_scroll()
+        self._bump_epoch()
+        if self.route.get("kind") == "home":
+            self._load_route(self.route)    # as go_back does
+        self.invalidate()
+
     def after_playlist_deleted(self, playlist_id):
         """Drop every route pointing at a now-deleted playlist and reload
         whatever is left showing.
@@ -708,6 +760,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.go_back()
             return True
         return False
+
+    def _on_mouse_forward(self):
+        """The mouse's forward button, from the renderer.
+
+        Guarded where ESC is *layered*. Back peels one layer at a time
+        because ESC means "out of this"; forward means "the page I left",
+        and there is no sense in which a dialog or a context menu is
+        between you and it — navigating underneath one would leave it
+        floating over a page it was never opened from. So an open overlay
+        makes this a no-op rather than something to close first.
+
+        The renderer's mouse group is also live while the playback HUD is
+        summoned, where the library is not on screen at all.
+        """
+        if not self._browsing or self._dialog is not None \
+                or self._menu is not None:
+            return
+        self.go_forward()
 
     def _on_nav_mode(self, active):
         """Renderer 'nav' event: keyboard/remote engaged or the mouse
@@ -1298,6 +1368,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_hud_skip = self.hud.on_skip
         if hasattr(app, "on_clipboard_error"):
             app.on_clipboard_error = self._on_clipboard_error
+        if hasattr(app, "on_forward"):
+            app.on_forward = self._on_mouse_forward
 
     def reassert_window_state(self):
         """Re-assert window ownership on a FRESH renderer (which starts
@@ -1855,7 +1927,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 and route["kind"] not in NO_NOW_PLAYING):
             children.append(self._now_playing_bar(w))
         if self._menu is not None:
-            menu = self._tile_menu_node()
+            # One slot, two kinds of context menu: a tile's actions, or the
+            # Back button's history. Only one can be open — they are opened
+            # by the same gesture on different targets — so they share the
+            # state, the ESC handling and the "defer a Live TV refresh
+            # while a menu is up" rule.
+            menu = (window_chrome.history_menu_node(self)
+                    if self._menu.get("kind") == "history"
+                    else self._tile_menu_node())
             if menu is not None:
                 children.append(menu)
         if self._dialog is not None:
