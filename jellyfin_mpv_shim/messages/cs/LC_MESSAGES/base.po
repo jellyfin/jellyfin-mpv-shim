@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 01:51-0400\n"
-"PO-Revision-Date: 2026-07-30 16:43+0000\n"
-"Last-Translator: Fjuro <fjuro@users.noreply.translate.jellyfin.org>\n"
+"PO-Revision-Date: 2026-07-31 22:01+0000\n"
+"Last-Translator: Helak <adamhavra@seznam.cz>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -449,9 +449,8 @@ msgstr "Změnu nebylo možné použít."
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Live TV"
-msgstr "TV vysílání"
+msgstr "Živé vysílání"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
@@ -516,56 +515,52 @@ msgid "Incorrect PIN."
 msgstr "Nesprávný PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Server:"
+msgstr "Nastavit PIN pro %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Aktuální PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Nový PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Potvrdit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Při spuštění vyžadovat tento PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Vzdálený server"
+msgstr "Odstranit PIN"
 
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Save"
 msgstr "Uložit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Zadaný PIN kód je nesprávný."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Zadejte nový PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN kódy se neshodují."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "PIN kód se nepodařilo odstranit."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
