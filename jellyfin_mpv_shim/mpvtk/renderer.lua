@@ -125,13 +125,18 @@ local state = {
     -- schedules frames (active_tick) and, from that, whether scrolling
     -- quantizes to row boundaries (on_wheel).
     --
-    -- What it captures: the layout pass, building the ASS string, and every
-    -- overlay-add — which is where the resolution-dependent cost lives,
-    -- because a changed scroll offset re-issues every visible bitmap, up to
-    -- MAX_OVERLAYS of them, and an external mpv mmaps a file for each. What
-    -- it does not capture is libass laying the finished string out, which
-    -- happens on the VO thread after this returns. So this is a lower bound
-    -- on the true frame cost, and the thresholds below are set knowing that.
+    -- What it captures is what costs: the layout pass, building the ASS
+    -- string, and every overlay-add. A changed scroll offset re-issues every
+    -- visible bitmap, up to MAX_OVERLAYS of them, and out of process mpv
+    -- opens and mmaps a file for each — that is the expense this is here to
+    -- notice, and all of it happens inside the timed region.
+    --
+    -- It does NOT capture libass laying the finished string out, which
+    -- happens on the VO thread after osd:update() returns. Reviewers keep
+    -- deriving an alarm from that, so: libass is far quicker than the
+    -- overlay work, which is why a measurement blind to it still tracks the
+    -- real cost, and why an external mpv turned out to quantize on its own
+    -- once it was measured rather than assumed (see app.push_scroll_config).
     --
     -- It is also measured from whatever the renderer last drew, and a
     -- *scrolling* frame is dearer than a still one: at rest the overlay
@@ -3042,69 +3047,13 @@ local WHEEL_LOCK_S = 2.0
 local function on_wheel(dir, axis, e)
     phud_touch()
     state.wheel_count = (state.wheel_count or 0) + 1
-    -- Latch display quantization when this gesture is asking for frames
-    -- faster than they can be drawn.
-    --
-    -- active_tick() is the cadence the measured frame cost affords; the
-    -- slot is how often this gesture wants one, floored at snap_pace
-    -- because below that cadence a glide has stopped being smooth whatever
-    -- the wheel is doing. Falling behind is one being larger than the
-    -- other, and it takes both: a fling on a machine that draws in 3ms
-    -- keeps up and glides, which is most scrolling on most setups, and a
-    -- slow nudge on one that takes 80ms is given the whole gap and also
-    -- glides, because a frame that lands late but alone is latency, not
-    -- stutter.
-    --
-    -- Measured across wheel events globally rather than per container: a
-    -- fling is a property of the input device, and a gesture that crosses
-    -- from one scroller to another is still one flick of one wheel.
-    --
-    -- A single overrun latches it, because the release below is
-    -- time-based. Requiring a sustained overrun instead would spend the
-    -- first half of every fling doing the expensive thing.
+    -- Timestamp every wheel event, including the ones that go on to scroll
+    -- nothing: the gap between them is what the latch below measures, and a
+    -- gesture does not stop being one because a notch of it landed on a
+    -- popup.
     local wnow = mp.get_time()
     local wprev = state.wheel_prev
     state.wheel_prev = wnow
-    if wprev then
-        local slot = wnow - wprev
-        if slot < state.snap_pace then slot = state.snap_pace end
-        if active_tick() > slot then
-            state.snap_live = true
-        end
-    end
-    if state.snap_live then
-        -- Drop back to free scrolling once the gesture is over, moving the
-        -- STORED offset onto the detent the last frame was already
-        -- *showing*. Both end the quantization; this way does it without
-        -- moving anything on screen. Releasing to the continuous offset
-        -- instead would shift the content by up to half a row 300ms after
-        -- the user stopped touching anything — which reads as a glitch, and
-        -- throws away the one thing gesture snapping is good for: a fling
-        -- lands aligned rather than halfway through a row.
-        --
-        -- Only the container the gesture was locked to. That is the one
-        -- that moved, and it is already tracked for the hit-test fallback.
-        if state.snap_timer then
-            state.snap_timer:kill()
-        end
-        state.snap_timer = mp.add_timeout(GESTURE_WINDOW, function()
-            state.snap_timer = nil
-            if not state.snap_live then return end
-            local lock = state.wheel_lock
-            local target = lock and state.byid[lock.id]
-            local landed = nil
-            if target and target.t == 'scroll' then
-                landed = snap_round(target, state.scroll[target.id] or 0)
-            end
-            state.snap_live = false
-            if landed then
-                -- After clearing the flag, so this is the settled position
-                -- and not something the next frame re-rounds.
-                set_scroll(target, landed)
-            end
-            request_render()
-        end)
-    end
     local scale = (e and e.scale) or 1
     if scale <= 0 then scale = 1 end
     if state.hud then request_render() end
@@ -3146,6 +3095,92 @@ local function on_wheel(dir, axis, e)
         off = node and math.floor(state.scroll[node.id] or 0) or -1,
     }
     if not node then return end
+    -- Latch display quantization when this gesture is asking for frames
+    -- faster than they can be drawn.
+    --
+    -- active_tick() is the cadence the measured frame cost affords; the
+    -- slot is how often this gesture wants one, floored at snap_pace
+    -- because below that cadence a glide has stopped being smooth whatever
+    -- the wheel is doing. Falling behind is one being larger than the
+    -- other, and it takes both: a fling on a machine that draws in 3ms
+    -- keeps up and glides, which is most scrolling on most setups, and a
+    -- slow nudge on one that takes 80ms is given the whole gap and also
+    -- glides, because a frame that lands late but alone is latency, not
+    -- stutter.
+    --
+    -- Which frames are dear is measured across wheel events globally rather
+    -- than per container: a fling is a property of the input device, and a
+    -- gesture that crosses from one scroller to another is still one flick
+    -- of one wheel.
+    --
+    -- **Below the early returns above, though.** Quantization is a property
+    -- of the whole scene -- snap_round runs for every container in
+    -- compute_geo -- so latching it while the wheel is over an open popup,
+    -- or over dead space, jerks whatever is behind onto a row boundary for a
+    -- gesture that was never scrolling it. It also left `state.wheel_lock`
+    -- pointing at whatever was scrolled *last*, which the release below then
+    -- moved. Here, there is a target, and it is that target.
+    --
+    -- A single overrun latches it, because the release below is
+    -- time-based. Requiring a sustained overrun instead would spend the
+    -- first half of every fling doing the expensive thing.
+    if wprev then
+        local slot = wnow - wprev
+        if slot < state.snap_pace then slot = state.snap_pace end
+        if active_tick() > slot then
+            state.snap_live = true
+        end
+    end
+    if state.snap_live then
+        -- Drop back to free scrolling once the gesture is over, moving the
+        -- STORED offset onto the detent the last frame was already
+        -- *showing*. Both end the quantization; this way does it without
+        -- moving anything on screen. Releasing to the continuous offset
+        -- instead would shift the content by up to half a row 300ms after
+        -- the user stopped touching anything — which reads as a glitch, and
+        -- throws away the one thing gesture snapping is good for: a fling
+        -- lands aligned rather than halfway through a row.
+        --
+        -- Only the container the gesture was locked to. That is the one
+        -- that moved, and it is already tracked for the hit-test fallback.
+        if state.snap_timer then
+            state.snap_timer:kill()
+        end
+        state.snap_timer = mp.add_timeout(GESTURE_WINDOW, function()
+            state.snap_timer = nil
+            if not state.snap_live then return end
+            local lock = state.wheel_lock
+            local cur, landed = nil, nil
+            -- Same staleness rule the hit-test fallback uses: this fires a
+            -- third of a second after the fact, and a scene push in between
+            -- can have replaced the container this id resolves to (every
+            -- library page builds a scroller called "grid"). An expired lock
+            -- means there is nothing this gesture still owns.
+            if lock and mp.get_time() - lock.t < WHEEL_LOCK_S then
+                local target = state.byid[lock.id]
+                if target and target.t == 'scroll' then
+                    cur = state.scroll[target.id] or 0
+                    landed = snap_round(target, cur)
+                end
+                state.snap_live = false
+                -- After clearing the flag, so this is the settled position
+                -- and not something the next frame re-rounds.
+                --
+                -- Only when it actually moves. set_scroll cancels any
+                -- animation in flight, so landing a no-op here -- which is
+                -- every container without a `snap`, where snap_round returns
+                -- the offset unchanged -- would kill a carousel slide that
+                -- started during the gesture and park the row short of the
+                -- destination Python was already told about.
+                if landed and math.abs(landed - cur) > 0.5 then
+                    set_scroll(state.byid[lock.id], landed)
+                end
+            else
+                state.snap_live = false
+            end
+            request_render()
+        end)
+    end
     -- snapped_scrolling (accessibility): each notch steps exactly one detent
     -- and the display snaps with it -- one home-screen section, or one grid
     -- row. This is the old stepped behavior, kept as an opt-in.

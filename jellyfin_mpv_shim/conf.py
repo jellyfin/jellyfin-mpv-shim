@@ -24,6 +24,15 @@ config_path = None
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
 CONFIG_VERSION = 1
 
+# Values `scroll_mode` accepts, most permissive first. The first entry is the
+# default AND the fallback: anything unrecognised (a hand-edited typo, a value
+# from a newer build) has to land on continuous scrolling rather than on a
+# mitigation nobody asked for -- which is what every other enum setting here
+# does, and what `snapped_scrolling` used to get for free by going through
+# adv_bool. mpvtk_browser/config.py holds the same values with their labels;
+# tests/test_mpvtk_adopt.py pins the two lists together.
+SCROLL_MODES = ("continuous", "aligned", "row")
+
 # Serializes writers of the config file. save() is reachable from the UI
 # action loop and from background workers (e.g. the download-folder move);
 # unsynchronized truncate+rewrite writers can interleave into invalid JSON,
@@ -138,10 +147,8 @@ class Settings(SettingsBase):
     #   aligned     always draw aligned to the nearest row or home-screen
     #               section. The wheel still moves by pixels and the
     #               scrollbar still glides; only the content steps. Makes the
-    #               above mitigation permanent, for the cost the measurement
-    #               cannot see: it times the Lua side of a frame, and libass
-    #               laying the result out at output resolution happens on the
-    #               VO thread afterwards.
+    #               above mitigation permanent, for a display the measurement
+    #               reads as keeping up when the user can see that it is not.
     #   row         one wheel notch moves exactly one row or section, and the
     #               scrollbar steps with it. An accessibility escape hatch,
     #               and the oldest behaviour.

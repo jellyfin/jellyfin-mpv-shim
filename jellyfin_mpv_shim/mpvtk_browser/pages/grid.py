@@ -261,10 +261,11 @@ class GridPage(Page):
             flex=1,
             # Back-nav lands where you left it (see Page.parked_scroll).
             offset=self.parked_scroll("grid"),
-            # Row-snap the grid: people scroll libraries fast, and a
-            # quantized offset turns per-frame smear (every visible row
-            # repositioned, a full 4K recomposite each frame) into stable,
-            # row-aligned frames.
+            # Declare the row pitch, so the renderer can align to it when
+            # it needs to -- people scroll libraries fast, and where a frame
+            # is dear (every visible row repositioned, a full 4K recomposite
+            # each frame) quantizing turns per-frame smear into stable,
+            # row-aligned frames. Not unconditional: see widgets.Scroll.
             snap=geom.strip_h + GRID_GAP,
             # Exact content-y of the first tile row (not the approximate
             # HEAD_H): a snap stop landing a few px short leaves the previous

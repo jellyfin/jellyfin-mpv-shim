@@ -128,7 +128,17 @@ local prop_observers = {}
 --- taken around the whole of it.
 M.draw_cost = 0
 
+--- ...and what one `overlay-add` costs. Separate knob, because the two are
+--- separate claims: the renderer times the whole of render(), and the reason
+--- that is worth anything is that the overlay re-issues -- the part that
+--- scales with resolution, and that an external mpv pays a file mmap for --
+--- happen INSIDE the timed region. A test that only ever charges draw_cost
+--- cannot tell that apart from a measurement that stops before them.
+M.overlay_cost = 0
+
 function M.set_draw_cost(seconds) M.draw_cost = seconds or 0 end
+
+function M.set_overlay_cost(seconds) M.overlay_cost = seconds or 0 end
 
 function mp.create_osd_overlay()
     return {
@@ -170,6 +180,9 @@ function M.advance(dt) now = now + dt end
 function mp.commandv(...)
     local args = { ... }
     table.insert(M.log.commands, args)
+    if args[1] == "overlay-add" and M.overlay_cost > 0 then
+        M.advance(M.overlay_cost)
+    end
     if args[1] == "script-message" and args[2] == "mpvtk-event" then
         table.insert(M.log.events, args[3])
     end

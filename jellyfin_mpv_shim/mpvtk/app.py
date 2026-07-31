@@ -442,9 +442,17 @@ class MpvtkApp:
         the cost — not this clause back. ``self.in_process`` is still the
         backend's own answer to which one this is, if it needs reviving.
         """
-        from ..conf import settings
+        from ..conf import SCROLL_MODES, settings
 
-        mode = getattr(settings, "scroll_mode", "continuous")
+        mode = getattr(settings, "scroll_mode", SCROLL_MODES[0])
+        if mode not in SCROLL_MODES:
+            # A hand-edited typo falls back to the default rather than to a
+            # mitigation. Worth stating because the obvious spelling of this
+            # test -- `force_snap = mode != "continuous"` -- fails the other
+            # way: "Continuous" with the capital the dropdown DISPLAYS would
+            # quantize permanently while Settings went on showing the mode
+            # the user thought they had.
+            mode = SCROLL_MODES[0]
         self.backend.command(
             "script-message", "mpvtk-wheel", json.dumps({
                 "px": int(getattr(settings, "scroll_wheel_pixels", 80) or 80),

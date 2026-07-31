@@ -90,6 +90,33 @@ class TestAdoptBackend(unittest.TestCase):
         self.assertFalse(cfg["snapped"])
         self.assertTrue(cfg["force_snap"])
 
+    def test_an_unknown_mode_falls_back_to_the_default(self):
+        """A hand-edited typo must land on continuous, not on a mitigation.
+
+        The trap is that the obvious spelling of the test -- `force_snap =
+        mode != "continuous"` -- fails the other way, and silently: the
+        settings dropdown falls back to displaying option 0 for a value it
+        does not recognise, so "Continuous" with the capital C the dropdown
+        itself DISPLAYS would quantize permanently while Settings went on
+        showing the mode the user thought they had. `snapped_scrolling` got
+        this for free by going through adv_bool; a bare str does not."""
+        for junk in ("Continuous", "", "aligne", "true", "row ", "0"):
+            cfg = self._scroll_config(ext=False, scroll_mode=junk)
+            self.assertFalse(cfg["force_snap"], "%r quantized" % junk)
+            self.assertFalse(cfg["snapped"], "%r stepped" % junk)
+
+    def test_the_dropdown_offers_exactly_the_modes_conf_understands(self):
+        """Two lists, one meaning. The dropdown is where a user picks a
+        value and conf.SCROLL_MODES is what decides behaviour, so a value in
+        one and not the other is either an unreachable mode or a menu entry
+        that falls back to the default when chosen."""
+        from jellyfin_mpv_shim.conf import SCROLL_MODES
+        from jellyfin_mpv_shim.mpvtk_browser import config as browser_config
+
+        offered = [v for _label, v in
+                   browser_config.LABELED_ENUMS["scroll_mode"]]
+        self.assertEqual(offered, list(SCROLL_MODES))
+
     def test_a_row_per_notch_is_drawn_aligned_too(self):
         """Not redundant, and the reason the setting is three states rather
         than two checkboxes: stepping a whole row per notch means every

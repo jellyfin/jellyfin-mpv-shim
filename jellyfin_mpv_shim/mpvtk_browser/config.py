@@ -151,6 +151,8 @@ LABELED_ENUMS = {
     # "theme" is deliberately NOT here: themes are JSON files and the user can
     # add their own, so the list is built at display time by
     # settings.general._dynamic_enum.
+    # Order and values must match conf.SCROLL_MODES, which is what actually
+    # decides behaviour; test_mpvtk_adopt pins them together.
     "scroll_mode": [
         (_("Continuous"), "continuous"),
         (_("Aligned to rows"), "aligned"),

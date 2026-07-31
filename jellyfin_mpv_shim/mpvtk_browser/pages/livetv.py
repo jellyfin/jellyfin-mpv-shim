@@ -202,14 +202,17 @@ class LiveTvPage(Page):
         return Row(tabs, gap=8, pad=12, align="center")
 
     def _scroll(self, children, scroll_id, gap=16):
-        """A stack of carousels, snapped to section tops.
+        """A stack of carousels declaring where their section tops are.
 
         The same treatment the home screen gets, and for the same two
         reasons. These tabs are **bitmap-heavy** — one composited strip per
-        section — so a continuous offset repositions every visible strip on
-        every frame; and they are **long**: Programs is six carousels, and
-        Schedule is one per day. Landing between two rows, with a caption
-        band across the top of the window, is the state snapping avoids.
+        section — so on a display that cannot keep up a continuous offset
+        repositions every visible strip on every frame; and they are
+        **long**: Programs is six carousels, and Schedule is one per day.
+        Landing between two rows, with a caption band across the top of the
+        window, is the state alignment avoids when it engages — which is
+        when a gesture outruns the frame budget, or when scroll_mode asks
+        for it, not on every scroll (see widgets.Scroll).
 
         The breakpoints are explicit content-y values rather than a uniform
         pitch, because the sections differ in height: an auto-shaped poster
