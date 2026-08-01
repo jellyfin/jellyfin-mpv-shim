@@ -186,7 +186,10 @@ local state = {
     phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1,
              -- auto-hide policy and the no-scrim text halo, pushed
              -- with the engage (mpvtk-hud) so setting changes stick
-             hide_s = 4, hide_mode = 'hover', shadow = false },
+             hide_s = 4, hide_mode = 'hover', shadow = false,
+             -- has the pointer MOVED since this summon? The bar-hover
+             -- hold below is meaningless without it: see phud_busy
+             moved = false },
     -- Scrub preview: the seek bar's trickplay/chapter bubble, drawn HERE
     -- rather than asked for from Python. A hover that has to round-trip,
     -- rebuild the whole HUD tree and come back as a scene is a preview that
@@ -2857,6 +2860,8 @@ end
 
 local function on_mouse_move(x, y)
     phud_touch()
+    -- The observer only fires on a change, so reaching here IS movement.
+    state.phud.moved = true
     state.mouse.x, state.mouse.y = x, y
     if state.tb_drag then
         local node = state.byid[state.tb_drag.id]
@@ -4043,6 +4048,10 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     if pos.hover == false then
         state.mouse.hover = false
+        -- and forget WHERE it was. The coordinates outlive the pointer
+        -- otherwise, and phud_busy would go on reading a mouse that had
+        -- left the window as resting on the controls.
+        state.mouse.x, state.mouse.y = -1, -1
         state.tip = nil
         if state.tip_timer then
             state.tip_timer:kill()
@@ -4056,6 +4065,12 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         return
     end
     state.mouse.hover = true
+    -- Record it for BOTH branches. The idle-HUD branch below returns
+    -- without reaching on_mouse_move, so a mouse summon used to leave
+    -- state.mouse holding whatever was there before HUD mode -- and
+    -- phud_busy would then decide "is the pointer on the controls?"
+    -- against a position the pointer had left long ago.
+    state.mouse.x, state.mouse.y = pos.x, pos.y
     if state.phud.mode and not state.phud.shown then
         -- HUD idle: real pointer movement summons it. The first event
         -- after entering idle only records the position (mx = -1 means
@@ -4638,11 +4653,18 @@ local function phud_busy()
         and mp.get_property_native('pause', false) then
         return true
     end
-    if state.phud.hide_mode ~= 'always' then
+    if state.phud.hide_mode ~= 'always' and state.phud.moved then
         -- Over either bar: the ids are the contract (hud.py gives the top
         -- row and the transport column one for exactly this). Falling back
         -- to "over any clickable node" would flicker in the gaps between
         -- buttons, which is most of the bar's area.
+        --
+        -- Only once the pointer has MOVED since this summon, though. A
+        -- mouse that has sat untouched in the bottom strip of the screen
+        -- all evening is not reaching for anything, and taking it as a
+        -- hover left a keyboard-summoned HUD up forever -- which is also
+        -- how it reads under a bare X server, where the pointer parks at
+        -- 0,0 and the top bar is drawn under it.
         local mx, my = state.mouse.x, state.mouse.y
         for _, id in ipairs({ 'hud-bar', 'hud-topbar' }) do
             local bar = state.byid[id]
@@ -4703,6 +4725,9 @@ function phud_summon(src)
     -- the scene immediately, though: it activates the focused node.
     phud_skip_unbind()
     state.phud.shown = true
+    -- A mouse summon IS movement; a key summon starts with the pointer
+    -- wherever it happened to be, which means nothing.
+    state.phud.moved = src == 'mouse'
     -- a keyboard/remote summon lands spatial-nav focus on the scene's
     -- autofocus node (play/pause) once Python pushes the HUD; a mouse
     -- summon leaves the pointer in charge
@@ -5156,6 +5181,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             -- is the HUD taking the arrow keys (keyboard-driven), or
             -- only the pointer (hud_grab_keys off, mouse summon)?
             phud_kbd = state.phud.kbd or false,
+            mouse = { x = state.mouse.x, y = state.mouse.y,
+                      hover = state.mouse.hover },
         })
     elseif cmd.cmd == 'phud' then
         -- drive the playback-HUD lifecycle from tests

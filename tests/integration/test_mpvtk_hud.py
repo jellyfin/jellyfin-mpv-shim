@@ -30,8 +30,14 @@ class FakeController:
         self.menu_state = None
         self.chapter_list = []
         # tests drive summons with arrow keypresses, so opt into the
-        # grab (the no-grab default has its own test)
-        self.key_opts = {"grab": True, "key": "ENTER"}
+        # grab (the no-grab default has its own test).
+        #
+        # hide/mode are conf.py's defaults rather than omitted: an absent
+        # `hide` means zero, which the renderer floors at 0.5s -- and a
+        # HUD that hides half a second after each keypress cannot be
+        # walked with the arrow keys at all.
+        self.key_opts = {"grab": True, "key": "ENTER",
+                         "hide": 4, "mode": "hover"}
 
     def hud_key_opts(self):
         return dict(self.key_opts)
@@ -676,6 +682,15 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertFalse(self.browser.hud.shown)
 
     def test_paused_video_keeps_hud_up(self):
+        """hud_autohide "paused", end to end through hud_key_opts.
+
+        #620 turned this from a rule into a mode: pausing used to hold the
+        controls up for everybody, which is wrong if what you paused to look
+        at is behind them. Asking for it still works, and the whole path --
+        setting to gateway to engage message to renderer -- is what this
+        covers; the modes themselves are pinned in tests/lua.
+        """
+        self.ctl.key_opts = dict(self.ctl.key_opts, hide=4, mode="paused")
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="renderer never entered HUD-idle")
@@ -689,6 +704,17 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._set_pause(False)
         self._wait(lambda: not self.browser.hud.shown, timeout=10,
                    msg="HUD never auto-hid after unpausing")
+
+    def test_the_default_hides_on_a_paused_video(self):
+        """...and the default does not. The other half of the same change."""
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="renderer never entered HUD-idle")
+        self._set_pause(True)
+        self._press_until("RIGHT", lambda: self.browser.hud.shown,
+                          msg="summon failed")
+        self._wait(lambda: not self.browser.hud.shown, timeout=10,
+                   msg="the default mode kept the HUD up on a paused video")
 
 
 if __name__ == "__main__":

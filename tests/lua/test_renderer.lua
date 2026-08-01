@@ -1220,6 +1220,48 @@ hud_wait()
 ok(hud_hidden(), "the default hides them on a paused film")
 fake.log.props["pause"] = nil
 
+-- "The pointer is on the controls" has to mean the pointer was PUT there.
+-- A mouse that has sat untouched wherever it was left is not reaching for
+-- anything, and treating it as a hover left a keyboard-summoned HUD up for
+-- ever. (It is also how a bare X server reads: the pointer parks at 0,0 and
+-- the top bar is drawn under it.)
+--- The two bars, as hud.py pushes them once the HUD is up. A hide clears
+--- the renderer's node table (ui_suspend), so this has to be re-sent after
+--- every summon -- which is exactly what the browser does.
+local function hud_bars()
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+end
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+-- The first pointer event after engaging only records the position, so this
+-- parks the mouse on the bar without summoning anything.
+hud_pointer(600, 680)
+fake.send("mpvtk-hud-summon", "nav")
+hud_bars()
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "a key summon under an unmoved pointer still auto-hides")
+
+-- ...and moving it there does hold them, which is the case that gate must
+-- not have broken. (Two events again: the first after a hide only records
+-- the position, the second is movement and summons.)
+hud_pointer(600, 680)
+hud_pointer(600, 690)
+hud_bars()
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "moving the pointer onto them holds them up again")
+
+-- A pointer that leaves the window entirely takes its position with it.
+-- mpv keeps reporting the last coordinates with hover=false, which used to
+-- read as a mouse still resting on the bar.
+fake.observe("mouse-pos", { x = 600, y = 690, hover = false })
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "a pointer that left the window stops holding them up")
+
 -- ================================================== scrub preview bubble
 
 -- The seek bar's trickplay/chapter/timestamp bubble is drawn HERE. It used

@@ -384,6 +384,31 @@ Keyboard/remote caveat: `hover` cannot mean "hide instantly" when there is no
 pointer driving. A HUD summoned by key/remote (`state.phud.kbd`) keeps the
 timer; `hover` applies to the pointer-driven case.
 
+**Follow-up (found by the integration suite, fixed in `793d8793`).** "The
+pointer is on the controls" was asked of `state.mouse`, which turned out to
+answer for a pointer that was not there:
+
+1. A mouse that has not been touched still reports a position. Left anywhere
+   in the top or bottom band it read as a hover, and a HUD summoned with the
+   keyboard then never hid. `phud_busy` now requires the pointer to have
+   *moved* since this summon (`state.phud.moved`), which is what "reaching
+   for a button" always involves.
+2. The idle-HUD branch of the `mouse-pos` observer returns before
+   `on_mouse_move`, so a **mouse** summon left `state.mouse` holding the
+   position from before HUD mode. The observer records it for both branches
+   now.
+3. mpv keeps reporting the last coordinates with `hover=false` once the
+   pointer leaves the window; those are forgotten now.
+
+Two `test_mpvtk_hud` integration tests were failing on both backends because
+of (1) — under a bare X server the pointer parks at 0,0 and the top bar is
+drawn under it, so the HUD was held up for ever. `test_paused_video_keeps_hud_up`
+was also stale: it asserted the *old* rule, and now drives `mode: "paused"`
+through `hud_key_opts` with a companion test for the new default. The fake
+controller sends conf.py's `hide`/`mode` defaults rather than omitting them,
+because an absent `hide` means zero, and a HUD that hides half a second after
+each keypress cannot be walked with the arrow keys at all.
+
 ### Subtitle margin
 
 `gateway/hud.py:111` raises `sub_margin_y` to 130 while the HUD is up (already
@@ -506,10 +531,9 @@ centring, frame indexing for both tile layouts, clamping past the last tile,
 and the clear) plus the two integration tests, which now read the renderer's
 state instead of looking for a `hud-preview` node.
 
-**Known, not caused by this:** `test_full_lifecycle` and
-`test_paused_video_keeps_hud_up` in `tests/integration/test_mpvtk_hud.py`
-fail on both backends, and fail identically on the commit before this one.
-They are #620 fallout — see the entry below.
+(`test_full_lifecycle` and `test_paused_video_keeps_hud_up` were failing on
+both backends when this landed. Not this change — #620 fallout, fixed in
+`793d8793`; see the follow-up under that issue.)
 
 ### 617 — true virtual scroll
 
@@ -591,9 +615,6 @@ commit each.
 Steps 1–11 are done (see the table at the top). What remains:
 
 12. #617 — true virtual scroll.
-13. The two `test_mpvtk_hud` integration failures #620 left behind (see
-    the note under 618(b)); they are on the branch already and predate the
-    scrub-preview commit.
 
 ## Decisions taken without asking
 
