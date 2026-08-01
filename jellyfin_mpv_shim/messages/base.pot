@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-01 15:30-0400\n"
+"POT-Creation-Date: 2026-08-01 15:36-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -108,6 +108,67 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py jellyfin_mpv_shim/menu.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Intro"
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
@@ -276,6 +337,18 @@ msgid "Manual by Track Index (Less Reliable)"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
+msgid "No"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Ask"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
 msgstr ""
 
@@ -380,20 +453,20 @@ msgstr ""
 msgid "Discord Rich Presence"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Intros"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Intros"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Commercials"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Credits"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Previews"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Credits"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Recaps"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
@@ -747,6 +820,10 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Downloads"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3041,22 +3118,6 @@ msgid "Please wait, loading..."
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py
-msgid "Skipped Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Skipped Intro"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Intro"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -3064,14 +3125,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-msgid "Skip Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-msgid "Skip Intro"
 msgstr ""
 
 #: jellyfin_mpv_shim/player_reporting.py

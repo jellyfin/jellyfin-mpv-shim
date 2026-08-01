@@ -116,9 +116,9 @@ SECTIONS = [
                         "force_audio_codec"]),
     (_("Video Enhancement"), ["shader_pack_enable", "shader_pack_subtype",
                               "shader_pack_remember", "shader_pack_gpu_api"]),
-    (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
-                                 "skip_credits_enable", "skip_credits_always",
-                                 "skip_intro_on_seek"]),
+    (_("Skip Intro / Credits"), ["segment_intro", "segment_outro",
+                                 "segment_commercial", "segment_preview",
+                                 "segment_recap", "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
                             "scroll_mode", "paginated"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
@@ -136,6 +136,13 @@ ENUMS = {
     "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
     "shader_pack_subtype": ["lq", "hq"],
 }
+
+#: Shared by the five media-segment settings below.
+_SEGMENT_ACTIONS = [
+    (_("Never"), "off"),
+    (_("Ask"), "ask"),
+    (_("Always"), "always"),
+]
 
 # Enums whose stored value isn't presentable: [(label, value), ...].
 LABELED_ENUMS = {
@@ -165,6 +172,13 @@ LABELED_ENUMS = {
     # Every label points at the value it has always pointed at -- "Small" is
     # the base size, which reads oddly beside two smaller steps but is the
     # price of not silently re-pointing a string 86 locales have translated.
+    # One list, five settings: the three things that can be done about a
+    # media segment (jellyfin-web offers the same three).
+    "segment_intro": _SEGMENT_ACTIONS,
+    "segment_outro": _SEGMENT_ACTIONS,
+    "segment_commercial": _SEGMENT_ACTIONS,
+    "segment_preview": _SEGMENT_ACTIONS,
+    "segment_recap": _SEGMENT_ACTIONS,
     "hud_scrim": [
         (_("Default"), "default"),
         (_("Half height"), "half"),
@@ -231,6 +245,11 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "segment_intro": _("Skip Intros"),
+    "segment_outro": _("Skip Credits"),
+    "segment_commercial": _("Skip Commercials"),
+    "segment_preview": _("Skip Previews"),
+    "segment_recap": _("Skip Recaps"),
     "hud_scrim": _("Shading Behind the Player Controls"),
     "hud_autohide": _("When the Player Controls Hide"),
     "hud_hide_secs": _("Hide the Player Controls After (seconds)"),

@@ -315,7 +315,7 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
     def test_the_button_is_offered_with_seek_to_skip_turned_off(self):
         self.assertIsNotNone(
             self._hud_skip_after_update(skip_intro_on_seek=False,
-                                        skip_intro_enable=True),
+                                        segment_intro="ask"),
             "turning seek-to-skip off took the button with it")
 
     def test_turning_the_button_itself_off_does_remove_it(self):
@@ -323,10 +323,13 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         can never be turned off at all."""
         self.assertIsNone(
             self._hud_skip_after_update(skip_intro_on_seek=True,
-                                        skip_intro_enable=False,
-                                        skip_intro_always=False,
-                                        skip_credits_enable=False,
-                                        skip_credits_always=False))
+                                        segment_intro="off",
+                                        segment_outro="off"))
+
+    def test_always_skips_instead_of_offering(self):
+        """The third state the booleans could only express as a pair."""
+        self.assertIsNone(
+            self._hud_skip_after_update(segment_intro="always"))
 
 
 class TestReportingIsWiredIn(unittest.TestCase):
@@ -528,3 +531,140 @@ class TestNoPlayerControls(unittest.TestCase):
 
     def test_the_setting_is_gone_rather_than_migrated(self):
         self.assertFalse(hasattr(settings, "enable_osc"))
+
+
+class TestMediaSegmentTypes(unittest.TestCase):
+    """#575: intros and credits were two pairs of booleans; the server
+    publishes five kinds of segment and jellyfin-web offers three actions
+    for each."""
+
+    def test_every_type_has_a_setting_and_an_action(self):
+        from jellyfin_mpv_shim import conf
+
+        for seg_type, key in conf.SEGMENT_SETTINGS.items():
+            with self.subTest(seg_type):
+                self.assertTrue(hasattr(settings, key))
+                self.assertIn(conf.segment_action(seg_type),
+                              conf.SEGMENT_ACTIONS)
+
+    def test_intros_and_credits_still_ask_by_default(self):
+        self.assertEqual(settings.segment_intro, "ask")
+        self.assertEqual(settings.segment_outro, "ask")
+
+    def test_the_new_three_are_off_by_default(self):
+        """A segment skipped out from under you is worse than one you have
+        to skip yourself, and these are far less common."""
+        for key in ("segment_commercial", "segment_preview",
+                    "segment_recap"):
+            self.assertEqual(getattr(settings, key), "off", key)
+
+    def test_an_unknown_type_is_left_alone(self):
+        """A newer server, or a hand-edited value. Skipping something we
+        cannot name is the one unrecoverable answer."""
+        from jellyfin_mpv_shim import conf
+
+        self.assertEqual(conf.segment_action("Unknown"), "off")
+        self.assertEqual(conf.segment_action("SomethingNew"), "off")
+
+    def test_only_wanted_types_are_requested(self):
+        from jellyfin_mpv_shim import conf
+
+        with mock.patch.object(settings, "segment_intro", "ask"), \
+                mock.patch.object(settings, "segment_outro", "off"), \
+                mock.patch.object(settings, "segment_recap", "always"):
+            self.assertEqual(sorted(conf.wanted_segment_types()),
+                             ["Intro", "Recap"])
+            self.assertTrue(conf.any_segment_wanted())
+
+    def test_nothing_wanted_means_no_request_at_all(self):
+        from jellyfin_mpv_shim import conf
+
+        patches = [mock.patch.object(settings, k, "off")
+                   for k in conf.SEGMENT_SETTINGS.values()]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.assertFalse(conf.any_segment_wanted())
+        self.assertEqual(conf.wanted_segment_types(), [])
+
+    def test_each_type_names_itself_in_its_labels(self):
+        """"Skip Recap" is not "Skip Intro" -- and whole phrases, because a
+        language that inflects the verb with its object cannot fix a
+        sentence assembled after translation."""
+        from jellyfin_mpv_shim.media import segment_labels
+
+        seen = {t: segment_labels(t)[0]
+                for t in ("Intro", "Outro", "Commercial", "Preview", "Recap")}
+        self.assertEqual(len(set(seen.values())), 5, seen)
+        # An unknown type still has something to put on the button.
+        self.assertTrue(segment_labels("Whatever")[0])
+
+
+class TestSegmentSettingsMigration(unittest.TestCase):
+    """The four booleans carried a real choice, so unlike the other
+    migrations this one is about preserving it rather than overriding it."""
+
+    def _migrated(self, **old):
+        from jellyfin_mpv_shim.conf import Settings
+
+        cfg = Settings()
+        cfg.config_version = 1
+        cfg._migrate(old)
+        return cfg
+
+    def test_always_wins_over_ask(self):
+        cfg = self._migrated(skip_intro_always=True, skip_intro_enable=True)
+        self.assertEqual(cfg.segment_intro, "always")
+
+    def test_ask_carries_over(self):
+        cfg = self._migrated(skip_credits_always=False,
+                             skip_credits_enable=True)
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_off_carries_over(self):
+        cfg = self._migrated(skip_intro_always=False,
+                             skip_intro_enable=False,
+                             skip_credits_always=False,
+                             skip_credits_enable=False)
+        self.assertEqual(cfg.segment_intro, "off")
+        self.assertEqual(cfg.segment_outro, "off")
+
+    def test_a_config_without_the_old_keys_keeps_the_defaults(self):
+        cfg = self._migrated()
+        self.assertEqual(cfg.segment_intro, "ask")
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_a_quoted_boolean_is_read_the_way_the_schema_read_it(self):
+        """The keys being migrated were declared `bool`, which in this
+        schema means adv_bool -- and adv_bool says the STRINGS "false"/"no"/
+        "0"/"off" are False while Python's bool() says all four are True.
+
+        A hand-edited or templated conf.json that quotes its booleans would
+        otherwise migrate "skip_intro_always": "false" to `always`: silently
+        skipping intros for someone who had asked to be prompted, with the
+        source keys dropped on the next save so the evidence goes too.
+        """
+        for false_ish in ("false", "no", "0", "off", "False", False, 0):
+            with self.subTest(value=false_ish):
+                cfg = self._migrated(skip_intro_always=false_ish,
+                                     skip_intro_enable="true")
+                self.assertEqual(cfg.segment_intro, "ask",
+                                 "%r read as always" % (false_ish,))
+                cfg = self._migrated(skip_intro_always=false_ish,
+                                     skip_intro_enable=false_ish)
+                self.assertEqual(cfg.segment_intro, "off",
+                                 "%r read as ask" % (false_ish,))
+
+    def test_a_quoted_true_still_migrates(self):
+        """The other direction, or the check above is just a way of never
+        migrating anything."""
+        cfg = self._migrated(skip_intro_always="true")
+        self.assertEqual(cfg.segment_intro, "always")
+        cfg = self._migrated(skip_credits_enable="yes")
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_it_stamps_the_version_so_it_runs_once(self):
+        from jellyfin_mpv_shim.conf import CONFIG_VERSION
+
+        cfg = self._migrated(skip_intro_enable=False)
+        self.assertEqual(cfg.config_version, CONFIG_VERSION)

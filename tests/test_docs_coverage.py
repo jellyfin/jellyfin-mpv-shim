@@ -99,6 +99,8 @@ class DocsCoverageTest(unittest.TestCase):
             "continuous", "aligned", "row",
             # hud_scrim / hud_autohide values
             "half", "panel", "hover", "always", "paused",
+            # segment_* values
+            "off", "ask",
             # language_config rule keys
             "type", "subtype", "alang", "slang", "amatch", "smatch",
             "aprefer", "sprefer", "aexclude", "sexclude",

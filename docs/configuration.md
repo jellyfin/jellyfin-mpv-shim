@@ -655,18 +655,32 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `raise_mpv` - Windows only. Disable this if you are fine with MPV sometimes appearing behind other windows when playing.
 - `health_check_interval` - The number of seconds between each client health check. Null disables it. Default: `300`
 
-## Skip Intro Support
+## Media Segments (Skip Intro and friends)
 
-Intro and credits detection uses Jellyfin's MediaSegments API.
+Segment detection uses Jellyfin's MediaSegments API. There is one setting per
+segment type the server publishes, and each takes the same three values:
 
-- `skip_intro_always` - Always skip intros, without asking. Default: `false`
-- `skip_intro_enable` - Offer to skip intros. With the Jellyfin player UI
-  (`osc_style: mpvtk`) this shows a floating "Skip Intro" button during the
-  intro (even while the controls are hidden); with other UIs it shows the
-  classic seek-to-skip prompt. Default: `true`
-- `skip_credits_always` - Always skip credits, without asking. Default: `false`
-- `skip_credits_enable` - Offer to skip credits (same behavior as
-  `skip_intro_enable`). Default: `true`
+- `off` - ignore this kind of segment.
+- `ask` - offer to skip it. With the Jellyfin player UI (`osc_style: mpvtk`)
+  that is a floating "Skip …" button during the segment, shown even while the
+  controls are hidden; with other UIs it is the classic seek-to-skip prompt.
+- `always` - skip it silently, with a brief "Skipped …" message.
+
+Settings, and their defaults:
+
+- `segment_intro` - Intros. Default: `ask`
+- `segment_outro` - Credits. Default: `ask`
+- `segment_commercial` - Commercials. Default: `off`
+- `segment_preview` - Previews. Default: `off`
+- `segment_recap` - Recaps. Default: `off`
+
+The last three default to off, as they do in jellyfin-web: they are far less
+common, and a segment skipped out from under you is worse than one you have
+to skip yourself.
+
+**These replace `skip_intro_always`, `skip_intro_enable`, `skip_credits_always`
+and `skip_credits_enable`, and ARE migrated from them** — `always` wins over
+`enable`, so an install that skipped intros automatically still does.
 - `skip_intro_on_seek` - Seeking forward during an intro/credits window skips
   the whole segment. Applies to keyboard and remote seeks only; scrubbing or
   seeking from the Jellyfin player UI never triggers it (use its Skip button).

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Optional
 
 from . import conffile
 from .utils import synchronous, Timer
+from .media import segment_labels
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
 from .player_reporting import ReportingMixin
@@ -19,6 +20,7 @@ from . import player_window
 from .player_window import WindowMixin, wlog
 from .mpv_options import build_mpv_options, mpv_scripts, resolve_osc_style
 from .session_reporter import SessionReporter
+from . import conf
 from .conf import settings
 from .menu import OSDMenu
 from .osc_bridge import OscBridge
@@ -1434,12 +1436,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         prev_hud_skip = self._hud_skip
         try:
             if (
-                (
-                    settings.skip_intro_always
-                    or settings.skip_intro_enable
-                    or settings.skip_credits_always
-                    or settings.skip_credits_enable
-                )
+                conf.any_segment_wanted()
                 and not self.syncplay.is_enabled()
                 and self._video is not None
                 and self._player.playback_time is not None
@@ -1458,26 +1455,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 )
 
                 if intro is not None:
-                    should_prompt = (
-                        intro.type != "Outro" and settings.skip_intro_enable
-                    ) or (intro.type == "Outro" and settings.skip_credits_enable)
-                    should_skip = (not intro.has_triggered) and (
-                        (intro.type != "Outro" and settings.skip_intro_always)
-                        or (intro.type == "Outro" and settings.skip_credits_always)
-                    )
+                    action = conf.segment_action(intro.type)
+                    should_prompt = action == "ask"
+                    should_skip = (not intro.has_triggered
+                                   and action == "always")
 
                     if should_skip and ready_to_skip:
                         intro.has_triggered = True
                         self.skip_intro()
                         self._player.show_text(
-                            (
-                                _("Skipped Credits")
-                                if intro.type == "Outro"
-                                else _("Skipped Intro")
-                            ),
-                            3000,
-                            1,
-                        )
+                            segment_labels(intro.type)[1], 3000, 1)
                         self._last_intro_msg_time = time.time()
 
                     if hud_skip_button:
@@ -1491,14 +1478,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         and time.time() - self._last_intro_msg_time > 3
                     ):
                         self._player.show_text(
-                            (
-                                _("Seek to Skip Credits")
-                                if intro.type == "Outro"
-                                else _("Seek to Skip Intro")
-                            ),
-                            3000,
-                            1,
-                        )
+                            segment_labels(intro.type)[2], 3000, 1)
                         self._last_intro_msg_time = time.time()
                     self.is_in_intro = True
                 else:
