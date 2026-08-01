@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-07-30 02:32+0000\n"
+"PO-Revision-Date: 2026-08-01 17:49+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1252,11 +1252,11 @@ msgstr "Automàtic"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Poster"
-msgstr ""
+msgstr "Pòster"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "Miniatura"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1278,7 +1278,7 @@ msgstr "Disc"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Artwork"
-msgstr ""
+msgstr "Art"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -1300,16 +1300,16 @@ msgstr "Sèries"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
-msgstr ""
+msgstr "Llista en comptes de graella"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
-msgstr ""
+msgstr "Està emmagatzemat al teu servidor i compartit amb Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Paginat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -1325,11 +1325,11 @@ msgstr "Configuració"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "Fet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Avís"
 
 # seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1339,11 +1339,11 @@ msgstr "D'acord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "La còpia al porta-retalls no està disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "Enganxar des del porta-retalls no es troba disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1354,11 +1354,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
-msgstr ""
+msgstr "Fes servir MPV 0.41 o successiu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "Porta-retalls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1434,12 +1434,12 @@ msgstr "Especials"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "Temporada %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Downloading %d%%"
-msgstr ""
+msgstr "S'està descarregant %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Downloading"
@@ -1447,7 +1447,7 @@ msgstr "S'està descarregant"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
-msgstr ""
+msgstr "Posat a la cua"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Failed"
