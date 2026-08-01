@@ -215,6 +215,118 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertIn(("chapter_seek", (-1,)), ctl.transport)
         self.assertIn(("chapter_seek", (1,)), ctl.transport)
 
+class TestHudScrimAndAutohide(unittest.TestCase):
+    """#620: the shading over the picture was the first thing anyone
+    mentioned, and the controls never hid on a paused film."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.conf import settings
+        self.settings = settings
+        for key in ("hud_scrim", "hud_autohide", "hud_hide_secs",
+                    "hud_sub_margin"):
+            self.addCleanup(setattr, settings, key, getattr(settings, key))
+
+    def _browser(self):
+        ctl = HudController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
+                       "title": "Movie", "position": 50.0,
+                       "duration": 100.0, "paused": False,
+                       "volume": 80, "muted": False}
+        return b, ctl
+
+    def _scrims(self, style):
+        self.settings.hud_scrim = style
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        return [n for n in nodes if n.get("t") == "grad"]
+
+    def test_the_default_shading_is_shorter_than_it_was(self):
+        """It was ~2.2x the bar plus headroom that bought nothing; what is
+        left is the part the controls actually sit on."""
+        grads = self._scrims("default")
+        self.assertTrue(grads)
+        self.assertLessEqual(max(g["h"] for g in grads), 300)
+
+    def test_half_halves_the_bottom_ramp(self):
+        full = max(g["h"] for g in self._scrims("default"))
+        half = max(g["h"] for g in self._scrims("half"))
+        self.assertAlmostEqual(half, full / 2, delta=2)
+
+    def test_half_leaves_the_TOP_band_alone(self):
+        """Halving it too put the title and the top-row buttons in the
+        fading half of a 65px ramp — unreadable over a bright frame, for a
+        strip of picture nobody was looking at."""
+        top_full = min(g["h"] for g in self._scrims("default"))
+        top_half = min(g["h"] for g in self._scrims("half"))
+        self.assertEqual(top_half, top_full,
+                         "the top scrim was halved with the bottom one")
+
+    def _bar(self, style):
+        self.settings.hud_scrim = style
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        return next(n for n in nodes if n.get("id") == "hud-bar")
+
+    def test_panel_draws_no_gradient_and_backs_the_bars_instead(self):
+        self.assertEqual(self._scrims("panel"), [])
+        self.assertTrue(self._bar("panel").get("a", 255) > 0,
+                        "the bar has no band behind it")
+
+    def test_the_bars_exist_as_nodes_even_with_nothing_drawn(self):
+        """The renderer holds the auto-hide off while the pointer is over
+        them, which means it has to find them in the scene -- and layout
+        only emits a container that has something to draw."""
+        self.assertEqual(self._bar("none").get("a"), 0)
+
+    def test_none_draws_nothing_and_asks_for_the_text_halo(self):
+        """Legibility has to come from somewhere: with no shading the
+        renderer gives the glyphs a dark halo instead."""
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.assertEqual(self._scrims("none"), [])
+        self.settings.hud_scrim = "none"
+        self.assertTrue(HudMixin().hud_key_opts()["shadow"])
+        self.settings.hud_scrim = "default"
+        self.assertFalse(HudMixin().hud_key_opts()["shadow"])
+
+    def test_the_bars_carry_the_ids_the_renderer_hover_test_needs(self):
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        present = ids(nodes)
+        for nid in ("hud-bar", "hud-topbar"):
+            self.assertIn(nid, present)
+
+    def test_the_autohide_policy_travels_with_the_engage(self):
+        """Which is what makes a settings change stick without a restart:
+        engage re-sends it every time."""
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.settings.hud_autohide = "always"
+        self.settings.hud_hide_secs = 1.5
+        opts = HudMixin().hud_key_opts()
+        self.assertEqual(opts["mode"], "always")
+        self.assertEqual(opts["hide"], 1.5)
+
+    def test_subtitles_can_be_left_where_they_are(self):
+        from unittest import mock
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+        import jellyfin_mpv_shim.player as player_mod
+
+        class _P:
+            sub_pos = 100
+            sub_margin_y = 22
+
+        pm = mock.Mock(_player=_P())
+        gw = HudMixin()
+        self.settings.hud_sub_margin = False
+        with mock.patch.object(player_mod, "playerManager", pm):
+            gw.hud_sub_margin(True)
+        self.assertEqual(_P.sub_margin_y, 22, "subtitles were moved anyway")
+
+
 class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
     def _browser(self, size=(1280, 720)):
         ctl = HudController()

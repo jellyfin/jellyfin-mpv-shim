@@ -87,6 +87,8 @@ SECTIONS = [
                       "remember_window_size",
                       "fullscreen", "osc_style",
                       "hud_grab_keys", "hud_wake_key",
+                      "hud_scrim", "hud_autohide", "hud_hide_secs",
+                      "hud_sub_margin",
                       "mouse_chapter_nav", "raise_mpv",
                       "discord_presence",
                       "check_updates", "notify_updates"]),
@@ -163,6 +165,17 @@ LABELED_ENUMS = {
     # Every label points at the value it has always pointed at -- "Small" is
     # the base size, which reads oddly beside two smaller steps but is the
     # price of not silently re-pointing a string 86 locales have translated.
+    "hud_scrim": [
+        (_("Default"), "default"),
+        (_("Half height"), "half"),
+        (_("Panel behind the controls"), "panel"),
+        (_("None (shadowed text)"), "none"),
+    ],
+    "hud_autohide": [
+        (_("Hide unless hovered"), "hover"),
+        (_("Always hide"), "always"),
+        (_("Never hide while paused"), "paused"),
+    ],
     "poster_scale": [
         (_("Theme default"), None),
         (_("Extra Compact"), 0.75),
@@ -218,6 +231,10 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "hud_scrim": _("Shading Behind the Player Controls"),
+    "hud_autohide": _("When the Player Controls Hide"),
+    "hud_hide_secs": _("Hide the Player Controls After (seconds)"),
+    "hud_sub_margin": _("Raise Subtitles Above the Player Controls"),
     "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
@@ -316,6 +333,16 @@ NOTES = {
     "poster_scale": _("Overrides the theme's cover size. Applies "
                       "immediately, and is also on the View menu of any "
                       "library."),
+    "hud_scrim": _("The controls have to stay legible over any frame. "
+                   "\"None\" gives the text a drop shadow instead of "
+                   "shading the picture behind it."),
+    "hud_autohide": _("\"Hide unless hovered\" keeps them up only while "
+                      "the pointer is on them, paused or not."),
+    "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
+                       "them, and forces \"Hide unless hovered\"."),
+    "hud_sub_margin": _("Subtitles move up while the controls show so the "
+                        "bar does not cover them. Turn this off if the "
+                        "movement is more distracting than the overlap."),
     "mouse_chapter_nav": _("During playback only — in the library those "
                            "buttons stay Back and Forward. Off by default "
                            "because they are easy to hit by accident on some "

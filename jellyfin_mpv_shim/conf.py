@@ -373,6 +373,19 @@ class Settings(SettingsBase):
     # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
     # name was retired once the HUD reached parity).
     osc_style: str = "mpvtk"
+    # Playback HUD looks and lifecycle (osc_style "mpvtk"). The scrim
+    # is what makes the controls legible over any frame; "none" pays
+    # for that with a drop shadow on the text instead.
+    hud_scrim: str = "default"
+    # When the controls hide: "hover" (they stay while the pointer is
+    # on them, paused or not), "always" (the timer, regardless), or
+    # "paused" (the timer, but never while paused).
+    hud_autohide: str = "hover"
+    # Seconds of no input before they hide. 0 means "as soon as the
+    # pointer is not on them", and forces the hover mode.
+    hud_hide_secs: float = 4.0
+    # Raise bottom subtitles clear of the bar while it shows.
+    hud_sub_margin: bool = True
     # Scale factor for the whole in-player UI (tiles, text, chrome).
     # null follows the display: mpv's display-hidpi-scale, which is 1.0
     # on X11 and the compositor's factor on Wayland/macOS. Set a number

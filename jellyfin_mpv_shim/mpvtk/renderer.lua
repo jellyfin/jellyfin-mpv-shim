@@ -183,7 +183,10 @@ local state = {
     snap_timer = nil,
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
     -- video, summoned by nav keys / mouse motion, auto-hides
-    phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1 },
+    phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1,
+             -- auto-hide policy and the no-scrim text halo, pushed
+             -- with the engage (mpvtk-hud) so setting changes stick
+             hide_s = 4, hide_mode = 'hover', shadow = false },
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
@@ -686,6 +689,13 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
     if state.glow and node.bold and (node.size or 0) >= 22 then
         glow = string.format('\\bord2\\blur6\\3c%s\\3a&H30&',
                              ass_color(state.accent))
+    elseif state.phud.shown and state.phud.shadow then
+        -- The scrim is what normally makes HUD text legible over any
+        -- frame. With hud_scrim "none" there is nothing behind it, so the
+        -- glyphs carry their own dark halo instead. Scoped to a summoned
+        -- HUD, which is the only thing on screen while it is up -- no node
+        -- needs to declare anything.
+        glow = '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&'
     end
     ass:append(string.format(
         '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
@@ -704,9 +714,13 @@ local function draw_icon_path(ass, path, x, y, px, color, clip)
     local scale = px / 24 * 100
     ass:new_event()
     ass:append(string.format(
-        '{\\pos(%.1f,%.1f)\\an7\\bord0\\shad0\\1c%s\\1a&H00&' ..
+        '{\\pos(%.1f,%.1f)\\an7%s\\shad0\\1c%s\\1a&H00&' ..
         '\\fscx%.2f\\fscy%.2f%s\\p1}',
-        x, y, ass_color(color), scale, scale, clip_tag(clip)))
+        x, y,
+        -- see draw_text: with no scrim the glyph carries its own halo
+        (state.phud.shown and state.phud.shadow)
+            and '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&' or '\\bord0',
+        ass_color(color), scale, scale, clip_tag(clip)))
     ass:append(path)
     ass:append('{\\p0}')
 end
@@ -4360,7 +4374,14 @@ end)
 -- tears it back down to idle. While idle, every other key keeps its
 -- mpv default (space pauses, q quits, …).
 
-local PHUD_HIDE_S = 4
+-- Default auto-hide delay, and the floor an explicit one is clamped
+-- to. Zero is a legal setting -- it means "gone the moment the
+-- pointer is not on the controls" -- but a literal zero would also
+-- blink them out in the same frame as the mouse motion that
+-- summoned them, so the timer never runs shorter than the floor.
+-- One table, not two locals: this chunk is at LuaJIT's 200-local ceiling
+-- (tests/test_renderer_lua.py reports the headroom).
+local PHUD_HIDE = { def = 4, min = 0.5 }
 -- How long the standalone Skip button stays up on its own after a
 -- segment starts. Independent of the HUD: it runs whether or not the
 -- bar is summoned, so the offer is on screen for the same window
@@ -4494,22 +4515,57 @@ local function phud_disarm()
 end
 
 -- Interactions the auto-hide must not interrupt; checked at expiry
--- (the timer re-arms instead of hiding). Paused playback also keeps
--- the HUD up — hiding the controls the moment someone pauses is the
--- opposite of what pausing means. nav_adjust is deliberately NOT
+-- (the timer re-arms instead of hiding). nav_adjust is deliberately NOT
 -- here: the bar wakes in adjust mode by default, and an actual scrub
 -- gesture pauses playback, which already holds the HUD open.
+--
+-- Two of these are the hud_autohide setting rather than a rule:
+--
+--   * The POINTER RESTING ON THE CONTROLS holds them up, in every mode but
+--     'always'. Reaching for a button and then reading its tooltip must not
+--     be a race against the timer, and it is what makes a short delay --
+--     down to none -- usable: the controls go when you are not using them
+--     rather than when you stop moving.
+--   * PAUSED playback held them up unconditionally, on the reasoning that
+--     hiding the controls the moment someone pauses is the opposite of what
+--     pausing means. It is also how you end up unable to look at the frame
+--     you paused to look at (#620), so it is now the 'paused' mode.
 local function phud_busy()
-    return state.dd_open ~= nil or state.modal ~= nil
+    if state.dd_open ~= nil or state.modal ~= nil
         or state.tb_menu ~= nil or state.slider_drag ~= nil
         or state.pressed ~= nil
-        or active_menu() ~= nil
-        or mp.get_property_native('pause', false)
+        or active_menu() ~= nil then
+        return true
+    end
+    if state.phud.hide_mode == 'paused'
+        and mp.get_property_native('pause', false) then
+        return true
+    end
+    if state.phud.hide_mode ~= 'always' then
+        -- Over either bar: the ids are the contract (hud.py gives the top
+        -- row and the transport column one for exactly this). Falling back
+        -- to "over any clickable node" would flicker in the gaps between
+        -- buttons, which is most of the bar's area.
+        local mx, my = state.mouse.x, state.mouse.y
+        for _, id in ipairs({ 'hud-bar', 'hud-topbar' }) do
+            local bar = state.byid[id]
+            if bar then
+                local bx, by = eff(bar)
+                if mx >= bx and mx <= bx + bar.w
+                    and my >= by and my <= by + bar.h then
+                    return true
+                end
+            end
+        end
+    end
+    return false
 end
 
 local function phud_arm()
     phud_disarm()
-    state.phud.timer = mp.add_timeout(PHUD_HIDE_S, function()
+    local delay = math.max(PHUD_HIDE.min,
+                           state.phud.hide_s or PHUD_HIDE.def)
+    state.phud.timer = mp.add_timeout(delay, function()
         state.phud.timer = nil
         if not (state.phud.mode and state.phud.shown) then return end
         if phud_busy() then
@@ -4654,6 +4710,15 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         local opts = opts_json and utils.parse_json(opts_json) or nil
         state.phud.grab = (opts and opts.grab) or false
         state.phud.wake_key = (opts and opts.key) or 'ENTER'
+        state.phud.hide_s = (opts and opts.hide) or 0
+        state.phud.hide_mode = (opts and opts.mode) or 'hover'
+        state.phud.shadow = (opts and opts.shadow) or false
+        if state.phud.hide_s <= 0 then
+            -- A zero delay only means anything as "gone the moment the
+            -- pointer leaves the controls"; with no pointer test it is a
+            -- HUD the mouse cannot summon at all.
+            state.phud.hide_mode = 'hover'
+        end
     end
     if want == state.phud.mode then return end
     if want then

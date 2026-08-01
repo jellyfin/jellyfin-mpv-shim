@@ -1145,6 +1145,81 @@ type_text("Z")
 click("elsewhere")
 ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
 
+-- =================================================== HUD auto-hide
+
+-- The controls' auto-hide is a policy (hud_autohide), and the pointer
+-- resting ON them holds it off in every mode but 'always'. Reaching for a
+-- button must not be a race against the timer.
+
+local function hud_engage(opts)
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
+    -- Pointer movement is what summons an idle HUD, and the first event
+    -- after engaging only records the position.
+    fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+    fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+    -- What hud.py pushes once summoned: two bars carrying the ids
+    -- phud_busy tests the pointer against.
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+end
+
+local function hud_pointer(x, y)
+    fake.observe("mouse-pos", { x = x, y = y, hover = true })
+end
+
+local function hud_wait()
+    fake.advance(30)
+    fake.fire_timers()
+end
+
+local function hud_hidden()
+    local ev = last_event("hud")
+    return ev ~= nil and ev.active == false
+end
+
+hud_engage({ hide = 4, mode = "hover" })
+hud_pointer(600, 680)          -- onto the bar
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "the controls stay up while the pointer is on them")
+
+hud_pointer(600, 300)          -- back over the picture
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "they hide once the pointer is off them")
+
+-- 'always' does not care where the pointer is.
+hud_engage({ hide = 4, mode = "always" })
+hud_pointer(600, 680)
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "'always' hides them even under the pointer")
+
+-- A zero delay is only meaningful as "gone when not hovered", so it forces
+-- that mode however the mode was set.
+hud_engage({ hide = 0, mode = "always" })
+hud_pointer(600, 680)
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(),
+   "a zero delay still holds while the pointer is on the controls")
+
+-- Paused playback stopped being a rule and became a mode.
+fake.log.props["pause"] = true
+hud_engage({ hide = 4, mode = "paused" })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "'paused' keeps them up on a paused film")
+
+hud_engage({ hide = 4, mode = "hover" })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "the default hides them on a paused film")
+fake.log.props["pause"] = nil
+
 -- ========================================================== teardown
 
 scene({})

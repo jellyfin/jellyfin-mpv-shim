@@ -287,6 +287,35 @@ You can use the config file to enable and disable features.
   driving while they are hidden, and that takes keyboard control of controls
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
+- `hud_scrim` - How the picture is shaded behind the player controls, so they
+  stay legible over any frame. One of `default`, `half`, `panel`, `none`.
+  Default: `default`
+  - `default` is a gradient rising from the bottom of the window (and a
+    smaller one from the top, under the title).
+  - `half` is the same gradient, half as tall. The controls end up nearer the
+    faded end of it, which is the trade.
+  - `panel` is a flat band exactly the height of each bar — a hard edge, and
+    nothing washed over the picture above it.
+  - `none` draws no shading at all and gives the controls' text and icons a
+    dark halo instead. Legibility has to come from somewhere; this is the
+    option that pays for it in the glyphs rather than in the picture.
+- `hud_autohide` - When the player controls hide. One of `hover`, `always`,
+  `paused`. Default: `hover`
+  - `hover` keeps them up only while the pointer is on them — paused or not.
+  - `always` runs the timer regardless, including while paused.
+  - `paused` runs the timer but never hides while playback is paused (what
+    earlier versions always did).
+- `hud_hide_secs` - Seconds of no input before the player controls hide.
+  Default: `4.0`
+  - `0` means "as soon as the pointer is not on them", and forces `hover`
+    mode — a zero delay means nothing without a pointer test, since mouse
+    motion is also what summons them. The timer never runs shorter than
+    0.5s, so the controls cannot blink out in the same frame they appear.
+- `hud_sub_margin` - Raise bottom subtitles clear of the controls while they
+  are showing. Default: `true`
+  - Already skipped for top- and middle-positioned subtitles. Turn it off if
+    the subtitles moving as the controls appear is more distracting than the
+    bar covering them.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
   during playback. Off by default: they are easy to hit by accident on

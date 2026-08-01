@@ -28,11 +28,22 @@ class HudMixin(GatewayCore):
         return playerManager.trickplay_meta
 
     def hud_key_opts(self):
-        """Keyboard policy for the idle HUD ({"grab", "key"}): by
-        default only hud_wake_key is taken over during playback so
-        mpv's own seek keys keep working."""
+        """Everything the renderer owns about the HUD, sent with the engage.
+
+        Keyboard policy ("grab"/"key"): by default only hud_wake_key is taken
+        over during playback so mpv's own seek keys keep working.
+
+        Auto-hide policy ("hide"/"mode") and the no-scrim text halo
+        ("shadow") ride the same message, because the renderer owns the
+        summon/hide lifecycle and draws the glyphs -- and because engage
+        re-sends them, which is what makes a settings change stick without a
+        restart.
+        """
         return {"grab": bool(settings.hud_grab_keys),
-                "key": settings.hud_wake_key or "ENTER"}
+                "key": settings.hud_wake_key or "ENTER",
+                "hide": max(0.0, float(settings.hud_hide_secs or 0)),
+                "mode": settings.hud_autohide or "hover",
+                "shadow": settings.hud_scrim == "none"}
 
     def hud_menu_state(self):
         """osc_bridge's menu/track state blob for the HUD's pickers
@@ -111,11 +122,13 @@ class HudMixin(GatewayCore):
     def hud_sub_margin(self, visible):
         """Raise bottom subtitles above the HUD's bar while it is
         summoned; restore on hide. Skipped for top/middle-positioned
-        subtitles (sub-pos < 50), like the lua OSC."""
+        subtitles (sub-pos < 50), like the lua OSC, and switchable off
+        entirely: subtitles jumping as the controls appear is distracting if
+        you are reading them (#620)."""
         from ...player import playerManager
         try:
             player = playerManager._player
-            if visible:
+            if visible and settings.hud_sub_margin:
                 sub_pos = player.sub_pos
                 if sub_pos is not None and sub_pos < 50:
                     return

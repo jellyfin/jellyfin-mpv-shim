@@ -44,8 +44,33 @@ log = logging.getLogger("mpvtk_browser.hud")
 # the bar's height for the title/slider to sit on dark instead of the
 # ramp's transparent half. Capped by a window fraction so short
 # windows keep most of the picture clean.
-SCRIM_FRAC = 0.55
-SCRIM_MAX = 380
+#
+# Lowered from 0.55/380 after #620, where the shadow over the picture was
+# the first thing anyone mentioned. This is still ~2.2x the bar; what went
+# was the headroom above that, which was buying nothing.
+SCRIM_FRAC = 0.42
+SCRIM_MAX = 300
+# Top scrim, same relation to the header's height.
+TOP_SCRIM_FRAC = 0.20
+TOP_SCRIM_MAX = 130
+# "half": the same ramp, half as tall. The bar's own text ends up nearer
+# the fade than the solid end, which is the trade the option exists to
+# offer.
+#
+# BOTTOM ONLY. The top band is already the small one (TOP_SCRIM_FRAC is
+# less than half of SCRIM_FRAC), and halving it puts the title and the
+# top-row buttons in the fading half of a 65px ramp -- unreadable over a
+# bright frame, for a strip of picture nobody was looking at. What this
+# option is for is the wash over the *middle* of the picture, and that is
+# the bottom ramp's headroom.
+HALF_SCRIM = 0.5
+# "panel": a flat band exactly the height of the bar rather than a ramp --
+# a hard edge, and no wash over the picture above it. Opacity, 255 opaque.
+# Black rather than theme.SCRIM: the HUD is drawn over VIDEO and stays dark
+# whatever the theme does (see mpvtk.theme), which is why the gradients
+# above are a literal too.
+PANEL_BG = "000000"
+PANEL_ALPHA = 170
 
 # Bottom inset of the Skip Intro/Credits button, measured to its BOTTOM
 # edge so the two implementations line up whatever the label's measured
@@ -520,6 +545,45 @@ def _skip_float(b, size):
         anchor="se", dx=-_SKIP_RIGHT, dy=-_SKIP_BOTTOM)
 
 
+def _panel():
+    """Box styling for the two bars: a flat translucent band under the
+    "panel" scrim, and an invisible one otherwise.
+
+    Invisible rather than absent because the renderer needs the bars to
+    EXIST as scene nodes: it holds the auto-hide off while the pointer is
+    over them (phud_busy), and layout only emits a node for a container that
+    has a fill, a border or a click. Alpha 0 costs one ASS event that draws
+    nothing, and the node is not a hit target -- node_at ignores a rect with
+    no click, tip or hover of its own.
+    """
+    return {"bg": PANEL_BG,
+            "alpha": PANEL_ALPHA if settings.hud_scrim == "panel" else 0}
+
+
+def _scrim(h, w):
+    """The wash behind the controls, per ``hud_scrim``.
+
+    It is not decoration: white-on-white is what the controls hit without
+    it, over a frame nobody chose. So "none" is not simply the absence of
+    the others -- it moves the job onto the glyphs, which is the ``shadow``
+    flag the renderer draws them with (see gateway.hud_key_opts).
+    """
+    style = settings.hud_scrim
+    if style in ("none", "panel"):
+        return []          # panel paints as the bars' own background
+    scale = HALF_SCRIM if style == "half" else 1.0
+    return [
+        Gradient(color="000000", top=0, bottom=215, w=w,
+                 h=int(min(h * SCRIM_FRAC, SCRIM_MAX) * scale), anchor="sw"),
+        # top scrim: dense at the top, same relation to the header's height
+        # as the bottom one has to the bar's. Full height even under
+        # "half" -- see HALF_SCRIM.
+        Gradient(color="000000", top=170, bottom=0, w=w,
+                 h=int(min(h * TOP_SCRIM_FRAC, TOP_SCRIM_MAX)),
+                 anchor="nw"),
+    ]
+
+
 def build_hud(b, size):
     """The summoned HUD scene. ``b`` is the Browser (playstate snapshot,
     scrub state, controller plumbing); returns the full-window tree."""
@@ -692,8 +756,11 @@ def build_hud(b, size):
         # touch it directly: an unsized Row wrapper stretches to the
         # column width and flex=1 spreads the slider inside it
         Row([seek], align="center")]) + [transport]
+    # id: renderer.lua's phud_busy holds the auto-hide off while the pointer
+    # is over the controls, and these two rects are what "over the controls"
+    # means (hover mode). Also where the "panel" scrim paints.
     bar = Column(bar_rows, gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
-                 align="stretch")
+                 align="stretch", id="hud-bar", **_panel())
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.
@@ -726,18 +793,9 @@ def build_hud(b, size):
             tip=_("SyncPlay"),
             fg=theme.ACCENT if syncplay.get("enabled") else "eeeeee"))
     top = Row(top_items, gap=sz(10), pad=(sz(24), sz(10)), w=w,
-              anchor="n", align="center")
+              anchor="n", align="center", id="hud-topbar", **_panel())
 
-    children = [
-        Gradient(color="000000", top=0, bottom=215, w=w,
-                 h=min(int(h * SCRIM_FRAC), SCRIM_MAX), anchor="sw"),
-        # top scrim: dense at the top, ~2.2x the header height so the
-        # title sits on the solid half (same math as the bottom scrim)
-        Gradient(color="000000", top=170, bottom=0, w=w,
-                 h=min(int(h * 0.25), 160), anchor="nw"),
-        bar,
-        top,
-    ]
+    children = _scrim(h, w) + [bar, top]
 
     skip = _skip_float(b, size)
     if skip is not None:
