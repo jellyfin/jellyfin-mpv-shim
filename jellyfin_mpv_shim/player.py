@@ -822,10 +822,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         p.on_key_press("I")(self._on_stats_toggle)
         if settings.mouse_chapter_nav:
             # Playback only, and that is the renderer's doing rather than
-            # ours: while the library is up its mouse group is enabled ON
-            # TOP of this section, so back is still Back and forward is
-            # still forward there. Suspending that group for playback is
-            # what uncovers these. Bound at mpv creation like every other
+            # ours: while the LIBRARY is up its mpvtk_thumb group is enabled
+            # on top of this section, so back is still Back and forward is
+            # still forward there. A summoned playback HUD leaves that group
+            # disabled -- the thumb buttons belong to whatever the user has
+            # under them over a film -- so these apply for the whole of
+            # playback, bar and all. Bound at mpv creation like every other
             # key, so the setting needs a restart.
             p.on_key_press("MBTN_BACK")(self._on_chapter_prev_key)
             p.on_key_press("MBTN_FORWARD")(self._on_chapter_next_key)

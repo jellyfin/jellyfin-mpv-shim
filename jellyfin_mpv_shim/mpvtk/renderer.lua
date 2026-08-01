@@ -4021,25 +4021,31 @@ mp.set_key_bindings({
     { 'shift+mbtn_left_dbl', function() end },
     { 'ctrl+mbtn_left_dbl', function() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
-    -- The thumb button is Back wherever the pointer is ours, and it is
-    -- routed as a synthetic ESC rather than given a handler of its own:
-    -- ESC already steps out exactly one layer (scrub -> popup ->
-    -- menu/dialog -> the HUD, or one page off the browser's nav stack,
-    -- whose base case lives in Python on the player's ESC binding), and
-    -- a second implementation of that ladder would drift from it.
-    -- Deliberately in this group and not a forced binding of its own:
-    -- the group is disabled while video plays, which leaves mpv's own
-    -- MBTN_BACK (playlist-prev -> previous queue item) alone.
+}, 'mpvtk_mouse', 'force')
+-- The thumb buttons, in a section of their OWN so the playback HUD can
+-- decline them (see ui_resume).
+--
+-- Back is routed as a synthetic ESC rather than given a handler: ESC
+-- already steps out exactly one layer (scrub -> popup -> menu/dialog -> the
+-- HUD, or one page off the browser's nav stack, whose base case lives in
+-- Python on the player's ESC binding), and a second implementation of that
+-- ladder would drift from it. Forward has no key to ride on -- nothing in
+-- mpv or the app means "forward" -- so it is an event and the app decides;
+-- windowless like `nav`/`hud` rather than addressed to a node, because
+-- history belongs to the app and not to whatever the pointer is over. An
+-- app that registers no handler simply ignores it.
+--
+-- Separate from mpvtk_mouse because BROWSE wants them and a summoned
+-- playback HUD must not: over a film these are the buttons people have
+-- bound to something of their own (mpv's playlist-prev/next, or the shim's
+-- own chapter nav -- mouse_chapter_nav), and an accidental thumb press
+-- taking the player away is not a trade worth making for a second way to
+-- dismiss the bar. ESC is still ESC.
+mp.set_key_bindings({
     { 'mbtn_back', function() end,
       function() mp.commandv('keypress', 'ESC') end },
-    -- Its pair has no key to ride on -- nothing in mpv or the app means
-    -- "forward" -- so it is an event and the app decides. Windowless like
-    -- `nav`/`hud` rather than addressed to a node: history belongs to the
-    -- app, not to whatever the pointer happens to be over. An app that
-    -- registers no handler simply ignores it. Scoped like mbtn_back, so
-    -- playlist-next survives mid-playback.
     { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
-}, 'mpvtk_mouse', 'force')
+}, 'mpvtk_thumb', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
     { 'wheel_down', function(e) on_wheel(1, 'y', e) end },
@@ -4050,6 +4056,10 @@ mp.set_key_bindings({
 }, 'mpvtk_wheel', 'force')
 mp.enable_key_bindings('mpvtk_mouse')
 mp.enable_key_bindings('mpvtk_wheel')
+-- set_key_bindings DEFINES a section; it does not enable it. Browse owns
+-- the thumb buttons from the moment the renderer loads, and the app does
+-- not necessarily transition mpvtk-active to get there (see below).
+mp.enable_key_bindings('mpvtk_thumb')
 
 mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
     state.hud = not state.hud
@@ -4426,6 +4436,13 @@ end)
 local function ui_resume(no_nav)
     mp.enable_key_bindings('mpvtk_mouse')
     mp.enable_key_bindings('mpvtk_wheel')
+    -- Browse takes the thumb buttons; a summoned playback HUD leaves them
+    -- to whatever the user has under them. See the mpvtk_thumb bindings.
+    if state.phud.mode then
+        mp.disable_key_bindings('mpvtk_thumb')
+    else
+        mp.enable_key_bindings('mpvtk_thumb')
+    end
     -- no_nav: the playback HUD came up under the pointer with
     -- hud_grab_keys off — the mouse drives it and the arrows stay
     -- mpv's seek keys. Browse always takes the arrows.
@@ -4460,6 +4477,7 @@ local function ui_suspend()
     state.modal = nil
     mp.disable_key_bindings('mpvtk_mouse')
     mp.disable_key_bindings('mpvtk_wheel')
+    mp.disable_key_bindings('mpvtk_thumb')
     mp.remove_key_binding('mpvtk_hud')
     state.nodes = {}
     state.byid = {}
@@ -4475,6 +4493,17 @@ end
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     phud_clear()
+    -- Re-assert the thumb section BEFORE the early return. phud_clear may
+    -- have just left HUD mode, and the return below fires whenever `active`
+    -- did not change -- which is the case both at startup (state.active
+    -- begins true, so the app's first 'yes' is a no-op) and whenever browse
+    -- resumes from a SUMMONED HUD (phud_summon set active itself). In both,
+    -- ui_resume never runs, so a section left disabled by the HUD would
+    -- stay disabled for the rest of the session: mouse Back does nothing in
+    -- the library until a playback round trip happens to hide the bar first.
+    if want and not state.phud.mode then
+        mp.enable_key_bindings('mpvtk_thumb')
+    end
     if want == state.active then return end
     state.active = want
     -- mirrored so the player can route remote navigation commands to

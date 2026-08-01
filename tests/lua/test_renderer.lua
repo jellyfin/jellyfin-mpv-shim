@@ -1145,6 +1145,50 @@ type_text("Z")
 click("elsewhere")
 ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
 
+-- ================================================ thumb-button sections
+
+-- The thumb buttons are the browser's Back/Forward, but over a FILM they
+-- are whatever the user has under them -- mpv's playlist-prev/next, or the
+-- shim's own chapter nav. So they are declared in their own key-binding
+-- section, which a summoned playback HUD leaves disabled: an accidental
+-- thumb press must not take the player away, and there was no reason for
+-- the HUD to own a second way to dismiss itself when ESC already does.
+ok(fake.log.sections["mpvtk_thumb"] ~= nil,
+   "the thumb buttons have no section of their own to decline")
+ok((fake.log.sections["mpvtk_thumb"] or {})["mbtn_back"]
+   and (fake.log.sections["mpvtk_thumb"] or {})["mbtn_forward"],
+   "the thumb buttons are not in mpvtk_thumb")
+ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_back"],
+   "mbtn_back is still in the group the HUD keeps enabled")
+ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_forward"],
+   "mbtn_forward is still in the group the HUD keeps enabled")
+
+-- set_key_bindings DEFINES a section; it does not enable it. Browse owns
+-- these from the moment the renderer loads.
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "the thumb section was never enabled at load")
+
+-- ...and it has to come back afterwards. Two paths reach browse WITHOUT a
+-- mpvtk-active transition -- startup (state.active begins true) and browse
+-- resuming from a summoned HUD (phud_summon set active itself) -- so a
+-- section the HUD disabled would otherwise stay disabled for the session,
+-- and mouse Back would do nothing in the library.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")            -- the no-op transition
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "an already-active mpvtk-active left the thumb section disabled")
+
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+-- (hud_pointer is defined further down; this block runs before it)
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 310, hover = true })  -- summons
+eq(fake.log.enabled["mpvtk_thumb"], false,
+   "a summoned HUD did not decline the thumb buttons")
+fake.send("mpvtk-active", "yes")            -- browse resumes from the HUD
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "browse came back from a summoned HUD with mouse Back still dead")
+fake.send("mpvtk-hud", "no")
+
 -- ============================================== scrollbar drag anchoring
 
 -- The thumb is grabbed at a point, and that point stays under the pointer.
