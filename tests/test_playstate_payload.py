@@ -484,3 +484,47 @@ class TestMouseChapterNavIsOptional(unittest.TestCase):
         self.assertIn("settings.mouse_chapter_nav", src)
         self.assertIn("MBTN_BACK", src)
         self.assertIn("MBTN_FORWARD", src)
+
+
+class TestNoPlayerControls(unittest.TestCase):
+    """#615: "no controls" is a Player Controls Style, not a switch beside
+    it. The old `enable_osc` only ever reached mpv's own OSC, so it did
+    nothing under the default style and then silently blanked the controls
+    if you later chose the mpv one."""
+
+    def _pm(self, style):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._osc_style_resolved = style
+        return pm
+
+    def test_every_other_style_has_controls(self):
+        for style in ("mpvtk", "mpv", "default"):
+            self.assertTrue(self._pm(style).osc_enabled, style)
+
+    def test_none_does_not(self):
+        self.assertFalse(self._pm("none").osc_enabled)
+
+    def test_the_hud_declines_to_engage(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+        import jellyfin_mpv_shim.player as player_mod
+
+        gw = HudMixin()
+        with mock.patch.object(player_mod, "playerManager",
+                               self._pm("none")):
+            self.assertFalse(gw.use_hud())
+        with mock.patch.object(player_mod, "playerManager",
+                               self._pm("mpvtk")):
+            self.assertTrue(gw.use_hud())
+
+    def test_the_skip_prompt_falls_back_to_the_osd(self):
+        """The HUD's Skip button is the mpvtk surface for "ask" mode. With
+        no HUD the OSD "Seek to Skip" prompt is the one left, and it is
+        already what any non-mpvtk style gets -- so this is a check that
+        the branch keys off the style rather than off having a browser."""
+        import inspect
+
+        src = inspect.getsource(PlayerManager.update)
+        self.assertIn('== "mpvtk"', src)
+
+    def test_the_setting_is_gone_rather_than_migrated(self):
+        self.assertFalse(hasattr(settings, "enable_osc"))

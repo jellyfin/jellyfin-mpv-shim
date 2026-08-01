@@ -223,7 +223,6 @@ class Settings(SettingsBase):
     mpv_ext_start_retries: int = 10
     mpv_ext_start_retry_delay_ms: int = 3000
     mpv_ext_no_ovr: bool = False
-    enable_osc: bool = True
     use_web_seek: bool = False
     # Locked-down cast-target mode: the cast screen is the only page, and
     # the library cannot be reached from the machine itself. Replaces

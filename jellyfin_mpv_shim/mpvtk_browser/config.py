@@ -85,7 +85,7 @@ SECTIONS = [
                       "close_to_tray", "allow_background",
                       "start_minimized",
                       "remember_window_size",
-                      "fullscreen", "enable_osc", "osc_style",
+                      "fullscreen", "osc_style",
                       "hud_grab_keys", "hud_wake_key",
                       "mouse_chapter_nav", "raise_mpv",
                       "discord_presence",
@@ -141,6 +141,7 @@ LABELED_ENUMS = {
         (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
+        (_("No player controls"), "none"),
     ],
     "ui_scale": [
         (_("Follow display"), None),
@@ -261,8 +262,11 @@ NOTES = {
                   "editing conf.json. For the classic cast-target setup you "
                   "want the Interface settings instead; this is for a shared "
                   "TV nobody should be able to browse from."),
-    "osc_style": _("Requires restart to change. MPV keybinds are used by default. Press ENTER to drive "
-                   "the player controls by keyboard."),
+    "osc_style": _("Requires restart to change. MPV keybinds are used by "
+                   "default. Press ENTER to drive the player controls by "
+                   "keyboard. \"No player controls\" leaves playback bare; "
+                   "the library, the keyboard shortcuts and the menu key "
+                   "still work."),
     "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. On a grid this "
                              "is rounded so a whole number of notches spans "
                              "one row, whichever scroll mode you are in — a "

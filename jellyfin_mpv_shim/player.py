@@ -683,7 +683,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # is loaded, even if the user's mpv.conf has osc=yes.
             if self._osc_script_loaded:
                 self._player.osc = False
-            self.enable_osc(settings.enable_osc)
+            self.enable_osc(self.osc_enabled)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 
@@ -3102,6 +3102,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
+    @property
+    def osc_enabled(self):
+        """Whether this player is supposed to have on-screen controls at all.
+
+        The style says so: "none" is the option for no controls, replacing
+        the old enable_osc switch, which only ever reached mpv's own OSC and
+        so did nothing under the default style (#615). Callers that hide the
+        controls temporarily -- the OSD menu -- restore to this rather than
+        to a setting of their own.
+        """
+        return getattr(self, "_osc_style_resolved", None) != "none"
+
     def enable_osc(self, enabled: bool):
         if settings.mpv_ext and settings.mpv_ext_no_ovr:
             return  # Don't override user's MPV config
@@ -3118,12 +3130,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     self._player.osc = False
             else:
                 if hasattr(self._player, "osc"):
-                    # The mpvtk playback HUD replaces any OSC — never
-                    # turn the built-in one on under it.
+                    # The mpvtk playback HUD replaces any OSC and "none"
+                    # asked for no controls — never turn the built-in one
+                    # on under either.
                     self._player.osc = (
                         enabled
                         and getattr(self, "_osc_style_resolved", None)
-                        != "mpvtk"
+                        not in ("mpvtk", "none")
                     )
         except _mpv_errors:
             self._handle_mpv_disconnect()

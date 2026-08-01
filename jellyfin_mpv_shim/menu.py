@@ -223,7 +223,7 @@ class OSDMenu(object):
             )
             self.playerManager.show_text("", 0, 0)
 
-            self.playerManager.enable_osc(settings.enable_osc)
+            self.playerManager.enable_osc(self.playerManager.osc_enabled)
             self.playerManager.triggered_menu(False)
             self.playerManager.force_window(False)
 

@@ -86,10 +86,17 @@ class ResolveOscStyleTest(SettingsCase):
         self.assertEqual(mpv_options.resolve_osc_style(), "mpv")
 
     def test_explicit_styles_pass_through(self):
-        for style in ("mpv", "default"):
+        for style in ("mpv", "default", "none"):
             self.set(osc_style=style, enable_gui=True,
                      thumbnail_osc_builtin=True)
             self.assertEqual(mpv_options.resolve_osc_style(), style)
+
+    def test_no_controls_is_not_talked_out_of_it(self):
+        """Both fallbacks exist to find something to draw the HUD with.
+        Someone who asked for nothing has not got a problem to solve."""
+        self.set(osc_style="none", enable_gui=False,
+                 thumbnail_osc_builtin=False)
+        self.assertEqual(mpv_options.resolve_osc_style(), "none")
 
 
 class ScriptListTest(SettingsCase):
@@ -123,6 +130,12 @@ class OscOptionTest(SettingsCase):
     def test_the_builtin_osc_is_held_off_for_both_shim_styles(self):
         for style in ("mpv", "mpvtk"):
             self.assertIs(self.build(style)["osc"], False)
+
+    def test_no_controls_means_mpv_s_own_are_off_too(self):
+        """"none" is the only style that replaces the OSC with nothing, so
+        it is also the only one where forgetting this would leave mpv's own
+        controls as the answer to "no controls please" (#615)."""
+        self.assertIs(self.build("none")["osc"], False)
 
     def test_default_leaves_the_users_osc_alone(self):
         self.assertNotIn("osc", self.build("default"))

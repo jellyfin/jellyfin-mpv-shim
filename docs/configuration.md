@@ -207,8 +207,6 @@ You can use the config file to enable and disable features.
   - **Replaces `snapped_scrolling` and `force_scroll_snapping`, and is not migrated from either.** `snapped_scrolling: true` in an existing config is ignored (with a warning in the log) and you start on `continuous`. It was set when continuous scrolling was not on offer, so keeping it would hold exactly the people who wanted smooth scrolling on the workaround for not having it. Set `scroll_mode` to `row` if you want it back.
 - `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
   - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
-- `enable_osc` - Enable the MPV on-screen controller. Default: `true`
-  - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
   - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
     X11 and the compositor's factor on Wayland/macOS.
@@ -262,6 +260,14 @@ You can use the config file to enable and disable features.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
+  - `none` - No on-screen controls at all. Playback is bare; the library, the
+    keyboard shortcuts and the menu key (`kb_menu`, `c` by default) still
+    work, and Skip Intro/Credits falls back to its "seek to skip" prompt.
+  - **Replaces `enable_osc`, and is not migrated from it.** That was a
+    separate switch which only ever reached mpv's *own* controls, so turning
+    it off did nothing under the default style and then silently took the
+    controls away if you later switched to the mpv OSC. A stale `enable_osc`
+    entry in your config is ignored; choose `none` here if you meant it.
 - `hud_grab_keys` - Always take over the arrow keys and ENTER for the
   on-screen controls while a video plays. Default: `false` — mpv's own seek
   keys keep working, and only `hud_wake_key` is taken over. With the default,
