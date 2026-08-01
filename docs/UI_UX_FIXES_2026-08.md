@@ -663,3 +663,107 @@ Small enough to reverse, recorded so they are not mistaken for oversights.
   draw and the renderer needs those two rects to exist — it tests the pointer
   against them for the hover-hold. Their ids (`hud-bar`, `hud-topbar`) are a
   contract with `renderer.lua`'s `phud_busy`.
+
+## Hand-testing checklist
+
+The suites are green (2893 unit, plus the mpv integration matrix on both
+backends), so this is not "check the code works" — it is the list of things
+those suites are structurally unable to see. Ordered by how likely a problem
+is and how badly it is covered.
+
+### 1. The scrub preview against a real server (`renderer.lua`)
+
+All of it is new, and the tests drive a *fake* mpv with a synthetic tile file.
+
+- [ ] **With trickplay**: hover along the bar, drag the thumb, and arrow-scrub
+      with the keyboard. All three raise the bubble and it tracks without lag.
+      Check the frame is the right one near both ends of the bar.
+- [ ] **Without trickplay** — this is #612's case, and the reporter had no
+      tiles. The bubble stays centred on the pointer whether the chapter name
+      under it is two words or thirty characters. That is the whole bug.
+- [ ] **Chapter-image fallback**: a server with no BIF data but chapter
+      images. This path never worked in the mpvtk HUD at all before, so it is
+      new behaviour rather than preserved behaviour.
+- [ ] **Video change**: scrub, stop, play something else, scrub again. The old
+      tile file is unlinked immediately after `shim-trickplay-clear`; a
+      renderer still pointing at it shows as mpv errors in the log or a stale
+      frame.
+- [ ] **UI scale != 1** (1.75 is the reporter's, and Izzie's): the frame draws
+      at native pixel size while the text scales, so the box proportions move.
+      It should still look deliberate.
+- [ ] Both backends (`mpv_ext` on and off).
+
+### 2. Library scrolling at real size and real latency (#617)
+
+The tests use a synchronous pool, so pages arrive instantly and in order.
+Neither is true against a real server.
+
+- [ ] **Drag the scrollbar hard** down a large library. The thumb stays under
+      the cursor; the scroller does not resize. Release and check the right
+      items are on screen.
+- [ ] **Jump to the middle** of a big library — you get *that* neighbourhood,
+      not a walk from the top.
+- [ ] **Fast repeated drags.** The one to watch. Every new window asks the
+      thumbnail workers for two or three screens of artwork, and parts of the
+      library are now reachable without loading everything in between. Browser
+      stutter or a complaining server is this.
+- [ ] **A window that fails**: kill the network mid-scroll. One toast and
+      blank tiles — *not* a request per frame. Scrolling again retries.
+- [ ] **Random sort** does not window at all, and still shows only what it
+      loaded.
+- [ ] **List view** on a big library, same drags.
+- [ ] **Paginated mode** on and off over the same library. Untouched by this,
+      but the toggle shares route state with it.
+- [ ] **Back-nav**: scroll deep, open something, come back — the parked offset
+      lands where you left.
+- [ ] **Offline / downloaded library.** The offline source takes the same
+      windowed fetches and has not been exercised by hand.
+
+One shared line to know about: `draw_image` gained `+ (node.base or 0)` to its
+overlay offset. It defaults to zero so it is inert, but *every* tile strip in
+the browser goes through it. Artwork offset or torn anywhere is that line.
+
+### 3. HUD auto-hide (#620 follow-up)
+
+Behavioural, and nearly untestable without a real pointer.
+
+- [ ] Summon with the **keyboard** while the mouse sits in the top or bottom
+      band. The controls hide. (Before the fix they never did.)
+- [ ] Then **move the mouse onto the bar** — they stay up while it rests.
+- [ ] Move the pointer **off the mpv window** while the bar is up. It hides.
+- [ ] All three `hud_autohide` modes, plus `hud_hide_secs: 0`.
+
+### 4. Config migration (`CONFIG_VERSION = 2`)
+
+Back up `conf.json` first.
+
+- [ ] The four old `skip_intro_*` / `skip_credits_*` booleans land on the five
+      `segment_*` tri-states as expected (`always` wins over `enable`).
+- [ ] A *fresh* config still gets `ask` / `ask` / `off` / `off` / `off`.
+- [ ] `enable_osc` is orphaned: someone who had it off gets controls back and
+      must pick "No controls" again. That was the decision (#615), and it is
+      the one thing here that will surprise an upgrader.
+
+### 5. The smaller ones
+
+- [ ] **Cover Size** live from the View dialog, in both directions. Parked
+      scroll offsets are dropped on change — check nothing lands somewhere you
+      never scrolled to.
+- [ ] **Mute and volume** are instant in the HUD (#618a), including via mpv's
+      own `m` and the wheel.
+- [ ] **Mouse back/forward chapter nav**: setting on, off, and on a video with
+      no chapters (does nothing, by design). SyncPlay follows the seek.
+- [ ] **Skip Intro/Credits** in each of the five segment settings, and
+      specifically under `osc_style: none`, where the OSD prompt is the only
+      surface.
+- [ ] **Continue Watching** updates after finishing something on another
+      client, and the 3s debounce does not cause a refresh storm.
+- [ ] **Play All / Shuffle** queue 300 rather than 200.
+- [ ] **Show Year with titles off** — the one-line caption sits where a
+      caption sits.
+
+### Least confident
+
+The thumbnail-request pressure from free scrollbar dragging (2) and the
+chapter-image trickplay fallback (1). Neither has a real-data test, and both
+only misbehave at scale. If there is time for two things, those.
