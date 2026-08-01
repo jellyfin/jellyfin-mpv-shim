@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-08-01 17:49+0000\n"
+"PO-Revision-Date: 2026-08-01 18:21+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1649,7 +1649,7 @@ msgstr "Pantalla completa"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "No s'ha pogut afegir aquests elements a la cua."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -1671,7 +1671,7 @@ msgstr "No s'ha pogut aplicar el canvi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Cancel this recording?"
-msgstr ""
+msgstr "Desitgeu cancel·lar aquesta gravació?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -1688,11 +1688,11 @@ msgstr "Cancel·la l'enregistrament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr ""
+msgstr "Desitgeu gravar aquesta sèrie?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr ""
+msgstr "S'ha cancel·lat la gravació de la sèrie."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1711,7 +1711,7 @@ msgstr "No s'ha pogut aplicar el canvi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr ""
+msgstr "S'ha desat la configuració de gravació."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, fuzzy
