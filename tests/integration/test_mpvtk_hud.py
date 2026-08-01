@@ -27,7 +27,6 @@ class FakeController:
 
     def __init__(self):
         self.calls = []
-        self.trickplay_meta = None
         self.menu_state = None
         self.chapter_list = []
         # tests drive summons with arrow keypresses, so opt into the
@@ -36,9 +35,6 @@ class FakeController:
 
     def hud_key_opts(self):
         return dict(self.key_opts)
-
-    def trickplay(self):
-        return self.trickplay_meta
 
     def hud_menu_state(self):
         return self.menu_state
@@ -285,17 +281,18 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
 
     def test_scrub_commit_cancel_and_preview(self):
         # Fake trickplay data: 10 raw-BGRA frames, 3s apart (the format
-        # the TrickPlay worker writes to raw_images.bin).
+        # the TrickPlay worker writes to raw_images.<seq>.bin), announced
+        # exactly as the worker announces it. Nothing in Python reads this
+        # file -- the renderer opens it itself and hands mpv a byte offset
+        # into it, which is the point of #618.
         tw, th, count = 64, 36, 10
         raw = os.path.join(self.tmp, "raw_images.bin")
         with open(raw, "wb") as fh:
             for i in range(count):
                 px = bytes((20 * i % 256, 128, 255 - 20 * i % 256, 255))
                 fh.write(px * (tw * th))
-        self.ctl.trickplay_meta = {
-            "count": count, "multiplier": 3000,
-            "width": tw, "height": th, "file": raw,
-        }
+        self.handle.command("script-message", "shim-trickplay-bif",
+                            str(count), "3000", str(tw), str(th), raw)
 
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
@@ -317,8 +314,11 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertIn(("set_paused", (True,)), [
             c for c in self.ctl.calls if isinstance(c, tuple)],
             "scrub start must pause playback")
-        self._wait(lambda: self.app.node_rect("hud-preview") is not None,
+        self._wait(lambda: self._state().get("preview") is not None,
                    msg="trickplay preview never appeared")
+        # ...with a real frame in it, read straight out of the tile file.
+        self.assertIsNotNone(self._state()["preview"].get("frame"),
+                             "the bubble drew no trickplay frame")
 
         # ENTER commits: exactly one seek at the scrubbed position.
         target = self.browser.hud.scrub
@@ -348,7 +348,7 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         seeks = [c for c in self.ctl.calls if isinstance(c, tuple)
                  and c[0] == "seek"]
         self.assertEqual(len(seeks), 1, "cancel must not seek")
-        self._wait(lambda: self.app.node_rect("hud-preview") is None,
+        self._wait(lambda: self._state().get("preview") is None,
                    msg="preview never cleared after cancel")
 
     def test_pickers_chapters_and_skip_button(self):
@@ -410,8 +410,13 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="skip button never dispatched: %r" % self.ctl.calls)
 
     def test_seek_hover_bubble(self):
-        self.ctl.chapter_list = [{"title": "Opening", "time": 0.0},
-                                 {"title": "Late", "time": 20.0}]
+        """Hovering the bar floats the bubble WITHOUT touching Python.
+
+        The chapters come from mpv, not from the fake controller: the
+        renderer reads chapter-list itself, so nothing here has to send
+        them. Nothing reaches the browser at all -- the assertion is that
+        the bubble exists in the renderer and that no scene node does.
+        """
         self._play_video()
         self._wait(lambda: self._state().get("phud_mode"),
                    msg="never entered HUD-idle")
@@ -419,19 +424,17 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                           msg="summon failed")
         self._wait(lambda: self.app.node_rect("hud-seek") is not None,
                    msg="seek bar never materialized")
-        # park the pointer on the middle of the seek bar: throttled
-        # hover events flow to the browser, which floats the bubble
+        # park the pointer on the middle of the seek bar
         self.app.debug(cmd="hover", id="hud-seek")
-        self._wait(lambda: self.browser.hud.hover is not None,
-                   msg="hover position never reached the browser")
-        self.assertAlmostEqual(self.browser.hud.hover, 15.0, delta=3.0)
-        self._wait(lambda: self.app.node_rect("hud-preview") is not None,
+        self._wait(lambda: self._state().get("preview") is not None,
                    msg="hover bubble never appeared")
+        bubble = self._state()["preview"]
+        self.assertAlmostEqual(bubble["secs"], 15.0, delta=3.0)
+        self.assertIsNone(self.app.node_rect("hud-preview"),
+                          "the bubble must not be a scene node any more")
         # moving off the bar retracts it
         self.app.debug(cmd="hover", id="hud-pp")
-        self._wait(lambda: self.browser.hud.hover is None,
-                   msg="hover_end never reached the browser")
-        self._wait(lambda: self.app.node_rect("hud-preview") is None,
+        self._wait(lambda: self._state().get("preview") is None,
                    msg="hover bubble never cleared")
 
     def test_settings_menu_keyboard_flow(self):

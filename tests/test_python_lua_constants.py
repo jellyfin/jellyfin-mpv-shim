@@ -1,20 +1,24 @@
 """Constants duplicated across Python and renderer.lua.
 
-Two values are computed on both sides of the mpv boundary and have to agree,
-and until now the only thing holding them together was a "keep in sync"
-comment:
+Some values are computed on both sides of the mpv boundary and have to
+agree; the only thing that used to hold them together was a "keep in sync"
+comment.
 
-* the heuristic char-width table — layout.py measures text to decide how
-  much room a node needs, renderer.lua measures it again to place the glyphs.
-  Drift means Python reserves one width and Lua draws another, which shows up
-  as text that wraps a word early or overflows its box.
-* SLIDER_PAD — hud.py maps a click position back to a seek time using the
-  track inset renderer.lua drew the track with. Drift means the seek lands
-  slightly off where you clicked, worst at the ends of the bar.
+The heuristic char-width table is the main one — layout.py measures text to
+decide how much room a node needs, renderer.lua measures it again to place
+the glyphs. Drift means Python reserves one width and Lua draws another,
+which shows up as text that wraps a word early or overflows its box. It is a
+*fallback*: measured font metrics replace it at runtime, so a mismatch only
+bites on the path taken before (or without) metrics — which is exactly the
+path nobody would notice being wrong.
 
-Both are *fallbacks*: measured font metrics replace them at runtime, so a
-mismatch only bites on the path taken before (or without) metrics — which is
-exactly the path nobody would notice being wrong.
+The Skip button's geometry is the other: two implementations of one widget
+that hand off to each other mid-segment.
+
+SLIDER_PAD used to be here too — hud.py positioned the scrub-preview bubble
+with its own copy of the renderer's track inset. That bubble is drawn in
+renderer.lua now, so the inset exists in one place and there is nothing left
+to cross-check.
 """
 
 import ast
@@ -85,18 +89,6 @@ class TestCharWidthTable(unittest.TestCase):
     def test_a_narrow_char_is_not_also_wide(self):
         self.assertEqual(self._py_set("_NARROW") & self._py_set("_WIDE"),
                          set())
-
-
-class TestSliderPad(unittest.TestCase):
-    """hud.py's _SLIDER_PAD vs renderer.lua's SLIDER_PAD."""
-
-    def test_they_match(self):
-        py = int(_one(r"^_SLIDER_PAD = (\d+)$", _read(HUD), "_SLIDER_PAD"))
-        lua = int(_one(r"^local SLIDER_PAD = (\d+)$", _read(RENDERER),
-                       "lua SLIDER_PAD"))
-        self.assertEqual(py, lua,
-                         "a click maps to a seek time using this inset; "
-                         "drift puts the seek off where the user clicked")
 
 
 class TestSkipButtonGeometry(unittest.TestCase):

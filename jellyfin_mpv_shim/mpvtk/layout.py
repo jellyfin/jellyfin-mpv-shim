@@ -671,15 +671,13 @@ def _arrange_slider(ctx, el, x, y, w, h, sc, path):
             [round(float(a), 4), round(float(b), 4)]
             for a, b in el.ranges
         ]
-    if el.on_hover is not None:
-        node["hoverev"] = True
+    if el.preview:
+        node["pv"] = True
     if el.always_adjust:
         node["aadj"] = True
     _reg(ctx, node["id"], "change", el.on_change)
     _reg(ctx, node["id"], "commit", el.on_commit)
     _reg(ctx, node["id"], "cancel", el.on_cancel)
-    _reg(ctx, node["id"], "hover", el.on_hover)
-    _reg(ctx, node["id"], "hover_end", el.on_hover_end)
     ctx.nodes.append(node)
     return
 

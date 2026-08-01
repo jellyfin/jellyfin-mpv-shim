@@ -1220,6 +1220,142 @@ hud_wait()
 ok(hud_hidden(), "the default hides them on a paused film")
 fake.log.props["pause"] = nil
 
+-- ================================================== scrub preview bubble
+
+-- The seek bar's trickplay/chapter/timestamp bubble is drawn HERE. It used
+-- to be a scene node Python rebuilt from a throttled hover event, which is
+-- why it trailed the pointer (#618) and why its width was a guess that only
+-- came out right when a thumbnail was the widest thing in it (#612).
+
+local function pv_paint()
+    fake.advance(0.1)
+    fake.fire_timers()
+end
+
+--- The bubble's rect, or nil when it is not up.
+local function preview()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).preview
+end
+
+--- The summoned HUD's seek bar as hud.py lays it out: 10 minutes over a
+--- 1080px node at x=100, so the track runs 108..1172 and its midpoint is
+--- 5:00.
+local function seek_scene()
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            { id = "hud-seek", t = "slider", x = 100, y = 660, w = 1080,
+              h = 26, min = 0, max = 600, value = 0, pv = true } })
+end
+
+hud_engage({ hide = 4, mode = "hover" })
+seek_scene()
+hud_pointer(640, 300)
+pv_paint()
+ok(preview() == nil, "no bubble with the pointer off the bar")
+
+hud_pointer(640, 670)
+pv_paint()
+local pv = preview()
+ok(pv ~= nil, "the bubble appears with the pointer on the bar")
+ok(pv and math.abs(pv.secs - 300) < 1,
+   "the bubble reads the position under the pointer",
+   pv and ("secs=" .. tostring(pv.secs)))
+ok(pv and pv.y + pv.h <= 660, "the bubble sits above the bar it describes")
+
+-- #612: the box is centred on the position it describes, whatever is in it.
+-- Python assumed a flat 136px and drew whatever the content came to, so a
+-- short chapter title pulled the bubble left of the point it was labelling.
+ok(pv and math.abs((pv.x + pv.w / 2) - 640) < 2,
+   "the bubble is centred on the pointer",
+   pv and ("centre=" .. tostring(pv.x + pv.w / 2)))
+
+-- No trickplay data yet, so no frame: the bubble is text only.
+eq(pv and pv.frame, nil, "no frame before any trickplay data arrives")
+
+-- ...and no overlay was issued for it either.
+local function preview_overlay()
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" and c[5] == "/tiles.bin" then found = c end
+    end
+    return found
+end
+
+fake.log.commands = {}
+hud_pointer(640, 671)
+pv_paint()
+ok(preview_overlay() == nil, "a bubble with no tiles issues no overlay")
+
+-- BIF tiles: 10s apart, so 5:00 is frame 30 and its bytes start at
+-- 30 * w * h * 4 -- the offset argument, which is what lets the renderer
+-- read one frame out of a file of them without decoding anything.
+fake.send("shim-trickplay-bif", "60", "10000", "32", "18", "/tiles.bin")
+fake.log.commands = {}
+hud_pointer(640, 672)
+pv_paint()
+local ov = preview_overlay()
+ok(ov ~= nil, "the trickplay frame is composited into the bubble")
+eq(ov and tonumber(ov[6]), 30 * 32 * 18 * 4,
+   "the overlay reads the frame for the hovered position")
+eq(preview().frame, 30, "the bubble reports the frame it drew")
+
+-- Past the end of the tiles clamps rather than reading past EOF, which
+-- mpv mmaps and would answer with SIGBUS.
+fake.send("shim-trickplay-bif", "10", "10000", "32", "18", "/tiles.bin")
+hud_pointer(1100, 672)
+pv_paint()
+eq(preview().frame, 9, "a position past the last tile clamps to it")
+
+-- The chapter-image fallback indexes by chapter start instead of a cadence.
+fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
+hud_pointer(640, 673)
+pv_paint()
+eq(preview().frame, 1, "chapter tiles index by start time (5:00 is in #2)")
+
+-- The bytes are unlinked right after the clear, so the renderer must stop
+-- pointing at them before that happens.
+fake.send("shim-trickplay-clear")
+fake.log.commands = {}
+hud_pointer(640, 674)
+pv_paint()
+ok(preview() ~= nil, "the bubble survives the tiles going away")
+ok(preview_overlay() == nil, "...but stops reading the cleared file")
+
+-- The pointer leaving the bar takes it away.
+hud_pointer(640, 300)
+pv_paint()
+ok(preview() == nil, "the bubble goes with the pointer")
+
+-- Releasing a drag must not make the bubble jump. A drag returns out of
+-- on_mouse_move before the hover tracking, so the position it falls back to
+-- when the button comes up has to have been kept current on the way.
+hud_pointer(400, 672)                   -- park the pointer left of centre
+pv_paint()
+local before = preview().secs
+fake.mouse(900, 672)
+fake.key("mbtn_left")                   -- press ON the bar: the drag starts
+fake.mouse(1000, 672)                   -- ...and drags right
+pv_paint()
+local dragged = preview().secs
+ok(dragged > before, "the bubble did not follow the drag",
+   string.format("%s -> %s", tostring(before), tostring(dragged)))
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 1000, y = 672 }))
+pv_paint()
+ok(preview() ~= nil and math.abs(preview().secs - dragged) < 20,
+   "releasing the drag snapped the bubble back to where it started",
+   string.format("released at %s, was dragged to %s",
+                 tostring(preview() and preview().secs), tostring(dragged)))
+
+-- A bar that does not ask for a preview never gets one: this is opt-in
+-- (the volume slider is the same widget).
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-vol", t = "slider", x = 100, y = 660, w = 1080,
+          h = 26, min = 0, max = 100, value = 50 } })
+hud_pointer(642, 670)
+pv_paint()
+ok(preview() == nil, "a slider without pv draws no bubble")
+
 -- ========================================================== teardown
 
 scene({})

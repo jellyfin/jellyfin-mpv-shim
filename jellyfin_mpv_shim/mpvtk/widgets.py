@@ -410,8 +410,11 @@ class Slider(Element):
         on_change=None,
         on_commit=None,
         on_cancel=None,
-        on_hover=None,  # throttled pointer-rest position (seek preview)
-        on_hover_end=None,
+        # Scrub preview: the renderer floats its own bubble (trickplay
+        # frame + chapter + timestamp) at the pointer, or at the value
+        # being dragged/arrow-adjusted. No events come back for it -- the
+        # whole point is that it never leaves the renderer.
+        preview=False,
         force=False,
         # Drawn over VIDEO rather than over app chrome: keeps the light
         # track and pale thumb that read on a picture, instead of following
@@ -433,8 +436,7 @@ class Slider(Element):
         self.on_change = on_change
         self.on_commit = on_commit
         self.on_cancel = on_cancel
-        self.on_hover = on_hover
-        self.on_hover_end = on_hover_end
+        self.preview = preview
         self.force = force
         self.on_video = on_video
         self.marks = marks

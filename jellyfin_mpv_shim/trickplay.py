@@ -98,7 +98,6 @@ class TrickPlay(threading.Thread):
         # The worker still exits promptly on its next loop turn via `halt`.
         self.halt = True
         self.trigger.set()
-        self.player.trickplay_meta = None
         # No shim-trickplay-clear here, unlike clear(): stop() runs while mpv
         # is being torn down (and may run under the player lock, which
         # script_message also takes), so talking to that instance is both
@@ -114,7 +113,6 @@ class TrickPlay(threading.Thread):
         self.trigger.set()
 
     def clear(self):
-        self.player.trickplay_meta = None
         # Renderer first, file second: overlay-remove has to land before the
         # bytes behind it go away.
         self.player.script_message("shim-trickplay-clear")
@@ -216,12 +214,10 @@ class TrickPlay(threading.Thread):
                             _unlink(path)
                             continue
 
-                        # Same data both ways: the lua OSCs get a script
-                        # message; the mpvtk HUD reads the raw frames via
-                        # this metadata (see player.trickplay_meta).
-                        self.player.trickplay_meta = dict(
-                            bif_meta, file=path
-                        )
+                        # One message, every consumer: thumbfast.lua for
+                        # the lua OSCs, and mpvtk's renderer.lua, which
+                        # reads the frames out of `path` itself for the
+                        # playback HUD's scrub preview.
                         self.player.script_message(
                             "shim-trickplay-bif",
                             str(bif_meta["count"]),

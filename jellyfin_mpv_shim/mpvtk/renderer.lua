@@ -187,6 +187,18 @@ local state = {
              -- auto-hide policy and the no-scrim text halo, pushed
              -- with the engage (mpvtk-hud) so setting changes stick
              hide_s = 4, hide_mode = 'hover', shadow = false },
+    -- Scrub preview: the seek bar's trickplay/chapter bubble, drawn HERE
+    -- rather than asked for from Python. A hover that has to round-trip,
+    -- rebuild the whole HUD tree and come back as a scene is a preview that
+    -- visibly trails the pointer, and it made every other control in the
+    -- bar feel slow while it did (#618). Everything the bubble needs is
+    -- already local: the tile file is raw BGRA that overlay-add consumes
+    -- directly, and mpv owns the chapter list.
+    tp = nil,               -- tiles: {file, iw, ih, count, mult} or {..., times}
+    chlist = nil,           -- mpv's chapter-list, for the bubble's caption
+    pv_hover = nil,         -- id of the preview slider under the pointer
+    pv_secs = 0,            -- the position it is pointing at, in seconds
+    pv_rect = nil,          -- last drawn bubble rect (nil = not shown)
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
@@ -798,7 +810,12 @@ local function draw_image(node, ex, ey, clip, idx)
             end
             pidx = pidx + 1
             local src = node.src
-            local offset = sy * stride + sx * 4
+            -- node.base: a byte offset INTO the source, for a file that
+            -- holds several frames back to back rather than one image.
+            -- The trickplay tile file is the only such source (frame n at
+            -- n * w * h * 4); the crop maths above is unchanged, it just
+            -- starts from there instead of from zero.
+            local offset = sy * stride + sx * 4 + (node.base or 0)
             if src:sub(1, 1) == '&' then
                 -- same-process memory source (libmpv backend): fold
                 -- the crop offset into the address so overlay-add's
@@ -1673,6 +1690,15 @@ local function slider_set_from_x(node, x)
     local s = sl_state(node)
     local v = (node.min or 0) +
         frac * ((node.max or 100) - (node.min or 0))
+    if node.pv then
+        -- Carry the scrub preview's position along with the drag. A drag
+        -- returns out of on_mouse_move before update_slider_hover, so
+        -- pv_secs would otherwise still hold wherever the pointer was when
+        -- the drag STARTED -- and releasing the button, which drops
+        -- slider_drag and falls the preview back to the hover position,
+        -- made the bubble jump back there for a frame.
+        state.pv_hover, state.pv_secs = node.id, v
+    end
     if v ~= s.value then
         s.value = v
         notify_slider(node.id)
@@ -1680,52 +1706,24 @@ local function slider_set_from_x(node, x)
     end
 end
 
--- Passive-hover position reporting for sliders that opt in with
--- hoverev (the HUD's seek bar): while the pointer rests on the
--- slider, the app gets throttled {t=hover, value} events (it floats
--- the trickplay/time bubble there), then one {t=hover_end} when the
--- pointer moves off. Same 0.15s cadence as drag notifications — this
--- is a preview, not a per-frame interaction.
-local hover_notify_timers = {}
-local hover_last_notify = {}
-
-local function fire_hover(id)
-    hover_last_notify[id] = mp.get_time()
-    if state.hover_watch == id then
-        send({ t = 'hover', id = id, value = state.hover_value })
-    end
-end
-
-local function notify_hover(id)
-    if hover_notify_timers[id] then return end
-    local elapsed = mp.get_time() - (hover_last_notify[id] or -1e9)
-    if elapsed >= 0.15 then
-        fire_hover(id)
-    else
-        hover_notify_timers[id] = mp.add_timeout(0.15 - elapsed,
-            function()
-                hover_notify_timers[id] = nil
-                fire_hover(id)
-            end)
-    end
-end
-
--- Both pointer-enter/leave notifications the app can ask for. ONE function
--- for two unrelated features because this chunk sits on LuaJIT's ceiling of
--- 200 locals in a main function -- a new top-level local here does not fail
--- at the call, it fails to load the renderer at all.
+-- Pointer-enter/leave notification, plus the seek bar's own hover
+-- tracking. ONE function for two features because this chunk sits on
+-- LuaJIT's ceiling of 200 locals in a main function -- a new top-level
+-- local here does not fail at the call, it fails to load the renderer at
+-- all.
 --
 -- `hev` is enter/leave for a node that wants a control drawn over it: the
 -- tile strips' hit regions, and the play chip that then appears on one. The
 -- chip opts in too, or the pointer moving onto it would read as leaving the
 -- tile, the app would take the chip away, and the two would alternate for as
--- long as the pointer sat there. Unthrottled, unlike the slider below: this
--- is a control appearing under the pointer, and 150ms of that reads as
--- broken. One event per tile crossed is the same order as the hover ring
--- this already re-renders for.
+-- long as the pointer sat there. One event per tile crossed is the same
+-- order as the hover ring this already re-renders for.
 --
--- `hoverev` is the slider's throttled value reporting (the HUD's seek bar
--- floating its trickplay bubble), which is a preview rather than a control.
+-- `pv` is the seek bar's scrub preview, and it sends NOTHING. It used to:
+-- a throttled {t=hover, value} that the app answered with a whole rebuilt
+-- HUD scene, which is why the bubble trailed the pointer by a frame or
+-- three (#618). The renderer draws it now (see render), so all that is
+-- left here is remembering where on the bar the pointer is.
 local function update_slider_hover(node)
     local hid = (node and node.hev) and node.id or nil
     if hid ~= state.hover_region then
@@ -1740,28 +1738,25 @@ local function update_slider_hover(node)
         if hid then send({ t = 'hover', id = hid }) end
         if prev then send({ t = 'hover_end', id = prev }) end
     end
-    local id = nil
-    if node and node.t == 'slider' and node.hoverev
-        and state.slider_drag ~= node.id then
-        id = node.id
-    end
-    local prev = state.hover_watch
-    if prev and prev ~= id then
-        state.hover_watch = nil
-        send({ t = 'hover_end', id = prev })
-    end
+    local id = (node and node.t == 'slider' and node.pv) and node.id or nil
+    local prev = state.pv_hover
+    state.pv_hover = id
     if id then
-        state.hover_watch = id
         local ex = select(1, eff(node))
         local frac = clamp(
             (state.mouse.x - ex - SLIDER_PAD) /
             (node.w - 2 * SLIDER_PAD), 0, 1)
         local v = (node.min or 0) +
             frac * ((node.max or 100) - (node.min or 0))
-        if v ~= state.hover_value or prev ~= id then
-            state.hover_value = v
-            notify_hover(id)
+        if v ~= state.pv_secs or prev ~= id then
+            state.pv_secs = v
+            -- on_mouse_move only re-renders when the hovered NODE changes,
+            -- and moving along the bar never does; without this the bubble
+            -- would stick at the position it first appeared at.
+            request_render()
         end
+    elseif prev then
+        request_render()
     end
 end
 
@@ -2120,6 +2115,108 @@ render = function()
         ass:append(esc(label))
     else
         state.phud.skip_rect = nil
+    end
+    -- Scrub preview bubble: the trickplay frame for the position under the
+    -- pointer (or being dragged / arrow-adjusted), the chapter that position
+    -- falls in, and the timestamp. Everything it needs is already here --
+    -- the tile file is raw BGRA that overlay-add takes as-is, and mpv owns
+    -- chapter-list -- so it tracks the pointer at render cadence instead of
+    -- at the speed of a round trip through a rebuilt HUD scene (#618).
+    --
+    -- Measuring its own text is the other half: Python could only *assume* a
+    -- width for a box it did not draw, and the width it assumed was right
+    -- only when a thumbnail was the widest thing in it. Without trickplay
+    -- the bubble drifted by half the difference, which is #612.
+    state.pv_rect = nil
+    local pv_id, pv_secs
+    if state.slider_drag then
+        pv_id = state.slider_drag
+    elseif state.nav_adjust and state.nav_scrubbed then
+        pv_id = state.nav
+    end
+    if pv_id then
+        local n = state.byid[pv_id]
+        if n and n.pv then pv_secs = sl_state(n).value else pv_id = nil end
+    end
+    if not pv_id and state.pv_hover then
+        pv_id, pv_secs = state.pv_hover, state.pv_secs
+    end
+    local pv_node = pv_id and state.byid[pv_id]
+    if pv_node and pv_secs and (pv_node.max or 0) > 0 then
+        local pad, gap = ui_px(8), ui_px(4)
+        local fs = ui_px(14)
+        local lh = math.floor(fs * PHUD_SKIP_LINE_H)
+        -- Which frame of the tile file, if there is one. BIF data is
+        -- evenly spaced (multiplier ms apart); the chapter-image fallback
+        -- carries one frame per chapter start.
+        local tp = state.tp
+        local fw, fh, base = 0, 0, 0
+        local idx
+        if tp and (tp.iw or 0) > 0 and (tp.ih or 0) > 0 then
+            if tp.times and #tp.times > 0 then
+                idx = 0
+                for i = #tp.times, 1, -1 do
+                    if tp.times[i] <= pv_secs then idx = i - 1 break end
+                end
+                if idx > #tp.times - 1 then idx = #tp.times - 1 end
+            elseif (tp.count or 0) > 0 and (tp.mult or 0) > 0 then
+                idx = math.floor(pv_secs * 1000 / tp.mult)
+                if idx > tp.count - 1 then idx = tp.count - 1 end
+                if idx < 0 then idx = 0 end
+            end
+        end
+        if idx then
+            fw, fh = tp.iw, tp.ih
+            base = idx * tp.iw * tp.ih * 4
+        end
+        local cap
+        for _, c in ipairs(state.chlist or {}) do
+            if (c.time or 0) <= pv_secs and c.title and c.title ~= '' then
+                cap = c.title
+            end
+        end
+        local whole = math.floor(pv_secs)
+        local ts
+        if whole >= 3600 then
+            ts = string.format('%d:%02d:%02d', math.floor(whole / 3600),
+                               math.floor(whole % 3600 / 60), whole % 60)
+        else
+            ts = string.format('%d:%02d', math.floor(whole / 60), whole % 60)
+        end
+        local bw = math.max(fw, text_w(ts, fs, true),
+                            cap and text_w(cap, fs, false) or 0) + 2 * pad
+        local bh = 2 * pad + lh + (fh > 0 and (fh + gap) or 0)
+                   + (cap and (lh + gap) or 0)
+        local ex, ey = eff(pv_node)
+        local frac = clamp(pv_secs / pv_node.max, 0, 1)
+        local px = math.floor(clamp(
+            ex + SLIDER_PAD + (pv_node.w - 2 * SLIDER_PAD) * frac - bw / 2,
+            ui_px(8), state.w - bw - ui_px(8)))
+        -- Pinned by its BOTTOM edge, so a bubble that grows a thumbnail or
+        -- a chapter line grows upwards and never over the bar it describes.
+        local py = math.floor(math.max(0, ey - ui_px(10) - bh))
+        state.pv_rect = { x = px, y = py, w = bw, h = bh,
+                          secs = pv_secs, frame = idx }
+        draw_rect(ass, px, py, bw, bh,
+                  { fill = '282828', radius = ui_px(6) })
+        local ty = py + pad
+        if fh > 0 then
+            -- Native size: overlay-add does not scale, and the worker
+            -- already decoded these at thumbnail_preferred_size.
+            draw_image({ id = 'hud-preview', src = tp.file, base = base,
+                         iw = fw, ih = fh, w = fw, h = fh },
+                       math.floor(px + (bw - fw) / 2), ty)
+            ty = ty + fh + gap
+        end
+        if cap then
+            draw_text(ass, { w = bw - 2 * pad, h = lh, size = fs,
+                             align = 'center' },
+                      px + pad, ty, nil, cap, 'dddddd')
+            ty = ty + lh + gap
+        end
+        draw_text(ass, { w = bw - 2 * pad, h = lh, size = fs,
+                         align = 'center', bold = true },
+                  px + pad, ty, nil, ts, 'ffffff')
     end
     if state.hud then
         -- input-diagnostics overlay (toggle: F12)
@@ -4087,8 +4184,8 @@ local function reconcile()
         local node = state.byid[id]
         if not node or node.t ~= 'slider' then state.sl[id] = nil end
     end
-    if state.hover_watch and not state.byid[state.hover_watch] then
-        state.hover_watch = nil  -- slider left the scene mid-hover
+    if state.pv_hover and not state.byid[state.pv_hover] then
+        state.pv_hover = nil  -- seek bar left the scene mid-hover
     end
     if state.hover_region and not state.byid[state.hover_region] then
         -- Scrolled away, navigated away, or the app dropped the node.
@@ -4788,6 +4885,44 @@ mp.register_script_message('mpvtk-hud-skip', function(label)
     end
 end)
 
+-- Trickplay tiles for the scrub preview. These three messages are the
+-- TrickPlay worker's, not mpvtk's: they predate this renderer and are what
+-- the lua OSCs consume (see thumbfast.lua), so nothing extra is sent for us
+-- and the two consumers cannot disagree about which file is live. The
+-- worker guarantees the path is unique per generation and only unlinks the
+-- previous one after pointing everybody at the new one.
+mp.register_script_message('shim-trickplay-bif',
+    function(count, mult, w, h, path)
+        state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
+                     count = tonumber(count), mult = tonumber(mult) }
+        request_render()
+    end)
+
+-- The fallback when the server has no BIF data: one frame per chapter,
+-- indexed by the chapter start times (seconds) rather than by a cadence.
+mp.register_script_message('shim-trickplay-chapters',
+    function(w, h, path, times)
+        local t = {}
+        for s in tostring(times or ''):gmatch('[^,]+') do
+            t[#t + 1] = tonumber(s)
+        end
+        state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
+                     times = t }
+        request_render()
+    end)
+
+mp.register_script_message('shim-trickplay-clear', function()
+    -- The bytes go away right after this, so forget them first.
+    state.tp = nil
+    request_render()
+end)
+
+-- The bubble's caption. mpv has the chapters already; asking Python for
+-- them would be a round trip for something sitting in a property.
+mp.observe_property('chapter-list', 'native', function(_, v)
+    state.chlist = v
+end)
+
 -- ---------------------------------------------------------- test hooks
 
 local function center_of(id)
@@ -5014,6 +5149,10 @@ mp.register_script_message('mpvtk-debug', function(json)
             phud_shown = state.phud.shown,
             phud_intro = state.phud.intro,
             phud_skip = state.phud.skip_show or false,
+            -- the scrub preview bubble ({x, y, w, h, secs, frame}), nil
+            -- when it is not up. It is not a scene node, so this is the
+            -- only way anything outside the renderer can see it.
+            preview = state.pv_rect,
             -- is the HUD taking the arrow keys (keyboard-driven), or
             -- only the pointer (hud_grab_keys off, mouse summon)?
             phud_kbd = state.phud.kbd or false,

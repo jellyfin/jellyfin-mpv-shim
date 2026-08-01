@@ -392,12 +392,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # own controls (seekbar/buttons); such seeks never intro-skip.
         self._last_ui_seek_time = 0.0
         self.trickplay = None
-        # Decoded trickplay tile metadata for the CURRENT video, set by the
-        # TrickPlay worker once tiles land ({count, multiplier, width,
-        # height, file} — file is raw BGRA frames back to back). The mpvtk
-        # playback HUD reads frames straight out of it for scrub previews;
-        # the lua OSCs get the same data via shim-trickplay-bif instead.
-        self.trickplay_meta = None
         # Skippable segment the playback HUD should offer a button for
         # (an Intro object, or None).
         self._hud_skip = None

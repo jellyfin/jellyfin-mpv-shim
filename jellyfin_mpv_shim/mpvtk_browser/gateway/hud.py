@@ -21,12 +21,6 @@ class HudMixin(GatewayCore):
         return getattr(playerManager, "_osc_style_resolved",
                        None) == "mpvtk"
 
-    def trickplay(self):
-        """Decoded trickplay tile metadata for the current video, or None
-        ({count, multiplier, width, height, file} — see TrickPlay)."""
-        from ...player import playerManager
-        return playerManager.trickplay_meta
-
     def hud_key_opts(self):
         """Everything the renderer owns about the HUD, sent with the engage.
 

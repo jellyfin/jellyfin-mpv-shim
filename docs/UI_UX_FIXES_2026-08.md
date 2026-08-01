@@ -22,7 +22,7 @@ disabled state) lands before the issue that needs it.
 | [560](#560--continue-watching-doesnt-update) | Continue Watching doesn't update | done `fbd119c9` |
 | [620](#620--playback-hud-design-feedback) | Playback HUD design feedback | done `456682c5` |
 | [575](#575--commercial--preview--recap-segments) | Commercial / Preview / Recap segments | done `88da297a` |
-| [618(b)](#618b--renderer-side-scrub-preview) + [612](#612--hover-bubble-position-depends-on-chapter-title-length) | Renderer-side scrub preview | **TODO** |
+| [618(b)](#618b--renderer-side-scrub-preview) + [612](#612--hover-bubble-position-depends-on-chapter-title-length) | Renderer-side scrub preview | done `cb24f92d` |
 | [617](#617--scrollbar-loses-the-drag-while-items-page-in) | True virtual scroll | **TODO** |
 
 Everything above the line is on `ui-ux-fixes`, one commit each, with the full
@@ -466,54 +466,50 @@ through `enter_browse`, which does not reload.
 Everything below was learned while doing the other eight. It is here because
 none of it is discoverable from the issue text, and some of it is a trap.
 
-### 618(b) — renderer-side scrub preview
+### 618(b) — renderer-side scrub preview — DONE
 
-**The data is already there, in the shape the renderer wants.**
+Shipped as described below; what follows is what it actually came to, kept
+because the shape of the boundary is the useful part.
 
-- `trickplay.py` writes **raw BGRA frames back to back**, which is exactly what
-  `overlay-add` consumes, and frame *n* starts at `n * w * h * 4`. No decode,
-  no PIL, nothing on the loop thread.
-- Two messages already exist and are still sent:
-  `shim-trickplay-bif` (count, multiplier, width, height, path) and
-  `shim-trickplay-chapters` (width, height, path, comma-separated start
-  times) — the second is the fallback when the server has no BIF data. Both
-  need handling; today the mpvtk HUD ignores both and reads
-  `player.trickplay_meta` from Python instead.
-- The renderer's image path (`renderer.lua`, `_arrange_image`'s consumer)
-  already does the crop-offset arithmetic: `offset = sy * stride + sx * 4`.
-  A trickplay frame needs that plus a **base** offset. Note the `&`-address
-  branch right there: for the same-process memory form the crop offset is
-  folded into the address instead, and a trickplay tile is a *file* path, so
-  the plain offset argument is the one that applies.
-- **Chapters need no push at all.** mpv has `chapter-list` natively; the
-  renderer can read it the same way it reads `pause`. The gateway's
-  `chapters()` exists for the Python-built pickers, not for this.
+**The bubble is drawn in `render()`, from data that was already local.** The
+tile file is raw BGRA frames back to back and `overlay-add` consumes exactly
+that, so frame *n* is a byte offset — `draw_image` grew a `node.base` that is
+added to the crop offset it already computed, and nothing decodes anything.
+The chapter caption comes from mpv's own `chapter-list`, observed. Text is
+measured by the renderer, which is what closes **#612**: there is no longer
+an assumed width and a drawn width to disagree.
 
-**What comes out**, once the renderer owns the bubble: `hud._preview_float`,
-`hud._trickplay_frame`, `HudController.hover` / `hover_move` / `hover_end`,
-and the seek slider's `on_hover` / `on_hover_end` wiring.
+**The three `shim-trickplay-*` messages are handled directly.** They are the
+TrickPlay worker's own, already sent for thumbfast.lua, so nothing extra
+crosses the boundary and the two consumers cannot disagree about which
+generation of the file is live. `player.trickplay_meta` and the gateway's
+`trickplay()` are gone with the Python decode path.
 
-**Do not remove the hover machinery wholesale.** `update_slider_hover`
-handles *two* different things that read alike:
+**The seek slider's opt-in is `preview=True` → `node.pv`.** `hoverev` and the
+whole throttled value-reporting path (`notify_hover` / `fire_hover` /
+`hover_watch`) are deleted; `hev` — plain enter/leave for the tile play-chip
+— is untouched, and still shares `update_slider_hover` for the reason the
+comment there gives. Deleting those four file-scope locals is also what
+bought the headroom this needed: `renderer.lua` was **at** the 200-local
+ceiling and is no longer.
 
-- `hoverev` — the slider's throttled **value** reporting, which is what this
-  change makes unnecessary (`notify_hover` / `fire_hover` / `hover_watch`,
-  the 0.15s throttle).
-- `hev` / `on_hover` — plain enter/leave events on ordinary nodes, which the
-  **tile play-chip** depends on. Untouched.
+**Three positions feed it, in order:** an in-flight mouse drag, an
+arrow-adjust that has actually moved (`nav_scrubbed`, so merely focusing the
+bar does not raise a bubble), then the pointer. `state.pv_rect` is the drawn
+result and is reported in the debug state — the bubble is not a scene node,
+so that is the only way a test can see it.
 
-**Constraints.** `renderer.lua` is at LuaJIT's 200-file-scope-local ceiling
-(`tests/test_renderer_lua.py` reports the headroom and skips with an
-explanation when it is gone), so anything new hangs off `state` or shares a
-table — `PHUD_HIDE` is the pattern. The preview bitmap is one more overlay
-against `MAX_OVERLAYS`. `_SLIDER_PAD` is already pinned across the two sides
-by `tests/test_python_lua_constants.py`; whatever geometry the bubble grows
-belongs there too.
+`_SLIDER_PAD` left `hud.py` with `_preview_float`, so
+`tests/test_python_lua_constants.py` lost that pair: the inset now exists in
+one place. Coverage is `tests/lua/test_renderer.lua` (16 cases: placement,
+centring, frame indexing for both tile layouts, clamping past the last tile,
+and the clear) plus the two integration tests, which now read the renderer's
+state instead of looking for a `hud-preview` node.
 
-**#612 closes with this**, not before: the renderer measures its own text, so
-the "assume a width, draw another" bug has nowhere to live. Both the hover
-case and the drag case are covered — the renderer knows the dragged value
-locally.
+**Known, not caused by this:** `test_full_lifecycle` and
+`test_paused_video_keeps_hud_up` in `tests/integration/test_mpvtk_hud.py`
+fail on both backends, and fail identically on the commit before this one.
+They are #620 fallout — see the entry below.
 
 ### 617 — true virtual scroll
 
@@ -592,12 +588,12 @@ rediscover them:
 Groundwork first, then the small fixes, then the two structural changes. One
 commit each.
 
-Steps 1–10 are done (see the table at the top). What remains:
+Steps 1–11 are done (see the table at the top). What remains:
 
-11. #618(b) + #612 — renderer-side scrub preview.
 12. #617 — true virtual scroll.
-
-Either order; they touch nothing in common.
+13. The two `test_mpvtk_hud` integration failures #620 left behind (see
+    the note under 618(b)); they are on the branch already and predate the
+    scrub-preview commit.
 
 ## Decisions taken without asking
 

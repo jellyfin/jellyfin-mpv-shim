@@ -147,37 +147,25 @@ class TestPlaybackHudLayout(unittest.TestCase):
         nodes, _h = build_scene(b, (1280, 720))
         seek = next(n for n in nodes if n.get("id") == "hud-seek")
         self.assertEqual(seek.get("ranges"), [[0.1, 0.4], [0.9, 1.0]])
-        self.assertTrue(seek.get("hoverev"),
-                        "seek bar must opt into hover events")
+        self.assertTrue(seek.get("pv"),
+                        "seek bar must opt into the renderer's preview")
 
-    def test_hover_bubble_shows_chapter_and_time(self):
-        b, ctl = self._browser()
+    def test_no_python_side_preview_bubble(self):
+        """The scrub bubble is the renderer's, not a scene node.
+
+        It used to be built here from a hover event, which meant a whole
+        HUD rebuild per pointer move (#618) and a box whose width Python
+        guessed rather than measured (#612). All that is left on this side
+        is the flag that tells the renderer the bar has one.
+        """
+        b, _ctl = self._browser()
         nodes, handlers = build_scene(b, (1280, 720))
         self.assertNotIn("hud-preview", ids(nodes))
-        # need a laid-out slider rect for the float: fake node_rect via
-        # a stub app that serves the previous scene's geometry
-        seek = next(n for n in nodes if n.get("id") == "hud-seek")
-
-        class GeoApp(StubHudApp):
-            def node_rect(self, node_id):
-                return seek if node_id == "hud-seek" else None
-
-            def invalidate(self):
-                pass
-
-        b.app = GeoApp()
-        handlers["hud-seek"]["hover"](45.0)
-        self.assertEqual(b.hud.hover, 45.0)
-        nodes, handlers = build_scene(b, (1280, 720))
-        self.assertIn("hud-preview", ids(nodes))
-        texts = [n.get("text") for n in nodes if n.get("text")]
-        self.assertIn("0:45", texts, "bubble timestamp missing")
-        self.assertIn("Middle", texts,
-                      "bubble chapter name missing (45s is in Middle)")
-        handlers["hud-seek"]["hover_end"]()
-        self.assertIsNone(b.hud.hover)
-        nodes, _h = build_scene(b, (1280, 720))
-        self.assertNotIn("hud-preview", ids(nodes))
+        self.assertNotIn("hover", handlers["hud-seek"],
+                         "the seek bar must not ask for hover events")
+        self.assertNotIn("hover_end", handlers["hud-seek"])
+        self.assertFalse(hasattr(b.hud, "hover"),
+                         "hover state has no owner on this side any more")
 
     def test_hud_show_hide_adjusts_sub_margin(self):
         b, ctl = self._browser()

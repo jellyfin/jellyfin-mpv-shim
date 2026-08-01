@@ -35,6 +35,11 @@ PKG = os.path.dirname(inspect.getfile(gw))
 #: Every method the gateway had as one class, immediately before the split.
 #: Pinned as data rather than derived, so the check is against what shipped
 #: rather than against whatever the code now happens to say.
+#:
+#: A name leaves this set only when the method is *deliberately* retired --
+#: so far only ``trickplay``, whose caller went away when the scrub preview
+#: moved into renderer.lua (#618). Anything else disappearing is the bug this
+#: is here to catch.
 BEFORE_SPLIT = {
     "add_server", "add_user", "any_client", "apply_audio_settings",
     "cancel_load", "chapters", "check_updates", "client_for",
@@ -59,7 +64,7 @@ BEFORE_SPLIT = {
     "stop", "stop_for_close", "switch_user", "sync_active", "sync_join",
     "sync_leave", "sync_new", "sync_state", "toggle_favorite",
     "toggle_fullscreen", "toggle_mute", "toggle_night_mode", "toggle_pause",
-    "toggle_stats", "trickplay", "unlock", "unlock_user", "use_hud",
+    "toggle_stats", "unlock", "unlock_user", "use_hud",
     # private, but part of the contract other tests pin
     "_act", "_edit", "_queue_offline_watched", "_sync", "_ui_seek",
 }

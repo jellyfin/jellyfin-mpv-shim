@@ -27,7 +27,6 @@ from ..mpvtk.widgets import (
     Dropdown,
     Element,
     Gradient,
-    Image,
     Menu,
     Row,
     Slider,
@@ -128,51 +127,6 @@ def _clock(secs):
         return "%d:%02d:%02d" % (
             secs // 3600, (secs % 3600) // 60, secs % 60)
     return "%d:%02d" % (secs // 60, secs % 60)
-
-
-def _trickplay_frame(b, secs):
-    """Scrub preview bitmap for ``secs``, via the TrickPlay worker's
-    decoded raw-BGRA tile file (player.trickplay_meta). Returns a
-    strips.bitmap entry {"src", "iw", "ih", "v"} or None (no trickplay data
-    for this video / frame not readable)."""
-    get = getattr(b.controller, "trickplay", None)
-    if get is None or b.strips is None:
-        return None
-    try:
-        meta = get()
-    except Exception:
-        return None
-    if not meta or not meta.get("count"):
-        return None
-    w, h = meta["width"], meta["height"]
-    idx = max(0, min(meta["count"] - 1,
-                     int(secs * 1000 / max(1, meta["multiplier"]))))
-    key = ("trickplay", meta["file"], meta["count"],
-           meta["multiplier"], idx)
-    # one-slot cache: repaints at the same scrub index (1s ticker while
-    # holding still) skip the file read + decode
-    last = b.hud.frame
-    if last is not None and last[0] == key:
-        return last[1]
-    frame = w * h * 4
-    try:
-        with open(meta["file"], "rb") as fh:
-            fh.seek(idx * frame)
-            data = fh.read(frame)
-    except OSError:
-        return None
-    if len(data) < frame:
-        return None
-    try:
-        from PIL import Image as PILImage
-
-        img = PILImage.frombytes("RGBA", (w, h), data, "raw", "BGRA")
-    except Exception:
-        log.debug("trickplay frame decode failed", exc_info=True)
-        return None
-    entry = b.strips.bitmap(key, img)
-    b.hud.frame = (key, entry)
-    return entry
 
 
 def _hud_action(b, verb, arg=None):
@@ -650,8 +604,8 @@ def build_hud(b, size):
         on_change=b.hud.scrub_change,
         on_commit=b.hud.scrub_commit,
         on_cancel=b.hud.scrub_cancel,
-        on_hover=b.hud.hover_move,
-        on_hover_end=b.hud.hover_end)
+        # the renderer floats the trickplay/chapter bubble itself
+        preview=True)
 
     menu_state = None
     if b.controller is not None and hasattr(b.controller, "hud_menu_state"):
@@ -801,65 +755,12 @@ def build_hud(b, size):
     if skip is not None:
         children.append(skip)
 
-    preview_at = scrub if scrub is not None else b.hud.hover
-    preview = _preview_float(b, preview_at, dur, size, chapters)
-    if preview is not None:
-        children.append(preview)
+    # The scrub preview bubble is NOT here. The renderer draws it, from the
+    # trickplay tiles and mpv's chapter list, without asking (#618/#612) —
+    # see renderer.lua's `pv` slider flag.
 
     menu = _settings_menu(b, menu_state, size)
     if menu is not None:
         children.append(menu)
 
     return Stack(children, w=w, h=h)
-
-
-# Must match renderer.lua's SLIDER_PAD (track inset inside the slider node —
-# the thumb travels between the insets). A click is mapped back to a seek
-# time through this, so drift puts the seek off where the user clicked.
-# Enforced by tests/test_python_lua_constants.py.
-_SLIDER_PAD = 8
-
-
-def _preview_float(b, secs, dur, size, chapters):
-    """Seek-preview bubble floated above the slider at ``secs``: the
-    trickplay thumbnail (when the video has tiles) over the chapter
-    name and timestamp — the lua OSC's hover bubble. Shown while
-    scrubbing or while the pointer rests on the bar. Geometry comes
-    from the previous scene's laid-out slider rect — one frame stale,
-    which is fine: the bar doesn't move while the HUD is up."""
-    if secs is None or dur <= 0:
-        return None
-    rect = None
-    if b.app is not None and hasattr(b.app, "node_rect"):
-        rect = b.app.node_rect("hud-seek")
-    if rect is None:
-        return None
-    w, h = size
-    entry = _trickplay_frame(b, secs)
-    rows: list[Element] = []          # the frame Image plus its Text captions
-    if entry is not None:
-        rows.append(Image(entry["src"], entry["iw"], entry["ih"],
-                          v=entry.get("v", 0)))
-    chapter = None
-    for ch in chapters:
-        if ch["time"] <= secs and ch.get("title"):
-            chapter = ch["title"]
-    if chapter:
-        rows.append(Text(chapter, size=14, color="dddddd",
-                         align="center"))
-    rows.append(Text(_clock(secs), size=14, bold=True, align="center"))
-    # lw, not iw: this is bubble geometry in logical space, and iw is the
-    # frame's physical width (trickplay frames are sized by the video, not
-    # by a logical box, so the two differ at any scale != 1).
-    bw = max(entry["lw"] if entry is not None else 0, 120) + 16
-    frac = max(0.0, min(1.0, secs / dur))
-    track_x = rect["x"] + _SLIDER_PAD
-    track_w = rect["w"] - 2 * _SLIDER_PAD
-    px = track_x + frac * track_w - bw / 2
-    px = max(8, min(w - bw - 8, px))
-    # anchor sw + negative dy pins the bubble's BOTTOM just above the
-    # slider whatever its content height turns out to be
-    return Box(
-        [Column(rows, gap=4, align="center")],
-        id="hud-preview", bg="282828", radius=6, pad=8,
-        anchor="sw", dx=px, dy=rect["y"] - 10 - h)

@@ -24,17 +24,15 @@ at a renderer that is not showing one.
     *we* paused playback to make the position inspectable. The second flag
     is what stops a commit from resuming playback the user had paused
     themselves.
-``hover``
-    Pointer resting on the seek bar. Drives the preview bubble; ``scrub``
-    takes precedence over it.
 ``menu`` / ``menu_anchor``
     The open settings-menu level ("root", "speed", …) and the node it hangs
     off. One level at a time.
 ``tc_remaining``
     Clock shows remaining rather than total. A click toggles it.
-``frame``
-    Cached scrub-preview frame, keyed so the same position is not decoded
-    twice.
+
+The scrub preview bubble is deliberately absent: the renderer draws it from
+the trickplay tiles and mpv's chapter list, so no hover state reaches here
+at all (#618).
 """
 
 import logging
@@ -58,7 +56,6 @@ class HudController:
         self._start_ticker = start_ticker
         self.reset()
         self.state = None
-        self.frame = None
 
     @property
     def app(self):
@@ -82,7 +79,6 @@ class HudController:
         self.menu = None
         self.menu_anchor = "hud-settings"
         self.tc_remaining = False
-        self.hover = None
 
     # -- is the HUD in play at all ----------------------------------------
 
@@ -133,16 +129,6 @@ class HudController:
     def scrub_cancel(self):
         self.scrub_done()
 
-    # -- hover -------------------------------------------------------------
-
-    def hover_move(self, v):
-        self.hover = float(v)
-        self._invalidate()
-
-    def hover_end(self):
-        self.hover = None
-        self._invalidate()
-
     # -- menu / events -----------------------------------------------------
 
     def on_skip(self):
@@ -181,7 +167,6 @@ class HudController:
             # keep a menu opened in the same beat as a summon
             # (open_menu sets it right before the hud event lands)
             self.menu = None
-        self.hover = None
         if getattr(self.controller, "hud_sub_margin", None) is not None:
             # raise bottom subtitles clear of the bar while it shows
             try:
