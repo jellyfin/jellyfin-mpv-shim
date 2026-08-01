@@ -2387,6 +2387,16 @@ class OfflineLibrarySource:
             episodes_by_series[sid].append(item)
         return [{"Id": sid, "Name": names[sid], "Type": "Series",
                  "ImageTags": {},
+                 # A synthesized DTO has to answer the questions a real one
+                 # would, and the grid asks this one: GridPage._grid_shape
+                 # takes the MEDIAN PrimaryImageAspectRatio across the row and
+                 # falls back to SQUARE when nothing carries one -- so a
+                 # downloaded-shows grid came out as square cards with the
+                 # posters letterboxed inside them. A Series' Primary image is
+                 # a poster; the server says 2:3 for these, and the offline
+                 # catalog stores episodes, not the series, so there is
+                 # nothing else to read it from.
+                 "PrimaryImageAspectRatio": 2 / 3,
                  "UserData": self._aggregate_userdata(episodes_by_series[sid])}
                 for sid in order]
 
