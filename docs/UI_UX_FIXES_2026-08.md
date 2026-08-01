@@ -23,12 +23,12 @@ disabled state) lands before the issue that needs it.
 | [620](#620--playback-hud-design-feedback) | Playback HUD design feedback | done `456682c5` |
 | [575](#575--commercial--preview--recap-segments) | Commercial / Preview / Recap segments | done `88da297a` |
 | [618(b)](#618b--renderer-side-scrub-preview) + [612](#612--hover-bubble-position-depends-on-chapter-title-length) | Renderer-side scrub preview | done `cb24f92d` |
-| [617](#617--scrollbar-loses-the-drag-while-items-page-in) | True virtual scroll | **TODO** |
+| [617](#617--scrollbar-loses-the-drag-while-items-page-in) | True virtual scroll | done `9bdedd12` |
 
-Everything above the line is on `ui-ux-fixes`, one commit each, with the full
-unit suite green after each. What is left is the two structural changes; the
-implementation notes gathered while doing the rest are under
-[Notes for the remaining two](#notes-for-the-remaining-two).
+All ten issues are on `ui-ux-fixes`, one commit each, with the full unit
+suite green after every one and the mpv integration suite green on both
+backends. What each of the two structural changes actually came to is under
+[Notes on the two structural changes](#notes-on-the-two-structural-changes).
 
 ---
 
@@ -486,10 +486,10 @@ through `enter_browse`, which does not reload.
 
 ---
 
-## Notes for the remaining two
+## Notes on the two structural changes
 
-Everything below was learned while doing the other eight. It is here because
-none of it is discoverable from the issue text, and some of it is a trap.
+Written while planning them and rewritten to what they came to. None of it is
+discoverable from the issue text, and some of it is a trap.
 
 ### 618(b) — renderer-side scrub preview — DONE
 
@@ -535,28 +535,50 @@ state instead of looking for a `hud-preview` node.
 both backends when this landed. Not this change — #620 fallout, fixed in
 `793d8793`; see the follow-up under that issue.)
 
-### 617 — true virtual scroll
+### 617 — true virtual scroll — DONE
 
-- `tile_renderer.grid_of` takes `nrows` from `len(items)`; it needs the total.
-  `route["_total"]` is already set by every loader and already drawn in the
-  header's "%(shown)d of %(total)d".
-- `Paginator.more` (append-from-the-end) and `Paginator._fetch` (arbitrary
-  offset, bounded window) are the two halves; this is closer to unifying them
-  than to writing a third mode.
-- **`_items` goes sparse**: 5 files, 28 sites. The consumers to audit are the
-  ones that mean "everything on screen" — Play All and Shuffle
-  (`pages/grid.py`), the count line, `pages/queue_edit.py`,
-  `settings/home.py`, `tiles.py`.
-- **The Random-sort trap.** `PersonPage.load` (and the grid loader) deliberately
-  set `_total = len(items)` when the sort is Random, because the server
-  reshuffles per request and paging it yields duplicates and gaps. A grid
-  sized from `_total` must keep that: random cannot be windowed, and sizing it
-  to the real total would ask for pages that come back scrambled.
-- Renderer drag anchoring rides along: `state.drag` keeps a fixed `start_off`
-  and multiplies by a live `maxs`. The fix is the pattern already used by the
-  dropdown's own scrollbar a few hundred lines away — store the grab offset
-  *inside the thumb* and derive the offset from absolute `y`.
-- Unchanged: `snap` / `snap_off` on the VScroll, `PAGE_SLOP`, `PAGE_MAX`.
+Shipped for the **grid and person routes** (`route["_items"]`), which is
+what the issue is about. What it came to:
+
+- `pagination.spread` pads a list to `_total` and places a fetched page at
+  its own offset. `Paginator.window` asks for the pages covering a range and
+  is called from **render**, like `ensure` and for the same reason: which
+  items are visible is a question about geometry.
+- The window is `TileRenderer.row_window` / `list_window` — the *same*
+  function the renderer composites from, because fetching one window and
+  drawing another is the failure mode worth designing out.
+- A hole draws as an empty tile (`Tile(key="_pending%d")`, keyed by column so
+  every unfilled slot in a library shares one cached blank) and carries no
+  click region.
+- **Random stays exempt and unchanged.** `_install` still reports what it
+  loaded as the whole list, so there are no holes and nothing to window.
+- **Render must not retry.** A failing server asked once per frame is a loop,
+  and the toast it raises is itself a frame. So an attempt is recorded in
+  `_win_tried` and the view clears that on a *scroll* (`Paginator.rewindow`)
+  — the cadence the old pager had. `_win_load` is separate and is the
+  in-flight set, so clearing one mid-scroll cannot re-issue the other.
+- `WINDOW_PAGE = 100` equals the repository's default page limit on purpose:
+  the initial load fills page 0 exactly, so the first render asks for nothing.
+- The scrollbar drag is anchored inside the thumb (the dropdown scrollbar's
+  pattern) instead of a delta scaled by a live `scroll_max`.
+- Two knock-ons worth knowing: the count line is `"%d items"` rather than
+  `"%(shown)d of %(total)d"` (how much is loaded stopped being visible), and
+  `AsyncRunner.run` tolerates a shut-down pool, because render can now submit
+  work and a closing app must not raise out of a repaint. `_play_photo` reads
+  the loaded window rather than everything walked past.
+
+**Music, music genre and Live TV keep append-on-approach**, deliberately.
+Behind music's one `_data` are three different lists — a tile grid, a track
+*table* and the unpaged genres — so windowing it means teaching `track_list`
+about holes as well, which is a second piece of work rather than the same one
+applied twice. Live TV's lists re-read and merge themselves on a timer and a
+websocket, and a windowed fetch would fight that discipline. The drag
+anchoring above is renderer-side and covers all of them anyway: the thumb no
+longer slides out from under the pointer when a list grows, which is the
+symptom that was reported.
+
+`TestPagersShareTheirInvariants` lost its `grid` view for this reason and
+`TestGridWindowing` is the grid's contract now.
 
 **Play All and Shuffle are not affected** — checked against jellyfin-web at
 Izzie's suggestion, and the answer is that neither client plays "what is
@@ -612,9 +634,11 @@ rediscover them:
 Groundwork first, then the small fixes, then the two structural changes. One
 commit each.
 
-Steps 1–11 are done (see the table at the top). What remains:
+All twelve are done (see the table at the top).
 
-12. #617 — true virtual scroll.
+The one thing deliberately left: music, music-genre and Live TV still page
+on approach rather than windowing. The reason, and why the drag is fixed for
+them anyway, is under #617.
 
 ## Decisions taken without asking
 

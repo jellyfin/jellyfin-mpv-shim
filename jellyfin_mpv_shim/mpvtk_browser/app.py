@@ -1675,13 +1675,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _play_photo(self, item, server):
         """Open a photo, with the rest of its album queued behind it.
 
-        The album is whatever the grid this was clicked in is showing, which
-        is already loaded -- no fetch, and it matches what the user can see.
-        Falls back to the one photo when the route has no list (a search
-        result, say), which still opens the picture.
+        The album is whatever the grid this was clicked in has LOADED -- no
+        fetch, and it matches what the user can see. Since #617 that is a
+        window rather than everything walked past, so a photo opened deep in
+        a large album queues its neighbourhood rather than the whole folder;
+        the holes are skipped like any other consumer skips them. Falls back
+        to the one photo when the route has no list (a search result, say),
+        which still opens the picture.
         """
         items = [i for i in (self.route.get("_items") or [])
-                 if i.get("Type") == PHOTO_TYPE and i.get("Id")]
+                 if i and i.get("Type") == PHOTO_TYPE and i.get("Id")]
         ids = [i["Id"] for i in items]
         try:
             start = ids.index(item.get("Id"))

@@ -2895,11 +2895,11 @@ local function on_mouse_move(x, y)
         local node = state.byid[state.drag.sc]
         local b = state.bars[state.drag.sc]
         if node and b then
-            local maxs = scroll_max(node)
             local range = b.h - b.thumb_h
             if range > 0 then
-                local delta = (y - state.drag.start_m) / range * maxs
-                set_scroll(node, state.drag.start_off + delta)
+                -- where the grabbed point of the thumb is now
+                local top = clamp(y - state.drag.grab, b.y, b.y + range)
+                set_scroll(node, (top - b.y) / range * scroll_max(node))
             end
         end
         return
@@ -3066,11 +3066,23 @@ local function on_mouse_down()
             local dir = y < b.thumb_y and -1 or 1
             set_scroll(node, (state.scroll[bar_id] or 0) + dir * node.h)
         end
-        state.drag = {
-            sc = bar_id,
-            start_m = y,
-            start_off = state.scroll[bar_id] or 0,
-        }
+        -- Anchored INSIDE the thumb (the pattern the dropdown's own
+        -- scrollbar uses), not as a delta from a parked offset. A delta has
+        -- to be multiplied by a live scroll_max, so a scroller that grows
+        -- mid-drag maps the same pointer movement onto a bigger jump while
+        -- the thumb simultaneously gets shorter -- and slides out from
+        -- under the cursor (#617). Grabbing a point on the thumb and
+        -- deriving the offset from where that point now is cannot drift,
+        -- whatever the content does.
+        --
+        -- A track click above has already jumped a page, so re-read the
+        -- thumb rather than trusting the rect the hit test was made
+        -- against; if the jump moved it under the pointer, grab it there.
+        local top = b.thumb_y
+        if y < b.thumb_y or y > b.thumb_y + b.thumb_h then
+            top = y - b.thumb_h / 2
+        end
+        state.drag = { sc = bar_id, grab = clamp(y - top, 0, b.thumb_h) }
         return
     end
     local node = node_at(x, y)
@@ -5169,6 +5181,9 @@ mp.register_script_message('mpvtk-debug', function(json)
                 off = state.dd_geo.off,
             } or nil,
             tb = state.tb,
+            -- scrollbar geometry per container ({x, y, w, h, thumb_y,
+            -- thumb_h}), so a test can grab a thumb where it is drawn
+            bars = state.bars,
             active = state.active,
             phud_mode = state.phud.mode,
             phud_shown = state.phud.shown,

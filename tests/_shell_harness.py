@@ -51,9 +51,17 @@ def music_scroll(b, route, offset, maximum):
     b._page_for(route)._on_scroll_end(offset, maximum)
 
 def grid_scroll(b, route, offset, maximum):
-    """The grid/person infinite-scroll handler, which moved onto GridPage in
-    6c. Reached through the page the shell would build for that route."""
-    b._page_for(route)._on_scroll_end(offset, maximum)
+    """Scroll a grid/person route and let it ask for what that brings in.
+
+    The grid is *windowed* since #617: there is no page-on-approach callback
+    any more, so scrolling it means moving the offset and rendering — the
+    render is what asks ``Paginator.window`` for the newly visible range,
+    from the same geometry the renderer composites.
+    """
+    from jellyfin_mpv_shim.mpvtk_browser.pagination import Paginator
+    Paginator.rewindow(route)     # what the view's on_scroll callback does
+    b._scroll.on_scroll("grid", offset, maximum)
+    build_scene(b)
 
 def detail_page(b, route):
     """A DetailPage bound to ``route`` — the seam the detail screen's private

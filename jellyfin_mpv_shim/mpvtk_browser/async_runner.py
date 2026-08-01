@@ -149,4 +149,17 @@ class AsyncRunner:
                             log.warning("async always failed", exc_info=True)
                 self.invalidate()
 
-        self._pool.submit(task)
+        try:
+            self._pool.submit(task)
+        except RuntimeError:
+            # The pool is shut down -- the app is on its way out, or a test
+            # harness closed it before a last render. Dropping the work is
+            # right either way, but `always` still has to run: it is what
+            # releases the caller's in-flight guard, and a guard left set
+            # outlives the pool on the route dict.
+            log.debug("pool is shut down; dropping async work")
+            if always is not None:
+                try:
+                    always()
+                except Exception:
+                    log.warning("async always failed", exc_info=True)

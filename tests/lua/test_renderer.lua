@@ -1145,6 +1145,60 @@ type_text("Z")
 click("elsewhere")
 ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
 
+-- ============================================== scrollbar drag anchoring
+
+-- The thumb is grabbed at a point, and that point stays under the pointer.
+-- It used to be a delta from a parked offset multiplied by a LIVE
+-- scroll_max, so a scroller that grew mid-drag mapped the same pointer
+-- movement onto a bigger jump while the thumb got shorter -- and slid out
+-- from under the cursor. That is #617 as the reporter met it: pages landing
+-- while they dragged.
+
+local function bars(id)
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return ((last_event("debug_state") or {}).bars or {})[id]
+end
+
+local function repaint()
+    fake.advance(0.1)
+    fake.fire_timers()
+end
+
+scene({ vscroll("lib", 600, 6000, { bar = true }) })
+repaint()
+local bar = bars("lib")
+ok(bar ~= nil, "the scroll container drew no scrollbar")
+
+local GRAB = 5                          -- where on the thumb it is held
+local py = bar.thumb_y + GRAB
+fake.mouse(bar.x + 3, py)
+fake.key("mbtn_left")                   -- press: the drag starts
+py = py + 120
+fake.mouse(bar.x + 3, py)
+repaint()
+ok(math.abs(bars("lib").thumb_y - (py - GRAB)) <= 1,
+   "the thumb did not follow the pointer",
+   string.format("thumb at %s, pointer holding %s",
+                 tostring(bars("lib").thumb_y), tostring(py - GRAB)))
+
+-- A page lands mid-drag: the content doubles under the thumb. The frame
+-- that draws it is what re-measures the thumb, so the next pointer movement
+-- is the one that has to land right -- and it does, because the grab is a
+-- point on the thumb rather than a distance from an offset.
+scene({ vscroll("lib", 600, 12000, { bar = true }) })
+repaint()
+py = py + 40
+fake.mouse(bar.x + 3, py)
+repaint()
+ok(math.abs(bars("lib").thumb_y - (py - GRAB)) <= 1,
+   "the thumb slid out from under the pointer when the content grew",
+   string.format("thumb at %s, pointer holding %s",
+                 tostring(bars("lib").thumb_y), tostring(py - GRAB)))
+
+-- Release, so the drag does not eat the pointer for the tests below.
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 5, y = 5 }))
+
 -- =================================================== HUD auto-hide
 
 -- The controls' auto-hide is a policy (hud_autohide), and the pointer

@@ -447,7 +447,7 @@ class TestPlaylistDeleteNavigation(unittest.TestCase):
         """The grid we came from still listed the deleted playlist, because
         it was rendered from its cached _items."""
         editor_page(self.b, self.b.route)._delete()
-        ids = [i.get("Id") for i in self.b.route.get("_items") or []]
+        ids = [i.get("Id") for i in self.b.route.get("_items") or [] if i]
         self.assertNotIn("P", ids, "still lists the deleted playlist")
         self.assertTrue(ids, "landed on an unloaded route")
 
@@ -1008,10 +1008,11 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
                 b = self.b
                 b.nav_stack = [route]
                 scroll(route)
-                self.assertTrue(route["_loading"], "no page was dispatched")
+                guard = "_win_load" if view == "grid" else "_loading"
+                self.assertTrue(route[guard], "no page was dispatched")
                 b.navigate({"kind": "home", "server": "srv1"})
                 b._pool.drain()          # the page lands, stale, and is dropped
-                self.assertFalse(route.get("_loading"),
+                self.assertFalse(route.get(guard),
                                  "the paging guard survived a stale page")
 
     def test_a_dropped_downloads_load_clears_its_guard_too(self):
@@ -1093,20 +1094,20 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         self.assertIsNone(route.get("_data"),
                           "a superseded load applied its result anyway")
 
-    def test_a_failed_page_can_page_again_after_navigating(self):
-        """_loading is cleared by on_error. Dropping that left the grid
-        unable to request another page for the rest of the session."""
+    def test_a_failed_window_can_be_asked_for_again(self):
+        """The in-flight guard is cleared by `always`. Dropping that left the
+        grid unable to request that window for the rest of the session."""
         b = self._browser()
         b.source.get_library_items = self._boom
         route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
                  "_items": [{"Id": "x"}], "_total": 99}
         b.nav_stack = [route]
         grid_scroll(b, route, 10_000, 10_000)
-        self.assertTrue(route["_loading"], "the page was never dispatched")
+        self.assertTrue(route["_win_load"], "the window was never dispatched")
         b.navigate({"kind": "home", "server": "srv1"})
         b._pool.drain()
-        self.assertFalse(route.get("_loading"),
-                         "the paging guard survived a failure")
+        self.assertFalse(route.get("_win_load"),
+                         "the in-flight guard survived a failure")
 
 
 if __name__ == "__main__":

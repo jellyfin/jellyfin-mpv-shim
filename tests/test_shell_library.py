@@ -920,15 +920,16 @@ class TestGridFilters(unittest.TestCase):
         self.assertEqual(f.get("genre"), "Action")
         self.assertTrue(f.get("unplayed"))
 
-    def test_paging_carries_the_filters(self):
-        """Page 2 losing them is how the person route shipped: the two
-        result sets interleave into duplicates and skips."""
+    def test_windowing_carries_the_filters(self):
+        """A window fetched later losing them is how the person route
+        shipped: the two result sets interleave into duplicates and skips."""
         _n, h = self._grid()
         h["grid-genre"]["select"](1, "Action")
-        grid_scroll(self.b, self.b.route, 100000, 100001)
+        before = len(self.b.source.queries)
+        grid_scroll(self.b, self.b.route, 100000, 200000)
+        self.assertGreater(len(self.b.source.queries), before,
+                           "no window was fetched for where we scrolled to")
         self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
-        self.assertGreater(self._last_query()["start_index"], 0,
-                           "no second page was actually fetched")
 
 class TestTileContextMenu(unittest.TestCase):
     def setUp(self):
