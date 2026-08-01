@@ -211,6 +211,11 @@ class Settings(SettingsBase):
     # tab.
     auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
+    # The mouse's back/forward buttons jump a chapter during playback.
+    # Off by default: they are easy to hit by accident on some mice,
+    # and skipping a chapter of a film is not as forgiving as the Back
+    # press they perform in the library. Read when mpv is created.
+    mouse_chapter_nav: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None
     mpv_ext_ipc: Optional[str] = None

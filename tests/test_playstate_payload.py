@@ -421,3 +421,66 @@ class TestVolumeAndMuteReachTheUI(unittest.TestCase):
         body = src.split('"""')[2]
         self.assertNotIn("timeline_handle", body)
         self.assertIn("push_playstate", body)
+
+
+class TestChapterJump(unittest.TestCase):
+    """Where a previous/next-chapter jump lands. One rule, two callers: the
+    HUD's chapter buttons and the mouse's back/forward buttons (#614)."""
+
+    CHAPTERS = [{"time": 0.0}, {"time": 40.0}, {"time": 80.0}]
+
+    def target(self, pos, direction):
+        from jellyfin_mpv_shim.player import chapter_target
+        return chapter_target(self.CHAPTERS, pos, direction)
+
+    def test_back_restarts_the_chapter_you_are_in(self):
+        self.assertEqual(self.target(50.0, -1), 40.0)
+
+    def test_back_within_the_grace_goes_to_the_one_before(self):
+        """Every player does this, and it is what makes a double-press
+        mean "no, the previous one"."""
+        self.assertEqual(self.target(41.0, -1), 0.0)
+
+    def test_back_from_the_first_chapter_goes_to_the_start(self):
+        self.assertEqual(self.target(1.0, -1), 0.0)
+
+    def test_forward_takes_the_next_boundary(self):
+        self.assertEqual(self.target(50.0, 1), 80.0)
+
+    def test_forward_from_the_last_chapter_has_nowhere_to_go(self):
+        """None, not the end of the file: the caller does nothing rather
+        than seeking to the credits."""
+        self.assertIsNone(self.target(90.0, 1))
+
+    def test_landing_on_a_boundary_does_not_seek_to_where_you_are(self):
+        self.assertEqual(self.target(40.0, 1), 80.0)
+
+    def test_there_is_no_dead_zone_before_a_boundary(self):
+        """`> pos + 0.5` meant the last half second of every chapter was a
+        stretch where the forward button did nothing at all -- half a second
+        of real playback, and the reason it reads as "the button sometimes
+        doesn't work". A position from mpv is a float and is never exactly a
+        boundary, so `> pos` covers the equality case on its own."""
+        self.assertEqual(self.target(39.6, 1), 40.0)
+        self.assertEqual(self.target(39.999, 1), 40.0)
+
+    def test_a_file_with_no_chapters_answers_nothing_useful(self):
+        from jellyfin_mpv_shim.player import chapter_target
+        self.assertIsNone(chapter_target([], 10.0, 1))
+        self.assertEqual(chapter_target([], 10.0, -1), 0.0)
+
+
+class TestMouseChapterNavIsOptional(unittest.TestCase):
+    """#614: the thumb buttons are easy to hit by accident on some mice, so
+    this is opt-in even though most players bind them."""
+
+    def test_it_is_off_by_default(self):
+        self.assertFalse(settings.mouse_chapter_nav)
+
+    def test_the_binding_is_behind_the_setting(self):
+        import inspect
+
+        src = inspect.getsource(PlayerManager._bind_mpv_handlers)
+        self.assertIn("settings.mouse_chapter_nav", src)
+        self.assertIn("MBTN_BACK", src)
+        self.assertIn("MBTN_FORWARD", src)

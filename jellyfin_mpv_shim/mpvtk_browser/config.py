@@ -86,7 +86,8 @@ SECTIONS = [
                       "start_minimized",
                       "remember_window_size",
                       "fullscreen", "enable_osc", "osc_style",
-                      "hud_grab_keys", "hud_wake_key", "raise_mpv",
+                      "hud_grab_keys", "hud_wake_key",
+                      "mouse_chapter_nav", "raise_mpv",
                       "discord_presence",
                       "check_updates", "notify_updates"]),
     # The three startup-applied "look" settings, together: the theme sets the
@@ -211,6 +212,7 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
     "audio_exclusive": _("Take the Device Exclusively"),
@@ -304,6 +306,10 @@ NOTES = {
                "after a restart."),
     "poster_scale": _("Overrides the theme's cover size. Takes effect after a "
                       "restart."),
+    "mouse_chapter_nav": _("During playback only — in the library those "
+                           "buttons stay Back and Forward. Off by default "
+                           "because they are easy to hit by accident on some "
+                           "mice. Takes effect after a restart."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "

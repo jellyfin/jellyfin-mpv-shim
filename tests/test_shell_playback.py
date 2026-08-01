@@ -204,20 +204,16 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertIn(("seek_relative", (30,)), ctl.transport)
 
     def test_chapter_jump_buttons(self):
+        """The buttons ask the player for a chapter rather than working the
+        target out and seeking there: one definition of "previous chapter"
+        (player.chapter_target, shared with the mouse buttons), and the jump
+        goes through SyncPlay like every other seek."""
         b, ctl = self._browser()
         _nodes, handlers = build_scene(b, (1280, 720))
-        # pos=50: prev -> chapter at 40, next -> chapter at 80
         handlers["hud-ch-prev"]["click"]()
         handlers["hud-ch-next"]["click"]()
-        self.assertIn(("seek", (40.0,)), ctl.transport)
-        self.assertIn(("seek", (80.0,)), ctl.transport)
-
-    def test_prev_chapter_within_grace_goes_further_back(self):
-        b, ctl = self._browser()
-        b.hud.state["position"] = 41.0  # within 2s of the 40s chapter
-        _nodes, handlers = build_scene(b, (1280, 720))
-        handlers["hud-ch-prev"]["click"]()
-        self.assertIn(("seek", (0.0,)), ctl.transport)
+        self.assertIn(("chapter_seek", (-1,)), ctl.transport)
+        self.assertIn(("chapter_seek", (1,)), ctl.transport)
 
 class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
     def _browser(self, size=(1280, 720)):

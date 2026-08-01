@@ -24,7 +24,7 @@
 {"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 532.0, "y": 82.0}
 {"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 649.4, "y": 72.0}
 {"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.5.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 659.4, "y": 82.0}
-{"axis": "y", "bar": true, "ch": 3615.0, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
+{"axis": "y", "bar": true, "ch": 3673.5, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "Interface", "w": 1238.0, "x": 16.0, "y": 145.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 186.4}
 {"h": 38.0, "id": "set-player_name", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 178.0}
@@ -58,202 +58,206 @@
 {"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.11.1", "sc": "settings", "size": 20, "t": "text", "text": "Always Bind Arrow Keys to Player Controls", "w": 386.4, "x": 46.0, "y": 536.5}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.12.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Controls Activation Key", "w": 340.0, "x": 16.0, "y": 577.9}
 {"h": 38.0, "id": "set-hud_wake_key", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "ENTER", "w": 340.0, "x": 368.0, "y": 569.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 615.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 618.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.13.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 618.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.13.1", "sc": "settings", "size": 20, "t": "text", "text": "Raise MPV", "w": 94.6, "x": 46.0, "y": 615.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 648.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.14.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 651.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.14.1", "sc": "settings", "size": 20, "t": "text", "text": "Show What You're Watching in Discord", "w": 351.4, "x": 46.0, "y": 648.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.15", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 681.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 707.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 709.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.16.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 710.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.16.1", "sc": "settings", "size": 20, "t": "text", "text": "Check Updates", "w": 131.6, "x": 46.0, "y": 707.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 740.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.17.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 742.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.17.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 743.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.17.1", "sc": "settings", "size": 20, "t": "text", "text": "Notify Updates", "w": 130.4, "x": 46.0, "y": 740.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.18", "sc": "settings", "size": 20, "t": "text", "text": "Theme", "w": 1238.0, "x": 16.0, "y": 773.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.19.0", "sc": "settings", "size": 17, "t": "text", "text": "Theme", "w": 340.0, "x": 16.0, "y": 814.4}
-{"force": true, "h": 38.0, "id": "set-theme", "items": ["Default", "Apple TV (Jellyfin)", "Blue Radiance (Jellyfin)", "Light (Jellyfin)", "Nebula", "Purple Haze (Jellyfin)", "Windows Media Center (Jellyfin)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 806.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.20", "sc": "settings", "size": 14, "t": "text", "text": "Palette, glow, cover style and default cover size. Colours change immediately; cover and heading sizes take effect after a restart.", "w": 1238.0, "x": 16.0, "y": 852.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.21.0", "sc": "settings", "size": 17, "t": "text", "text": "Cover Size", "w": 340.0, "x": 16.0, "y": 885.9}
-{"force": true, "h": 38.0, "id": "set-poster_scale", "items": ["Theme default", "Small", "Medium", "Large", "Extra Large"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 877.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Overrides the theme's cover size. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 923.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.23.0", "sc": "settings", "size": 17, "t": "text", "text": "Interface Scale", "w": 340.0, "x": 16.0, "y": 957.4}
-{"force": true, "h": 38.0, "id": "set-ui_scale", "items": ["Follow display", "100% (no scaling)", "125%", "150%", "200%"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 949.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.24", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. \"Follow display\" uses the scale your desktop reports, which is 100% on X11.", "w": 1238.0, "x": 16.0, "y": 995.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.25", "sc": "settings", "size": 14, "t": "text", "text": "Cover size and interface scale require a restart.", "w": 1238.0, "x": 16.0, "y": 1020.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.26", "sc": "settings", "size": 20, "t": "text", "text": "Playback", "w": 1238.0, "x": 16.0, "y": 1046.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_play", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1079.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.27.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1081.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.27.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1082.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.27.1", "sc": "settings", "size": 20, "t": "text", "text": "Auto Play", "w": 84.4, "x": 46.0, "y": 1079.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-always_transcode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1112.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.28.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1114.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.28.1", "sc": "settings", "size": 20, "t": "text", "text": "Always Transcode", "w": 166.2, "x": 46.0, "y": 1112.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.29.0", "sc": "settings", "size": 17, "t": "text", "text": "Local kbps", "w": 340.0, "x": 16.0, "y": 1153.4}
-{"h": 38.0, "id": "set-local_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2147483", "w": 340.0, "x": 368.0, "y": 1145.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.30.0", "sc": "settings", "size": 17, "t": "text", "text": "Remote kbps", "w": 340.0, "x": 16.0, "y": 1199.4}
-{"h": 38.0, "id": "set-remote_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10000", "w": 340.0, "x": 368.0, "y": 1191.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1237.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.31.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1239.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.31.1", "sc": "settings", "size": 20, "t": "text", "text": "Direct Paths", "w": 108.8, "x": 46.0, "y": 1237.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remote_direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1270.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.32.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1272.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.32.1", "sc": "settings", "size": 20, "t": "text", "text": "Remote Direct Paths", "w": 181.8, "x": 46.0, "y": 1270.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.33.0", "sc": "settings", "size": 17, "t": "text", "text": "Playback Timeout", "w": 340.0, "x": 16.0, "y": 1311.4}
-{"h": 38.0, "id": "set-playback_timeout", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 1303.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.34", "sc": "settings", "size": 20, "t": "text", "text": "Audio", "w": 1238.0, "x": 16.0, "y": 1349.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.35.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Device", "w": 340.0, "x": 16.0, "y": 1390.4}
-{"h": 38.0, "id": "set-audio_device", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 1382.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.36", "sc": "settings", "size": 14, "t": "text", "text": "Leave this to Default unless setting up passthrough. Note some audio servers like Pipewire don't like passthrough and will need to be disabled for a card before it'll let *any* audio through in", "w": 1238.0, "x": 16.0, "y": 1428.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.36.l1", "sc": "settings", "size": 14, "t": "text", "text": "passthrough mode. In my tests I got silence otherwise, but results may vary.", "w": 1238.0, "x": 16.0, "y": 1445.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.37.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Mode", "w": 340.0, "x": 16.0, "y": 1479.4}
-{"force": true, "h": 38.0, "id": "set-audio_mode", "items": ["Default (auto)", "Force Stereo", "Optical Surround", "HDMI Passthrough"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1471.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.38", "sc": "settings", "size": 14, "t": "text", "text": "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. Pick a mode only if you are sending audio to a receiver.", "w": 1238.0, "x": 16.0, "y": 1517.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-audio_night_mode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1542.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.39.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1545.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.39.1", "sc": "settings", "size": 20, "t": "text", "text": "Night Mode (Auto Volume Adj)", "w": 267.6, "x": 46.0, "y": 1542.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.40", "sc": "settings", "size": 14, "t": "text", "text": "Evens out loud effects and quiet dialogue. This turns passthrough off while it is enabled, because the volume has to be adjusted before your receiver gets the audio.", "w": 1238.0, "x": 16.0, "y": 1575.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.41", "sc": "settings", "size": 20, "t": "text", "text": "Subtitles & Languages", "w": 1238.0, "x": 16.0, "y": 1601.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.42.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Size", "w": 340.0, "x": 16.0, "y": 1642.4}
-{"h": 38.0, "id": "set-subtitle_size", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "100", "w": 340.0, "x": 368.0, "y": 1634.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.43.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Color", "w": 340.0, "x": 16.0, "y": 1688.4}
-{"h": 38.0, "id": "set-subtitle_color", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "#FFFFFFFF", "w": 340.0, "x": 368.0, "y": 1680.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.44.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Position", "w": 340.0, "x": 16.0, "y": 1734.4}
-{"force": true, "h": 38.0, "id": "set-subtitle_position", "items": ["top", "bottom", "middle"], "sc": "settings", "sel": 1, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1726.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.45.0", "sc": "settings", "size": 17, "t": "text", "text": "Language Preference", "w": 340.0, "x": 16.0, "y": 1780.4}
-{"force": true, "h": 38.0, "id": "set-language_preference", "items": ["Unset", "Dubbed (shows only)", "Subbed (shows only)", "Dubbed (all)", "Subbed (all)", "Custom (set in config)"], "sc": "settings", "sel": 5, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1772.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.46.0", "sc": "settings", "size": 17, "t": "text", "text": "Preferred Language", "w": 340.0, "x": 16.0, "y": 1826.4}
-{"h": 38.0, "id": "set-preferred_language", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "eng", "w": 340.0, "x": 368.0, "y": 1818.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_audio_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1864.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.47.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1866.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.47.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1867.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.47.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Audio Track", "w": 206.8, "x": 46.0, "y": 1864.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_subtitle_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1897.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.48.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1899.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.48.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1900.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.48.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Subtitle Track", "w": 227.2, "x": 46.0, "y": 1897.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.49.0", "sc": "settings", "size": 17, "t": "text", "text": "Lang Filter", "w": 340.0, "x": 16.0, "y": 1938.4}
-{"h": 38.0, "id": "set-lang_filter", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "und,eng,jpn,mis,mul,zxx", "w": 340.0, "x": 368.0, "y": 1930.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_sub", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1976.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.50.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1978.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.50.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Sub", "w": 136.4, "x": 46.0, "y": 1976.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_audio", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2009.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.51.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2011.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.51.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Audio", "w": 154.0, "x": 46.0, "y": 2009.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.52", "sc": "settings", "size": 20, "t": "text", "text": "Transcoding", "w": 1238.0, "x": 16.0, "y": 2042.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-allow_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2075.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.53.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2077.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.53.1", "sc": "settings", "size": 20, "t": "text", "text": "Allow Transcode To H265", "w": 228.2, "x": 46.0, "y": 2075.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2108.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.54.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2110.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.54.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Transcode To H265", "w": 228.8, "x": 46.0, "y": 2108.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hevc", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2141.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.55.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2143.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.55.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HEVC", "w": 142.4, "x": 46.0, "y": 2141.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_av1", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2174.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.56.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2176.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.56.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode AV1", "w": 131.6, "x": 46.0, "y": 2174.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_4k", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2207.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.57.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2209.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.57.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode 4K", "w": 120.8, "x": 46.0, "y": 2207.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hdr", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2240.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.58.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2242.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.58.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HDR", "w": 131.6, "x": 46.0, "y": 2240.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hi10p", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2273.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.59.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2275.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.59.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Hi10P", "w": 149.2, "x": 46.0, "y": 2273.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_dolby_vision", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2306.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.60.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2308.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.60.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Dolby Vision", "w": 212.0, "x": 46.0, "y": 2306.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.61.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Video Codec", "w": 340.0, "x": 16.0, "y": 2347.4}
-{"h": 38.0, "id": "set-force_video_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2339.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.62.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Audio Codec", "w": 340.0, "x": 16.0, "y": 2393.4}
-{"h": 38.0, "id": "set-force_audio_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2385.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.63", "sc": "settings", "size": 20, "t": "text", "text": "Video Enhancement", "w": 1238.0, "x": 16.0, "y": 2431.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2464.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.64.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2466.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.64.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2467.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.64.1", "sc": "settings", "size": 20, "t": "text", "text": "Enable Video Playback Profiles", "w": 281.6, "x": 46.0, "y": 2464.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.65.0", "sc": "settings", "size": 17, "t": "text", "text": "Profile Group", "w": 340.0, "x": 16.0, "y": 2505.4}
-{"force": true, "h": 38.0, "id": "set-shader_pack_subtype", "items": ["lq", "hq"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2497.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.66", "sc": "settings", "size": 14, "t": "text", "text": "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card.", "w": 1238.0, "x": 16.0, "y": 2543.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_remember", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2568.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.67.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2571.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.67.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2571.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.67.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Last Used Profile", "w": 254.8, "x": 46.0, "y": 2568.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.68.0", "sc": "settings", "size": 17, "t": "text", "text": "Graphics API for Shaders", "w": 340.0, "x": 16.0, "y": 2609.9}
-{"force": true, "h": 38.0, "id": "set-shader_pack_gpu_api", "items": ["Automatic (recommended)", "Vulkan", "Direct3D 11 (Windows only)", "OpenGL (compatibility)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2601.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.69", "sc": "settings", "size": 14, "t": "text", "text": "Leave on Automatic unless video breaks when a profile is loaded. This only applies while a profile is active, and OpenGL can cost you HDR output.", "w": 1238.0, "x": 16.0, "y": 2647.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.70", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro / Credits", "w": 1238.0, "x": 16.0, "y": 2673.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2706.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.71.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2708.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.71.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2709.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.71.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro Enable", "w": 154.0, "x": 46.0, "y": 2706.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_always", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2739.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.72.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2741.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.72.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro Always", "w": 160.2, "x": 46.0, "y": 2739.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_credits_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2772.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.73.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2774.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.73.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2775.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.73.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Credits Enable", "w": 175.6, "x": 46.0, "y": 2772.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_credits_always", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2805.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.74.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2807.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.74.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Credits Always", "w": 181.8, "x": 46.0, "y": 2805.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_on_seek", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2838.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.75.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2840.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.75.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro On Seek", "w": 164.0, "x": 46.0, "y": 2838.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.76", "sc": "settings", "size": 20, "t": "text", "text": "Library Browser", "w": 1238.0, "x": 16.0, "y": 2871.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.77.0", "sc": "settings", "size": 17, "t": "text", "text": "Library Image Cache Mb", "w": 340.0, "x": 16.0, "y": 2912.4}
-{"h": 38.0, "id": "set-library_image_cache_mb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "256", "w": 340.0, "x": 368.0, "y": 2904.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.78.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Wheel Pixels", "w": 340.0, "x": 16.0, "y": 2958.4}
-{"h": 38.0, "id": "set-scroll_wheel_pixels", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "80", "w": 340.0, "x": 368.0, "y": 2950.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79", "sc": "settings", "size": 14, "t": "text", "text": "Pixels one wheel notch scrolls. On a grid this is rounded so a whole number of notches spans one row, whichever scroll mode you are in \u2014 a trackpad or trackball never leaves you a sliver of a", "w": 1238.0, "x": 16.0, "y": 2996.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.79.l1", "sc": "settings", "size": 14, "t": "text", "text": "row off. Raise it to scroll faster, lower it for finer control.", "w": 1238.0, "x": 16.0, "y": 3013.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.80.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Mode", "w": 340.0, "x": 16.0, "y": 3047.4}
-{"force": true, "h": 38.0, "id": "set-scroll_mode", "items": ["Continuous", "Aligned to rows", "One row per notch"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3039.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81", "sc": "settings", "size": 14, "t": "text", "text": "\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it lines rows up by itself if the display cannot keep up. Pick \"Aligned to rows\" if scrolling still stutters \u2014 on a very large", "w": 1238.0, "x": 16.0, "y": 3085.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81.l1", "sc": "settings", "size": 14, "t": "text", "text": "display, a slow or remote one, or with an external MPV. Pick \"One row per notch\" to move a whole row (or one home-screen section) at a time.", "w": 1238.0, "x": 16.0, "y": 3102.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-paginated", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3128.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.82.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3130.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.82.1", "sc": "settings", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 46.0, "y": 3128.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83", "sc": "settings", "size": 14, "t": "text", "text": "Page the library and music tile grids instead of scrolling: each page is one screenful with First / Previous / Next / Last controls and a page number you can type into. Easier than precise", "w": 1238.0, "x": 16.0, "y": 3161.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83.l1", "sc": "settings", "size": 14, "t": "text", "text": "scrolling on a trackpad.", "w": 1238.0, "x": 16.0, "y": 3178.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.84", "sc": "settings", "size": 20, "t": "text", "text": "Downloads", "w": 1238.0, "x": 16.0, "y": 3204.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.85.0", "sc": "settings", "size": 17, "t": "text", "text": "Download Folder", "w": 340.0, "x": 16.0, "y": 3248.9}
-{"h": 38.0, "id": "set-sync_path", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 250.0, "x": 368.0, "y": 3240.5}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "set-sync-move", "radius": 6, "sc": "settings", "t": "rect", "w": 69.4, "x": 626.0, "y": 3237.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.85.1.1.0", "sc": "settings", "size": 20, "t": "text", "text": "Move", "w": 49.4, "x": 636.0, "y": 3247.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_downloaded", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3290.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.86.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3292.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.86.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3293.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.86.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Downloaded Copy", "w": 218.2, "x": 46.0, "y": 3290.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3323.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.87.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3325.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.87.1", "sc": "settings", "size": 20, "t": "text", "text": "Automatically Download Upcoming Episodes", "w": 404.2, "x": 46.0, "y": 3323.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.88", "sc": "settings", "size": 14, "t": "text", "text": "Applies to srv1, enable other servers in servers tab.", "w": 1238.0, "x": 16.0, "y": 3356.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_next_up", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3381.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.89.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3384.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.89.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3384.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.89.1", "sc": "settings", "size": 20, "t": "text", "text": "Include Next Up", "w": 140.4, "x": 46.0, "y": 3381.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.90.0", "sc": "settings", "size": 17, "t": "text", "text": "Next Up Entries to Consider", "w": 340.0, "x": 16.0, "y": 3422.9}
-{"h": 38.0, "id": "set-auto_download_next_up_limit", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10", "w": 340.0, "x": 368.0, "y": 3414.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.91.0", "sc": "settings", "size": 17, "t": "text", "text": "Episodes to Keep Ahead (0 = off)", "w": 340.0, "x": 16.0, "y": 3468.9}
-{"h": 38.0, "id": "set-auto_download_lookahead", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2", "w": 340.0, "x": 368.0, "y": 3460.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.92.0", "sc": "settings", "size": 17, "t": "text", "text": "Storage Limit for Automatic Downloads (GB)", "w": 340.0, "x": 16.0, "y": 3514.9}
-{"h": 38.0, "id": "set-auto_download_max_gb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "20", "w": 340.0, "x": 368.0, "y": 3506.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_delete_watched", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3552.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.93.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3555.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.93.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3555.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.93.1", "sc": "settings", "size": 20, "t": "text", "text": "Delete Automatic Downloads Once Watched", "w": 392.6, "x": 46.0, "y": 3552.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.94.0", "sc": "settings", "size": 17, "t": "text", "text": "Delete Unwatched After (days, 0 = never)", "w": 340.0, "x": 16.0, "y": 3593.9}
-{"h": 38.0, "id": "set-auto_download_keep_days", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 3585.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.95.0", "sc": "settings", "size": 17, "t": "text", "text": "Check Every (minutes)", "w": 340.0, "x": 16.0, "y": 3639.9}
-{"h": 38.0, "id": "set-auto_download_interval_mins", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "60", "w": 340.0, "x": 368.0, "y": 3631.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3677.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.96.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3680.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.96.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 3677.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.97", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 3710.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-mouse_chapter_nav", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 615.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 618.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.13.1", "sc": "settings", "size": 20, "t": "text", "text": "Mouse Back/Forward Buttons Skip Chapters", "w": 397.2, "x": 46.0, "y": 615.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14", "sc": "settings", "size": 14, "t": "text", "text": "During playback only \u2014 in the library those buttons stay Back and Forward. Off by default because they are easy to hit by accident on some mice. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 648.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 674.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 676.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.15.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 677.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.15.1", "sc": "settings", "size": 20, "t": "text", "text": "Raise MPV", "w": 94.6, "x": 46.0, "y": 674.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 707.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 709.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.16.1", "sc": "settings", "size": 20, "t": "text", "text": "Show What You're Watching in Discord", "w": 351.4, "x": 46.0, "y": 707.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 740.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 765.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.18.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 768.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.18.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 768.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.18.1", "sc": "settings", "size": 20, "t": "text", "text": "Check Updates", "w": 131.6, "x": 46.0, "y": 765.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 798.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.19.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 801.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.19.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 801.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.19.1", "sc": "settings", "size": 20, "t": "text", "text": "Notify Updates", "w": 130.4, "x": 46.0, "y": 798.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.20", "sc": "settings", "size": 20, "t": "text", "text": "Theme", "w": 1238.0, "x": 16.0, "y": 831.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.21.0", "sc": "settings", "size": 17, "t": "text", "text": "Theme", "w": 340.0, "x": 16.0, "y": 872.9}
+{"force": true, "h": 38.0, "id": "set-theme", "items": ["Default", "Apple TV (Jellyfin)", "Blue Radiance (Jellyfin)", "Light (Jellyfin)", "Nebula", "Purple Haze (Jellyfin)", "Windows Media Center (Jellyfin)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 864.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Palette, glow, cover style and default cover size. Colours change immediately; cover and heading sizes take effect after a restart.", "w": 1238.0, "x": 16.0, "y": 910.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.23.0", "sc": "settings", "size": 17, "t": "text", "text": "Cover Size", "w": 340.0, "x": 16.0, "y": 944.4}
+{"force": true, "h": 38.0, "id": "set-poster_scale", "items": ["Theme default", "Small", "Medium", "Large", "Extra Large"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 936.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.24", "sc": "settings", "size": 14, "t": "text", "text": "Overrides the theme's cover size. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 982.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.25.0", "sc": "settings", "size": 17, "t": "text", "text": "Interface Scale", "w": 340.0, "x": 16.0, "y": 1015.9}
+{"force": true, "h": 38.0, "id": "set-ui_scale", "items": ["Follow display", "100% (no scaling)", "125%", "150%", "200%"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1007.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.26", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. \"Follow display\" uses the scale your desktop reports, which is 100% on X11.", "w": 1238.0, "x": 16.0, "y": 1053.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.27", "sc": "settings", "size": 14, "t": "text", "text": "Cover size and interface scale require a restart.", "w": 1238.0, "x": 16.0, "y": 1079.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.28", "sc": "settings", "size": 20, "t": "text", "text": "Playback", "w": 1238.0, "x": 16.0, "y": 1104.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_play", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1137.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.29.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1140.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.29.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1140.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.29.1", "sc": "settings", "size": 20, "t": "text", "text": "Auto Play", "w": 84.4, "x": 46.0, "y": 1137.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-always_transcode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1170.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.30.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1173.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.30.1", "sc": "settings", "size": 20, "t": "text", "text": "Always Transcode", "w": 166.2, "x": 46.0, "y": 1170.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.31.0", "sc": "settings", "size": 17, "t": "text", "text": "Local kbps", "w": 340.0, "x": 16.0, "y": 1211.9}
+{"h": 38.0, "id": "set-local_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2147483", "w": 340.0, "x": 368.0, "y": 1203.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.32.0", "sc": "settings", "size": 17, "t": "text", "text": "Remote kbps", "w": 340.0, "x": 16.0, "y": 1257.9}
+{"h": 38.0, "id": "set-remote_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10000", "w": 340.0, "x": 368.0, "y": 1249.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1295.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.33.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1298.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.33.1", "sc": "settings", "size": 20, "t": "text", "text": "Direct Paths", "w": 108.8, "x": 46.0, "y": 1295.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remote_direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1328.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.34.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1331.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.34.1", "sc": "settings", "size": 20, "t": "text", "text": "Remote Direct Paths", "w": 181.8, "x": 46.0, "y": 1328.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.35.0", "sc": "settings", "size": 17, "t": "text", "text": "Playback Timeout", "w": 340.0, "x": 16.0, "y": 1369.9}
+{"h": 38.0, "id": "set-playback_timeout", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 1361.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.36", "sc": "settings", "size": 20, "t": "text", "text": "Audio", "w": 1238.0, "x": 16.0, "y": 1407.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.37.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Device", "w": 340.0, "x": 16.0, "y": 1448.9}
+{"h": 38.0, "id": "set-audio_device", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 1440.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.38", "sc": "settings", "size": 14, "t": "text", "text": "Leave this to Default unless setting up passthrough. Note some audio servers like Pipewire don't like passthrough and will need to be disabled for a card before it'll let *any* audio through in", "w": 1238.0, "x": 16.0, "y": 1486.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.38.l1", "sc": "settings", "size": 14, "t": "text", "text": "passthrough mode. In my tests I got silence otherwise, but results may vary.", "w": 1238.0, "x": 16.0, "y": 1504.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.39.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Mode", "w": 340.0, "x": 16.0, "y": 1537.9}
+{"force": true, "h": 38.0, "id": "set-audio_mode", "items": ["Default (auto)", "Force Stereo", "Optical Surround", "HDMI Passthrough"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1529.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.40", "sc": "settings", "size": 14, "t": "text", "text": "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. Pick a mode only if you are sending audio to a receiver.", "w": 1238.0, "x": 16.0, "y": 1575.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-audio_night_mode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1601.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.41.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1603.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.41.1", "sc": "settings", "size": 20, "t": "text", "text": "Night Mode (Auto Volume Adj)", "w": 267.6, "x": 46.0, "y": 1601.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.42", "sc": "settings", "size": 14, "t": "text", "text": "Evens out loud effects and quiet dialogue. This turns passthrough off while it is enabled, because the volume has to be adjusted before your receiver gets the audio.", "w": 1238.0, "x": 16.0, "y": 1634.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.43", "sc": "settings", "size": 20, "t": "text", "text": "Subtitles & Languages", "w": 1238.0, "x": 16.0, "y": 1659.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.44.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Size", "w": 340.0, "x": 16.0, "y": 1700.9}
+{"h": 38.0, "id": "set-subtitle_size", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "100", "w": 340.0, "x": 368.0, "y": 1692.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.45.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Color", "w": 340.0, "x": 16.0, "y": 1746.9}
+{"h": 38.0, "id": "set-subtitle_color", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "#FFFFFFFF", "w": 340.0, "x": 368.0, "y": 1738.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.46.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Position", "w": 340.0, "x": 16.0, "y": 1792.9}
+{"force": true, "h": 38.0, "id": "set-subtitle_position", "items": ["top", "bottom", "middle"], "sc": "settings", "sel": 1, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1784.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.47.0", "sc": "settings", "size": 17, "t": "text", "text": "Language Preference", "w": 340.0, "x": 16.0, "y": 1838.9}
+{"force": true, "h": 38.0, "id": "set-language_preference", "items": ["Unset", "Dubbed (shows only)", "Subbed (shows only)", "Dubbed (all)", "Subbed (all)", "Custom (set in config)"], "sc": "settings", "sel": 5, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1830.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.48.0", "sc": "settings", "size": 17, "t": "text", "text": "Preferred Language", "w": 340.0, "x": 16.0, "y": 1884.9}
+{"h": 38.0, "id": "set-preferred_language", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "eng", "w": 340.0, "x": 368.0, "y": 1876.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_audio_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1922.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.49.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1925.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.49.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1925.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.49.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Audio Track", "w": 206.8, "x": 46.0, "y": 1922.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_subtitle_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1955.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.50.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1958.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.50.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1958.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.50.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Subtitle Track", "w": 227.2, "x": 46.0, "y": 1955.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.51.0", "sc": "settings", "size": 17, "t": "text", "text": "Lang Filter", "w": 340.0, "x": 16.0, "y": 1996.9}
+{"h": 38.0, "id": "set-lang_filter", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "und,eng,jpn,mis,mul,zxx", "w": 340.0, "x": 368.0, "y": 1988.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_sub", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2034.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.52.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2037.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.52.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Sub", "w": 136.4, "x": 46.0, "y": 2034.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_audio", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2067.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.53.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2070.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.53.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Audio", "w": 154.0, "x": 46.0, "y": 2067.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.54", "sc": "settings", "size": 20, "t": "text", "text": "Transcoding", "w": 1238.0, "x": 16.0, "y": 2100.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-allow_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2133.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.55.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2136.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.55.1", "sc": "settings", "size": 20, "t": "text", "text": "Allow Transcode To H265", "w": 228.2, "x": 46.0, "y": 2133.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2166.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.56.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2169.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.56.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Transcode To H265", "w": 228.8, "x": 46.0, "y": 2166.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hevc", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2199.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.57.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2202.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.57.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HEVC", "w": 142.4, "x": 46.0, "y": 2199.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_av1", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2232.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.58.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2235.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.58.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode AV1", "w": 131.6, "x": 46.0, "y": 2232.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_4k", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2265.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.59.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2268.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.59.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode 4K", "w": 120.8, "x": 46.0, "y": 2265.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hdr", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2298.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.60.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2301.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.60.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HDR", "w": 131.6, "x": 46.0, "y": 2298.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hi10p", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2331.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.61.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2334.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.61.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Hi10P", "w": 149.2, "x": 46.0, "y": 2331.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_dolby_vision", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2364.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.62.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2367.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.62.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Dolby Vision", "w": 212.0, "x": 46.0, "y": 2364.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.63.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Video Codec", "w": 340.0, "x": 16.0, "y": 2405.9}
+{"h": 38.0, "id": "set-force_video_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2397.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.64.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Audio Codec", "w": 340.0, "x": 16.0, "y": 2451.9}
+{"h": 38.0, "id": "set-force_audio_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2443.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.65", "sc": "settings", "size": 20, "t": "text", "text": "Video Enhancement", "w": 1238.0, "x": 16.0, "y": 2489.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2522.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.66.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2525.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.66.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2525.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.66.1", "sc": "settings", "size": 20, "t": "text", "text": "Enable Video Playback Profiles", "w": 281.6, "x": 46.0, "y": 2522.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.67.0", "sc": "settings", "size": 17, "t": "text", "text": "Profile Group", "w": 340.0, "x": 16.0, "y": 2563.9}
+{"force": true, "h": 38.0, "id": "set-shader_pack_subtype", "items": ["lq", "hq"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2555.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.68", "sc": "settings", "size": 14, "t": "text", "text": "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card.", "w": 1238.0, "x": 16.0, "y": 2601.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_remember", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2627.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.69.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2629.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.69.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2630.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.69.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Last Used Profile", "w": 254.8, "x": 46.0, "y": 2627.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.70.0", "sc": "settings", "size": 17, "t": "text", "text": "Graphics API for Shaders", "w": 340.0, "x": 16.0, "y": 2668.4}
+{"force": true, "h": 38.0, "id": "set-shader_pack_gpu_api", "items": ["Automatic (recommended)", "Vulkan", "Direct3D 11 (Windows only)", "OpenGL (compatibility)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2660.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.71", "sc": "settings", "size": 14, "t": "text", "text": "Leave on Automatic unless video breaks when a profile is loaded. This only applies while a profile is active, and OpenGL can cost you HDR output.", "w": 1238.0, "x": 16.0, "y": 2706.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.72", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro / Credits", "w": 1238.0, "x": 16.0, "y": 2731.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2764.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.73.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2767.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.73.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2767.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.73.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro Enable", "w": 154.0, "x": 46.0, "y": 2764.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_always", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2797.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.74.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2800.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.74.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro Always", "w": 160.2, "x": 46.0, "y": 2797.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_credits_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2830.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.75.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2833.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.75.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2833.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.75.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Credits Enable", "w": 175.6, "x": 46.0, "y": 2830.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_credits_always", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2863.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.76.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2866.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.76.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Credits Always", "w": 181.8, "x": 46.0, "y": 2863.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_on_seek", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2896.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.77.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2899.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.77.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro On Seek", "w": 164.0, "x": 46.0, "y": 2896.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.78", "sc": "settings", "size": 20, "t": "text", "text": "Library Browser", "w": 1238.0, "x": 16.0, "y": 2929.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.79.0", "sc": "settings", "size": 17, "t": "text", "text": "Library Image Cache Mb", "w": 340.0, "x": 16.0, "y": 2970.9}
+{"h": 38.0, "id": "set-library_image_cache_mb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "256", "w": 340.0, "x": 368.0, "y": 2962.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.80.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Wheel Pixels", "w": 340.0, "x": 16.0, "y": 3016.9}
+{"h": 38.0, "id": "set-scroll_wheel_pixels", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "80", "w": 340.0, "x": 368.0, "y": 3008.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81", "sc": "settings", "size": 14, "t": "text", "text": "Pixels one wheel notch scrolls. On a grid this is rounded so a whole number of notches spans one row, whichever scroll mode you are in \u2014 a trackpad or trackball never leaves you a sliver of a", "w": 1238.0, "x": 16.0, "y": 3054.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.81.l1", "sc": "settings", "size": 14, "t": "text", "text": "row off. Raise it to scroll faster, lower it for finer control.", "w": 1238.0, "x": 16.0, "y": 3072.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.82.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Mode", "w": 340.0, "x": 16.0, "y": 3105.9}
+{"force": true, "h": 38.0, "id": "set-scroll_mode", "items": ["Continuous", "Aligned to rows", "One row per notch"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3097.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83", "sc": "settings", "size": 14, "t": "text", "text": "\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it lines rows up by itself if the display cannot keep up. Pick \"Aligned to rows\" if scrolling still stutters \u2014 on a very large", "w": 1238.0, "x": 16.0, "y": 3143.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.83.l1", "sc": "settings", "size": 14, "t": "text", "text": "display, a slow or remote one, or with an external MPV. Pick \"One row per notch\" to move a whole row (or one home-screen section) at a time.", "w": 1238.0, "x": 16.0, "y": 3161.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-paginated", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3186.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.84.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3189.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.84.1", "sc": "settings", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 46.0, "y": 3186.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.85", "sc": "settings", "size": 14, "t": "text", "text": "Page the library and music tile grids instead of scrolling: each page is one screenful with First / Previous / Next / Last controls and a page number you can type into. Easier than precise", "w": 1238.0, "x": 16.0, "y": 3219.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.85.l1", "sc": "settings", "size": 14, "t": "text", "text": "scrolling on a trackpad.", "w": 1238.0, "x": 16.0, "y": 3237.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.86", "sc": "settings", "size": 20, "t": "text", "text": "Downloads", "w": 1238.0, "x": 16.0, "y": 3262.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.87.0", "sc": "settings", "size": 17, "t": "text", "text": "Download Folder", "w": 340.0, "x": 16.0, "y": 3307.4}
+{"h": 38.0, "id": "set-sync_path", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 250.0, "x": 368.0, "y": 3299.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "set-sync-move", "radius": 6, "sc": "settings", "t": "rect", "w": 69.4, "x": 626.0, "y": 3295.5}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.87.1.1.0", "sc": "settings", "size": 20, "t": "text", "text": "Move", "w": 49.4, "x": 636.0, "y": 3305.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_downloaded", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3348.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.88.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3351.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.88.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3351.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.88.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Downloaded Copy", "w": 218.2, "x": 46.0, "y": 3348.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3381.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.89.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3384.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.89.1", "sc": "settings", "size": 20, "t": "text", "text": "Automatically Download Upcoming Episodes", "w": 404.2, "x": 46.0, "y": 3381.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.90", "sc": "settings", "size": 14, "t": "text", "text": "Applies to srv1, enable other servers in servers tab.", "w": 1238.0, "x": 16.0, "y": 3414.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_next_up", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3440.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.91.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3442.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.91.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3443.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.91.1", "sc": "settings", "size": 20, "t": "text", "text": "Include Next Up", "w": 140.4, "x": 46.0, "y": 3440.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.92.0", "sc": "settings", "size": 17, "t": "text", "text": "Next Up Entries to Consider", "w": 340.0, "x": 16.0, "y": 3481.4}
+{"h": 38.0, "id": "set-auto_download_next_up_limit", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10", "w": 340.0, "x": 368.0, "y": 3473.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.93.0", "sc": "settings", "size": 17, "t": "text", "text": "Episodes to Keep Ahead (0 = off)", "w": 340.0, "x": 16.0, "y": 3527.4}
+{"h": 38.0, "id": "set-auto_download_lookahead", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2", "w": 340.0, "x": 368.0, "y": 3519.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.94.0", "sc": "settings", "size": 17, "t": "text", "text": "Storage Limit for Automatic Downloads (GB)", "w": 340.0, "x": 16.0, "y": 3573.4}
+{"h": 38.0, "id": "set-auto_download_max_gb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "20", "w": 340.0, "x": 368.0, "y": 3565.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_delete_watched", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3611.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.95.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3613.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.95.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3614.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.95.1", "sc": "settings", "size": 20, "t": "text", "text": "Delete Automatic Downloads Once Watched", "w": 392.6, "x": 46.0, "y": 3611.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.96.0", "sc": "settings", "size": 17, "t": "text", "text": "Delete Unwatched After (days, 0 = never)", "w": 340.0, "x": 16.0, "y": 3652.4}
+{"h": 38.0, "id": "set-auto_download_keep_days", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 3644.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.97.0", "sc": "settings", "size": 17, "t": "text", "text": "Check Every (minutes)", "w": 340.0, "x": 16.0, "y": 3698.4}
+{"h": 38.0, "id": "set-auto_download_interval_mins", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "60", "w": 340.0, "x": 368.0, "y": 3690.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3736.0}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.98.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3738.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.98.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 3736.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.99", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 3769.0}

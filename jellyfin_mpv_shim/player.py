@@ -297,6 +297,41 @@ def _rank_stream(prev_source, prev_index, streams, stream_type):
 
 
 
+def chapter_target(chapters, pos, direction):
+    """Where a previous/next-chapter jump from ``pos`` lands, or None when
+    there is nowhere to go.
+
+    ``chapters`` is a list of dicts with a ``time`` in seconds, in order.
+
+    The asymmetry is mpv's ``add chapter -1``, and every player's: going
+    back restarts the chapter you are in, unless you are still in its first
+    couple of seconds, in which case you meant the one before. Going forward
+    has no such grace: it is the next boundary strictly ahead of you.
+
+    Strictly, and not "ahead by half a second", which is what it used to
+    say. The tolerance was there so that sitting exactly ON a boundary did
+    not seek to where you already are -- but a position is a float from
+    mpv and is never exactly a boundary, while the half second before one
+    is half a second of real playback in which the button did nothing at
+    all. `> pos` handles the equality case on its own.
+
+    One definition, because there are two callers with two different reasons
+    to jump: the HUD's chapter buttons and the mouse's back/forward buttons
+    (mouse_chapter_nav). They used to be one implementation and a plan to
+    write the second.
+    """
+    if direction < 0:
+        target = 0.0
+        for ch in chapters:
+            if ch["time"] < pos - 2.0:
+                target = ch["time"]
+        return target
+    for ch in chapters:
+        if ch["time"] > pos:
+            return ch["time"]
+    return None
+
+
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -789,6 +824,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
+        if settings.mouse_chapter_nav:
+            # Playback only, and that is the renderer's doing rather than
+            # ours: while the library is up its mouse group is enabled ON
+            # TOP of this section, so back is still Back and forward is
+            # still forward there. Suspending that group for playback is
+            # what uncovers these. Bound at mpv creation like every other
+            # key, so the setting needs a restart.
+            p.on_key_press("MBTN_BACK")(self._on_chapter_prev_key)
+            p.on_key_press("MBTN_FORWARD")(self._on_chapter_next_key)
         self._observe("eof-reached", self._on_eof_reached)
         self._observe("playback-abort", self._on_playback_abort)
         self._observe("seeking", self._on_seeking)
@@ -838,6 +882,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _on_prev_key(self):
         self.put_task(self.play_prev)
+
+    def _on_chapter_prev_key(self):
+        self.put_task(self.chapter_seek, -1)
+
+    def _on_chapter_next_key(self):
+        self.put_task(self.chapter_seek, 1)
 
     def _on_next_key(self):
         self.put_task(self.play_next)
@@ -1283,6 +1333,33 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     # Trigger the timeline to update all
     # clients immediately.
+    def chapter_seek(self, direction):
+        """Jump a chapter back (-1) or forward (+1).
+
+        Not mpv's own ``add chapter``: that bypasses SyncPlay, so one member
+        of a group jumping a chapter would simply desync. Going through
+        seek() puts it through the same request the seek bar makes.
+
+        Exempt from seek-to-skip-intro for the same reason the HUD's own
+        seeks are: someone jumping to the chapter the intro is in asked for
+        that chapter, not for the end of the intro.
+        """
+        try:
+            chapters = self._player.chapter_list or []
+            pos = self._player.playback_time
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return
+        if pos is None:
+            return
+        target = chapter_target(
+            [{"time": float(ch.get("time") or 0.0)} for ch in chapters],
+            float(pos), direction)
+        if target is None:
+            return
+        self._last_ui_seek_time = time.time()
+        self.seek(target, absolute=True)
+
     def timeline_handle(self):
         if self.timeline_trigger:
             self.timeline_trigger.set()

@@ -212,21 +212,18 @@ def _chapters(b):
         return []
 
 
-def _chapter_jump(b, chapters, pos, direction):
+def _chapter_jump(b, direction):
     """Seek to the previous/next chapter start (the lua OSC's
-    ch_prev/ch_next). Prev re-seeks the current chapter's start unless
-    pressed within its first 2 seconds, like mpv's 'add chapter -1'."""
-    if direction < 0:
-        target = 0.0
-        for ch in chapters:
-            if ch["time"] < pos - 2.0:
-                target = ch["time"]
-        b._ctl(lambda c: c.seek(target))
-        return
-    for ch in chapters:
-        if ch["time"] > pos + 0.5:
-            b._ctl(lambda c, t=ch["time"]: c.seek(t))
-            return
+    ch_prev/ch_next).
+
+    The rule -- prev re-seeks the current chapter's start unless pressed
+    within its first 2 seconds, like mpv's 'add chapter -1' -- lives in
+    player.chapter_target, because the mouse's back/forward buttons ask the
+    same question (mouse_chapter_nav) and two copies of it would drift.
+    Going through the player also puts the jump through SyncPlay, which
+    working the target out here and seeking to it did not.
+    """
+    b._ctl(lambda c: c.chapter_seek(direction))
 
 
 def _pickers(b, menu_state, pos, chapters, tiers):
@@ -606,7 +603,7 @@ def build_hud(b, size):
     if chapters and tiers["ch_btns"]:
         controls.append(tbtn(
             "undo", "hud-ch-prev",
-            lambda: _chapter_jump(b, chapters, pos, -1),
+            lambda: _chapter_jump(b, -1),
             tip=_("Previous Chapter")))
     if tiers["seek_btns"]:
         controls.append(tbtn(
@@ -624,7 +621,7 @@ def build_hud(b, size):
     if chapters and tiers["ch_btns"]:
         controls.append(tbtn(
             "redo", "hud-ch-next",
-            lambda: _chapter_jump(b, chapters, pos, 1),
+            lambda: _chapter_jump(b, 1),
             tip=_("Next Chapter")))
     controls.append(tbtn(
         "skip_next", "hud-next",

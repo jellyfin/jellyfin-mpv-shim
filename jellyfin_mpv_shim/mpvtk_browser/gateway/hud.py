@@ -128,6 +128,16 @@ class HudMixin(GatewayCore):
         except Exception:
             log.debug("hud_sub_margin failed", exc_info=True)
 
+    def chapter_seek(self, direction):
+        """Previous (-1) / next (+1) chapter, by the player's rule.
+
+        The HUD used to work its own target out from the chapter list it had
+        already fetched and seek there. That was a second definition of what
+        "previous chapter" means, and it went round SyncPlay -- see
+        PlayerManager.chapter_seek, which is now the only one.
+        """
+        self._act(lambda pm: pm.chapter_seek(direction))
+
     def chapters(self):
         """mpv's chapter list as [{"title", "time"}], [] when none."""
         from ...player import playerManager

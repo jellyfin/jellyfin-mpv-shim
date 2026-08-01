@@ -274,6 +274,13 @@ You can use the config file to enable and disable features.
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
+- `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
+  during playback. Off by default: they are easy to hit by accident on
+  some mice, and skipping a chapter of a film is less forgiving than the
+  Back press those buttons perform in the library — which is unaffected
+  either way, since the library's own bindings sit on top of these.
+  Does nothing on a file with no chapters. Takes effect after a restart.
+  Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
   - Not a security boundary — see [Cast-target mode](../README.md#cast-target-mode-headless).
