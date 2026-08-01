@@ -1093,6 +1093,58 @@ ok(slot_of("/chip") > slot_of("/strip2"),
    string.format("chip is slot %s, its row is slot %s",
                  tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
 
+-- ========================================================= disabled
+
+-- A disabled control is on screen and inert: no click, no spatial-nav
+-- focus. It still ABSORBS the pointer -- the press must stop there rather
+-- than reaching whatever it happens to sit over, which is why node_at
+-- keeps returning it and each consumer drops it instead.
+
+local function btn(id, row, extra)
+    local node = { id = id, t = "rect", x = 0, y = (row or 0) * 40,
+                   w = 200, h = 30, click = true }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+scene({ btn("live", 0), btn("dead", 1, { dis = true }) })
+fake.reset_events()
+click("dead")
+ok(last_event("click") == nil, "a disabled node does not fire its click")
+click("live")
+local fired = last_event("click")
+ok(fired ~= nil and fired.id == "live",
+   "an enabled node beside it still fires")
+
+-- Underneath, not beside: the disabled node covers the live one exactly.
+scene({ btn("under", 0), btn("over", 0, { dis = true }) })
+fake.reset_events()
+click("over")
+ok(last_event("click") == nil,
+   "a disabled node absorbs the click instead of passing it down")
+
+-- Spatial nav must skip it, or a remote lands focus on something that
+-- cannot be activated and the ring appears to get stuck.
+scene({ btn("first", 0), btn("skipme", 1, { dis = true }), btn("last", 2) })
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", id = "first" }))
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", dir = "down" }))
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", action = "enter" }))
+local navd = last_event("click")
+ok(navd ~= nil and navd.id == "last",
+   "arrowing down steps over the disabled node",
+   navd and navd.id or "nothing activated")
+
+-- A disabled textbox takes no focus either, so typing cannot reach it.
+scene({ textbox("ro", "keep"), btn("elsewhere", 2) })
+scene({ { id = "ro", t = "textbox", x = 0, y = 0, w = 200, h = 30,
+          size = 18, text = "keep", dis = true }, btn("elsewhere", 2) })
+fake.reset_events()
+click("ro")
+type_text("Z")
+click("elsewhere")
+ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
+
 -- ========================================================== teardown
 
 scene({})

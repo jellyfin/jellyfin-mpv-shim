@@ -104,6 +104,19 @@ Floating: `Menu` (context menu at a point; `on_select`/`on_dismiss`),
 `on_dismiss`), `Float` (positioned toast/banner, no grab). All floating
 content draws above everything and occludes image overlays.
 
+**`disabled=True`** is a control that is on screen but cannot be used
+right now — a setting the current mode ignores. The node draws muted
+(`on_surface_faint` over the control's own surface, geometry unchanged
+so the form does not reflow) and is inert: no hover, no click, no
+spatial-nav focus. It still **absorbs** the pointer, so the press stops
+there instead of reaching whatever it sits over — `node_at` keeps
+returning it and each consumer drops it, which is not the same as making
+it invisible. `Dropdown`/`TextBox`/`Slider` are drawn by the renderer and
+mute themselves; `Button`/`Checkbox` are composites whose colours are
+baked into child nodes the renderer cannot recognise, so they mute in
+`widgets.py` and drop their handler. Always say *why* next to it: a
+disabled control with no explanation reads as a broken one.
+
 Every element takes `id=`, `w=`, `h=`, `flex=`, and size constraints
 `min_w`/`max_w`/`min_h`/`max_h` — int px, or a float in (0, 1] as a
 fraction of the available space (a Dialog child resolves fractions

@@ -519,6 +519,8 @@ def _base(el, t, x, y, w, h, sc, path):
         node["tip"] = el.tip
     if getattr(el, "autofocus", False):
         node["af"] = True
+    if getattr(el, "disabled", False):
+        node["dis"] = True
     return node
 
 

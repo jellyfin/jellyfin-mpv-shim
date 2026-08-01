@@ -1066,6 +1066,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         bc = focused and state.accent or state.tok.outline,
         bw = focused and 2 or 1, clip = clip,
     })
+    -- see draw_dropdown: shape kept, contrast dropped
+    local ink = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface
     local pad = 10
     local inner = {
         x1 = math.max(ex + pad, clip and clip.x1 or 0),
@@ -1144,9 +1147,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         end
         draw_text(ass, tnode, x0, ey, inner,
             pre .. caret .. esc(b),
-            state.tok.on_surface, nil, true)
+            ink, nil, true)
     else
-        draw_text(ass, tnode, x0, ey, inner, disp, state.tok.on_surface)
+        draw_text(ass, tnode, x0, ey, inner, disp, ink)
     end
 end
 
@@ -1305,13 +1308,21 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         fill = state.tok.control_sunken, radius = 6,
         bc = open and state.accent or state.tok.outline, bw = 1, clip = clip,
     })
+    -- Disabled: the control keeps its shape so the form does not reflow,
+    -- and loses its contrast. on_surface_faint for everything that was
+    -- ink, which is the token that already means "present but not the
+    -- thing you are reading".
+    local ink = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface
+    local dim = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface_muted
     local label = node.items[d.sel + 1] or ''
     local indent = 0
     local ipath = node.icons and node.icons[d.sel + 1]
     if ipath and ipath ~= '' then
         local isz = math.floor(node.size * 1.1)
         draw_icon_path(ass, ipath, ex + 8, ey + (node.h - isz) / 2,
-            isz, state.tok.on_surface_muted, clip)
+            isz, dim, clip)
         indent = isz + 6
     end
     local tnode = {
@@ -1320,14 +1331,14 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     }
     -- the label must not spill under the arrow or past the control
     label = ellipsize(label, node.size, false, tnode.w)
-    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, state.tok.on_surface)
+    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, ink)
     -- arrow
     local ax = ex + node.w - 22
     local ay = ey + node.h / 2 - 2
     ass:new_event()
     ass:append(string.format(
         '{\\pos(0,0)\\an7\\bord0\\shad0\\1c%s\\1a&H00&%s}',
-        ass_color(state.tok.on_surface_muted), clip_tag(clip)))
+        ass_color(dim), clip_tag(clip)))
     ass:draw_start()
     ass:move_to(ax, ay)
     ass:line_to(ax + 12, ay)
@@ -1565,6 +1576,11 @@ local function draw_slider(ass, node, ex, ey, clip)
     -- not read on a picture can pin the seek bar without giving up its
     -- colour everywhere else. Defaults to the accent.
     local accent = (ov and state.tok.accent_on_video) or state.accent
+    if node.dis then
+        -- see draw_dropdown: a disabled bar keeps its geometry (so the
+        -- value it is stuck at stays readable) and loses its colour
+        accent = state.tok.on_surface_faint
+    end
     draw_rect(ass, tx1, ty - 3, tw, 6,
         { fill = ov and '3a3a3a' or state.tok.control_sunken,
           radius = 3, clip = clip })
@@ -1600,7 +1616,8 @@ local function draw_slider(ass, node, ex, ey, clip)
         end
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
-        { fill = ov and 'dddddd' or state.tok.on_surface,
+        { fill = node.dis and state.tok.on_surface_faint
+                 or (ov and 'dddddd' or state.tok.on_surface),
           radius = 8, clip = clip })
 end
 
@@ -2778,6 +2795,12 @@ local function on_mouse_move(x, y)
     if state.dd_open or active_menu() or state.tb_menu then
         node = nil
     end
+    -- A disabled control still ABSORBS the pointer (node_at returned it,
+    -- so nothing underneath lights up either) but takes no hover of its
+    -- own: no ring, no tooltip, no slider hover reporting.
+    if node and node.dis then
+        node = nil
+    end
     update_slider_hover(node)
     local id = node and node.id or nil
     if id ~= state.hover_id then
@@ -2953,6 +2976,12 @@ local function on_mouse_down()
             -- the lua OSC's click-anywhere behavior
             mp.commandv('cycle', 'pause')
         end
+        return
+    end
+    if node.dis then
+        -- Absorbed, not passed through: the press lands on the disabled
+        -- control and stops there rather than reaching whatever it sits
+        -- over. Focus was already dropped above.
         return
     end
     if node.t == 'textbox' then
@@ -3310,7 +3339,7 @@ local function nav_candidates()
     for _, node in ipairs(state.nodes) do
         if node.t ~= 'scroll' and node.t ~= 'layer' and
             node.t ~= 'menu' and node.t ~= 'occ' and
-            (not modal or node.mod) and
+            (not modal or node.mod) and not node.dis and
             (node.click or node.dbl or node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider') and
             visible(node) then
