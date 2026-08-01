@@ -675,6 +675,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A fresh mpv starts with stats.lua's overlay off — don't let a stale
         # flag make clear_stats() toggle it back on.
         self._stats_shown = False
+        # Likewise the colorspace hint: this mpv holds the user's own value,
+        # so the flag must not claim it is already parked — the browser taking
+        # the window back would then skip parking it (suspend_colorspace_hint).
+        self._colorspace_hint_suspended = False
         try:
             self.apply_audio_settings()
         except Exception:
@@ -1595,6 +1599,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._showing_browse_bg = False   # real media replaces the backdrop
         # A start supersedes any browse background a previous one deferred.
         self._browse_bg_deferred = False
+        # Real media wants the user's colorspace hint back, HDR passthrough
+        # included; the browser parks it while it holds an idle window.
+        self.resume_colorspace_hint()
         self.menu.hide_menu()
 
         if self.trickplay:
