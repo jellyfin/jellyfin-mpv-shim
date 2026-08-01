@@ -89,6 +89,16 @@ class FakeSource:
                  "ProductionYear": 2001}],
              "collection_type": None},
         ]
+        #: Rows the "latest" batch adds. Kept apart from home_rows because
+        #: HomePage.load fetches the two in stages and publishes between
+        #: them; a fake that answered the same list for both made the whole
+        #: staging invisible to the tests.
+        self.home_latest_rows = [
+            {"title": "Latest Movies", "items": [
+                {"Id": "m2", "Name": "Beta", "Type": "Movie",
+                 "ProductionYear": 2002}],
+             "collection_type": "movies"},
+        ]
         # PrimaryImageAspectRatio because a real Jellyfin sets it from the
         # Primary image, and the library grid is shaped by the median of it
         # (GridPage._grid_shape). A fixture without one exercises only the
@@ -114,6 +124,12 @@ class FakeSource:
 
     def get_home_rows(self, server_uuid, libraries=None, sections=None,
                       layout=None, latest_excludes=None):
+        # sections is ("primary",) or ("latest",) -- see HomePage.load. None
+        # means "everything", which is what the non-staged callers ask for.
+        if sections is None:
+            return list(self.home_rows) + list(self.home_latest_rows)
+        if "latest" in sections:
+            return list(self.home_latest_rows)
         return list(self.home_rows)
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,

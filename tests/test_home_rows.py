@@ -379,3 +379,153 @@ class OfflineSignatureParityTest(unittest.TestCase):
         self.assertEqual(set(live), set(offline),
                          "the offline fallback cannot answer the call "
                          "_load_home makes")
+
+
+class ContinueWatchingStaysCurrentTest(unittest.TestCase):
+    """#560: Continue Watching went stale. Removing a film from it in a
+    browser left it on the shim's home screen offering to resume something
+    already dealt with -- and so did finishing something in the shim itself,
+    because Home only re-read on a Back press."""
+
+    def _browser(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import FakeController, FakeSource, _SyncPool
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._browsing = True
+        loads = []
+        b._load_route = lambda route, epoch=None: loads.append(route)
+        return b, loads
+
+    def test_the_event_is_bound_and_reaches_the_hook(self):
+        from jellyfin_mpv_shim.event_handler import EventHandler, bindings
+
+        self.assertIn("UserDataChanged", bindings)
+        handler = EventHandler()
+        seen = []
+        handler.user_data_changed = lambda client: seen.append(client)
+        handler.handle_event("client", "UserDataChanged", {})
+        self.assertEqual(seen, ["client"])
+
+    def test_a_broken_hook_does_not_kill_the_websocket_thread(self):
+        from jellyfin_mpv_shim.event_handler import EventHandler
+
+        handler = EventHandler()
+
+        def boom(_client):
+            raise OSError("no")
+
+        handler.user_data_changed = boom
+        handler.handle_event("client", "UserDataChanged", {})  # must not raise
+
+    def test_a_burst_of_events_costs_one_re_read(self):
+        """The server sends one per progress report, including for our own
+        playback, so an undebounced hook would refetch Home every few
+        seconds behind a film."""
+        b, loads = self._browser()
+        b.USERDATA_DEBOUNCE = 0.01
+        for _ in range(20):
+            b.refresh_home()
+        for _ in range(200):
+            if loads:
+                break
+            time.sleep(0.01)
+        self.assertEqual(len(loads), 1, loads)
+
+    def test_nothing_happens_off_the_home_screen(self):
+        b, loads = self._browser()
+        b.route["kind"] = "grid"
+        b.refresh_home()
+        b.refresh_home(now=True)
+        self.assertEqual(loads, [])
+
+    def test_nothing_happens_while_playback_owns_the_window(self):
+        b, loads = self._browser()
+        b._browsing = False
+        b.refresh_home()
+        self.assertEqual(loads, [])
+
+    def test_an_open_menu_defers_it(self):
+        """A refresh nobody asked for must not move what someone is acting
+        on -- the rule refresh_live_tv established."""
+        b, loads = self._browser()
+        b._menu = {"kind": "history"}
+        b.refresh_home(now=True)
+        self.assertEqual(loads, [])
+        b._menu = None
+        b._dialog = lambda: None
+        b.refresh_home(now=True)
+        self.assertEqual(loads, [])
+
+    def _live_browser(self):
+        """Like ``_browser``, but with the real loader left in place: these
+        are about what ``HomePage.load`` publishes, not about who calls it."""
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import FakeController, FakeSource, _SyncPool
+
+        src = FakeSource()
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"})
+        b._browsing = True
+        return b, src
+
+    def test_an_unchanged_re_read_does_not_republish(self):
+        """A UserDataChanged burst re-reads this screen every few seconds and
+        most of those change nothing it draws. Rebuilding the tree for that
+        costs a full home layout, with the rows on screen while it happens.
+        """
+        b, _src = self._live_browser()
+        first = b.route["_data"]
+        self.assertIsNotNone(first, "home never loaded")
+        b._load_route(b.route)
+        self.assertIs(b.route["_data"], first,
+                      "an identical re-read replaced the rows anyway")
+
+    def test_a_changed_re_read_does_republish(self):
+        """The other direction, or the check above is just a way of never
+        updating anything."""
+        b, src = self._live_browser()
+        first = b.route["_data"]
+        src.libraries = list(src.libraries) + [
+            {"Id": "libnew", "Name": "New", "CollectionType": "movies"}]
+        b._load_route(b.route)
+        self.assertIsNot(b.route["_data"], first,
+                         "a genuine change was swallowed")
+
+    def test_a_refresh_does_not_take_the_latest_rows_away_first(self):
+        """load() publishes a primary-only batch to get first paint up. On a
+        refresh that would REMOVE the Latest rows for the length of one
+        request per library before putting them back -- more visible than the
+        spinner "load, not reload" exists to avoid.
+
+        Sampled from inside the *latest* fetch, which is the one moment the
+        partial publish is on screen.
+        """
+        b, src = self._live_browser()
+        before = len(b.route["_data"]["rows"])
+        self.assertGreater(before, 1, "the fixture has no Latest row to lose")
+        mid = []
+        real = src.get_home_rows
+
+        def watched(server, libraries=None, sections=None, **kw):
+            if sections and "latest" in sections:
+                mid.append(len((b.route.get("_data") or {}).get("rows") or []))
+            return real(server, libraries, sections=sections, **kw)
+
+        src.get_home_rows = watched
+        b._load_route(b.route)
+        self.assertEqual(mid, [before],
+                         "the Latest rows were taken away mid-refresh")
+
+    def test_returning_from_playback_re_reads_immediately(self):
+        """The local half: go_back has always re-read Home, but coming back
+        from playback does not go through it."""
+        b, loads = self._browser()
+        b.enter_browse()
+        self.assertEqual(loads, [b.route])

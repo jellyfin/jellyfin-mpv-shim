@@ -253,6 +253,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._dl_thread = None
         # Tail poller for the logs tab — see SettingsMixin._poll_logs.
         self._log_thread = None
+        # Debounce slot for UserDataChanged — see refresh_home.
+        self._userdata_thread = None
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
         # Global download progress for the status bar, and its poller.
@@ -531,6 +533,62 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if route.get("_loading"):
             return
         self._load_route(route)
+
+    #: How long a UserDataChanged burst settles before Home re-reads. The
+    #: server sends one per progress report -- including for our own
+    #: playback -- so without this, watching a film would refetch the home
+    #: screen every few seconds behind the video.
+    USERDATA_DEBOUNCE = 3.0
+
+    def refresh_home(self, _client=None, now=False):
+        """Re-read the home screen, if that is what is showing.
+
+        Continue Watching and Next Up are the only rows in the library that a
+        *third party* changes while you are looking at them: finishing an
+        episode on a phone, or removing a film from Continue Watching in a
+        browser (#560). A stale row there is not cosmetic -- it offers to
+        resume something already watched, and pressing it starts it over.
+
+        A **load, not a reload**, exactly like refresh_live_tv: the epoch
+        stays put so nothing in flight is cancelled, and the home loader
+        writes ``_data`` only when its result lands, so the screen keeps the
+        rows it has instead of blinking a spinner over what is being read.
+
+        Reached from the websocket thread, so it must be safe off the loop
+        thread and cheap when it does not apply.
+
+        ``now`` skips the debounce, for the caller that is not a burst:
+        coming back from playback (see enter_browse). That is the local half
+        of the same bug -- watching something in the shim ITSELF left the
+        rows stale, because Home only re-read on a Back press.
+        """
+        if self.route.get("kind") != "home" or not self._browsing:
+            return
+        if now:
+            if self._menu is None and self._dialog is None \
+                    and not self.route.get("_loading"):
+                self._load_route(self.route)
+            return
+
+        def tick():
+            # _start_daemon keeps one thread per slot, so a burst of events
+            # schedules exactly one re-read: the first arrival starts the
+            # wait and the rest land while the slot is taken.
+            self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
+            route = self.route
+            if route.get("kind") != "home" or not self._browsing:
+                return
+            # Deferred, never forced, while the user is mid-interaction --
+            # see refresh_live_tv for the full reasoning. Skipping costs
+            # nothing here: the next event is seconds away, and returning to
+            # Home re-reads anyway.
+            if self._menu is not None or self._dialog is not None:
+                return
+            if route.get("_loading"):
+                return
+            self._load_route(route)
+
+        self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
 
     def _reload_route(self, route):
         """Re-run a route's loader in place: the data changed, the screen did
@@ -1654,6 +1712,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.hud.shown = False
         if self.controller is not None:
             self.controller.on_browse_enter()
+        # Whatever just finished may have moved the resume rows, and this is
+        # the moment they are about to be looked at. go_back has re-read Home
+        # for this reason all along; coming back from PLAYBACK does not go
+        # through it, which is why watching something in the shim itself left
+        # its own Continue Watching row stale (#560).
+        self.refresh_home(now=True)
         self._set_renderer_active(True)
         self.invalidate()
 
