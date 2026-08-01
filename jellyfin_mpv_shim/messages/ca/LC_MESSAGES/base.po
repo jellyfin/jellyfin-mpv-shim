@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-08-01 22:29+0000\n"
+"PO-Revision-Date: 2026-08-01 22:58+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -790,11 +790,11 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "Continu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "Alineat amb les files"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
@@ -2904,7 +2904,7 @@ msgstr "Alguns canvis prendran efecte després de reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr "Mou"
+msgstr "Trasllat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
@@ -2925,7 +2925,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr "Desitgeu moure les descàrregues al directori per defecte?"
+msgstr "Desitgeu traslladar les descàrregues al directori per defecte?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
@@ -2934,27 +2934,29 @@ msgstr "Fes servir aquest directori per defecte"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr "S'estan movent les descàrregues… %d%%"
+msgstr "S'estan traslladant les descàrregues… %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
-msgstr ""
+msgstr "El trasllat de les descàrregues ha fallat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Download folder moved. Restart to finish switching."
 msgstr ""
+"S'ha traslladat el directori de descàrregues. Reinicieu per a acabar el "
+"canvi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving downloads…"
-msgstr ""
+msgstr "S'estan traslladant les descàrregues…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "A move is already in progress."
-msgstr ""
+msgstr "Ja hi ha un trasllat en marxa."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Nothing downloaded to browse offline."
-msgstr ""
+msgstr "No hi ha res de descarregat per a navegar fora de línia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, fuzzy
@@ -2968,19 +2970,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home Screen Layout"
-msgstr ""
+msgstr "Disseny de la pantalla d'inici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
 msgstr ""
+"Connecteu-vos a un servidor per a canviar les seccions de la pantalla "
+"d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "The layout could not be loaded from your server."
-msgstr ""
+msgstr "No s'ha pogut carregar el disseny des del servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These sections are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Les seccions s'emmagatzemen al vostre servidor i es comparteixen amb "
+"Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
@@ -2990,7 +2996,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Section %d"
-msgstr ""
+msgstr "Secció %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, fuzzy
@@ -3004,7 +3010,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "S'ha desat el disseny de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, fuzzy
@@ -3024,7 +3030,7 @@ msgstr "General"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr ""
+msgstr "Pantalla d'inici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #, fuzzy
@@ -3051,11 +3057,11 @@ msgstr "Obre la carpeta de configuració"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
-msgstr ""
+msgstr "Encara no s'ha capturat cap sortida de registre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "Encara no hi ha res per a copiar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, fuzzy
@@ -3070,12 +3076,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "No clipboard available — saved to %s"
-msgstr ""
+msgstr "No hi ha cap porta-retalls disponible — desat a %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
 msgid "Copied %d log lines."
-msgstr ""
+msgstr "S'han copiat %d línies de registre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3170,7 +3176,7 @@ msgstr "Elimina el servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "No s'ha pogut eliminar el servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
@@ -3192,7 +3198,7 @@ msgstr "Any"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "Longitud"
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -3208,7 +3214,7 @@ msgstr "Àlbum"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from Beginning"
-msgstr ""
+msgstr "Reprodueix des de l'inici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
@@ -3238,7 +3244,7 @@ msgstr "Desitgeu eliminar %s d'aquesta col·lecció?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "No hi ha res aquí a la cua."
 
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
@@ -3263,24 +3269,24 @@ msgstr "Usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr ""
+msgstr "Cerca…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "Actualització disponible: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "Obre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "Descarta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Fora de línia — es mostra el que està disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
@@ -3289,20 +3295,20 @@ msgstr "Configura els servidors"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "S'està descarregant %(name)s — queden %(n)d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "S'està descarregant — queda %(n)d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Mostra les descàrregues"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "desconegut"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
@@ -3396,6 +3402,8 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"No es pot canviar la carpeta de descàrregues mentre hi ha una descàrrega en "
+"curs. Espereu que s'acabi i torneu-ho a provar."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
