@@ -538,13 +538,33 @@ locally.
   *inside the thumb* and derive the offset from absolute `y`.
 - Unchanged: `snap` / `snap_off` on the VScroll, `PAGE_SLOP`, `PAGE_MAX`.
 
-**Two questions worth settling before writing it** (see the message that
-accompanied this update):
+**Play All and Shuffle are not affected** — checked against jellyfin-web at
+Izzie's suggestion, and the answer is that neither client plays "what is
+loaded".
 
-1. Does Play All / Shuffle over a sparsely-loaded grid fetch the full id list,
-   or keep today's "whatever is loaded" behaviour?
-2. Is paginated mode in scope, or does it stay as it is? (It has no scrollbar,
-   so it has none of this bug.)
+jellyfin-web hands the *query* to the playback manager and lets the server
+select: `getItemsForPlayback` (`playbackmanager.js:132`) caps every playback
+query at **`Limit: 300`**, and the only caller that opts out is PhotoAlbum,
+via the explicit `UNLIMITED_ITEMS = -1` sentinel. Its legacy library Shuffle
+runs its own `SortBy: Random, StartIndex: 0, Limit: 300`; the modern one
+passes `queryOptions` with `SortBy: Random` and takes the default cap. Play
+All fetches the *library folder* and lets the folder expand server-side —
+still through the same 300 cap.
+
+The shim already works this way: `_play_all` and `_shuffle`
+(`pages/grid.py:853-877`) call `get_play_all_ids` / `get_shuffle_ids`, which
+ask the server with the grid's own sort, filters and collection type, capped
+at 200. Neither reads `route["_items"]`, so making that sparse cannot reach
+them, and the "Play All plays the first hundred" hazard was designed out
+before this branch existed.
+
+One alignment taken while here: **our cap was 200 and web's is 300**, for no
+reason beyond when each was written. It is now `repository.QUEUE_LIMIT`, so
+the number has somewhere to explain itself.
+
+**Paginated mode stays as it is.** It has no scrollbar and no growing
+content, so none of this bug — unifying the two modes is a separate question
+from fixing the one that is broken.
 
 ## Working notes
 

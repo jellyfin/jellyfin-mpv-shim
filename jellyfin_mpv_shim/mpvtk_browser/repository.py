@@ -227,6 +227,20 @@ QUEUEABLE_MEDIA = frozenset({"Video", "Audio", "Photo"})
 #: stable, which matters only for reading logs.
 QUEUEABLE_MEDIA_PARAM = ",".join(sorted(QUEUEABLE_MEDIA))
 
+#: How many items Play All / Shuffle queue from a library.
+#:
+#: The number is jellyfin-web's: ``getItemsForPlayback`` caps every playback
+#: query at 300 unless the caller passes its explicit "unlimited" sentinel,
+#: which only a photo album does. Matching it means the same button builds
+#: the same queue in both clients -- ours was 200 for no reason beyond when
+#: it was written.
+#:
+#: A cap at all, rather than the whole library, because this is a queue to
+#: play and not a list to browse: 300 is more than anyone watches in a
+#: sitting, and the alternative is asking a server for forty thousand ids to
+#: use the first few.
+QUEUE_LIMIT = 300
+
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
 #: **Two fields, not one.** ``ChannelInfo`` alone gets ``ChannelName`` and
@@ -1849,7 +1863,8 @@ class LibrarySource:
         result = api.get_collections(limit=limit, sort_by="SortName") or {}
         return result.get("Items", [])
 
-    def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
+    def get_shuffle_ids(self, server_uuid, parent_id,
+                        limit=QUEUE_LIMIT):
         """Random playable item ids under a library, for shuffle play. The
         server does the shuffling so the sample spans the whole library, not
         just the loaded pages."""
@@ -1862,7 +1877,8 @@ class LibrarySource:
         return [i["Id"] for i in result.get("Items", []) if i.get("Id")]
 
     def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
-                         sort_order="Ascending", filters=None, limit=200,
+                         sort_order="Ascending", filters=None,
+                         limit=QUEUE_LIMIT,
                          collection_type=None):
         """Ids Play All should queue, in the grid's own order.
 
@@ -2528,7 +2544,8 @@ class OfflineLibrarySource:
     def get_collections(self, server_uuid, limit=300):
         return []  # collections aren't cached offline (editing is online-only)
 
-    def get_shuffle_ids(self, server_uuid, parent_id, limit=200):
+    def get_shuffle_ids(self, server_uuid, parent_id,
+                        limit=QUEUE_LIMIT):
         snap = self._snap
         if parent_id == "offline:tv":
             pool = [i for i in snap.items if i.get("Type") == "Episode"]
@@ -2543,7 +2560,8 @@ class OfflineLibrarySource:
         return ids[:limit]
 
     def get_play_all_ids(self, server_uuid, parent_id, sort_by="SortName",
-                         sort_order="Ascending", filters=None, limit=200,
+                         sort_order="Ascending", filters=None,
+                         limit=QUEUE_LIMIT,
                          collection_type=None):
         """Downloaded items of a library, in the grid's order.
 
