@@ -11,18 +11,24 @@ changes (renderer-side scrub preview, true virtual scroll) landing as their
 own commits separate from the small fixes. Shared groundwork (the mpvtk
 disabled state) lands before the issue that needs it.
 
-| # | Title | Size |
+| # | Title | State |
 |---|---|---|
-| [612](#612--hover-bubble-position-depends-on-chapter-title-length) | Hover bubble position depends on chapter-title length | S (or folded into 618) |
-| [613](#613--hiding-titles-also-hides-the-year) | Hiding titles also hides the year | S + groundwork |
-| [614](#614--mouse-backforward-buttons-seek-chapters) | Mouse back/forward → chapter seek | S |
-| [615](#615--enable-osc-does-nothing-under-the-jellyfin-ui) | "Enable OSC" does nothing under the Jellyfin UI | S |
-| [616](#616--cover-size-in-the-library-view-dialog) | Cover Size in the library View dialog | M |
-| [617](#617--scrollbar-loses-the-drag-while-items-page-in) | Scrollbar loses the drag while items page in | L |
-| [618](#618--controls-slow-to-update-visually) | Controls slow to update visually | S + L |
-| [620](#620--playback-hud-design-feedback) | Playback HUD design feedback | M |
-| [575](#575--commercial--preview--recap-segments) | Commercial / Preview / Recap segments | M |
-| [560](#560--continue-watching-doesnt-update) | Continue Watching doesn't update | M |
+| — | Groundwork: mpvtk disabled state | done `c968d588` |
+| [618(a)](#618--controls-slow-to-update-visually) | Mute/volume lag behind the ticker | done `29921e31` |
+| [613](#613--hiding-titles-also-hides-the-year) | Hiding titles also hides the year | done `53e14fc6` |
+| [614](#614--mouse-backforward-buttons-seek-chapters) | Mouse back/forward → chapter seek | done `d35e5e38` |
+| [615](#615--enable-osc-does-nothing-under-the-jellyfin-ui) | "Enable OSC" does nothing under the Jellyfin UI | done `f6a2210d` |
+| [616](#616--cover-size-in-the-library-view-dialog) | Cover Size in the library View dialog | done `ee8415dc` |
+| [560](#560--continue-watching-doesnt-update) | Continue Watching doesn't update | done `fbd119c9` |
+| [620](#620--playback-hud-design-feedback) | Playback HUD design feedback | done `456682c5` |
+| [575](#575--commercial--preview--recap-segments) | Commercial / Preview / Recap segments | done `88da297a` |
+| [618(b)](#618b--renderer-side-scrub-preview) + [612](#612--hover-bubble-position-depends-on-chapter-title-length) | Renderer-side scrub preview | **TODO** |
+| [617](#617--scrollbar-loses-the-drag-while-items-page-in) | True virtual scroll | **TODO** |
+
+Everything above the line is on `ui-ux-fixes`, one commit each, with the full
+unit suite green after each. What is left is the two structural changes; the
+implementation notes gathered while doing the rest are under
+[Notes for the remaining two](#notes-for-the-remaining-two).
 
 ---
 
@@ -264,6 +270,7 @@ Applies to every infinite-scroll route: grid, person, music, music_genre.
 ---
 
 ## #618 — controls slow to update visually
+<a id="618b--renderer-side-scrub-preview"></a>
 
 Two separate problems behind one report.
 
@@ -454,24 +461,123 @@ through `enter_browse`, which does not reload.
 
 ---
 
+## Notes for the remaining two
+
+Everything below was learned while doing the other eight. It is here because
+none of it is discoverable from the issue text, and some of it is a trap.
+
+### 618(b) — renderer-side scrub preview
+
+**The data is already there, in the shape the renderer wants.**
+
+- `trickplay.py` writes **raw BGRA frames back to back**, which is exactly what
+  `overlay-add` consumes, and frame *n* starts at `n * w * h * 4`. No decode,
+  no PIL, nothing on the loop thread.
+- Two messages already exist and are still sent:
+  `shim-trickplay-bif` (count, multiplier, width, height, path) and
+  `shim-trickplay-chapters` (width, height, path, comma-separated start
+  times) — the second is the fallback when the server has no BIF data. Both
+  need handling; today the mpvtk HUD ignores both and reads
+  `player.trickplay_meta` from Python instead.
+- The renderer's image path (`renderer.lua`, `_arrange_image`'s consumer)
+  already does the crop-offset arithmetic: `offset = sy * stride + sx * 4`.
+  A trickplay frame needs that plus a **base** offset. Note the `&`-address
+  branch right there: for the same-process memory form the crop offset is
+  folded into the address instead, and a trickplay tile is a *file* path, so
+  the plain offset argument is the one that applies.
+- **Chapters need no push at all.** mpv has `chapter-list` natively; the
+  renderer can read it the same way it reads `pause`. The gateway's
+  `chapters()` exists for the Python-built pickers, not for this.
+
+**What comes out**, once the renderer owns the bubble: `hud._preview_float`,
+`hud._trickplay_frame`, `HudController.hover` / `hover_move` / `hover_end`,
+and the seek slider's `on_hover` / `on_hover_end` wiring.
+
+**Do not remove the hover machinery wholesale.** `update_slider_hover`
+handles *two* different things that read alike:
+
+- `hoverev` — the slider's throttled **value** reporting, which is what this
+  change makes unnecessary (`notify_hover` / `fire_hover` / `hover_watch`,
+  the 0.15s throttle).
+- `hev` / `on_hover` — plain enter/leave events on ordinary nodes, which the
+  **tile play-chip** depends on. Untouched.
+
+**Constraints.** `renderer.lua` is at LuaJIT's 200-file-scope-local ceiling
+(`tests/test_renderer_lua.py` reports the headroom and skips with an
+explanation when it is gone), so anything new hangs off `state` or shares a
+table — `PHUD_HIDE` is the pattern. The preview bitmap is one more overlay
+against `MAX_OVERLAYS`. `_SLIDER_PAD` is already pinned across the two sides
+by `tests/test_python_lua_constants.py`; whatever geometry the bubble grows
+belongs there too.
+
+**#612 closes with this**, not before: the renderer measures its own text, so
+the "assume a width, draw another" bug has nowhere to live. Both the hover
+case and the drag case are covered — the renderer knows the dragged value
+locally.
+
+### 617 — true virtual scroll
+
+- `tile_renderer.grid_of` takes `nrows` from `len(items)`; it needs the total.
+  `route["_total"]` is already set by every loader and already drawn in the
+  header's "%(shown)d of %(total)d".
+- `Paginator.more` (append-from-the-end) and `Paginator._fetch` (arbitrary
+  offset, bounded window) are the two halves; this is closer to unifying them
+  than to writing a third mode.
+- **`_items` goes sparse**: 5 files, 28 sites. The consumers to audit are the
+  ones that mean "everything on screen" — Play All and Shuffle
+  (`pages/grid.py`), the count line, `pages/queue_edit.py`,
+  `settings/home.py`, `tiles.py`.
+- **The Random-sort trap.** `PersonPage.load` (and the grid loader) deliberately
+  set `_total = len(items)` when the sort is Random, because the server
+  reshuffles per request and paging it yields duplicates and gaps. A grid
+  sized from `_total` must keep that: random cannot be windowed, and sizing it
+  to the real total would ask for pages that come back scrambled.
+- Renderer drag anchoring rides along: `state.drag` keeps a fixed `start_off`
+  and multiplies by a live `maxs`. The fix is the pattern already used by the
+  dropdown's own scrollbar a few hundred lines away — store the grab offset
+  *inside the thumb* and derive the offset from absolute `y`.
+- Unchanged: `snap` / `snap_off` on the VScroll, `PAGE_SLOP`, `PAGE_MAX`.
+
+**Two questions worth settling before writing it** (see the message that
+accompanied this update):
+
+1. Does Play All / Shuffle over a sparsely-loaded grid fetch the full id list,
+   or keep today's "whatever is loaded" behaviour?
+2. Is paginated mode in scope, or does it stay as it is? (It has no scrollbar,
+   so it has none of this bug.)
+
+## Working notes
+
+Conventions this branch had to follow, collected so the next session does not
+rediscover them:
+
+- **Run the suite as `xvfb-run -a python3 -m unittest discover tests` from the
+  repo root.** Two pre-existing warts: several modules (`test_shell_playback`,
+  …) cannot be run *by name* because they rely on discover to set `sys.argv`
+  before the app parses it; and `tests.test_mpv_options` plus
+  `tests.test_playstate_payload` **segfault at interpreter exit when run
+  together** — on the untouched tree too. `discover` hits neither.
+- **Any new setting** needs: an entry in `docs/configuration.md` (enforced by
+  `tests/test_docs_coverage.py`), its *values* added to that test's
+  `vocabulary` set if it is an enum, a row in `mpvtk_browser/config.py`
+  (SECTIONS + LABELS + NOTES), a regenerated
+  `tests/snapshots/settings.jsonl` (`python3 tests/test_scene_snapshots.py
+  --update`), and `./regen_pot.sh`.
+- **`./regen_pot.sh` only.** Never `--merge`, never touch the per-locale `.po`
+  files; that is Weblate's job and merging locally collides with master in
+  files nobody on the branch edited.
+
 ## Order of work
 
 Groundwork first, then the small fixes, then the two structural changes. One
 commit each.
 
-1. This document.
-2. Groundwork — mpvtk disabled state.
-3. #618(a) — observe `mute` / `volume`.
-4. #613 — year-only captions.
-5. #614 — mouse chapter navigation.
-6. #615 — `osc_style: none`.
-7. #616 — live cover size.
-8. #560 — `UserDataChanged` + refresh on return.
-9. #620 — HUD scrim / auto-hide / subtitle-margin settings (+ renderer text
-   shadow).
-10. #575 — media segment types.
+Steps 1–10 are done (see the table at the top). What remains:
+
 11. #618(b) + #612 — renderer-side scrub preview.
 12. #617 — true virtual scroll.
+
+Either order; they touch nothing in common.
 
 ## Decisions taken without asking
 
@@ -483,3 +589,16 @@ Small enough to reverse, recorded so they are not mistaken for oversights.
   ±10s/+30s would be a different feature wearing the same setting's name.
 - **#613 greying:** none, for the reason recorded under that issue — the
   premise for it turned out not to hold.
+- **#620's zero delay is floored at 0.5s.** `hud_hide_secs: 0` forces hover
+  mode as intended, but a literal zero would also blink the controls out in
+  the same frame as the mouse motion that summoned them. If 0 should instead
+  mean "no timer at all, visibility is purely the hover test", that is a
+  different mechanism — the controls would only ever appear with the pointer
+  in the bottom band — and wants building separately.
+- **#620's `panel` scrim is a full-width band** the height of each bar, and it
+  is painted as the bars' own background rather than as a separate node. The
+  bars therefore carry a fill in *every* mode (transparent when there is no
+  panel), because `layout` only emits a container node that has something to
+  draw and the renderer needs those two rects to exist — it tests the pointer
+  against them for the hover-hold. Their ids (`hud-bar`, `hud-topbar`) are a
+  contract with `renderer.lua`'s `phud_busy`.
