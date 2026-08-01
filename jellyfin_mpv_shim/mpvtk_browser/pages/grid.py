@@ -246,10 +246,20 @@ class GridPage(Page):
         labels = (bool(self._view("showTitle")),
                   bool(self._view("showYear")))
         if not labels[0]:
-            # No caption means no room for one: the strip reserves
-            # caption_h under every tile whether or not anything is drawn
-            # there, so leaving it would just be a band of background.
-            geom = dataclasses.replace(geom, caption_h=0)
+            # The strip reserves caption_h under every tile whether or not
+            # anything is drawn there, so the reservation has to follow what
+            # will actually be drawn -- too much is a band of background,
+            # too little puts a caption over the next row.
+            #
+            # Titles off, years on is ONE line (the year moves up into the
+            # title's place; see strips._paint_caption), so drop exactly the
+            # title line: its size plus the gap under it. Derived from the
+            # geometry rather than a constant, because a theme's cover size
+            # scales all of these together.
+            geom = dataclasses.replace(
+                geom,
+                caption_h=(max(0, geom.caption_h - geom.title_size - 7)
+                           if labels[1] else 0))
         if self._pages.enabled():
             return self._paged_grid(size, header, geom, image_type, labels)
         rows = header + tiles.grid_of(

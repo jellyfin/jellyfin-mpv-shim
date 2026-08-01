@@ -761,16 +761,21 @@ class StripStore:
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     def _paint_caption(self, dr, x, t, g):
+        # The second line follows the first rather than sitting at a fixed
+        # y: with "show titles" off and "show years" on there is no first
+        # line, and the year used to be dropped entirely (#613). Leaving it
+        # at the old offset instead would draw it a full line below the
+        # artwork with a band of nothing between.
+        y = g.tile_h + _px(6)
         if t.title:
             fnt = _font(g.title_size, text=t.title)
             title = self._ellipsize(dr, t.title, fnt, g.tile_w)
-            dr.text((x, g.tile_h + _px(6)), title, font=fnt,
-                    fill=theme.rgb(theme.TEXT_FG))
+            dr.text((x, y), title, font=fnt, fill=theme.rgb(theme.TEXT_FG))
+            y += g.title_size + _px(7)
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
-            dr.text((x, g.tile_h + _px(6) + g.title_size + _px(7)), sub,
-                    font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
+            dr.text((x, y), sub, font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
 
     @staticmethod
     def _ellipsize(dr, text, font, max_w):

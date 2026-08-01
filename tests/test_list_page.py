@@ -1210,22 +1210,55 @@ class ViewLabelsAndListTest(unittest.TestCase):
         nodes, _h, _t = self._scene(b)
         self.assertNotIn("1999", {n.get("text") for n in nodes})
 
+    def _tile_h(self, b):
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if re.match(r"^grid-\d+-", str(n.get("id", "")))
+               and n.get("t") == "rect"]
+        self.assertTrue(hit)
+        return hit[0]["h"]
+
     def test_showtitle_off_takes_the_caption_space_with_it(self):
         """The strip reserves caption_h under every tile whether or not
         anything is drawn there, so leaving it would be a band of
         background."""
-        b_on, _s = self._grid()
-        b_off, _s2 = self._grid(showTitle=False)
+        self.assertLess(self._tile_h(self._grid(showTitle=False,
+                                                showYear=False)[0]),
+                        self._tile_h(self._grid()[0]))
 
-        def tile_h(b):
-            nodes, _h = build_scene(b)
-            hit = [n for n in nodes
-                   if re.match(r"^grid-\d+-", str(n.get("id", "")))
-                   and n.get("t") == "rect"]
-            self.assertTrue(hit)
-            return hit[0]["h"]
+    def test_the_year_survives_the_title_being_switched_off(self):
+        """#613: turning titles off blanked the year with them, so "years
+        only" was unreachable even though both are separate checkboxes."""
+        b, _src = self._grid(showTitle=False)      # showYear defaults on
+        tile = b.tiles._tile({"Id": "g1", "Name": "Alpha", "Type": "Movie",
+                              "ProductionYear": 1999}, b.geom,
+                             labels=(False, True))
+        self.assertEqual(tile.title, "")
+        self.assertEqual(tile.subtitle, "1999")
 
-        self.assertLess(tile_h(b_off), tile_h(b_on))
+    def test_a_year_only_caption_is_one_line_tall(self):
+        """Between the two-line caption and no caption at all -- the year
+        moves up into the title's place rather than sitting a line below
+        the artwork with a band of nothing above it."""
+        both = self._tile_h(self._grid()[0])
+        year_only = self._tile_h(self._grid(showTitle=False)[0])
+        neither = self._tile_h(self._grid(showTitle=False,
+                                          showYear=False)[0])
+        self.assertLess(neither, year_only)
+        self.assertLess(year_only, both)
+
+    def test_both_off_blanks_a_line_show_year_does_not_govern(self):
+        """An episode's "Show · S1E2" ignores showYear by design, but with
+        both switched off the grid reserves NO caption space -- so it has to
+        go too, or it draws into the row below."""
+        b, _src = self._grid(showTitle=False, showYear=False)
+        ep = {"Id": "e1", "Name": "Pilot", "Type": "Episode",
+              "SeriesName": "Show", "ParentIndexNumber": 1,
+              "IndexNumber": 2}
+        self.assertEqual(b.tiles._tile(ep, b.geom, labels=(False, False))
+                         .subtitle, "")
+        self.assertEqual(b.tiles._tile(ep, b.geom, labels=(False, True))
+                         .subtitle, "Show · S1E2")
 
     def test_showyear_off_still_leaves_a_live_tv_line_alone(self):
         """Every other subtitle branch is a channel, an air time or an

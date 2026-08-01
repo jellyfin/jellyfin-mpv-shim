@@ -733,7 +733,14 @@ class TileRenderer:
         title, subtitle = components.tile_lines(item, parent_item,
                                                 show_year=show_year)
         if not show_title:
-            title = subtitle = ""
+            title = ""
+            if not show_year:
+                # Both off means no caption at all, and the grid reserves no
+                # room for one -- so the second line has to go even where
+                # show_year does not govern it (an episode's "Show · S1E2",
+                # a listing's channel and time). Otherwise it draws into the
+                # row below.
+                subtitle = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
