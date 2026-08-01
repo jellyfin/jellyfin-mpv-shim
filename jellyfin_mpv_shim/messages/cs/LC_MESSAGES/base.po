@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-07-31 22:01+0000\n"
-"Last-Translator: Helak <adamhavra@seznam.cz>\n"
+"PO-Revision-Date: 2026-08-01 17:49+0000\n"
+"Last-Translator: Fjuro <fjuro@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -564,7 +564,7 @@ msgstr "PIN kód se nepodařilo odstranit."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "Nepodařilo se uložit PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
