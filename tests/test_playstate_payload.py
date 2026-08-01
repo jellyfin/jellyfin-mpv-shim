@@ -378,3 +378,46 @@ class TestReportingIsWiredIn(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertEqual(out.stdout.strip(), "",
                          "player_reporting captured the backend at import time")
+
+
+class TestVolumeAndMuteReachTheUI(unittest.TestCase):
+    """#618: the HUD's mute button took up to a second and a half to change.
+
+    Its icon reads the playstate snapshot, and nothing pushed one when the
+    volume or the mute flag moved -- the only thing that did was the
+    browser's 1s ticker. Pause never had the problem because ``pause`` has
+    been observed all along, which is why the two felt so different.
+    """
+
+    def test_both_properties_are_observed(self):
+        import inspect
+
+        src = inspect.getsource(PlayerManager._bind_mpv_handlers)
+        for prop in ("mute", "volume"):
+            self.assertIn('self._observe("%s"' % prop, src,
+                          "%s is not observed, so the UI only learns about "
+                          "it on the next tick" % prop)
+
+    def test_the_handler_pushes_a_snapshot(self):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = _Video({"Name": "x"})
+        pm._player = _Player()
+        pm._hud_skip = None
+        pm.repeat_mode = "none"
+        PlayerManager._on_volume_change(pm, "mute", True)
+        self.assertTrue(got, "the observer pushed no playstate")
+        self.assertIn("muted", got[0])
+
+    def test_it_does_not_go_through_the_timeline_thread(self):
+        """timeline_handle() would also POST progress to the server, which
+        is not what a volume nudge is worth. Read the code, not the
+        docstring -- which says the same thing and would satisfy a naive
+        substring check on its own."""
+        import inspect
+
+        src = inspect.getsource(PlayerManager._on_volume_change)
+        body = src.split('"""')[2]
+        self.assertNotIn("timeline_handle", body)
+        self.assertIn("push_playstate", body)

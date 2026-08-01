@@ -478,6 +478,21 @@ def _toggle_tc(b):
     b.invalidate()
 
 
+def _toggle_hud_mute(b):
+    """Flip the icon on the click, not on the round trip.
+
+    The player now observes ``mute`` and pushes a snapshot (see
+    _on_volume_change), so this only covers the trip out to the action
+    thread and back — but that trip runs behind the player's lock, which a
+    playback start holds for its whole duration. Same optimism as the
+    favourite button below, and self-correcting: the next snapshot is the
+    truth whatever we guessed."""
+    st = b.hud.state or {}
+    st["muted"] = not st.get("muted")
+    b._ctl(lambda c: c.toggle_mute())
+    b.invalidate()
+
+
 def _toggle_hud_favorite(b):
     st = b.hud.state or {}
     st["favorite"] = not st.get("favorite")   # optimistic, like the np bar
@@ -651,7 +666,7 @@ def build_hud(b, size):
         right.append(tbtn(
             "volume_off" if muted else
             ("volume_up" if vol >= 50 else "volume_down"),
-            "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
+            "hud-mute", lambda: _toggle_hud_mute(b),
             tip=_("Mute")))
     if tiers["volbar"]:
         right.append(Slider(

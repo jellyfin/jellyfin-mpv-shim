@@ -794,6 +794,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._observe("seeking", self._on_seeking)
         self._observe("pause", self._on_pause_change)
         self._observe("paused-for-cache", self._on_cache_pause)
+        self._observe("mute", self._on_volume_change)
+        self._observe("volume", self._on_volume_change)
         p.event_callback("file-loaded")(self._on_file_loaded)
         self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
         p.event_callback("end-file")(self._on_end_file)
@@ -1097,6 +1099,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.syncplay.on_buffer()
         else:
             self.syncplay.on_buffer_done()
+
+    def _on_volume_change(self, _name, _value):
+        """Volume or mute moved -- tell the UI now rather than on the tick.
+
+        The playback HUD's mute icon and volume bar read the playstate
+        snapshot, and nothing pushed one when either changed: the only
+        thing that did was the browser's own 1s ticker, so clicking mute
+        left the button showing the old icon for up to a second and a bit
+        while the audio had already stopped (#618). Pause never had this
+        because `pause` has been observed all along.
+
+        push_playstate() directly, not timeline_handle(): the timeline
+        thread also POSTs progress to the server, and a volume nudge is not
+        worth a request. The snapshot is local and cheap, and it is what the
+        bar actually reads.
+
+        Both properties share a handler because they answer the same
+        question for the UI ("what does the volume control look like?"), and
+        observing mpv rather than patching the state at our own button is
+        what makes mpv's OWN bindings -- `m`, the wheel, a script -- move it
+        too.
+        """
+        self.push_playstate()
 
     def _on_file_loaded(self, _event):
         # Mirrors _on_end_file's generation guard: a file-loaded from
