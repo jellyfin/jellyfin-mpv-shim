@@ -242,9 +242,17 @@ You can use the config file to enable and disable features.
     cached row, and doing that under the pointer is worse than asking.
   - Themes are JSON files — see [Writing a theme](#writing-a-theme).
 - `poster_scale` - Overrides the active theme's default cover size. Default: `null`
-  - `null` keeps the theme's own size; a number (e.g. `1.0`, `1.4`, `1.7`)
-    scales the cover tiles.
-  - Read once at startup; changing it requires a restart.
+  - `null` keeps the theme's own size; a number scales the cover tiles. The
+    settings form offers `0.75`, `0.85`, `1.0`, `1.2`, `1.4` and `1.7`, but
+    any number works.
+  - **Applies immediately**, and is also on the View menu of any library —
+    seeing the change is the point of the setting, and walking back to a
+    library to look was the whole difficulty. Scroll positions are dropped
+    when it changes: they are pixel offsets into a list whose rows just
+    changed height.
+  - The *theme's* own cover size still needs a restart (see `theme`). The
+    difference is that there resizing is a side effect of changing colours,
+    and here it is what you asked for.
 - `osc_style` - Which on-screen controller to use. Default: `mpvtk`
   - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
     browser inside the player window: top bar (back, title, SyncPlay),

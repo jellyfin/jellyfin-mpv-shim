@@ -292,42 +292,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
-        # Cover size: the theme's default, overridden by the Cover Size
-        # setting when it is set. Posters/square scale; a theme may also
-        # override the landscape (library) tile's shape outright.
-        _cs = (getattr(_settings, "poster_scale", None)
-               or self._theme_cfg.get("poster_scale", 1.0))
-        _lw, _lh = self._theme_cfg.get("tile_landscape",
-                                       (LANDSCAPE_GEOM.tile_w,
-                                        LANDSCAPE_GEOM.tile_h))
-        self.geom = geom or POSTER_GEOM.scaled(_cs)   # default tile shape (2:3)
-        # The stock shape stays the module singleton rather than an equal
-        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
-        if (_lw, _lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
-            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
-        else:
-            self.geom_wide = TileGeom(
-                tile_w=_lw, tile_h=_lh,
-                caption_h=LANDSCAPE_GEOM.caption_h)
-        self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
-        # ~5.4:1. Only a user asking for the Banner image type reaches this.
-        self.geom_banner = BANNER_GEOM.scaled(_cs)
-        # A theme may also pin the tile caption font so it does NOT grow with
-        # the cover (big art, modest labels), which lets a long title show
-        # more of itself before it is ellipsized. Section headings are
-        # separate (heading_size) and unaffected.
-        _tts = self._theme_cfg.get("tile_title_size")
-        _tss = self._theme_cfg.get("tile_sub_size")
-        if _tts or _tss:
-            import dataclasses
-
-            def _caption(g):
-                return dataclasses.replace(
-                    g, title_size=_tts or g.title_size,
-                    sub_size=_tss or g.sub_size)
-            self.geom = _caption(self.geom)
-            self.geom_wide = _caption(self.geom_wide)
-            self.geom_square = _caption(self.geom_square)
+        # The four tile shapes, from the theme and the Cover Size setting.
+        # A fixed ``geom`` (the integration harness passes one) pins the
+        # poster shape and opts out of later re-derivation.
+        self._geom_pinned = geom
+        self._derive_cover_size()
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -937,6 +906,86 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             log.debug("could not repaint the mpv background", exc_info=True)
         self.invalidate()
         return cfg
+
+    def _derive_cover_size(self):
+        """(Re)compute the four tile geometries from the theme and the Cover
+        Size setting.
+
+        Split out of __init__ so the setting can be changed without a
+        restart: everything downstream reads ``art.geom*`` at render time,
+        and strip bitmaps are keyed on the geometry's own dimensions
+        (StripStore._key), so nothing cached at the old size can be served
+        at the new one.
+        """
+        import dataclasses
+
+        from ..conf import settings as _settings
+
+        # Cover size: the theme's default, overridden by the Cover Size
+        # setting when it is set. Posters/square scale; a theme may also
+        # override the landscape (library) tile's shape outright.
+        cs = (getattr(_settings, "poster_scale", None)
+              or self._theme_cfg.get("poster_scale", 1.0))
+        lw, lh = self._theme_cfg.get("tile_landscape",
+                                     (LANDSCAPE_GEOM.tile_w,
+                                      LANDSCAPE_GEOM.tile_h))
+        self.geom = self._geom_pinned or POSTER_GEOM.scaled(cs)
+        # The stock shape stays the module singleton rather than an equal
+        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
+        if (lw, lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
+            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
+        else:
+            self.geom_wide = TileGeom(
+                tile_w=lw, tile_h=lh,
+                caption_h=LANDSCAPE_GEOM.caption_h)
+        self.geom_square = SQUARE_GEOM.scaled(cs)     # 1:1 (music)
+        # ~5.4:1. Only a user asking for the Banner image type reaches this.
+        self.geom_banner = BANNER_GEOM.scaled(cs)
+        # A theme may also pin the tile caption font so it does NOT grow with
+        # the cover (big art, modest labels), which lets a long title show
+        # more of itself before it is ellipsized. Section headings are
+        # separate (heading_size) and unaffected.
+        tts = self._theme_cfg.get("tile_title_size")
+        tss = self._theme_cfg.get("tile_sub_size")
+        if tts or tss:
+            def caption(g):
+                return dataclasses.replace(
+                    g, title_size=tts or g.title_size,
+                    sub_size=tss or g.sub_size)
+            self.geom = caption(self.geom)
+            self.geom_wide = caption(self.geom_wide)
+            self.geom_square = caption(self.geom_square)
+
+    def apply_cover_size(self):
+        """Adopt a changed Cover Size without a restart.
+
+        Theme-driven geometry is still restart-only (see set_theme): there
+        the size is a side effect of a colour change nobody asked to resize
+        for. A control LABELLED Cover Size is the opposite case -- seeing it
+        happen is the whole point, which is why the setting sat behind a
+        restart and nobody could tell what the values meant (#616).
+
+        Parked scroll offsets have to go: they are pixel positions into a
+        list whose row pitch just changed, so keeping them would land the
+        user somewhere they never scrolled to.
+
+        So does every route's parked GRID SHAPE. ``GridPage._grid_shape``
+        computes the median-artwork geometry once per route and keeps the
+        resolved ``TileGeom`` on the route dict -- deliberately, so a grid
+        does not change shape as you page through it -- which means the
+        library on screen went on drawing at the old cover size until it was
+        reloaded. That is why this looked like it needed you to leave the
+        page and come back. Cleared for the whole stack, not just the
+        current route, or going back lands on a stale one.
+        """
+        self._derive_cover_size()
+        if self.strips is not None:
+            self.strips.geom = self.geom
+        for route in self.nav_stack:
+            route.pop("_grid_shape", None)
+            route.pop(self._scroll.PARK_KEY, None)
+        self._scroll.reset()
+        self.invalidate()
 
     def invalidate(self):
         if self.app is not None:

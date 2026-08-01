@@ -160,8 +160,13 @@ LABELED_ENUMS = {
         (_("Aligned to rows"), "aligned"),
         (_("One row per notch"), "row"),
     ],
+    # Every label points at the value it has always pointed at -- "Small" is
+    # the base size, which reads oddly beside two smaller steps but is the
+    # price of not silently re-pointing a string 86 locales have translated.
     "poster_scale": [
         (_("Theme default"), None),
+        (_("Extra Compact"), 0.75),
+        (_("Compact"), 0.85),
         (_("Small"), 1.0),
         (_("Medium"), 1.2),
         (_("Large"), 1.4),
@@ -308,8 +313,9 @@ NOTES = {
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),
-    "poster_scale": _("Overrides the theme's cover size. Takes effect after a "
-                      "restart."),
+    "poster_scale": _("Overrides the theme's cover size. Applies "
+                      "immediately, and is also on the View menu of any "
+                      "library."),
     "mouse_chapter_nav": _("During playback only — in the library those "
                            "buttons stay Back and Forward. Off by default "
                            "because they are easy to hit by accident on some "
