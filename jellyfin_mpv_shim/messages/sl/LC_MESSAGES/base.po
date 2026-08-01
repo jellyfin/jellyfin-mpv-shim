@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-06-20 12:46+0000\n"
-"Last-Translator: Žiga Ules <ziga.ules@gmail.com>\n"
+"PO-Revision-Date: 2026-08-01 17:49+0000\n"
+"Last-Translator: FenomenaGaga <fenomenalna.gaga@gmail.com>\n"
 "Language-Team: Slovenian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sl/>\n"
 "Language: sl\n"
@@ -57,10 +57,12 @@ msgstr "Nastavi trenutno ..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"V Jellyfin pojdi na svoj uporabniški račun in izberi Hitra povezava. Vpiši "
+"spodnjo kodo:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Čakanje na avtorizacijo..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
@@ -79,16 +81,12 @@ msgid "Account already exists. Updating credentials."
 msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Strežnik uspešno dodan."
+msgstr "Strežnik uspešno posodobljen."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Napaka pri dodajanju strežnika."
+msgstr "Napaka pri posodabljanju strežnika."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -107,22 +105,16 @@ msgid "Add another server?"
 msgstr "Dodaj še en strežnik?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Strežnika ni bilo mogoče dodati.\n"
-"Preverite vaše nastavitve povezave."
+msgstr "Strežnika ni bilo mogoče dodati."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Funkcija Hitra povezava ni omogočena na strežniku."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Funkcije Hitra povezava ni bilo mogoče vklopiti."
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -437,10 +429,8 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Strežnik uspešno dodan."
+msgstr "Prejšnja stran"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Next page"
@@ -495,14 +485,8 @@ msgid "Retry"
 msgstr "Poskusi znova"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Strežnika ni bilo mogoče dodati.\n"
-"Preverite vaše nastavitve povezave."
+msgstr "Dostop do strežnika še vedno ni mogoč"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -531,10 +515,9 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Strežnik:"
+msgstr "Nastavi PIN za %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -578,7 +561,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "PIN ni bilo mogoče odstraniti."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
@@ -594,10 +577,8 @@ msgid "Connect to Jellyfin"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Strežnik uspešno dodan."
+msgstr "Prejšni strežniki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -612,28 +593,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "Nastavitve SVP"
+msgstr "Zahtevam…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL strežnika: "
+msgstr "URL strežnika"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Uporabniško ime:"
+msgstr "Uporabniško ime"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Geslo:"
+msgstr "Geslo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
@@ -648,14 +621,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Strežnika ni bilo mogoče dodati.\n"
-"Preverite vaše nastavitve povezave."
+msgstr "Povezovanje s strežnikom…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -670,14 +637,8 @@ msgid "Connecting…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Strežnika ni bilo mogoče dodati.\n"
-"Preverite vaše nastavitve povezave."
+msgstr "Ni se bilo mogoče povezati. Prosim preverite svoje podatke."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
@@ -726,10 +687,8 @@ msgid "Ready to cast"
 msgstr "Pripravljen za deljenje"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Izberite predstavnost v Jellyfin in jo predvajajte tu"
+msgstr "Izberite predstavnost v Jellyfin in jo predvajajte tu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
@@ -774,17 +733,15 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Audio"
-msgstr ""
+msgstr "Zvok"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Prekodiranje)"
+msgstr "Prekodiranje"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -2282,7 +2239,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Schedule"
-msgstr ""
+msgstr "Urnik"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -3225,10 +3182,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Prekodiranje)"
+msgstr "Prekodiranje"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
