@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-31 19:44-0400\n"
-"PO-Revision-Date: 2026-08-01 22:10+0000\n"
+"PO-Revision-Date: 2026-08-01 22:29+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -2849,7 +2849,7 @@ msgstr "No s'han pogut carregar més elements."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Display settings saved."
-msgstr ""
+msgstr "Configuració de pantalla desada."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #, fuzzy
@@ -2863,12 +2863,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
-msgstr ""
+msgstr "Encara no s'ha descarregat res."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%d items"
-msgstr ""
+msgstr "%d elements"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy
@@ -2900,11 +2900,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Some changes take effect after restarting."
-msgstr ""
+msgstr "Alguns canvis prendran efecte després de reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr ""
+msgstr "Mou"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
@@ -2925,16 +2925,16 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr ""
+msgstr "Desitgeu moure les descàrregues al directori per defecte?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
-msgstr ""
+msgstr "Fes servir aquest directori per defecte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Moving downloads… %d%%"
-msgstr ""
+msgstr "S'estan movent les descàrregues… %d%%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Moving the downloads failed."
