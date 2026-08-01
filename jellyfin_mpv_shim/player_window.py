@@ -100,6 +100,8 @@ class WindowMixin:
         _geometry_armed: Optional[str]
         _showing_browse_bg: bool
         _browse_bg_deferred: bool
+        _colorspace_hint: Any
+        _colorspace_hint_suspended: bool
         fullscreen_disable: bool
 
         # Provided by siblings on the composed PlayerManager. Three, and the
@@ -113,6 +115,97 @@ class WindowMixin:
 
         # ReportingMixin.
         def upd_player_hide(self) -> None: ...
+
+    #: mpv's ``--target-colorspace-hint``, spelled once. Both backends expose
+    #: options as attributes with the dashes turned into underscores.
+    _COLORSPACE_HINT = "target_colorspace_hint"
+
+    def suspend_colorspace_hint(self):
+        """Let the window's colorspace follow the display while the UI owns it.
+
+        mpv only revisits the swapchain's colorspace *while a video frame
+        exists*. ``vo_gpu_next.c``::
+
+            if (target_hint && frame->current) {
+                ... set_colorspace_hint(p, &hint);
+            } else if (!target_hint) {
+                ... set_colorspace_hint(p, NULL);
+            }
+
+        ``target_hint`` is ``--target-colorspace-hint``, whose default of
+        ``auto`` resolves to *true* on d3d11 (that context implements
+        ``target_csp()``), so on Windows the first branch is the live one —
+        and with no file loaded, ``frame->current`` is NULL and neither branch
+        runs. The last hint set during playback is never withdrawn, and it is
+        real swapchain state: libplacebo's d3d11 backend acts on it with
+        ``SetColorSpace1`` plus a backbuffer format change.
+
+        That is issue #605. Play something, turn Windows HDR on mid-playback
+        (mpv re-hints the swapchain to PQ, correctly), stop, then turn HDR
+        back off: nothing re-hints, so mpv keeps encoding the library UI as PQ
+        while the display reads it as sRGB — raised blacks and clipped
+        highlights. It only bites us because we are one of the few things that
+        keeps an mpv window on screen with no file loaded; the UI *is* the
+        idle window. Cycling HDR without ever opening the player is fine,
+        which is what the report says, because the hint is never set at all.
+
+        Parking the option at ``no`` takes the second branch instead, and
+        ``pl_swapchain_colorspace_hint`` maps its NULL to sRGB — so the
+        swapchain returns to 8-bit sRGB and stays there, letting Windows do
+        the SDR-in-HDR conversion it does for every other desktop app. Which
+        is the honest answer anyway: the library UI is sRGB content, so
+        hinting the swapchain toward a video's colorspace while no video
+        exists is meaningless.
+
+        Only the browse window needs this. The OSD menu's ``force_window``
+        window is torn down when the menu closes, and that destroys the
+        swapchain along with the stale hint.
+
+        Never raises, and does nothing at all on an mpv without the option
+        (built without gpu-next, or too old) — the read is how we find out.
+        """
+        if getattr(self, "_colorspace_hint_suspended", False):
+            return
+        if not self._mpv_alive:
+            return
+        try:
+            saved = getattr(self._player, self._COLORSPACE_HINT)
+            setattr(self._player, self._COLORSPACE_HINT, "no")
+        except Exception:
+            wlog.debug("this mpv will not take %s", self._COLORSPACE_HINT,
+                       exc_info=True)
+            return
+        self._colorspace_hint = saved
+        self._colorspace_hint_suspended = True
+        wlog.info("colorspace hint parked at no (was %r) <- %s",
+                  saved, _caller())
+
+    def resume_colorspace_hint(self):
+        """Give the user's ``--target-colorspace-hint`` back before playback.
+
+        Called from ``_play_media`` rather than from ``browse_yield``, which
+        would read as the natural counterpart to ``set_browse_window``: yield
+        is a browser gateway hook, so it misses every other way playback
+        starts (a cast, the remote, the OSD menu). Playing HDR with the hint
+        still parked would be a worse bug than the one being worked around,
+        so the restore hangs off the one path all of them share.
+
+        The flag is cleared only once mpv has taken the value, so a write that
+        fails is retried by the next start rather than silently left parked.
+        """
+        if not getattr(self, "_colorspace_hint_suspended", False):
+            return
+        if not self._mpv_alive:
+            return
+        try:
+            setattr(self._player, self._COLORSPACE_HINT, self._colorspace_hint)
+        except Exception:
+            wlog.debug("could not restore %s", self._COLORSPACE_HINT,
+                       exc_info=True)
+            return
+        self._colorspace_hint_suspended = False
+        wlog.info("colorspace hint restored to %r <- %s",
+                  self._colorspace_hint, _caller())
 
     def _set_force_window(self, value):
         """Single authority for force_window.
@@ -331,6 +424,18 @@ class WindowMixin:
                     self._player.keepaspect = False
                 except Exception:
                     pass  # older mpv without the property; harmless
+                # An idle window's colorspace has to keep tracking the
+                # display, which mpv only does with the hint off (see
+                # suspend_colorspace_hint) — but only once nothing is
+                # playing. This method also runs with media still live: music
+                # keeps the browser up, and the library can be opened over a
+                # playing video. Parking the hint there would cost that video
+                # its HDR passthrough, which is worse than the bug being
+                # worked around. Same guard as the backdrop below, and the
+                # `_loading` half is there for the same reason — _video is
+                # not set until a start has already succeeded.
+                if self._video is None and not self._loading:
+                    self.suspend_colorspace_hint()
                 # Paint the window ourselves rather than decoding a file to
                 # hold it open. This also fixes audio: playing a song
                 # replaces whatever is loaded with a picture-less file, and
