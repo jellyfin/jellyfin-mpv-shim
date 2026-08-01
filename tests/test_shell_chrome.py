@@ -487,3 +487,49 @@ class TestOneBlue(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestATransitionSurvivesARaisingController(unittest.TestCase):
+    """The browse/playback transitions must complete even if the controller
+    throws halfway through one.
+
+    ``_yield`` clears ``_browsing`` and *then* engages the HUD;
+    ``enter_browse`` refreshes Home and re-activates the renderer *after*
+    telling the controller. An exception out of the controller therefore did
+    not fail a callback, it abandoned the transition half-applied — and
+    nothing puts that right until the next one.
+
+    Not hypothetical: gateway.on_browse_leave read a setting #615 had
+    retired, so every browse -> video transition raised AttributeError and
+    skipped the HUD engage behind it.
+    """
+
+    def _browser(self):
+        ctl = FakeController()
+        for name in ("on_browse_leave", "on_browse_enter", "on_minimize"):
+            def boom(*_a, **_k):
+                raise RuntimeError("controller said no")
+            setattr(ctl, name, boom)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        return b
+
+    def test_yield_still_leaves_browse(self):
+        b = self._browser()
+        b._browsing = True
+        b._yield()
+        self.assertFalse(b._browsing, "the yield was abandoned")
+
+    def test_enter_browse_still_reactivates_the_renderer(self):
+        b = self._browser()
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        b._browsing = False
+        b.enter_browse()
+        self.assertTrue(b._browsing, "the return to browse was abandoned")
+
+    def test_minimize_still_minimizes(self):
+        b = self._browser()
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        b.minimize()
+        self.assertTrue(b.minimized, "the minimize was abandoned")

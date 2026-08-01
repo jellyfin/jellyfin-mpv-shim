@@ -1568,10 +1568,34 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         else:
             self._set_renderer_active(False)
 
+    def _tell_controller(self, name):
+        """Fire one of the browse/playback transition callbacks, and survive
+        it raising.
+
+        These three run in the MIDDLE of a transition -- ``_yield`` has
+        already cleared ``_browsing`` and still has to engage the HUD;
+        ``enter_browse`` still has to refresh Home and re-activate the
+        renderer. An exception out of the controller therefore did not fail
+        the callback, it abandoned the transition half-applied, and the
+        browser stayed in a state nothing would put right until the next one.
+
+        Found the hard way: gateway.on_browse_leave read a setting #615 had
+        retired, so every single browse -> video transition raised
+        AttributeError and skipped the HUD engage that follows it.
+        """
+        if self.controller is None:
+            return
+        fn = getattr(self.controller, name, None)
+        if fn is None:
+            return
+        try:
+            fn()
+        except Exception:
+            log.exception("controller.%s failed", name)
+
     def _yield(self):
         self._browsing = False
-        if self.controller is not None:
-            self.controller.on_browse_leave()
+        self._tell_controller("on_browse_leave")
         if self.hud.available():
             # keep the renderer attached: blank scene + summon bindings
             try:
@@ -1713,8 +1737,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._browsing = True
         self._minimized = False
         self.hud.shown = False
-        if self.controller is not None:
-            self.controller.on_browse_enter()
+        self._tell_controller("on_browse_enter")
         # Whatever just finished may have moved the resume rows, and this is
         # the moment they are about to be looked at. go_back has re-read Home
         # for this reason all along; coming back from PLAYBACK does not go
@@ -1733,8 +1756,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._browsing = False
         self.hud.shown = False
         self._set_renderer_active(False)
-        if self.controller is not None:
-            self.controller.on_minimize()
+        self._tell_controller("on_minimize")
 
     @property
     def minimized(self):
