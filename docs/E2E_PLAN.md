@@ -156,6 +156,7 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | --- | --- | --- | --- |
 | `test_account_policy` | contract | 17 | restricted libraries, Live TV access, the awkward logins |
 | `test_source_conformance` | contract | 12 | the fake source still describes the real one |
+| `test_live_tv` | contract | 13 | channels, guide windows, categories, guide prefs, timers |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |

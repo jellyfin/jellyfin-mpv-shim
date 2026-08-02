@@ -10,7 +10,7 @@ that as a normal failure with a useful message instead of losing the run.
 Same reasoning as `tests/integration/_idle_reopen_child.py`.
 
 Usage:  _close_child.py <mode>
-Modes:  reopen | abandon-long | abandon-short
+Modes:  reopen | abandon-long | abort-report-long | abort-report-short
 Prints: `RESULT: <PASS|FAIL> <detail>` and exits 0 on PASS.
 """
 
@@ -26,7 +26,25 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(
 import _e2e  # noqa: E402
 
 
+#: The child's player, so `verdict` can stop it before the interpreter goes.
+_PM = None
+
+
 def verdict(ok, detail):
+    """Report, stop playback, exit.
+
+    The stop is not tidiness. Leaving a file decoding means the atexit
+    teardown destroys the libmpv handle while it is still running, and that
+    races the same way `finished_callback` did — a SIGSEGV *after* the verdict
+    was printed, which surfaces as "the child died on signal 11" on a run
+    whose assertions all passed. Roughly one run in four before this.
+    The real app stops before it terminates; so does this.
+    """
+    if _PM is not None:
+        try:
+            _PM.stop()
+        except Exception:
+            pass
     print("RESULT: %s %s" % ("PASS" if ok else "FAIL", detail), flush=True)
     sys.exit(0 if ok else 1)
 
@@ -49,10 +67,11 @@ def close_mpv(pm):
 
 
 def main():
+    global _PM
     mode = sys.argv[1]
     _e2e.isolate_config()
     player_module = _e2e.ensure_real_player()
-    pm = player_module.playerManager
+    pm = _PM = player_module.playerManager
     pm.action_trigger = threading.Event()
     pm.timeline_trigger = threading.Event()
 

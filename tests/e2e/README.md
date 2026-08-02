@@ -43,6 +43,7 @@ E1 and E2 exist so far:
 | --- | --- | --- |
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
+| `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
@@ -99,6 +100,13 @@ exhaust `qa-onesession`'s cap, and its test then fails on the *first* login,
 which looks exactly like the cap working. That test purges the account's
 devices as admin in `setUp` for the same reason.
 
+**Live TV timers need a permission nobody has.** `EnableLiveTvManagement` is
+a third Live TV permission and stdjflib grants it to no account, not even
+`qa-admin`, so `POST /LiveTv/Timers` is 403 for everyone. `TimerTest` grants
+it in `setUpClass` and restores the original policy in `tearDownClass` — the
+only mutation of server *configuration* in the suite, and acceptable only
+because the server is disposable. See `docs/PERMISSION_GAPS.md`.
+
 **Both backends, always.** External mpv is the least-tested path in the app
 and one of the two largest open-bug clusters in the tracker. The runner makes
 it a separate leg so a jsonipc-only regression is unmissable — and the first
@@ -110,6 +118,12 @@ runs, so a test built on a window close passes about a third of the time.
 Exercise the close for outcomes that do not depend on who won (does it
 re-open, does auto-advance survive); for the abort-report path, drive
 `send_timeline_stopped(finished=True)` directly.
+
+**Stop playback before the process ends.** Leaving a file decoding means the
+atexit teardown destroys the libmpv handle while it is still running, which
+races exactly as `finished_callback` did — a SIGSEGV *after* all the
+assertions passed, roughly one run in four. `_close_child.verdict` stops first
+for this reason. The real app stops before it terminates; so should a test.
 
 **A scenario that can crash belongs in a child process.** `_close_child.py`
 exists because a use-after-free on the mpv handle is a SIGSEGV, and a segfault

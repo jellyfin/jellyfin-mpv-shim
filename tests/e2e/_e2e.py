@@ -292,15 +292,33 @@ class Session:
         except Exception:
             pass
 
-    def _request(self, path, method="GET"):
+    def _request(self, path, method="GET", body=None):
         """A raw authenticated call, for the handful of endpoints the
-        apiclient does not expose (logout, the Devices admin API)."""
-        req = urllib.request.Request(
-            SERVER + path, method=method,
-            headers={"Authorization": 'MediaBrowser Token="%s"' % self.token})
+        apiclient does not expose (logout, the Devices and Policy admin
+        APIs)."""
+        headers = {"Authorization": 'MediaBrowser Token="%s"' % self.token}
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode()
+            headers["Content-Type"] = "application/json"
+        req = urllib.request.Request(SERVER + path, method=method,
+                                     data=data, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
-            body = resp.read()
-            return json.loads(body) if body else None
+            payload = resp.read()
+            return json.loads(payload) if payload else None
+
+    def policy(self):
+        return (self.api.get_user() or {}).get("Policy") or {}
+
+    def set_policy(self, policy):
+        """Replace this user's policy. Admin only.
+
+        Used by the Live TV timer tests, which cannot run at all without
+        `EnableLiveTvManagement` — stdjflib grants it to nobody, not even
+        qa-admin. They grant it, run, and put the original back.
+        """
+        self._request("/Users/%s/Policy" % self.user_id, method="POST",
+                      body=policy)
 
     def purge_devices(self, account):
         """Delete every Device record belonging to `account`. Admin only.

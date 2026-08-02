@@ -40,6 +40,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
 CONTRACT = [
     "tests.e2e.test_account_policy",
     "tests.e2e.test_source_conformance",
+    "tests.e2e.test_live_tv",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.

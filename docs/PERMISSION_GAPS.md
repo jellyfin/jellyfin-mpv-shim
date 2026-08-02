@@ -86,3 +86,39 @@ ecosystem has to move together, so hiding the play button here would only make
 this client look broken against a server that will happily serve the stream.
 
 Recorded so the next person to measure it does not file it as a shim bug.
+
+## 3. Recording is offered to users who cannot record
+
+Found while writing `tests/e2e/test_live_tv.py`, which could not schedule a
+timer as any account on the server.
+
+`EnableLiveTvManagement` is a **third** Live TV permission, separate from
+`EnableLiveTvAccess`: watching Live TV and managing recordings are granted
+independently. The shim never reads it — grep returns nothing — so the Record
+button, the series-rule button and the whole Recordings/Schedule surface are
+offered to every user who can see Live TV at all. Pressing Record then answers
+`403 Forbidden` from `POST /LiveTv/Timers`, and the user sees a generic
+failure.
+
+Same family as the SyncPlay gap above and probably the same fix: the flag is
+on the login response's policy, it is per-server, and whatever holds
+`SyncPlayAccess` should hold this too.
+
+**Testable once fixed**: a user with `EnableLiveTvAccess` but not
+`EnableLiveTvManagement` is offered no Record buttons and no Schedule tab,
+while one with both is offered all of them.
+
+### stdjflib should grant it to `qa-admin`
+
+Not a shim issue, but it blocks testing this one. **No stdjflib account has
+`EnableLiveTvManagement`**, `qa-admin` included — so the entire DVR surface
+(timers, series rules, recordings, the Schedule tab) is unreachable against a
+stock QA server, and every client would find it "broken" identically.
+
+`tests/e2e/test_live_tv.TimerTest` works around it by granting the flag to
+`qa-admin` in `setUpClass` and restoring the original policy in
+`tearDownClass`, which is only acceptable because the server is disposable.
+The better fix is upstream: `qa-admin` is described as "Administrator.
+Dashboard, scheduled tasks, library management" and plainly ought to have it,
+and an account with Live TV access but *without* management would be a useful
+thirteenth — it is exactly the state this gap is about.
