@@ -149,8 +149,7 @@ swapped for the live one. Classes 5 and 6.
 
 ## Status
 
-Green on both backends, 8/8 legs, about two minutes for the matrix. See
-`tests/e2e/README.md` to run it.
+Green on both backends. See `tests/e2e/README.md` to run it.
 
 | Module | Tier | Starter items | Covers |
 | --- | --- | --- | --- |
@@ -161,12 +160,16 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | `test_paging` | contract | 19 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_keyboard_nav` | contract | 20 | keyboard reach/activation of real screens; duplicate node ids |
 | `test_large_queue` | contract | — | 400-id queue metadata; the 414 request-line limit |
+| `test_connection_loss` | contract | — | server gone / token revoked / a page-in that fails after a screenful drew |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
 | `test_mpv_reopen` | playback | 6 | close mid-playback → re-open → auto-advance (#458) |
 | `test_input_routing` | playback | — | real keys across every UI transition (f70ad1e7, #614) |
 | `test_scroll_recovery` | playback | — | wheel-scrolling 1000 items in a real window; blank-tile recovery |
+| `test_track_selection` | playback | — | Jellyfin stream index → mpv track id, both ways, and back to the server |
+| `test_photos` | playback | — | a still is held, an album is a slideshow; the browser's endless display duration |
+| `test_window_resize` | playback | — | the window changes size under the UI, including too small to use |
 
 The contract tier never imports `player.py`, so it runs **once** and without a
 display — the whole of it is under two seconds. Only the playback tier pays
@@ -177,18 +180,19 @@ for the backend matrix.
 None of these is a crash, and none is asserted as a failure; they are recorded
 because each one is a thing somebody will otherwise rediscover.
 
-**The shim reads no user policy fields.** Confirmed by grep: nothing in
-`jellyfin_mpv_shim/` consults `EnableContentDownloading`,
-`EnableMediaPlayback` or `SyncPlayAccess`. The only policy-derived behaviour
-is Live TV, and that is inferred from whether the server put a Live TV view in
-`/Views` rather than read from the policy — which does gate browsing
-correctly, and `LiveTvAccessTest` pins that.
+**The shim read no user policy fields — two of the three gaps are now
+closed.** As found: nothing in `jellyfin_mpv_shim/` consulted
+`EnableContentDownloading`, `EnableMediaPlayback`, `SyncPlayAccess` or
+`EnableLiveTvManagement`, and the only policy-derived behaviour was Live TV
+*browsing*, inferred from whether the server put a Live TV view in `/Views`
+rather than read from the policy — which does gate it correctly, and
+`LiveTvAccessTest` pins that.
 
-The two that matter are written up as work items in
-`docs/PERMISSION_GAPS.md`: SyncPlay has three unconditional entry points and
-never reads `SyncPlayAccess`, and the Settings → Home Screen editor offers
-Live TV sections to users who cannot have them, producing a slot that renders
-nothing forever.
+`user_policy.py` now answers `SyncPlayAccess` and `EnableLiveTvManagement`
+(see `docs/PERMISSION_GAPS.md` for what shipped and why it fails open), and
+`test_account_policy` checks both against the real accounts. Still open: the
+Settings → Home Screen editor offers Live TV sections to users who cannot
+have them, producing a slot that renders nothing forever.
 
 **`EnableMediaPlayback: False` does not stop playback, and cannot.**
 `qa-noplayback` plays a file start to finish: PlaybackInfo returns no error
@@ -214,11 +218,10 @@ account's devices as admin in `setUp`.
 
 ## Bugs found
 
-Two real defects, both from `test_mpv_reopen`, both invisible to the ~2900
-unit tests and the integration matrix because both need a real player and a
-real server at once.
+Three real defects, all invisible to the ~3000 unit tests and the integration
+matrix because each needs a real player, or a real server, or both.
 
-**1. Segfault closing mpv mid-playback — libmpv only. FIXED.**
+**1. Segfault closing mpv mid-playback — libmpv only. FIXED.** (`test_mpv_reopen`)
 
 Closing the window makes mpv end the file *and* shut down. The end-file event
 queues `finished_callback`, which issues `self._player.command("stop")` on the
@@ -235,7 +238,23 @@ in `player.py` already use, and `_terminate_mpv` clears that flag *before*
 calling `terminate()`, so the ordering favours it. 3/3 clean afterwards, and
 the whole unit suite and integration matrix still pass.
 
+**3. A photo opened on its own started a slideshow. FIXED (`02d3329e`).**
+(`test_photos`)
+
+`_play_media` pauses a still when it is the head of the queue and the request
+asked for it — clicking one picture means "show me this". Seventy lines
+further down the same method calls `set_paused(False, False)` to push the
+initial playstate, and that undid it. The feature had therefore never worked:
+the unpause is from the 2020 SyncPlay commit and the photo branch from a week
+ago, which is why the two do not read as related.
+
+`tests/test_photos.py` had a correct three-way truth table for *when* to
+pause and could not see it, because it reimplements the branch as an excerpt
+— and an excerpt cannot know what the rest of the method does to it. That is
+the whole argument for this suite in one bug.
+
 **2. A short item aborted early is reported at full duration. PINNED.**
+(`test_mpv_reopen`)
 
 `_finished_at_eof` decides whether the end that just happened was genuine:
 
