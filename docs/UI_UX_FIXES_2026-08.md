@@ -671,53 +671,99 @@ backends), so this is not "check the code works" — it is the list of things
 those suites are structurally unable to see. Ordered by how likely a problem
 is and how badly it is covered.
 
+### 0. What the round found, and what was done
+
+Nine issues, one commit each. Everything below is Izzie's, verbatim, with the
+outcome under it.
+
+| Reported | Fix |
+|---|---|
+| `AttributeError: settings.enable_osc` on minimize | `3e4c32af` — #615 retired the key and two call sites in `gateway/playback.py` kept reading it. `tests/test_settings_references.py` now walks the package for `settings.<name>` and fails on any the schema does not declare. |
+| (the same crash, downstream) | `5893d5bd` — the three browse/playback transition callbacks were unguarded, so one raising line abandoned every browse→video transition half-applied. They go through `_tell_controller` now. |
+| Trickplay bubble snaps back on mouse release | `971126c3` — a drag returns out of `on_mouse_move` before the hover tracking, so `pv_secs` still held where the pointer was when the drag *started*. `slider_set_from_x` carries it along now. |
+| Cover Size needs leaving the page | `0ab0204b` — `_grid_shape` parks the resolved `TileGeom` on the route. Cleared for the whole nav stack. |
+| "half" scrim unreadable on the top bar | `9b750110` — the top band is already the small one; halving it too put the title in the fading half of a 65px ramp. Bottom ramp only. |
+| Continue Watching redraws when nothing changed | `a9883418` — two things: `load()` published a primary-only batch mid-refresh (taking the Latest rows away and putting them back), and the final publish replaced `_data` unconditionally. Both fixed. |
+| Chapter nav only while the controls are hidden | `8a5133e4` — [iw] "leave those keys unbound in the HUD to prevent accidental closing of media player and allow users to bind it to whatever they want in the config". `mbtn_back`/`mbtn_forward` are their own key-binding section now, which a summoned HUD leaves disabled. |
+| Downloaded shows render as squares, not posters | `8a946e39` — the synthesized offline Series DTO carried no `PrimaryImageAspectRatio`, and `auto_geom`'s no-ratio fallback is square. |
+| Skip Intro does nothing on downloaded files | `3983a296` — `OfflineVideo.get_intro` was a stub. Segments are cached beside the media at download time now, like the trickplay tiles. **Existing downloads need re-downloading to pick them up.** |
+
+Not changed, decided:
+
+- **Scrim default** — [iw] "keeping the default the same as it was makes
+  sense" means the `default` *option* stays the default. `SCRIM_FRAC` keeps
+  the 0.42/300 this branch lowered it to.
+- **Volume wheel** does not change volume while the HUD is up: the renderer
+  owns the wheel there. Not a regression, and not what the mute/volume
+  observers were about — those are about the display tracking mpv, which it
+  does.
+- **No toast on a network drop** — [iw] "could have missed it or not let the
+  requests actually time out (it was an ifdown type drop)". An `ifdown` drop
+  hangs the request rather than failing it, so there is nothing to report
+  until the socket times out. Left as is.
+
+### 0b. Comments as reported
+
+- The half height option works fine on the lower half, on the upper player half it needs to be taller because the text becomes unreadable. I think that keeping the default the same as it was makes sense.
+
+- Skip intro seems to not be showing skip intro buttons in some cases
+
+- Got an error:
+  File "/home/izzie/bookmarks/scripts/jellyfin-mpv-shim/jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py", line 40, in on_minimize
+    playerManager.enable_osc(settings.enable_osc)
+                             ^^^^^^^^^^^^^^^^^^^
+
 ### 1. The scrub preview against a real server (`renderer.lua`)
 
 All of it is new, and the tests drive a *fake* mpv with a synthetic tile file.
 
-- [ ] **With trickplay**: hover along the bar, drag the thumb, and arrow-scrub
+- [*] **With trickplay**: hover along the bar, drag the thumb, and arrow-scrub
       with the keyboard. All three raise the bubble and it tracks without lag.
       Check the frame is the right one near both ends of the bar.
-- [ ] **Without trickplay** — this is #612's case, and the reporter had no
+      --> Works great except in one edge case: when I release the mouse the trickplay dialog snaps back to where it was before I started dragging.
+- [X] **Without trickplay** — this is #612's case, and the reporter had no
       tiles. The bubble stays centred on the pointer whether the chapter name
       under it is two words or thirty characters. That is the whole bug.
-- [ ] **Chapter-image fallback**: a server with no BIF data but chapter
+      - [ ] On Windows specifically (need to test)
+- [X] **Chapter-image fallback**: a server with no BIF data but chapter
       images. This path never worked in the mpvtk HUD at all before, so it is
       new behaviour rather than preserved behaviour.
-- [ ] **Video change**: scrub, stop, play something else, scrub again. The old
+- [X] **Video change**: scrub, stop, play something else, scrub again. The old
       tile file is unlinked immediately after `shim-trickplay-clear`; a
       renderer still pointing at it shows as mpv errors in the log or a stale
       frame.
-- [ ] **UI scale != 1** (1.75 is the reporter's, and Izzie's): the frame draws
+- [X] **UI scale != 1** (1.75 is the reporter's, and Izzie's): the frame draws
       at native pixel size while the text scales, so the box proportions move.
       It should still look deliberate.
-- [ ] Both backends (`mpv_ext` on and off).
+- [X] Both backends (`mpv_ext` on and off).
 
 ### 2. Library scrolling at real size and real latency (#617)
 
 The tests use a synchronous pool, so pages arrive instantly and in order.
 Neither is true against a real server.
 
-- [ ] **Drag the scrollbar hard** down a large library. The thumb stays under
+- [X] **Drag the scrollbar hard** down a large library. The thumb stays under
       the cursor; the scroller does not resize. Release and check the right
       items are on screen.
-- [ ] **Jump to the middle** of a big library — you get *that* neighbourhood,
+- [X] **Jump to the middle** of a big library — you get *that* neighbourhood,
       not a walk from the top.
-- [ ] **Fast repeated drags.** The one to watch. Every new window asks the
+- [X] **Fast repeated drags.** The one to watch. Every new window asks the
       thumbnail workers for two or three screens of artwork, and parts of the
       library are now reachable without loading everything in between. Browser
       stutter or a complaining server is this.
-- [ ] **A window that fails**: kill the network mid-scroll. One toast and
+- [X] **A window that fails**: kill the network mid-scroll. One toast and
       blank tiles — *not* a request per frame. Scrolling again retries.
-- [ ] **Random sort** does not window at all, and still shows only what it
+      - Works fine, it just stops rendering items until the network comes back and I scroll again. Did not see a toast but could have missed it or not let the requests actually time out (it was an ifdown type drop).
+- [X] **Random sort** does not window at all, and still shows only what it
       loaded.
-- [ ] **List view** on a big library, same drags.
-- [ ] **Paginated mode** on and off over the same library. Untouched by this,
+- [X] **List view** on a big library, same drags.
+- [X] **Paginated mode** on and off over the same library. Untouched by this,
       but the toggle shares route state with it.
-- [ ] **Back-nav**: scroll deep, open something, come back — the parked offset
+- [X] **Back-nav**: scroll deep, open something, come back — the parked offset
       lands where you left.
-- [ ] **Offline / downloaded library.** The offline source takes the same
+- [*] **Offline / downloaded library.** The offline source takes the same
       windowed fetches and has not been exercised by hand.
+      - Only strange thing is downloaded TV shows render as discs with posters in them, and not posters. Works fine to the extent that I can test it, downloading an entire window of files is impractical
 
 One shared line to know about: `draw_image` gained `+ (node.base or 0)` to its
 overlay offset. It defaults to zero so it is inert, but *every* tile strip in
@@ -727,39 +773,44 @@ the browser goes through it. Artwork offset or torn anywhere is that line.
 
 Behavioural, and nearly untestable without a real pointer.
 
-- [ ] Summon with the **keyboard** while the mouse sits in the top or bottom
+- [X] Summon with the **keyboard** while the mouse sits in the top or bottom
       band. The controls hide. (Before the fix they never did.)
-- [ ] Then **move the mouse onto the bar** — they stay up while it rests.
-- [ ] Move the pointer **off the mpv window** while the bar is up. It hides.
-- [ ] All three `hud_autohide` modes, plus `hud_hide_secs: 0`.
+- [X] Then **move the mouse onto the bar** — they stay up while it rests.
+- [X] Move the pointer **off the mpv window** while the bar is up. It hides.
+- [X] All three `hud_autohide` modes, plus `hud_hide_secs: 0`.
 
 ### 4. Config migration (`CONFIG_VERSION = 2`)
 
 Back up `conf.json` first.
 
-- [ ] The four old `skip_intro_*` / `skip_credits_*` booleans land on the five
+- [X] The four old `skip_intro_*` / `skip_credits_*` booleans land on the five
       `segment_*` tri-states as expected (`always` wins over `enable`).
-- [ ] A *fresh* config still gets `ask` / `ask` / `off` / `off` / `off`.
-- [ ] `enable_osc` is orphaned: someone who had it off gets controls back and
+- [X] A *fresh* config still gets `ask` / `ask` / `off` / `off` / `off`.
+- [X] `enable_osc` is orphaned: someone who had it off gets controls back and
       must pick "No controls" again. That was the decision (#615), and it is
       the one thing here that will surprise an upgrader.
 
 ### 5. The smaller ones
 
-- [ ] **Cover Size** live from the View dialog, in both directions. Parked
+- [*] **Cover Size** live from the View dialog, in both directions. Parked
       scroll offsets are dropped on change — check nothing lands somewhere you
       never scrolled to.
-- [ ] **Mute and volume** are instant in the HUD (#618a), including via mpv's
+      - It works, but I have to leave the page and come back. It doesn't require a client restart.
+- [X] **Mute and volume** are instant in the HUD (#618a), including via mpv's
       own `m` and the wheel.
-- [ ] **Mouse back/forward chapter nav**: setting on, off, and on a video with
+      - Caveat: wheel doesn't work, but I didn't expect that. Mute updates immediately.
+- [*] **Mouse back/forward chapter nav**: setting on, off, and on a video with
       no chapters (does nothing, by design). SyncPlay follows the seek.
-- [ ] **Skip Intro/Credits** in each of the five segment settings, and
+      - Only works while player controls are hidden.
+- [*] **Skip Intro/Credits** in each of the five segment settings, and
       specifically under `osc_style: none`, where the OSD prompt is the only
       surface.
-- [ ] **Continue Watching** updates after finishing something on another
+      - Doesn't seem to do anything in mosts cases. I don't see a skip intro button.
+- [X] **Continue Watching** updates after finishing something on another
       client, and the 3s debounce does not cause a refresh storm.
-- [ ] **Play All / Shuffle** queue 300 rather than 200.
-- [ ] **Show Year with titles off** — the one-line caption sits where a
+      - One thing with this: If nothing actually updated we shouldn't redraw the row.
+- [X] **Play All / Shuffle** queue 300 rather than 200.
+- [X] **Show Year with titles off** — the one-line caption sits where a
       caption sits.
 
 ### Least confident
@@ -767,3 +818,4 @@ Back up `conf.json` first.
 The thumbnail-request pressure from free scrollbar dragging (2) and the
 chapter-image trickplay fallback (1). Neither has a real-data test, and both
 only misbehave at scale. If there is time for two things, those.
+--> It works wonderfully. Am very pleased.
