@@ -37,9 +37,10 @@ PKG = os.path.dirname(inspect.getfile(gw))
 #: rather than against whatever the code now happens to say.
 #:
 #: A name leaves this set only when the method is *deliberately* retired --
-#: so far only ``trickplay``, whose caller went away when the scrub preview
-#: moved into renderer.lua (#618). Anything else disappearing is the bug this
-#: is here to catch.
+#: so far ``trickplay``, whose caller went away when the scrub preview moved
+#: into renderer.lua (#618), and ``hud_sub_margin``, which raised the
+#: subtitles clear of the bar and did so only for text tracks (#620).
+#: Anything else disappearing is the bug this is here to catch.
 BEFORE_SPLIT = {
     "add_server", "add_user", "any_client", "apply_audio_settings",
     "cancel_load", "chapters", "check_updates", "client_for",
@@ -49,7 +50,7 @@ BEFORE_SPLIT = {
     "download_status", "downloaded_ids", "edit_apis", "get_aspect",
     "get_last_server", "get_queue", "get_queue_ids", "get_speed",
     "get_sync_groups", "has_downloads", "hud_action", "hud_key_opts",
-    "hud_menu_state", "hud_sub_margin", "known_servers", "list_downloads",
+    "hud_menu_state", "known_servers", "list_downloads",
     "list_servers", "list_users", "needs_unlock", "next",
     "offline_source", "on_browse_enter", "on_browse_leave",
     "on_downloads_changed", "on_minimize", "open_config_folder", "open_url",

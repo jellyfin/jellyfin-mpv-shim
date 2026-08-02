@@ -167,12 +167,17 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertFalse(hasattr(b.hud, "hover"),
                          "hover state has no owner on this side any more")
 
-    def test_hud_show_hide_adjusts_sub_margin(self):
+    def test_hud_does_not_move_the_subtitles(self):
+        """The bar draws over them, like jellyfin-web. Raising them only
+        ever worked for SRT (mpv's own sub-margin does not reach an
+        image/ASS track), so the same film moved its subtitles or not
+        depending on which track you picked (#620)."""
         b, ctl = self._browser()
         b.hud.on_hud(True)
         b.hud.on_hud(False)
-        self.assertIn(("hud_sub_margin", (True,)), ctl.transport)
-        self.assertIn(("hud_sub_margin", (False,)), ctl.transport)
+        self.assertEqual(
+            [c for c in ctl.transport if "sub" in c[0]], [],
+            "the HUD is still touching subtitle placement")
 
     def test_mid_viewport_keeps_quality_drops_chapters(self):
         b, _ctl = self._browser()
@@ -210,8 +215,7 @@ class TestHudScrimAndAutohide(unittest.TestCase):
     def setUp(self):
         from jellyfin_mpv_shim.conf import settings
         self.settings = settings
-        for key in ("hud_scrim", "hud_autohide", "hud_hide_secs",
-                    "hud_sub_margin"):
+        for key in ("hud_scrim", "hud_autohide", "hud_hide_secs"):
             self.addCleanup(setattr, settings, key, getattr(settings, key))
 
     def _browser(self):
@@ -343,22 +347,6 @@ class TestHudScrimAndAutohide(unittest.TestCase):
         opts = HudMixin().hud_key_opts()
         self.assertEqual(opts["mode"], "always")
         self.assertEqual(opts["hide"], 1.5)
-
-    def test_subtitles_can_be_left_where_they_are(self):
-        from unittest import mock
-        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
-        import jellyfin_mpv_shim.player as player_mod
-
-        class _P:
-            sub_pos = 100
-            sub_margin_y = 22
-
-        pm = mock.Mock(_player=_P())
-        gw = HudMixin()
-        self.settings.hud_sub_margin = False
-        with mock.patch.object(player_mod, "playerManager", pm):
-            gw.hud_sub_margin(True)
-        self.assertEqual(_P.sub_margin_y, 22, "subtitles were moved anyway")
 
 
 class TestPlaybackHudMenusAndFavorite(unittest.TestCase):

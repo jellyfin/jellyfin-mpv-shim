@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 19:44-0400\n"
+"POT-Creation-Date: 2026-08-02 01:33-0400\n"
 "PO-Revision-Date: 2024-07-13 22:07+0000\n"
 "Last-Translator: Filan Fisteku <motto_schillernd_01@icloud.com>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -123,6 +123,84 @@ msgstr ""
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
 msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skip Credits"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Credits"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Credits"
+msgstr "Kërko të kalosh hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skipped Commercial"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Credits"
+msgid "Seek to Skip Commercial"
+msgstr "Kërko të kalosh hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skip Preview"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skipped Preview"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Credits"
+msgid "Seek to Skip Preview"
+msgstr "Kërko të kalosh hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skipped Recap"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Credits"
+msgid "Seek to Skip Recap"
+msgstr "Kërko të kalosh hyrjen"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Intro"
+msgstr "Kaluam intron"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Intro"
+msgstr "Kaluam intron"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Intro"
+msgstr "Kërko të kalosh intron"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -289,6 +367,18 @@ msgstr "Audio Japoneze me/Titra Angleze"
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "Manual sipas indeksit të përcjellësit (Më pak i besueshëm)"
 
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Ask"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always"
+msgstr ""
+
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
 msgstr "Zgjidh proflin fillestar të transkodimit"
@@ -394,21 +484,36 @@ msgstr "Kontrollo për përditësime"
 msgid "Discord Rich Presence"
 msgstr "Prezenca e pasur e Discord"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Intros"
-msgstr "Gjithmonë kalo introt"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Intros"
+msgstr "Kaluam intron"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Intros"
-msgstr "Pyet për të kaluar introt"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgctxt "setting"
+msgid "Skip Credits"
+msgstr "Anashkalo hyrjen"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Credits"
-msgstr "Gjithmonë anashkalo hyrjet"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skip Commercials"
+msgstr "Anashkalo hyrjen"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Credits"
-msgstr "Pyet për të anashkaluar hyrjet"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skip Previews"
+msgstr "Anashkalo hyrjen"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Credits"
+msgid "Skip Recaps"
+msgstr "Anashkalo hyrjen"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -837,6 +942,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No player controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
 msgstr ""
 
@@ -868,8 +977,46 @@ msgstr ""
 msgid "One row per notch"
 msgstr ""
 
+# seeded from jellyfin-web: Default
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Default"
+msgstr "Parazgjedhur"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Panel behind the controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "None (Disabled)"
+msgid "None (shadowed text)"
+msgstr "Asnjë (Ç'aktivizuar)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide unless hovered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Always Skip Credits"
+msgid "Always hide"
+msgstr "Gjithmonë anashkalo hyrjet"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never hide while paused"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Extra Compact"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Compact"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1005,6 +1152,7 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
 msgstr ""
 
@@ -1026,6 +1174,22 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Shading Behind the Player Controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "When the Player Controls Hide"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Player Controls After (seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Mouse Back/Forward Buttons Skip Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1111,7 +1275,9 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard."
+"drive the player controls by keyboard. \"No player controls\" leaves "
+"playback bare; the library, the keyboard shortcuts and the menu key still "
+"work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1163,11 +1329,38 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Overrides the theme's cover size. Takes effect after a restart."
+msgid ""
+"Overrides the theme's cover size. Applies immediately, and is also on the "
+"View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, python-format
+msgid ""
+"The controls have to stay legible over any frame. \"None\" gives the text a "
+"drop shadow instead of shading the picture behind it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Hide unless hovered\" keeps them up only while the pointer is on them, "
+"paused or not."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
+"hovered\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"During playback only — in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice. Takes "
+"effect after a restart."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, no-python-format
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
@@ -1369,7 +1562,6 @@ msgstr ""
 msgid "Show titles"
 msgstr "Madhësia e titrave: {0}"
 
-# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
 msgid "Show years"
@@ -2264,8 +2456,9 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
-msgid "%(shown)d of %(total)d"
+msgid "%d items"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2562,6 +2755,16 @@ msgstr "Artistët"
 #, fuzzy
 msgid "Songs"
 msgstr "Këngët"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not start playback."
+msgstr ""
+"Nuk mund të shtohet serveri.\n"
+"Ju lutem shikoni informacionin e lidhjes."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2899,11 +3102,6 @@ msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
@@ -2926,7 +3124,7 @@ msgid "Show advanced settings"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Cover size and interface scale require a restart."
+msgid "Interface scale requires a restart."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -3371,22 +3569,6 @@ msgid "Please wait, loading..."
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py
-msgid "Skipped Credits"
-msgstr "Anashkalo hyrjen"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Skipped Intro"
-msgstr "Kaluam intron"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Credits"
-msgstr "Kërko të kalosh hyrjen"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Intro"
-msgstr "Kërko të kalosh intron"
-
-#: jellyfin_mpv_shim/player.py
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -3397,18 +3579,6 @@ msgstr ""
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
 msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Credits"
-msgid "Skip Credits"
-msgstr "Anashkalo hyrjen"
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skip Intro"
-msgstr "Kaluam intron"
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -3608,6 +3778,18 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Zgjidh profilin e hijëzuesit"
+
+#~ msgid "Always Skip Intros"
+#~ msgstr "Gjithmonë kalo introt"
+
+#~ msgid "Ask to Skip Intros"
+#~ msgstr "Pyet për të kaluar introt"
+
+#~ msgid "Always Skip Credits"
+#~ msgstr "Gjithmonë anashkalo hyrjet"
+
+#~ msgid "Ask to Skip Credits"
+#~ msgstr "Pyet për të anashkaluar hyrjet"
 
 #~ msgid "Select your media in Jellyfin and play it here"
 #~ msgstr "Zgjidh median tënde në Jellyfin dhe luaje këtu"

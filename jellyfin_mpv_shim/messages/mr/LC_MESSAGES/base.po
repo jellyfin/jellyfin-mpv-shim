@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 19:44-0400\n"
+"POT-Creation-Date: 2026-08-02 01:33-0400\n"
 "PO-Revision-Date: 2025-12-16 05:55+0000\n"
 "Last-Translator: sabretou <sabretou@gmail.com>\n"
 "Language-Team: Marathi <https://translate.jellyfin.org/projects/jellyfin/"
@@ -113,6 +113,67 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Credits"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+msgid "Skip Commercial"
+msgstr "विशेष"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Preview"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Intro"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Intro"
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
@@ -280,6 +341,20 @@ msgstr "जपानी ऑडिओ इंग्रजी सबटायटल
 msgid "Manual by Track Index (Less Reliable)"
 msgstr ""
 
+# seeded from jellyfin-web: Never
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Never"
+msgstr "कधीच नाही"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Ask"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always"
+msgstr ""
+
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
 msgstr ""
@@ -385,20 +460,26 @@ msgstr "अपडेट असल्याचे तपासा"
 msgid "Discord Rich Presence"
 msgstr "डिस्कॉर्ड रिच प्रेझेंस"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Intros"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Intros"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Intros"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgctxt "setting"
+msgid "Skip Credits"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Credits"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Skip Commercials"
+msgstr "विशेष"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Previews"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Credits"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Skip Recaps"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
@@ -796,6 +877,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No player controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
 msgstr ""
 
@@ -828,7 +913,39 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Panel behind the controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "None (shadowed text)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide unless hovered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always hide"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never hide while paused"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Extra Compact"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Compact"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -964,6 +1081,7 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
 msgstr ""
 
@@ -985,6 +1103,22 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Shading Behind the Player Controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "When the Player Controls Hide"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Player Controls After (seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Mouse Back/Forward Buttons Skip Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1068,7 +1202,9 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard."
+"drive the player controls by keyboard. \"No player controls\" leaves "
+"playback bare; the library, the keyboard shortcuts and the menu key still "
+"work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1120,11 +1256,38 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Overrides the theme's cover size. Takes effect after a restart."
+msgid ""
+"Overrides the theme's cover size. Applies immediately, and is also on the "
+"View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, python-format
+msgid ""
+"The controls have to stay legible over any frame. \"None\" gives the text a "
+"drop shadow instead of shading the picture behind it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Hide unless hovered\" keeps them up only while the pointer is on them, "
+"paused or not."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
+"hovered\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"During playback only — in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice. Takes "
+"effect after a restart."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, no-python-format
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
@@ -1278,9 +1441,11 @@ msgstr ""
 msgid "Auto"
 msgstr "आपोआप"
 
+# seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Poster"
-msgstr ""
+msgstr "पोस्टर"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
@@ -1318,7 +1483,6 @@ msgstr ""
 msgid "Show titles"
 msgstr "सबटायटल आकार: {0}"
 
-# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
 msgid "Show years"
@@ -1343,7 +1507,6 @@ msgid ""
 "library on this device."
 msgstr ""
 
-# seeded from jellyfin-web: Settings
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
 msgid "View Settings"
@@ -2221,7 +2384,6 @@ msgstr "पैतृक रेटिंग"
 msgid "Random"
 msgstr "यादृच्छिक"
 
-# seeded from jellyfin-web: OptionDateAdded
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
 msgid "Date Episode Added"
@@ -2232,8 +2394,9 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
-msgid "%(shown)d of %(total)d"
+msgid "%d items"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2534,6 +2697,10 @@ msgstr "संगीतकार"
 #, fuzzy
 msgid "Songs"
 msgstr "गाणी"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Could not start playback."
+msgstr ""
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2857,11 +3024,6 @@ msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove Watched"
@@ -2884,7 +3046,7 @@ msgid "Show advanced settings"
 msgstr "आधुनिक पर्याय दाखवा"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Cover size and interface scale require a restart."
+msgid "Interface scale requires a restart."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -3303,22 +3465,6 @@ msgid "Please wait, loading..."
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py
-msgid "Skipped Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Skipped Intro"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Intro"
-msgstr ""
-
-#: jellyfin_mpv_shim/player.py
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -3326,14 +3472,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-msgid "Skip Credits"
-msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-msgid "Skip Intro"
 msgstr ""
 
 #: jellyfin_mpv_shim/player_reporting.py

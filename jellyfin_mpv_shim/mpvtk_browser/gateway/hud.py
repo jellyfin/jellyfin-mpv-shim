@@ -113,28 +113,6 @@ class HudMixin(GatewayCore):
             pm.put_task(pm.set_fullscreen, not was, True)
         self._act(flip)
 
-    def hud_sub_margin(self, visible):
-        """Raise bottom subtitles above the HUD's bar while it is
-        summoned; restore on hide. Skipped for top/middle-positioned
-        subtitles (sub-pos < 50), like the lua OSC, and switchable off
-        entirely: subtitles jumping as the controls appear is distracting if
-        you are reading them (#620)."""
-        from ...player import playerManager
-        try:
-            player = playerManager._player
-            if visible and settings.hud_sub_margin:
-                sub_pos = player.sub_pos
-                if sub_pos is not None and sub_pos < 50:
-                    return
-                if self._saved_sub_margin is None:
-                    self._saved_sub_margin = player.sub_margin_y
-                player.sub_margin_y = 130
-            elif self._saved_sub_margin is not None:
-                player.sub_margin_y = self._saved_sub_margin
-                self._saved_sub_margin = None
-        except Exception:
-            log.debug("hud_sub_margin failed", exc_info=True)
-
     def chapter_seek(self, direction):
         """Previous (-1) / next (+1) chapter, by the player's rule.
 

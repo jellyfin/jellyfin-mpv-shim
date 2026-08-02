@@ -1796,14 +1796,6 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if not state or state.get("stopped"):
             self._now_playing = None
             self.hud.state = None
-            if self.hud.shown and getattr(
-                    self.controller, "hud_sub_margin", None) is not None:
-                # playback ended with the HUD up: the renderer clears
-                # without an on_hud(False), so restore the margin here
-                try:
-                    self.controller.hud_sub_margin(False)
-                except Exception:
-                    log.debug("hud_sub_margin failed", exc_info=True)
             self.hud.shown = False
             self.hud.menu = None
             if self.load.error is not None:
