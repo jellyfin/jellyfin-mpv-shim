@@ -159,6 +159,7 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | `test_live_tv` | contract | 13 | channels, guide windows, categories, guide prefs, timers |
 | `test_route_walk` | contract | 18 | every screen loads and renders against the real library |
 | `test_paging` | contract | 19 | virtual scrolling over ~1000 items at real totals (#617) |
+| `test_keyboard_nav` | contract | 20 | keyboard reach/activation of real screens; duplicate node ids |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |

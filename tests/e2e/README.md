@@ -46,6 +46,7 @@ E1 and E2 exist so far:
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
 | `test_route_walk` | E1 | every screen loads and renders against the real library |
 | `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
+| `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
