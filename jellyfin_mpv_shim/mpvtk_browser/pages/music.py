@@ -10,7 +10,7 @@ a mixin was the only place two pages could both reach; a base class is what
 from ...i18n import _
 from ...mpvtk.widgets import (
     Checkbox, Column, Row, Spacer, Text, VScroll)
-from .. import theme
+from .. import pagination, theme
 from ..components import chrome, controls, detail as detail_components
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -93,11 +93,34 @@ class MusicLibraryPage(MusicPage):
 
         def done(res):
             items, total = res
-            route["_data"], route["_total"] = items, total
+            route["_total"] = total
+            # `total` slots from the first frame, most of them holes (#617).
+            # The genres tab reports its own length, so it pads to exactly
+            # what it loaded and windows to nothing -- the same shape that
+            # exempts a Random library grid.
+            route["_data"] = pagination.spread([], total, items, 0)
             route["_loading"] = False
 
         fetch = self._fetch_for_tab()      # bind the tab here, not later
         self.route_async(lambda: fetch(0), done, epoch)
+
+    def _window(self, first, last):
+        """Fetch the tiles in ``[first, last)`` that are not loaded yet.
+
+        Called from render, like GridPage's: which items are visible is a
+        question about geometry. The tab is bound HERE, on the loop thread,
+        for the reason _fetch_for_tab's docstring gives -- reading it when
+        the page lands resolves against whichever tab the user switched to.
+        """
+        fetch = self._fetch_for_tab()
+
+        def put(r, items, total):
+            r["_data"], r["_total"] = items, total
+
+        self.ctx.art.pages.window(
+            self.route, first, last,
+            lambda r: (r.get("_data") or [], r.get("_total") or 0),
+            put, lambda start, limit: fetch(start, limit))
 
     def _fetch_for_tab(self, limit=None):
         """``fetch(start)`` (or ``fetch(start, limit)``) for the current tab.
@@ -199,12 +222,19 @@ class MusicLibraryPage(MusicPage):
 
     def _grid_body(self, data, size, tab):
         art = self.ctx.art
+        route = self.route
         # Every music tab is square, genres included. jellyfin-web renders a
         # MusicGenre as shape:'auto' with nothing to measure -- a genre carries
         # no Primary image -- and setCardData's no-aspect-ratio fallback is
         # square, so square is what it draws. The modern app says it outright:
         # Music -> SquareOverflow, everything else PortraitOverflow.
         geom = art.geom_square
+        # Ask for the rows about to be drawn, from the SAME window the
+        # renderer composites (TileRenderer.row_window). head_h is 0: the
+        # tab bar lives outside this scroll, so the grid starts at its top.
+        cols = art.tiles.cols(size[0], geom)
+        first, last = art.tiles.row_window(size, geom, "music-grid")
+        self._window(first * cols, (last + 1) * cols)
         return VScroll(
             Column(art.tiles.grid_of(data, "music", size, geom=geom,
                                      scroll_id="music-grid"),
@@ -216,9 +246,12 @@ class MusicLibraryPage(MusicPage):
             # sits at the top pad, hence snap_off = CONTENT_PAD.
             snap=geom.strip_h + GRID_GAP,
             snap_off=chrome.CONTENT_PAD,
+            # The callback is what lets a window that FAILED be asked for
+            # again -- render cannot retry on its own without becoming a
+            # request per frame. See Paginator.rewindow.
             on_scroll=lambda off, mx: art.scroll.on_scroll(
                 "music-grid", off, mx,
-                lambda o, m: self._on_scroll_end(o, m)))
+                lambda o, m: art.pages.rewindow(route)))
 
     def _paged_grid(self, size, geom, tabbar):
         """One screenful of album/artist tiles, no scroll — the bottom
@@ -250,9 +283,12 @@ class MusicLibraryPage(MusicPage):
     # -- paging / tabs -----------------------------------------------------
 
     def _on_scroll_end(self, offset, maximum):
-        """Page the current music tab in near the bottom (the Tk browser's
-        _MusicGrid did this per tab; without it a library is capped at the
-        first 100 albums)."""
+        """Page the SONGS tab in near the bottom.
+
+        The tile tabs are windowed now (#617) and reach this from nothing;
+        songs is a table whose rows are built by index and whose play action
+        is built from the list, so it keeps appending until that is dealt
+        with. See the work list's music section."""
         def put(r, items, total):
             r["_data"], r["_total"] = items, total
 

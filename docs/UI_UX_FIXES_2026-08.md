@@ -729,7 +729,7 @@ Not changed, decided:
 
 - Skip intro seems to not be showing skip intro buttons in some cases
 
-- Got an error:
+- Got an error: [Fixed]
   File "/home/izzie/bookmarks/scripts/jellyfin-mpv-shim/jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py", line 40, in on_minimize
     playerManager.enable_osc(settings.enable_osc)
                              ^^^^^^^^^^^^^^^^^^^

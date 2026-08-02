@@ -157,31 +157,56 @@ class TestMusicPaging(unittest.TestCase):
         self.b = MpvtkBrowser(app=None, source=FakeSource())
         self.b._pool = _SyncPool()
 
-    def test_near_end_scroll_pages_the_tab(self):
+    def _albums(self, total=5000):
         src = self.b.source
-        page = [{"Id": "al%d" % i, "Name": "Album %d" % i,
-                 "Type": "MusicAlbum"} for i in range(100)]
         calls = []
 
-        def get_music_albums(server_uuid, parent_id, start_index=0, **kw):
+        def get_music_albums(server_uuid, parent_id, start_index=0,
+                             limit=100, **kw):
             calls.append(start_index)
-            return (page if start_index == 0 else page[:20]), 120
+            return ([{"Id": "al%d" % (start_index + i),
+                      "Name": "Album %d" % (start_index + i),
+                      "Type": "MusicAlbum"} for i in range(limit)], total)
         src.get_music_albums = get_music_albums
-
         self.b.navigate({"kind": "music", "server": "srv1",
                          "parent_id": "lib1", "title": "Music"})
-        self.assertEqual(len(self.b.route["_data"]), 100)
-        music_scroll(self.b, self.b.route, 9500, 10000)
-        self.assertEqual(calls, [0, 100])
-        self.assertEqual(len(self.b.route["_data"]), 120)
+        return calls
 
-    def test_far_from_the_end_does_not_page(self):
+    def test_the_tab_is_sized_from_the_server_total(self):
+        """Windowed since #617: the list is `total` slots from the first
+        frame, so the scrollbar is full-length and does not resize as pages
+        land."""
+        calls = self._albums()
+        self.assertEqual(len(self.b.route["_data"]), 5000)
+        self.assertEqual(calls, [0], "the first frame fetched more than one "
+                                     "page: %r" % calls)
+
+    def test_scrolling_far_down_fetches_that_window(self):
+        calls = self._albums()
+        music_scroll(self.b, self.b.route, 40_000, 60_000)
+        self.assertTrue(len(calls) > 1, "nothing was fetched for the window")
+        self.assertTrue(all(c >= 100 for c in calls[1:]),
+                        "walked the tab from the top: %r" % calls)
+        self.assertEqual(len(self.b.route["_data"]), 5000,
+                         "the list changed length as a window landed")
+
+    def test_the_top_of_the_tab_asks_for_nothing_more(self):
+        calls = self._albums()
+        music_scroll(self.b, self.b.route, 0, 60_000)
+        self.assertEqual(calls, [0], "re-fetched items it already had")
+
+    def test_genres_window_to_nothing(self):
+        """Genres are unpaged server-side and report their own length, so
+        the padded list has no holes -- the same shape that exempts a
+        Random library grid."""
         self.b.navigate({"kind": "music", "server": "srv1",
                          "parent_id": "lib1", "title": "Music"})
-        self.b.route["_total"] = 500
-        before = len(self.b.route["_data"])
-        music_scroll(self.b, self.b.route, 100, 10000)
-        self.assertEqual(len(self.b.route["_data"]), before)
+        page = self.b._page_for(self.b.route)
+        page._set_tab("genres")
+        data = self.b.route.get("_data") or []
+        self.assertTrue(data, "the genres tab loaded nothing")
+        self.assertTrue(all(i is not None for i in data),
+                        "an unpaged tab was padded with holes")
 
 class TestTrackListVirtualization(unittest.TestCase):
     """Track tables must window their rows. With the album-art column each

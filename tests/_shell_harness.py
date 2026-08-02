@@ -46,8 +46,21 @@ def music_page(b, route=None):
     seam the music screens' helpers moved to in 6c."""
     return b._page_for(route if route is not None else b.route)
 
-def music_scroll(b, route, offset, maximum):
-    """The music library's infinite-scroll handler, now on the page."""
+def music_scroll(b, route, offset, maximum, scroll_id="music-grid"):
+    """Scroll a windowed music route and let it ask for what that brings in.
+
+    The tile tabs and the genre page are windowed since #617: there is no
+    page-on-approach callback, so scrolling means moving the offset and
+    rendering. Same shape as grid_scroll.
+    """
+    from jellyfin_mpv_shim.mpvtk_browser.pagination import Paginator
+    Paginator.rewindow(route)     # what the view's on_scroll callback does
+    b._scroll.on_scroll(scroll_id, offset, maximum)
+    build_scene(b)
+
+
+def music_songs_scroll(b, route, offset, maximum):
+    """The SONGS tab's infinite scroll, which still appends on approach."""
     b._page_for(route)._on_scroll_end(offset, maximum)
 
 def grid_scroll(b, route, offset, maximum):

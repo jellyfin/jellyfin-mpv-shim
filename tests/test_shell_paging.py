@@ -17,7 +17,7 @@ from tests._shell_harness import (
     _SyncPool,
     build_scene,
     grid_scroll,
-    music_scroll,
+    music_songs_scroll,
 )
 
 
@@ -467,12 +467,11 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
     page left _loading set and that tab could not page again for the rest of
     the session.
 
-    They are one _page_more now, so assert the invariants once per view: what
-    used to differ between the copies is exactly what regressions look like.
-
-    The grid left this family in #617 — it is windowed rather than appended
-    to now, and TestGridWindowing above is its contract. These are the views
-    that still page on approach.
+    They became one Paginator.more, and then most of them stopped using it:
+    the grid was windowed in #617 and the music tile tabs and genre page in
+    its follow-up. The songs tab is what is left, and `more` is still its
+    code — so the invariants stay asserted against the caller that runs
+    them.
     """
 
     def _make(self, view, fail=False, page=None):
@@ -486,33 +485,24 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
             return page if page is not None else ([], 100)
 
         items = [{"Id": "i%d" % i, "Name": "N%d" % i} for i in range(20)]
-        if view == "grid":
-            src.get_library_items = fetch
-            route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
-                     "_items": list(items), "_total": 100}
-            read = lambda r: r["_items"]           # noqa: E731
-        elif view == "music":
-            src.get_music_albums = fetch
-            route = {"kind": "music", "server": "srv1", "parent_id": "lib1",
-                     "_tab": "albums", "_data": list(items), "_total": 100}
-            read = lambda r: r["_data"]            # noqa: E731
-        else:
-            src.get_genre_albums = fetch
-            route = {"kind": "music_genre", "server": "srv1",
-                     "parent_id": "lib1", "item_id": "g1",
-                     "_data": {"albums": list(items), "total": 100}}
-            read = lambda r: r["_data"]["albums"]  # noqa: E731
+        src.get_songs = fetch
+        route = {"kind": "music", "server": "srv1", "parent_id": "lib1",
+                 "_tab": "songs", "_data": list(items), "_total": 100}
+        read = lambda r: r["_data"]            # noqa: E731
 
         b = MpvtkBrowser(app=None, source=src)
         b._pool = _SyncPool()
         b.server = "srv1"
         b.nav_stack = [route]
-        scroll = {"grid": lambda r, o, m: grid_scroll(b, r, o, m),
-                  "music": lambda r, o, m: music_scroll(b, r, o, m),
-                  "genre": lambda r, o, m: music_scroll(b, r, o, m)}[view]
-        return b, route, calls, scroll, read
+        return (b, route, calls,
+                lambda r, o, m: music_songs_scroll(b, r, o, m), read)
 
-    VIEWS = ("music", "genre")
+    #: What still pages on approach and is reachable from this harness. The
+    #: grid, the music tile tabs and the genre page were windowed in #617
+    #: and its follow-up; Live TV is deliberately not windowed but has its
+    #: own tests. Songs is the last one here, and stays until its play
+    #: action stops being built from the loaded list.
+    VIEWS = ("songs",)
 
     def test_a_failed_page_does_not_deadlock_paging(self):
         for view in self.VIEWS:
@@ -569,12 +559,7 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
         for view in self.VIEWS:
             with self.subTest(view=view):
                 b, route, calls, scroll, _r = self._make(view)
-                if view == "genre":
-                    route["_data"] = {"albums": [], "total": 100}
-                elif view == "music":
-                    route["_data"] = []
-                else:
-                    route["_items"] = []
+                route["_data"] = []
                 scroll(route, 0, 100)
                 self.assertEqual(calls, [], "re-ran the initial load")
 

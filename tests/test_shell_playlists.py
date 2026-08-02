@@ -18,7 +18,7 @@ from tests._shell_harness import (
     home_page,
     ids,
     menu_pick,
-    music_scroll,
+    music_songs_scroll,
 )
 
 
@@ -935,7 +935,8 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         return b
 
     def _pagers(self):
-        """(name, route, scroll_fn) for each of the three infinite scrolls."""
+        """(name, route, scroll_fn) per paging route still reachable here:
+        the windowed grid and the songs tab, which still appends."""
         items = [{"Id": "i%d" % i, "Name": "N%d" % i} for i in range(20)]
         b = self.b
         return [
@@ -943,15 +944,10 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
              {"kind": "grid", "server": "srv1", "parent_id": "lib1",
               "_items": list(items), "_total": 99},
              lambda r: grid_scroll(b, r, 0, 100)),
-            ("music",
+            ("songs",
              {"kind": "music", "server": "srv1", "parent_id": "lib1",
-              "_tab": "albums", "_data": list(items), "_total": 99},
-             lambda r: music_scroll(b, r, 0, 100)),
-            ("genre",
-             {"kind": "music_genre", "server": "srv1", "parent_id": "lib1",
-              "item_id": "g1",
-              "_data": {"albums": list(items), "total": 99}},
-             lambda r: music_scroll(b, r, 0, 100)),
+              "_tab": "songs", "_data": list(items), "_total": 99},
+             lambda r: music_songs_scroll(b, r, 0, 100)),
         ]
 
     def setUp(self):
