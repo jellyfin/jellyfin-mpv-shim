@@ -743,7 +743,11 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
         glow = '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&'
     end
     ass:append(string.format(
-        '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
+        -- %.2f, not %d: a font size arrives already scaled and is NOT rounded
+        -- (mpvtk/scaling.py _EXACT_KEYS). Truncating it here would put the
+        -- rounding error straight back, and it is the whole reason a wrapped
+        -- paragraph used to overrun its column on a fractional UI scale.
+        '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0' ..
         '\\1c%s\\1a&H00&%s%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
         ass_color(color), glow, node.bold and '\\b1' or '',
@@ -2225,7 +2229,7 @@ render = function()
         -- box: the background is what softens against the picture, and
         -- fading the text with it would cost legibility on bright frames.
         ass:append(string.format(
-            '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
+            '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0\\1c%s' ..
             '\\1a&H00&\\b0%s}',
             x1 + bw / 2, y1 + bh / 2, fs, ass_color(PHUD_SKIP_FG),
             ui_font and ('\\fn' .. ui_font) or ''))
