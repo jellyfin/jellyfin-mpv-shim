@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-02 06:50+0000\n"
+"PO-Revision-Date: 2026-08-02 15:04+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -119,11 +119,11 @@ msgstr "跳过片尾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "已跳过片头"
+msgstr "已跳过片尾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "跳过片头"
+msgstr "尝试跳过片尾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
@@ -139,23 +139,21 @@ msgstr "尝试跳过广告"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr "跳过预览"
+msgstr "跳过预告片"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Preview"
-msgstr "已跳过预览"
+msgstr "已跳过预告片"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Preview"
-msgstr "尝试跳过预览"
+msgstr "尝试跳过预告片"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
 msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
 msgstr "已跳过片头"
 
@@ -165,15 +163,15 @@ msgstr "尝试跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
-msgstr "跳过片头"
+msgstr "跳过简介"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "已跳过片头"
+msgstr "已跳过简介"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "跳过片头"
+msgstr "尝试跳过简介"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -902,7 +900,7 @@ msgstr "总是隐藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "暂停时永不隐藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -910,11 +908,11 @@ msgstr "主题默认"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "超紧凑型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "紧凑型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
@@ -1070,24 +1068,20 @@ msgid "Player Controls Activation Key"
 msgstr "唤起播放控制快捷键"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Bind Arrow Keys to Player Controls"
 msgid "Shading Behind the Player Controls"
-msgstr "方向键始终绑定播放控制"
+msgstr "播放器控件背后的阴影"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "When the Player Controls Hide"
-msgstr "播放器控制界面样式"
+msgstr "当播放器控制隐藏时"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "（秒数）后隐藏播放器控制按钮"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "鼠标后退/前进按钮跳过章节"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
@@ -1175,33 +1169,25 @@ msgstr ""
 "用于公共电视，禁止用户浏览媒体库。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Requires restart to change. MPV keybinds are used by default. Press ENTER "
-#| "to drive the player controls by keyboard."
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
 "drive the player controls by keyboard. \"No player controls\" leaves "
 "playback bare; the library, the keyboard shortcuts and the menu key still "
 "work."
 msgstr ""
-"修改后需重启生效。默认使用 MPV 快捷键，按下 ENTER 可通过键盘操控播放控件。"
+"需要重启才能更改设置。MPV 默认使用快捷键。按 Enter 键即可使用键盘控制播放器。"
+"“无播放器控制”选项将仅保留播放功能；媒体库、键盘快捷键和菜单键仍然有效。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Pixels one wheel notch scrolls. The scrollbar glides while the content "
-#| "snaps to the nearest row, so a trackpad or trackball no longer "
-#| "overshoots. Raise it to scroll faster, lower it for finer control."
 msgid ""
 "Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
 "of notches spans one row, whichever scroll mode you are in — a trackpad or "
 "trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
 "lower it for finer control."
 msgstr ""
-"滚动时，内容会吸附对齐至最近的行，而滚动条则平滑移动，从而避免了触控板或鼠标"
-"滚动球操作时常见的滚动过头问题。调高该设置可加快滚动速度，调低则有助于实现更"
-"精细的控制。"
+"像素的单滚轮滚动条采用四舍五入式设计。在网格上，滚动条呈圆形排列，因此整数个"
+"刻度对应一行，无论您处于哪种滚动模式——触控板或轨迹球都不会出现任何错位。抬起"
+"滚轮可加快滚动速度，放下滚轮可实现更精细的控制。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1211,6 +1197,10 @@ msgid ""
 "remote one, or with an external MPV. Pick \"One row per notch\" to move a "
 "whole row (or one home-screen section) at a time."
 msgstr ""
+"“连续”滚动以像素为单位，滚动到滚轮所到之处即可停止；如果显示屏跟不上滚动速度"
+"，它会自动对齐行。如果滚动仍然卡顿（例如在超大显示屏、低速或远程显示屏上，或"
+"者使用外接MPV时），请选择“按行对齐”。选择“每格移动一行”可一次移动一整行（或一"
+"个主屏幕区域）。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Discord Rich Presence. Takes effect after a restart."
@@ -1253,30 +1243,30 @@ msgstr ""
 "重启后生效。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Overrides the theme's cover size. Takes effect after a restart."
 msgid ""
 "Overrides the theme's cover size. Applies immediately, and is also on the "
 "View menu of any library."
-msgstr "覆盖主题的封面尺寸。重启后生效。"
+msgstr "覆盖主题的封面尺寸。立即生效，并且也会出现在任何媒体库的“视图”菜单中。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"控件在任何边框上都必须清晰可见。“无”选项会使文本带有阴影，而不是为后面的图片"
+"添加阴影。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
-msgstr ""
+msgstr "“鼠标悬停时隐藏”选项仅在鼠标指针悬停在其上时显示，无论鼠标是否暂停。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
-msgstr ""
+msgstr "0 表示当指针不在它们上面时立即隐藏它们，并强制“除非悬停，否则隐藏”。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1284,6 +1274,8 @@ msgid ""
 "Off by default because they are easy to hit by accident on some mice. Takes "
 "effect after a restart."
 msgstr ""
+"仅在播放期间有效——在媒体库中，这些按钮保持“后退”和“前进”状态。默认情况下处于"
+"关闭状态，因为在某些鼠标上容易误触。重启后生效。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
@@ -1433,7 +1425,6 @@ msgstr "自动"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Poster"
 msgstr "海报"
 
@@ -1464,6 +1455,8 @@ msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"“自动”选项会根据艺术图本身的形状来生成图块，通常会生成海报。选择“海报”选项即"
+"可指定生成海报。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Show titles"
@@ -2248,10 +2241,8 @@ msgid "Random"
 msgstr "随机"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Date Added"
 msgid "Date Episode Added"
-msgstr "添加日期"
+msgstr "剧集添加日期"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
@@ -2535,10 +2526,8 @@ msgid "Songs"
 msgstr "歌曲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not start playback."
-msgstr "无法启动「快速连接」。"
+msgstr "无法开始播放。"
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2853,10 +2842,8 @@ msgid "Show advanced settings"
 msgstr "显示高级设置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid "Cover size and interface scale require a restart."
 msgid "Interface scale requires a restart."
-msgstr "封面尺寸和界面缩放需要重启。"
+msgstr "界面缩放需要重启。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Some changes take effect after restarting."
@@ -3121,7 +3108,7 @@ msgstr "专辑"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from Beginning"
-msgstr ""
+msgstr "从头开始播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
