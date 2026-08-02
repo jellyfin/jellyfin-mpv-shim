@@ -10,7 +10,7 @@ import sys
 import typing
 
 from ..conf import Settings, settings
-from ..i18n import _
+from ..i18n import _, _p
 
 # Structured / non-scalar config that the flat form can't express, plus
 # internal bookkeeping. Everything else is editable.
@@ -245,7 +245,13 @@ LABEL_OVERRIDES = {
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
     "segment_intro": _("Skip Intros"),
-    "segment_outro": _("Skip Credits"),
+    # The one segment label that collides with its own Skip BUTTON:
+    # gettext keys on the English, the other four are pluralised ("Skip
+    # Intros" vs the button's "Skip Intro"), and "Credits" is already
+    # plural. The context goes on the LABEL rather than the button because
+    # the button is the string people actually see, and a context discards
+    # every existing translation of the string it is added to.
+    "segment_outro": _p("setting", "Skip Credits"),
     "segment_commercial": _("Skip Commercials"),
     "segment_preview": _("Skip Previews"),
     "segment_recap": _("Skip Recaps"),

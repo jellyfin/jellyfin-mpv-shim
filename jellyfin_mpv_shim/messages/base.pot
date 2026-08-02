@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-01 21:06-0400\n"
+"POT-Creation-Date: 2026-08-01 21:12-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -110,8 +110,7 @@ msgstr ""
 msgid "Could not start Quick Connect."
 msgstr ""
 
-#: jellyfin_mpv_shim/media.py jellyfin_mpv_shim/menu.py
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/media.py
 msgid "Skip Credits"
 msgstr ""
 
@@ -336,8 +335,8 @@ msgstr ""
 msgid "Manual by Track Index (Less Reliable)"
 msgstr ""
 
-#: jellyfin_mpv_shim/menu.py
-msgid "No"
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -455,6 +454,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Intros"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgctxt "setting"
+msgid "Skip Credits"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -820,10 +824,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Downloads"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Never"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

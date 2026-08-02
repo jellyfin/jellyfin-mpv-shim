@@ -5,7 +5,7 @@ from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
 from .video_profile import VideoProfileManager
 from .svp_integration import SVPManager
-from .i18n import _
+from .i18n import _, _p
 
 import time
 import logging
@@ -461,7 +461,11 @@ class OSDMenu(object):
         self.menu_list[self.menu_selection] = self.get_segment_cycle(name, key)
 
     def get_segment_cycle(self, name: str, setting: str):
-        labels = {"off": _("No"), "ask": _("Ask"), "always": _("Always")}
+        # Never/Ask/Always -- the same three words the settings form uses
+        # (config.LABELED_ENUMS). Two vocabularies for one tri-state meant
+        # 86 locales translating both.
+        labels = {"off": _("Never"), "ask": _("Ask"),
+                  "always": _("Always")}
         value = getattr(settings, setting, "off")
         return (
             "{0}: {1}".format(name, labels.get(value, labels["off"])),
@@ -623,7 +627,8 @@ class OSDMenu(object):
                     _("Discord Rich Presence"), "discord_presence"
                 ),
                 self.get_segment_cycle(_("Skip Intros"), "segment_intro"),
-                self.get_segment_cycle(_("Skip Credits"), "segment_outro"),
+                self.get_segment_cycle(_p("setting", "Skip Credits"),
+                                       "segment_outro"),
                 self.get_segment_cycle(_("Skip Commercials"),
                                        "segment_commercial"),
                 self.get_segment_cycle(_("Skip Previews"), "segment_preview"),
