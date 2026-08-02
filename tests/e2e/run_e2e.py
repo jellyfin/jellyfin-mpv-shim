@@ -52,6 +52,7 @@ PER_BACKEND = [
     "tests.e2e.test_playback_eof",
     "tests.e2e.test_playback_failure",
     "tests.e2e.test_mpv_reopen",
+    "tests.e2e.test_input_routing",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

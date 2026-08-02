@@ -164,6 +164,7 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
 | `test_mpv_reopen` | playback | 6 | close mid-playback → re-open → auto-advance (#458) |
+| `test_input_routing` | playback | — | real keys across every UI transition (f70ad1e7, #614) |
 
 The contract tier never imports `player.py`, so it runs **once** and without a
 display — the whole of it is under two seconds. Only the playback tier pays

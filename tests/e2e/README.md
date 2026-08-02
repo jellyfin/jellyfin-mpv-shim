@@ -51,6 +51,7 @@ E1 and E2 exist so far:
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
 | `test_mpv_reopen` | E2 | closing mpv mid-playback then playing again (#458) — runs out of process |
+| `test_input_routing` | E2 | real keys through mpv's input layer across every UI transition |
 
 **E1 runs once, without a display**, because nothing in it imports
 `player.py`; the runner keeps it in its own tier and the whole of it is under
@@ -138,6 +139,19 @@ the whole path runs (device selection, format negotiation, the AudioMixin
 settings), it just ends nowhere, so this suite can grow audio tests. With no
 `pactl` it falls back to mpv's own `null` device — quiet and contention-free,
 just less of the path exercised. Both paths are verified.
+
+**Input tests must press real keys.** `test_input_routing` exists because
+declaring a key binding and *enabling its section* are different calls, and
+only mpv holds the second — the fake's `enable_key_bindings` was a no-op, so
+the tests covering those commits could only assert which section a binding was
+DECLARED in. Three regressions in 48 hours got through that way. Anything
+asserting on input goes through `handle.command("keypress", ...)`, never a
+synthesised event, which reaches the handler whether or not its section is on.
+
+**mbtn_back does not page back in browse.** It fires ESC, and in plain browse
+ESC has no binding — the forced ones belong to an open menu and to the
+playback HUD. So it dismisses an overlay; open the tile menu first if you want
+something to observe.
 
 **Both backends, always.** External mpv is the least-tested path in the app
 and one of the two largest open-bug clusters in the tracker. The runner makes
