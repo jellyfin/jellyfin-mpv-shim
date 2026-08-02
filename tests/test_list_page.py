@@ -1210,22 +1210,55 @@ class ViewLabelsAndListTest(unittest.TestCase):
         nodes, _h, _t = self._scene(b)
         self.assertNotIn("1999", {n.get("text") for n in nodes})
 
+    def _tile_h(self, b):
+        nodes, _h = build_scene(b)
+        hit = [n for n in nodes
+               if re.match(r"^grid-\d+-", str(n.get("id", "")))
+               and n.get("t") == "rect"]
+        self.assertTrue(hit)
+        return hit[0]["h"]
+
     def test_showtitle_off_takes_the_caption_space_with_it(self):
         """The strip reserves caption_h under every tile whether or not
         anything is drawn there, so leaving it would be a band of
         background."""
-        b_on, _s = self._grid()
-        b_off, _s2 = self._grid(showTitle=False)
+        self.assertLess(self._tile_h(self._grid(showTitle=False,
+                                                showYear=False)[0]),
+                        self._tile_h(self._grid()[0]))
 
-        def tile_h(b):
-            nodes, _h = build_scene(b)
-            hit = [n for n in nodes
-                   if re.match(r"^grid-\d+-", str(n.get("id", "")))
-                   and n.get("t") == "rect"]
-            self.assertTrue(hit)
-            return hit[0]["h"]
+    def test_the_year_survives_the_title_being_switched_off(self):
+        """#613: turning titles off blanked the year with them, so "years
+        only" was unreachable even though both are separate checkboxes."""
+        b, _src = self._grid(showTitle=False)      # showYear defaults on
+        tile = b.tiles._tile({"Id": "g1", "Name": "Alpha", "Type": "Movie",
+                              "ProductionYear": 1999}, b.geom,
+                             labels=(False, True))
+        self.assertEqual(tile.title, "")
+        self.assertEqual(tile.subtitle, "1999")
 
-        self.assertLess(tile_h(b_off), tile_h(b_on))
+    def test_a_year_only_caption_is_one_line_tall(self):
+        """Between the two-line caption and no caption at all -- the year
+        moves up into the title's place rather than sitting a line below
+        the artwork with a band of nothing above it."""
+        both = self._tile_h(self._grid()[0])
+        year_only = self._tile_h(self._grid(showTitle=False)[0])
+        neither = self._tile_h(self._grid(showTitle=False,
+                                          showYear=False)[0])
+        self.assertLess(neither, year_only)
+        self.assertLess(year_only, both)
+
+    def test_both_off_blanks_a_line_show_year_does_not_govern(self):
+        """An episode's "Show · S1E2" ignores showYear by design, but with
+        both switched off the grid reserves NO caption space -- so it has to
+        go too, or it draws into the row below."""
+        b, _src = self._grid(showTitle=False, showYear=False)
+        ep = {"Id": "e1", "Name": "Pilot", "Type": "Episode",
+              "SeriesName": "Show", "ParentIndexNumber": 1,
+              "IndexNumber": 2}
+        self.assertEqual(b.tiles._tile(ep, b.geom, labels=(False, False))
+                         .subtitle, "")
+        self.assertEqual(b.tiles._tile(ep, b.geom, labels=(False, True))
+                         .subtitle, "Show · S1E2")
 
     def test_showyear_off_still_leaves_a_live_tv_line_alone(self):
         """Every other subtitle branch is a channel, an air time or an
@@ -1392,3 +1425,90 @@ class TypeIndicatorIconsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CoverSizeAppliesLiveTest(unittest.TestCase):
+    """#616: Cover Size sat in Settings behind a restart, so the only way to
+    find out what "Large" meant was to set it, restart, and walk back to a
+    library. It applies live and is on the View menu."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.conf import settings
+        self._saved = settings.poster_scale
+        self.addCleanup(setattr, settings, "poster_scale", self._saved)
+
+    def _browser(self):
+        src = FakeSource()
+        src.grid_items = [{"Id": "g1", "Name": "Alpha", "Type": "Movie",
+                           "ProductionYear": 1999,
+                           "PrimaryImageAspectRatio": 2 / 3}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b
+
+    def test_changing_it_resizes_the_tiles_without_a_restart(self):
+        from jellyfin_mpv_shim.conf import settings
+        b = self._browser()
+        before = b.geom.tile_w
+        settings.poster_scale = 1.7
+        b.apply_cover_size()
+        self.assertGreater(b.geom.tile_w, before)
+        # ...and every shape that follows the setting, not just the poster.
+        self.assertGreater(b.geom_square.tile_w, 0)
+        self.assertEqual(b.strips.geom, b.geom,
+                         "the strip store kept compositing at the old size")
+
+    def test_it_goes_smaller_as_well_as_larger(self):
+        """The old range only went up from the default, which is the
+        direction fewest people want."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        values = [v for _l, v in cfg.LABELED_ENUMS["poster_scale"]
+                  if v is not None]
+        self.assertTrue(any(v < 1.0 for v in values), values)
+
+    def test_the_view_menu_offers_it(self):
+        b = self._browser()
+        b._page_for(b.route)._open_view_settings()
+        self.assertIn("vs-coversize", ids(build_scene(b)[0]))
+
+    def test_scroll_offsets_are_dropped_with_the_row_pitch(self):
+        """They are pixel offsets into a list whose rows just changed
+        height, so keeping them lands you somewhere you never scrolled to."""
+        from jellyfin_mpv_shim.conf import settings
+        b = self._browser()
+        b._scroll.on_scroll("grid", 900, 5000, lambda o, m: None)
+        settings.poster_scale = 0.75
+        b.apply_cover_size()
+        self.assertFalse(b._scroll.offset("grid"))
+
+    def test_the_grid_on_screen_resizes_too(self):
+        """_grid_shape parks the RESOLVED geometry on the route -- on
+        purpose, so a grid does not change shape as you page through it --
+        which meant the library you were looking at went on drawing at the
+        old cover size until it reloaded. Reported as "it works, but I have
+        to leave the page and come back"."""
+        from jellyfin_mpv_shim.conf import settings
+        b = self._browser()
+        build_scene(b)                       # parks the shape
+        before = b.route["_grid_shape"][0].tile_w
+        settings.poster_scale = 1.7
+        b.apply_cover_size()
+        build_scene(b)                       # re-derives it
+        self.assertGreater(
+            b.route["_grid_shape"][0].tile_w, before,
+            "the grid on screen kept the old cover size")
+
+    def test_it_clears_the_whole_stack_not_just_this_route(self):
+        """Or going back lands on a library still parked at the old size."""
+        from jellyfin_mpv_shim.conf import settings
+        b = self._browser()
+        build_scene(b)
+        under = b.route
+        b.navigate({"kind": "home", "server": "srv1"})
+        settings.poster_scale = 0.75
+        b.apply_cover_size()
+        self.assertNotIn("_grid_shape", under,
+                         "a route below the top kept its old geometry")

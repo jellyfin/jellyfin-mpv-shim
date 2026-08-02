@@ -17,6 +17,8 @@ M.log = {
     props = {},         -- set_property_native by name
     timers = {},        -- live timers, so a test can fire them
     keybinds = {},
+    sections = {},      -- set_key_bindings group name -> {key = true}
+    enabled = {},       -- section name -> enable_key_bindings state
     -- osd updates, ie frames actually painted. The renderer paces itself to
     -- what a frame costs, so how many of them a gesture got is an
     -- observable and not just a detail.
@@ -242,8 +244,11 @@ function mp.add_forced_key_binding(key, name, fn, opts)
 end
 
 function mp.remove_key_binding(name) M.log.keybinds[name] = nil end
-function mp.enable_key_bindings() end
-function mp.disable_key_bindings() end
+-- Whether a section is enabled cannot model mpv's section STACK, but it can
+-- model the flag, which is what a "this group was never turned on" bug looks
+-- like. M.log.enabled[name] is nil until someone enables or disables it.
+function mp.enable_key_bindings(name) M.log.enabled[name] = true end
+function mp.disable_key_bindings(name) M.log.enabled[name] = false end
 
 -- Mouse and wheel bindings arrive as a whole *group*, and an entry may
 -- carry two handlers: {key, on_up, on_down}. Recorded under the key name
@@ -254,11 +259,16 @@ function mp.disable_key_bindings() end
 --
 -- enable/disable_key_bindings stay no-ops: a fake cannot model mpv's
 -- section stack, so a test can call a binding that is currently
--- suspended. Which group a binding lives in is therefore a claim only
--- real mpv can settle.
-function mp.set_key_bindings(list, _name, _flags)
+-- suspended. WHETHER a group is enabled at a given moment is therefore a
+-- claim only real mpv can settle -- but which group a binding is DECLARED
+-- in is not, so the section names are recorded (M.log.sections) and a test
+-- can assert on them.
+function mp.set_key_bindings(list, name, _flags)
+    local section = M.log.sections[name or "?"] or {}
+    M.log.sections[name or "?"] = section
     for _, entry in ipairs(list or {}) do
         M.log.keybinds[entry[1]] = entry[3] or entry[2]
+        section[entry[1]] = true
     end
 end
 function mp.register_event() end

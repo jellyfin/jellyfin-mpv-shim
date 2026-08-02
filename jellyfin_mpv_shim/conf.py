@@ -8,7 +8,7 @@ import sys
 import getpass
 import threading
 from typing import List, Optional
-from .settings_base import SettingsBase, object_types
+from .settings_base import SettingsBase, adv_bool, object_types
 from .language_config import LanguageRule, parse_language_config
 
 # Register the structured-type parser. Done here (rather than in
@@ -22,7 +22,45 @@ config_path = None
 # Bump when a default changes in a way existing installs must pick up, and add
 # the corresponding step to Settings._migrate().
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
-CONFIG_VERSION = 1
+#   2: the four skip_intro/skip_credits booleans become one action per
+#      media segment type (segment_intro and friends).
+CONFIG_VERSION = 2
+
+# Media segment types the server publishes, and the setting that decides what
+# each one does. Jellyfin's enum also has "Unknown", which has no meaning to
+# act on. The values are SEGMENT_ACTIONS: leave it alone, offer a Skip
+# button, or skip it silently -- the three jellyfin-web offers.
+SEGMENT_SETTINGS = {
+    "Intro": "segment_intro",
+    "Outro": "segment_outro",
+    "Commercial": "segment_commercial",
+    "Preview": "segment_preview",
+    "Recap": "segment_recap",
+}
+SEGMENT_ACTIONS = ("off", "ask", "always")
+
+
+def segment_action(segment_type):
+    """What to do about a segment of this type: "off", "ask" or "always".
+
+    Unknown types -- a newer server, a hand-edited value -- are "off". A
+    segment the shim does not understand must not be skipped out from under
+    the viewer, and a Skip button for it would have nothing to say.
+    """
+    key = SEGMENT_SETTINGS.get(segment_type)
+    value = getattr(settings, key, None) if key else None
+    return value if value in SEGMENT_ACTIONS else "off"
+
+
+def any_segment_wanted():
+    """Whether any segment type is set to anything but "off" -- i.e.
+    whether it is worth asking the server for segments at all."""
+    return any(segment_action(t) != "off" for t in SEGMENT_SETTINGS)
+
+
+def wanted_segment_types():
+    """The segment types to request, newest-first order irrelevant."""
+    return [t for t in SEGMENT_SETTINGS if segment_action(t) != "off"]
 
 # Values `scroll_mode` accepts, most permissive first. The first entry is the
 # default AND the fallback: anything unrecognised (a hand-edited typo, a value
@@ -211,6 +249,11 @@ class Settings(SettingsBase):
     # tab.
     auto_download_servers: Optional[str] = None
     media_key_seek: bool = False
+    # The mouse's back/forward buttons jump a chapter during playback.
+    # Off by default: they are easy to hit by accident on some mice,
+    # and skipping a chapter of a film is not as forgiving as the Back
+    # press they perform in the library. Read when mpv is created.
+    mouse_chapter_nav: bool = False
     mpv_ext: bool = sys.platform.startswith("darwin")
     mpv_ext_path: Optional[str] = None
     mpv_ext_ipc: Optional[str] = None
@@ -218,7 +261,6 @@ class Settings(SettingsBase):
     mpv_ext_start_retries: int = 10
     mpv_ext_start_retry_delay_ms: int = 3000
     mpv_ext_no_ovr: bool = False
-    enable_osc: bool = True
     use_web_seek: bool = False
     # Locked-down cast-target mode: the cast screen is the only page, and
     # the library cannot be reached from the machine itself. Replaces
@@ -351,10 +393,14 @@ class Settings(SettingsBase):
     force_video_codec: Optional[str] = None
     force_audio_codec: Optional[str] = None
     health_check_interval: Optional[int] = 300
-    skip_intro_always: bool = False
-    skip_intro_enable: bool = True
-    skip_credits_always: bool = False
-    skip_credits_enable: bool = True
+    # One per media segment type the server knows (SEGMENT_SETTINGS below),
+    # each "off" / "ask" / "always". Replaces the four booleans that covered
+    # only intros and credits; migrated from them at CONFIG_VERSION 2.
+    segment_intro: str = "ask"
+    segment_outro: str = "ask"
+    segment_commercial: str = "off"
+    segment_preview: str = "off"
+    segment_recap: str = "off"
     # Seeking forward during an intro/credits window skips the whole
     # segment. Applies to keyboard/remote seeks; seeks made from the
     # jellyfin OSC's seekbar never trigger it (it has its own button).
@@ -369,6 +415,19 @@ class Settings(SettingsBase):
     # "jellyfin" is a legacy alias for "mpvtk" (the lua OSC it used to
     # name was retired once the HUD reached parity).
     osc_style: str = "mpvtk"
+    # Playback HUD looks and lifecycle (osc_style "mpvtk"). The scrim
+    # is what makes the controls legible over any frame; "none" pays
+    # for that with a drop shadow on the text instead.
+    hud_scrim: str = "default"
+    # When the controls hide: "hover" (they stay while the pointer is
+    # on them, paused or not), "always" (the timer, regardless), or
+    # "paused" (the timer, but never while paused).
+    hud_autohide: str = "hover"
+    # Seconds of no input before they hide. 0 means "as soon as the
+    # pointer is not on them", and forces the hover mode.
+    hud_hide_secs: float = 4.0
+    # Raise bottom subtitles clear of the bar while it shows.
+    hud_sub_margin: bool = True
     # Scale factor for the whole in-player UI (tiles, text, chrome).
     # null follows the display: mpv's display-hidpi-scale, which is 1.0
     # on X11 and the compositor's factor on Wayland/macOS. Set a number
@@ -394,7 +453,7 @@ class Settings(SettingsBase):
     tls_server_ca: Optional[str] = None
     language_config: Optional[List[LanguageRule]] = None
 
-    def _migrate(self):
+    def _migrate(self, data=None):
         """Apply one-time upgrades for configs written by older versions.
 
         Every key is written to disk on save (see SettingsBase.dict), so a
@@ -405,8 +464,40 @@ class Settings(SettingsBase):
         Only migrate a default whose old value is actively harmful; a setting
         the user may have deliberately chosen cannot be distinguished from an
         inherited default, so each step here silently overrides a real choice.
+        A step that RENAMES a setting is exempt from that caution -- carrying
+        a real choice across is the whole point -- and needs ``data``, the
+        raw config as read from disk, because the old key is no longer in the
+        schema and so never reaches an attribute.
         """
         changed = False
+        data = data or {}
+        if self.config_version < 2:
+            # The four booleans become one action per segment type. Read from
+            # the raw config rather than from self: the old keys are gone from
+            # the schema, so they never reach an attribute.
+            #
+            # adv_bool, not Python truthiness. The keys being read were
+            # declared `bool`, which in this schema means adv_bool -- and
+            # adv_bool says the STRINGS "false"/"no"/"0"/"off" are False
+            # while bool() says they are all True. A hand-edited or
+            # templated conf.json that quotes its booleans would otherwise
+            # migrate "skip_intro_always": "false" to `always`, i.e. start
+            # silently skipping intros for someone who had asked to be
+            # prompted -- and the source keys are dropped on the next save,
+            # so the evidence goes with them.
+            for prefix, key in (("skip_intro", "segment_intro"),
+                                ("skip_credits", "segment_outro")):
+                if adv_bool(data.get(prefix + "_always")):
+                    action = "always"
+                elif prefix + "_enable" in data:
+                    action = "ask" if adv_bool(data[prefix + "_enable"]) \
+                        else "off"
+                else:
+                    continue
+                if getattr(self, key) != action:
+                    log.info("Config migration: %s = %s (from %s_*)",
+                             key, action, prefix)
+                    setattr(self, key, action)
         if self.config_version < 1:
             # mpv plays Dolby Vision natively now, so the old default of
             # force-transcoding it to SDR just burns server CPU and throws
@@ -475,7 +566,7 @@ class Settings(SettingsBase):
                         )
 
                 log.info("Loaded settings from json: %s" % path)
-                migrated = self._migrate()
+                migrated = self._migrate(data)
                 if migrated or input_params < len(self.__fields__):
                     log.info("Saving back due to schema change.")
                     self.save()

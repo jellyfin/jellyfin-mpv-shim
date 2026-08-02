@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Optional
 
 from . import conffile
 from .utils import synchronous, Timer
+from .media import segment_labels
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
 from .player_reporting import ReportingMixin
@@ -19,6 +20,7 @@ from . import player_window
 from .player_window import WindowMixin, wlog
 from .mpv_options import build_mpv_options, mpv_scripts, resolve_osc_style
 from .session_reporter import SessionReporter
+from . import conf
 from .conf import settings
 from .menu import OSDMenu
 from .osc_bridge import OscBridge
@@ -171,7 +173,43 @@ def last_mpv_error():
         return None
 
 
+#: Our own pseudo-level: `debug` with the filter below turned off. mpv has no
+#: such level, so it is handed `debug` and only our side of the plumbing
+#: changes -- see mpv_loglevel_for().
+MPV_NOISE = "noise"
+
+
+def mpv_loglevel_for(level: str) -> str:
+    """What to hand mpv. Every value is one of mpv's own except `noise`."""
+    return "debug" if level == MPV_NOISE else level
+
+
+#: mpv lines that are almost entirely us talking to ourselves: the renderer's
+#: per-frame scene pushes and metrics (a `mpvtk-scene` line carries the whole
+#: serialized UI, so it is enormous as well as constant) and gpu-next's
+#: per-frame chatter. At `debug` -- which is the level someone turns on to
+#: read one specific thing -- these bury it thousands of lines deep. `noise`
+#: is how you ask for them back.
+_MPV_NOISE_ARGS = re.compile(
+    r'^Run command: script-message, flags=\d+, '
+    r'args=\[args="mpvtk-(?:scene|metrics)"')
+
+
+def _is_mpv_noise(prefix: str, text: str) -> bool:
+    if prefix.startswith("vo/gpu-next"):
+        return True
+    return prefix == "cplayer" and _MPV_NOISE_ARGS.match(text) is not None
+
+
 def mpv_log_handler(level: str, prefix: str, text: str):
+    # Never above info: a real gpu-next failure has to survive the filter, and
+    # _recent_mpv_errors below is the only place a failed load can say *why*.
+    if (
+        level not in ("fatal", "error", "warn")
+        and settings.mpv_log_level != MPV_NOISE
+        and _is_mpv_noise(prefix, text)
+    ):
+        return
     message = "{0}: {1}".format(prefix, text)
     if level in ("fatal", "error"):
         _recent_mpv_errors.append(message.strip())
@@ -297,6 +335,55 @@ def _rank_stream(prev_source, prev_index, streams, stream_type):
 
 
 
+def chapter_target(chapters, pos, direction):
+    """Where a previous/next-chapter jump from ``pos`` lands, or None when
+    there is nowhere to go.
+
+    ``chapters`` is a list of dicts with a ``time`` in seconds, in order.
+
+    The asymmetry is mpv's ``add chapter -1``, and every player's: going
+    back restarts the chapter you are in, unless you are still in its first
+    couple of seconds, in which case you meant the one before. Going forward
+    has no grace at all: it is the next boundary strictly ahead of you, and
+    not "ahead by half a second" -- a position is a float from mpv and is
+    never exactly a boundary, while the half second before one is half a
+    second of real playback in which the button would do nothing.
+
+    **The answer is clamped to 0**, which is what #614 turned out to be. A
+    matroska chapter can start at a slightly NEGATIVE timestamp -- container
+    start-time offsets put the first one at -0.005 on an ordinary episode --
+    and mpv reads a negative ABSOLUTE seek as the END of the file rather
+    than clamping it. Measured on mpv v0.41.0: `seek -0.005 absolute+exact`
+    on a 30s file lands at 29.96 with eof-reached true. So "previous
+    chapter" hit EOF and the shim's own EOF observer advanced the queue --
+    the reported "prev chapter plays the next episode". It predates this
+    branch: master's hud._chapter_jump passes ch["time"] on just as
+    unclamped. seek() refuses a negative absolute seek as well, because the
+    chapter PICKER hands it the very same value.
+
+    **Both directions can also answer None, and the caller must not seek.**
+    Back seeds its search with None rather than 0.0 for the same reason
+    forward ends with it: before the first boundary there is nowhere to go,
+    and a button that quietly restarts the file is worse than one that
+    declines. That covers the first seconds of any file, and a file with no
+    chapters at all, where every press used to jump to 0.0.
+
+    One definition, because there are two callers with two different reasons
+    to jump: the HUD's chapter buttons and the mouse's back/forward buttons
+    (mouse_chapter_nav).
+    """
+    if direction < 0:
+        target = None
+        for ch in chapters:
+            if ch["time"] < pos - 2.0:
+                target = ch["time"]
+        return None if target is None else max(0.0, target)
+    for ch in chapters:
+        if ch["time"] > pos:
+            return ch["time"]
+    return None
+
+
 class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     """
     The underlying player is thread safe, however, locks are used in this
@@ -355,12 +442,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # own controls (seekbar/buttons); such seeks never intro-skip.
         self._last_ui_seek_time = 0.0
         self.trickplay = None
-        # Decoded trickplay tile metadata for the CURRENT video, set by the
-        # TrickPlay worker once tiles land ({count, multiplier, width,
-        # height, file} — file is raw BGRA frames back to back). The mpvtk
-        # playback HUD reads frames straight out of it for scrub previews;
-        # the lua OSCs get the same data via shim-trickplay-bif instead.
-        self.trickplay_meta = None
         # Skippable segment the playback HUD should offer a button for
         # (an Intro object, or None).
         self._hud_skip = None
@@ -612,7 +693,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             input_vo_keyboard=True,
             input_media_keys=settings.media_keys,
             log_handler=mpv_log_handler,
-            loglevel=settings.mpv_log_level,
+            loglevel=mpv_loglevel_for(settings.mpv_log_level),
             **mpv_options,
         )
 
@@ -648,7 +729,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # is loaded, even if the user's mpv.conf has osc=yes.
             if self._osc_script_loaded:
                 self._player.osc = False
-            self.enable_osc(settings.enable_osc)
+            self.enable_osc(self.osc_enabled)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
 
@@ -789,11 +870,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
+        if settings.mouse_chapter_nav:
+            # Playback only, and that is the renderer's doing rather than
+            # ours: while the LIBRARY is up its mpvtk_thumb group is enabled
+            # on top of this section, so back is still Back and forward is
+            # still forward there. A summoned playback HUD leaves that group
+            # disabled -- the thumb buttons belong to whatever the user has
+            # under them over a film -- so these apply for the whole of
+            # playback, bar and all. Bound at mpv creation like every other
+            # key, so the setting needs a restart.
+            p.on_key_press("MBTN_BACK")(self._on_chapter_prev_key)
+            p.on_key_press("MBTN_FORWARD")(self._on_chapter_next_key)
         self._observe("eof-reached", self._on_eof_reached)
         self._observe("playback-abort", self._on_playback_abort)
         self._observe("seeking", self._on_seeking)
         self._observe("pause", self._on_pause_change)
         self._observe("paused-for-cache", self._on_cache_pause)
+        self._observe("mute", self._on_volume_change)
+        self._observe("volume", self._on_volume_change)
         p.event_callback("file-loaded")(self._on_file_loaded)
         self._observe("current-tracks/audio/codec", self._on_audio_codec_change)
         p.event_callback("end-file")(self._on_end_file)
@@ -836,6 +930,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _on_prev_key(self):
         self.put_task(self.play_prev)
+
+    def _on_chapter_prev_key(self):
+        self.put_task(self.chapter_seek, -1)
+
+    def _on_chapter_next_key(self):
+        self.put_task(self.chapter_seek, 1)
 
     def _on_next_key(self):
         self.put_task(self.play_next)
@@ -1098,6 +1198,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         else:
             self.syncplay.on_buffer_done()
 
+    def _on_volume_change(self, _name, _value):
+        """Volume or mute moved -- tell the UI now rather than on the tick.
+
+        The playback HUD's mute icon and volume bar read the playstate
+        snapshot, and nothing pushed one when either changed: the only
+        thing that did was the browser's own 1s ticker, so clicking mute
+        left the button showing the old icon for up to a second and a bit
+        while the audio had already stopped (#618). Pause never had this
+        because `pause` has been observed all along.
+
+        push_playstate() directly, not timeline_handle(): the timeline
+        thread also POSTs progress to the server, and a volume nudge is not
+        worth a request. The snapshot is local and cheap, and it is what the
+        bar actually reads.
+
+        Both properties share a handler because they answer the same
+        question for the UI ("what does the volume control look like?"), and
+        observing mpv rather than patching the state at our own button is
+        what makes mpv's OWN bindings -- `m`, the wheel, a script -- move it
+        too.
+        """
+        self.push_playstate()
+
     def _on_file_loaded(self, _event):
         # Mirrors _on_end_file's generation guard: a file-loaded from
         # the OUTGOING file (keep_open holds it until the replacement
@@ -1258,6 +1381,33 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     # Trigger the timeline to update all
     # clients immediately.
+    def chapter_seek(self, direction):
+        """Jump a chapter back (-1) or forward (+1).
+
+        Not mpv's own ``add chapter``: that bypasses SyncPlay, so one member
+        of a group jumping a chapter would simply desync. Going through
+        seek() puts it through the same request the seek bar makes.
+
+        Exempt from seek-to-skip-intro for the same reason the HUD's own
+        seeks are: someone jumping to the chapter the intro is in asked for
+        that chapter, not for the end of the intro.
+        """
+        try:
+            chapters = self._player.chapter_list or []
+            pos = self._player.playback_time
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return
+        if pos is None:
+            return
+        target = chapter_target(
+            [{"time": float(ch.get("time") or 0.0)} for ch in chapters],
+            float(pos), direction)
+        if target is None:
+            return
+        self._last_ui_seek_time = time.time()
+        self.seek(target, absolute=True)
+
     def timeline_handle(self):
         if self.timeline_trigger:
             self.timeline_trigger.set()
@@ -1332,12 +1482,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         prev_hud_skip = self._hud_skip
         try:
             if (
-                (
-                    settings.skip_intro_always
-                    or settings.skip_intro_enable
-                    or settings.skip_credits_always
-                    or settings.skip_credits_enable
-                )
+                conf.any_segment_wanted()
                 and not self.syncplay.is_enabled()
                 and self._video is not None
                 and self._player.playback_time is not None
@@ -1356,26 +1501,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 )
 
                 if intro is not None:
-                    should_prompt = (
-                        intro.type != "Outro" and settings.skip_intro_enable
-                    ) or (intro.type == "Outro" and settings.skip_credits_enable)
-                    should_skip = (not intro.has_triggered) and (
-                        (intro.type != "Outro" and settings.skip_intro_always)
-                        or (intro.type == "Outro" and settings.skip_credits_always)
-                    )
+                    action = conf.segment_action(intro.type)
+                    should_prompt = action == "ask"
+                    should_skip = (not intro.has_triggered
+                                   and action == "always")
 
                     if should_skip and ready_to_skip:
                         intro.has_triggered = True
                         self.skip_intro()
                         self._player.show_text(
-                            (
-                                _("Skipped Credits")
-                                if intro.type == "Outro"
-                                else _("Skipped Intro")
-                            ),
-                            3000,
-                            1,
-                        )
+                            segment_labels(intro.type)[1], 3000, 1)
                         self._last_intro_msg_time = time.time()
 
                     if hud_skip_button:
@@ -1389,14 +1524,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         and time.time() - self._last_intro_msg_time > 3
                     ):
                         self._player.show_text(
-                            (
-                                _("Seek to Skip Credits")
-                                if intro.type == "Outro"
-                                else _("Seek to Skip Intro")
-                            ),
-                            3000,
-                            1,
-                        )
+                            segment_labels(intro.type)[2], 3000, 1)
                         self._last_intro_msg_time = time.time()
                     self.is_in_intro = True
                 else:
@@ -2014,6 +2142,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         if exact is None:
             exact = absolute
+        if absolute and offset < 0:
+            # mpv reads a negative absolute target as the END of the file,
+            # not as 0 (v0.41.0: `seek -0.005 absolute+exact` on a 30s file
+            # lands at 29.96 with eof-reached true). Every caller that gets
+            # here with one means the start: a chapter whose container
+            # timestamp is fractionally negative, which ordinary matroska
+            # episodes carry, reaching us from chapter_target or straight
+            # off the chapter picker. Left alone it reads as "the file
+            # finished" and the queue advances (#614).
+            log.debug("Clamping negative absolute seek %r to 0.", offset)
+            offset = 0.0
         if self.syncplay.is_enabled() and not force:
             if not absolute:
                 offset += self._player.playback_time
@@ -3000,6 +3139,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except _mpv_errors:
             self._handle_mpv_disconnect()
 
+    @property
+    def osc_enabled(self):
+        """Whether this player is supposed to have on-screen controls at all.
+
+        The style says so: "none" is the option for no controls, replacing
+        the old enable_osc switch, which only ever reached mpv's own OSC and
+        so did nothing under the default style (#615). Callers that hide the
+        controls temporarily -- the OSD menu -- restore to this rather than
+        to a setting of their own.
+        """
+        return getattr(self, "_osc_style_resolved", None) != "none"
+
     def enable_osc(self, enabled: bool):
         if settings.mpv_ext and settings.mpv_ext_no_ovr:
             return  # Don't override user's MPV config
@@ -3016,12 +3167,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     self._player.osc = False
             else:
                 if hasattr(self._player, "osc"):
-                    # The mpvtk playback HUD replaces any OSC — never
-                    # turn the built-in one on under it.
+                    # The mpvtk playback HUD replaces any OSC and "none"
+                    # asked for no controls — never turn the built-in one
+                    # on under either.
                     self._player.osc = (
                         enabled
                         and getattr(self, "_osc_style_resolved", None)
-                        != "mpvtk"
+                        not in ("mpvtk", "none")
                     )
         except _mpv_errors:
             self._handle_mpv_disconnect()

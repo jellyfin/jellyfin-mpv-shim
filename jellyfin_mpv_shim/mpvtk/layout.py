@@ -519,6 +519,8 @@ def _base(el, t, x, y, w, h, sc, path):
         node["tip"] = el.tip
     if getattr(el, "autofocus", False):
         node["af"] = True
+    if getattr(el, "disabled", False):
+        node["dis"] = True
     return node
 
 
@@ -669,15 +671,13 @@ def _arrange_slider(ctx, el, x, y, w, h, sc, path):
             [round(float(a), 4), round(float(b), 4)]
             for a, b in el.ranges
         ]
-    if el.on_hover is not None:
-        node["hoverev"] = True
+    if el.preview:
+        node["pv"] = True
     if el.always_adjust:
         node["aadj"] = True
     _reg(ctx, node["id"], "change", el.on_change)
     _reg(ctx, node["id"], "commit", el.on_commit)
     _reg(ctx, node["id"], "cancel", el.on_cancel)
-    _reg(ctx, node["id"], "hover", el.on_hover)
-    _reg(ctx, node["id"], "hover_end", el.on_hover_end)
     ctx.nodes.append(node)
     return
 
@@ -1001,7 +1001,15 @@ def _arrange_stack(ctx, el, x, y, w, h, sc, path):
 
 def _arrange_box(ctx, el, x, y, w, h, sc, path):
     """The workhorse: a padded flex row or column. Also the fallthrough."""
-    if el.bg or el.border or el.on_click:
+    # `el.disabled` counts as something to draw even when nothing else
+    # does. A disabled Button(flat=True) has no bg, no border and no
+    # handler -- it mutes itself by dropping all three (widgets.Button) --
+    # and a Checkbox never had a bg on its outer row. Without a node the
+    # renderer has nothing to absorb the pointer with, so the press reaches
+    # whatever sits under it: over the playback HUD, that is bare video and
+    # a toggled pause. The node also carries the `tip` explaining why the
+    # control is off, and its id.
+    if el.bg or el.border or el.on_click or el.disabled:
         node = _base(el, "rect", x, y, w, h, sc, path)
         if el.bg:
             node["fill"] = el.bg

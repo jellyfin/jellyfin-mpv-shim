@@ -41,6 +41,7 @@ import time
 from typing import TYPE_CHECKING, Any, Optional
 
 from .i18n import _
+from .media import segment_labels
 from .utils import none_fallback, synchronous
 
 log = logging.getLogger("player")
@@ -154,11 +155,8 @@ class ReportingMixin:
                 # nothing, and a progress bar crawling across a photo reads
                 # as a video about to end.
                 "is_photo": item.get("Type") == "Photo",
-                "skip_label": (
-                    (_("Skip Credits") if skip.type == "Outro"
-                     else _("Skip Intro"))
-                    if skip is not None else None
-                ),
+                "skip_label": (segment_labels(skip.type)[0]
+                               if skip is not None else None),
                 # Which queue entry this is, so the browser's queue view
                 # can move its now-playing highlight without refetching.
                 "id": getattr(video, "item_id", None),

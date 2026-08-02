@@ -183,7 +183,25 @@ local state = {
     snap_timer = nil,
     -- playback-HUD lifecycle (see mpvtk-hud): attached-but-idle during
     -- video, summoned by nav keys / mouse motion, auto-hides
-    phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1 },
+    phud = { mode = false, shown = false, timer = nil, mx = -1, my = -1,
+             -- auto-hide policy and the no-scrim text halo, pushed
+             -- with the engage (mpvtk-hud) so setting changes stick
+             hide_s = 4, hide_mode = 'hover', shadow = false,
+             -- has the pointer MOVED since this summon? The bar-hover
+             -- hold below is meaningless without it: see phud_busy
+             moved = false },
+    -- Scrub preview: the seek bar's trickplay/chapter bubble, drawn HERE
+    -- rather than asked for from Python. A hover that has to round-trip,
+    -- rebuild the whole HUD tree and come back as a scene is a preview that
+    -- visibly trails the pointer, and it made every other control in the
+    -- bar feel slow while it did (#618). Everything the bubble needs is
+    -- already local: the tile file is raw BGRA that overlay-add consumes
+    -- directly, and mpv owns the chapter list.
+    tp = nil,               -- tiles: {file, iw, ih, count, mult} or {..., times}
+    chlist = nil,           -- mpv's chapter-list, for the bubble's caption
+    pv_hover = nil,         -- id of the preview slider under the pointer
+    pv_secs = 0,            -- the position it is pointing at, in seconds
+    pv_rect = nil,          -- last drawn bubble rect (nil = not shown)
     ready_sent = false,
     mouse = { x = -1, y = -1, hover = false },
     hover_id = nil,
@@ -686,6 +704,13 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
     if state.glow and node.bold and (node.size or 0) >= 22 then
         glow = string.format('\\bord2\\blur6\\3c%s\\3a&H30&',
                              ass_color(state.accent))
+    elseif state.phud.shown and state.phud.shadow then
+        -- The scrim is what normally makes HUD text legible over any
+        -- frame. With hud_scrim "none" there is nothing behind it, so the
+        -- glyphs carry their own dark halo instead. Scoped to a summoned
+        -- HUD, which is the only thing on screen while it is up -- no node
+        -- needs to declare anything.
+        glow = '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&'
     end
     ass:append(string.format(
         '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
@@ -704,9 +729,13 @@ local function draw_icon_path(ass, path, x, y, px, color, clip)
     local scale = px / 24 * 100
     ass:new_event()
     ass:append(string.format(
-        '{\\pos(%.1f,%.1f)\\an7\\bord0\\shad0\\1c%s\\1a&H00&' ..
+        '{\\pos(%.1f,%.1f)\\an7%s\\shad0\\1c%s\\1a&H00&' ..
         '\\fscx%.2f\\fscy%.2f%s\\p1}',
-        x, y, ass_color(color), scale, scale, clip_tag(clip)))
+        x, y,
+        -- see draw_text: with no scrim the glyph carries its own halo
+        (state.phud.shown and state.phud.shadow)
+            and '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&' or '\\bord0',
+        ass_color(color), scale, scale, clip_tag(clip)))
     ass:append(path)
     ass:append('{\\p0}')
 end
@@ -784,7 +813,12 @@ local function draw_image(node, ex, ey, clip, idx)
             end
             pidx = pidx + 1
             local src = node.src
-            local offset = sy * stride + sx * 4
+            -- node.base: a byte offset INTO the source, for a file that
+            -- holds several frames back to back rather than one image.
+            -- The trickplay tile file is the only such source (frame n at
+            -- n * w * h * 4); the crop maths above is unchanged, it just
+            -- starts from there instead of from zero.
+            local offset = sy * stride + sx * 4 + (node.base or 0)
             if src:sub(1, 1) == '&' then
                 -- same-process memory source (libmpv backend): fold
                 -- the crop offset into the address so overlay-add's
@@ -1066,6 +1100,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         bc = focused and state.accent or state.tok.outline,
         bw = focused and 2 or 1, clip = clip,
     })
+    -- see draw_dropdown: shape kept, contrast dropped
+    local ink = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface
     local pad = 10
     local inner = {
         x1 = math.max(ex + pad, clip and clip.x1 or 0),
@@ -1144,9 +1181,9 @@ local function draw_textbox(ass, node, ex, ey, clip)
         end
         draw_text(ass, tnode, x0, ey, inner,
             pre .. caret .. esc(b),
-            state.tok.on_surface, nil, true)
+            ink, nil, true)
     else
-        draw_text(ass, tnode, x0, ey, inner, disp, state.tok.on_surface)
+        draw_text(ass, tnode, x0, ey, inner, disp, ink)
     end
 end
 
@@ -1305,13 +1342,21 @@ local function draw_dropdown(ass, node, ex, ey, clip)
         fill = state.tok.control_sunken, radius = 6,
         bc = open and state.accent or state.tok.outline, bw = 1, clip = clip,
     })
+    -- Disabled: the control keeps its shape so the form does not reflow,
+    -- and loses its contrast. on_surface_faint for everything that was
+    -- ink, which is the token that already means "present but not the
+    -- thing you are reading".
+    local ink = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface
+    local dim = node.dis and state.tok.on_surface_faint
+        or state.tok.on_surface_muted
     local label = node.items[d.sel + 1] or ''
     local indent = 0
     local ipath = node.icons and node.icons[d.sel + 1]
     if ipath and ipath ~= '' then
         local isz = math.floor(node.size * 1.1)
         draw_icon_path(ass, ipath, ex + 8, ey + (node.h - isz) / 2,
-            isz, state.tok.on_surface_muted, clip)
+            isz, dim, clip)
         indent = isz + 6
     end
     local tnode = {
@@ -1320,14 +1365,14 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     }
     -- the label must not spill under the arrow or past the control
     label = ellipsize(label, node.size, false, tnode.w)
-    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, state.tok.on_surface)
+    draw_text(ass, tnode, ex + 10 + indent, ey, clip, label, ink)
     -- arrow
     local ax = ex + node.w - 22
     local ay = ey + node.h / 2 - 2
     ass:new_event()
     ass:append(string.format(
         '{\\pos(0,0)\\an7\\bord0\\shad0\\1c%s\\1a&H00&%s}',
-        ass_color(state.tok.on_surface_muted), clip_tag(clip)))
+        ass_color(dim), clip_tag(clip)))
     ass:draw_start()
     ass:move_to(ax, ay)
     ass:line_to(ax + 12, ay)
@@ -1565,6 +1610,11 @@ local function draw_slider(ass, node, ex, ey, clip)
     -- not read on a picture can pin the seek bar without giving up its
     -- colour everywhere else. Defaults to the accent.
     local accent = (ov and state.tok.accent_on_video) or state.accent
+    if node.dis then
+        -- see draw_dropdown: a disabled bar keeps its geometry (so the
+        -- value it is stuck at stays readable) and loses its colour
+        accent = state.tok.on_surface_faint
+    end
     draw_rect(ass, tx1, ty - 3, tw, 6,
         { fill = ov and '3a3a3a' or state.tok.control_sunken,
           radius = 3, clip = clip })
@@ -1600,7 +1650,8 @@ local function draw_slider(ass, node, ex, ey, clip)
         end
     end
     draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
-        { fill = ov and 'dddddd' or state.tok.on_surface,
+        { fill = node.dis and state.tok.on_surface_faint
+                 or (ov and 'dddddd' or state.tok.on_surface),
           radius = 8, clip = clip })
 end
 
@@ -1642,6 +1693,15 @@ local function slider_set_from_x(node, x)
     local s = sl_state(node)
     local v = (node.min or 0) +
         frac * ((node.max or 100) - (node.min or 0))
+    if node.pv then
+        -- Carry the scrub preview's position along with the drag. A drag
+        -- returns out of on_mouse_move before update_slider_hover, so
+        -- pv_secs would otherwise still hold wherever the pointer was when
+        -- the drag STARTED -- and releasing the button, which drops
+        -- slider_drag and falls the preview back to the hover position,
+        -- made the bubble jump back there for a frame.
+        state.pv_hover, state.pv_secs = node.id, v
+    end
     if v ~= s.value then
         s.value = v
         notify_slider(node.id)
@@ -1649,52 +1709,24 @@ local function slider_set_from_x(node, x)
     end
 end
 
--- Passive-hover position reporting for sliders that opt in with
--- hoverev (the HUD's seek bar): while the pointer rests on the
--- slider, the app gets throttled {t=hover, value} events (it floats
--- the trickplay/time bubble there), then one {t=hover_end} when the
--- pointer moves off. Same 0.15s cadence as drag notifications — this
--- is a preview, not a per-frame interaction.
-local hover_notify_timers = {}
-local hover_last_notify = {}
-
-local function fire_hover(id)
-    hover_last_notify[id] = mp.get_time()
-    if state.hover_watch == id then
-        send({ t = 'hover', id = id, value = state.hover_value })
-    end
-end
-
-local function notify_hover(id)
-    if hover_notify_timers[id] then return end
-    local elapsed = mp.get_time() - (hover_last_notify[id] or -1e9)
-    if elapsed >= 0.15 then
-        fire_hover(id)
-    else
-        hover_notify_timers[id] = mp.add_timeout(0.15 - elapsed,
-            function()
-                hover_notify_timers[id] = nil
-                fire_hover(id)
-            end)
-    end
-end
-
--- Both pointer-enter/leave notifications the app can ask for. ONE function
--- for two unrelated features because this chunk sits on LuaJIT's ceiling of
--- 200 locals in a main function -- a new top-level local here does not fail
--- at the call, it fails to load the renderer at all.
+-- Pointer-enter/leave notification, plus the seek bar's own hover
+-- tracking. ONE function for two features because this chunk sits on
+-- LuaJIT's ceiling of 200 locals in a main function -- a new top-level
+-- local here does not fail at the call, it fails to load the renderer at
+-- all.
 --
 -- `hev` is enter/leave for a node that wants a control drawn over it: the
 -- tile strips' hit regions, and the play chip that then appears on one. The
 -- chip opts in too, or the pointer moving onto it would read as leaving the
 -- tile, the app would take the chip away, and the two would alternate for as
--- long as the pointer sat there. Unthrottled, unlike the slider below: this
--- is a control appearing under the pointer, and 150ms of that reads as
--- broken. One event per tile crossed is the same order as the hover ring
--- this already re-renders for.
+-- long as the pointer sat there. One event per tile crossed is the same
+-- order as the hover ring this already re-renders for.
 --
--- `hoverev` is the slider's throttled value reporting (the HUD's seek bar
--- floating its trickplay bubble), which is a preview rather than a control.
+-- `pv` is the seek bar's scrub preview, and it sends NOTHING. It used to:
+-- a throttled {t=hover, value} that the app answered with a whole rebuilt
+-- HUD scene, which is why the bubble trailed the pointer by a frame or
+-- three (#618). The renderer draws it now (see render), so all that is
+-- left here is remembering where on the bar the pointer is.
 local function update_slider_hover(node)
     local hid = (node and node.hev) and node.id or nil
     if hid ~= state.hover_region then
@@ -1709,28 +1741,25 @@ local function update_slider_hover(node)
         if hid then send({ t = 'hover', id = hid }) end
         if prev then send({ t = 'hover_end', id = prev }) end
     end
-    local id = nil
-    if node and node.t == 'slider' and node.hoverev
-        and state.slider_drag ~= node.id then
-        id = node.id
-    end
-    local prev = state.hover_watch
-    if prev and prev ~= id then
-        state.hover_watch = nil
-        send({ t = 'hover_end', id = prev })
-    end
+    local id = (node and node.t == 'slider' and node.pv) and node.id or nil
+    local prev = state.pv_hover
+    state.pv_hover = id
     if id then
-        state.hover_watch = id
         local ex = select(1, eff(node))
         local frac = clamp(
             (state.mouse.x - ex - SLIDER_PAD) /
             (node.w - 2 * SLIDER_PAD), 0, 1)
         local v = (node.min or 0) +
             frac * ((node.max or 100) - (node.min or 0))
-        if v ~= state.hover_value or prev ~= id then
-            state.hover_value = v
-            notify_hover(id)
+        if v ~= state.pv_secs or prev ~= id then
+            state.pv_secs = v
+            -- on_mouse_move only re-renders when the hovered NODE changes,
+            -- and moving along the bar never does; without this the bubble
+            -- would stick at the position it first appeared at.
+            request_render()
         end
+    elseif prev then
+        request_render()
     end
 end
 
@@ -2090,6 +2119,118 @@ render = function()
     else
         state.phud.skip_rect = nil
     end
+    -- Scrub preview bubble: the trickplay frame for the position under the
+    -- pointer (or being dragged / arrow-adjusted), the chapter that position
+    -- falls in, and the timestamp. Everything it needs is already here --
+    -- the tile file is raw BGRA that overlay-add takes as-is, and mpv owns
+    -- chapter-list -- so it tracks the pointer at render cadence instead of
+    -- at the speed of a round trip through a rebuilt HUD scene (#618).
+    --
+    -- Measuring its own text is the other half: Python could only *assume* a
+    -- width for a box it did not draw, and the width it assumed was right
+    -- only when a thumbnail was the widest thing in it. Without trickplay
+    -- the bubble drifted by half the difference, which is #612.
+    state.pv_rect = nil
+    local pv_id, pv_secs
+    if state.slider_drag then
+        pv_id = state.slider_drag
+    elseif state.nav_adjust and state.nav_scrubbed then
+        pv_id = state.nav
+    end
+    if pv_id then
+        local n = state.byid[pv_id]
+        if n and n.pv then pv_secs = sl_state(n).value else pv_id = nil end
+    end
+    if not pv_id and state.pv_hover then
+        pv_id, pv_secs = state.pv_hover, state.pv_secs
+    end
+    local pv_node = pv_id and state.byid[pv_id]
+    if pv_node and pv_secs and (pv_node.max or 0) > 0 then
+        local pad, gap = ui_px(8), ui_px(4)
+        local fs = ui_px(14)
+        local lh = math.floor(fs * PHUD_SKIP_LINE_H)
+        -- Which frame of the tile file, if there is one. BIF data is
+        -- evenly spaced (multiplier ms apart); the chapter-image fallback
+        -- carries one frame per chapter start.
+        local tp = state.tp
+        local fw, fh, base = 0, 0, 0
+        local idx
+        if tp and (tp.iw or 0) > 0 and (tp.ih or 0) > 0 then
+            if tp.times and #tp.times > 0 then
+                idx = 0
+                for i = #tp.times, 1, -1 do
+                    if tp.times[i] <= pv_secs then idx = i - 1 break end
+                end
+                if idx > #tp.times - 1 then idx = #tp.times - 1 end
+            elseif (tp.count or 0) > 0 and (tp.mult or 0) > 0 then
+                idx = math.floor(pv_secs * 1000 / tp.mult)
+                if idx > tp.count - 1 then idx = tp.count - 1 end
+                if idx < 0 then idx = 0 end
+            end
+        end
+        if idx then
+            fw, fh = tp.iw, tp.ih
+            base = idx * tp.iw * tp.ih * 4
+        end
+        local cap
+        for _, c in ipairs(state.chlist or {}) do
+            if (c.time or 0) <= pv_secs and c.title and c.title ~= '' then
+                cap = c.title
+            end
+        end
+        local whole = math.floor(pv_secs)
+        local ts
+        if whole >= 3600 then
+            ts = string.format('%d:%02d:%02d', math.floor(whole / 3600),
+                               math.floor(whole % 3600 / 60), whole % 60)
+        else
+            ts = string.format('%d:%02d', math.floor(whole / 60), whole % 60)
+        end
+        -- Capped at the window, and the caption ellipsized to fit it.
+        -- A chapter name comes from container metadata and can run to a
+        -- sentence; clamp() returns its LOW bound when hi < lo, so an
+        -- over-wide bubble pinned itself at x=8, ran off the right edge,
+        -- and stopped being centred on the position it labels -- which is
+        -- #612, the bug this block exists to fix.
+        local bwmax = state.w - 2 * ui_px(8)
+        local bw = math.min(bwmax,
+                            math.max(fw, text_w(ts, fs, true),
+                                     cap and text_w(cap, fs, false) or 0)
+                            + 2 * pad)
+        if cap then cap = ellipsize(cap, fs, false, bw - 2 * pad) end
+        local bh = 2 * pad + lh + (fh > 0 and (fh + gap) or 0)
+                   + (cap and (lh + gap) or 0)
+        local ex, ey = eff(pv_node)
+        local frac = clamp(pv_secs / pv_node.max, 0, 1)
+        local px = math.floor(clamp(
+            ex + SLIDER_PAD + (pv_node.w - 2 * SLIDER_PAD) * frac - bw / 2,
+            ui_px(8), state.w - bw - ui_px(8)))
+        -- Pinned by its BOTTOM edge, so a bubble that grows a thumbnail or
+        -- a chapter line grows upwards and never over the bar it describes.
+        local py = math.floor(math.max(0, ey - ui_px(10) - bh))
+        state.pv_rect = { x = px, y = py, w = bw, h = bh,
+                          secs = pv_secs, frame = idx }
+        draw_rect(ass, px, py, bw, bh,
+                  { fill = '282828', radius = ui_px(6) })
+        local ty = py + pad
+        if fh > 0 then
+            -- Native size: overlay-add does not scale, and the worker
+            -- already decoded these at thumbnail_preferred_size.
+            draw_image({ id = 'hud-preview', src = tp.file, base = base,
+                         iw = fw, ih = fh, w = fw, h = fh },
+                       math.floor(px + (bw - fw) / 2), ty)
+            ty = ty + fh + gap
+        end
+        if cap then
+            draw_text(ass, { w = bw - 2 * pad, h = lh, size = fs,
+                             align = 'center' },
+                      px + pad, ty, nil, cap, 'dddddd')
+            ty = ty + lh + gap
+        end
+        draw_text(ass, { w = bw - 2 * pad, h = lh, size = fs,
+                         align = 'center', bold = true },
+                  px + pad, ty, nil, ts, 'ffffff')
+    end
     if state.hud then
         -- input-diagnostics overlay (toggle: F12)
         local lw = state.last_wheel or {}
@@ -2145,7 +2286,7 @@ local function node_at(x, y)
             node.t ~= 'menu' and
             (not modal or node.mod) and
             (node.click or node.ctx or node.dbl or node.tip or
-             node.hev or
+             node.hev or node.dis or
              node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then
@@ -2729,6 +2870,8 @@ end
 
 local function on_mouse_move(x, y)
     phud_touch()
+    -- The observer only fires on a change, so reaching here IS movement.
+    state.phud.moved = true
     state.mouse.x, state.mouse.y = x, y
     if state.tb_drag then
         local node = state.byid[state.tb_drag.id]
@@ -2762,11 +2905,11 @@ local function on_mouse_move(x, y)
         local node = state.byid[state.drag.sc]
         local b = state.bars[state.drag.sc]
         if node and b then
-            local maxs = scroll_max(node)
             local range = b.h - b.thumb_h
             if range > 0 then
-                local delta = (y - state.drag.start_m) / range * maxs
-                set_scroll(node, state.drag.start_off + delta)
+                -- where the grabbed point of the thumb is now
+                local top = clamp(y - state.drag.grab, b.y, b.y + range)
+                set_scroll(node, (top - b.y) / range * scroll_max(node))
             end
         end
         return
@@ -2776,6 +2919,12 @@ local function on_mouse_move(x, y)
     -- not light up under it either — tiles were hover-ringing through an
     -- open dropdown, which read as though they were still clickable.
     if state.dd_open or active_menu() or state.tb_menu then
+        node = nil
+    end
+    -- A disabled control still ABSORBS the pointer (node_at returned it,
+    -- so nothing underneath lights up either) but takes no hover of its
+    -- own: no ring, no tooltip, no slider hover reporting.
+    if node and node.dis then
         node = nil
     end
     update_slider_hover(node)
@@ -2927,11 +3076,23 @@ local function on_mouse_down()
             local dir = y < b.thumb_y and -1 or 1
             set_scroll(node, (state.scroll[bar_id] or 0) + dir * node.h)
         end
-        state.drag = {
-            sc = bar_id,
-            start_m = y,
-            start_off = state.scroll[bar_id] or 0,
-        }
+        -- Anchored INSIDE the thumb (the pattern the dropdown's own
+        -- scrollbar uses), not as a delta from a parked offset. A delta has
+        -- to be multiplied by a live scroll_max, so a scroller that grows
+        -- mid-drag maps the same pointer movement onto a bigger jump while
+        -- the thumb simultaneously gets shorter -- and slides out from
+        -- under the cursor (#617). Grabbing a point on the thumb and
+        -- deriving the offset from where that point now is cannot drift,
+        -- whatever the content does.
+        --
+        -- A track click above has already jumped a page, so re-read the
+        -- thumb rather than trusting the rect the hit test was made
+        -- against; if the jump moved it under the pointer, grab it there.
+        local top = b.thumb_y
+        if y < b.thumb_y or y > b.thumb_y + b.thumb_h then
+            top = y - b.thumb_h / 2
+        end
+        state.drag = { sc = bar_id, grab = clamp(y - top, 0, b.thumb_h) }
         return
     end
     local node = node_at(x, y)
@@ -2953,6 +3114,12 @@ local function on_mouse_down()
             -- the lua OSC's click-anywhere behavior
             mp.commandv('cycle', 'pause')
         end
+        return
+    end
+    if node.dis then
+        -- Absorbed, not passed through: the press lands on the disabled
+        -- control and stops there rather than reaching whatever it sits
+        -- over. Focus was already dropped above.
         return
     end
     if node.t == 'textbox' then
@@ -3310,7 +3477,7 @@ local function nav_candidates()
     for _, node in ipairs(state.nodes) do
         if node.t ~= 'scroll' and node.t ~= 'layer' and
             node.t ~= 'menu' and node.t ~= 'occ' and
-            (not modal or node.mod) and
+            (not modal or node.mod) and not node.dis and
             (node.click or node.dbl or node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider') and
             visible(node) then
@@ -3828,6 +3995,83 @@ local function nav_tab(dir)
     nav_set(nxt)
 end
 
+-- Keyboard scrolling: PGUP/PGDWN by a viewport, HOME/END to the ends.
+--
+-- The arrows are NOT here. They move focus (nav_move), and nav_scroll_into_view
+-- already scrolls the container to follow it -- which is the same gesture from
+-- the user's side and the thing the d-pad and the remote both depend on.
+--
+-- Which container? The wheel asks what is under the pointer; a keypress has no
+-- pointer, so it is the focused node's own scroller, falling back to the
+-- tallest scrollable in the scene -- the page body on every route that has one.
+--
+-- Deliberately not routed through on_wheel. Its snap/quantization latch
+-- (snap_live, wheel_lock, GESTURE_WINDOW) measures the cadence of a physical
+-- fling to decide whether to quantize to row boundaries; a discrete keypress
+-- has no cadence to measure and no business latching it for the whole scene.
+-- set_scroll already animates and already clamps.
+local function key_scroll(kind)
+    phud_touch()
+    -- A focused textbox owns these: HOME and END are caret keys there, which
+    -- is why they cannot simply be taken. Same delegation nav_move does for
+    -- LEFT/RIGHT. PGUP/PGDWN are not edit keys, so tb_key ignores them.
+    if state.focus then
+        tb_key(kind)
+        return
+    end
+    -- An open popup floats over the page, so scrolling what is behind it is
+    -- never what was meant -- the rule on_wheel already applies to the wheel.
+    local menu_node = active_menu()
+    if state.dd_open or menu_node then
+        local node = state.dd_open and state.byid[state.dd_open]
+        local n = node and #node.items or (menu_node and #menu_node.items) or 0
+        if kind == 'HOME' or kind == 'END' then
+            if n > 0 then
+                state.nav_pidx = (kind == 'HOME') and 0 or n - 1
+                popup_scroll(0, state.nav_pidx)
+            end
+        else
+            popup_scroll(kind == 'PGUP' and -3 or 3)
+        end
+        request_render()
+        return
+    end
+    local cont
+    local cur = state.nav and state.byid[state.nav]
+    local sc = cur and cur.sc
+    while sc do
+        local c = state.byid[sc]
+        if not c or c.t ~= 'scroll' then break end
+        if c.axis ~= 'x' and scroll_max(c) > 0 then
+            cont = c
+            break
+        end
+        sc = c.sc
+    end
+    if not cont then
+        -- No focus, or focus sits outside any scroller: take the biggest one
+        -- the scene will let us have. modal_active/node.mod is the same gate
+        -- scroll_at applies, so a dialog's backdrop stays put underneath it.
+        local modal = modal_active()
+        for _, node in ipairs(state.nodes) do
+            if node.t == 'scroll' and node.axis ~= 'x'
+                and (not modal or node.mod) and scroll_max(node) > 0
+                and (not cont or node.h > cont.h) then
+                cont = node
+            end
+        end
+    end
+    if not cont then return end
+    if kind == 'HOME' then
+        set_scroll(cont, 0)
+    elseif kind == 'END' then
+        set_scroll(cont, scroll_max(cont))
+    else
+        set_scroll(cont, (state.scroll[cont.id] or 0)
+            + (kind == 'PGUP' and -cont.h or cont.h))
+    end
+end
+
 local NAV_KEYS = {
     { 'UP', function() nav_move(0, -1) end },
     { 'DOWN', function() nav_move(0, 1) end },
@@ -3837,6 +4081,10 @@ local NAV_KEYS = {
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
     { 'MENU', function() nav_context() end },
+    { 'PGUP', function() key_scroll('PGUP') end },
+    { 'PGDWN', function() key_scroll('PGDWN') end },
+    { 'HOME', function() key_scroll('HOME') end },
+    { 'END', function() key_scroll('END') end },
 }
 
 local function bind_nav_keys()
@@ -3844,12 +4092,14 @@ local function bind_nav_keys()
         mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
             { repeatable = true })
     end
+    state.kb_nav = true
 end
 
 local function unbind_nav_keys()
     for _, k in ipairs(NAV_KEYS) do
         mp.remove_key_binding('mpvtk_nav_' .. k[1])
     end
+    state.kb_nav = false
 end
 
 bind_nav_keys()
@@ -3864,25 +4114,31 @@ mp.set_key_bindings({
     { 'shift+mbtn_left_dbl', function() end },
     { 'ctrl+mbtn_left_dbl', function() end },
     { 'mbtn_right', function() end, function() on_rclick() end },
-    -- The thumb button is Back wherever the pointer is ours, and it is
-    -- routed as a synthetic ESC rather than given a handler of its own:
-    -- ESC already steps out exactly one layer (scrub -> popup ->
-    -- menu/dialog -> the HUD, or one page off the browser's nav stack,
-    -- whose base case lives in Python on the player's ESC binding), and
-    -- a second implementation of that ladder would drift from it.
-    -- Deliberately in this group and not a forced binding of its own:
-    -- the group is disabled while video plays, which leaves mpv's own
-    -- MBTN_BACK (playlist-prev -> previous queue item) alone.
+}, 'mpvtk_mouse', 'force')
+-- The thumb buttons, in a section of their OWN so the playback HUD can
+-- decline them (see ui_resume).
+--
+-- Back is routed as a synthetic ESC rather than given a handler: ESC
+-- already steps out exactly one layer (scrub -> popup -> menu/dialog -> the
+-- HUD, or one page off the browser's nav stack, whose base case lives in
+-- Python on the player's ESC binding), and a second implementation of that
+-- ladder would drift from it. Forward has no key to ride on -- nothing in
+-- mpv or the app means "forward" -- so it is an event and the app decides;
+-- windowless like `nav`/`hud` rather than addressed to a node, because
+-- history belongs to the app and not to whatever the pointer is over. An
+-- app that registers no handler simply ignores it.
+--
+-- Separate from mpvtk_mouse because BROWSE wants them and a summoned
+-- playback HUD must not: over a film these are the buttons people have
+-- bound to something of their own (mpv's playlist-prev/next, or the shim's
+-- own chapter nav -- mouse_chapter_nav), and an accidental thumb press
+-- taking the player away is not a trade worth making for a second way to
+-- dismiss the bar. ESC is still ESC.
+mp.set_key_bindings({
     { 'mbtn_back', function() end,
       function() mp.commandv('keypress', 'ESC') end },
-    -- Its pair has no key to ride on -- nothing in mpv or the app means
-    -- "forward" -- so it is an event and the app decides. Windowless like
-    -- `nav`/`hud` rather than addressed to a node: history belongs to the
-    -- app, not to whatever the pointer happens to be over. An app that
-    -- registers no handler simply ignores it. Scoped like mbtn_back, so
-    -- playlist-next survives mid-playback.
     { 'mbtn_forward', function() end, function() send({ t = 'forward' }) end },
-}, 'mpvtk_mouse', 'force')
+}, 'mpvtk_thumb', 'force')
 mp.set_key_bindings({
     { 'wheel_up', function(e) on_wheel(-1, 'y', e) end },
     { 'wheel_down', function(e) on_wheel(1, 'y', e) end },
@@ -3893,6 +4149,10 @@ mp.set_key_bindings({
 }, 'mpvtk_wheel', 'force')
 mp.enable_key_bindings('mpvtk_mouse')
 mp.enable_key_bindings('mpvtk_wheel')
+-- set_key_bindings DEFINES a section; it does not enable it. Browse owns
+-- the thumb buttons from the moment the renderer loads, and the app does
+-- not necessarily transition mpvtk-active to get there (see below).
+mp.enable_key_bindings('mpvtk_thumb')
 
 mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
     state.hud = not state.hud
@@ -3903,6 +4163,10 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     if pos.hover == false then
         state.mouse.hover = false
+        -- and forget WHERE it was. The coordinates outlive the pointer
+        -- otherwise, and phud_busy would go on reading a mouse that had
+        -- left the window as resting on the controls.
+        state.mouse.x, state.mouse.y = -1, -1
         state.tip = nil
         if state.tip_timer then
             state.tip_timer:kill()
@@ -3916,6 +4180,12 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         return
     end
     state.mouse.hover = true
+    -- Record it for BOTH branches. The idle-HUD branch below returns
+    -- without reaching on_mouse_move, so a mouse summon used to leave
+    -- state.mouse holding whatever was there before HUD mode -- and
+    -- phud_busy would then decide "is the pointer on the controls?"
+    -- against a position the pointer had left long ago.
+    state.mouse.x, state.mouse.y = pos.x, pos.y
     if state.phud.mode and not state.phud.shown then
         -- HUD idle: real pointer movement summons it. The first event
         -- after entering idle only records the position (mx = -1 means
@@ -4044,8 +4314,8 @@ local function reconcile()
         local node = state.byid[id]
         if not node or node.t ~= 'slider' then state.sl[id] = nil end
     end
-    if state.hover_watch and not state.byid[state.hover_watch] then
-        state.hover_watch = nil  -- slider left the scene mid-hover
+    if state.pv_hover and not state.byid[state.pv_hover] then
+        state.pv_hover = nil  -- seek bar left the scene mid-hover
     end
     if state.hover_region and not state.byid[state.hover_region] then
         -- Scrolled away, navigated away, or the app dropped the node.
@@ -4259,6 +4529,13 @@ end)
 local function ui_resume(no_nav)
     mp.enable_key_bindings('mpvtk_mouse')
     mp.enable_key_bindings('mpvtk_wheel')
+    -- Browse takes the thumb buttons; a summoned playback HUD leaves them
+    -- to whatever the user has under them. See the mpvtk_thumb bindings.
+    if state.phud.mode then
+        mp.disable_key_bindings('mpvtk_thumb')
+    else
+        mp.enable_key_bindings('mpvtk_thumb')
+    end
     -- no_nav: the playback HUD came up under the pointer with
     -- hud_grab_keys off — the mouse drives it and the arrows stay
     -- mpv's seek keys. Browse always takes the arrows.
@@ -4293,6 +4570,7 @@ local function ui_suspend()
     state.modal = nil
     mp.disable_key_bindings('mpvtk_mouse')
     mp.disable_key_bindings('mpvtk_wheel')
+    mp.disable_key_bindings('mpvtk_thumb')
     mp.remove_key_binding('mpvtk_hud')
     state.nodes = {}
     state.byid = {}
@@ -4308,6 +4586,32 @@ end
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     phud_clear()
+    -- Re-assert browse's input BEFORE the early return. phud_clear may
+    -- have just left HUD mode, and the return below fires whenever `active`
+    -- did not change -- which is the case both at startup (state.active
+    -- begins true, so the app's first 'yes' is a no-op) and whenever browse
+    -- resumes from a SUMMONED HUD (phud_summon set active itself). In both,
+    -- ui_resume never runs, so anything the HUD turned off stays off for the
+    -- rest of the session.
+    --
+    -- Two things, and they fail the same way for the same reason. The thumb
+    -- section: mouse Back does nothing in the library until a playback round
+    -- trip happens to hide the bar first. And the NAV KEYS: ui_suspend drops
+    -- them for playback (there the arrows are mpv's seek keys) and only
+    -- ui_resume puts them back, while a summoned HUD calls
+    -- ui_resume(no_nav) itself -- correctly, the bar is driven by the mouse
+    -- unless hud_grab_keys is on. So browse resumed with no arrow, ENTER or
+    -- TAB navigation at all, from the first video played onwards. Browse
+    -- always takes the arrows, so there is no no_nav case to weigh here.
+    if want and not state.phud.mode then
+        mp.enable_key_bindings('mpvtk_thumb')
+        if state.kb_saved then
+            -- mpv's console has them on loan; let it give them back.
+            state.kb_saved.nav = true
+        else
+            bind_nav_keys()
+        end
+    end
     if want == state.active then return end
     state.active = want
     -- mirrored so the player can route remote navigation commands to
@@ -4331,7 +4635,14 @@ end)
 -- tears it back down to idle. While idle, every other key keeps its
 -- mpv default (space pauses, q quits, …).
 
-local PHUD_HIDE_S = 4
+-- Default auto-hide delay, and the floor an explicit one is clamped
+-- to. Zero is a legal setting -- it means "gone the moment the
+-- pointer is not on the controls" -- but a literal zero would also
+-- blink them out in the same frame as the mouse motion that
+-- summoned them, so the timer never runs shorter than the floor.
+-- One table, not two locals: this chunk is at LuaJIT's 200-local ceiling
+-- (tests/test_renderer_lua.py reports the headroom).
+local PHUD_HIDE = { def = 4, min = 0.5 }
 -- How long the standalone Skip button stays up on its own after a
 -- segment starts. Independent of the HUD: it runs whether or not the
 -- bar is summoned, so the offer is on screen for the same window
@@ -4377,11 +4688,13 @@ local function phud_skip_bind()
         send({ t = 'hudskip' })
         phud_skip_hide()
     end)
+    state.kb_skip = true
 end
 
 -- Give ENTER back to the scene without taking the button down.
 function phud_skip_unbind()
     mp.remove_key_binding('mpvtk_skip_enter')
+    state.kb_skip = false
 end
 
 function phud_skip_hide()
@@ -4447,6 +4760,7 @@ function phud_bind_summon()
             mp.commandv('cycle', 'pause')
         end
     end)
+    state.kb_summon = true
 end
 
 local function phud_unbind_summon()
@@ -4455,6 +4769,7 @@ local function phud_unbind_summon()
         mp.remove_key_binding('mpvtk_summon_' .. key)
     end
     mp.remove_key_binding('mpvtk_phud_click')
+    state.kb_summon = false
 end
 
 local function phud_disarm()
@@ -4465,22 +4780,64 @@ local function phud_disarm()
 end
 
 -- Interactions the auto-hide must not interrupt; checked at expiry
--- (the timer re-arms instead of hiding). Paused playback also keeps
--- the HUD up — hiding the controls the moment someone pauses is the
--- opposite of what pausing means. nav_adjust is deliberately NOT
+-- (the timer re-arms instead of hiding). nav_adjust is deliberately NOT
 -- here: the bar wakes in adjust mode by default, and an actual scrub
 -- gesture pauses playback, which already holds the HUD open.
+--
+-- Two of these are the hud_autohide setting rather than a rule:
+--
+--   * The POINTER RESTING ON THE CONTROLS holds them up, in every mode but
+--     'always'. Reaching for a button and then reading its tooltip must not
+--     be a race against the timer, and it is what makes a short delay --
+--     down to none -- usable: the controls go when you are not using them
+--     rather than when you stop moving.
+--   * PAUSED playback held them up unconditionally, on the reasoning that
+--     hiding the controls the moment someone pauses is the opposite of what
+--     pausing means. It is also how you end up unable to look at the frame
+--     you paused to look at (#620), so it is now the 'paused' mode.
 local function phud_busy()
-    return state.dd_open ~= nil or state.modal ~= nil
+    if state.dd_open ~= nil or state.modal ~= nil
         or state.tb_menu ~= nil or state.slider_drag ~= nil
         or state.pressed ~= nil
-        or active_menu() ~= nil
-        or mp.get_property_native('pause', false)
+        or active_menu() ~= nil then
+        return true
+    end
+    if state.phud.hide_mode == 'paused'
+        and mp.get_property_native('pause', false) then
+        return true
+    end
+    if state.phud.hide_mode ~= 'always' and state.phud.moved then
+        -- Over either bar: the ids are the contract (hud.py gives the top
+        -- row and the transport column one for exactly this). Falling back
+        -- to "over any clickable node" would flicker in the gaps between
+        -- buttons, which is most of the bar's area.
+        --
+        -- Only once the pointer has MOVED since this summon, though. A
+        -- mouse that has sat untouched in the bottom strip of the screen
+        -- all evening is not reaching for anything, and taking it as a
+        -- hover left a keyboard-summoned HUD up forever -- which is also
+        -- how it reads under a bare X server, where the pointer parks at
+        -- 0,0 and the top bar is drawn under it.
+        local mx, my = state.mouse.x, state.mouse.y
+        for _, id in ipairs({ 'hud-bar', 'hud-topbar' }) do
+            local bar = state.byid[id]
+            if bar then
+                local bx, by = eff(bar)
+                if mx >= bx and mx <= bx + bar.w
+                    and my >= by and my <= by + bar.h then
+                    return true
+                end
+            end
+        end
+    end
+    return false
 end
 
 local function phud_arm()
     phud_disarm()
-    state.phud.timer = mp.add_timeout(PHUD_HIDE_S, function()
+    local delay = math.max(PHUD_HIDE.min,
+                           state.phud.hide_s or PHUD_HIDE.def)
+    state.phud.timer = mp.add_timeout(delay, function()
         state.phud.timer = nil
         if not (state.phud.mode and state.phud.shown) then return end
         if phud_busy() then
@@ -4521,6 +4878,9 @@ function phud_summon(src)
     -- the scene immediately, though: it activates the focused node.
     phud_skip_unbind()
     state.phud.shown = true
+    -- A mouse summon IS movement; a key summon starts with the pointer
+    -- wherever it happened to be, which means nothing.
+    state.phud.moved = src == 'mouse'
     -- a keyboard/remote summon lands spatial-nav focus on the scene's
     -- autofocus node (play/pause) once Python pushes the HUD; a mouse
     -- summon leaves the pointer in charge
@@ -4625,6 +4985,21 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         local opts = opts_json and utils.parse_json(opts_json) or nil
         state.phud.grab = (opts and opts.grab) or false
         state.phud.wake_key = (opts and opts.key) or 'ENTER'
+        -- `or` would fold an ABSENT hide into 0, and 0 is meaningful
+        -- here (it forces hover mode below). Absent means "the toolkit's
+        -- own default", which is what PHUD_HIDE.def is for -- it was
+        -- unreachable, so a caller that sent no opts got the 0.5s floor
+        -- instead of the ~4s every docstring promises.
+        local hide = opts and opts.hide
+        state.phud.hide_s = hide ~= nil and hide or PHUD_HIDE.def
+        state.phud.hide_mode = (opts and opts.mode) or 'hover'
+        state.phud.shadow = (opts and opts.shadow) or false
+        if state.phud.hide_s <= 0 then
+            -- A zero delay only means anything as "gone the moment the
+            -- pointer leaves the controls"; with no pointer test it is a
+            -- HUD the mouse cannot summon at all.
+            state.phud.hide_mode = 'hover'
+        end
     end
     if want == state.phud.mode then return end
     if want then
@@ -4692,6 +5067,44 @@ mp.register_script_message('mpvtk-hud-skip', function(label)
         -- what happens once the bar auto-hides
         phud_skip_show()
     end
+end)
+
+-- Trickplay tiles for the scrub preview. These three messages are the
+-- TrickPlay worker's, not mpvtk's: they predate this renderer and are what
+-- the lua OSCs consume (see thumbfast.lua), so nothing extra is sent for us
+-- and the two consumers cannot disagree about which file is live. The
+-- worker guarantees the path is unique per generation and only unlinks the
+-- previous one after pointing everybody at the new one.
+mp.register_script_message('shim-trickplay-bif',
+    function(count, mult, w, h, path)
+        state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
+                     count = tonumber(count), mult = tonumber(mult) }
+        request_render()
+    end)
+
+-- The fallback when the server has no BIF data: one frame per chapter,
+-- indexed by the chapter start times (seconds) rather than by a cadence.
+mp.register_script_message('shim-trickplay-chapters',
+    function(w, h, path, times)
+        local t = {}
+        for s in tostring(times or ''):gmatch('[^,]+') do
+            t[#t + 1] = tonumber(s)
+        end
+        state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
+                     times = t }
+        request_render()
+    end)
+
+mp.register_script_message('shim-trickplay-clear', function()
+    -- The bytes go away right after this, so forget them first.
+    state.tp = nil
+    request_render()
+end)
+
+-- The bubble's caption. mpv has the chapters already; asking Python for
+-- them would be a round trip for something sitting in a property.
+mp.observe_property('chapter-list', 'native', function(_, v)
+    state.chlist = v
 end)
 
 -- ---------------------------------------------------------- test hooks
@@ -4915,14 +5328,23 @@ mp.register_script_message('mpvtk-debug', function(json)
                 off = state.dd_geo.off,
             } or nil,
             tb = state.tb,
+            -- scrollbar geometry per container ({x, y, w, h, thumb_y,
+            -- thumb_h}), so a test can grab a thumb where it is drawn
+            bars = state.bars,
             active = state.active,
             phud_mode = state.phud.mode,
             phud_shown = state.phud.shown,
             phud_intro = state.phud.intro,
             phud_skip = state.phud.skip_show or false,
+            -- the scrub preview bubble ({x, y, w, h, secs, frame}), nil
+            -- when it is not up. It is not a scene node, so this is the
+            -- only way anything outside the renderer can see it.
+            preview = state.pv_rect,
             -- is the HUD taking the arrow keys (keyboard-driven), or
             -- only the pointer (hud_grab_keys off, mouse summon)?
             phud_kbd = state.phud.kbd or false,
+            mouse = { x = state.mouse.x, y = state.mouse.y,
+                      hover = state.mouse.hover },
         })
     elseif cmd.cmd == 'phud' then
         -- drive the playback-HUD lifecycle from tests
@@ -4938,5 +5360,42 @@ mp.register_script_message('mpvtk-debug', function(json)
                 phud_summon('mouse')
             end
         end
+    end
+end)
+
+-- mpv's console (`) wants the keyboard, but our ENTER and arrow bindings
+-- are FORCED and outrank it: typing a command and pressing ENTER summoned
+-- the HUD (and toggled pause) instead of running the command, with no way
+-- back but ESC. Hand the keys over for as long as the console is up, and
+-- take them again when it closes.
+--
+-- Restored from what was actually bound rather than re-derived: which of
+-- the three groups is live depends on browse-vs-HUD, hud_grab_keys and
+-- whether the standalone Skip button is showing, and a second copy of that
+-- decision would drift from ui_resume's. The mouse and wheel sections stay
+-- put -- the console does not want them, and mpvtk_mouse is what dismisses
+-- a stray click.
+--
+-- Everything hangs off `state` and the handler is anonymous deliberately:
+-- this chunk is at 192 of LuaJIT's 200 top-level locals, and going over
+-- does not fail at the call, it fails to load the renderer at all.
+--
+-- The property is mpv >= 0.38 and reads nil both before the console is
+-- first opened and on builds without it. nil is falsy, which is the right
+-- answer for "the console is not up" in either case.
+mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
+    if open then
+        if state.kb_saved then return end
+        state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
+                           skip = state.kb_skip }
+        if state.kb_nav then unbind_nav_keys() end
+        if state.kb_summon then phud_unbind_summon() end
+        if state.kb_skip then phud_skip_unbind() end
+    elseif state.kb_saved then
+        local was = state.kb_saved
+        state.kb_saved = nil
+        if was.nav then bind_nav_keys() end
+        if was.summon then phud_bind_summon() end
+        if was.skip then phud_skip_bind() end
     end
 end)

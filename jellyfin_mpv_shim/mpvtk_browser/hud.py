@@ -3,7 +3,8 @@
 Rendered by the browser while it is yielded to video playback, via the
 renderer's attached-but-idle lifecycle (``mpvtk-hud``): playback runs
 clean until an arrow key / ENTER / mouse motion summons the HUD, and
-~4s without input hides it again (both renderer-side; see
+``hud_hide_secs`` without input hides it again, on the policy
+``hud_autohide`` sets (both renderer-side; see
 renderer.lua). ``hud_control.HudController`` owns the summoned flag and
 calls :func:`build_hud` from ``build()``; playstate comes from the
 same ``push_playstate`` snapshots that feed the audio now-playing bar,
@@ -27,7 +28,6 @@ from ..mpvtk.widgets import (
     Dropdown,
     Element,
     Gradient,
-    Image,
     Menu,
     Row,
     Slider,
@@ -39,13 +39,40 @@ from . import theme
 
 log = logging.getLogger("mpvtk_browser.hud")
 
-# Scrim geometry: the renderer's gradient is solid-ish below the fade
-# midpoint at ~h/2.2 from its bottom edge, so the scrim must be ~2.2x
-# the bar's height for the title/slider to sit on dark instead of the
-# ramp's transparent half. Capped by a window fraction so short
-# windows keep most of the picture clean.
-SCRIM_FRAC = 0.55
-SCRIM_MAX = 380
+# Scrim geometry: a ramp from transparent at its top edge to alpha 215 at
+# the window's bottom. What it has to do is put the bar's own text on
+# something dark, so the number that matters is its height against the bar's
+# (116px at the stock cover size): the taller it is, the denser the ramp is
+# where the title and the scrubber sit.
+#
+# Capped by a window fraction as well, so short windows keep most of the
+# picture clean; the cap is what binds at any normal size.
+#
+# 0.55/380 -> 0.42/300 after #620, where the shadow over the picture was the
+# first thing anyone mentioned, then -> 200 on Izzie's UX pass. 200 is ~1.7x
+# the bar rather than the ~2.6x it was, which puts the title at roughly
+# alpha 100 instead of 140 -- deliberately lighter, and the reason the
+# "none" mode's per-glyph shadow exists as the other end of the same dial.
+SCRIM_FRAC = 0.42
+SCRIM_MAX = 200
+# Top scrim, same relation to the header's height.
+TOP_SCRIM_FRAC = 0.20
+TOP_SCRIM_MAX = 130
+# (There was a "half" mode here -- the same ramp at half height. It was
+# offered as the middle setting between the full ramp and no shading at all,
+# and it stopped earning that place twice over. Once the default came down to
+# 200 its half was 100, shorter than the bar itself, so the scrubber and the
+# bar's top edge sat on bare picture; and at any height it left the seekbar's
+# chapter markers to fend for themselves, which is the one thing on that bar
+# that is thin, light and positional. "panel" is the middle setting now, and
+# "none" is the far end.)
+# "panel": a flat band exactly the height of the bar rather than a ramp --
+# a hard edge, and no wash over the picture above it. Opacity, 255 opaque.
+# Black rather than theme.SCRIM: the HUD is drawn over VIDEO and stays dark
+# whatever the theme does (see mpvtk.theme), which is why the gradients
+# above are a literal too.
+PANEL_BG = "000000"
+PANEL_ALPHA = 170
 
 # Bottom inset of the Skip Intro/Credits button, measured to its BOTTOM
 # edge so the two implementations line up whatever the label's measured
@@ -103,51 +130,6 @@ def _clock(secs):
         return "%d:%02d:%02d" % (
             secs // 3600, (secs % 3600) // 60, secs % 60)
     return "%d:%02d" % (secs // 60, secs % 60)
-
-
-def _trickplay_frame(b, secs):
-    """Scrub preview bitmap for ``secs``, via the TrickPlay worker's
-    decoded raw-BGRA tile file (player.trickplay_meta). Returns a
-    strips.bitmap entry {"src", "iw", "ih", "v"} or None (no trickplay data
-    for this video / frame not readable)."""
-    get = getattr(b.controller, "trickplay", None)
-    if get is None or b.strips is None:
-        return None
-    try:
-        meta = get()
-    except Exception:
-        return None
-    if not meta or not meta.get("count"):
-        return None
-    w, h = meta["width"], meta["height"]
-    idx = max(0, min(meta["count"] - 1,
-                     int(secs * 1000 / max(1, meta["multiplier"]))))
-    key = ("trickplay", meta["file"], meta["count"],
-           meta["multiplier"], idx)
-    # one-slot cache: repaints at the same scrub index (1s ticker while
-    # holding still) skip the file read + decode
-    last = b.hud.frame
-    if last is not None and last[0] == key:
-        return last[1]
-    frame = w * h * 4
-    try:
-        with open(meta["file"], "rb") as fh:
-            fh.seek(idx * frame)
-            data = fh.read(frame)
-    except OSError:
-        return None
-    if len(data) < frame:
-        return None
-    try:
-        from PIL import Image as PILImage
-
-        img = PILImage.frombytes("RGBA", (w, h), data, "raw", "BGRA")
-    except Exception:
-        log.debug("trickplay frame decode failed", exc_info=True)
-        return None
-    entry = b.strips.bitmap(key, img)
-    b.hud.frame = (key, entry)
-    return entry
 
 
 def _hud_action(b, verb, arg=None):
@@ -212,21 +194,18 @@ def _chapters(b):
         return []
 
 
-def _chapter_jump(b, chapters, pos, direction):
+def _chapter_jump(b, direction):
     """Seek to the previous/next chapter start (the lua OSC's
-    ch_prev/ch_next). Prev re-seeks the current chapter's start unless
-    pressed within its first 2 seconds, like mpv's 'add chapter -1'."""
-    if direction < 0:
-        target = 0.0
-        for ch in chapters:
-            if ch["time"] < pos - 2.0:
-                target = ch["time"]
-        b._ctl(lambda c: c.seek(target))
-        return
-    for ch in chapters:
-        if ch["time"] > pos + 0.5:
-            b._ctl(lambda c, t=ch["time"]: c.seek(t))
-            return
+    ch_prev/ch_next).
+
+    The rule -- prev re-seeks the current chapter's start unless pressed
+    within its first 2 seconds, like mpv's 'add chapter -1' -- lives in
+    player.chapter_target, because the mouse's back/forward buttons ask the
+    same question (mouse_chapter_nav) and two copies of it would drift.
+    Going through the player also puts the jump through SyncPlay, which
+    working the target out here and seeking to it did not.
+    """
+    b._ctl(lambda c: c.chapter_seek(direction))
 
 
 def _pickers(b, menu_state, pos, chapters, tiers):
@@ -478,6 +457,21 @@ def _toggle_tc(b):
     b.invalidate()
 
 
+def _toggle_hud_mute(b):
+    """Flip the icon on the click, not on the round trip.
+
+    The player now observes ``mute`` and pushes a snapshot (see
+    _on_volume_change), so this only covers the trip out to the action
+    thread and back — but that trip runs behind the player's lock, which a
+    playback start holds for its whole duration. Same optimism as the
+    favourite button below, and self-correcting: the next snapshot is the
+    truth whatever we guessed."""
+    st = b.hud.state or {}
+    st["muted"] = not st.get("muted")
+    b._ctl(lambda c: c.toggle_mute())
+    b.invalidate()
+
+
 def _toggle_hud_favorite(b):
     st = b.hud.state or {}
     st["favorite"] = not st.get("favorite")   # optimistic, like the np bar
@@ -506,6 +500,43 @@ def _skip_float(b, size):
         hover={"fill": _SKIP_BG_HOVER},
         on_click=lambda: _hud_action(b, "skip-segment"),
         anchor="se", dx=-_SKIP_RIGHT, dy=-_SKIP_BOTTOM)
+
+
+def _panel():
+    """Box styling for the two bars: a flat translucent band under the
+    "panel" scrim, and an invisible one otherwise.
+
+    Invisible rather than absent because the renderer needs the bars to
+    EXIST as scene nodes: it holds the auto-hide off while the pointer is
+    over them (phud_busy), and layout only emits a node for a container that
+    has a fill, a border or a click. Alpha 0 costs one ASS event that draws
+    nothing, and the node is not a hit target -- node_at ignores a rect with
+    no click, tip or hover of its own.
+    """
+    return {"bg": PANEL_BG,
+            "alpha": PANEL_ALPHA if settings.hud_scrim == "panel" else 0}
+
+
+def _scrim(h, w):
+    """The wash behind the controls, per ``hud_scrim``.
+
+    It is not decoration: white-on-white is what the controls hit without
+    it, over a frame nobody chose. So "none" is not simply the absence of
+    the others -- it moves the job onto the glyphs, which is the ``shadow``
+    flag the renderer draws them with (see gateway.hud_key_opts).
+    """
+    style = settings.hud_scrim
+    if style in ("none", "panel"):
+        return []          # panel paints as the bars' own background
+    return [
+        Gradient(color="000000", top=0, bottom=215, w=w,
+                 h=int(min(h * SCRIM_FRAC, SCRIM_MAX)), anchor="sw"),
+        # top scrim: dense at the top, same relation to the header's height
+        # as the bottom one has to the bar's.
+        Gradient(color="000000", top=170, bottom=0, w=w,
+                 h=int(min(h * TOP_SCRIM_FRAC, TOP_SCRIM_MAX)),
+                 anchor="nw"),
+    ]
 
 
 def build_hud(b, size):
@@ -574,8 +605,15 @@ def build_hud(b, size):
         on_change=b.hud.scrub_change,
         on_commit=b.hud.scrub_commit,
         on_cancel=b.hud.scrub_cancel,
-        on_hover=b.hud.hover_move,
-        on_hover_end=b.hud.hover_end)
+        # The renderer floats the trickplay/chapter bubble itself -- but
+        # only where there is a timeline to describe. `max` is floored at
+        # 1.0 above so the renderer's frac has a divisor, which also
+        # defeats its own `max > 0` guard; a live channel reports no
+        # duration, and without this the bubble tracked the pointer along
+        # the bar reading 0:00 the whole way. Guarded like `marks` and
+        # `ranges` beside it. (The deleted _preview_float opened with the
+        # same test.)
+        preview=dur > 0)
 
     menu_state = None
     if b.controller is not None and hasattr(b.controller, "hud_menu_state"):
@@ -591,7 +629,7 @@ def build_hud(b, size):
     if chapters and tiers["ch_btns"]:
         controls.append(tbtn(
             "undo", "hud-ch-prev",
-            lambda: _chapter_jump(b, chapters, pos, -1),
+            lambda: _chapter_jump(b, -1),
             tip=_("Previous Chapter")))
     if tiers["seek_btns"]:
         controls.append(tbtn(
@@ -609,7 +647,7 @@ def build_hud(b, size):
     if chapters and tiers["ch_btns"]:
         controls.append(tbtn(
             "redo", "hud-ch-next",
-            lambda: _chapter_jump(b, chapters, pos, 1),
+            lambda: _chapter_jump(b, 1),
             tip=_("Next Chapter")))
     controls.append(tbtn(
         "skip_next", "hud-next",
@@ -651,7 +689,7 @@ def build_hud(b, size):
         right.append(tbtn(
             "volume_off" if muted else
             ("volume_up" if vol >= 50 else "volume_down"),
-            "hud-mute", lambda: b._ctl(lambda c: c.toggle_mute()),
+            "hud-mute", lambda: _toggle_hud_mute(b),
             tip=_("Mute")))
     if tiers["volbar"]:
         right.append(Slider(
@@ -680,8 +718,11 @@ def build_hud(b, size):
         # touch it directly: an unsized Row wrapper stretches to the
         # column width and flex=1 spreads the slider inside it
         Row([seek], align="center")]) + [transport]
+    # id: renderer.lua's phud_busy holds the auto-hide off while the pointer
+    # is over the controls, and these two rects are what "over the controls"
+    # means (hover mode). Also where the "panel" scrim paints.
     bar = Column(bar_rows, gap=sz(6), pad=(sz(24), sz(14)), w=w, anchor="s",
-                 align="stretch")
+                 align="stretch", id="hud-bar", **_panel())
 
     # Top header, like the lua OSC's: back (yield to the library),
     # title, SyncPlay drop-down — over its own top-down scrim.
@@ -714,82 +755,20 @@ def build_hud(b, size):
             tip=_("SyncPlay"),
             fg=theme.ACCENT if syncplay.get("enabled") else "eeeeee"))
     top = Row(top_items, gap=sz(10), pad=(sz(24), sz(10)), w=w,
-              anchor="n", align="center")
+              anchor="n", align="center", id="hud-topbar", **_panel())
 
-    children = [
-        Gradient(color="000000", top=0, bottom=215, w=w,
-                 h=min(int(h * SCRIM_FRAC), SCRIM_MAX), anchor="sw"),
-        # top scrim: dense at the top, ~2.2x the header height so the
-        # title sits on the solid half (same math as the bottom scrim)
-        Gradient(color="000000", top=170, bottom=0, w=w,
-                 h=min(int(h * 0.25), 160), anchor="nw"),
-        bar,
-        top,
-    ]
+    children = _scrim(h, w) + [bar, top]
 
     skip = _skip_float(b, size)
     if skip is not None:
         children.append(skip)
 
-    preview_at = scrub if scrub is not None else b.hud.hover
-    preview = _preview_float(b, preview_at, dur, size, chapters)
-    if preview is not None:
-        children.append(preview)
+    # The scrub preview bubble is NOT here. The renderer draws it, from the
+    # trickplay tiles and mpv's chapter list, without asking (#618/#612) —
+    # see renderer.lua's `pv` slider flag.
 
     menu = _settings_menu(b, menu_state, size)
     if menu is not None:
         children.append(menu)
 
     return Stack(children, w=w, h=h)
-
-
-# Must match renderer.lua's SLIDER_PAD (track inset inside the slider node —
-# the thumb travels between the insets). A click is mapped back to a seek
-# time through this, so drift puts the seek off where the user clicked.
-# Enforced by tests/test_python_lua_constants.py.
-_SLIDER_PAD = 8
-
-
-def _preview_float(b, secs, dur, size, chapters):
-    """Seek-preview bubble floated above the slider at ``secs``: the
-    trickplay thumbnail (when the video has tiles) over the chapter
-    name and timestamp — the lua OSC's hover bubble. Shown while
-    scrubbing or while the pointer rests on the bar. Geometry comes
-    from the previous scene's laid-out slider rect — one frame stale,
-    which is fine: the bar doesn't move while the HUD is up."""
-    if secs is None or dur <= 0:
-        return None
-    rect = None
-    if b.app is not None and hasattr(b.app, "node_rect"):
-        rect = b.app.node_rect("hud-seek")
-    if rect is None:
-        return None
-    w, h = size
-    entry = _trickplay_frame(b, secs)
-    rows: list[Element] = []          # the frame Image plus its Text captions
-    if entry is not None:
-        rows.append(Image(entry["src"], entry["iw"], entry["ih"],
-                          v=entry.get("v", 0)))
-    chapter = None
-    for ch in chapters:
-        if ch["time"] <= secs and ch.get("title"):
-            chapter = ch["title"]
-    if chapter:
-        rows.append(Text(chapter, size=14, color="dddddd",
-                         align="center"))
-    rows.append(Text(_clock(secs), size=14, bold=True, align="center"))
-    # lw, not iw: this is bubble geometry in logical space, and iw is the
-    # frame's physical width (trickplay frames are sized by the video, not
-    # by a logical box, so the two differ at any scale != 1).
-    bw = max(entry["lw"] if entry is not None else 0, 120) + 16
-    frac = max(0.0, min(1.0, secs / dur))
-    track_x = rect["x"] + _SLIDER_PAD
-    track_w = rect["w"] - 2 * _SLIDER_PAD
-    px = track_x + frac * track_w - bw / 2
-    px = max(8, min(w - bw - 8, px))
-    # anchor sw + negative dy pins the bubble's BOTTOM just above the
-    # slider whatever its content height turns out to be
-    return Box(
-        [Column(rows, gap=4, align="center")],
-        id="hud-preview", bg="282828", radius=6, pad=8,
-        anchor="sw", dx=px, dy=rect["y"] - 10 - h)

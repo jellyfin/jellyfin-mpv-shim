@@ -24,7 +24,7 @@
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "row-row-0", "sc": "home", "t": "scroll", "w": 160.0, "x": 0.0, "y": 349.0}
 {"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "row-row-0", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 5.0, "y": 354.0}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-row-0-m1", "ring": true, "sc": "row-row-0", "t": "rect", "w": 150, "x": 5.0, "y": 354.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1", "sc": "home", "size": 24, "t": "text", "text": "Continue Watching", "w": 227.1, "x": 16.0, "y": 650.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1", "sc": "home", "size": 24, "t": "text", "text": "Latest Movies", "w": 174.5, "x": 16.0, "y": 650.0}
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "row-row-1", "sc": "home", "t": "scroll", "w": 160.0, "x": 0.0, "y": 690.0}
-{"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "row-row-1", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 5.0, "y": 695.0}
-{"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-row-1-m1", "ring": true, "sc": "row-row-1", "t": "rect", "w": 150, "x": 5.0, "y": 695.0}
+{"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "row-row-1", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 5.0, "y": 695.0}
+{"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-row-1-m2", "ring": true, "sc": "row-row-1", "t": "rect", "w": 150, "x": 5.0, "y": 695.0}

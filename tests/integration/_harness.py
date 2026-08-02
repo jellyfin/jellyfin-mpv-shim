@@ -328,8 +328,11 @@ def import_player_with_fake_mpv():
     settings.menu_mouse = False
     settings.svp_enable = False
     settings.discord_presence = False
-    settings.enable_osc = False
-    settings.osc_style = "default"  # keep the OSC lua out of these legs
+    # "none": no shim OSC lua loaded AND mpv's own OSC suppressed. This
+    # was `osc_style = "default"` plus `enable_osc = False` until #615
+    # retired the second half, which left the write dead and these legs
+    # quietly running with mpv's OSC up.
+    settings.osc_style = "none"
     settings.check_updates = False
 
     # Flip the import-time backend selector: player.py imports libmpv when
@@ -439,7 +442,6 @@ def build_player(player_module, video=None):
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
     pm.mpvtk_active = False
-    pm.trickplay_meta = None
     pm._hud_skip = None
     pm._trickplay_pending = False
 

@@ -17,6 +17,7 @@ from ..mpvtk.widgets import (
     Checkbox,
     Column,
     Dialog,
+    Dropdown,
     Row,
     Spacer,
     Text,
@@ -420,13 +421,10 @@ class DialogsMixin:
                        "Jellyfin Web."), size=13, color=theme.SUBTLE_FG,
                      wrap=True),
             ]
+            device = self._cover_size_row()
             if paginated is not None:
                 is_on, toggle = paginated
-                body += [
-                    # A rule, because what follows is not one of the above:
-                    # everything over the line is this library's and lives
-                    # on the server, everything under it is this device's.
-                    Box(h=1, bg=theme.BORDER),
+                device += [
                     Checkbox(_("Paginated"), bool(is_on()), id="vs-paginated",
                              on_toggle=toggle),
                     Text(_("Show one page of tiles at a time instead of "
@@ -434,6 +432,11 @@ class DialogsMixin:
                            "device."), size=13, color=theme.SUBTLE_FG,
                          wrap=True),
                 ]
+            if device:
+                # A rule, because what follows is not one of the above:
+                # everything over the line is this library's and lives
+                # on the server, everything under it is this device's.
+                body += [Box(h=1, bg=theme.BORDER)] + device
             return Dialog("viewcfg", self._dialog_shell("viewcfg", [
                 Text(_("View Settings"), size=22, bold=True),
                 Column(body, gap=12, align="stretch"),
@@ -443,6 +446,40 @@ class DialogsMixin:
             ], w=440), on_dismiss=self._close_dialog)
 
         self._show_dialog(build)
+
+    def _cover_size_row(self):
+        """The global Cover Size setting, on the View menu.
+
+        It lives in Settings, but this is where you find out what the values
+        mean: changing it and walking back to a library to look was the whole
+        difficulty (#616). Below the rule with Paginated, because like that
+        one it is this device's setting rather than this library's.
+
+        Returns [] when there is no config to write to (the offline
+        stand-ins), so the dialog simply does not offer it.
+        """
+        from ..conf import settings
+        from . import config as cfg
+
+        config = self._config()
+        if not hasattr(config, "set_setting"):
+            return []
+        opts = cfg.LABELED_ENUMS["poster_scale"]
+        cur = getattr(settings, "poster_scale", None)
+        sel = next((i for i, (_l, v) in enumerate(opts) if v == cur), 0)
+
+        def pick(i, _v):
+            if config.set_setting("poster_scale", opts[i][1]):
+                self.apply_cover_size()
+
+        return [
+            Row([Text(_("Cover Size"), w=150, size=16,
+                      color=theme.SUBTLE_FG),
+                 Dropdown("vs-coversize", [lbl for lbl, _v in opts],
+                          selected=sel, w=200, size=16, force=True,
+                          on_select=pick)],
+                gap=8, align="center"),
+        ]
 
     @staticmethod
     def _dialog_shell(node_id, children, w=440):

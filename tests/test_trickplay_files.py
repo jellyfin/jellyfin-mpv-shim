@@ -25,7 +25,6 @@ import jellyfin_mpv_shim.trickplay as trickplay  # noqa: E402
 
 class FakePlayer:
     def __init__(self):
-        self.trickplay_meta = None
         self.messages = []
 
     def script_message(self, *args):
@@ -77,7 +76,21 @@ class FrameFileLifetimeTest(unittest.TestCase):
         self.tp.clear()
         self.assertIn(("shim-trickplay-clear",), self.player.messages)
         self.assertFalse(os.path.exists(a))
-        self.assertIsNone(self.player.trickplay_meta)
+
+    def test_a_second_worker_never_reuses_the_first_worker_path(self):
+        """A new TrickPlay is built on every mpv re-creation. With the
+        counter on the instance it restarted at 0, so the second worker's
+        first file was the first worker's first file -- and stop(join=False)
+        lets a straggler publish into the NEW mpv, whose renderer mmaps
+        whatever it is handed. open("wb") over that is a SIGBUS in mpv."""
+        first = [self.tp._next_file() for _ in range(3)]
+        second = trickplay.TrickPlay.__new__(trickplay.TrickPlay)
+        second._file_lock = threading.Lock()
+        second._current = None
+        again = [second._next_file() for _ in range(3)]
+        self.assertFalse(set(first) & set(again),
+                         "the second worker reused %r"
+                         % sorted(set(first) & set(again)))
 
     def test_retiring_twice_is_harmless(self):
         a = self.tp._next_file()

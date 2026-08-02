@@ -242,6 +242,18 @@ class OfflineUserdataAggregationTest(unittest.TestCase):
         self.assertFalse(series["T"]["UserData"]["Played"])
         self.assertEqual(series["T"]["UserData"]["UnplayedItemCount"], 1)
 
+    def test_a_synthesized_series_is_poster_shaped(self):
+        """GridPage._grid_shape takes the median PrimaryImageAspectRatio
+        across the row and falls back to SQUARE when nothing carries one, so
+        a downloaded-shows grid came out as square cards with the posters
+        letterboxed inside them."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        src = _offline_source([_episode("e1", "S", "sea1", played=False)])
+        ratio = src._series_list()[0].get("PrimaryImageAspectRatio")
+        self.assertIsNotNone(ratio, "no shape for the grid to read")
+        self.assertLess(ratio, TileRenderer.SQUARE_RATIO,
+                        "a downloaded show is not square")
+
     def test_get_seasons_aggregates_watched_state(self):
         src = _offline_source([
             _episode("e1", "S", "sea1", played=True),

@@ -1093,6 +1093,563 @@ ok(slot_of("/chip") > slot_of("/strip2"),
    string.format("chip is slot %s, its row is slot %s",
                  tostring(slot_of("/chip")), tostring(slot_of("/strip2"))))
 
+-- ========================================================= disabled
+
+-- A disabled control is on screen and inert: no click, no spatial-nav
+-- focus. It still ABSORBS the pointer -- the press must stop there rather
+-- than reaching whatever it happens to sit over, which is why node_at
+-- keeps returning it and each consumer drops it instead.
+
+local function btn(id, row, extra)
+    local node = { id = id, t = "rect", x = 0, y = (row or 0) * 40,
+                   w = 200, h = 30, click = true }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+scene({ btn("live", 0), btn("dead", 1, { dis = true }) })
+fake.reset_events()
+click("dead")
+ok(last_event("click") == nil, "a disabled node does not fire its click")
+click("live")
+local fired = last_event("click")
+ok(fired ~= nil and fired.id == "live",
+   "an enabled node beside it still fires")
+
+-- Underneath, not beside: the disabled node covers the live one exactly.
+scene({ btn("under", 0), btn("over", 0, { dis = true }) })
+fake.reset_events()
+click("over")
+ok(last_event("click") == nil,
+   "a disabled node absorbs the click instead of passing it down")
+
+-- Spatial nav must skip it, or a remote lands focus on something that
+-- cannot be activated and the ring appears to get stuck.
+scene({ btn("first", 0), btn("skipme", 1, { dis = true }), btn("last", 2) })
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", id = "first" }))
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", dir = "down" }))
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "nav", action = "enter" }))
+local navd = last_event("click")
+ok(navd ~= nil and navd.id == "last",
+   "arrowing down steps over the disabled node",
+   navd and navd.id or "nothing activated")
+
+-- A disabled textbox takes no focus either, so typing cannot reach it.
+scene({ textbox("ro", "keep"), btn("elsewhere", 2) })
+scene({ { id = "ro", t = "textbox", x = 0, y = 0, w = 200, h = 30,
+          size = 18, text = "keep", dis = true }, btn("elsewhere", 2) })
+fake.reset_events()
+click("ro")
+type_text("Z")
+click("elsewhere")
+ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
+
+-- A disabled control that mutes itself in Python carries ONLY `dis` -- no
+-- click, no hover, no tip. node_at has to keep returning it anyway, or the
+-- press it is supposed to swallow reaches whatever it sits over. Over the
+-- playback HUD that is bare video, where a click toggles pause.
+scene({ { id = "card", t = "rect", x = 0, y = 0, w = 400, h = 200,
+          click = true },
+        { id = "muted", t = "rect", x = 50, y = 50, w = 120, h = 40,
+          dis = true } })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 100, y = 70 }))
+eq(last_event("click"), nil,
+   "a press on a self-muted disabled control fell through to the node "
+   .. "underneath")
+
+-- ================================================ thumb-button sections
+
+-- The thumb buttons are the browser's Back/Forward, but over a FILM they
+-- are whatever the user has under them -- mpv's playlist-prev/next, or the
+-- shim's own chapter nav. So they are declared in their own key-binding
+-- section, which a summoned playback HUD leaves disabled: an accidental
+-- thumb press must not take the player away, and there was no reason for
+-- the HUD to own a second way to dismiss itself when ESC already does.
+ok(fake.log.sections["mpvtk_thumb"] ~= nil,
+   "the thumb buttons have no section of their own to decline")
+ok((fake.log.sections["mpvtk_thumb"] or {})["mbtn_back"]
+   and (fake.log.sections["mpvtk_thumb"] or {})["mbtn_forward"],
+   "the thumb buttons are not in mpvtk_thumb")
+ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_back"],
+   "mbtn_back is still in the group the HUD keeps enabled")
+ok(not (fake.log.sections["mpvtk_mouse"] or {})["mbtn_forward"],
+   "mbtn_forward is still in the group the HUD keeps enabled")
+
+-- set_key_bindings DEFINES a section; it does not enable it. Browse owns
+-- these from the moment the renderer loads.
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "the thumb section was never enabled at load")
+
+-- ...and it has to come back afterwards. Two paths reach browse WITHOUT a
+-- mpvtk-active transition -- startup (state.active begins true) and browse
+-- resuming from a summoned HUD (phud_summon set active itself) -- so a
+-- section the HUD disabled would otherwise stay disabled for the session,
+-- and mouse Back would do nothing in the library.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")            -- the no-op transition
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "an already-active mpvtk-active left the thumb section disabled")
+
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+-- (hud_pointer is defined further down; this block runs before it)
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 310, hover = true })  -- summons
+eq(fake.log.enabled["mpvtk_thumb"], false,
+   "a summoned HUD did not decline the thumb buttons")
+fake.send("mpvtk-active", "yes")            -- browse resumes from the HUD
+eq(fake.log.enabled["mpvtk_thumb"], true,
+   "browse came back from a summoned HUD with mouse Back still dead")
+
+-- The nav keys take the SAME no-op transition, and were the other half of
+-- it. ui_suspend drops them for playback (the arrows are mpv's seek keys
+-- there) and only ui_resume puts them back -- which is below the early
+-- return. A summoned HUD calls ui_resume(no_nav) itself, correctly leaving
+-- them off, and then browse resumed without ever binding them again: no
+-- arrow, ENTER or TAB navigation in the library for the rest of the
+-- session, from the first video played.
+ok(fake.log.keybinds["mpvtk_nav_UP"] ~= nil,
+   "browse came back from a summoned HUD with arrow navigation dead")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse came back from a summoned HUD with ENTER dead")
+fake.send("mpvtk-hud", "no")
+
+-- ============================================== scrollbar drag anchoring
+
+-- The thumb is grabbed at a point, and that point stays under the pointer.
+-- It used to be a delta from a parked offset multiplied by a LIVE
+-- scroll_max, so a scroller that grew mid-drag mapped the same pointer
+-- movement onto a bigger jump while the thumb got shorter -- and slid out
+-- from under the cursor. That is #617 as the reporter met it: pages landing
+-- while they dragged.
+
+local function bars(id)
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return ((last_event("debug_state") or {}).bars or {})[id]
+end
+
+local function repaint()
+    fake.advance(0.1)
+    fake.fire_timers()
+end
+
+scene({ vscroll("lib", 600, 6000, { bar = true }) })
+repaint()
+local bar = bars("lib")
+ok(bar ~= nil, "the scroll container drew no scrollbar")
+
+local GRAB = 5                          -- where on the thumb it is held
+local py = bar.thumb_y + GRAB
+fake.mouse(bar.x + 3, py)
+fake.key("mbtn_left")                   -- press: the drag starts
+py = py + 120
+fake.mouse(bar.x + 3, py)
+repaint()
+ok(math.abs(bars("lib").thumb_y - (py - GRAB)) <= 1,
+   "the thumb did not follow the pointer",
+   string.format("thumb at %s, pointer holding %s",
+                 tostring(bars("lib").thumb_y), tostring(py - GRAB)))
+
+-- A page lands mid-drag: the content doubles under the thumb. The frame
+-- that draws it is what re-measures the thumb, so the next pointer movement
+-- is the one that has to land right -- and it does, because the grab is a
+-- point on the thumb rather than a distance from an offset.
+scene({ vscroll("lib", 600, 12000, { bar = true }) })
+repaint()
+py = py + 40
+fake.mouse(bar.x + 3, py)
+repaint()
+ok(math.abs(bars("lib").thumb_y - (py - GRAB)) <= 1,
+   "the thumb slid out from under the pointer when the content grew",
+   string.format("thumb at %s, pointer holding %s",
+                 tostring(bars("lib").thumb_y), tostring(py - GRAB)))
+
+-- Release, so the drag does not eat the pointer for the tests below.
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 5, y = 5 }))
+
+-- =================================================== HUD auto-hide
+
+-- The controls' auto-hide is a policy (hud_autohide), and the pointer
+-- resting ON them holds it off in every mode but 'always'. Reaching for a
+-- button must not be a race against the timer.
+
+local function hud_engage(opts)
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
+    -- Pointer movement is what summons an idle HUD, and the first event
+    -- after engaging only records the position.
+    fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+    fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+    -- What hud.py pushes once summoned: two bars carrying the ids
+    -- phud_busy tests the pointer against.
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+end
+
+local function hud_pointer(x, y)
+    fake.observe("mouse-pos", { x = x, y = y, hover = true })
+end
+
+local function hud_wait()
+    fake.advance(30)
+    fake.fire_timers()
+end
+
+local function hud_hidden()
+    local ev = last_event("hud")
+    return ev ~= nil and ev.active == false
+end
+
+hud_engage({ hide = 4, mode = "hover" })
+hud_pointer(600, 680)          -- onto the bar
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "the controls stay up while the pointer is on them")
+
+hud_pointer(600, 300)          -- back over the picture
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "they hide once the pointer is off them")
+
+-- 'always' does not care where the pointer is.
+hud_engage({ hide = 4, mode = "always" })
+hud_pointer(600, 680)
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "'always' hides them even under the pointer")
+
+-- A zero delay is only meaningful as "gone when not hovered", so it forces
+-- that mode however the mode was set.
+hud_engage({ hide = 0, mode = "always" })
+hud_pointer(600, 680)
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(),
+   "a zero delay still holds while the pointer is on the controls")
+
+-- Paused playback stopped being a rule and became a mode.
+fake.log.props["pause"] = true
+hud_engage({ hide = 4, mode = "paused" })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "'paused' keeps them up on a paused film")
+
+hud_engage({ hide = 4, mode = "hover" })
+hud_pointer(600, 300)
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "the default hides them on a paused film")
+fake.log.props["pause"] = nil
+
+-- "The pointer is on the controls" has to mean the pointer was PUT there.
+-- A mouse that has sat untouched wherever it was left is not reaching for
+-- anything, and treating it as a hover left a keyboard-summoned HUD up for
+-- ever. (It is also how a bare X server reads: the pointer parks at 0,0 and
+-- the top bar is drawn under it.)
+--- The two bars, as hud.py pushes them once the HUD is up. A hide clears
+--- the renderer's node table (ui_suspend), so this has to be re-sent after
+--- every summon -- which is exactly what the browser does.
+local function hud_bars()
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+end
+
+-- A caller that sends no opts at all gets the toolkit's own default, not
+-- the 0.5s floor: `or 0` folded "absent" into "zero", and zero is
+-- meaningful here (it forces hover mode), so PHUD_HIDE.def was unreachable.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes")
+hud_pointer(600, 300)
+hud_pointer(600, 310)
+hud_bars()
+fake.reset_events()
+fake.advance(1.0)
+fake.fire_timers()
+ok(not hud_hidden(), "no opts hid the controls after under a second")
+hud_wait()
+ok(hud_hidden(), "...and then never hid them at all")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+-- The first pointer event after engaging only records the position, so this
+-- parks the mouse on the bar without summoning anything.
+hud_pointer(600, 680)
+fake.send("mpvtk-hud-summon", "nav")
+hud_bars()
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "a key summon under an unmoved pointer still auto-hides")
+
+-- ...and moving it there does hold them, which is the case that gate must
+-- not have broken. (Two events again: the first after a hide only records
+-- the position, the second is movement and summons.)
+hud_pointer(600, 680)
+hud_pointer(600, 690)
+hud_bars()
+fake.reset_events()
+hud_wait()
+ok(not hud_hidden(), "moving the pointer onto them holds them up again")
+
+-- A pointer that leaves the window entirely takes its position with it.
+-- mpv keeps reporting the last coordinates with hover=false, which used to
+-- read as a mouse still resting on the bar.
+fake.observe("mouse-pos", { x = 600, y = 690, hover = false })
+fake.reset_events()
+hud_wait()
+ok(hud_hidden(), "a pointer that left the window stops holding them up")
+
+-- ================================================== scrub preview bubble
+
+-- The seek bar's trickplay/chapter/timestamp bubble is drawn HERE. It used
+-- to be a scene node Python rebuilt from a throttled hover event, which is
+-- why it trailed the pointer (#618) and why its width was a guess that only
+-- came out right when a thumbnail was the widest thing in it (#612).
+
+local function pv_paint()
+    fake.advance(0.1)
+    fake.fire_timers()
+end
+
+--- The bubble's rect, or nil when it is not up.
+local function preview()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).preview
+end
+
+--- The summoned HUD's seek bar as hud.py lays it out: 10 minutes over a
+--- 1080px node at x=100, so the track runs 108..1172 and its midpoint is
+--- 5:00.
+local function seek_scene()
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            { id = "hud-seek", t = "slider", x = 100, y = 660, w = 1080,
+              h = 26, min = 0, max = 600, value = 0, pv = true } })
+end
+
+hud_engage({ hide = 4, mode = "hover" })
+seek_scene()
+hud_pointer(640, 300)
+pv_paint()
+ok(preview() == nil, "no bubble with the pointer off the bar")
+
+hud_pointer(640, 670)
+pv_paint()
+local pv = preview()
+ok(pv ~= nil, "the bubble appears with the pointer on the bar")
+ok(pv and math.abs(pv.secs - 300) < 1,
+   "the bubble reads the position under the pointer",
+   pv and ("secs=" .. tostring(pv.secs)))
+ok(pv and pv.y + pv.h <= 660, "the bubble sits above the bar it describes")
+
+-- #612: the box is centred on the position it describes, whatever is in it.
+-- Python assumed a flat 136px and drew whatever the content came to, so a
+-- short chapter title pulled the bubble left of the point it was labelling.
+ok(pv and math.abs((pv.x + pv.w / 2) - 640) < 2,
+   "the bubble is centred on the pointer",
+   pv and ("centre=" .. tostring(pv.x + pv.w / 2)))
+
+-- No trickplay data yet, so no frame: the bubble is text only.
+eq(pv and pv.frame, nil, "no frame before any trickplay data arrives")
+
+-- ...and no overlay was issued for it either.
+local function preview_overlay()
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "overlay-add" and c[5] == "/tiles.bin" then found = c end
+    end
+    return found
+end
+
+fake.log.commands = {}
+hud_pointer(640, 671)
+pv_paint()
+ok(preview_overlay() == nil, "a bubble with no tiles issues no overlay")
+
+-- BIF tiles: 10s apart, so 5:00 is frame 30 and its bytes start at
+-- 30 * w * h * 4 -- the offset argument, which is what lets the renderer
+-- read one frame out of a file of them without decoding anything.
+fake.send("shim-trickplay-bif", "60", "10000", "32", "18", "/tiles.bin")
+fake.log.commands = {}
+hud_pointer(640, 672)
+pv_paint()
+local ov = preview_overlay()
+ok(ov ~= nil, "the trickplay frame is composited into the bubble")
+eq(ov and tonumber(ov[6]), 30 * 32 * 18 * 4,
+   "the overlay reads the frame for the hovered position")
+eq(preview().frame, 30, "the bubble reports the frame it drew")
+
+-- Past the end of the tiles clamps rather than reading past EOF, which
+-- mpv mmaps and would answer with SIGBUS.
+fake.send("shim-trickplay-bif", "10", "10000", "32", "18", "/tiles.bin")
+hud_pointer(1100, 672)
+pv_paint()
+eq(preview().frame, 9, "a position past the last tile clamps to it")
+
+-- The chapter-image fallback indexes by chapter start instead of a cadence.
+fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
+hud_pointer(640, 673)
+pv_paint()
+eq(preview().frame, 1, "chapter tiles index by start time (5:00 is in #2)")
+
+-- The bytes are unlinked right after the clear, so the renderer must stop
+-- pointing at them before that happens.
+fake.send("shim-trickplay-clear")
+fake.log.commands = {}
+hud_pointer(640, 674)
+pv_paint()
+ok(preview() ~= nil, "the bubble survives the tiles going away")
+ok(preview_overlay() == nil, "...but stops reading the cleared file")
+
+-- The pointer leaving the bar takes it away.
+hud_pointer(640, 300)
+pv_paint()
+ok(preview() == nil, "the bubble goes with the pointer")
+
+-- Releasing a drag must not make the bubble jump. A drag returns out of
+-- on_mouse_move before the hover tracking, so the position it falls back to
+-- when the button comes up has to have been kept current on the way.
+hud_pointer(400, 672)                   -- park the pointer left of centre
+pv_paint()
+local before = preview().secs
+fake.mouse(900, 672)
+fake.key("mbtn_left")                   -- press ON the bar: the drag starts
+fake.mouse(1000, 672)                   -- ...and drags right
+pv_paint()
+local dragged = preview().secs
+ok(dragged > before, "the bubble did not follow the drag",
+   string.format("%s -> %s", tostring(before), tostring(dragged)))
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 1000, y = 672 }))
+-- The release itself requests no render, so pv_rect still holds the rect
+-- painted DURING the drag -- which is the right answer either way and made
+-- this test pass on unfixed code. Push the scene Python pushes in response
+-- to the commit, which is what actually repaints, then look.
+seek_scene()
+pv_paint()
+ok(preview() ~= nil and math.abs(preview().secs - dragged) < 2,
+   "releasing the drag snapped the bubble back to where it started",
+   string.format("released at %s, was dragged to %s",
+                 tostring(preview() and preview().secs), tostring(dragged)))
+
+-- A chapter name comes from container metadata and can run to a sentence.
+-- clamp() returns its LOW bound when hi < lo, so an over-wide bubble pinned
+-- itself at x=8 and ran off the right edge -- and stopped being centred on
+-- the position it labels, which is #612 all over again.
+fake.log.props["chapter-list"] = {
+    { title = string.rep("A very long chapter name ", 12), time = 0 },
+}
+fake.observe("chapter-list", fake.log.props["chapter-list"])
+hud_pointer(640, 675)
+pv_paint()
+local wide = preview()
+ok(wide ~= nil, "no bubble to measure")
+ok(wide and wide.x >= 0 and wide.x + wide.w <= 1280,
+   "the bubble runs off the window",
+   wide and string.format("x=%d w=%d right=%d", wide.x, wide.w,
+                          wide.x + wide.w))
+ok(wide and math.abs((wide.x + wide.w / 2) - 640) < 2,
+   "a long chapter name knocked the bubble off centre",
+   wide and ("centre=" .. tostring(wide.x + wide.w / 2)))
+fake.observe("chapter-list", {})
+
+-- A bar that does not ask for a preview never gets one: this is opt-in
+-- (the volume slider is the same widget).
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-vol", t = "slider", x = 100, y = 660, w = 1080,
+          h = 26, min = 0, max = 100, value = 50 } })
+hud_pointer(642, 670)
+pv_paint()
+ok(preview() == nil, "a slider without pv draws no bubble")
+
+-- =========================================== keyboard scrolling (PGUP/etc)
+
+-- The arrows are focus navigation and stay that way; these four are the
+-- keys nothing was reaching. The target is the focused node's own scroller,
+-- or the tallest one in the scene when nothing is focused.
+local function keypress(name)
+    local fn = fake.log.keybinds["mpvtk_nav_" .. name]
+    ok(fn ~= nil, "no binding for " .. name)
+    if fn then fn() end
+end
+
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-active", "yes")     -- a clean browse state
+scene({ vscroll("body", 400, 4000) })
+eq(offset("body"), 0, "a fresh container should start at the top")
+
+keypress("PGDWN")
+eq(offset("body"), 400, "PGDWN did not page down by a viewport")
+keypress("PGDWN")
+eq(offset("body"), 800, "a second PGDWN did not page again")
+keypress("PGUP")
+eq(offset("body"), 400, "PGUP did not page back")
+
+keypress("END")
+eq(offset("body"), 3600, "END did not go to the bottom (ch - h)")
+keypress("PGDWN")
+eq(offset("body"), 3600, "PGDWN past the end should clamp, not overrun")
+keypress("HOME")
+eq(offset("body"), 0, "HOME did not go back to the top")
+
+-- A scroller with nothing to scroll is not a target, and neither is a
+-- horizontal one: PGUP/PGDWN are a vertical gesture.
+scene({ vscroll("short", 400, 100),
+        { id = "row", t = "scroll", axis = "x", x = 0, y = 0,
+          w = 400, h = 100, cw = 4000, ch = 100 } })
+keypress("PGDWN")
+eq(offset("short"), 0, "paged a container with nothing to scroll")
+eq(offset("row"), 0, "PGDWN scrolled a horizontal carousel")
+
+-- An open popup floats over the page; scrolling what is behind it is never
+-- what was meant. Same rule on_wheel applies to the wheel.
+scene({ vscroll("body", 400, 4000),
+        { id = "dd", t = "dropdown", x = 10, y = 10, w = 200, h = 30,
+          items = { "a", "b", "c", "d", "e", "f", "g", "h" }, sel = 0 } })
+keypress("PGDWN")
+eq(offset("body"), 400, "sanity: the page pages with no popup open")
+click("dd")                          -- open the dropdown
+keypress("PGDWN")
+eq(offset("body"), 400, "PGDWN scrolled the page behind an open popup")
+scene({})                            -- drop the popup with the scene
+
+-- ===================================== mpv's console owns the keyboard
+
+-- Our ENTER/arrow bindings are FORCED, so they outrank the console's own
+-- input: typing a command and pressing ENTER summoned the HUD and toggled
+-- pause instead of running it.
+-- force a real transition into browse: the tests above leave the renderer
+-- in HUD mode, where the arrows are mpv's seek keys
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-active", "yes")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse should own ENTER before the console")
+
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "the console is up and ENTER is still ours")
+ok(fake.log.keybinds["mpvtk_nav_UP"] == nil,
+   "the console is up and the arrows are still ours")
+
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "ENTER was not taken back when the console closed")
+ok(fake.log.keybinds["mpvtk_nav_UP"] ~= nil,
+   "the arrows were not taken back when the console closed")
+
+-- Restore puts back what was BOUND, not what some second copy of
+-- ui_resume's rules thinks should be. During plain playback the arrows are
+-- mpv's seek keys and nav is suspended, so closing the console there must
+-- not hand them to us.
+fake.send("mpvtk-active", "no")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil, "playback should not own ENTER")
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "closing the console bound nav keys that were not bound before it opened")
+fake.send("mpvtk-active", "yes")
+
 -- ========================================================== teardown
 
 scene({})

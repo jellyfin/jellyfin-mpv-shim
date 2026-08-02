@@ -6,6 +6,7 @@ is the whole reason that base exists.
 
 from ...i18n import _
 from ...mpvtk.widgets import Column, Row, Spacer, Text, VScroll
+from .. import pagination
 from ..components import chrome
 from ..tile_renderer import GRID_GAP
 from .music import MusicPage
@@ -144,7 +145,11 @@ class MusicGenrePage(MusicPage):
                 pass
             albums, total = source.get_genre_albums(
                 srv, route.get("parent_id"), route["item_id"])
-            return {"albums": albums, "songs": songs, "total": total}
+            # `total` slots from the first frame, most of them holes: the
+            # grid is its full height and the scrollbar its full length
+            # before anything past the first page exists (#617).
+            return {"albums": pagination.spread([], total, albums, 0),
+                    "songs": songs, "total": total}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -161,19 +166,32 @@ class MusicGenrePage(MusicPage):
         rows: list = [Text(route.get("title", ""), size=26, bold=True),
                       Spacer(h=4),
                       self.action_bar(server, ids, route["item_id"], "gen")]
+        # Ask for the rows about to be drawn, from the SAME window the
+        # renderer composites.
+        cols = art.tiles.cols(size[0], art.geom_square)
+        first, last = art.tiles.row_window(size, art.geom_square,
+                                           "mgenre", 110)
+        self._window(first * cols, (last + 1) * cols)
         rows += art.tiles.grid_of(albums, "mgenre", size,
                                   geom=art.geom_square,
                                   scroll_id="mgenre", head_h=110)
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
                        id="mgenre", flex=1,
                        offset=self.parked_scroll("mgenre"),
+                       # Lets a window that FAILED be asked for again;
+                       # render cannot retry without a request per frame.
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
                            "mgenre", off, mx,
-                           lambda o, m: self._on_scroll_end(o, m)))
+                           lambda o, m: art.pages.rewindow(route)))
 
-    def _on_scroll_end(self, offset, maximum):
-        """Page a genre's albums. It rendered one 100-album page with no
-        scroll handler, so a large genre simply stopped there."""
+    def _window(self, first, last):
+        """Fetch the albums in ``[first, last)`` that are not loaded yet.
+
+        Called from render, like every other windowed route: which items are
+        visible is a question about geometry. The query is bound here, on
+        the loop thread, so a page is fetched with the genre it was asked
+        for rather than whatever the route says when it lands.
+        """
         route = self.route
         source = self.ctx.source
         srv = route.get("server") or self.ctx.server
@@ -184,10 +202,10 @@ class MusicGenrePage(MusicPage):
             data = r.get("_data") or {}
             data["albums"], data["total"] = items, total
 
-        self.ctx.art.pages.more(
-            route, offset, maximum,
+        self.ctx.art.pages.window(
+            route, first, last,
             lambda r: ((r.get("_data") or {}).get("albums") or [],
                        (r.get("_data") or {}).get("total") or 0),
             put,
-            lambda start: source.get_genre_albums(srv, parent, gid,
-                                                  start_index=start))
+            lambda start, limit: source.get_genre_albums(
+                srv, parent, gid, start_index=start, limit=limit))

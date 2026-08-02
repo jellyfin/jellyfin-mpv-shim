@@ -18,7 +18,7 @@ import logging
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
-from .. import theme, view_prefs
+from .. import pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -206,7 +206,6 @@ class GridPage(Page):
         the items land and once when the whole job does -- so it must stay
         idempotent."""
         route = self.route
-        route["_items"] = items
         # Only where the route has none, which is the same rule ``load``
         # applies when it decides whether to ask the server at all. The two
         # calls are seconds apart -- the filter pickers are the slow half --
@@ -222,8 +221,18 @@ class GridPage(Page):
         # duplicates and silently skips items. Reporting the first page as
         # the whole list is what the Tk browser did, and the paginator's
         # "an empty page ends the list" rule can never fire here because a
-        # reshuffle always returns something.
-        route["_total"] = len(items) if sort_by == "Random" else total
+        # reshuffle always returns something. It is also what keeps a random
+        # grid out of the windowed path below: total == what is loaded, so
+        # there are no holes to ask about.
+        total = len(items) if sort_by == "Random" else total
+        route["_total"] = total
+        # The list is `total` slots wide from here on, holes and all, so the
+        # grid is its full height and the scrollbar its full length before
+        # anything past the first page exists (#617). Spread over whatever is
+        # already there rather than replacing it: this runs twice per load
+        # (see above) and a window may have landed in between.
+        route["_items"] = pagination.spread(
+            route.get("_items") or [], total, items, 0)
         # The toggle only makes sense on a movies library, and only
         # when the source can answer it (the offline catalog can't).
         route["_collection_capable"] = (
@@ -246,12 +255,27 @@ class GridPage(Page):
         labels = (bool(self._view("showTitle")),
                   bool(self._view("showYear")))
         if not labels[0]:
-            # No caption means no room for one: the strip reserves
-            # caption_h under every tile whether or not anything is drawn
-            # there, so leaving it would just be a band of background.
-            geom = dataclasses.replace(geom, caption_h=0)
+            # The strip reserves caption_h under every tile whether or not
+            # anything is drawn there, so the reservation has to follow what
+            # will actually be drawn -- too much is a band of background,
+            # too little puts a caption over the next row.
+            #
+            # Titles off, years on is ONE line (the year moves up into the
+            # title's place; see strips._paint_caption), so drop exactly the
+            # title line: its size plus the gap under it. Derived from the
+            # geometry rather than a constant, because a theme's cover size
+            # scales all of these together.
+            geom = dataclasses.replace(
+                geom,
+                caption_h=(max(0, geom.caption_h - geom.title_size - 7)
+                           if labels[1] else 0))
         if self._pages.enabled():
             return self._paged_grid(size, header, geom, image_type, labels)
+        # Ask for the rows about to be drawn, from the SAME window the
+        # renderer composites -- see TileRenderer.row_window.
+        cols = tiles.cols(size[0], geom)
+        first, last = tiles.row_window(size, geom, "grid", self.HEAD_H)
+        self._window(first * cols, (last + 1) * cols)
         rows = header + tiles.grid_of(
             items, "grid", size, geom=geom, image_type=image_type,
             scroll_id="grid", head_h=self.HEAD_H, labels=labels)
@@ -271,9 +295,14 @@ class GridPage(Page):
             # HEAD_H): a snap stop landing a few px short leaves the previous
             # row's caption — its year label — peeking at the top edge.
             snap_off=tiles.header_offset(header),
+            # No page-on-approach callback: the window is asked for at
+            # render time now, and a scroll that moves far enough to change
+            # it is already a repaint (ScrollState.on_scroll). What the
+            # callback does is let a window that FAILED be asked for again --
+            # render cannot retry on its own without becoming a request per
+            # frame. See Paginator.rewindow.
             on_scroll=lambda off, mx: art.scroll.on_scroll(
-                "grid", off, mx,
-                lambda o, m: self._on_scroll_end(o, m)),
+                "grid", off, mx, lambda o, m: self._pages.rewindow(route)),
         )
 
     @property
@@ -298,11 +327,14 @@ class GridPage(Page):
         ], align="center", w=max(0, (width or 0) - 2 * chrome.CONTENT_PAD))]
         header.append(self._filter_bar(width))
         # The count line is redundant with the pagination bar's "of N".
+        #
+        # The total alone, not "N of M": the list is M entries long from the
+        # first frame now, so "how many are loaded" is an implementation
+        # detail that used to be visible only because the grid could not
+        # show what it had not fetched.
         if not self._pages.enabled():
-            total = route.get("_total") or 0
-            header.append(Text(_("%(shown)d of %(total)d") % {
-                "shown": len(items), "total": total},
-                size=14, color=theme.SUBTLE_FG))
+            header.append(Text(_("%d items") % (route.get("_total") or 0),
+                               size=14, color=theme.SUBTLE_FG))
         return header
 
     def _view_controls(self):
@@ -473,24 +505,30 @@ class GridPage(Page):
             sort_by=sort_by, sort_order=sort_order, filters=filters,
             image_type=image_type, **kw)
 
-    def _on_scroll_end(self, offset, maximum):
-        route = self.route
-        # Bound HERE, on the loop thread, not inside the worker: the
-        # sort/filters a page is fetched with must be the ones it was asked
-        # for, not whatever they are when it lands. Paginator.more runs
-        # `fetch` on a pool worker, so calling _bound_query() in there read
-        # the route dict at landing time -- the epoch guard happens to drop
-        # the stale result today, but the invariant this comment describes
-        # was no longer the thing enforcing it.
+    def _window(self, first, last):
+        """Fetch the items in ``[first, last)`` that are not loaded yet.
+
+        Called from render, because which items are visible is a question
+        about geometry. A Random sort is exempt: it reshuffles per request,
+        so ``_install`` reports what it loaded as the whole list and there
+        are no holes to fill.
+
+        The query is bound HERE, on the loop thread, not inside the worker:
+        the sort and filters a page is fetched with must be the ones it was
+        asked for, not whatever they are when it lands.
+        """
         bound = self._bound_query()
+        if bound[0] == "Random":
+            return
 
         def put(r, items, total):
             r["_items"], r["_total"] = items, total
 
-        self._pages.more(
-            route, offset, maximum,
+        self._pages.window(
+            self.route, first, last,
             lambda r: (r.get("_items") or [], r.get("_total") or 0),
-            put, lambda start: self._fetch_at(start, bound=bound))
+            put,
+            lambda start, limit: self._fetch_at(start, limit, bound=bound))
 
     def _page_fetcher(self):
         """``fetch(start, limit) -> (items, total)`` for a paginated grid or
@@ -512,13 +550,18 @@ class GridPage(Page):
         it. It is also what makes the view cheap: no strips, no overlays, so
         a library of thousands costs nothing to draw.
         """
+        # A hole draws as an empty row rather than being skipped: the row
+        # index IS the item's position, which is what keeps the table its
+        # full height and the scrollbar honest while the windows load.
         rows = [
             {"cells": [it.get("Name") or "",
                        str(it.get("ProductionYear") or "")
                        if self._view("showYear") else "",
                        _fmt_runtime(it.get("RunTimeTicks"))],
              "item": it}
+            if it else {"cells": ["", "", ""], "item": None}
             for it in items]
+        head_h = self.ctx.art.tiles.header_offset(header)
         table = self.ctx.art.tiles.item_list(
             rows, "grid", on_click=lambda i: self.ctx.art.tiles.on_open(
                 items[i]),
@@ -527,14 +570,18 @@ class GridPage(Page):
             # window is computed against the table's own rows rather than
             # against the page. header_offset knows this Column's pad and
             # gap because it is the one the grid uses.
-            head_h=self.ctx.art.tiles.header_offset(header))
+            head_h=head_h)
+        # The same window the Table materializes, so the rows fetched are
+        # the rows drawn.
+        self._window(*self.ctx.art.tiles.list_window(
+            len(items), "grid", head_h))
         return VScroll(
             Column(header + [table], pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                    align="stretch"), id="grid", flex=1,
             offset=self.parked_scroll("grid"),
             on_scroll=lambda off, mx: self.ctx.art.scroll.on_scroll(
                 "grid", off, mx,
-                lambda o, m: self._on_scroll_end(o, m)))
+                lambda o, m: self._pages.rewindow(self.route)))
 
     def _sort_bar(self):
         """Just the sort dropdown, for routes with no filterable axes.
@@ -701,6 +748,15 @@ class GridPage(Page):
         if browse_image_types(was) == browse_image_types(now):
             self.ctx.invalidate()
             return
+        # Drop what is loaded before re-asking. _install SPLICES its page in
+        # now (windowing, #617) rather than replacing the list, so without
+        # this the refetch would refresh items 0..99 and leave every later
+        # window holding the tags fetched under the OLD EnableImageTypes --
+        # permanently, because a filled slot is never re-requested. That is
+        # exactly the bug this method exists to fix, reintroduced past the
+        # first page.
+        for k in ("_items", "_total", "_win_tried", "_win_load"):
+            self.route.pop(k, None)
         if self.ctx.nav.is_current(self.route):
             self.ctx.nav.reload(self.route)
         else:
@@ -781,14 +837,17 @@ class GridPage(Page):
             # that came out portrait because the content really is portrait
             # want different fixes.
             if log.isEnabledFor(logging.DEBUG):
+                # `if i` for the same reason auto_geom has it five lines
+                # up: `items` is the sparse list, and a hole has no .get.
+                loaded = [i for i in items or () if i]
                 ratios = sorted(r for r in
                                 (i.get("PrimaryImageAspectRatio")
-                                 for i in items or ())
+                                 for i in loaded)
                                 if isinstance(r, (int, float)) and r > 0)
                 log.debug(
                     "grid %s (%s): %d/%d items carry a ratio %s -> %dx%d %s",
                     route.get("title"), route.get("collection_type"),
-                    len(ratios), len(items or ()),
+                    len(ratios), len(loaded),
                     ("%.3f..%.3f" % (ratios[0], ratios[-1])) if ratios
                     else "(none)",
                     parked[0].tile_w, parked[0].tile_h, parked[1])
@@ -797,7 +856,8 @@ class GridPage(Page):
     # -- header actions -----------------------------------------------------
 
     def _reload(self):
-        for k in ("_items", "_total", "_grid_shape"):
+        for k in ("_items", "_total", "_grid_shape", "_win_tried",
+                  "_win_load"):
             self.route.pop(k, None)
         self.route["_loading"] = False
         self._pages.reset(self.route)
@@ -821,7 +881,8 @@ class GridPage(Page):
         Collections are server-wide and recursive, so this is a different
         query rather than a filter."""
         self.route["_collections"] = not self.route.get("_collections")
-        for k in ("_items", "_total", "_loading", "_grid_shape"):
+        for k in ("_items", "_total", "_loading", "_grid_shape",
+                  "_win_tried", "_win_load"):
             self.route.pop(k, None)
         self.ctx.nav.reload(self.route)
 
@@ -937,10 +998,15 @@ class ListPage(GridPage):
 
         def done(res):
             items, total = res
-            route["_items"] = items
             # Same Random cap as the grid: the server reshuffles per request,
             # so paging one yields duplicates and skips.
-            route["_total"] = len(items) if sort_by == "Random" else total
+            total = len(items) if sort_by == "Random" else total
+            route["_total"] = total
+            # ...and the same padding. This route inherits GridPage.render,
+            # so it IS windowed -- without the padding the list stayed one
+            # page long while _total said otherwise, and the scroller jumped
+            # the moment a window landed, which is #617's symptom itself.
+            route["_items"] = pagination.spread([], total, items, 0)
 
         self.route_async(work, done, epoch)
 
@@ -987,10 +1053,9 @@ class ListPage(GridPage):
         if self._sortable():
             header.append(self._sort_bar())
         if not self._pages.enabled():
-            total = self.route.get("_total") or 0
-            header.append(Text(_("%(shown)d of %(total)d") % {
-                "shown": len(items), "total": total},
-                size=14, color=theme.SUBTLE_FG))
+            header.append(
+                Text(_("%d items") % (self.route.get("_total") or 0),
+                     size=14, color=theme.SUBTLE_FG))
         return header
 
 
@@ -1022,12 +1087,16 @@ class PersonPage(GridPage):
 
         def done(res):
             items, total = res
-            route["_items"] = items
             # Random reshuffles server-side per request, so paging it yields
             # duplicates and skips. Cap at the first page, as the grid does
             # and as Tk did — the cap lived only in the grid loader, so the
             # filmography had the corruption the cap exists to prevent.
-            route["_total"] = len(items) if sort_by == "Random" else total
+            total = len(items) if sort_by == "Random" else total
+            route["_total"] = total
+            # Padded for the same reason ListPage is: this route is windowed
+            # by the inherited render, so an unpadded list resizes the
+            # scroller under the thumb as each window lands.
+            route["_items"] = pagination.spread([], total, items, 0)
 
         self.route_async(work, done, epoch)
 

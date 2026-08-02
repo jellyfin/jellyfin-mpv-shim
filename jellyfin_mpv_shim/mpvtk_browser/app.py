@@ -253,6 +253,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._dl_thread = None
         # Tail poller for the logs tab — see SettingsMixin._poll_logs.
         self._log_thread = None
+        # Debounce slot for UserDataChanged — see refresh_home.
+        self._userdata_thread = None
         # Long job (currently only the download-folder move) — see _run_long.
         self._long_thread = None
         # Global download progress for the status bar, and its poller.
@@ -292,42 +294,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._pin = {"pin": ""}
         self._pin_error = None
         self._locked = False
-        # Cover size: the theme's default, overridden by the Cover Size
-        # setting when it is set. Posters/square scale; a theme may also
-        # override the landscape (library) tile's shape outright.
-        _cs = (getattr(_settings, "poster_scale", None)
-               or self._theme_cfg.get("poster_scale", 1.0))
-        _lw, _lh = self._theme_cfg.get("tile_landscape",
-                                       (LANDSCAPE_GEOM.tile_w,
-                                        LANDSCAPE_GEOM.tile_h))
-        self.geom = geom or POSTER_GEOM.scaled(_cs)   # default tile shape (2:3)
-        # The stock shape stays the module singleton rather than an equal
-        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
-        if (_lw, _lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
-            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
-        else:
-            self.geom_wide = TileGeom(
-                tile_w=_lw, tile_h=_lh,
-                caption_h=LANDSCAPE_GEOM.caption_h)
-        self.geom_square = SQUARE_GEOM.scaled(_cs)    # 1:1 (music)
-        # ~5.4:1. Only a user asking for the Banner image type reaches this.
-        self.geom_banner = BANNER_GEOM.scaled(_cs)
-        # A theme may also pin the tile caption font so it does NOT grow with
-        # the cover (big art, modest labels), which lets a long title show
-        # more of itself before it is ellipsized. Section headings are
-        # separate (heading_size) and unaffected.
-        _tts = self._theme_cfg.get("tile_title_size")
-        _tss = self._theme_cfg.get("tile_sub_size")
-        if _tts or _tss:
-            import dataclasses
-
-            def _caption(g):
-                return dataclasses.replace(
-                    g, title_size=_tts or g.title_size,
-                    sub_size=_tss or g.sub_size)
-            self.geom = _caption(self.geom)
-            self.geom_wide = _caption(self.geom_wide)
-            self.geom_square = _caption(self.geom_square)
+        # The four tile shapes, from the theme and the Cover Size setting.
+        # A fixed ``geom`` (the integration harness passes one) pins the
+        # poster shape and opts out of later re-derivation.
+        self._geom_pinned = geom
+        self._derive_cover_size()
         # Downloaded id sets (for the tile badge), refreshed from the sync db.
         # Default to a file-backed store (works on both backends / headless);
         # the libmpv integration passes a MemoryStore-backed one.
@@ -562,6 +533,62 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if route.get("_loading"):
             return
         self._load_route(route)
+
+    #: How long a UserDataChanged burst settles before Home re-reads. The
+    #: server sends one per progress report -- including for our own
+    #: playback -- so without this, watching a film would refetch the home
+    #: screen every few seconds behind the video.
+    USERDATA_DEBOUNCE = 3.0
+
+    def refresh_home(self, _client=None, now=False):
+        """Re-read the home screen, if that is what is showing.
+
+        Continue Watching and Next Up are the only rows in the library that a
+        *third party* changes while you are looking at them: finishing an
+        episode on a phone, or removing a film from Continue Watching in a
+        browser (#560). A stale row there is not cosmetic -- it offers to
+        resume something already watched, and pressing it starts it over.
+
+        A **load, not a reload**, exactly like refresh_live_tv: the epoch
+        stays put so nothing in flight is cancelled, and the home loader
+        writes ``_data`` only when its result lands, so the screen keeps the
+        rows it has instead of blinking a spinner over what is being read.
+
+        Reached from the websocket thread, so it must be safe off the loop
+        thread and cheap when it does not apply.
+
+        ``now`` skips the debounce, for the caller that is not a burst:
+        coming back from playback (see enter_browse). That is the local half
+        of the same bug -- watching something in the shim ITSELF left the
+        rows stale, because Home only re-read on a Back press.
+        """
+        if self.route.get("kind") != "home" or not self._browsing:
+            return
+        if now:
+            if self._menu is None and self._dialog is None \
+                    and not self.route.get("_loading"):
+                self._load_route(self.route)
+            return
+
+        def tick():
+            # _start_daemon keeps one thread per slot, so a burst of events
+            # schedules exactly one re-read: the first arrival starts the
+            # wait and the rest land while the slot is taken.
+            self._shutdown_evt.wait(self.USERDATA_DEBOUNCE)
+            route = self.route
+            if route.get("kind") != "home" or not self._browsing:
+                return
+            # Deferred, never forced, while the user is mid-interaction --
+            # see refresh_live_tv for the full reasoning. Skipping costs
+            # nothing here: the next event is seconds away, and returning to
+            # Home re-reads anyway.
+            if self._menu is not None or self._dialog is not None:
+                return
+            if route.get("_loading"):
+                return
+            self._load_route(route)
+
+        self._start_daemon("_userdata_thread", "mpvtk-userdata", tick)
 
     def _reload_route(self, route):
         """Re-run a route's loader in place: the data changed, the screen did
@@ -937,6 +964,86 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             log.debug("could not repaint the mpv background", exc_info=True)
         self.invalidate()
         return cfg
+
+    def _derive_cover_size(self):
+        """(Re)compute the four tile geometries from the theme and the Cover
+        Size setting.
+
+        Split out of __init__ so the setting can be changed without a
+        restart: everything downstream reads ``art.geom*`` at render time,
+        and strip bitmaps are keyed on the geometry's own dimensions
+        (StripStore._key), so nothing cached at the old size can be served
+        at the new one.
+        """
+        import dataclasses
+
+        from ..conf import settings as _settings
+
+        # Cover size: the theme's default, overridden by the Cover Size
+        # setting when it is set. Posters/square scale; a theme may also
+        # override the landscape (library) tile's shape outright.
+        cs = (getattr(_settings, "poster_scale", None)
+              or self._theme_cfg.get("poster_scale", 1.0))
+        lw, lh = self._theme_cfg.get("tile_landscape",
+                                     (LANDSCAPE_GEOM.tile_w,
+                                      LANDSCAPE_GEOM.tile_h))
+        self.geom = self._geom_pinned or POSTER_GEOM.scaled(cs)
+        # The stock shape stays the module singleton rather than an equal
+        # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
+        if (lw, lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
+            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
+        else:
+            self.geom_wide = TileGeom(
+                tile_w=lw, tile_h=lh,
+                caption_h=LANDSCAPE_GEOM.caption_h)
+        self.geom_square = SQUARE_GEOM.scaled(cs)     # 1:1 (music)
+        # ~5.4:1. Only a user asking for the Banner image type reaches this.
+        self.geom_banner = BANNER_GEOM.scaled(cs)
+        # A theme may also pin the tile caption font so it does NOT grow with
+        # the cover (big art, modest labels), which lets a long title show
+        # more of itself before it is ellipsized. Section headings are
+        # separate (heading_size) and unaffected.
+        tts = self._theme_cfg.get("tile_title_size")
+        tss = self._theme_cfg.get("tile_sub_size")
+        if tts or tss:
+            def caption(g):
+                return dataclasses.replace(
+                    g, title_size=tts or g.title_size,
+                    sub_size=tss or g.sub_size)
+            self.geom = caption(self.geom)
+            self.geom_wide = caption(self.geom_wide)
+            self.geom_square = caption(self.geom_square)
+
+    def apply_cover_size(self):
+        """Adopt a changed Cover Size without a restart.
+
+        Theme-driven geometry is still restart-only (see set_theme): there
+        the size is a side effect of a colour change nobody asked to resize
+        for. A control LABELLED Cover Size is the opposite case -- seeing it
+        happen is the whole point, which is why the setting sat behind a
+        restart and nobody could tell what the values meant (#616).
+
+        Parked scroll offsets have to go: they are pixel positions into a
+        list whose row pitch just changed, so keeping them would land the
+        user somewhere they never scrolled to.
+
+        So does every route's parked GRID SHAPE. ``GridPage._grid_shape``
+        computes the median-artwork geometry once per route and keeps the
+        resolved ``TileGeom`` on the route dict -- deliberately, so a grid
+        does not change shape as you page through it -- which means the
+        library on screen went on drawing at the old cover size until it was
+        reloaded. That is why this looked like it needed you to leave the
+        page and come back. Cleared for the whole stack, not just the
+        current route, or going back lands on a stale one.
+        """
+        self._derive_cover_size()
+        if self.strips is not None:
+            self.strips.geom = self.geom
+        for route in self.nav_stack:
+            route.pop("_grid_shape", None)
+            route.pop(self._scroll.PARK_KEY, None)
+        self._scroll.reset()
+        self.invalidate()
 
     def invalidate(self):
         if self.app is not None:
@@ -1461,10 +1568,34 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         else:
             self._set_renderer_active(False)
 
+    def _tell_controller(self, name):
+        """Fire one of the browse/playback transition callbacks, and survive
+        it raising.
+
+        These three run in the MIDDLE of a transition -- ``_yield`` has
+        already cleared ``_browsing`` and still has to engage the HUD;
+        ``enter_browse`` still has to refresh Home and re-activate the
+        renderer. An exception out of the controller therefore did not fail
+        the callback, it abandoned the transition half-applied, and the
+        browser stayed in a state nothing would put right until the next one.
+
+        Found the hard way: gateway.on_browse_leave read a setting #615 had
+        retired, so every single browse -> video transition raised
+        AttributeError and skipped the HUD engage that follows it.
+        """
+        if self.controller is None:
+            return
+        fn = getattr(self.controller, name, None)
+        if fn is None:
+            return
+        try:
+            fn()
+        except Exception:
+            log.exception("controller.%s failed", name)
+
     def _yield(self):
         self._browsing = False
-        if self.controller is not None:
-            self.controller.on_browse_leave()
+        self._tell_controller("on_browse_leave")
         if self.hud.available():
             # keep the renderer attached: blank scene + summon bindings
             try:
@@ -1568,13 +1699,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _play_photo(self, item, server):
         """Open a photo, with the rest of its album queued behind it.
 
-        The album is whatever the grid this was clicked in is showing, which
-        is already loaded -- no fetch, and it matches what the user can see.
-        Falls back to the one photo when the route has no list (a search
-        result, say), which still opens the picture.
+        The album is whatever the grid this was clicked in has LOADED -- no
+        fetch, and it matches what the user can see. Since #617 that is a
+        window rather than everything walked past, so a photo opened deep in
+        a large album queues its neighbourhood rather than the whole folder;
+        the holes are skipped like any other consumer skips them. Falls back
+        to the one photo when the route has no list (a search result, say),
+        which still opens the picture.
         """
         items = [i for i in (self.route.get("_items") or [])
-                 if i.get("Type") == PHOTO_TYPE and i.get("Id")]
+                 if i and i.get("Type") == PHOTO_TYPE and i.get("Id")]
         ids = [i["Id"] for i in items]
         try:
             start = ids.index(item.get("Id"))
@@ -1603,8 +1737,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._browsing = True
         self._minimized = False
         self.hud.shown = False
-        if self.controller is not None:
-            self.controller.on_browse_enter()
+        self._tell_controller("on_browse_enter")
+        # Whatever just finished may have moved the resume rows, and this is
+        # the moment they are about to be looked at. go_back has re-read Home
+        # for this reason all along; coming back from PLAYBACK does not go
+        # through it, which is why watching something in the shim itself left
+        # its own Continue Watching row stale (#560).
+        self.refresh_home(now=True)
         self._set_renderer_active(True)
         self.invalidate()
 
@@ -1617,8 +1756,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._browsing = False
         self.hud.shown = False
         self._set_renderer_active(False)
-        if self.controller is not None:
-            self.controller.on_minimize()
+        self._tell_controller("on_minimize")
 
     @property
     def minimized(self):

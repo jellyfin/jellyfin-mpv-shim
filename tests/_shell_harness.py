@@ -46,14 +46,35 @@ def music_page(b, route=None):
     seam the music screens' helpers moved to in 6c."""
     return b._page_for(route if route is not None else b.route)
 
-def music_scroll(b, route, offset, maximum):
-    """The music library's infinite-scroll handler, now on the page."""
+def music_scroll(b, route, offset, maximum, scroll_id="music-grid"):
+    """Scroll a windowed music route and let it ask for what that brings in.
+
+    The tile tabs and the genre page are windowed since #617: there is no
+    page-on-approach callback, so scrolling means moving the offset and
+    rendering. Same shape as grid_scroll.
+    """
+    from jellyfin_mpv_shim.mpvtk_browser.pagination import Paginator
+    Paginator.rewindow(route)     # what the view's on_scroll callback does
+    b._scroll.on_scroll(scroll_id, offset, maximum)
+    build_scene(b)
+
+
+def music_songs_scroll(b, route, offset, maximum):
+    """The SONGS tab's infinite scroll, which still appends on approach."""
     b._page_for(route)._on_scroll_end(offset, maximum)
 
 def grid_scroll(b, route, offset, maximum):
-    """The grid/person infinite-scroll handler, which moved onto GridPage in
-    6c. Reached through the page the shell would build for that route."""
-    b._page_for(route)._on_scroll_end(offset, maximum)
+    """Scroll a grid/person route and let it ask for what that brings in.
+
+    The grid is *windowed* since #617: there is no page-on-approach callback
+    any more, so scrolling it means moving the offset and rendering — the
+    render is what asks ``Paginator.window`` for the newly visible range,
+    from the same geometry the renderer composites.
+    """
+    from jellyfin_mpv_shim.mpvtk_browser.pagination import Paginator
+    Paginator.rewindow(route)     # what the view's on_scroll callback does
+    b._scroll.on_scroll("grid", offset, maximum)
+    build_scene(b)
 
 def detail_page(b, route):
     """A DetailPage bound to ``route`` — the seam the detail screen's private
@@ -89,6 +110,16 @@ class FakeSource:
                  "ProductionYear": 2001}],
              "collection_type": None},
         ]
+        #: Rows the "latest" batch adds. Kept apart from home_rows because
+        #: HomePage.load fetches the two in stages and publishes between
+        #: them; a fake that answered the same list for both made the whole
+        #: staging invisible to the tests.
+        self.home_latest_rows = [
+            {"title": "Latest Movies", "items": [
+                {"Id": "m2", "Name": "Beta", "Type": "Movie",
+                 "ProductionYear": 2002}],
+             "collection_type": "movies"},
+        ]
         # PrimaryImageAspectRatio because a real Jellyfin sets it from the
         # Primary image, and the library grid is shaped by the median of it
         # (GridPage._grid_shape). A fixture without one exercises only the
@@ -114,6 +145,12 @@ class FakeSource:
 
     def get_home_rows(self, server_uuid, libraries=None, sections=None,
                       layout=None, latest_excludes=None):
+        # sections is ("primary",) or ("latest",) -- see HomePage.load. None
+        # means "everything", which is what the non-staged callers ask for.
+        if sections is None:
+            return list(self.home_rows) + list(self.home_latest_rows)
+        if "latest" in sections:
+            return list(self.home_latest_rows)
         return list(self.home_rows)
 
     def get_library_items(self, server_uuid, parent_id, start_index=0,
@@ -276,9 +313,17 @@ class FakeSource:
     def get_artists(self, server_uuid, parent_id, **kw):
         return ([{"Id": "ar2", "Name": "Artist 2", "Type": "MusicArtist"}], 1)
 
-    def get_songs(self, server_uuid, parent_id, **kw):
+    def get_songs(self, server_uuid, parent_id, start_index=0, limit=100,
+                  **kw):
+        # start_index honoured, because the songs tab is windowed and its
+        # play action asks the server from the clicked row (see
+        # MusicLibraryPage._play_songs_from). A fake that ignored it would
+        # make that indistinguishable from playing the first page.
+        total = 5
         return ([{"Id": "so%d" % i, "Name": "Song %d" % i, "Type": "Audio",
-                  "IndexNumber": i + 1} for i in range(5)], 5)
+                  "IndexNumber": i + 1}
+                 for i in range(start_index,
+                                min(total, start_index + limit))], total)
 
     def get_artist_songs(self, server_uuid, artist_id, limit=500):
         return [{"Id": "as%d" % i, "Name": "AS %d" % i, "Type": "Audio"}

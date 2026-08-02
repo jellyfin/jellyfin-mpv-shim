@@ -108,6 +108,9 @@ class EventHandler(object):
     # Set by the in-window browser: (client) -> a recording rule changed
     # somewhere, refresh the Live TV screen if that is what is showing.
     live_tv_changed: Optional[Callable[..., Any]] = None
+    # Set by the in-window browser: (client) -> watched/resume state moved
+    # for this user, refresh the home screen if that is what is showing.
+    user_data_changed: Optional[Callable[..., Any]] = None
 
     def handle_event(
         self,
@@ -247,6 +250,29 @@ class EventHandler(object):
                 self.live_tv_changed(client)
             except Exception:
                 log.warning("live tv refresh hook failed", exc_info=True)
+
+    @bind("UserDataChanged")
+    def user_data_change(
+        self, client: "JellyfinClient_type", _event_name, _arguments: dict
+    ):
+        """Watched / resume state moved for this user, somewhere.
+
+        Continue Watching and Next Up are the rows this shows up in, and
+        "somewhere" is usually another client entirely: finishing an episode
+        on a phone, or removing a film from Continue Watching in a browser,
+        which is what #560 reported. The row is not cosmetically stale
+        afterwards -- it is offering to resume something already watched.
+
+        Only a nudge; the browser decides whether the screen it is showing
+        cares, and debounces. The server sends one of these per progress
+        report, including for our OWN playback, so this fires every few
+        seconds while watching.
+        """
+        if self.user_data_changed:
+            try:
+                self.user_data_changed(client)
+            except Exception:
+                log.warning("user data refresh hook failed", exc_info=True)
 
     @bind("SyncPlayGroupUpdate")
     def sync_play_group_update(

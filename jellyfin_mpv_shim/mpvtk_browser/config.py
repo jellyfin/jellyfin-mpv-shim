@@ -10,7 +10,7 @@ import sys
 import typing
 
 from ..conf import Settings, settings
-from ..i18n import _
+from ..i18n import _, _p
 
 # Structured / non-scalar config that the flat form can't express, plus
 # internal bookkeeping. Everything else is editable.
@@ -85,8 +85,11 @@ SECTIONS = [
                       "close_to_tray", "allow_background",
                       "start_minimized",
                       "remember_window_size",
-                      "fullscreen", "enable_osc", "osc_style",
-                      "hud_grab_keys", "hud_wake_key", "raise_mpv",
+                      "fullscreen", "osc_style",
+                      "hud_grab_keys", "hud_wake_key",
+                      "hud_scrim", "hud_autohide", "hud_hide_secs",
+                      "hud_sub_margin",
+                      "mouse_chapter_nav", "raise_mpv",
                       "discord_presence",
                       "check_updates", "notify_updates"]),
     # The three startup-applied "look" settings, together: the theme sets the
@@ -113,9 +116,9 @@ SECTIONS = [
                         "force_audio_codec"]),
     (_("Video Enhancement"), ["shader_pack_enable", "shader_pack_subtype",
                               "shader_pack_remember", "shader_pack_gpu_api"]),
-    (_("Skip Intro / Credits"), ["skip_intro_enable", "skip_intro_always",
-                                 "skip_credits_enable", "skip_credits_always",
-                                 "skip_intro_on_seek"]),
+    (_("Skip Intro / Credits"), ["segment_intro", "segment_outro",
+                                 "segment_commercial", "segment_preview",
+                                 "segment_recap", "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
                             "scroll_mode", "paginated"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
@@ -130,9 +133,16 @@ SECTIONS = [
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
     "subtitle_position": ["top", "bottom", "middle"],
-    "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
+    "mpv_log_level": ["fatal", "error", "warn", "info", "debug", "noise"],
     "shader_pack_subtype": ["lq", "hq"],
 }
+
+#: Shared by the five media-segment settings below.
+_SEGMENT_ACTIONS = [
+    (_("Never"), "off"),
+    (_("Ask"), "ask"),
+    (_("Always"), "always"),
+]
 
 # Enums whose stored value isn't presentable: [(label, value), ...].
 LABELED_ENUMS = {
@@ -140,6 +150,7 @@ LABELED_ENUMS = {
         (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
+        (_("No player controls"), "none"),
     ],
     "ui_scale": [
         (_("Follow display"), None),
@@ -158,8 +169,30 @@ LABELED_ENUMS = {
         (_("Aligned to rows"), "aligned"),
         (_("One row per notch"), "row"),
     ],
+    # One list, five settings: the three things that can be done about a
+    # media segment (jellyfin-web offers the same three).
+    "segment_intro": _SEGMENT_ACTIONS,
+    "segment_outro": _SEGMENT_ACTIONS,
+    "segment_commercial": _SEGMENT_ACTIONS,
+    "segment_preview": _SEGMENT_ACTIONS,
+    "segment_recap": _SEGMENT_ACTIONS,
+    "hud_scrim": [
+        (_("Default"), "default"),
+        (_("Panel behind the controls"), "panel"),
+        (_("None (shadowed text)"), "none"),
+    ],
+    "hud_autohide": [
+        (_("Hide unless hovered"), "hover"),
+        (_("Always hide"), "always"),
+        (_("Never hide while paused"), "paused"),
+    ],
+    # Every label points at the value it has always pointed at -- "Small" is
+    # the base size, which reads oddly beside two smaller steps but is the
+    # price of not silently re-pointing a string 86 locales have translated.
     "poster_scale": [
         (_("Theme default"), None),
+        (_("Extra Compact"), 0.75),
+        (_("Compact"), 0.85),
         (_("Small"), 1.0),
         (_("Medium"), 1.2),
         (_("Large"), 1.4),
@@ -211,6 +244,22 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "segment_intro": _("Skip Intros"),
+    # The one segment label that collides with its own Skip BUTTON:
+    # gettext keys on the English, the other four are pluralised ("Skip
+    # Intros" vs the button's "Skip Intro"), and "Credits" is already
+    # plural. The context goes on the LABEL rather than the button because
+    # the button is the string people actually see, and a context discards
+    # every existing translation of the string it is added to.
+    "segment_outro": _p("setting", "Skip Credits"),
+    "segment_commercial": _("Skip Commercials"),
+    "segment_preview": _("Skip Previews"),
+    "segment_recap": _("Skip Recaps"),
+    "hud_scrim": _("Shading Behind the Player Controls"),
+    "hud_autohide": _("When the Player Controls Hide"),
+    "hud_hide_secs": _("Hide the Player Controls After (seconds)"),
+    "hud_sub_margin": _("Raise Subtitles Above the Player Controls"),
+    "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
     "audio_exclusive": _("Take the Device Exclusively"),
@@ -259,8 +308,11 @@ NOTES = {
                   "editing conf.json. For the classic cast-target setup you "
                   "want the Interface settings instead; this is for a shared "
                   "TV nobody should be able to browse from."),
-    "osc_style": _("Requires restart to change. MPV keybinds are used by default. Press ENTER to drive "
-                   "the player controls by keyboard."),
+    "osc_style": _("Requires restart to change. MPV keybinds are used by "
+                   "default. Press ENTER to drive the player controls by "
+                   "keyboard. \"No player controls\" leaves playback bare; "
+                   "the library, the keyboard shortcuts and the menu key "
+                   "still work."),
     "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. On a grid this "
                              "is rounded so a whole number of notches spans "
                              "one row, whichever scroll mode you are in — a "
@@ -302,8 +354,23 @@ NOTES = {
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),
-    "poster_scale": _("Overrides the theme's cover size. Takes effect after a "
-                      "restart."),
+    "poster_scale": _("Overrides the theme's cover size. Applies "
+                      "immediately, and is also on the View menu of any "
+                      "library."),
+    "hud_scrim": _("The controls have to stay legible over any frame. "
+                   "\"None\" gives the text a drop shadow instead of "
+                   "shading the picture behind it."),
+    "hud_autohide": _("\"Hide unless hovered\" keeps them up only while "
+                      "the pointer is on them, paused or not."),
+    "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
+                       "them, and forces \"Hide unless hovered\"."),
+    "hud_sub_margin": _("Subtitles move up while the controls show so the "
+                        "bar does not cover them. Turn this off if the "
+                        "movement is more distracting than the overlap."),
+    "mouse_chapter_nav": _("During playback only — in the library those "
+                           "buttons stay Back and Forward. Off by default "
+                           "because they are easy to hit by accident on some "
+                           "mice. Takes effect after a restart."),
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "

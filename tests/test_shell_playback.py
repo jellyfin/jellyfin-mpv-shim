@@ -147,37 +147,25 @@ class TestPlaybackHudLayout(unittest.TestCase):
         nodes, _h = build_scene(b, (1280, 720))
         seek = next(n for n in nodes if n.get("id") == "hud-seek")
         self.assertEqual(seek.get("ranges"), [[0.1, 0.4], [0.9, 1.0]])
-        self.assertTrue(seek.get("hoverev"),
-                        "seek bar must opt into hover events")
+        self.assertTrue(seek.get("pv"),
+                        "seek bar must opt into the renderer's preview")
 
-    def test_hover_bubble_shows_chapter_and_time(self):
-        b, ctl = self._browser()
+    def test_no_python_side_preview_bubble(self):
+        """The scrub bubble is the renderer's, not a scene node.
+
+        It used to be built here from a hover event, which meant a whole
+        HUD rebuild per pointer move (#618) and a box whose width Python
+        guessed rather than measured (#612). All that is left on this side
+        is the flag that tells the renderer the bar has one.
+        """
+        b, _ctl = self._browser()
         nodes, handlers = build_scene(b, (1280, 720))
         self.assertNotIn("hud-preview", ids(nodes))
-        # need a laid-out slider rect for the float: fake node_rect via
-        # a stub app that serves the previous scene's geometry
-        seek = next(n for n in nodes if n.get("id") == "hud-seek")
-
-        class GeoApp(StubHudApp):
-            def node_rect(self, node_id):
-                return seek if node_id == "hud-seek" else None
-
-            def invalidate(self):
-                pass
-
-        b.app = GeoApp()
-        handlers["hud-seek"]["hover"](45.0)
-        self.assertEqual(b.hud.hover, 45.0)
-        nodes, handlers = build_scene(b, (1280, 720))
-        self.assertIn("hud-preview", ids(nodes))
-        texts = [n.get("text") for n in nodes if n.get("text")]
-        self.assertIn("0:45", texts, "bubble timestamp missing")
-        self.assertIn("Middle", texts,
-                      "bubble chapter name missing (45s is in Middle)")
-        handlers["hud-seek"]["hover_end"]()
-        self.assertIsNone(b.hud.hover)
-        nodes, _h = build_scene(b, (1280, 720))
-        self.assertNotIn("hud-preview", ids(nodes))
+        self.assertNotIn("hover", handlers["hud-seek"],
+                         "the seek bar must not ask for hover events")
+        self.assertNotIn("hover_end", handlers["hud-seek"])
+        self.assertFalse(hasattr(b.hud, "hover"),
+                         "hover state has no owner on this side any more")
 
     def test_hud_show_hide_adjusts_sub_margin(self):
         b, ctl = self._browser()
@@ -204,20 +192,174 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertIn(("seek_relative", (30,)), ctl.transport)
 
     def test_chapter_jump_buttons(self):
+        """The buttons ask the player for a chapter rather than working the
+        target out and seeking there: one definition of "previous chapter"
+        (player.chapter_target, shared with the mouse buttons), and the jump
+        goes through SyncPlay like every other seek."""
         b, ctl = self._browser()
         _nodes, handlers = build_scene(b, (1280, 720))
-        # pos=50: prev -> chapter at 40, next -> chapter at 80
         handlers["hud-ch-prev"]["click"]()
         handlers["hud-ch-next"]["click"]()
-        self.assertIn(("seek", (40.0,)), ctl.transport)
-        self.assertIn(("seek", (80.0,)), ctl.transport)
+        self.assertIn(("chapter_seek", (-1,)), ctl.transport)
+        self.assertIn(("chapter_seek", (1,)), ctl.transport)
 
-    def test_prev_chapter_within_grace_goes_further_back(self):
-        b, ctl = self._browser()
-        b.hud.state["position"] = 41.0  # within 2s of the 40s chapter
-        _nodes, handlers = build_scene(b, (1280, 720))
-        handlers["hud-ch-prev"]["click"]()
-        self.assertIn(("seek", (0.0,)), ctl.transport)
+class TestHudScrimAndAutohide(unittest.TestCase):
+    """#620: the shading over the picture was the first thing anyone
+    mentioned, and the controls never hid on a paused film."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.conf import settings
+        self.settings = settings
+        for key in ("hud_scrim", "hud_autohide", "hud_hide_secs",
+                    "hud_sub_margin"):
+            self.addCleanup(setattr, settings, key, getattr(settings, key))
+
+    def _browser(self):
+        ctl = HudController()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
+                       "title": "Movie", "position": 50.0,
+                       "duration": 100.0, "paused": False,
+                       "volume": 80, "muted": False}
+        return b, ctl
+
+    def _scene(self, style):
+        self.settings.hud_scrim = style
+        b, _ctl = self._browser()
+        return build_scene(b, (1280, 720))[0]
+
+    def _scrims(self, style):
+        return [n for n in self._scene(style) if n.get("t") == "grad"]
+
+    #: The two ramps are told apart by WHERE they are, not by how tall they
+    #: are: the bottom one is anchored "sw" and the top one "nw". Sorting by
+    #: height was fine only while the bottom was always the taller, which
+    #: stopped being true when the default came down to 200.
+    def _bottom(self, style):
+        return max(self._scrims(style), key=lambda g: g["y"])
+
+    def _top(self, style):
+        return min(self._scrims(style), key=lambda g: g["y"])
+
+    def test_the_default_ramp_reaches_over_the_scrubber(self):
+        """The functional requirement, rather than a number: the ramp has to
+        start above the bar's own controls or they sit on bare picture. This
+        is what a lowered SCRIM_MAX has to keep being true."""
+        nodes = self._scene("default")
+        bottom = max((n for n in nodes if n.get("t") == "grad"),
+                     key=lambda g: g["y"])
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        bar = next(n for n in nodes if n.get("id") == "hud-bar")
+        self.assertLess(bottom["y"], seek["y"],
+                        "the scrubber sits above the shading")
+        self.assertLess(bottom["y"], bar["y"],
+                        "the bar's top edge sits above the shading")
+
+    def test_a_stream_with_no_duration_gets_no_scrub_preview(self):
+        """A live channel reports no duration. `max` is floored at 1.0 so
+        the renderer's frac has a divisor, which also defeats its own
+        `max > 0` guard -- so the bubble tracked the pointer along the bar
+        reading 0:00 the whole way. Guarded like `marks` and `ranges`."""
+        self.settings.hud_scrim = "default"
+        b, _ctl = self._browser()
+        b.hud.state = dict(b.hud.state, duration=0)
+        nodes, _h = build_scene(b, (1280, 720))
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertFalse(seek.get("pv"),
+                         "a durationless stream offers a scrub preview")
+        b.hud.state = dict(b.hud.state, duration=100.0)
+        nodes, _h = build_scene(b, (1280, 720))
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertTrue(seek.get("pv"), "a real timeline lost its preview")
+
+    def test_a_retired_scrim_value_reads_as_the_default(self):
+        """"half" was offered while this branch was in flight and is gone.
+        A config that still says it must draw the default ramp, not nothing
+        -- which is what an unrecognised value has to do for every enum
+        here, and is why no migration was written for it."""
+        self.assertEqual(
+            [(g["y"], g["h"]) for g in self._scrims("half")],
+            [(g["y"], g["h"]) for g in self._scrims("default")])
+
+    def test_the_offered_values_are_the_ones_that_draw(self):
+        """The picker and the renderer agreeing is the whole contract; a
+        value in the list that draws nothing is a dead option."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        offered = {v for _l, v in cfg.LABELED_ENUMS["hud_scrim"]}
+        self.assertEqual(offered, {"default", "panel", "none"})
+        for value in offered:
+            with self.subTest(scrim=value):
+                nodes = self._scene(value)
+                bar = next(n for n in nodes if n.get("id") == "hud-bar")
+                grads = [n for n in nodes if n.get("t") == "grad"]
+                self.assertTrue(
+                    grads or bar.get("a", 0) > 0 or value == "none",
+                    "%r shades nothing at all" % value)
+
+    def _bar(self, style):
+        self.settings.hud_scrim = style
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        return next(n for n in nodes if n.get("id") == "hud-bar")
+
+    def test_panel_draws_no_gradient_and_backs_the_bars_instead(self):
+        self.assertEqual(self._scrims("panel"), [])
+        self.assertTrue(self._bar("panel").get("a", 255) > 0,
+                        "the bar has no band behind it")
+
+    def test_the_bars_exist_as_nodes_even_with_nothing_drawn(self):
+        """The renderer holds the auto-hide off while the pointer is over
+        them, which means it has to find them in the scene -- and layout
+        only emits a container that has something to draw."""
+        self.assertEqual(self._bar("none").get("a"), 0)
+
+    def test_none_draws_nothing_and_asks_for_the_text_halo(self):
+        """Legibility has to come from somewhere: with no shading the
+        renderer gives the glyphs a dark halo instead."""
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.assertEqual(self._scrims("none"), [])
+        self.settings.hud_scrim = "none"
+        self.assertTrue(HudMixin().hud_key_opts()["shadow"])
+        self.settings.hud_scrim = "default"
+        self.assertFalse(HudMixin().hud_key_opts()["shadow"])
+
+    def test_the_bars_carry_the_ids_the_renderer_hover_test_needs(self):
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        present = ids(nodes)
+        for nid in ("hud-bar", "hud-topbar"):
+            self.assertIn(nid, present)
+
+    def test_the_autohide_policy_travels_with_the_engage(self):
+        """Which is what makes a settings change stick without a restart:
+        engage re-sends it every time."""
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.settings.hud_autohide = "always"
+        self.settings.hud_hide_secs = 1.5
+        opts = HudMixin().hud_key_opts()
+        self.assertEqual(opts["mode"], "always")
+        self.assertEqual(opts["hide"], 1.5)
+
+    def test_subtitles_can_be_left_where_they_are(self):
+        from unittest import mock
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+        import jellyfin_mpv_shim.player as player_mod
+
+        class _P:
+            sub_pos = 100
+            sub_margin_y = 22
+
+        pm = mock.Mock(_player=_P())
+        gw = HudMixin()
+        self.settings.hud_sub_margin = False
+        with mock.patch.object(player_mod, "playerManager", pm):
+            gw.hud_sub_margin(True)
+        self.assertEqual(_P.sub_margin_y, 22, "subtitles were moved anyway")
+
 
 class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
     def _browser(self, size=(1280, 720)):

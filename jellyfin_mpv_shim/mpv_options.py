@@ -22,8 +22,9 @@ from .conf import settings
 from .constants import APP_NAME, DESKTOP_ID, USER_APP_NAME
 from .utils import get_resource
 
-#: Styles that replace mpv's built-in OSC and therefore need ``osc=no``.
-_REPLACES_OSC = ("mpv", "mpvtk")
+#: Styles that must not leave mpv's built-in OSC on: two that replace it
+#: with something of ours, and one that replaces it with nothing.
+_REPLACES_OSC = ("mpv", "mpvtk", "none")
 
 
 def resolve_osc_style():
@@ -38,10 +39,16 @@ def resolve_osc_style():
     # Which in-player UI to load: the in-window mpvtk playback HUD
     # ("mpvtk"; no lua script — the browser renders it, see
     # mpvtk_browser/hud.py), the stock mpv OSC patched with
-    # trickplay previews ("mpv"), or none ("default": whatever the
-    # mpv binary ships / the user's own scripts). "jellyfin" is a
-    # legacy alias for the HUD — the jellyfin-styled lua OSC it
-    # used to name was retired once the HUD reached parity.
+    # trickplay previews ("mpv"), whatever the mpv binary ships and
+    # the user's own scripts ("default"), or nothing at all ("none").
+    # "jellyfin" is a legacy alias for the HUD — the jellyfin-styled
+    # lua OSC it used to name was retired once the HUD reached parity.
+    #
+    # "none" is where the old enable_osc setting went. That was a
+    # separate switch that only ever reached mpv's OWN controls, so
+    # turning it off under the default style did nothing at all and
+    # then silently took the controls away if you later switched to
+    # the mpv OSC (#615). One question, one answer.
     osc_style = settings.osc_style
     if osc_style == "jellyfin":
         osc_style = "mpvtk"

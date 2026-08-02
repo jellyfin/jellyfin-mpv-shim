@@ -17,7 +17,7 @@ from tests._shell_harness import (
     _SyncPool,
     build_scene,
     grid_scroll,
-    music_scroll,
+    music_songs_scroll,
 )
 
 
@@ -56,15 +56,21 @@ class TestRandomSortDoesNotPage(unittest.TestCase):
         b, route, calls = self._grid("Random")
         self.assertEqual(route["_total"], 20,
                          "a Random grid still thinks it has 500 items")
-        grid_scroll(b, route, 0, 100)
+        self.assertEqual(len(route["_items"]), 20,
+                         "a Random grid was padded out with holes it can "
+                         "never fill")
+        grid_scroll(b, route, 0, 10_000)
         self.assertEqual(calls, [0], "Random paged and will duplicate items")
 
-    def test_a_normal_sort_still_pages(self):
+    def test_a_normal_sort_still_windows(self):
         """The cap must not leak into the other nine sorts."""
         b, route, calls = self._grid("Name")
         self.assertEqual(route["_total"], 500)
-        grid_scroll(b, route, 0, 100)
-        self.assertEqual(calls, [0, 20], "a Name-sorted grid stopped paging")
+        self.assertEqual(len(route["_items"]), 500,
+                         "the list was not sized from the server's total")
+        grid_scroll(b, route, 20_000, 40_000)
+        self.assertGreater(len(calls), 1,
+                           "a Name-sorted grid stopped fetching")
 
 class TestListWidthsAreStable(unittest.TestCase):
     """A Table's *natural* width is whatever its materialized rows need, so
@@ -245,8 +251,49 @@ class TestBodyWidth(unittest.TestCase):
                 used, self.b._body_w(w),
                 "%d columns don't fit at w=%d" % (cols, w))
 
-class TestGridPaging(unittest.TestCase):
-    def _grid(self, page_result=None, fail=False):
+class TestSpreadStaysWithinTheTotal(unittest.TestCase):
+    """`spread` is the one place the sparse list's shape is decided, and its
+    clamp used to run BEFORE the extension that could undo it."""
+
+    def _spread(self, *a):
+        from jellyfin_mpv_shim.mpvtk_browser.pagination import spread
+        return spread(*a)
+
+    def test_a_page_past_a_shrunken_total_is_dropped(self):
+        """A window landing after the library shrank left a list thousands
+        of slots long over a total of fifty: the header read "50 items"
+        above a grid of holes nothing would ever fill, because window()
+        clamps its range to the total and so never asked for them."""
+        out = self._spread([{"Id": "a"}] * 100, 50, [], 4900)
+        self.assertEqual(len(out), 50)
+
+    def test_a_page_straddling_the_end_is_truncated(self):
+        out = self._spread([], 5, [{"Id": "a"}, {"Id": "b"}, {"Id": "c"}], 3)
+        self.assertEqual(len(out), 5)
+        self.assertEqual([i["Id"] for i in out if i], ["a", "b"])
+
+    def test_an_ordinary_page_is_placed_at_its_offset(self):
+        out = self._spread([], 500, [{"Id": "x"}], 100)
+        self.assertEqual(len(out), 500)
+        self.assertEqual(out[100], {"Id": "x"})
+        self.assertIsNone(out[0])
+
+    def test_no_total_is_still_a_plain_splice(self):
+        """Random, and the offline sources that report no count."""
+        out = self._spread([], 0, [{"Id": "a"}], 0)
+        self.assertEqual(out, [{"Id": "a"}])
+
+
+class TestGridWindowing(unittest.TestCase):
+    """The grid is windowed, not appended to (#617).
+
+    It used to grow as you approached the bottom, which is why the scroller
+    grew under the scrollbar thumb mid-drag. Now the list is `_total` slots
+    long from the first frame and the pages covering what is on screen are
+    fetched as they come into view.
+    """
+
+    def _grid(self, page_result=None, fail=False, total=100, loaded=20):
         src = FakeSource()
         calls = []
 
@@ -254,38 +301,164 @@ class TestGridPaging(unittest.TestCase):
             calls.append(kw.get("start_index", 0))
             if fail:
                 raise OSError("boom")
-            return page_result if page_result is not None else ([], 100)
+            return (page_result if page_result is not None
+                    else ([{"Id": "p%d" % kw.get("start_index", 0)}], total))
 
         src.get_library_items = get_library_items
         b = MpvtkBrowser(app=None, source=src)
         b._pool = _SyncPool()
         b.server = "srv1"
+        items = [{"Id": "m%d" % i} for i in range(loaded)]
+        items += [None] * (total - loaded)
         route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
-                 "_items": [{"Id": "m%d" % i} for i in range(20)],
-                 "_total": 100}
+                 "_items": items, "_total": total}
         b.nav_stack = [route]
         return b, route, calls
 
-    def test_a_failed_page_does_not_deadlock_paging(self):
+    def test_the_top_of_the_list_asks_for_nothing(self):
+        """The first page is already there — the loader fetched it."""
+        b, route, calls = self._grid(loaded=100, total=100)
+        grid_scroll(b, route, 0, 5_000)
+        self.assertEqual(calls, [], "re-fetched items it already had")
+
+    def test_a_hole_in_view_is_fetched(self):
+        b, route, calls = self._grid()
+        grid_scroll(b, route, 0, 5_000)
+        self.assertEqual(calls, [0], "the visible hole was never filled")
+
+    def test_scrolling_far_down_fetches_THAT_window(self):
+        """The point of the change: the items you scrolled TO, not every
+        page between here and there."""
+        b, route, calls = self._grid(total=5000, loaded=20)
+        grid_scroll(b, route, 40_000, 60_000)
+        self.assertTrue(calls, "nothing was fetched for the new window")
+        self.assertTrue(all(c >= 100 for c in calls),
+                        "walked the list from the top: %r" % calls)
+
+    def test_what_lands_goes_where_it_belongs(self):
+        b, route, calls = self._grid(
+            total=5000, loaded=20,
+            page_result=([{"Id": "far"}], 5000))
+        grid_scroll(b, route, 40_000, 60_000)
+        start = calls[0]
+        self.assertEqual(route["_items"][start], {"Id": "far"},
+                         "the page was appended instead of placed")
+        self.assertEqual(len(route["_items"]), 5000,
+                         "the list changed length as a page landed")
+
+    def test_repainting_does_not_reask(self):
+        """Render is what drives this, so a window that re-requested would
+        issue a request per frame — and the toast a failure raises is
+        itself a repaint."""
+        b, route, calls = self._grid()
+        grid_scroll(b, route, 0, 5_000)
+        build_scene(b)
+        build_scene(b)
+        self.assertEqual(len(calls), 1, "the same window was re-requested")
+
+    def test_a_failed_window_says_so_and_stops(self):
         b, route, calls = self._grid(fail=True)
-        grid_scroll(b, route, 0, 100)
-        self.assertFalse(route.get("_loading"),
-                         "_loading stuck: the grid can never page again")
-        grid_scroll(b, route, 0, 100)
-        self.assertEqual(len(calls), 2, "second page attempt never happened")
+        grid_scroll(b, route, 0, 5_000)
+        self.assertTrue(b.status, "the failure was silent")
+        build_scene(b)
+        build_scene(b)
+        self.assertEqual(len(calls), 1,
+                         "a failing server was asked once per frame")
 
-    def test_an_empty_page_ends_the_list(self):
-        b, route, calls = self._grid(page_result=([], 100))
-        grid_scroll(b, route, 0, 100)
-        self.assertEqual(route["_total"], 20, "total not clamped to loaded")
-        grid_scroll(b, route, 0, 100)
-        self.assertEqual(len(calls), 1, "re-requested an empty page")
+    def test_a_failed_window_is_retried_when_you_move(self):
+        """...but not never: scrolling is the retry, which is the cadence
+        the append-on-approach pager had."""
+        b, route, calls = self._grid(fail=True)
+        grid_scroll(b, route, 0, 5_000)
+        grid_scroll(b, route, 100, 5_000)
+        self.assertEqual(len(calls), 2, "a failed window was never retried")
 
-    def test_a_normal_page_appends(self):
-        b, route, calls = self._grid(page_result=([{"Id": "x"}], 100))
-        grid_scroll(b, route, 0, 100)
-        self.assertEqual(len(route["_items"]), 21)
-        self.assertEqual(route["_total"], 100)
+    def test_the_scroller_is_sized_for_the_whole_library(self):
+        """The bug as reported: the scroller grew as pages landed, so the
+        thumb kept shrinking and the drag kept jumping."""
+        small, _r, _c = self._grid(total=100, loaded=20)
+        big, _r2, _c2 = self._grid(total=2000, loaded=20)
+        a = next(n for n in build_scene(small)[0] if n.get("id") == "grid")
+        z = next(n for n in build_scene(big)[0] if n.get("id") == "grid")
+        self.assertGreater(
+            z["ch"], a["ch"] * 5,
+            "the grid is sized from what is loaded, not from the total")
+
+    def test_a_hole_takes_its_place_but_is_not_clickable(self):
+        """It occupies its slot -- the row is the right height and the item
+        after it is in the right column -- and does nothing."""
+        b, _route, _calls = self._grid(total=100, loaded=20)
+        nodes, _h = build_scene(b)
+        clickable = {n["id"] for n in nodes if n.get("click")}
+        self.assertTrue([i for i in clickable if i.endswith("-m0")],
+                        "the loaded items lost their click regions")
+        self.assertFalse([i for i in clickable if "_pending" in i],
+                         "a slot that has not loaded yet is clickable")
+
+    def test_every_windowed_route_is_sized_from_its_total(self):
+        """GridPage is not the only route that inherits the windowing
+        render. ListPage (Favorites, genre listings, Next Up, studios) and
+        PersonPage set _items unpadded while _total said otherwise, so the
+        scroller jumped the moment a window landed -- #617's own symptom, on
+        the routes the fix was supposed to cover."""
+        from tests._shell_harness import FakeSource, _SyncPool
+        for kind, route in (
+                ("person", {"kind": "person", "server": "srv1",
+                            "person_id": "p1", "title": "Someone"}),
+                ("list", {"kind": "list", "server": "srv1",
+                          "title": "Favourites",
+                          "list": {"type": "favorites"}})):
+            with self.subTest(route=kind):
+                src = FakeSource()
+                b = MpvtkBrowser(app=None, source=src)
+                b._pool = _SyncPool()
+                b.server = "srv1"
+                b.nav_stack = [route]
+                b._load_route(route)
+                total = route.get("_total") or 0
+                self.assertTrue(total, "%s loaded nothing" % kind)
+                self.assertEqual(
+                    len(route.get("_items") or []), total,
+                    "%s is %d slots for a total of %d"
+                    % (kind, len(route.get("_items") or []), total))
+
+    def test_a_debug_log_survives_the_holes(self):
+        """_grid_shape's debug line iterates the item list to report how
+        many carry an aspect ratio. It got missed when auto_geom five lines
+        above it was given its `if i`, so any library over one page raised
+        AttributeError out of render under --debug -- and --debug is what
+        someone collecting a log for a bug report turns on."""
+        import logging
+        b, route, _calls = self._grid(total=500, loaded=20)
+        route.pop("_grid_shape", None)
+        logger = logging.getLogger("mpvtk_browser.pages.grid")
+        old = logger.level
+        logger.setLevel(logging.DEBUG)
+        self.addCleanup(logger.setLevel, old)
+        nodes, _h = build_scene(b)     # must not raise
+        self.assertTrue(nodes)
+
+    def test_a_hole_in_the_list_view_is_not_clickable(self):
+        """The grid path drops the hit region for a hole; item_list built
+        one for every row regardless, so a blank row hover-highlighted like
+        a real one and opened None when clicked."""
+        b, route, _calls = self._grid(total=500, loaded=20)
+        route["_view"] = {"imageType": ("list", None)}
+        nodes, _h = build_scene(b)
+        clickable = [n for n in nodes if n.get("click") or n.get("ctx")]
+        self.assertTrue(clickable, "the list view drew no rows at all")
+        # Row ids carry the item id; a hole's is empty.
+        holes = [n["id"] for n in clickable
+                 if n.get("id", "").startswith("grid-")
+                 and n["id"].rsplit("-", 1)[-1] == ""]
+        self.assertFalse(holes, "unloaded rows are clickable: %r" % holes)
+
+    def test_a_route_you_left_is_not_windowed(self):
+        b, route, calls = self._grid()
+        b.nav_stack = [{"kind": "home", "server": "srv1"}]
+        grid_scroll(b, route, 0, 5_000)
+        self.assertEqual(calls, [], "windowed a route that is not shown")
+
 
 class TestPagersShareTheirInvariants(unittest.TestCase):
     """The grid, music-tab and genre pagers were three copies of the same
@@ -294,8 +467,11 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
     page left _loading set and that tab could not page again for the rest of
     the session.
 
-    They are one _page_more now, so assert the invariants once per view: what
-    used to differ between the copies is exactly what regressions look like.
+    They became one Paginator.more, and then most of them stopped using it:
+    the grid was windowed in #617 and the music tile tabs and genre page in
+    its follow-up. The songs tab is what is left, and `more` is still its
+    code — so the invariants stay asserted against the caller that runs
+    them.
     """
 
     def _make(self, view, fail=False, page=None):
@@ -309,33 +485,24 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
             return page if page is not None else ([], 100)
 
         items = [{"Id": "i%d" % i, "Name": "N%d" % i} for i in range(20)]
-        if view == "grid":
-            src.get_library_items = fetch
-            route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
-                     "_items": list(items), "_total": 100}
-            read = lambda r: r["_items"]           # noqa: E731
-        elif view == "music":
-            src.get_music_albums = fetch
-            route = {"kind": "music", "server": "srv1", "parent_id": "lib1",
-                     "_tab": "albums", "_data": list(items), "_total": 100}
-            read = lambda r: r["_data"]            # noqa: E731
-        else:
-            src.get_genre_albums = fetch
-            route = {"kind": "music_genre", "server": "srv1",
-                     "parent_id": "lib1", "item_id": "g1",
-                     "_data": {"albums": list(items), "total": 100}}
-            read = lambda r: r["_data"]["albums"]  # noqa: E731
+        src.get_songs = fetch
+        route = {"kind": "music", "server": "srv1", "parent_id": "lib1",
+                 "_tab": "songs", "_data": list(items), "_total": 100}
+        read = lambda r: r["_data"]            # noqa: E731
 
         b = MpvtkBrowser(app=None, source=src)
         b._pool = _SyncPool()
         b.server = "srv1"
         b.nav_stack = [route]
-        scroll = {"grid": lambda r, o, m: grid_scroll(b, r, o, m),
-                  "music": lambda r, o, m: music_scroll(b, r, o, m),
-                  "genre": lambda r, o, m: music_scroll(b, r, o, m)}[view]
-        return b, route, calls, scroll, read
+        return (b, route, calls,
+                lambda r, o, m: music_songs_scroll(b, r, o, m), read)
 
-    VIEWS = ("grid", "music", "genre")
+    #: What still pages on approach and is reachable from this harness. The
+    #: grid, the music tile tabs and the genre page were windowed in #617
+    #: and its follow-up; Live TV is deliberately not windowed but has its
+    #: own tests. Songs is the last one here, and stays until its play
+    #: action stops being built from the loaded list.
+    VIEWS = ("songs",)
 
     def test_a_failed_page_does_not_deadlock_paging(self):
         for view in self.VIEWS:
@@ -392,12 +559,7 @@ class TestPagersShareTheirInvariants(unittest.TestCase):
         for view in self.VIEWS:
             with self.subTest(view=view):
                 b, route, calls, scroll, _r = self._make(view)
-                if view == "genre":
-                    route["_data"] = {"albums": [], "total": 100}
-                elif view == "music":
-                    route["_data"] = []
-                else:
-                    route["_items"] = []
+                route["_data"] = []
                 scroll(route, 0, 100)
                 self.assertEqual(calls, [], "re-ran the initial load")
 

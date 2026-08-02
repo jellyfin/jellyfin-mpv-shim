@@ -2,9 +2,8 @@
 
 ``hud.py`` builds the HUD's widget tree; this owns what that tree reads. The
 two halves were split across two files for no reason other than history: the
-builders went into ``hud.py`` when it was written, and the eight pieces of
-state plus the eleven handlers stayed on ``MpvtkBrowser`` because that is
-where ``__init__`` was.
+builders went into ``hud.py`` when it was written, and the state plus the
+handlers stayed on ``MpvtkBrowser`` because that is where ``__init__`` was.
 
 Nothing here is browser chrome. The HUD belongs to *video playback* — the
 renderer owns its summon/auto-hide lifecycle and reports it through
@@ -24,17 +23,15 @@ at a renderer that is not showing one.
     *we* paused playback to make the position inspectable. The second flag
     is what stops a commit from resuming playback the user had paused
     themselves.
-``hover``
-    Pointer resting on the seek bar. Drives the preview bubble; ``scrub``
-    takes precedence over it.
 ``menu`` / ``menu_anchor``
     The open settings-menu level ("root", "speed", …) and the node it hangs
     off. One level at a time.
 ``tc_remaining``
     Clock shows remaining rather than total. A click toggles it.
-``frame``
-    Cached scrub-preview frame, keyed so the same position is not decoded
-    twice.
+
+The scrub preview bubble is deliberately absent: the renderer draws it from
+the trickplay tiles and mpv's chapter list, so no hover state reaches here
+at all (#618).
 """
 
 import logging
@@ -58,7 +55,6 @@ class HudController:
         self._start_ticker = start_ticker
         self.reset()
         self.state = None
-        self.frame = None
 
     @property
     def app(self):
@@ -82,7 +78,6 @@ class HudController:
         self.menu = None
         self.menu_anchor = "hud-settings"
         self.tc_remaining = False
-        self.hover = None
 
     # -- is the HUD in play at all ----------------------------------------
 
@@ -96,8 +91,13 @@ class HudController:
                 and c.use_hud())
 
     def engage(self):
-        """``set_hud(True)`` with the controller's keyboard policy attached
-        (grab arrows vs. wake-key-only; see hud_grab_keys)."""
+        """``set_hud(True)`` with everything the renderer owns attached:
+        the keyboard policy (grab arrows vs. wake-key-only), the auto-hide
+        delay and mode, and whether the glyphs carry their own shadow.
+
+        Idempotent, and that matters — re-engaging is the ONLY thing that
+        carries a changed setting to the renderer, so those settings apply
+        without a restart."""
         opts = None
         get = getattr(self.controller, "hud_key_opts", None)
         if get is not None:
@@ -132,16 +132,6 @@ class HudController:
 
     def scrub_cancel(self):
         self.scrub_done()
-
-    # -- hover -------------------------------------------------------------
-
-    def hover_move(self, v):
-        self.hover = float(v)
-        self._invalidate()
-
-    def hover_end(self):
-        self.hover = None
-        self._invalidate()
 
     # -- menu / events -----------------------------------------------------
 
@@ -181,7 +171,6 @@ class HudController:
             # keep a menu opened in the same beat as a summon
             # (open_menu sets it right before the hud event lands)
             self.menu = None
-        self.hover = None
         if getattr(self.controller, "hud_sub_margin", None) is not None:
             # raise bottom subtitles clear of the bar while it shows
             try:

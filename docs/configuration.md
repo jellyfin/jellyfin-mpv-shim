@@ -207,8 +207,6 @@ You can use the config file to enable and disable features.
   - **Replaces `snapped_scrolling` and `force_scroll_snapping`, and is not migrated from either.** `snapped_scrolling: true` in an existing config is ignored (with a warning in the log) and you start on `continuous`. It was set when continuous scrolling was not on offer, so keeping it would hold exactly the people who wanted smooth scrolling on the workaround for not having it. Set `scroll_mode` to `row` if you want it back.
 - `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
   - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
-- `enable_osc` - Enable the MPV on-screen controller. Default: `true`
-  - It may be useful to disable this if you are using an external player that already provides a user interface.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
   - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
     X11 and the compositor's factor on Wayland/macOS.
@@ -244,9 +242,17 @@ You can use the config file to enable and disable features.
     cached row, and doing that under the pointer is worse than asking.
   - Themes are JSON files — see [Writing a theme](#writing-a-theme).
 - `poster_scale` - Overrides the active theme's default cover size. Default: `null`
-  - `null` keeps the theme's own size; a number (e.g. `1.0`, `1.4`, `1.7`)
-    scales the cover tiles.
-  - Read once at startup; changing it requires a restart.
+  - `null` keeps the theme's own size; a number scales the cover tiles. The
+    settings form offers `0.75`, `0.85`, `1.0`, `1.2`, `1.4` and `1.7`, but
+    any number works.
+  - **Applies immediately**, and is also on the View menu of any library —
+    seeing the change is the point of the setting, and walking back to a
+    library to look was the whole difficulty. Scroll positions are dropped
+    when it changes: they are pixel offsets into a list whose rows just
+    changed height.
+  - The *theme's* own cover size still needs a restart (see `theme`). The
+    difference is that there resizing is a side effect of changing colours,
+    and here it is what you asked for.
 - `osc_style` - Which on-screen controller to use. Default: `mpvtk`
   - `mpvtk` - A player UI styled after jellyfin-web, rendered by the library
     browser inside the player window: top bar (back, title, SyncPlay),
@@ -262,6 +268,14 @@ You can use the config file to enable and disable features.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
   - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
+  - `none` - No on-screen controls at all. Playback is bare; the library, the
+    keyboard shortcuts and the menu key (`kb_menu`, `c` by default) still
+    work, and Skip Intro/Credits falls back to its "seek to skip" prompt.
+  - **Replaces `enable_osc`, and is not migrated from it.** That was a
+    separate switch which only ever reached mpv's *own* controls, so turning
+    it off did nothing under the default style and then silently took the
+    controls away if you later switched to the mpv OSC. A stale `enable_osc`
+    entry in your config is ignored; choose `none` here if you meant it.
 - `hud_grab_keys` - Always take over the arrow keys and ENTER for the
   on-screen controls while a video plays. Default: `false` — mpv's own seek
   keys keep working, and only `hud_wake_key` is taken over. With the default,
@@ -273,7 +287,41 @@ You can use the config file to enable and disable features.
   driving while they are hidden, and that takes keyboard control of controls
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
+- `hud_scrim` - How the picture is shaded behind the player controls, so they
+  stay legible over any frame. One of `default`, `panel`, `none`.
+  Default: `default`
+  - `default` is a gradient rising from the bottom of the window (and a
+    smaller one from the top, under the title).
+  - `panel` is a flat band exactly the height of each bar — a hard edge, and
+    nothing washed over the picture above it.
+  - `none` draws no shading at all and gives the controls' text and icons a
+    dark halo instead. Legibility has to come from somewhere; this is the
+    option that pays for it in the glyphs rather than in the picture.
+- `hud_autohide` - When the player controls hide. One of `hover`, `always`,
+  `paused`. Default: `hover`
+  - `hover` keeps them up only while the pointer is on them — paused or not.
+  - `always` runs the timer regardless, including while paused.
+  - `paused` runs the timer but never hides while playback is paused (what
+    earlier versions always did).
+- `hud_hide_secs` - Seconds of no input before the player controls hide.
+  Default: `4.0`
+  - `0` means "as soon as the pointer is not on them", and forces `hover`
+    mode — a zero delay means nothing without a pointer test, since mouse
+    motion is also what summons them. The timer never runs shorter than
+    0.5s, so the controls cannot blink out in the same frame they appear.
+- `hud_sub_margin` - Raise bottom subtitles clear of the controls while they
+  are showing. Default: `true`
+  - Already skipped for top- and middle-positioned subtitles. Turn it off if
+    the subtitles moving as the controls appear is more distracting than the
+    bar covering them.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
+- `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
+  during playback. Off by default: they are easy to hit by accident on
+  some mice, and skipping a chapter of a film is less forgiving than the
+  Back press those buttons perform in the library — which is unaffected
+  either way, since the library's own bindings sit on top of these.
+  Does nothing on a file with no chapters. Takes effect after a restart.
+  Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
   - Not a security boundary — see [Cast-target mode](../README.md#cast-target-mode-headless).
@@ -562,7 +610,12 @@ These settings assist with debugging. You will often be asked to configure them 
 
 - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
 - `mpv_log_level` - Log level to use for mpv. Default: `info`
-  - Options: fatal, error, warn, info, v, debug, trace
+  - Options: fatal, error, warn, info, v, debug, trace, noise
+  - `noise` is `debug` with the shim's own filter turned off. At `debug`
+    the renderer's per-frame scene pushes and gpu-next's per-frame
+    chatter are dropped, because they are the app talking to itself and
+    they bury whatever you turned debug on to read. Warnings and errors
+    are never filtered at any level.
 - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
 - `write_logs` - Write logs to the config directory for debugging. Default: `false`
 
@@ -605,18 +658,32 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `raise_mpv` - Windows only. Disable this if you are fine with MPV sometimes appearing behind other windows when playing.
 - `health_check_interval` - The number of seconds between each client health check. Null disables it. Default: `300`
 
-## Skip Intro Support
+## Media Segments (Skip Intro and friends)
 
-Intro and credits detection uses Jellyfin's MediaSegments API.
+Segment detection uses Jellyfin's MediaSegments API. There is one setting per
+segment type the server publishes, and each takes the same three values:
 
-- `skip_intro_always` - Always skip intros, without asking. Default: `false`
-- `skip_intro_enable` - Offer to skip intros. With the Jellyfin player UI
-  (`osc_style: mpvtk`) this shows a floating "Skip Intro" button during the
-  intro (even while the controls are hidden); with other UIs it shows the
-  classic seek-to-skip prompt. Default: `true`
-- `skip_credits_always` - Always skip credits, without asking. Default: `false`
-- `skip_credits_enable` - Offer to skip credits (same behavior as
-  `skip_intro_enable`). Default: `true`
+- `off` - ignore this kind of segment.
+- `ask` - offer to skip it. With the Jellyfin player UI (`osc_style: mpvtk`)
+  that is a floating "Skip …" button during the segment, shown even while the
+  controls are hidden; with other UIs it is the classic seek-to-skip prompt.
+- `always` - skip it silently, with a brief "Skipped …" message.
+
+Settings, and their defaults:
+
+- `segment_intro` - Intros. Default: `ask`
+- `segment_outro` - Credits. Default: `ask`
+- `segment_commercial` - Commercials. Default: `off`
+- `segment_preview` - Previews. Default: `off`
+- `segment_recap` - Recaps. Default: `off`
+
+The last three default to off, as they do in jellyfin-web: they are far less
+common, and a segment skipped out from under you is worse than one you have
+to skip yourself.
+
+**These replace `skip_intro_always`, `skip_intro_enable`, `skip_credits_always`
+and `skip_credits_enable`, and ARE migrated from them** — `always` wins over
+`enable`, so an install that skipped intros automatically still does.
 - `skip_intro_on_seek` - Seeking forward during an intro/credits window skips
   the whole segment. Applies to keyboard and remote seeks only; scrubbing or
   seeking from the Jellyfin player UI never triggers it (use its Skip button).

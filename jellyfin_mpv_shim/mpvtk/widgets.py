@@ -29,7 +29,7 @@ class Element:
     def __init__(self, id=None, w=None, h=None, flex=0,
                  anchor=None, dx=0, dy=0, occlude=False, tip=None,
                  min_w=None, max_w=None, min_h=None, max_h=None,
-                 autofocus=False):
+                 autofocus=False, disabled=False):
         self.id = id
         self.w = w
         self.h = h
@@ -47,6 +47,18 @@ class Element:
         # first scene lands (renderer: phud want_focus). Inert outside
         # that flow — ordinary scenes never steal focus.
         self.autofocus = autofocus
+        # A control that is on screen but cannot be used right now: the
+        # renderer draws it muted and it takes no hover, no click and no
+        # spatial-nav focus. It still ABSORBS the pointer -- node_at keeps
+        # returning it and each consumer drops it (renderer.lua's
+        # on_mouse_move / on_mouse_down), so a press stops there instead of
+        # reaching whatever the control sits over. Say WHY next to the
+        # control -- a disabled thing with no explanation reads as broken.
+        #
+        # Composite widgets (Button, Checkbox) additionally mute their own
+        # colours here, because those are baked into child nodes the
+        # renderer cannot recognise as parts of a control.
+        self.disabled = disabled
 
 
 class Box(Element):
@@ -312,6 +324,18 @@ class Button(Box):
         # applied later -- let alone one swapped at runtime.
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
+        if kw.get("disabled"):
+            # A composite's colours are baked into child nodes, and the
+            # renderer cannot tell which of them belong to a control -- so
+            # unlike a dropdown or a slider, a disabled Button has to mute
+            # itself here. The handler goes with them: the renderer already
+            # refuses to dispatch it, and dropping it means the node is not
+            # even a spatial-nav candidate.
+            themed_fg = False
+            fg = theme.ON_SURFACE_FAINT
+            on_click = None
+            kw["hover"] = None
+            kw.setdefault("bg", None if flat else theme.CONTROL_SUNKEN)
         if flat:
             # transparent-at-rest, for controls over video/gradients
             # (playback HUD): round translucent accent wash + accent
@@ -388,8 +412,11 @@ class Slider(Element):
         on_change=None,
         on_commit=None,
         on_cancel=None,
-        on_hover=None,  # throttled pointer-rest position (seek preview)
-        on_hover_end=None,
+        # Scrub preview: the renderer floats its own bubble (trickplay
+        # frame + chapter + timestamp) at the pointer, or at the value
+        # being dragged/arrow-adjusted. No events come back for it -- the
+        # whole point is that it never leaves the renderer.
+        preview=False,
         force=False,
         # Drawn over VIDEO rather than over app chrome: keeps the light
         # track and pale thumb that read on a picture, instead of following
@@ -411,8 +438,7 @@ class Slider(Element):
         self.on_change = on_change
         self.on_commit = on_commit
         self.on_cancel = on_cancel
-        self.on_hover = on_hover
-        self.on_hover_end = on_hover_end
+        self.preview = preview
         self.force = force
         self.on_video = on_video
         self.marks = marks
@@ -433,26 +459,40 @@ class Checkbox(Row):
     """Labelled toggle — pure composite sugar over Row/Box/Text."""
 
     def __init__(self, label, checked, on_toggle=None, size=20, **kw):
+        # Muted here rather than in the renderer, and the handler dropped:
+        # see Button for why a composite cannot leave this to the draw side.
+        # The check itself still shows -- a disabled setting has a value, and
+        # hiding it would say the opposite of what it is.
+        off = bool(kw.get("disabled"))
         box = Box(
             w=20,
             h=20,
-            bg=theme.ACCENT if checked else theme.CONTROL_SUNKEN,
-            border=None if checked else theme.OUTLINE_STRONG,
+            bg=((theme.ACCENT if not off else theme.CONTROL_SUNKEN)
+                if checked else theme.CONTROL_SUNKEN),
+            border=(theme.OUTLINE_STRONG
+                    if (not checked or off) else None),
             radius=5,
             align="center",
             direction="row",
             children=(
-                [Text("✓", size=15, color=theme.ON_ACCENT, align="center",
-                      flex=1)]
+                [Text("✓", size=15, align="center", flex=1,
+                      color=(theme.ON_SURFACE_FAINT if off
+                             else theme.ON_ACCENT))]
                 if checked
                 else []
             ),
         )
         kw.setdefault("gap", 10)
         kw.setdefault("align", "center")
-        kw.setdefault("hover", {"c": theme.ON_SURFACE_STRONG})
+        if off:
+            kw["hover"] = None
+            on_toggle = None
+        else:
+            kw.setdefault("hover", {"c": theme.ON_SURFACE_STRONG})
         super().__init__(
-            [box, Text(label, size=size)], on_click=on_toggle, **kw
+            [box, Text(label, size=size,
+                       color=theme.ON_SURFACE_FAINT if off else None)],
+            on_click=on_toggle, **kw
         )
 
 

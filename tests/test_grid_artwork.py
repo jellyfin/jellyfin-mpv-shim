@@ -245,13 +245,31 @@ class GridAsksForItTest(unittest.TestCase):
         b._page_for(b.route)._set_view("imageType", "banner")
         self.assertTrue(b.route.get("_items"))
 
-    def test_the_next_page_asks_for_it_too(self):
+    def test_a_scrolled_grid_refetches_all_of_it(self):
+        """#617 made _install SPLICE its page in rather than replace the
+        list, so a refetch refreshed items 0..99 and left every later window
+        holding the tags fetched under the old EnableImageTypes -- and a
+        filled slot is never re-requested, so the library stayed visibly
+        mixed for as long as the route lived."""
+        from tests._shell_harness import grid_scroll
+        b, src = self._grid()
+        grid_scroll(b, b.route, 10_000, 20_000)      # load past page 0
+        items = list(b.route["_items"])
+        marker = {"Id": "stale", "Name": "Stale", "Type": "Movie"}
+        items[-1] = marker              # an object only the old fetch had
+        b.route["_items"] = items
+        b._page_for(b.route)._set_view("imageType", "banner")
+        self.assertNotIn(
+            marker, b.route.get("_items") or [],
+            "the refetch kept items carrying the old artwork tags")
+
+    def test_the_next_window_asks_for_it_too(self):
         """Page two used to arrive with no banner tags, so scrolling a
         Banner view turned it back into thumbnails halfway down."""
+        from tests._shell_harness import grid_scroll
         b, src = self._grid("banner")
-        page = b._page_for(b.route)
-        page._on_scroll_end(10_000, 10_000)
-        self.assertGreater(len(src.queries), 1, "no second page was fetched")
+        grid_scroll(b, b.route, 10_000, 20_000)
+        self.assertGreater(len(src.queries), 1, "no second window was fetched")
         self.assertEqual({q["image_type"] for q in src.queries}, {"Banner"})
 
 

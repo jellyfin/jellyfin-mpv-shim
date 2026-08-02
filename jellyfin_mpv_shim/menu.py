@@ -1,10 +1,11 @@
 from queue import LifoQueue
 from .bulk_subtitle import process_series
+from . import conf
 from .conf import settings
 from .utils import mpv_color_to_plex, get_sub_display_title
 from .video_profile import VideoProfileManager
 from .svp_integration import SVPManager
-from .i18n import _
+from .i18n import _, _p
 
 import time
 import logging
@@ -223,7 +224,7 @@ class OSDMenu(object):
             )
             self.playerManager.show_text("", 0, 0)
 
-            self.playerManager.enable_osc(settings.enable_osc)
+            self.playerManager.enable_osc(self.playerManager.osc_enabled)
             self.playerManager.triggered_menu(False)
             self.playerManager.force_window(False)
 
@@ -442,6 +443,37 @@ class OSDMenu(object):
             self.playerManager.put_task(self.playerManager.apply_audio_settings)
         self.menu_list[self.menu_selection] = self.get_settings_toggle(name, key)
 
+    def settings_cycle_segment(self):
+        """Step a media-segment setting through off / ask / always.
+
+        A tri-state does not fit the bool toggle above, and three menu rows
+        per segment type (five of them) would not fit the menu.
+        """
+        _x, _x, key, name = self.menu_list[self.menu_selection]
+        actions = conf.SEGMENT_ACTIONS
+        try:
+            nxt = actions[(actions.index(getattr(settings, key)) + 1)
+                          % len(actions)]
+        except ValueError:
+            nxt = actions[0]
+        setattr(settings, key, nxt)
+        settings.save()
+        self.menu_list[self.menu_selection] = self.get_segment_cycle(name, key)
+
+    def get_segment_cycle(self, name: str, setting: str):
+        # Never/Ask/Always -- the same three words the settings form uses
+        # (config.LABELED_ENUMS). Two vocabularies for one tri-state meant
+        # 86 locales translating both.
+        labels = {"off": _("Never"), "ask": _("Ask"),
+                  "always": _("Always")}
+        value = getattr(settings, setting, "off")
+        return (
+            "{0}: {1}".format(name, labels.get(value, labels["off"])),
+            self.settings_cycle_segment,
+            setting,
+            name,
+        )
+
     def get_settings_toggle(self, name: str, setting: str):
         return (
             "{0}: {1}".format(name, getattr(settings, setting)),
@@ -594,14 +626,13 @@ class OSDMenu(object):
                 self.get_settings_toggle(
                     _("Discord Rich Presence"), "discord_presence"
                 ),
-                self.get_settings_toggle(_("Always Skip Intros"), "skip_intro_always"),
-                self.get_settings_toggle(_("Ask to Skip Intros"), "skip_intro_enable"),
-                self.get_settings_toggle(
-                    _("Always Skip Credits"), "skip_credits_always"
-                ),
-                self.get_settings_toggle(
-                    _("Ask to Skip Credits"), "skip_credits_enable"
-                ),
+                self.get_segment_cycle(_("Skip Intros"), "segment_intro"),
+                self.get_segment_cycle(_p("setting", "Skip Credits"),
+                                       "segment_outro"),
+                self.get_segment_cycle(_("Skip Commercials"),
+                                       "segment_commercial"),
+                self.get_segment_cycle(_("Skip Previews"), "segment_preview"),
+                self.get_segment_cycle(_("Skip Recaps"), "segment_recap"),
                 self.get_settings_toggle(
                     _("Enable thumbnail previews"), "thumbnail_enable"
                 ),

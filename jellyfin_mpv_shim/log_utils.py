@@ -12,6 +12,16 @@ bad_patterns = (
         "'X-MediaBrowser-Token': 'REDACTED'",
     ),
     (re.compile("'AccessToken': '[a-f0-9]*'"), "'AccessToken': 'REDACTED'"),
+    # Any `Token="..."`, which is how it appears in strings we did NOT build:
+    # mpv echoes our stream URL back through its own log, and the Authorization
+    # header spells it this way. The escaped form is the same line seen inside
+    # one of mpv's quoted log messages -- a real backslash, not a repr.
+    #
+    # Deliberately not [a-f0-9] like the four above. Those match values we
+    # generate; this one has to survive whatever a server hands us, and a
+    # token that fails the charset assumption would otherwise print in full.
+    (re.compile(r'Token=\\"[^"\\]*\\"'), r'Token=\\"REDACTED\\"'),
+    (re.compile(r'Token="[^"]*"'), 'Token="REDACTED"'),
 )
 
 # The patterns above all need the KEY next to the value, which works on a

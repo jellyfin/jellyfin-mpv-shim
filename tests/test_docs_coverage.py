@@ -94,9 +94,15 @@ class DocsCoverageTest(unittest.TestCase):
         vocabulary = {
             # audio_mode / osc_style / ui_scale / theme values
             "auto", "stereo", "optical", "hdmi", "mpvtk", "mpv", "default",
-            "null", "jellyfin", "nebula",
+            "none", "null", "jellyfin", "nebula",
             # scroll_mode values
             "continuous", "aligned", "row",
+            # hud_scrim / hud_autohide values
+            "panel", "hover", "always", "paused",
+            # segment_* values
+            "off", "ask",
+            # mpv_log_level values (mpv's own, plus our "noise")
+            "noise",
             # language_config rule keys
             "type", "subtype", "alang", "slang", "amatch", "smatch",
             "aprefer", "sprefer", "aexclude", "sexclude",

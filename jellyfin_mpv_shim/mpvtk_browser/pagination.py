@@ -3,9 +3,16 @@
 Step 6c's third prep. Four routes (grid, person, music, music_genre) page
 their contents, in two different modes that share this machinery:
 
+**Windowed** (``window``) is what a library grid does: the list is ``_total``
+entries long from the first frame, mostly holes, and the pages covering
+what is on screen are fetched as it comes into view. That is what makes the
+scrollbar full-length and the drag stable — the bug in #617 was that the
+scroller grew under the thumb as pages arrived.
+
 **Infinite scroll** (``more``) appends the next chunk as the user nears the
 bottom. Three views used to carry a copy of it and each learned its
-invariants separately, which is why they are spelled out on the method.
+invariants separately, which is why they are spelled out on the method. It
+is what the routes that are not windowed still use.
 
 **Paginated** (``ensure``/``go``/``jump``) fills one screenful at a time with
 a bar at the bottom instead of a scrollbar. It keeps the current page and its
@@ -39,7 +46,60 @@ PAGINATION_BAR_H = 48
 PAGE_MAX = 60
 
 #: How close to the bottom of a scroller a page request is triggered.
+#: Only the append-only routes still use this; see ``window`` versus
+#: ``more`` below.
 PAGE_SLOP = 800
+
+#: Items one windowed fetch asks for. The list is sized from the server's
+#: total from the first frame, so this is only "what does filling one hole
+#: cost": large enough that dragging the scrollbar across a library does not
+#: issue a request per row, small enough to land while the user is still
+#: looking at where it goes.
+#:
+#: It is also the repository's default page limit, deliberately: the route's
+#: initial load fetches [0, limit), so an equal WINDOW_PAGE means page 0 is
+#: complete and the first render asks for nothing. A smaller limit would
+#: leave page 0 holed and re-fetched immediately.
+WINDOW_PAGE = 100
+
+
+def spread(items, total, new, start):
+    """``items`` widened to ``total`` slots, with ``new`` placed at ``start``.
+
+    A windowed list is ``total`` entries long and mostly ``None``: an item's
+    index **is** its position in the library, which is what lets the grid be
+    the right height and the scrollbar the right length before anything has
+    been fetched. Everything downstream reads a hole as "not here yet" and
+    draws a blank tile of the right size.
+
+    A falsy ``total`` means the source did not say (or said Random, where
+    what is loaded is all there is) — then this is a plain splice and the
+    list keeps whatever length it had.
+    """
+    out = list(items or ())
+    new = list(new or ())
+    if total:
+        # A page that no longer fits is dropped rather than extending the
+        # list past the total. The clamp used to run FIRST and the
+        # extension below could undo it, so a page landing after the
+        # library shrank left a list thousands of slots long over a total
+        # of fifty -- the header reading "50 items" above a grid of holes
+        # nothing would ever fill, because window() clamps its range to
+        # the total and so never asks for them.
+        if start >= total:
+            new = []
+        elif start + len(new) > total:
+            del new[total - start:]
+    if start + len(new) > len(out):
+        out.extend([None] * (start + len(new) - len(out)))
+    for i, it in enumerate(new):
+        out[start + i] = it
+    if total:
+        if len(out) < total:
+            out.extend([None] * (total - len(out)))
+        elif len(out) > total:
+            del out[total:]
+    return out
 
 
 def enabled_from_settings():
@@ -159,6 +219,93 @@ class Paginator:
         self.run.run(lambda: fetch(start), done, ep, on_error=failed,
                      always=clear_guard)
 
+    # -- windowed (true virtual scroll) ------------------------------------
+
+    def window(self, route, first, last, get, put, fetch, error=None):
+        """Fetch whatever of items ``[first, last)`` is not loaded yet.
+
+        The infinite-scroll counterpart to ``ensure``, and like ``ensure`` it
+        is called from **render**: which items are visible is a question
+        about geometry, and only the view can answer it. The range passed
+        must be the range the view actually composites, or the grid fetches
+        one window and draws another.
+
+        ``get``/``put``/``fetch`` are ``more``'s, except that ``fetch`` takes
+        ``(start, limit)`` — an arbitrary offset, not just the end of the
+        list — and what comes back is spliced in at ``start`` rather than
+        appended.
+
+        **One attempt per page, per scroll.** Render is what drives this, so
+        a page that re-requested on failure would issue a request per frame
+        for as long as the server stayed down — and the toast it raises
+        invalidates, which is a frame. So an attempt is remembered in
+        ``_win_tried`` and not repeated; ``rewindow`` clears that, and the
+        view calls it on a scroll. A window that failed is therefore retried
+        when the user moves, which is the cadence ``more`` had, and never
+        when they hold still.
+
+        ``_win_load`` is separate and is the in-flight set: clearing
+        ``_win_tried`` mid-scroll must not re-issue a request that has not
+        come back yet. It is cleared in ``always``, so a page dropped for
+        being stale releases it too.
+        """
+        if not self._is_current(route):
+            return
+        items, total = get(route)
+        if not total:
+            return
+        first = max(0, min(int(first), total - 1))
+        last = max(first + 1, min(int(last), total))
+        tried = route.setdefault("_win_tried", set())
+        load = route.setdefault("_win_load", set())
+        for page in range(first // WINDOW_PAGE,
+                          (last - 1) // WINDOW_PAGE + 1):
+            if page in tried or page in load:
+                continue
+            start = page * WINDOW_PAGE
+            stop = min(total, start + WINDOW_PAGE)
+            if all(i < len(items) and items[i] is not None
+                   for i in range(start, stop)):
+                continue
+            tried.add(page)
+            load.add(page)
+            self._window_fetch(route, page, get, put, fetch, error)
+
+    def _window_fetch(self, route, page, get, put, fetch, error):
+        ep = self.run.epoch
+        start = page * WINDOW_PAGE
+
+        def done(res):
+            new, total2 = res
+            cur, cur_total = get(route)
+            total3 = total2 or cur_total
+            put(route, spread(cur, total3, new, start), total3)
+
+        def failed(_exc):
+            if self._is_current(route):
+                self._status(error or _("Could not load more items."))
+
+        def clear():
+            route.setdefault("_win_load", set()).discard(page)
+
+        # `always`, like more()'s guard and for the same reason: a window
+        # dropped for being stale runs neither done nor failed, and a page
+        # left in the in-flight set is one this route can never ask for
+        # again.
+        self.run.run(lambda: fetch(start, WINDOW_PAGE), done, ep,
+                     on_error=failed, always=clear)
+
+    @staticmethod
+    def rewindow(route):
+        """Forget which windows have been *asked for* (not which are in
+        flight).
+
+        Called on a scroll, so a window that failed is retried when the user
+        moves; and wherever the result set is replaced (a sort, a filter, a
+        reload), because page 3's items are not page 3's items any more.
+        """
+        route.pop("_win_tried", None)
+
     # -- fixed pages -------------------------------------------------------
 
     def page_size(self, route, size, head_h, geom, pad):
@@ -242,7 +389,8 @@ class Paginator:
         """Drop the page cache and return to page 1. Called whenever the
         underlying result set changes (sort, filter, collections toggle, music
         tab) — page 3 of one ordering is nothing like page 3 of another."""
-        for k in ("_pages", "_page_size", "_page_loading", "_npages"):
+        for k in ("_pages", "_page_size", "_page_loading", "_npages",
+                  "_win_tried", "_win_load"):
             route.pop(k, None)
         route["_page"] = 0
 

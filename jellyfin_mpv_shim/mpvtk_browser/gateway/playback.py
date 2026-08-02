@@ -6,7 +6,6 @@ Split out of the single 1,154-line ``PlayerGateway``; see
 
 import logging
 
-from ...conf import settings
 from . import deps
 from .base import GatewayCore
 
@@ -37,7 +36,7 @@ class PlaybackMixin(GatewayCore):
         # context. It comes back on the next play or when the tray reopens
         # the library (see UserInterface.on_mpv_recreated).
         playerManager.mpvtk_active = False
-        playerManager.enable_osc(settings.enable_osc)
+        playerManager.enable_osc(playerManager.osc_enabled)
         playerManager.set_browse_window(False)
 
     def audio_devices(self):
@@ -146,9 +145,10 @@ class PlaybackMixin(GatewayCore):
     def on_browse_leave(self):
         from ...player import playerManager
         # Restore video aspect handling / playback fullscreen, then hand the
-        # OSC back (respecting the user's setting).
+        # OSC back -- to whatever the player controls style says, which is
+        # where the retired enable_osc setting went (#615).
         playerManager.browse_yield()
-        playerManager.enable_osc(settings.enable_osc)
+        playerManager.enable_osc(playerManager.osc_enabled)
 
     def play(self, item, server_uuid, offset_ticks=None,
              srcid=None, aid=None, sid=None):

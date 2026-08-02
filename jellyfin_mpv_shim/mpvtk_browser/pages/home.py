@@ -53,6 +53,14 @@ class HomePage(Page):
         The batches are merged by slot rather than concatenated: the user can
         put Recently Added above Continue Watching, so "primary then latest"
         is no longer the display order.
+
+        **The partial batch is published only on a first paint.** This loader
+        also runs for #560's refreshes, which fire on a UserDataChanged burst
+        while the user is looking at the screen -- and publishing
+        primary-only there takes the Latest rows *away* for the length of one
+        request per library before putting them back. "Load, not reload"
+        promised the screen keeps what it has; a partial publish breaks that
+        promise more visibly than a spinner would.
         """
         route = self.route
         source = self.ctx.source
@@ -88,7 +96,7 @@ class HomePage(Page):
             # covered by the run_async gate that protects the final result.
             # Without it, navigating away mid-load would repaint the home
             # screen the user just left.
-            if run.epoch == epoch:
+            if run.epoch == epoch and route.get("_data") is None:
                 route["_data"] = {"libraries": libs, "layout": layout,
                                   "inherit": inherit,
                                   "rows": self._order_rows(primary)}
@@ -98,7 +106,20 @@ class HomePage(Page):
                     "inherit": inherit,
                     "rows": self._order_rows(primary + latest)}
 
-        self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
+        self.route_async(work, self._publish, epoch)
+
+    def _publish(self, data):
+        """Adopt a loaded home screen, unless it is what is already there.
+
+        A UserDataChanged burst re-reads this screen every few seconds and
+        most of those change nothing it draws -- someone else's play position
+        on an item in no row of yours, or the same item in the same place.
+        Rebuilding the tree for that costs a full home layout, and the rows
+        are on screen while it happens.
+        """
+        if self.route.get("_data") == data:
+            return
+        self.route["_data"] = data
 
     #: Rows with a full listing behind them, by section kind. Only Next Up
     #: for now; jellyfin-web also links Latest and On Now, which need their

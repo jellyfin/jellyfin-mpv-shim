@@ -6,6 +6,7 @@ import pathlib
 from io import BytesIO
 from sys import platform
 
+from . import conf
 from .conf import settings
 from .language_config import apply as apply_language_config
 from .utils import is_local_domain, get_profile, get_seq
@@ -66,10 +67,38 @@ def build_video(item_id, parent, aid=None, sid=None, srcid=None,
 
 class Intro(object):
     def __init__(self, type, start, end):
-        self.type: str = type  # "Intro" or "Outro"
+        # A Jellyfin MediaSegmentType: Intro, Outro, Commercial, Preview or
+        # Recap. Named Intro for its first two.
+        self.type: str = type
         self.start: float = start
         self.end: float = end
         self.has_triggered: bool = False
+
+
+def segment_labels(segment_type):
+    """``(button, done, prompt)`` for a segment type.
+
+    Whole phrases per type rather than "Skip {0}" with a noun: gettext keys
+    on the English, and a language that inflects the verb with the object
+    cannot fix a sentence assembled after translation. This is also what
+    jellyfin-web does.
+
+    Built per call, not at import: ``_()`` resolves against whatever locale
+    is loaded, and at module scope that is whatever was loaded first.
+    """
+    table = {
+        "Outro": (_("Skip Credits"), _("Skipped Credits"),
+                  _("Seek to Skip Credits")),
+        "Commercial": (_("Skip Commercial"), _("Skipped Commercial"),
+                       _("Seek to Skip Commercial")),
+        "Preview": (_("Skip Preview"), _("Skipped Preview"),
+                    _("Seek to Skip Preview")),
+        "Recap": (_("Skip Recap"), _("Skipped Recap"),
+                  _("Seek to Skip Recap")),
+    }
+    return table.get(segment_type,
+                     (_("Skip Intro"), _("Skipped Intro"),
+                      _("Seek to Skip Intro")))
 
 
 class Video(object):
@@ -498,7 +527,8 @@ class Video(object):
         # provided by plugin
         try:
             skip_intro_data = self.client.jellyfin.get_media_segments(
-                media_source_id, include_segment_types=["Outro", "Intro"]
+                media_source_id,
+                include_segment_types=conf.wanted_segment_types(),
             )
             for intro in skip_intro_data["Items"]:
                 self.intros.append(
@@ -630,12 +660,7 @@ class Video(object):
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
-        if (
-            settings.skip_intro_always
-            or settings.skip_intro_enable
-            or settings.skip_credits_always
-            or settings.skip_credits_enable
-        ):
+        if conf.any_segment_wanted():
             self.get_intro(self.media_source["Id"])
 
         self.map_streams()

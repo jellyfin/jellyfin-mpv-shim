@@ -821,6 +821,7 @@ class SyncManager:
             self._download_artwork(client, item, item_dir)
             self._download_subs(client, item_id, source, item_dir)
             self._download_trickplay(client, item_id, source, item_dir)
+            self._download_segments(client, source, item_dir)
             if item.get("Type") == "Episode" and item.get("SeriesId"):
                 self._download_series_art(client, row.get("server_id"),
                                           item["SeriesId"])
@@ -1082,6 +1083,38 @@ class SyncManager:
         with open(os.path.join(item_dir, "trickplay.json"), "w") as fh:
             json.dump({"width": width, "data": data}, fh)
         log.debug("Downloaded %d trickplay tiles for %s.", tiles, item_id)
+
+    def _download_segments(self, client, source, item_dir):
+        """Cache the item's media segments (intro, outro, …) for offline use.
+
+        Best-effort, like the trickplay tiles beside it: segments come from a
+        plugin, so most items legitimately have none and a server without the
+        plugin answers nothing at all. A failure here must not fail the
+        download.
+
+        **Every type, not the ones the settings currently want.** What is on
+        disk outlives the setting that was set when it was written -- turning
+        Recap on months later must not require re-downloading -- so the
+        filtering happens at playback, where conf.segment_action already does
+        it for the online path.
+        """
+        try:
+            data = client.jellyfin.get_media_segments(source.get("Id"))
+        except Exception:
+            log.debug("No media segments for %s", source.get("Id"),
+                      exc_info=True)
+            return
+        items = (data or {}).get("Items") or []
+        if not items:
+            return
+        try:
+            with open(os.path.join(item_dir, "segments.json"), "w") as fh:
+                json.dump(items, fh)
+        except OSError:
+            log.debug("Could not write segments.json", exc_info=True)
+            return
+        log.debug("Downloaded %d media segments for %s.", len(items),
+                  source.get("Id"))
 
     def _download_series_art(self, client, server_id, series_id):
         """Cache series poster/backdrop so offline series tiles + the series page

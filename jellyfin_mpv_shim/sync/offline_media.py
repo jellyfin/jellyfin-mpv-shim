@@ -12,9 +12,10 @@ import json
 import logging
 import os
 
+from .. import conf
 from ..conf import settings
 from ..language_config import apply as apply_language_config
-from ..media import Video
+from ..media import Intro, Video
 from .manager import syncManager
 
 log = logging.getLogger("sync.offline_media")
@@ -89,7 +90,10 @@ class OfflineVideo(Video):
         self.playback_info = {"PlaySessionId": "", "MediaSources": [self._source]}
         self.media_source = None
         self.intros = []
-        self.intro_tried = True
+        # Not tried yet -- unlike the rest of this class's stubs, there IS
+        # something to read (see get_intro). Player.get_playback_url calls it
+        # behind conf.any_segment_wanted(), same as online.
+        self.intro_tried = False
 
     def get_playback_url(self, video_bitrate=None, force_transcode=False):
         self.media_source = dict(self._source)
@@ -97,6 +101,10 @@ class OfflineVideo(Video):
         self.media_source["Protocol"] = "File"
         self.media_source["SupportsDirectPlay"] = True
         self.is_transcode = False
+        # Where Video.get_playback_url does it, and behind the same gate:
+        # skippable segments are cached with the download (see get_intro).
+        if conf.any_segment_wanted():
+            self.get_intro(self.media_source.get("Id"))
         self.map_streams()
         log.info("Playing local file: %s", self._local_path)
         return self._local_path
@@ -201,7 +209,48 @@ class OfflineVideo(Video):
         pass  # nothing to tear down for a local file
 
     def get_intro(self, media_source_id):
-        return  # no intro/credits detection for offline playback
+        """Media segments cached beside the file at download time.
+
+        Same shape as the online path, read from segments.json instead of
+        asked of the server. Every type is on disk, because what is stored
+        outlives the settings that were set when it was written -- turning
+        Recap on months later must not mean re-downloading -- and the
+        filtering happens HERE, on the way in.
+
+        On the way in, specifically, because that is where online filters
+        too: ``include_segment_types=conf.wanted_segment_types()`` means an
+        "off" type never reaches ``self.intros`` at all. ``segment_action``
+        at playback is a weaker, later layer -- ``get_current_intro`` picks
+        the FIRST segment covering the position and ``player.update`` sets
+        ``is_in_intro`` for whatever it returns, before consulting the
+        action. Letting an "off" type in would therefore give a downloaded
+        file two behaviours a streamed one cannot have: a forward seek
+        eaten by a Commercial the viewer turned off (``skip_intro_on_seek``),
+        and an off-typed segment masking a wanted one where the two overlap,
+        so the Skip button never appears.
+
+        An item downloaded before this shipped simply has no file, which is
+        the same as an item with no segments.
+        """
+        if self.intro_tried:
+            return
+        self.intro_tried = True
+        path = os.path.join(self._item_dir, "segments.json")
+        try:
+            with open(path) as fh:
+                segments = json.load(fh)
+        except (OSError, ValueError):
+            return
+        wanted = conf.wanted_segment_types()
+        for seg in segments or ():
+            try:
+                if seg["Type"] not in wanted:
+                    continue
+                self.intros.append(Intro(seg["Type"],
+                                         seg["StartTicks"] / 10000000,
+                                         seg["EndTicks"] / 10000000))
+            except (KeyError, TypeError):
+                log.debug("Skipping malformed offline segment %r", seg)
 
     # -- trickplay (scrubbing previews) -----------------------------------
 

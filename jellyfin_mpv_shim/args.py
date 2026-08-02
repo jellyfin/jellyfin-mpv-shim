@@ -47,7 +47,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mpv-loglevel",
         dest="mpv_loglevel",
-        choices=("fatal", "error", "warn", "info", "debug"),
+        choices=("fatal", "error", "warn", "info", "debug", "noise"),
         default=None,
         help="override mpv_log_level for this run",
     )

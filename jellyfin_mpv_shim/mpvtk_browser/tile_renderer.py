@@ -410,7 +410,7 @@ class TileRenderer:
         Items with no ratio at all fall back to ``default``.
         """
         ratios = sorted(r for r in (i.get("PrimaryImageAspectRatio")
-                                    for i in items or ())
+                                    for i in items or () if i)
                         if isinstance(r, (int, float)) and r > 0)
         if not ratios:
             return (default or self.art.geom), default_type
@@ -733,7 +733,14 @@ class TileRenderer:
         title, subtitle = components.tile_lines(item, parent_item,
                                                 show_year=show_year)
         if not show_title:
-            title = subtitle = ""
+            title = ""
+            if not show_year:
+                # Both off means no caption at all, and the grid reserves no
+                # room for one -- so the second line has to go even where
+                # show_year does not govern it (an episode's "Show · S1E2",
+                # a listing's channel and time). Otherwise it draws into the
+                # row below.
+                subtitle = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
@@ -834,6 +841,20 @@ class TileRenderer:
         return (chrome.CONTENT_PAD
                 + len(hs) * GRID_GAP
                 + sum(measure(h)[1] for h in hs))
+    def row_window(self, size, geom, scroll_id, head_h=0):
+        """``(first, last)`` grid row indexes that get composited: the
+        viewport plus a screen of slack either side.
+
+        Public because the *page* needs the same answer. A windowed grid
+        fetches the items it is about to draw (Paginator.window), and asking
+        that question a second way is how the rows drawn and the rows
+        fetched come to differ.
+        """
+        rh = geom.strip_h + GRID_GAP
+        vh = max(240.0, float(size[1]))
+        top = max(0.0, self.scroll.offset(scroll_id) - head_h)
+        return int(max(0.0, top - vh) // rh), int((top + 2 * vh) // rh)
+
     def grid_of(self, items, prefix, size, geom=None,
                  image_type="Primary", scroll_id=None, head_h=0,
                  on_click=None, inherit=True, labels=None):
@@ -853,11 +874,7 @@ class TileRenderer:
         nrows = (len(items) + cols - 1) // cols
         first, last = 0, nrows - 1
         if scroll_id is not None:
-            rh = geom.strip_h + GRID_GAP
-            vh = max(240.0, float(size[1]))
-            top = max(0.0, self.scroll.offset(scroll_id) - head_h)
-            first = int(max(0.0, top - vh) // rh)
-            last = int((top + 2 * vh) // rh)
+            first, last = self.row_window(size, geom, scroll_id, head_h)
         for r in range(nrows):
             if first <= r <= last:
                 start = r * cols
@@ -882,14 +899,22 @@ class TileRenderer:
                    on_click=None, async_=False, parent_item=False,
                    inherit=True, labels=None, autofocus_first=False):
         geom = geom or self.art.geom
+        # A None is a slot a windowed list has not filled yet (see
+        # pagination.spread). It still occupies its place -- the row is the
+        # right height and the item after it is in the right column -- and
+        # draws as an empty tile. The key is the column rather than the
+        # index, so every unfilled slot in the library shares one cached
+        # blank instead of minting one per position.
         tiles = [self._tile(it, geom, image_type, parent_item, inherit,
-                            labels)
-                 for it in items]
+                            labels) if it else Tile(key="_pending%d" % n)
+                 for n, it in enumerate(items)]
         s = self.art.strips.strip(tiles, geom, async_=async_)
         regions = []
         act = on_click or self.on_open
         chip = None
         for i, (r, it) in enumerate(zip(s["regions"], items)):
+            if not it:
+                continue        # nothing to open, nothing to hover
             rid = "%s-%s" % (prefix, r["key"])
             playable = self.on_play is not None and self.can_play(it)
             regions.append(dict(
@@ -1139,25 +1164,41 @@ class TileRenderer:
                    {"label": _("Length"), "w": 110, "align": "right"}]
         table_rows = []
         for i, row in enumerate(rows):
+            # A row with no item is a slot a windowed list has not filled
+            # yet (see pagination.spread). It keeps its place -- the row
+            # index IS the item's position -- and does nothing, the way
+            # image_map drops the hit region for a hole rather than
+            # handing back one that opens None.
+            item = row.get("item")
             table_rows.append({
-                "id": "%s-%d-%s" % (prefix, i,
-                                    (row.get("item") or {}).get("Id", "")),
+                "id": "%s-%d-%s" % (prefix, i, (item or {}).get("Id", "")),
                 "cells": row["cells"],
-                "on_click": (lambda i=i: on_click(i)),
-                "on_context": (lambda x, y, it=row.get("item"):
-                               self.on_context(it, x, y)),
+                "on_click": ((lambda i=i: on_click(i)) if item else None),
+                "on_context": ((lambda x, y, it=item:
+                                self.on_context(it, x, y)) if item else None),
             })
-        # Same window track_list computes, and for the same reason minus
-        # the overlays. Only when the caller names its scroll container:
-        # without one there is no live offset to window against.
-        virtual = None
-        if scroll_id is not None and self.art._size is not None:
-            virtual = {
-                "offset": max(0.0, self.scroll.offset(scroll_id) - head_h),
-                "height": float(self.art._size[1]),
-            }
         return Table(columns, table_rows, row_h=TRACK_ROW_H,
-                     id=(scroll_id or prefix) + "-table", virtual=virtual)
+                     id=(scroll_id or prefix) + "-table",
+                     virtual=self.list_virtual(scroll_id, head_h))
+
+    def list_virtual(self, scroll_id, head_h=0):
+        """The ``virtual`` spec a table gets: the same window ``track_list``
+        computes, and for the same reason minus the overlays. None when the
+        caller names no scroll container -- without one there is no live
+        offset to window against."""
+        if scroll_id is None or getattr(self.art, "_size", None) is None:
+            return None
+        return {"offset": max(0.0, self.scroll.offset(scroll_id) - head_h),
+                "height": float(self.art._size[1])}
+
+    def list_window(self, count, scroll_id, head_h=0):
+        """``(first, last)`` table rows an ``item_list`` materializes.
+
+        The list view's ``row_window``, and public for the same reason: a
+        windowed page fetches the rows it is about to draw, and asking that
+        question a second way is how the two come to differ."""
+        return virtual_window(self.list_virtual(scroll_id, head_h),
+                              TRACK_ROW_H, count)
 
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
@@ -1217,6 +1258,16 @@ class TileRenderer:
 
         rows = []
         for i, tr in enumerate(tracks):
+            if not tr:
+                # A slot a windowed list has not filled yet (see
+                # pagination.spread). It keeps its place -- the row index IS
+                # the track's position -- and does nothing: no handlers, no
+                # art cell to composite, the same treatment image_map and
+                # item_list give a hole.
+                cells = ([self._art_placeholder()] if art else []) + \
+                    ["", "", ""] + ([""] if album else []) + [""]
+                rows.append({"id": "%s-%d" % (prefix, i), "cells": cells})
+                continue
             playing = playing_id is not None and tr.get("Id") == playing_id
             cells = [first_cell(i, tr), tr.get("Name", ""), components.track_artists(tr)]
             if art:

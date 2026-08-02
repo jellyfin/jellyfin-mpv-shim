@@ -315,7 +315,7 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
     def test_the_button_is_offered_with_seek_to_skip_turned_off(self):
         self.assertIsNotNone(
             self._hud_skip_after_update(skip_intro_on_seek=False,
-                                        skip_intro_enable=True),
+                                        segment_intro="ask"),
             "turning seek-to-skip off took the button with it")
 
     def test_turning_the_button_itself_off_does_remove_it(self):
@@ -323,10 +323,13 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         can never be turned off at all."""
         self.assertIsNone(
             self._hud_skip_after_update(skip_intro_on_seek=True,
-                                        skip_intro_enable=False,
-                                        skip_intro_always=False,
-                                        skip_credits_enable=False,
-                                        skip_credits_always=False))
+                                        segment_intro="off",
+                                        segment_outro="off"))
+
+    def test_always_skips_instead_of_offering(self):
+        """The third state the booleans could only express as a pair."""
+        self.assertIsNone(
+            self._hud_skip_after_update(segment_intro="always"))
 
 
 class TestReportingIsWiredIn(unittest.TestCase):
@@ -378,3 +381,366 @@ class TestReportingIsWiredIn(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertEqual(out.stdout.strip(), "",
                          "player_reporting captured the backend at import time")
+
+
+class TestVolumeAndMuteReachTheUI(unittest.TestCase):
+    """#618: the HUD's mute button took up to a second and a half to change.
+
+    Its icon reads the playstate snapshot, and nothing pushed one when the
+    volume or the mute flag moved -- the only thing that did was the
+    browser's 1s ticker. Pause never had the problem because ``pause`` has
+    been observed all along, which is why the two felt so different.
+    """
+
+    def test_both_properties_are_observed(self):
+        import inspect
+
+        src = inspect.getsource(PlayerManager._bind_mpv_handlers)
+        for prop in ("mute", "volume"):
+            self.assertIn('self._observe("%s"' % prop, src,
+                          "%s is not observed, so the UI only learns about "
+                          "it on the next tick" % prop)
+
+    def test_the_handler_pushes_a_snapshot(self):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = _Video({"Name": "x"})
+        pm._player = _Player()
+        pm._hud_skip = None
+        pm.repeat_mode = "none"
+        PlayerManager._on_volume_change(pm, "mute", True)
+        self.assertTrue(got, "the observer pushed no playstate")
+        self.assertIn("muted", got[0])
+
+    def test_it_does_not_go_through_the_timeline_thread(self):
+        """timeline_handle() would also POST progress to the server, which
+        is not what a volume nudge is worth. Read the code, not the
+        docstring -- which says the same thing and would satisfy a naive
+        substring check on its own."""
+        import inspect
+
+        src = inspect.getsource(PlayerManager._on_volume_change)
+        body = src.split('"""')[2]
+        self.assertNotIn("timeline_handle", body)
+        self.assertIn("push_playstate", body)
+
+
+class TestChapterJump(unittest.TestCase):
+    """Where a previous/next-chapter jump lands. One rule, two callers: the
+    HUD's chapter buttons and the mouse's back/forward buttons (#614)."""
+
+    CHAPTERS = [{"time": 0.0}, {"time": 40.0}, {"time": 80.0}]
+
+    def target(self, pos, direction):
+        from jellyfin_mpv_shim.player import chapter_target
+        return chapter_target(self.CHAPTERS, pos, direction)
+
+    def test_back_restarts_the_chapter_you_are_in(self):
+        self.assertEqual(self.target(50.0, -1), 40.0)
+
+    def test_back_within_the_grace_goes_to_the_one_before(self):
+        """Every player does this, and it is what makes a double-press
+        mean "no, the previous one"."""
+        self.assertEqual(self.target(41.0, -1), 0.0)
+
+    def test_back_from_the_first_chapter_declines(self):
+        """None, not 0.0. There is no boundary behind the first one, so the
+        button has nowhere to go and must not seek -- the same answer
+        forward gives at the last one.
+
+        This is not cosmetic. The old 0.0 seed meant back ALWAYS issued a
+        seek, and a redundant `seek 0 absolute+exact` at the head of a file
+        is what made the buttons advance the queue: mpv answered it with an
+        immediate EOF and the shim's finished_callback started the next
+        episode. Predates this branch -- master's hud._chapter_jump seeds
+        the same 0.0."""
+        self.assertIsNone(self.target(1.0, -1))
+        self.assertIsNone(self.target(0.0, -1))
+
+    def test_back_still_restarts_the_chapter_you_are_in(self):
+        """The grace only reaches backwards two seconds; ten seconds into
+        the first chapter there IS somewhere to go, and it is 0.0."""
+        self.assertEqual(self.target(10.0, -1), 0.0)
+
+    def test_forward_takes_the_next_boundary(self):
+        self.assertEqual(self.target(50.0, 1), 80.0)
+
+    def test_forward_from_the_last_chapter_has_nowhere_to_go(self):
+        """None, not the end of the file: the caller does nothing rather
+        than seeking to the credits."""
+        self.assertIsNone(self.target(90.0, 1))
+
+    def test_landing_on_a_boundary_does_not_seek_to_where_you_are(self):
+        self.assertEqual(self.target(40.0, 1), 80.0)
+
+    def test_there_is_no_dead_zone_before_a_boundary(self):
+        """`> pos + 0.5` meant the last half second of every chapter was a
+        stretch where the forward button did nothing at all -- half a second
+        of real playback, and the reason it reads as "the button sometimes
+        doesn't work". A position from mpv is a float and is never exactly a
+        boundary, so `> pos` covers the equality case on its own."""
+        self.assertEqual(self.target(39.6, 1), 40.0)
+        self.assertEqual(self.target(39.999, 1), 40.0)
+
+    def test_a_file_with_no_chapters_answers_nothing_in_either_direction(self):
+        """Back used to answer 0.0 here, so a chapter button on a file with
+        no chapters restarted the film."""
+        from jellyfin_mpv_shim.player import chapter_target
+        self.assertIsNone(chapter_target([], 10.0, 1))
+        self.assertIsNone(chapter_target([], 10.0, -1))
+
+    def test_a_negative_first_chapter_is_clamped_to_zero(self):
+        """#614, and the whole of it. Matroska start-time offsets put the
+        first chapter at a fractionally negative timestamp -- -0.005 on the
+        episode this was reported against -- and mpv reads a NEGATIVE
+        absolute seek as the end of the file, not as 0. So "previous
+        chapter" seeked to EOF and the shim's EOF observer started the next
+        episode.
+
+        Measured against mpv v0.41.0: `seek -0.005 absolute+exact` on a 30s
+        file lands at 29.96 with eof-reached true."""
+        from jellyfin_mpv_shim.player import chapter_target
+        chapters = [{"time": -0.005}, {"time": 40.0}, {"time": 80.0}]
+        self.assertEqual(chapter_target(chapters, 9.468, -1), 0.0)
+        self.assertEqual(chapter_target(chapters, 50.0, -1), 40.0)
+        # forward is unaffected -- it only ever returns a boundary > pos
+        self.assertEqual(chapter_target(chapters, 9.468, 1), 40.0)
+
+
+class TestNegativeAbsoluteSeekIsClamped(unittest.TestCase):
+    """seek() is the choke point, because chapter_target is not the only
+    thing that hands it a raw chapter timestamp: the HUD's chapter PICKER
+    seeks to chs[i]["time"] directly, so selecting the first chapter of the
+    same file reproduced #614 on its own."""
+
+    def _pm(self):
+        import threading
+
+        class FakePlayer:
+            playback_abort = False
+            def __init__(self): self.cmds = []
+            def command(self, *a): self.cmds.append(a)
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._lock = threading.RLock()
+        pm._player = FakePlayer()
+        pm.syncplay = type("S", (), {"is_enabled": lambda self: False})()
+        pm.timeline_handle = lambda: None
+        pm.push_playstate = lambda: None
+        return pm
+
+    def test_negative_absolute_seek_becomes_zero(self):
+        pm = self._pm()
+        PlayerManager.seek(pm, -0.005, absolute=True)
+        self.assertEqual(pm._player.cmds, [("seek", 0.0, "absolute+exact")])
+
+    def test_a_normal_absolute_seek_is_untouched(self):
+        pm = self._pm()
+        PlayerManager.seek(pm, 42.5, absolute=True)
+        self.assertEqual(pm._player.cmds, [("seek", 42.5, "absolute+exact")])
+
+    def test_a_relative_seek_may_still_be_negative(self):
+        """The HUD's back-10 button, and every keyboard seek: a negative
+        RELATIVE offset is the ordinary way to go backwards and must not be
+        clamped."""
+        pm = self._pm()
+        PlayerManager.seek(pm, -10, absolute=False)
+        self.assertEqual(pm._player.cmds, [("seek", -10)])
+
+
+class TestMouseChapterNavIsOptional(unittest.TestCase):
+    """#614: the thumb buttons are easy to hit by accident on some mice, so
+    this is opt-in even though most players bind them."""
+
+    def test_it_is_off_by_default(self):
+        self.assertFalse(settings.mouse_chapter_nav)
+
+    def test_the_binding_is_behind_the_setting(self):
+        import inspect
+
+        src = inspect.getsource(PlayerManager._bind_mpv_handlers)
+        self.assertIn("settings.mouse_chapter_nav", src)
+        self.assertIn("MBTN_BACK", src)
+        self.assertIn("MBTN_FORWARD", src)
+
+
+class TestNoPlayerControls(unittest.TestCase):
+    """#615: "no controls" is a Player Controls Style, not a switch beside
+    it. The old `enable_osc` only ever reached mpv's own OSC, so it did
+    nothing under the default style and then silently blanked the controls
+    if you later chose the mpv one."""
+
+    def _pm(self, style):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._osc_style_resolved = style
+        return pm
+
+    def test_every_other_style_has_controls(self):
+        for style in ("mpvtk", "mpv", "default"):
+            self.assertTrue(self._pm(style).osc_enabled, style)
+
+    def test_none_does_not(self):
+        self.assertFalse(self._pm("none").osc_enabled)
+
+    def test_the_hud_declines_to_engage(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+        import jellyfin_mpv_shim.player as player_mod
+
+        gw = HudMixin()
+        with mock.patch.object(player_mod, "playerManager",
+                               self._pm("none")):
+            self.assertFalse(gw.use_hud())
+        with mock.patch.object(player_mod, "playerManager",
+                               self._pm("mpvtk")):
+            self.assertTrue(gw.use_hud())
+
+    def test_the_skip_prompt_falls_back_to_the_osd(self):
+        """The HUD's Skip button is the mpvtk surface for "ask" mode. With
+        no HUD the OSD "Seek to Skip" prompt is the one left, and it is
+        already what any non-mpvtk style gets -- so this is a check that
+        the branch keys off the style rather than off having a browser."""
+        import inspect
+
+        src = inspect.getsource(PlayerManager.update)
+        self.assertIn('== "mpvtk"', src)
+
+    def test_the_setting_is_gone_rather_than_migrated(self):
+        self.assertFalse(hasattr(settings, "enable_osc"))
+
+
+class TestMediaSegmentTypes(unittest.TestCase):
+    """#575: intros and credits were two pairs of booleans; the server
+    publishes five kinds of segment and jellyfin-web offers three actions
+    for each."""
+
+    def test_every_type_has_a_setting_and_an_action(self):
+        from jellyfin_mpv_shim import conf
+
+        for seg_type, key in conf.SEGMENT_SETTINGS.items():
+            with self.subTest(seg_type):
+                self.assertTrue(hasattr(settings, key))
+                self.assertIn(conf.segment_action(seg_type),
+                              conf.SEGMENT_ACTIONS)
+
+    def test_intros_and_credits_still_ask_by_default(self):
+        self.assertEqual(settings.segment_intro, "ask")
+        self.assertEqual(settings.segment_outro, "ask")
+
+    def test_the_new_three_are_off_by_default(self):
+        """A segment skipped out from under you is worse than one you have
+        to skip yourself, and these are far less common."""
+        for key in ("segment_commercial", "segment_preview",
+                    "segment_recap"):
+            self.assertEqual(getattr(settings, key), "off", key)
+
+    def test_an_unknown_type_is_left_alone(self):
+        """A newer server, or a hand-edited value. Skipping something we
+        cannot name is the one unrecoverable answer."""
+        from jellyfin_mpv_shim import conf
+
+        self.assertEqual(conf.segment_action("Unknown"), "off")
+        self.assertEqual(conf.segment_action("SomethingNew"), "off")
+
+    def test_only_wanted_types_are_requested(self):
+        from jellyfin_mpv_shim import conf
+
+        with mock.patch.object(settings, "segment_intro", "ask"), \
+                mock.patch.object(settings, "segment_outro", "off"), \
+                mock.patch.object(settings, "segment_recap", "always"):
+            self.assertEqual(sorted(conf.wanted_segment_types()),
+                             ["Intro", "Recap"])
+            self.assertTrue(conf.any_segment_wanted())
+
+    def test_nothing_wanted_means_no_request_at_all(self):
+        from jellyfin_mpv_shim import conf
+
+        patches = [mock.patch.object(settings, k, "off")
+                   for k in conf.SEGMENT_SETTINGS.values()]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        self.assertFalse(conf.any_segment_wanted())
+        self.assertEqual(conf.wanted_segment_types(), [])
+
+    def test_each_type_names_itself_in_its_labels(self):
+        """"Skip Recap" is not "Skip Intro" -- and whole phrases, because a
+        language that inflects the verb with its object cannot fix a
+        sentence assembled after translation."""
+        from jellyfin_mpv_shim.media import segment_labels
+
+        seen = {t: segment_labels(t)[0]
+                for t in ("Intro", "Outro", "Commercial", "Preview", "Recap")}
+        self.assertEqual(len(set(seen.values())), 5, seen)
+        # An unknown type still has something to put on the button.
+        self.assertTrue(segment_labels("Whatever")[0])
+
+
+class TestSegmentSettingsMigration(unittest.TestCase):
+    """The four booleans carried a real choice, so unlike the other
+    migrations this one is about preserving it rather than overriding it."""
+
+    def _migrated(self, **old):
+        from jellyfin_mpv_shim.conf import Settings
+
+        cfg = Settings()
+        cfg.config_version = 1
+        cfg._migrate(old)
+        return cfg
+
+    def test_always_wins_over_ask(self):
+        cfg = self._migrated(skip_intro_always=True, skip_intro_enable=True)
+        self.assertEqual(cfg.segment_intro, "always")
+
+    def test_ask_carries_over(self):
+        cfg = self._migrated(skip_credits_always=False,
+                             skip_credits_enable=True)
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_off_carries_over(self):
+        cfg = self._migrated(skip_intro_always=False,
+                             skip_intro_enable=False,
+                             skip_credits_always=False,
+                             skip_credits_enable=False)
+        self.assertEqual(cfg.segment_intro, "off")
+        self.assertEqual(cfg.segment_outro, "off")
+
+    def test_a_config_without_the_old_keys_keeps_the_defaults(self):
+        cfg = self._migrated()
+        self.assertEqual(cfg.segment_intro, "ask")
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_a_quoted_boolean_is_read_the_way_the_schema_read_it(self):
+        """The keys being migrated were declared `bool`, which in this
+        schema means adv_bool -- and adv_bool says the STRINGS "false"/"no"/
+        "0"/"off" are False while Python's bool() says all four are True.
+
+        A hand-edited or templated conf.json that quotes its booleans would
+        otherwise migrate "skip_intro_always": "false" to `always`: silently
+        skipping intros for someone who had asked to be prompted, with the
+        source keys dropped on the next save so the evidence goes too.
+        """
+        for false_ish in ("false", "no", "0", "off", "False", False, 0):
+            with self.subTest(value=false_ish):
+                cfg = self._migrated(skip_intro_always=false_ish,
+                                     skip_intro_enable="true")
+                self.assertEqual(cfg.segment_intro, "ask",
+                                 "%r read as always" % (false_ish,))
+                cfg = self._migrated(skip_intro_always=false_ish,
+                                     skip_intro_enable=false_ish)
+                self.assertEqual(cfg.segment_intro, "off",
+                                 "%r read as ask" % (false_ish,))
+
+    def test_a_quoted_true_still_migrates(self):
+        """The other direction, or the check above is just a way of never
+        migrating anything."""
+        cfg = self._migrated(skip_intro_always="true")
+        self.assertEqual(cfg.segment_intro, "always")
+        cfg = self._migrated(skip_credits_enable="yes")
+        self.assertEqual(cfg.segment_outro, "ask")
+
+    def test_it_stamps_the_version_so_it_runs_once(self):
+        from jellyfin_mpv_shim.conf import CONFIG_VERSION
+
+        cfg = self._migrated(skip_intro_enable=False)
+        self.assertEqual(cfg.config_version, CONFIG_VERSION)

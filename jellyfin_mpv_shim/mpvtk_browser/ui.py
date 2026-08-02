@@ -117,6 +117,17 @@ class UserInterface:
             return
         self._browser.refresh_live_tv()
 
+    def _user_data_changed(self, _client=None):
+        """Forward a UserDataChanged websocket event to the browser.
+
+        Unfiltered by server for the same reason as the timer events above:
+        the browser refreshes whatever is on screen, and the event only ever
+        comes from a server this client is logged into.
+        """
+        if self._browser is None:
+            return
+        self._browser.refresh_home()
+
     def _open_config_folder(self):
         PlayerGateway().open_config_folder()
 
@@ -287,6 +298,9 @@ class UserInterface:
         # A recording rule changed, possibly from another client. The browser
         # refreshes only if a Live TV screen is up — see refresh_live_tv.
         eventHandler.live_tv_changed = self._live_tv_changed
+        # ...and the same for watched/resume state, which moves the home
+        # screen's Continue Watching and Next Up rows (see refresh_home).
+        eventHandler.user_data_changed = self._user_data_changed
         # A startup PIN gates connection: show the lock screen and let the
         # unlock drive the connect. Otherwise connect in the background.
         from ..users import userManager

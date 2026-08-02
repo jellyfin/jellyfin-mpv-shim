@@ -74,6 +74,14 @@ class SettingsBase:
             # and seeing nothing happen.
             if self.app is not None and hasattr(self.app, "push_scroll_config"):
                 self.app.push_scroll_config()
+        if ok and key == "poster_scale":
+            # Applies live, unlike the theme's own cover size below: this
+            # control is *labelled* Cover Size, so watching it happen is the
+            # point. getattr for the config stand-in this mixin is also
+            # exercised against.
+            apply_cover = getattr(self, "apply_cover_size", None)
+            if apply_cover is not None:
+                apply_cover()
         if ok and key == "theme":
             # Colours apply immediately; sizes still need a restart, which is
             # what set_theme's docstring explains and what NOTES tells the

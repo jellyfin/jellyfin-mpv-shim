@@ -204,3 +204,54 @@ class TestAdoptBackend(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DisabledControlsAbsorbThePointer(unittest.TestCase):
+    """A disabled control has to EXIST as a node.
+
+    Button and Checkbox mute themselves in Python -- they drop their
+    handler, their hover and (flat) their background -- because a
+    composite's colours live in child nodes the renderer cannot recognise.
+    That left `layout` with nothing to emit: no bg, no border, no on_click.
+
+    With no node there is nothing to absorb the press, so it reached
+    whatever the control sat over. Over the playback HUD that is bare video,
+    where renderer.lua toggles pause -- so a disabled flat button paused the
+    film. The node also carries the tooltip explaining why the control is
+    off, which is the one thing the feature's docstring insists on.
+    """
+
+    def _nodes(self, el):
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+        nodes, _h = layout(Column([el], w=300, h=60), 300, 60)
+        return nodes
+
+    def _node(self, el):
+        return next((n for n in self._nodes(el) if n.get("id") == el.id), None)
+
+    def test_a_disabled_flat_button_still_emits_a_node(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Button
+        node = self._node(Button("x", id="b", flat=True, disabled=True,
+                                 tip="not now", on_click=lambda: None))
+        self.assertIsNotNone(node, "nothing for the pointer to land on")
+        self.assertTrue(node.get("dis"))
+        self.assertEqual(node.get("tip"), "not now",
+                         "the reason it is disabled never reached the "
+                         "renderer")
+        self.assertFalse(node.get("click"), "a disabled button is clickable")
+
+    def test_a_disabled_checkbox_still_emits_a_node(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Checkbox
+        node = self._node(Checkbox("x", False, id="c", disabled=True,
+                                   on_toggle=lambda: None))
+        self.assertIsNotNone(node, "nothing for the pointer to land on")
+        self.assertTrue(node.get("dis"))
+        self.assertFalse(node.get("click"))
+
+    def test_an_enabled_one_is_unchanged(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Button
+        node = self._node(Button("x", id="b", flat=True,
+                                 on_click=lambda: None))
+        self.assertTrue(node.get("click"))
+        self.assertFalse(node.get("dis"))
