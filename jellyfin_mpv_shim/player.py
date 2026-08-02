@@ -2278,10 +2278,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # showing the ended video paused.
             self.should_send_timeline = False
             self._video = None
-            try:
-                self._player.command("stop")
-            except _mpv_errors:
-                self._handle_mpv_disconnect()
+            # _mpv_alive first, and not merely the try/except. Closing the
+            # window makes mpv end the file AND shut down, so this callback
+            # (queued by end-file) runs on the action thread while
+            # _on_shutdown_event's terminate thread is inside
+            # player.terminate(). On the external backend the command is a
+            # socket write and the race surfaces as BrokenPipeError, which
+            # _mpv_errors catches; on in-process libmpv the handle has been
+            # freed underneath us and the command is a use-after-free, which
+            # is a SIGSEGV no except clause can see. _terminate_mpv clears
+            # this flag before it calls terminate(), so checking it is what
+            # closes the window. Found by tests/e2e/test_mpv_reopen.
+            if self._mpv_alive:
+                try:
+                    self._player.command("stop")
+                except _mpv_errors:
+                    self._handle_mpv_disconnect()
             # Before releasing the stream, not after: this is the browser's
             # cue to come back, and the release is a blocking round trip that
             # the library screen has no reason to wait behind.
