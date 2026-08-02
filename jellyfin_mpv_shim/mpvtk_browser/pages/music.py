@@ -203,22 +203,67 @@ class MusicLibraryPage(MusicPage):
         art = self.ctx.art
         route = self.route
         server = route.get("server") or self.ctx.server
-        ids = [s.get("Id") for s in data]
+        # The visible window, so the table fetches the rows it draws.
+        head_h = chrome.CONTENT_PAD
+        first, last = art.tiles.list_window(len(data), "music-songs", head_h)
+        self._window(first, last)
         # art=True: this is a whole library's worth of songs from every
         # album at once, which is exactly the mixed-album case the art
         # column is for (the album page redundantly omits it). Safe
         # because the list is virtualized — only visible rows composite
         # an overlay, so the 63-overlay budget holds.
         return VScroll(Column([art.tiles.track_list(
-            data, "song",
-            lambda i: self.ctx.actions.play_list(ids, server, i, audio=True),
+            data, "song", self._play_songs_from,
             art=True, scroll_id="music-songs", menu=True)],
             pad=chrome.CONTENT_PAD, align="stretch"),
             id="music-songs", flex=1,
             offset=self.parked_scroll("music-songs"),
             on_scroll=lambda off, mx: art.scroll.on_scroll(
                 "music-songs", off, mx,
-                lambda o, m: self._on_scroll_end(o, m)))
+                lambda o, m: art.pages.rewindow(route)))
+
+    def _play_songs_from(self, index):
+        """Play from a row of the songs tab, asking the SERVER for the queue.
+
+        A music library's songs tab runs to thousands of rows and is
+        windowed, so "everything on screen" is a handful of loaded pages
+        with holes between them -- there is no full list to index into.
+
+        jellyfin-web does not use its rendered rows either: shortcuts.js's
+        playAllFromHere re-runs the container's own query and plays
+        result.Items, falling back to scraped DOM ids only where the
+        container has no fetcher. That re-fetch goes through
+        getItemsForPlayback, i.e. the same Limit: 300 repository.QUEUE_LIMIT
+        matches.
+
+        Ours is the simpler shape, because the row index IS the track's
+        absolute position in the library -- that is the invariant windowing
+        is built on, so there is nothing to reconstruct from the DOM the way
+        web has to. Ask for QUEUE_LIMIT songs starting there and play from
+        the top of the answer.
+        """
+        from ..repository import QUEUE_LIMIT
+
+        route = self.route
+        source = self.ctx.source
+        srv = route.get("server") or self.ctx.server
+        parent = route["parent_id"]
+
+        def work():
+            return source.get_songs(srv, parent, start_index=index,
+                                    limit=QUEUE_LIMIT)
+
+        def done(res):
+            items, _total = res
+            items = [i for i in items if i]
+            if not items:
+                return
+            self.ctx.actions.play_list([i.get("Id") for i in items], srv, 0,
+                                       audio=True, items=items)
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch,
+                         on_error=lambda _e: self.ctx.status(
+                             _("Could not start playback.")))
 
     def _grid_body(self, data, size, tab):
         art = self.ctx.art

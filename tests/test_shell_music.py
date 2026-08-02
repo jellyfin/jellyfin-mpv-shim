@@ -76,9 +76,22 @@ class TestMusicDepth(unittest.TestCase):
     def test_songs_tab_is_track_list(self):
         _n, h = self._music(tab="songs")
         self.assertTrue(any(k.startswith("song-") for k in h))
-        h[next(k for k in h if k == "song-2")]["click"]()
+
+    def test_playing_a_song_asks_the_server_from_that_row(self):
+        """A music library's songs tab runs to thousands of rows and is
+        windowed, so "everything on screen" is a few loaded pages with holes
+        between them -- there is no full list to index into.
+
+        jellyfin-web does the same thing: playAllFromHere re-runs the
+        container's own query rather than using its rendered rows. Ours is
+        simpler because the row index IS the track's absolute position.
+        """
+        _n, h = self._music(tab="songs")
+        h["song-2"]["click"]()
         ids_, _srv, start = self.ctl.played[-1]
-        self.assertEqual(start, 2)
+        self.assertEqual(start, 0, "played into a queue instead of from it")
+        self.assertEqual(ids_[0], "so2",
+                         "the queue does not start at the clicked row")
 
     def test_album_action_bar(self):
         self.b.navigate({"kind": "album", "server": "srv1", "item_id": "al1",
@@ -207,6 +220,49 @@ class TestMusicPaging(unittest.TestCase):
         self.assertTrue(data, "the genres tab loaded nothing")
         self.assertTrue(all(i is not None for i in data),
                         "an unpaged tab was padded with holes")
+
+class TestSongsTabWindows(unittest.TestCase):
+    """The songs tab is the one most likely to run to thousands of rows."""
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.b._pool = _SyncPool()
+
+    def _songs(self, total=4000):
+        calls = []
+
+        def get_songs(server_uuid, parent_id, start_index=0, limit=100, **kw):
+            calls.append((start_index, limit))
+            return ([{"Id": "so%d" % (start_index + i),
+                      "Name": "Song %d" % (start_index + i),
+                      "Type": "Audio"} for i in range(limit)], total)
+        self.b.source.get_songs = get_songs
+        self.b.navigate({"kind": "music", "server": "srv1",
+                         "parent_id": "ml", "title": "Music", "_tab": "songs"})
+        return calls
+
+    def test_the_table_is_sized_from_the_server_total(self):
+        calls = self._songs()
+        self.assertEqual(len(self.b.route["_data"]), 4000)
+        self.assertEqual([c[0] for c in calls], [0])
+
+    def test_a_hole_row_is_drawn_but_inert(self):
+        """Two things, not one: the cells have to be blank AND the handlers
+        have to go. _list_view needed both and only got the first at
+        first."""
+        self._songs()
+        nodes, handlers = build_scene(self.b)
+        holes = [k for k in handlers if k.startswith("song-")
+                 and int(k.rsplit("-", 1)[-1]) > 200]
+        self.assertFalse(holes, "unloaded rows carry handlers: %r" % holes[:3])
+
+    def test_playing_a_hole_is_impossible(self):
+        """There is no id to play, so there must be no way to ask."""
+        self._songs()
+        _n, handlers = build_scene(self.b)
+        self.assertIn("song-0", handlers, "the loaded rows lost their click")
+
 
 class TestTrackListVirtualization(unittest.TestCase):
     """Track tables must window their rows. With the album-art column each

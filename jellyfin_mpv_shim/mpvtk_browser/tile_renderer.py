@@ -1258,6 +1258,16 @@ class TileRenderer:
 
         rows = []
         for i, tr in enumerate(tracks):
+            if not tr:
+                # A slot a windowed list has not filled yet (see
+                # pagination.spread). It keeps its place -- the row index IS
+                # the track's position -- and does nothing: no handlers, no
+                # art cell to composite, the same treatment image_map and
+                # item_list give a hole.
+                cells = ([self._art_placeholder()] if art else []) + \
+                    ["", "", ""] + ([""] if album else []) + [""]
+                rows.append({"id": "%s-%d" % (prefix, i), "cells": cells})
+                continue
             playing = playing_id is not None and tr.get("Id") == playing_id
             cells = [first_cell(i, tr), tr.get("Name", ""), components.track_artists(tr)]
             if art:

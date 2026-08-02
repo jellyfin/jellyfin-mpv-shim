@@ -313,9 +313,17 @@ class FakeSource:
     def get_artists(self, server_uuid, parent_id, **kw):
         return ([{"Id": "ar2", "Name": "Artist 2", "Type": "MusicArtist"}], 1)
 
-    def get_songs(self, server_uuid, parent_id, **kw):
+    def get_songs(self, server_uuid, parent_id, start_index=0, limit=100,
+                  **kw):
+        # start_index honoured, because the songs tab is windowed and its
+        # play action asks the server from the clicked row (see
+        # MusicLibraryPage._play_songs_from). A fake that ignored it would
+        # make that indistinguishable from playing the first page.
+        total = 5
         return ([{"Id": "so%d" % i, "Name": "Song %d" % i, "Type": "Audio",
-                  "IndexNumber": i + 1} for i in range(5)], 5)
+                  "IndexNumber": i + 1}
+                 for i in range(start_index,
+                                min(total, start_index + limit))], total)
 
     def get_artist_songs(self, server_uuid, artist_id, limit=500):
         return [{"Id": "as%d" % i, "Name": "AS %d" % i, "Type": "Audio"}

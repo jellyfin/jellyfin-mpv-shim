@@ -909,8 +909,29 @@ only lines up because its list is a single rendered page.)
 
 ### Order
 
-1. Tile grids — Albums, Album Artists, Artists, genre page.
-2. Songs — `track_list` holes plus the server-backed play action.
+1. Tile grids — Albums, Album Artists, Artists, genre page. `b6d24a1e`
+2. Songs — `track_list` holes plus the server-backed play action. `aedee927`
+
+### Done — what it came to
+
+Both landed as planned. Two things worth recording:
+
+`track_list` needed the **same two changes** `_list_view` did, and for the
+same reason — blank cells so the row keeps its place, *and* no handlers so a
+hole cannot be clicked into opening None. The review round had just caught
+`item_list` shipping only the first of those, which is why it was looked for
+here rather than assumed.
+
+The songs play action came out **simpler than jellyfin-web's**, not harder.
+Web's `playAllFromHere` computes its start index from the DOM, which only
+lines up because its list is a single rendered page; ours is the row index
+itself, because the row index *is* the track's absolute position — the
+invariant the whole sparse-list design rests on.
+
+`more` now has exactly one caller left in the browser: Live TV's channel
+list, which stays deliberately. `TestPagersShareTheirInvariants` follows it
+rather than being deleted — the code still runs, so its rules still need
+asserting.
 
 ## Hand-testing round 2: the review fixes
 
@@ -1010,6 +1031,26 @@ thing that was fixed but the thing beside it.
 - [ ] **The OSD menu's segment rows** now read Never/Ask/Always, matching
       the settings form.
 - [ ] **Theme settings** no longer claims cover size needs a restart.
+
+### Music windowing (`b6d24a1e`, `aedee927`)
+
+- [ ] **Albums / Album Artists / Artists** on a big library: full-length
+      scrollbar from the first frame, no jump as pages land, drag to the
+      middle and get *that* neighbourhood.
+- [ ] **A genre with many albums**, same.
+- [ ] **Genres tab** — unpaged, so nothing should change at all.
+- [ ] **Artist page** — not windowed (its query takes no offset); check it
+      still shows a full discography.
+- [ ] **Songs tab**: scroll deep, then click a song. It should play from
+      *that* song, with the next few hundred queued behind it. Check the
+      now-playing bar and the queue view agree.
+- [ ] **Songs tab, unloaded rows**: blank rows must not respond to a click
+      or a right-click, and must not hover-highlight.
+- [ ] **Switch tabs and come back** — the per-tab cache should still work
+      and should not re-request what it had.
+- [ ] **Paginated mode on**, across the music tabs.
+- [ ] **Live TV channels** — deliberately still append-on-approach; check it
+      is unchanged.
 
 ### Known and deliberate
 
