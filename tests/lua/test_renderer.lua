@@ -1201,6 +1201,18 @@ eq(fake.log.enabled["mpvtk_thumb"], false,
 fake.send("mpvtk-active", "yes")            -- browse resumes from the HUD
 eq(fake.log.enabled["mpvtk_thumb"], true,
    "browse came back from a summoned HUD with mouse Back still dead")
+
+-- The nav keys take the SAME no-op transition, and were the other half of
+-- it. ui_suspend drops them for playback (the arrows are mpv's seek keys
+-- there) and only ui_resume puts them back -- which is below the early
+-- return. A summoned HUD calls ui_resume(no_nav) itself, correctly leaving
+-- them off, and then browse resumed without ever binding them again: no
+-- arrow, ENTER or TAB navigation in the library for the rest of the
+-- session, from the first video played.
+ok(fake.log.keybinds["mpvtk_nav_UP"] ~= nil,
+   "browse came back from a summoned HUD with arrow navigation dead")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse came back from a summoned HUD with ENTER dead")
 fake.send("mpvtk-hud", "no")
 
 -- ============================================== scrollbar drag anchoring
@@ -1550,6 +1562,57 @@ scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
 hud_pointer(642, 670)
 pv_paint()
 ok(preview() == nil, "a slider without pv draws no bubble")
+
+-- =========================================== keyboard scrolling (PGUP/etc)
+
+-- The arrows are focus navigation and stay that way; these four are the
+-- keys nothing was reaching. The target is the focused node's own scroller,
+-- or the tallest one in the scene when nothing is focused.
+local function keypress(name)
+    local fn = fake.log.keybinds["mpvtk_nav_" .. name]
+    ok(fn ~= nil, "no binding for " .. name)
+    if fn then fn() end
+end
+
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-active", "yes")     -- a clean browse state
+scene({ vscroll("body", 400, 4000) })
+eq(offset("body"), 0, "a fresh container should start at the top")
+
+keypress("PGDWN")
+eq(offset("body"), 400, "PGDWN did not page down by a viewport")
+keypress("PGDWN")
+eq(offset("body"), 800, "a second PGDWN did not page again")
+keypress("PGUP")
+eq(offset("body"), 400, "PGUP did not page back")
+
+keypress("END")
+eq(offset("body"), 3600, "END did not go to the bottom (ch - h)")
+keypress("PGDWN")
+eq(offset("body"), 3600, "PGDWN past the end should clamp, not overrun")
+keypress("HOME")
+eq(offset("body"), 0, "HOME did not go back to the top")
+
+-- A scroller with nothing to scroll is not a target, and neither is a
+-- horizontal one: PGUP/PGDWN are a vertical gesture.
+scene({ vscroll("short", 400, 100),
+        { id = "row", t = "scroll", axis = "x", x = 0, y = 0,
+          w = 400, h = 100, cw = 4000, ch = 100 } })
+keypress("PGDWN")
+eq(offset("short"), 0, "paged a container with nothing to scroll")
+eq(offset("row"), 0, "PGDWN scrolled a horizontal carousel")
+
+-- An open popup floats over the page; scrolling what is behind it is never
+-- what was meant. Same rule on_wheel applies to the wheel.
+scene({ vscroll("body", 400, 4000),
+        { id = "dd", t = "dropdown", x = 10, y = 10, w = 200, h = 30,
+          items = { "a", "b", "c", "d", "e", "f", "g", "h" }, sel = 0 } })
+keypress("PGDWN")
+eq(offset("body"), 400, "sanity: the page pages with no popup open")
+click("dd")                          -- open the dropdown
+keypress("PGDWN")
+eq(offset("body"), 400, "PGDWN scrolled the page behind an open popup")
+scene({})                            -- drop the popup with the scene
 
 -- ===================================== mpv's console owns the keyboard
 

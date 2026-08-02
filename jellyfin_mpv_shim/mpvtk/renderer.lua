@@ -3995,6 +3995,83 @@ local function nav_tab(dir)
     nav_set(nxt)
 end
 
+-- Keyboard scrolling: PGUP/PGDWN by a viewport, HOME/END to the ends.
+--
+-- The arrows are NOT here. They move focus (nav_move), and nav_scroll_into_view
+-- already scrolls the container to follow it -- which is the same gesture from
+-- the user's side and the thing the d-pad and the remote both depend on.
+--
+-- Which container? The wheel asks what is under the pointer; a keypress has no
+-- pointer, so it is the focused node's own scroller, falling back to the
+-- tallest scrollable in the scene -- the page body on every route that has one.
+--
+-- Deliberately not routed through on_wheel. Its snap/quantization latch
+-- (snap_live, wheel_lock, GESTURE_WINDOW) measures the cadence of a physical
+-- fling to decide whether to quantize to row boundaries; a discrete keypress
+-- has no cadence to measure and no business latching it for the whole scene.
+-- set_scroll already animates and already clamps.
+local function key_scroll(kind)
+    phud_touch()
+    -- A focused textbox owns these: HOME and END are caret keys there, which
+    -- is why they cannot simply be taken. Same delegation nav_move does for
+    -- LEFT/RIGHT. PGUP/PGDWN are not edit keys, so tb_key ignores them.
+    if state.focus then
+        tb_key(kind)
+        return
+    end
+    -- An open popup floats over the page, so scrolling what is behind it is
+    -- never what was meant -- the rule on_wheel already applies to the wheel.
+    local menu_node = active_menu()
+    if state.dd_open or menu_node then
+        local node = state.dd_open and state.byid[state.dd_open]
+        local n = node and #node.items or (menu_node and #menu_node.items) or 0
+        if kind == 'HOME' or kind == 'END' then
+            if n > 0 then
+                state.nav_pidx = (kind == 'HOME') and 0 or n - 1
+                popup_scroll(0, state.nav_pidx)
+            end
+        else
+            popup_scroll(kind == 'PGUP' and -3 or 3)
+        end
+        request_render()
+        return
+    end
+    local cont
+    local cur = state.nav and state.byid[state.nav]
+    local sc = cur and cur.sc
+    while sc do
+        local c = state.byid[sc]
+        if not c or c.t ~= 'scroll' then break end
+        if c.axis ~= 'x' and scroll_max(c) > 0 then
+            cont = c
+            break
+        end
+        sc = c.sc
+    end
+    if not cont then
+        -- No focus, or focus sits outside any scroller: take the biggest one
+        -- the scene will let us have. modal_active/node.mod is the same gate
+        -- scroll_at applies, so a dialog's backdrop stays put underneath it.
+        local modal = modal_active()
+        for _, node in ipairs(state.nodes) do
+            if node.t == 'scroll' and node.axis ~= 'x'
+                and (not modal or node.mod) and scroll_max(node) > 0
+                and (not cont or node.h > cont.h) then
+                cont = node
+            end
+        end
+    end
+    if not cont then return end
+    if kind == 'HOME' then
+        set_scroll(cont, 0)
+    elseif kind == 'END' then
+        set_scroll(cont, scroll_max(cont))
+    else
+        set_scroll(cont, (state.scroll[cont.id] or 0)
+            + (kind == 'PGUP' and -cont.h or cont.h))
+    end
+end
+
 local NAV_KEYS = {
     { 'UP', function() nav_move(0, -1) end },
     { 'DOWN', function() nav_move(0, 1) end },
@@ -4004,6 +4081,10 @@ local NAV_KEYS = {
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
     { 'MENU', function() nav_context() end },
+    { 'PGUP', function() key_scroll('PGUP') end },
+    { 'PGDWN', function() key_scroll('PGDWN') end },
+    { 'HOME', function() key_scroll('HOME') end },
+    { 'END', function() key_scroll('END') end },
 }
 
 local function bind_nav_keys()
@@ -4505,16 +4586,31 @@ end
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     phud_clear()
-    -- Re-assert the thumb section BEFORE the early return. phud_clear may
+    -- Re-assert browse's input BEFORE the early return. phud_clear may
     -- have just left HUD mode, and the return below fires whenever `active`
     -- did not change -- which is the case both at startup (state.active
     -- begins true, so the app's first 'yes' is a no-op) and whenever browse
     -- resumes from a SUMMONED HUD (phud_summon set active itself). In both,
-    -- ui_resume never runs, so a section left disabled by the HUD would
-    -- stay disabled for the rest of the session: mouse Back does nothing in
-    -- the library until a playback round trip happens to hide the bar first.
+    -- ui_resume never runs, so anything the HUD turned off stays off for the
+    -- rest of the session.
+    --
+    -- Two things, and they fail the same way for the same reason. The thumb
+    -- section: mouse Back does nothing in the library until a playback round
+    -- trip happens to hide the bar first. And the NAV KEYS: ui_suspend drops
+    -- them for playback (there the arrows are mpv's seek keys) and only
+    -- ui_resume puts them back, while a summoned HUD calls
+    -- ui_resume(no_nav) itself -- correctly, the bar is driven by the mouse
+    -- unless hud_grab_keys is on. So browse resumed with no arrow, ENTER or
+    -- TAB navigation at all, from the first video played onwards. Browse
+    -- always takes the arrows, so there is no no_nav case to weigh here.
     if want and not state.phud.mode then
         mp.enable_key_bindings('mpvtk_thumb')
+        if state.kb_saved then
+            -- mpv's console has them on loan; let it give them back.
+            state.kb_saved.nav = true
+        else
+            bind_nav_keys()
+        end
     end
     if want == state.active then return end
     state.active = want
