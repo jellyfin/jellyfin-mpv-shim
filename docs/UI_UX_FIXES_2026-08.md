@@ -911,3 +911,111 @@ only lines up because its list is a single rendered page.)
 
 1. Tile grids — Albums, Album Artists, Artists, genre page.
 2. Songs — `track_list` holes plus the server-backed play action.
+
+## Hand-testing round 2: the review fixes
+
+Sixteen fixes from a six-lens agent review of the branch diff. The suites are
+green (2929 unit, 154 Lua, integration matrix on both backends), so again:
+this is what those cannot see.
+
+**Two columns matter here.** *Does the fix work* is the obvious one. *Blast
+radius* is the one worth more attention — several of these landed in code
+every screen goes through (`layout._arrange_box`, `node_at`,
+`slider_set_from_x`, `spread`, `chapter_target`), so the risk is not the
+thing that was fixed but the thing beside it.
+
+### Highest risk — shared code paths
+
+- [ ] **Mouse Back/Forward, everywhere** (`86f113e2`). This is the biggest
+      blast radius on the branch: the buttons moved to their own key-binding
+      section and its enable/disable is now asserted at three points. Check
+      Back in the library, in a dialog, in a modal, on the cast screen, on
+      the settings screen, and from a *summoned* HUD (the path that was
+      broken). Then check Forward as history in the browser. Then over a
+      film with `mouse_chapter_nav` off — it should reach mpv's
+      playlist-prev/next, i.e. previous/next queue item — and with it on.
+      Restart the app and do the library ones again first thing: the bug
+      was that they were dead from launch until a playback round trip.
+- [ ] **Every slider still drags** (`971126c3`). `slider_set_from_x` gained
+      the preview write and is shared by the volume slider and the music
+      now-playing bar, not just the seek bar. Drag all three.
+- [ ] **Any click, anywhere** (`73fbf6ca`). `node_at` gained `dis` to its
+      interactivity test and `_arrange_box` emits a node for a disabled
+      element. Nothing in the app passes `disabled=` yet, so this *should*
+      be inert — but it is the function every hit test goes through. A
+      general poke around the library, dialogs and the HUD is the check.
+- [ ] **Chapter navigation near a boundary** (`9f7a394f`). The forward
+      direction lost its 0.5s tolerance. Test the HUD's chapter buttons AND
+      the mouse buttons, from just before a boundary, exactly on one, and
+      from the last chapter (should do nothing).
+
+### The #617 cluster
+
+- [ ] **Change Image Type on a scrolled library** (`4b0e3afd`) — the fix.
+      Scroll well past the first page, View → Image Type → Banner. Every
+      tile should become a banner, not just the first hundred.
+      *Blast radius:* the refetch now drops the loaded list, so it will
+      re-fetch from the top. Check it does not blink jarringly, and note
+      where the scroll position ends up.
+- [ ] **Favorites, a genre listing, Next Up, a studio, a person page**
+      (`f18088aa`). These were windowing without padding. The scrollbar
+      should be full-length from the first frame and must not jump as pages
+      land. The count line now reads the server's total.
+- [ ] **`--debug` on a library over 100 items** (`fd8c9b94`). It used to
+      throw out of render and leave a spinner. Should just work.
+- [ ] **List view, scrolled into unloaded rows** (`fd8c9b94`). Blank rows
+      must not hover-highlight or respond to a click or right-click.
+- [ ] **A library that shrinks under you** (`375a3763`) — hard to stage; if
+      you can delete items server-side mid-scroll, the count line and the
+      grid height should agree afterwards.
+
+### Playback HUD
+
+- [ ] **Live TV seek bar** (`1cbd3cdb`). Hovering it should show *nothing*.
+      Then a normal file: the bubble should appear once mpv reports a
+      duration, not before.
+- [ ] **A film with long chapter names** (`f46f1635`). The bubble stays
+      inside the window and stays centred on the pointer; the name
+      ellipsizes rather than the box growing.
+- [ ] **Scrub, release, look** (`4038ecdf` fixed the test, `971126c3` the
+      code). Drag the seek bar and let go — the bubble must not jump back.
+- [ ] Auto-hide unchanged in all three modes (`ee08a40a` only made the
+      *toolkit's* default reachable; the shim always sends its own).
+
+### Offline
+
+- [ ] **Re-download an episode, then play it** (`8c1817f8`, `3983a296`).
+      Skip Intro should offer where it does when streaming — and a segment
+      type set to "off" should now behave exactly as it does online, i.e.
+      not eat a forward seek with `skip_intro_on_seek` on.
+- [ ] **Downloaded Shows grid** (`8a946e39`) — posters, not squares.
+- [ ] **Trickplay across an mpv restart** (`6158df6b`). Play a downloaded or
+      streamed file, let mpv be re-created (idle quit, or stop and start),
+      scrub in the new one. Watch for mpv errors in the log.
+
+### Config and text
+
+- [ ] **Upgrade a real 2.x config** (`0f6d55ef`). Back it up first. Confirm
+      the segment settings land where you expect. If you have any
+      hand-edited quoted booleans, this is the case that used to flip them
+      to "always".
+- [ ] **A config still saying `hud_scrim: "half"`** (`bd267d6f`) — draws the
+      default ramp, picker reads Default.
+- [ ] **Minimize to tray, and restore** (`3e4c32af`). This crashed before;
+      also check the OSC state afterwards.
+- [ ] **"Skip Credits" in three places** (`1f9a58ad`): the HUD/OSD Skip
+      button, the settings form row, and the OSD menu row. The button keeps
+      its existing translations; the two labels are a new key and will read
+      English until Weblate catches up.
+- [ ] **The OSD menu's segment rows** now read Never/Ask/Always, matching
+      the settings form.
+- [ ] **Theme settings** no longer claims cover size needs a restart.
+
+### Known and deliberate
+
+- The HUD staying up while the pointer rests in the bottom or top band is
+  the behaviour asked for in #620, not a bug — a reviewer flagged it and it
+  was left alone.
+- `a9883418`'s commit message overstates itself: an unchanged home refresh
+  still repaints, because `AsyncRunner` invalidates in a `finally`
+  regardless. The partial-publish half of that commit is the real fix.
