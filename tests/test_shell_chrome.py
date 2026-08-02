@@ -485,10 +485,6 @@ class TestOneBlue(unittest.TestCase):
         self._check("grid filter bar with checked boxes")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestATransitionSurvivesARaisingController(unittest.TestCase):
     """The browse/playback transitions must complete even if the controller
     throws halfway through one.
@@ -515,21 +511,37 @@ class TestATransitionSurvivesARaisingController(unittest.TestCase):
         b.server = "srv1"
         return b
 
-    def test_yield_still_leaves_browse(self):
+    def test_yield_still_engages_the_hud(self):
+        """The step BEHIND the callback, which is what actually went
+        missing: _browsing is cleared before the controller is told, so
+        asserting on it only proves the exception did not propagate."""
         b = self._browser()
         b._browsing = True
+        engaged = []
+        b.hud.available = lambda: True
+        b.hud.engage = lambda: engaged.append(True)
         b._yield()
         self.assertFalse(b._browsing, "the yield was abandoned")
+        self.assertEqual(engaged, [True],
+                         "the HUD engage behind the callback was skipped")
 
     def test_enter_browse_still_reactivates_the_renderer(self):
         b = self._browser()
         b.nav_stack = [{"kind": "home", "server": "srv1"}]
         b._browsing = False
+        active = []
+        b._set_renderer_active = lambda on: active.append(on)
         b.enter_browse()
         self.assertTrue(b._browsing, "the return to browse was abandoned")
+        self.assertIn(True, active,
+                      "the renderer was never re-activated")
 
     def test_minimize_still_minimizes(self):
         b = self._browser()
         b.nav_stack = [{"kind": "home", "server": "srv1"}]
         b.minimize()
         self.assertTrue(b.minimized, "the minimize was abandoned")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1495,8 +1495,13 @@ local dragged = preview().secs
 ok(dragged > before, "the bubble did not follow the drag",
    string.format("%s -> %s", tostring(before), tostring(dragged)))
 fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 1000, y = 672 }))
+-- The release itself requests no render, so pv_rect still holds the rect
+-- painted DURING the drag -- which is the right answer either way and made
+-- this test pass on unfixed code. Push the scene Python pushes in response
+-- to the commit, which is what actually repaints, then look.
+seek_scene()
 pv_paint()
-ok(preview() ~= nil and math.abs(preview().secs - dragged) < 20,
+ok(preview() ~= nil and math.abs(preview().secs - dragged) < 2,
    "releasing the drag snapped the bubble back to where it started",
    string.format("released at %s, was dragged to %s",
                  tostring(preview() and preview().secs), tostring(dragged)))
