@@ -58,6 +58,7 @@ PER_BACKEND = [
     "tests.e2e.test_mpv_reopen",
     "tests.e2e.test_input_routing",
     "tests.e2e.test_scroll_recovery",
+    "tests.e2e.test_window_resize",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
