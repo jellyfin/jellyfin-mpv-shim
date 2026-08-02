@@ -38,31 +38,33 @@ from . import theme
 
 log = logging.getLogger("mpvtk_browser.hud")
 
-# Scrim geometry: the renderer's gradient is solid-ish below the fade
-# midpoint at ~h/2.2 from its bottom edge, so the scrim must be ~2.2x
-# the bar's height for the title/slider to sit on dark instead of the
-# ramp's transparent half. Capped by a window fraction so short
-# windows keep most of the picture clean.
+# Scrim geometry: a ramp from transparent at its top edge to alpha 215 at
+# the window's bottom. What it has to do is put the bar's own text on
+# something dark, so the number that matters is its height against the bar's
+# (116px at the stock cover size): the taller it is, the denser the ramp is
+# where the title and the scrubber sit.
 #
-# Lowered from 0.55/380 after #620, where the shadow over the picture was
-# the first thing anyone mentioned. This is still ~2.2x the bar; what went
-# was the headroom above that, which was buying nothing.
+# Capped by a window fraction as well, so short windows keep most of the
+# picture clean; the cap is what binds at any normal size.
+#
+# 0.55/380 -> 0.42/300 after #620, where the shadow over the picture was the
+# first thing anyone mentioned, then -> 200 on Izzie's UX pass. 200 is ~1.7x
+# the bar rather than the ~2.6x it was, which puts the title at roughly
+# alpha 100 instead of 140 -- deliberately lighter, and the reason the
+# "none" mode's per-glyph shadow exists as the other end of the same dial.
 SCRIM_FRAC = 0.42
-SCRIM_MAX = 300
+SCRIM_MAX = 200
 # Top scrim, same relation to the header's height.
 TOP_SCRIM_FRAC = 0.20
 TOP_SCRIM_MAX = 130
-# "half": the same ramp, half as tall. The bar's own text ends up nearer
-# the fade than the solid end, which is the trade the option exists to
-# offer.
-#
-# BOTTOM ONLY. The top band is already the small one (TOP_SCRIM_FRAC is
-# less than half of SCRIM_FRAC), and halving it puts the title and the
-# top-row buttons in the fading half of a 65px ramp -- unreadable over a
-# bright frame, for a strip of picture nobody was looking at. What this
-# option is for is the wash over the *middle* of the picture, and that is
-# the bottom ramp's headroom.
-HALF_SCRIM = 0.5
+# (There was a "half" mode here -- the same ramp at half height. It was
+# offered as the middle setting between the full ramp and no shading at all,
+# and it stopped earning that place twice over. Once the default came down to
+# 200 its half was 100, shorter than the bar itself, so the scrubber and the
+# bar's top edge sat on bare picture; and at any height it left the seekbar's
+# chapter markers to fend for themselves, which is the one thing on that bar
+# that is thin, light and positional. "panel" is the middle setting now, and
+# "none" is the far end.)
 # "panel": a flat band exactly the height of the bar rather than a ramp --
 # a hard edge, and no wash over the picture above it. Opacity, 255 opaque.
 # Black rather than theme.SCRIM: the HUD is drawn over VIDEO and stays dark
@@ -525,13 +527,11 @@ def _scrim(h, w):
     style = settings.hud_scrim
     if style in ("none", "panel"):
         return []          # panel paints as the bars' own background
-    scale = HALF_SCRIM if style == "half" else 1.0
     return [
         Gradient(color="000000", top=0, bottom=215, w=w,
-                 h=int(min(h * SCRIM_FRAC, SCRIM_MAX) * scale), anchor="sw"),
+                 h=int(min(h * SCRIM_FRAC, SCRIM_MAX)), anchor="sw"),
         # top scrim: dense at the top, same relation to the header's height
-        # as the bottom one has to the bar's. Full height even under
-        # "half" -- see HALF_SCRIM.
+        # as the bottom one has to the bar's.
         Gradient(color="000000", top=170, bottom=0, w=w,
                  h=int(min(h * TOP_SCRIM_FRAC, TOP_SCRIM_MAX)),
                  anchor="nw"),

@@ -98,7 +98,7 @@ class DocsCoverageTest(unittest.TestCase):
             # scroll_mode values
             "continuous", "aligned", "row",
             # hud_scrim / hud_autohide values
-            "half", "panel", "hover", "always", "paused",
+            "panel", "hover", "always", "paused",
             # segment_* values
             "off", "ask",
             # language_config rule keys

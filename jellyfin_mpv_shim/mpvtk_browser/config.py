@@ -181,7 +181,6 @@ LABELED_ENUMS = {
     "segment_recap": _SEGMENT_ACTIONS,
     "hud_scrim": [
         (_("Default"), "default"),
-        (_("Half height"), "half"),
         (_("Panel behind the controls"), "panel"),
         (_("None (shadowed text)"), "none"),
     ],

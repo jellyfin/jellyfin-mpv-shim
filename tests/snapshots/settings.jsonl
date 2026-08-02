@@ -56,7 +56,7 @@
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.11.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Controls Activation Key", "w": 340.0, "x": 16.0, "y": 562.4}
 {"h": 38.0, "id": "set-hud_wake_key", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "ENTER", "w": 340.0, "x": 368.0, "y": 554.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.12.0", "sc": "settings", "size": 17, "t": "text", "text": "Shading Behind the Player Controls", "w": 340.0, "x": 16.0, "y": 608.4}
-{"force": true, "h": 38.0, "id": "set-hud_scrim", "items": ["Default", "Half height", "Panel behind the controls", "None (shadowed text)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 600.0}
+{"force": true, "h": 38.0, "id": "set-hud_scrim", "items": ["Default", "Panel behind the controls", "None (shadowed text)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 600.0}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.13", "sc": "settings", "size": 14, "t": "text", "text": "The controls have to stay legible over any frame. \"None\" gives the text a drop shadow instead of shading the picture behind it.", "w": 1238.0, "x": 16.0, "y": 646.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.14.0", "sc": "settings", "size": 17, "t": "text", "text": "When the Player Controls Hide", "w": 340.0, "x": 16.0, "y": 679.9}
 {"force": true, "h": 38.0, "id": "set-hud_autohide", "items": ["Hide unless hovered", "Always hide", "Never hide while paused"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 671.5}

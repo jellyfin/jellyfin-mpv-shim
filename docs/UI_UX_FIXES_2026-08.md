@@ -355,6 +355,27 @@ becomes the default is decided after that test.
 | `panel` | Full-width flat translucent band the height of the bar — a hard edge, no ramp [iw] |
 | `none` | No scrim; HUD text and icons get a drop shadow for legibility |
 
+**After the UX pass** (`ecfbac45`, `bd267d6f`): the default came down again,
+to **200** bottom / **130** top, and **`half` was dropped**. Three values
+remain — `default`, `panel`, `none`.
+
+At the stock 116px bar, 200 is ~1.7x it rather than the ~2.6x 300 was:
+alpha ~90 under the bar's top edge and ~105 under the scrubber, against
+~132/~142 before. [iw] "this change makes the shadow look way less annoying".
+
+`half` lost its place twice over. [iw] "half doesn't work well with chapter
+markings on the seekbar" — those markers are 2x11px slits at 30% alpha ahead
+of the playhead, the one thing on that bar that is thin, light and
+positional, and a ramp that has faded by the time it reaches them leaves
+them to fend for themselves. And half of 200 is 100, shorter than the bar,
+so the scrubber sat on bare picture whatever was drawn on it. `panel` is the
+middle setting now; `none` moves the job onto a per-glyph shadow rather than
+dropping it, which is the far end of the same dial.
+
+No migration was written: an unrecognised enum value has to read as the
+default, which every enum here already does, so a config still saying `half`
+draws the default ramp and the picker shows Default.
+
 `none` needs a text shadow in the renderer, and that work is **in scope for
 this branch** [iw]. It is in-idiom: text is drawn with hardcoded
 `\bord0\shad0` (`renderer.lua:691`) and the themed heading glow already takes
@@ -717,10 +738,10 @@ Not changed, decided:
 
 All of it is new, and the tests drive a *fake* mpv with a synthetic tile file.
 
-- [*] **With trickplay**: hover along the bar, drag the thumb, and arrow-scrub
+- [X] **With trickplay**: hover along the bar, drag the thumb, and arrow-scrub
       with the keyboard. All three raise the bubble and it tracks without lag.
       Check the frame is the right one near both ends of the bar.
-      --> Works great except in one edge case: when I release the mouse the trickplay dialog snaps back to where it was before I started dragging.
+      --> Works great except in one edge case: when I release the mouse the trickplay dialog snaps back to where it was before I started dragging. [Fixed]
 - [X] **Without trickplay** — this is #612's case, and the reporter had no
       tiles. The bubble stays centred on the pointer whether the chapter name
       under it is two words or thirty characters. That is the whole bug.
@@ -761,9 +782,9 @@ Neither is true against a real server.
       but the toggle shares route state with it.
 - [X] **Back-nav**: scroll deep, open something, come back — the parked offset
       lands where you left.
-- [*] **Offline / downloaded library.** The offline source takes the same
+- [X] **Offline / downloaded library.** The offline source takes the same
       windowed fetches and has not been exercised by hand.
-      - Only strange thing is downloaded TV shows render as discs with posters in them, and not posters. Works fine to the extent that I can test it, downloading an entire window of files is impractical
+      - Only strange thing is downloaded TV shows render as discs with posters in them, and not posters. Works fine to the extent that I can test it, downloading an entire window of files is impractical [Fixed]
 
 One shared line to know about: `draw_image` gained `+ (node.base or 0)` to its
 overlay offset. It defaults to zero so it is inert, but *every* tile strip in
@@ -792,20 +813,20 @@ Back up `conf.json` first.
 
 ### 5. The smaller ones
 
-- [*] **Cover Size** live from the View dialog, in both directions. Parked
+- [X] **Cover Size** live from the View dialog, in both directions. Parked
       scroll offsets are dropped on change — check nothing lands somewhere you
       never scrolled to.
-      - It works, but I have to leave the page and come back. It doesn't require a client restart.
+      - It works, but I have to leave the page and come back. It doesn't require a client restart. [Fixed]
 - [X] **Mute and volume** are instant in the HUD (#618a), including via mpv's
       own `m` and the wheel.
       - Caveat: wheel doesn't work, but I didn't expect that. Mute updates immediately.
-- [*] **Mouse back/forward chapter nav**: setting on, off, and on a video with
+- [X] **Mouse back/forward chapter nav**: setting on, off, and on a video with
       no chapters (does nothing, by design). SyncPlay follows the seek.
-      - Only works while player controls are hidden.
-- [*] **Skip Intro/Credits** in each of the five segment settings, and
+      - Only works while player controls are hidden. [Fixed]
+- [X] **Skip Intro/Credits** in each of the five segment settings, and
       specifically under `osc_style: none`, where the OSD prompt is the only
       surface.
-      - Doesn't seem to do anything in mosts cases. I don't see a skip intro button.
+      - Doesn't seem to do anything in mosts cases. I don't see a skip intro button. [Fixed]
 - [X] **Continue Watching** updates after finishing something on another
       client, and the 3s debounce does not cause a refresh storm.
       - One thing with this: If nothing actually updated we shouldn't redraw the row.

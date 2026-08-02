@@ -225,32 +225,61 @@ class TestHudScrimAndAutohide(unittest.TestCase):
                        "volume": 80, "muted": False}
         return b, ctl
 
-    def _scrims(self, style):
+    def _scene(self, style):
         self.settings.hud_scrim = style
         b, _ctl = self._browser()
-        nodes, _h = build_scene(b, (1280, 720))
-        return [n for n in nodes if n.get("t") == "grad"]
+        return build_scene(b, (1280, 720))[0]
 
-    def test_the_default_shading_is_shorter_than_it_was(self):
-        """It was ~2.2x the bar plus headroom that bought nothing; what is
-        left is the part the controls actually sit on."""
-        grads = self._scrims("default")
-        self.assertTrue(grads)
-        self.assertLessEqual(max(g["h"] for g in grads), 300)
+    def _scrims(self, style):
+        return [n for n in self._scene(style) if n.get("t") == "grad"]
 
-    def test_half_halves_the_bottom_ramp(self):
-        full = max(g["h"] for g in self._scrims("default"))
-        half = max(g["h"] for g in self._scrims("half"))
-        self.assertAlmostEqual(half, full / 2, delta=2)
+    #: The two ramps are told apart by WHERE they are, not by how tall they
+    #: are: the bottom one is anchored "sw" and the top one "nw". Sorting by
+    #: height was fine only while the bottom was always the taller, which
+    #: stopped being true when the default came down to 200.
+    def _bottom(self, style):
+        return max(self._scrims(style), key=lambda g: g["y"])
 
-    def test_half_leaves_the_TOP_band_alone(self):
-        """Halving it too put the title and the top-row buttons in the
-        fading half of a 65px ramp — unreadable over a bright frame, for a
-        strip of picture nobody was looking at."""
-        top_full = min(g["h"] for g in self._scrims("default"))
-        top_half = min(g["h"] for g in self._scrims("half"))
-        self.assertEqual(top_half, top_full,
-                         "the top scrim was halved with the bottom one")
+    def _top(self, style):
+        return min(self._scrims(style), key=lambda g: g["y"])
+
+    def test_the_default_ramp_reaches_over_the_scrubber(self):
+        """The functional requirement, rather than a number: the ramp has to
+        start above the bar's own controls or they sit on bare picture. This
+        is what a lowered SCRIM_MAX has to keep being true."""
+        nodes = self._scene("default")
+        bottom = max((n for n in nodes if n.get("t") == "grad"),
+                     key=lambda g: g["y"])
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        bar = next(n for n in nodes if n.get("id") == "hud-bar")
+        self.assertLess(bottom["y"], seek["y"],
+                        "the scrubber sits above the shading")
+        self.assertLess(bottom["y"], bar["y"],
+                        "the bar's top edge sits above the shading")
+
+    def test_a_retired_scrim_value_reads_as_the_default(self):
+        """"half" was offered while this branch was in flight and is gone.
+        A config that still says it must draw the default ramp, not nothing
+        -- which is what an unrecognised value has to do for every enum
+        here, and is why no migration was written for it."""
+        self.assertEqual(
+            [(g["y"], g["h"]) for g in self._scrims("half")],
+            [(g["y"], g["h"]) for g in self._scrims("default")])
+
+    def test_the_offered_values_are_the_ones_that_draw(self):
+        """The picker and the renderer agreeing is the whole contract; a
+        value in the list that draws nothing is a dead option."""
+        from jellyfin_mpv_shim.mpvtk_browser import config as cfg
+        offered = {v for _l, v in cfg.LABELED_ENUMS["hud_scrim"]}
+        self.assertEqual(offered, {"default", "panel", "none"})
+        for value in offered:
+            with self.subTest(scrim=value):
+                nodes = self._scene(value)
+                bar = next(n for n in nodes if n.get("id") == "hud-bar")
+                grads = [n for n in nodes if n.get("t") == "grad"]
+                self.assertTrue(
+                    grads or bar.get("a", 0) > 0 or value == "none",
+                    "%r shades nothing at all" % value)
 
     def _bar(self, style):
         self.settings.hud_scrim = style

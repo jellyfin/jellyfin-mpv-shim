@@ -288,12 +288,10 @@ You can use the config file to enable and disable features.
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
 - `hud_scrim` - How the picture is shaded behind the player controls, so they
-  stay legible over any frame. One of `default`, `half`, `panel`, `none`.
+  stay legible over any frame. One of `default`, `panel`, `none`.
   Default: `default`
   - `default` is a gradient rising from the bottom of the window (and a
     smaller one from the top, under the title).
-  - `half` is the same gradient, half as tall. The controls end up nearer the
-    faded end of it, which is the trade.
   - `panel` is a flat band exactly the height of each bar — a hard edge, and
     nothing washed over the picture above it.
   - `none` draws no shading at all and gives the controls' text and icons a
