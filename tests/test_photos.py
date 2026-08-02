@@ -735,7 +735,12 @@ class PhotoPauseRuleTest(unittest.TestCase):
     def _paused(self, is_photo=True, is_initial_play=True, pause_stills=True):
         player = self._P()
         video = type("V", (), {"is_photo": is_photo})()
-        # The excerpt of _play_media under test.
+        # An EXCERPT of _play_media, which is why the three-way truth table
+        # below could be right while the feature did not work at all: the
+        # real method goes on to call `set_paused` unconditionally, and for
+        # its whole life that call undid this one. Nothing that reimplements
+        # a fragment can see what the rest of the method does to it -- see
+        # test_the_unpause_further_down_respects_it, and `tests/e2e`.
         if (getattr(video, "is_photo", False) and pause_stills
                 and is_initial_play):
             player.pause = True
@@ -756,6 +761,27 @@ class PhotoPauseRuleTest(unittest.TestCase):
 
     def test_a_video_is_never_paused(self):
         self.assertFalse(self._paused(is_photo=False))
+
+    def test_the_unpause_further_down_respects_it(self):
+        """`_play_media` pauses the still early and then, seventy lines
+        later, calls `set_paused` to push the initial playstate. That call
+        passed a literal False -- it predates the photo branch by five years
+        -- so opening one picture started a slideshow. Found end to end
+        against a real mpv, because every unit test here works on an excerpt.
+
+        Asserted on the source rather than by driving the method: doing it
+        properly needs a real window, which is what `tests/e2e/test_photos`
+        does. This is the cheap guard that keeps the two lines coupled.
+        """
+        import inspect
+
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        source = inspect.getsource(PlayerManager._play_media)
+        self.assertIn(
+            "self.set_paused(hold_still, False)", source,
+            "the initial unpause in _play_media no longer consults the "
+            "hold-the-still decision, so opening a photo starts a slideshow")
 
     def test_the_player_takes_the_flag_and_defaults_to_pausing(self):
         """Default True: every existing caller means "open this", and a
