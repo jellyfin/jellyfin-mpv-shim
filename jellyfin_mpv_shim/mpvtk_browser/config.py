@@ -133,7 +133,7 @@ SECTIONS = [
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
     "subtitle_position": ["top", "bottom", "middle"],
-    "mpv_log_level": ["fatal", "error", "warn", "info", "debug"],
+    "mpv_log_level": ["fatal", "error", "warn", "info", "debug", "noise"],
     "shader_pack_subtype": ["lq", "hq"],
 }
 

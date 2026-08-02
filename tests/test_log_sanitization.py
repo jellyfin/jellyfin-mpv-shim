@@ -88,3 +88,95 @@ class TheWindowTraceSurvivesIt(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TokenValuesAreRedacted(unittest.TestCase):
+    """`Token="..."` reaches the log from strings the shim did not build:
+    mpv echoes our stream URL back through its own log handler, and the
+    Authorization header spells the token this way. The four original
+    patterns all assume a hex value we generated, so a token that is not
+    hex used to print in full."""
+
+    def test_the_authorization_header_spelling(self):
+        out = render('auth %s', 'MediaBrowser Token="abc123XYZ-not_hex"')
+        self.assertNotIn("abc123XYZ-not_hex", out)
+        self.assertIn('Token="REDACTED"', out)
+
+    def test_the_escaped_spelling_mpv_logs(self):
+        """A real backslash, not a repr: this is one of mpv's own quoted log
+        lines carrying our URL, which is where it was found."""
+        out = render('%s', r'loadfile url="http://h/s?Token=\"abc123\""')
+        self.assertNotIn("abc123", out)
+        self.assertIn(r'Token=\"REDACTED\"', out)
+
+    def test_a_non_hex_token_is_still_caught(self):
+        """The point of not reusing [a-f0-9]: this is a value a server hands
+        us, so the charset is not ours to assume."""
+        out = render('%s', 'AccessToken="ZZZ-not-hex-at-all"')
+        self.assertNotIn("ZZZ-not-hex-at-all", out)
+
+    def test_ordinary_text_is_untouched(self):
+        self.assertIn("nothing to see", render("%s", "nothing to see"))
+
+
+class MpvNoiseFilter(unittest.TestCase):
+    """`debug` is the level someone turns on to read one specific thing, and
+    the renderer's per-frame traffic buries it thousands of lines deep. The
+    filter drops that; `noise` is how you ask for it back."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim import player
+        from jellyfin_mpv_shim.conf import settings
+        self.player = player
+        self.settings = settings
+        self.addCleanup(setattr, settings, "mpv_log_level",
+                        settings.mpv_log_level)
+
+    SCENE = ('Run command: script-message, flags=64, '
+             'args=[args="mpvtk-scene", args="{...}"]')
+    METRICS = ('Run command: script-message, flags=64, '
+               'args=[args="mpvtk-metrics", args=""]')
+
+    def test_the_three_noisy_shapes_are_noise(self):
+        self.assertTrue(self.player._is_mpv_noise("cplayer", self.SCENE))
+        self.assertTrue(self.player._is_mpv_noise("cplayer", self.METRICS))
+        self.assertTrue(self.player._is_mpv_noise("vo/gpu-next", "anything"))
+
+    def test_other_script_messages_are_not(self):
+        """Only our own per-frame chatter. A trickplay or skip message is
+        rare and worth seeing."""
+        other = ('Run command: script-message, flags=64, '
+                 'args=[args="mpvtk-hud-skip", args=""]')
+        self.assertFalse(self.player._is_mpv_noise("cplayer", other))
+        self.assertFalse(self.player._is_mpv_noise("cplayer", "seek done"))
+        self.assertFalse(self.player._is_mpv_noise("mkv", "EOF reached."))
+
+    def _emit(self, level, prefix, text):
+        seen = []
+        real = self.player.mpv_log.debug
+        self.player.mpv_log.debug = lambda m: seen.append(m)
+        self.addCleanup(setattr, self.player.mpv_log, "debug", real)
+        self.player.mpv_log_handler(level, prefix, text)
+        return seen
+
+    def test_debug_drops_it(self):
+        self.settings.mpv_log_level = "debug"
+        self.assertEqual(self._emit("debug", "cplayer", self.SCENE), [])
+
+    def test_noise_keeps_it(self):
+        self.settings.mpv_log_level = "noise"
+        self.assertEqual(len(self._emit("debug", "cplayer", self.SCENE)), 1)
+
+    def test_a_gpu_next_error_survives_the_filter(self):
+        """Never applied above info: a real gpu-next failure has to reach
+        the user, and _recent_mpv_errors is what a failed load reports."""
+        self.settings.mpv_log_level = "debug"
+        self.player.clear_mpv_errors()
+        self.player.mpv_log_handler("error", "vo/gpu-next", "context init failed")
+        self.assertIn("context init failed", self.player.last_mpv_error() or "")
+
+    def test_noise_is_not_handed_to_mpv(self):
+        """mpv has no such level; it would refuse to start."""
+        self.assertEqual(self.player.mpv_loglevel_for("noise"), "debug")
+        self.assertEqual(self.player.mpv_loglevel_for("debug"), "debug")
+        self.assertEqual(self.player.mpv_loglevel_for("info"), "info")

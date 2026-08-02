@@ -173,7 +173,43 @@ def last_mpv_error():
         return None
 
 
+#: Our own pseudo-level: `debug` with the filter below turned off. mpv has no
+#: such level, so it is handed `debug` and only our side of the plumbing
+#: changes -- see mpv_loglevel_for().
+MPV_NOISE = "noise"
+
+
+def mpv_loglevel_for(level: str) -> str:
+    """What to hand mpv. Every value is one of mpv's own except `noise`."""
+    return "debug" if level == MPV_NOISE else level
+
+
+#: mpv lines that are almost entirely us talking to ourselves: the renderer's
+#: per-frame scene pushes and metrics (a `mpvtk-scene` line carries the whole
+#: serialized UI, so it is enormous as well as constant) and gpu-next's
+#: per-frame chatter. At `debug` -- which is the level someone turns on to
+#: read one specific thing -- these bury it thousands of lines deep. `noise`
+#: is how you ask for them back.
+_MPV_NOISE_ARGS = re.compile(
+    r'^Run command: script-message, flags=\d+, '
+    r'args=\[args="mpvtk-(?:scene|metrics)"')
+
+
+def _is_mpv_noise(prefix: str, text: str) -> bool:
+    if prefix.startswith("vo/gpu-next"):
+        return True
+    return prefix == "cplayer" and _MPV_NOISE_ARGS.match(text) is not None
+
+
 def mpv_log_handler(level: str, prefix: str, text: str):
+    # Never above info: a real gpu-next failure has to survive the filter, and
+    # _recent_mpv_errors below is the only place a failed load can say *why*.
+    if (
+        level not in ("fatal", "error", "warn")
+        and settings.mpv_log_level != MPV_NOISE
+        and _is_mpv_noise(prefix, text)
+    ):
+        return
     message = "{0}: {1}".format(prefix, text)
     if level in ("fatal", "error"):
         _recent_mpv_errors.append(message.strip())
@@ -657,7 +693,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             input_vo_keyboard=True,
             input_media_keys=settings.media_keys,
             log_handler=mpv_log_handler,
-            loglevel=settings.mpv_log_level,
+            loglevel=mpv_loglevel_for(settings.mpv_log_level),
             **mpv_options,
         )
 

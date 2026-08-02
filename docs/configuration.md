@@ -610,7 +610,12 @@ These settings assist with debugging. You will often be asked to configure them 
 
 - `log_decisions` - Log the full media decisions and playback URLs. Default: `false`
 - `mpv_log_level` - Log level to use for mpv. Default: `info`
-  - Options: fatal, error, warn, info, v, debug, trace
+  - Options: fatal, error, warn, info, v, debug, trace, noise
+  - `noise` is `debug` with the shim's own filter turned off. At `debug`
+    the renderer's per-frame scene pushes and gpu-next's per-frame
+    chatter are dropped, because they are the app talking to itself and
+    they bury whatever you turned debug on to read. Warnings and errors
+    are never filtered at any level.
 - `sanitize_output` - Prevent the writing of server auth tokens to logs. Default: `true`
 - `write_logs` - Write logs to the config directory for debugging. Default: `false`
 
