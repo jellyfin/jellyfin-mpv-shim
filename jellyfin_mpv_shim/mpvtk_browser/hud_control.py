@@ -171,12 +171,6 @@ class HudController:
             # keep a menu opened in the same beat as a summon
             # (open_menu sets it right before the hud event lands)
             self.menu = None
-        if getattr(self.controller, "hud_sub_margin", None) is not None:
-            # raise bottom subtitles clear of the bar while it shows
-            try:
-                self.controller.hud_sub_margin(bool(active))
-            except Exception:
-                log.debug("hud_sub_margin failed", exc_info=True)
         if active:
             # a fresh position snapshot before the bar first paints, then
             # the shared 1s ticker keeps its clock moving

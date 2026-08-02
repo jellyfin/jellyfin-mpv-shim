@@ -26,17 +26,13 @@ person can see it happening.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 log = logging.getLogger("mpvtk_browser.gateway")
 
 
 class GatewayCore:
     """Base of every gateway mixin."""
-
-    #: mpv's sub-margin before the HUD raised it, so leaving the HUD can put
-    #: it back. None when we have not touched it.
-    _saved_sub_margin: Optional[float] = None
 
     @staticmethod
     def _act(fn: Callable[[Any], Any]) -> None:

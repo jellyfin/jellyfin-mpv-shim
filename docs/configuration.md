@@ -309,11 +309,6 @@ You can use the config file to enable and disable features.
     mode — a zero delay means nothing without a pointer test, since mouse
     motion is also what summons them. The timer never runs shorter than
     0.5s, so the controls cannot blink out in the same frame they appear.
-- `hud_sub_margin` - Raise bottom subtitles clear of the controls while they
-  are showing. Default: `true`
-  - Already skipped for top- and middle-positioned subtitles. Turn it off if
-    the subtitles moving as the controls appear is more distracting than the
-    bar covering them.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
   during playback. Off by default: they are easy to hit by accident on

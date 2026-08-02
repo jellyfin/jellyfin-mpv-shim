@@ -426,8 +426,6 @@ class Settings(SettingsBase):
     # Seconds of no input before they hide. 0 means "as soon as the
     # pointer is not on them", and forces the hover mode.
     hud_hide_secs: float = 4.0
-    # Raise bottom subtitles clear of the bar while it shows.
-    hud_sub_margin: bool = True
     # Scale factor for the whole in-player UI (tiles, text, chrome).
     # null follows the display: mpv's display-hidpi-scale, which is 1.0
     # on X11 and the compositor's factor on Wayland/macOS. Set a number

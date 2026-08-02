@@ -88,7 +88,6 @@ SECTIONS = [
                       "fullscreen", "osc_style",
                       "hud_grab_keys", "hud_wake_key",
                       "hud_scrim", "hud_autohide", "hud_hide_secs",
-                      "hud_sub_margin",
                       "mouse_chapter_nav", "raise_mpv",
                       "discord_presence",
                       "check_updates", "notify_updates"]),
@@ -258,7 +257,6 @@ LABEL_OVERRIDES = {
     "hud_scrim": _("Shading Behind the Player Controls"),
     "hud_autohide": _("When the Player Controls Hide"),
     "hud_hide_secs": _("Hide the Player Controls After (seconds)"),
-    "hud_sub_margin": _("Raise Subtitles Above the Player Controls"),
     "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
@@ -364,9 +362,6 @@ NOTES = {
                       "the pointer is on them, paused or not."),
     "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
                        "them, and forces \"Hide unless hovered\"."),
-    "hud_sub_margin": _("Subtitles move up while the controls show so the "
-                        "bar does not cover them. Turn this off if the "
-                        "movement is more distracting than the overlap."),
     "mouse_chapter_nav": _("During playback only — in the library those "
                            "buttons stay Back and Forward. Off by default "
                            "because they are easy to hit by accident on some "
