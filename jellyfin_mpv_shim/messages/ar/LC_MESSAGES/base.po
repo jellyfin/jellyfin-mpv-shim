@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-01 17:49+0000\n"
+"PO-Revision-Date: 2026-08-02 18:29+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -115,10 +115,8 @@ msgid "Could not start Quick Connect."
 msgstr "تعذر تشغيل التوصيل السريع."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "تم تخطي الخاتمة"
+msgstr "تخطي الخاتمة"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -129,40 +127,28 @@ msgid "Seek to Skip Credits"
 msgstr "قم بالتنقل لتتخطى الخاتمة"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercial"
-msgstr "خاص"
+msgstr "تخطي الدعاية"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "تم تخطي الخاتمة"
+msgstr "تم تخطي الدعاية"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "قم بالتنقل لتتخطى الخاتمة"
+msgstr "التنقل لتخطي الدعاية"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "تم تخطي الخاتمة"
+msgstr "تخطي العرض"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "تم تخطي الخاتمة"
+msgstr "تم تخطي العرض"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "قم بالتنقل لتتخطى الخاتمة"
+msgstr "التنقل لتخطي العرض"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
@@ -367,11 +353,11 @@ msgstr "أبدًا"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "اسأل"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "دائما"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -885,7 +871,7 @@ msgstr "MPV المضمن تلقائيا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "لا متحكمات مشغّل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
@@ -909,7 +895,7 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "متواصل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
@@ -1450,7 +1436,6 @@ msgstr "التشغيل التلقائي"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Poster"
 msgstr "ملصق"
 
@@ -3002,14 +2987,12 @@ msgid "watched"
 msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "حذف الخادم"
+msgstr "حذف الملفات المشاهدة المنزلة في %s؟"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Show advanced settings"
 msgstr "إظهار الإعدادات المتقدمة"
 
@@ -3076,14 +3059,8 @@ msgid "Nothing downloaded to browse offline."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر الوصول للخادم."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home Screen Layout"
@@ -3112,32 +3089,19 @@ msgid "Section %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen layout."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر تحميل تخطيط الصفحة الرئيسية."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر حفظ تخطيط الصفحة الرئيسية."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "General"
 msgstr "عام"
 
@@ -3146,21 +3110,17 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "عنوان الخادم: "
+msgstr "خوادم و مستخدمين"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Logs"
-msgstr "السجلات"
+msgstr "سجلات"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Copy"
 msgstr "نسخ"
 
@@ -3177,14 +3137,8 @@ msgid "There is nothing to copy yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the log."
-msgstr ""
-"تعذرت إضافة الخادم.\n"
-"يرجى التحقق من معلومات الاتصال الخاصة بك."
+msgstr "تعذر نسخ السجل."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -3197,10 +3151,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "اسم المستخدم: "
+msgstr "اسم مستخدم جديد…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3209,16 +3161,12 @@ msgid "Add User"
 msgstr "إضافة خادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "إعدادات الخادم"
+msgstr "لم يتم إعداد الخادم بعد."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "اسم المستخدم:"
+msgstr "مستخدمين"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -3227,16 +3175,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "الخادم:"
+msgstr "خوادم لـ %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "الخادم:"
+msgstr "خوادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3245,10 +3190,8 @@ msgid "Change PIN"
 msgstr "تغيير الصوت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "الخادم:"
+msgstr "تحديد رمز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3257,9 +3200,8 @@ msgstr ""
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete User"
-msgstr "حذف المستخدم"
+msgstr "حذف مستخدم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
@@ -3278,10 +3220,9 @@ msgid "Auto-download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "حذف الخادم"
+msgstr "حذف %S و ولوجه المحفوظ؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3315,13 +3256,11 @@ msgstr ""
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Artist"
 msgstr "فنان"
 
 # seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Album"
 msgstr "ألبوم"
 
@@ -3370,15 +3309,13 @@ msgstr ""
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Search"
 msgstr "بحث"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Home"
-msgstr "الرئيسية"
+msgstr "صفحة رئيسية"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Server"
@@ -3429,7 +3366,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "مجهول"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
@@ -3471,7 +3408,7 @@ msgstr "الموسم {0} - الحلقة {1}"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Disabled"
-msgstr "مثبط"
+msgstr "معطّل"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Select SVP Profile"
