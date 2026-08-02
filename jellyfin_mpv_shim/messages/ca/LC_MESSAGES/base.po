@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-02 15:04+0000\n"
+"PO-Revision-Date: 2026-08-02 18:29+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -851,7 +851,7 @@ msgstr "Sense controls del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr "Segueix la pantalla"
+msgstr "Disposició següent"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
@@ -1196,6 +1196,11 @@ msgid ""
 "trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
 "lower it for finer control."
 msgstr ""
+"Pixels, una roda amb osques de desplaçament. En una quadrícula, això "
+"s'arrodonirà de manera que un nombre sencer d'osques abastarà una fila, "
+"independentment del mode de desplaçament en què us trobeu: un trackpad o una "
+"trackball mai us deixarà ni una mica fora de la fila. Pugeu-lo per desplaçar-"
+"vos més ràpidament, baixeu-lo per a un control més precís."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1205,10 +1210,15 @@ msgid ""
 "remote one, or with an external MPV. Pick \"One row per notch\" to move a "
 "whole row (or one home-screen section) at a time."
 msgstr ""
+"\"Continu\" es desplaça per píxels i aterra allà on la posi la roda; alinea "
+"les files per si sola si la pantalla no pot seguir el ritme. Trieu \"Alineat "
+"amb les files\" si el desplaçament encara falla — en una pantalla molt gran, "
+"una de lenta o remota o amb un MPV extern. Trieu \"Una fila per osca\" per "
+"moure una fila sencera (o una secció de la pantalla d'inici) alhora."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Discord Rich Presence. Takes effect after a restart."
-msgstr ""
+msgstr "Discord Rich Presence. Té efecte després de reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1217,12 +1227,20 @@ msgid ""
 "before it'll let *any* audio through in passthrough mode. In my tests I got "
 "silence otherwise, but results may vary."
 msgstr ""
+"Deixeu-ho per defecte tret que configureu el passthrough. Tingueu en compte "
+"que alguns servidors d'àudio com Pipewire no són compatibles amb el "
+"passthrough i s'hauran de desactivar per a una targeta abans que permeti el "
+"pas de *qualsevol* àudio en mode passthrough. A les proves es va obtenir "
+"silenci, però els resultats poden variar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Stop anything else using the device while playing. Needed for passthrough on "
 "some systems, and it means other applications will be silent."
 msgstr ""
+"Atura qualsevol altra cosa que utilitzi el dispositiu mentre jugueu. "
+"Necessari per al passthrough en alguns sistemes i això significa que altres "
+"aplicacions restaran en silenci."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1230,12 +1248,19 @@ msgid ""
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
 msgstr ""
+"Moveu-vos a través de pàgines en la mediateca i la graella de música, en "
+"comptes de lliscar: cada pàgina ocupa una pantalla completa amb els controls "
+"Primer / Anterior / Següent / Darrer , a més d'un número de pàgina que podeu "
+"teclejar. És més fàcil que lliscar amb precisió pel trackpad."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Paleta, resplendor, estil i mida de portada per defecte. Els colors canvien "
+"immediatament; les mides de les portades i els encapçalaments tenen efecte "
+"després de reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1276,6 +1301,9 @@ msgid ""
 "Off by default because they are easy to hit by accident on some mice. Takes "
 "effect after a restart."
 msgstr ""
+"Només durant la reproducció — a la biblioteca es queden els botons Endavant "
+"i Enrere. Desactivats per defecte perquè en alguns ratolins és fàcil pitjar-"
+"los per accident. Té efecte després de reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
@@ -1283,6 +1311,8 @@ msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
 msgstr ""
+"Té efecte després de reiniciar. \"Disposició següent\" fa servir l'escala "
+"que informa el vostre escriptori que en X11 és del 100%."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1456,13 +1486,15 @@ msgstr "Disc"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Artwork"
-msgstr "Art"
+msgstr "il·lustracions"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
 "“Auto” shapes the tiles from the artwork itself, which usually comes out as "
 "posters. Choose “Poster” to insist on them."
 msgstr ""
+"«Automàtic» dona forma a les rajoles a partir de la pròpia il·lustració, que "
+"normalment acaben com a pòsters. Trieu «Pòster» per a insistir-hi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Show titles"
