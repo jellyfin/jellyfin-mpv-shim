@@ -72,7 +72,7 @@ class GeneralTabMixin:
                 # back to the ordinary note colour: it is a footnote, not a
                 # warning about the control you are looking at.
                 rows.append(Text(
-                    _("Cover size and interface scale require a restart."),
+                    _("Interface scale requires a restart."),
                     size=14, color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size=14, color=theme.SUBTLE_FG))

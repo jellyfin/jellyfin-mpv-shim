@@ -41,13 +41,16 @@ def _import_real_player():
     settings.svp_enable = False
     settings.discord_presence = False
     settings.check_updates = False
-    settings.enable_osc = False
     # Keep the OSC lua out of the in-process libmpv: these tests target the
     # player state machine, and a loaded lua script makes libmpv's teardown
     # at interpreter exit racy (rare SIGABRT/SIGSEGV after all tests pass).
     # The OSC scripts get their own leg (test_jf_osc_script) that drives the
     # external mpv binary instead.
-    settings.osc_style = "default"
+    #
+    # "none" rather than "default": it keeps the lua out AND suppresses
+    # mpv's own OSC, which is what the `enable_osc = False` beside it did
+    # until #615 retired that setting and left the write dead.
+    settings.osc_style = "none"
     settings.fullscreen = False
     settings.mpv_ext = (h.BACKEND == "jsonipc")
     # import_player_with_fake_mpv sets this False on the SHARED settings

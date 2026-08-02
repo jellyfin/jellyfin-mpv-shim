@@ -99,7 +99,7 @@
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.32.0", "sc": "settings", "size": 17, "t": "text", "text": "Interface Scale", "w": 340.0, "x": 16.0, "y": 1273.4}
 {"force": true, "h": 38.0, "id": "set-ui_scale", "items": ["Follow display", "100% (no scaling)", "125%", "150%", "200%"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1265.0}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.33", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. \"Follow display\" uses the scale your desktop reports, which is 100% on X11.", "w": 1238.0, "x": 16.0, "y": 1311.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.34", "sc": "settings", "size": 14, "t": "text", "text": "Cover size and interface scale require a restart.", "w": 1238.0, "x": 16.0, "y": 1336.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.34", "sc": "settings", "size": 14, "t": "text", "text": "Interface scale requires a restart.", "w": 1238.0, "x": 16.0, "y": 1336.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.35", "sc": "settings", "size": 20, "t": "text", "text": "Playback", "w": 1238.0, "x": 16.0, "y": 1362.0}
 {"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_play", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1395.0}
 {"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.36.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1397.5}

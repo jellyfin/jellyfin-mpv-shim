@@ -25,7 +25,6 @@ import jellyfin_mpv_shim.trickplay as trickplay  # noqa: E402
 
 class FakePlayer:
     def __init__(self):
-        self.trickplay_meta = None
         self.messages = []
 
     def script_message(self, *args):
@@ -77,7 +76,6 @@ class FrameFileLifetimeTest(unittest.TestCase):
         self.tp.clear()
         self.assertIn(("shim-trickplay-clear",), self.player.messages)
         self.assertFalse(os.path.exists(a))
-        self.assertIsNone(self.player.trickplay_meta)
 
     def test_retiring_twice_is_harmless(self):
         a = self.tp._next_file()
