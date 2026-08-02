@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-31 22:01+0000\n"
+"PO-Revision-Date: 2026-08-02 06:48+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -126,44 +126,32 @@ msgid "Seek to Skip Credits"
 msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercial"
-msgstr "特别篇"
+msgstr "跳过广告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "已跳过片头"
+msgstr "已跳过广告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "跳过片头"
+msgstr "尝试跳过广告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Preview"
-msgstr "跳过片尾"
+msgstr "跳过预览"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "已跳过片头"
+msgstr "已跳过预览"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "跳过片头"
+msgstr "尝试跳过预览"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -172,10 +160,8 @@ msgid "Skipped Recap"
 msgstr "已跳过片头"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "跳过片头"
+msgstr "尝试跳过片头"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
@@ -356,17 +342,16 @@ msgstr "使用手动选择音轨索引（可靠性较低）"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "从不"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "询问"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "总是"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -474,35 +459,25 @@ msgid "Discord Rich Presence"
 msgstr "Discord 高级状态"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Intro"
 msgid "Skip Intros"
 msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgctxt "setting"
 msgid "Skip Credits"
 msgstr "跳过片尾"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercials"
-msgstr "特别篇"
+msgstr "跳过广告"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Previews"
-msgstr "跳过片尾"
+msgstr "跳过预告片"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Recaps"
-msgstr "跳过片尾"
+msgstr "跳过片头"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -870,10 +845,8 @@ msgid "MPV built-in default"
 msgstr "MPV 原生默认界面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "No player controls"
-msgstr "播放器控制界面样式"
+msgstr "无播放控制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
@@ -897,25 +870,23 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "持续"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "对齐到行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "每个凹槽一行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "(default)"
 msgid "Default"
-msgstr "（默认）"
+msgstr "默认"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "控制面板后面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
