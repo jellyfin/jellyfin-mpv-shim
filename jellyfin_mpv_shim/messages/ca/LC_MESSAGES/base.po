@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-02 01:08+0000\n"
+"PO-Revision-Date: 2026-08-02 15:04+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -128,55 +128,40 @@ msgid "Seek to Skip Credits"
 msgstr "Demana saltar els crèdits"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Especials"
+msgstr "Salta l'anunci"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Crèdits saltats"
+msgstr "Anunci saltat"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Demana saltar els crèdits"
+msgstr "Intenta saltar l'anunci"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Preview"
-msgstr "Salta els crèdits"
+msgstr "Salta la vista prèvia"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Crèdits saltats"
+msgstr "Vista prèvia saltada"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Demana saltar els crèdits"
+msgstr "Intenta saltar la vista prèvia"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Salta el resum"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Crèdits saltats"
+msgstr "Resum saltat"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Demana saltar els crèdits"
+msgstr "Intenta saltar el resum"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
@@ -357,17 +342,16 @@ msgstr "Manual per índex de pista (poc fiable)"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "Mai"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Pregunta"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Sempre"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -404,7 +388,7 @@ msgstr "Mig"
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Qualitat de transcodificació remota: {0: 0.1f} Mbps"
+msgstr "Qualitat de transcodificació remota: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -475,34 +459,25 @@ msgid "Discord Rich Presence"
 msgstr "Rich Presence de Discord"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Intro"
 msgid "Skip Intros"
-msgstr "Salta la introducció"
+msgstr "Salta les introduccions"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgctxt "setting"
 msgid "Skip Credits"
 msgstr "Salta els crèdits"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Especials"
+msgstr "Salta els anuncis"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Previews"
-msgstr "Salta els crèdits"
+msgstr "Salta les vistes prèvies"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Credits"
 msgid "Skip Recaps"
-msgstr "Salta els crèdits"
+msgstr "Salta els resums"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -678,7 +653,7 @@ msgstr "Connecta a Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Previously added servers"
-msgstr "Servidors afegits prèviament."
+msgstr "Servidors afegits prèviament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -871,10 +846,8 @@ msgid "MPV built-in default"
 msgstr "Configuració per defecte de MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "No player controls"
-msgstr "Estil dels controls del reproductor"
+msgstr "Sense controls del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
@@ -909,34 +882,28 @@ msgid "One row per notch"
 msgstr "Una fila per osca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "(default)"
 msgid "Default"
-msgstr "(per defecte)"
+msgstr "Per defecte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "Tauler darrere dels controls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Cap (desactivat)"
+msgstr "Cap (text ombrejat)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "Amaga tret que es mogui el cursor per sobre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Salta sempre els crèdits"
+msgstr "Amaga sempre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "No ho amaguis mai mentre estigui pausat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -944,11 +911,11 @@ msgstr "Tema per defecte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra compacte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Compacte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
@@ -1085,7 +1052,7 @@ msgstr "Mida de la coberta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Mode de d'emissió a objectiu (sense navegació per la mediateca)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
@@ -1097,41 +1064,39 @@ msgstr "Navegador a pantalla completa de la biblioteca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Vincula sempre les tecles de fletxes al controlador de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Tecla d'activació dels controladors de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Ombrejat darrere dels controladors de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "When the Player Controls Hide"
-msgstr "Estil dels controls del reproductor"
+msgstr "Quan s'amaguen els controladors de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Amaga els controls de reproducció després de (segons)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Botons del ratolí de saltar els capítols endavant i enrere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Mode de sortida d'àudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Dispositiu de sortida d'àudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Fes servir el dispositiu en exclusiva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Enable Video Playback Profiles"
@@ -1143,35 +1108,35 @@ msgstr "Grup del perfil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Recorda el darrer perfil fet servir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "API gràfica per a ombrejats"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Passa a través de l'AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Passa a través del DTS"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Passa a través de l'E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Passa a través del DTS-HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Passa a través del TrueHD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Recodifica altres a AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1191,6 +1156,11 @@ msgid ""
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
 "does that."
 msgstr ""
+"Desactivat significa mode de línia d'ordres: sense finestra, sense safata "
+"del sistema i sense pantalla de configuració, de manera que l'única manera "
+"de tornar enrere és editar conf.json manualment. No és com s'obtenen els "
+"controls en pantalla propis de MPV: això ho fa l'\"Estil dels controls del "
+"reproductor\" de la interfície."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1208,10 +1178,6 @@ msgstr ""
 "qual ningú no hauria de poder navegar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Requires restart to change. MPV keybinds are used by default. Press ENTER "
-#| "to drive the player controls by keyboard."
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
 "drive the player controls by keyboard. \"No player controls\" leaves "
@@ -1220,7 +1186,8 @@ msgid ""
 msgstr ""
 "Cal reiniciar per a canviar. Per defecte, s'utilitzen les combinacions de "
 "tecles MPV. Pitgeu RETORN per a controlar el reproductor mitjançant el "
-"teclat."
+"teclat. \"Sense controls del reproductor\" deixa la reproducció inútil; la "
+"mediateca, les dreceres de teclat i la tecla de menú encara funcionen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1275,24 +1242,33 @@ msgid ""
 "Overrides the theme's cover size. Applies immediately, and is also on the "
 "View menu of any library."
 msgstr ""
+"Substitueix la mida de portada del tema. S'aplica immediatament i també es "
+"troba al menú Visualització de qualsevol mediateca."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"Els controls han de romandre llegibles en qualsevol fotograma. \"Cap\" "
+"proporciona una ombra paral·lela al text en comptes d'ombrejar la imatge que "
+"hi ha darrere."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"\"Amaga tret que es mogui el cursor per sobre\" els manté actius només quan "
+"el punter hi és a sobre, estiguin o no en pausa ."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"0 els amaga tan bon punt el punter no hi és a sobre i força \"Amaga tret que "
+"es mogui el cursor per sobre\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1313,6 +1289,8 @@ msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"\"Per defecte\" no canvia res i permet que MPV (i el seu propi mpv.conf) "
+"decideixin. Escolliu un mode només si esteu enviant l'àudio a un receptor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1320,17 +1298,26 @@ msgid ""
 "only way surround fits down an optical cable. Turn this off if the encoder "
 "causes audio delay — those tracks become stereo instead."
 msgstr ""
+"L'àudio que el vostre receptor no pot rebre directament es codifica com a "
+"AC3, que és l'única forma de so envolvent per un cable òptic. Desactiveu-ho "
+"si el codificador provoca un retard de l'àudio — aquestes pistes passaran a "
+"ser en estèreo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"\"hq\" ofereix perfils més exigents. Escolliu-ho, si teniu una targeta "
+"gràfica ràpida."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Deixeu-ho en automàtic, a no ser que el vídeo falli en un carregar un "
+"perfil. Això només és aplicable mentre un perfil estigui actiu, i OpenGL pot "
+"fer que perdeu la sortida HDR."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1338,11 +1325,13 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Fa més uniformes els efectes forts i els diàlegs suaus. Això desactiva el "
+"passthrough mentre està activat, perquè s'ha d'ajustar el volum abans que el "
+"receptor no rebi l'àudio."
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Advanced"
 msgstr "Avançat"
 
@@ -1353,21 +1342,20 @@ msgstr "Afegeix a a la llista de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Encara no hi ha llistes de reproducció."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Nom de la nova llista de reproducció…"
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Create"
 msgstr "Crea"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "Privat (no ho pot veure ningú més)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Collections…"
@@ -1394,7 +1382,6 @@ msgstr "Nom de la col·lecció nova…"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Back"
 msgstr "Enrere"
 
@@ -1410,12 +1397,12 @@ msgstr "S'està estimant…"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d elements · %(size)s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d already downloaded"
-msgstr ""
+msgstr "%d ja s'ha descarregat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1424,10 +1411,9 @@ msgstr "%d vistes"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Download"
-msgstr "Descarrega"
+msgstr "Descàrrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
@@ -1455,20 +1441,16 @@ msgid "Thumbnail"
 msgstr "Miniatura"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Banner"
-msgstr "Vist"
+msgstr "Bàner"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Logo"
 msgstr "Logotip"
 
 # seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Disc"
 msgstr "Disc"
 
@@ -1483,15 +1465,12 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Mida dels subtítols: {0}"
+msgstr "Mostra els títols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Sèries"
+msgstr "Mostra els anys"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
@@ -1513,10 +1492,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Settings"
 msgid "View Settings"
-msgstr "Configuració"
+msgstr "Mostra la configuració"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -1528,7 +1505,6 @@ msgstr "Avís"
 
 # seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "OK"
 msgstr "D'acord"
 
@@ -1558,7 +1534,7 @@ msgstr "Porta-retalls"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s (joined)"
-msgstr "%s s'ha unit."
+msgstr "%s (s'ha unit)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Group"
@@ -1582,7 +1558,6 @@ msgstr "Sortida"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Refresh"
 msgstr "Actualitza"
 
@@ -1615,14 +1590,12 @@ msgstr "Automàtic"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Episodes"
 msgstr "Episodis"
 
 # seeded from jellyfin-web: OptionSpecialEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Specials"
 msgstr "Especials"
 
@@ -1651,7 +1624,6 @@ msgstr "Ha fallat"
 # seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlist"
 msgstr "Llista de reproducció"
 
@@ -1669,7 +1641,6 @@ msgstr "Per defecte (mpv decideix)"
 
 # seeded from jellyfin-web: ChannelResolutionHD
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
-#, fuzzy
 msgid "HD"
 msgstr "HD"
 
@@ -1680,28 +1651,24 @@ msgstr "No hi ha canals disponibles."
 
 # seeded from jellyfin-web: None
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgctxt "home screen section type"
 msgid "None"
 msgstr "Cap"
 
 # seeded from jellyfin-web: HeaderMyMedia
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgid "My Media"
 msgstr "Els meus continguts multimèdia"
 
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Watching"
 msgstr "Continueu mirant"
 
 # seeded from jellyfin-web: HeaderContinueListening
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Listening"
 msgstr "Continueu escoltant"
 
@@ -1710,21 +1677,18 @@ msgstr "Continueu escoltant"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Next Up"
 msgstr "A continuació"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgid "Recently Added"
-msgstr "Novetats"
+msgstr "Afegits recentment"
 
 # seeded from jellyfin-web: HeaderActiveRecordings
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Active Recordings"
 msgstr "Enregistraments actius"
 
@@ -1756,13 +1720,11 @@ msgstr "Qualitat del vídeo"
 
 # seeded from jellyfin-web: PlaybackRate
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "Playback Speed"
 msgstr "Velocitat de reproducció"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "Aspect Ratio"
 msgstr "Relació d'aspecte"
 
@@ -1791,7 +1753,6 @@ msgstr "Cap (desactivat)"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Previous"
 msgstr "Anterior"
 
@@ -1815,19 +1776,17 @@ msgstr "Capítol següent"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Next"
 msgstr "Següent"
 
 # seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Ends at {0}"
 msgstr "Acabaria a les {0}"
 
 # seeded from jellyfin-web: Mute
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Mute"
 msgstr "Silencia"
 
@@ -1848,71 +1807,59 @@ msgstr "No s'ha pogut afegir aquests elements a la cua."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Series recording scheduled."
 msgstr "Enregistrament programat de la sèrie."
 
 # seeded from jellyfin-web: RecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording scheduled."
 msgstr "Enregistrament programat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be scheduled."
-msgstr "No s'ha pogut aplicar el canvi."
+msgstr "No s'ha pogut programar l'enregistrament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Cancel this recording?"
-msgstr "Desitgeu cancel·lar aquesta gravació?"
+msgstr "Desitgeu cancel·lar aquest enregistrament?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording cancelled."
 msgstr "Enregistrament cancel·lat."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Cancel Recording"
 msgstr "Cancel·la l'enregistrament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Stop recording this series?"
-msgstr "Desitgeu gravar aquesta sèrie?"
+msgstr "Desitgeu enregistrar aquesta sèrie?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Series recording cancelled."
-msgstr "S'ha cancel·lat la gravació de la sèrie."
+msgstr "S'ha cancel·lat l'enregistrament de la sèrie."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancel Series"
-msgstr "Cancel·la"
+msgstr "Cancel·la la sèrie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be cancelled."
-msgstr "No s'ha pogut aplicar el canvi."
+msgstr "No s'ha pogut cancel·lar l'enregistrament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
-msgstr "S'ha desat la configuració de gravació."
+msgstr "S'ha desat la configuració d'enregistrament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording settings could not be saved."
-msgstr "No s'ha pogut aplicar el canvi."
+msgstr "No s'han pogut aplicar els paràmetres d'enregistrament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1930,7 +1877,6 @@ msgstr "Elimina la descàrrega"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete"
 msgstr "Elimina"
 
@@ -1940,40 +1886,31 @@ msgid "The download could not be removed."
 msgstr "No s'ha pogut eliminar la descàrrega."
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be read."
-msgstr "No s'ha pogut aplicar el canvi."
+msgstr "No s'ha pogut llegir l'enregistrament."
 
 # seeded from jellyfin-web: HeaderSeriesOptions
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Series Options"
 msgstr "Opcions de la sèrie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Recording"
-msgstr "Transcodifica"
+msgstr "Enregistrament"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Record"
 msgstr "Enregistra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Next episode is not downloaded."
 msgid "New episodes only"
-msgstr "L'episodi següent no està descarregat."
+msgstr "Només episodis nous"
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All episodes"
 msgstr "Tots els episodis"
 
@@ -1988,26 +1925,22 @@ msgstr "Només %s"
 
 # seeded from jellyfin-web: OneChannel
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "One channel"
 msgstr "Un canal"
 
 # seeded from jellyfin-web: LabelChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Channels"
 msgstr "Canals"
 
 # seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All channels"
 msgstr "Tots els canals"
 
 # seeded from jellyfin-web: LabelAirTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Air time"
 msgstr "Horari d'emissió"
 
@@ -2026,7 +1959,6 @@ msgstr "Qualsevol moment"
 
 # seeded from jellyfin-web: LabelKeepUpTo
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Keep up to"
 msgstr "Mantingues fins a"
 
@@ -2040,13 +1972,11 @@ msgstr "Acaba tard (minuts)"
 
 # seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "As many as possible"
 msgstr "Tants com sigui possible"
 
 # seeded from jellyfin-web: ValueOneEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "1 episode"
 msgstr "1 episodi"
 
@@ -2057,21 +1987,16 @@ msgstr "%d episodis"
 
 # seeded from jellyfin-web: SortChannelsBy
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Sort channels by"
 msgstr "Ordena els canals per"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "Canvia els subtítols"
+msgstr "Número del canal"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Recently watched"
-msgstr "Tanca i marca com a no vist"
+msgstr "Vist recentment"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Place favorite channels first"
@@ -2083,28 +2008,22 @@ msgstr "Fons codificats per colors"
 
 # seeded from jellyfin-web: ShowIndicatorsFor
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Show indicators for"
 msgstr "Mostra indicadors per a"
 
 # seeded from jellyfin-web: Categories
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Categories"
 msgstr "Categories"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Settings"
 msgid "Guide Settings"
-msgstr "Configuració"
+msgstr "Configuració de la guia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "Guide settings could not be saved."
-msgstr "No s'ha pogut desar el PIN."
+msgstr "No s'ha pogut desar la configuració de la guia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "HD Programs"
@@ -2115,14 +2034,11 @@ msgid "Live Broadcasts"
 msgstr "Emissions en directe"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "New User"
 msgid "New Episodes"
-msgstr "Usuari nou"
+msgstr "Episodis nous"
 
 # seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Premieres"
 msgstr "Estrenes"
 
@@ -2134,53 +2050,44 @@ msgstr "Repeteix episodis"
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Movies"
 msgstr "Pel·lícules"
 
 # seeded from jellyfin-web: Sports
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Sports"
 msgstr "Esports"
 
 # seeded from jellyfin-web: Kids
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Kids"
 msgstr "Infants"
 
 # seeded from jellyfin-web: News
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "News"
 msgstr "Notícies"
 
 # seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Live"
 msgstr "Directe"
 
 # seeded from jellyfin-web: Premiere
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Premiere"
 msgstr "Estrena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "New PIN"
 msgid "New"
-msgstr "PIN nou"
+msgstr "Nou"
 
 # seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Repeat"
 msgstr "Repeteix"
 
@@ -2221,13 +2128,11 @@ msgstr "Reproducció"
 
 # seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Pause"
 msgstr "Atura"
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Stop"
 msgstr "Atura"
 
@@ -2259,7 +2164,6 @@ msgstr "Element no disponible."
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
 msgid "More Like This"
 msgstr "Similars"
 
@@ -2270,20 +2174,16 @@ msgstr "Ves a les sèries"
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Resume"
 msgstr "Continuació"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Fallada"
+msgstr "Tràiler"
 
 # seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Scenes"
 msgstr "Escenes"
 
@@ -2294,7 +2194,6 @@ msgstr "Versió %d"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Version"
 msgstr "Versió"
 
@@ -2303,13 +2202,11 @@ msgid "Sub"
 msgstr "Subtítol"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Mida dels subtítols: {0}"
+msgstr "Subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy, python-format
+#, python-format
 msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
@@ -2329,43 +2226,35 @@ msgstr "No hi ha gèneres a mostrar per a aquesta mediateca."
 # seeded from jellyfin-web: LabelName
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Name"
 msgstr "Nom"
 
 # seeded from jellyfin-web: OptionDateAdded
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Added"
 msgstr "Afegit el"
 
 # seeded from jellyfin-web: OptionReleaseDate
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Release Date"
 msgstr "Data d'estrena"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Community Rating"
 msgstr "Valoració de la comunitat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "Reproducció automàtica"
+msgstr "Reproduït el"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Play Count"
 msgstr "Nombre de reproduccions"
 
 # seeded from jellyfin-web: LabelRuntimeMinutes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Runtime"
 msgstr "Temps d'execució"
 
@@ -2375,20 +2264,17 @@ msgstr "Valoració de la crítica"
 
 # seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Parental Rating"
 msgstr "Classificació parental"
 
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Random"
 msgstr "Aleatori"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Episode Added"
-msgstr "Afegit el"
+msgstr "Episodi afegit el"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
@@ -2407,7 +2293,6 @@ msgstr "Xarxes"
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Genres"
 msgstr "Gèneres"
 
@@ -2421,62 +2306,48 @@ msgstr "Tots els anys"
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Unplayed"
 msgstr "No reproduït"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Elimina el servidor"
+msgstr "Preferits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections"
-msgstr "Elimina el servidor"
+msgstr "Col·leccions"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "Reproducció sincronitzada"
+msgstr "Reprodueix-ho tot"
 
 # seeded from jellyfin-web: Shuffle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
 msgid "Shuffle"
 msgstr "Aleatori"
 
 # seeded from jellyfin-web: Sort
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Sort"
 msgstr "Ordre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "That view setting could not be saved."
-msgstr "No s'ha pogut desar el PIN."
+msgstr "No s'ha pogut desar aquesta configuració de visualització."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There is nothing here to play."
-msgstr "No hi ha res descarregat per a ser explorat."
+msgstr "Aquí no hi ha res que es pugui reproduir."
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Libraries"
 msgstr "Mediateques"
 
@@ -2486,39 +2357,33 @@ msgstr "Encara no hi ha res per a mostrar."
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Programs"
 msgstr "Programes"
 
 # seeded from jellyfin-web: Guide
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Guide"
 msgstr "Guia"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Channels"
 msgstr "Canals"
 
 # seeded from jellyfin-web: Recordings
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Recordings"
 msgstr "Enregistraments"
 
 # seeded from jellyfin-web: Schedule
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Schedule"
 msgstr "Programa"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Series"
 msgstr "Sèries"
 
@@ -2527,10 +2392,8 @@ msgid "No programs are listed right now."
 msgstr "Ara mateix no hi ha programes llistats."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Previous page"
 msgid "Previous Day"
-msgstr "Pàgina anterior"
+msgstr "Dia anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
@@ -2541,10 +2404,8 @@ msgid "Later"
 msgstr "Més tard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Next page"
 msgid "Next Day"
-msgstr "Pàgina següent"
+msgstr "Dia següent"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
@@ -2556,10 +2417,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr "Canals %(from)d-%(to)d a %(total)d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Previous Chapter"
 msgid "Previous Channels"
-msgstr "Episodi anterior"
+msgstr "Canals anteriors"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -2576,85 +2435,73 @@ msgstr "%d canals"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Latest Recordings"
-msgstr "Darreres gravacions"
+msgstr "Darrers enregistraments"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "Obre la carpeta de configuració"
+msgstr "Directoris d'enregistrament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Configuració del servidor"
+msgstr "Encara no s'ha enregistrat res."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
-msgstr "No hi ha res programat per a gravar."
+msgstr "No hi ha res programat per a enregistrar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No series are set to record."
-msgstr "No hi ha cap sèrie programada per a ser gravada."
+msgstr "No hi ha cap sèrie programada per a ser enregistrada."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Scheduled to record"
-msgstr "Programat per a ser gravat"
+msgstr "Programat per a enregistrar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording now"
-msgstr "S'està gravant ara"
+msgstr "S'està enregistrant ara"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recording this series"
-msgstr "S'està gravant aquesta sèrie"
+msgstr "S'està enregistrant aquesta sèrie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "This series is set to record, but this showing is not scheduled"
 msgstr ""
-"Aquesta sèrie està programada per a ser gravada, però en canvi, l'emissió no "
-"està programada"
+"Aquesta sèrie està programada per a ser enregistrada, però en canvi, "
+"l'emissió no està programada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Watch"
 msgstr "Vist"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Watch Channel"
-msgstr "Vist"
+msgstr "Mira el canal"
 
 # seeded from jellyfin-web: HeaderStopRecording
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Stop Recording"
 msgstr "Atura l'enregistrament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Do Not Record"
-msgstr "No ho gravis"
+msgstr "No ho enregistris"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Record"
 msgstr "Enregistra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record Series"
-msgstr "Elimina el servidor"
+msgstr "Enregistra la sèrie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
@@ -2666,17 +2513,14 @@ msgid "Showing the next %d programs."
 msgstr "S'estan mostrant els següents %d programes."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Watched"
 msgid "Channel"
-msgstr "Vist"
+msgstr "Canal"
 
 # seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Albums"
 msgstr "Àlbums"
 
@@ -2691,15 +2535,13 @@ msgstr "Afegeix a la cua"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Instant Mix"
 msgstr "Mescla instantània"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Selecciona una pista d'àudio"
+msgstr "%d pistes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Album Artists"
@@ -2709,7 +2551,6 @@ msgstr "Artistes de l'àlbum"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Artists"
 msgstr "Artistes"
 
@@ -2717,20 +2558,16 @@ msgstr "Artistes"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Songs"
 msgstr "Cançons"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not start playback."
-msgstr "No s'ha pogut iniciar el Quick Connect."
+msgstr "No s'ha pogut iniciar la reproducció."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Edit"
 msgstr "Edició"
 
@@ -2750,13 +2587,11 @@ msgstr "Reprodueix la cua"
 
 # seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Up"
 msgstr "Amunt"
 
 # seeded from jellyfin-web: Down
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Down"
 msgstr "Avall"
 
@@ -2767,7 +2602,6 @@ msgstr "%d seleccionat"
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Select All"
 msgstr "Selecciona-ho tot"
 
@@ -2776,10 +2610,8 @@ msgid "Clear"
 msgstr "Neteja"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "Elimina el servidor"
+msgstr "A la llista de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -2802,44 +2634,36 @@ msgstr "No s'ha pogut reordenar la cua."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Nom d'usuari:"
+msgstr "Reanomena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
 msgstr "Públic"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "Elimina el servidor"
+msgstr "Elimina la llista de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar la llista de reproducció %s?"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Title"
 msgstr "Títol"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Type"
 msgstr "Tipus"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Time"
 msgstr "Hora"
 
@@ -2862,28 +2686,24 @@ msgid "Type in the search box above."
 msgstr "Escriviu al requadre de cerca de dalt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Servidor:"
+msgstr "Resultats per a \"%s\""
 
 # seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "People"
 msgstr "Repartiment i equip"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Shows"
 msgstr "Sèries"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Videos"
 msgstr "Vídeos"
 
@@ -2893,7 +2713,6 @@ msgstr "Al televisor"
 
 # seeded from jellyfin-web: Other
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Other"
 msgstr "Altres"
 
@@ -2907,7 +2726,6 @@ msgstr "A les sèries"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
 msgid "Seasons"
 msgstr "Temporades"
 
@@ -2921,7 +2739,6 @@ msgstr "No s'ha pogut carregar aquesta pàgina."
 
 # seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "On Now"
 msgstr "En curs"
 
@@ -2951,10 +2768,8 @@ msgid "Upcoming News"
 msgstr "Properes notícies"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailers"
-msgstr "Fallada"
+msgstr "Tràilers"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
@@ -2962,13 +2777,11 @@ msgstr "Descarregat"
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "TV Shows"
-msgstr "Sèries"
+msgstr "Sèries de televisió"
 
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlists"
 msgstr "Llistes de reproducció"
 
@@ -3007,19 +2820,16 @@ msgstr ""
 # seeded from jellyfin-web: Display
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Display"
-msgstr "Visualització"
+msgstr "Disposició"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Connect to a server to change these settings."
 msgstr "Connecteu al servidor per a canviar aquests paràmetres."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "These settings could not be loaded from your server."
-msgstr "No s'ha pogut aplicar el canvi."
+msgstr "No s'ha pogut carregar aquesta configuració des del servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3043,56 +2853,42 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Could not load more items."
 msgid "Could not load your display settings."
-msgstr "No s'han pogut carregar més elements."
+msgstr "No s'ha pogut carregar la configuració de la pantalla."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Display settings saved."
 msgstr "Configuració de pantalla desada."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save your display settings."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut desar la configuració de pantalla."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
 msgstr "Encara no s'ha descarregat res."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
-msgstr "Tanca i marca com a no vist"
+msgstr "Elimina els vistos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Tanca i marca com a no vist"
+msgstr "vist"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar les descàrregues vistes a %s?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Show advanced settings"
 msgstr "Mostra la configuració avançada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Interface scale requires a restart."
-msgstr ""
+msgstr "Per a escalar la interfície cal reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Some changes take effect after restarting."
@@ -3155,18 +2951,12 @@ msgid "Nothing downloaded to browse offline."
 msgstr "No hi ha res de descarregat per a navegar fora de línia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut connectar amb un servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home Screen Layout"
-msgstr "Disseny de la pantalla d'inici"
+msgstr "Disposició de la pantalla d'inici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
@@ -3176,7 +2966,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "The layout could not be loaded from your server."
-msgstr "No s'ha pogut carregar el disseny des del servidor."
+msgstr "No s'ha pogut carregar la disposició des del servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "These sections are stored on your server and shared with Jellyfin Web."
@@ -3195,32 +2985,19 @@ msgid "Section %d"
 msgstr "Secció %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen layout."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut carregar la disposició de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr "S'ha desat el disseny de la pantalla d'inici."
+msgstr "S'ha desat la disposició de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut desar la disposició de la pantalla d'inici."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "General"
 msgstr "General"
 
@@ -3229,21 +3006,17 @@ msgid "Home Screen"
 msgstr "Pantalla d'inici"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL del servidor: "
+msgstr "Servidors i usuaris"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Logs"
 msgstr "Registres"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Copy"
 msgstr "Copia"
 
@@ -3260,14 +3033,8 @@ msgid "There is nothing to copy yet."
 msgstr "Encara no hi ha res per a copiar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the log."
-msgstr ""
-"No s'ha pogut afegir el servidor.\n"
-"Comproveu la informació de la connexió."
+msgstr "No s'ha pogut copiar el registre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -3280,28 +3047,20 @@ msgid "Copied %d log lines."
 msgstr "S'han copiat %d línies de registre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Nom d'usuari: "
+msgstr "Nom nou d'usuari…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Afegeix un servidor"
+msgstr "Afegeix un usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Configuració del servidor"
+msgstr "Encara no s'ha configurat cap servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Nom d'usuari:"
+msgstr "Usuaris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -3310,28 +3069,21 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Servidor:"
+msgstr "Servidors per %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Servidor:"
+msgstr "Servidors"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "Canvia l'àudio"
+msgstr "Canvia el PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Servidor:"
+msgstr "Establiu el PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3340,9 +3092,8 @@ msgstr ""
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete User"
-msgstr "Esborra l'usuari"
+msgstr "Elimina l'usuari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
@@ -3361,10 +3112,9 @@ msgid "Auto-download"
 msgstr "Autodescàrrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Elimina el servidor"
+msgstr "Desitgeu eliminar %s i les dades desades d'accés?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3388,7 +3138,6 @@ msgstr "No s'ha pogut reanomenar aquest usuari."
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Year"
 msgstr "Any"
 
@@ -3398,13 +3147,11 @@ msgstr "Longitud"
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Artist"
 msgstr "Artista"
 
 # seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Album"
 msgstr "Àlbum"
 
@@ -3445,13 +3192,11 @@ msgstr "No hi ha res aquí a la cua."
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Search"
 msgstr "Cerca"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Home"
 msgstr "Inici"
 
@@ -3740,7 +3485,6 @@ msgid "ArtCNN (Denoise + Sharpen)"
 msgstr "ArtCNN (Reducció de soroll + Enfocament)"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
 msgid "ArtCNN High (C4F32)"
 msgstr "ArtCNN High (C4F32)"
 
