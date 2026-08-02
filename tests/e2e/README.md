@@ -44,6 +44,7 @@ E1 and E2 exist so far:
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
+| `test_route_walk` | E1 | every screen loads and renders against the real library |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
@@ -63,6 +64,17 @@ Episodes`, `Date Based Show`, `Double Episode Show`), so nothing here depends
 on execution order — and each resets its own playstate in `setUp` as well as
 on cleanup, so a run that died halfway cannot change what the next one
 measures. Keep that up: pick an unused series rather than sharing one.
+
+**A route walk needs three assertions, not one.** `test_route_walk` checks
+that the build does not raise, that `route["_error"]` is unset, and that
+nothing logged a failure. A negative control that reintroduced `b97dd523`
+passed against the build check alone: `_route_async` catches a failing loader,
+records the error on the route and leaves it empty, and an empty route builds
+perfectly. Write the negative control before trusting a walk.
+
+**Log traps go on the root logger.** The two that matter are named `mpvtk` and
+`mpvtk_browser.async_runner` — outside the package hierarchy, so a handler on
+`jellyfin_mpv_shim` sees neither.
 
 ## Things that are easy to get wrong
 
