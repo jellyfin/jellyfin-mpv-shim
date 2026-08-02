@@ -45,6 +45,7 @@ CONTRACT = [
     "tests.e2e.test_paging",
     "tests.e2e.test_keyboard_nav",
     "tests.e2e.test_large_queue",
+    "tests.e2e.test_connection_loss",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.

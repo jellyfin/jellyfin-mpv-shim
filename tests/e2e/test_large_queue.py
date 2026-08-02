@@ -73,7 +73,12 @@ class LargeQueueMetadataTest(unittest.TestCase):
         removed, and this file would be testing nothing at all."""
         # The apiclient logs the whole rejected URL, which for 400 GUIDs is
         # 30KB of console noise on a test that is *supposed* to fail.
-        http_log = logging.getLogger("JELLYFIN.jellyfin_apiclient_python.http")
+        #
+        # `Jellyfin.`, not `JELLYFIN.`: http.py is the one module in the
+        # apiclient that spells its logger root in mixed case, and logger
+        # names are case-sensitive -- so the shouted spelling silenced a
+        # logger that does not exist and the dump came out anyway.
+        http_log = logging.getLogger("Jellyfin.jellyfin_apiclient_python.http")
         previous = http_log.level
         http_log.setLevel(logging.CRITICAL)
         self.addCleanup(http_log.setLevel, previous)
