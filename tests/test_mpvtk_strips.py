@@ -10,9 +10,10 @@ import tempfile
 import threading
 import unittest
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from jellyfin_mpv_shim.mpvtk.rawimage import MemoryStore
+from jellyfin_mpv_shim.mpvtk_browser import theme
 from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore, Tile, TileGeom
 
 
@@ -179,6 +180,70 @@ class TestStripStore(unittest.TestCase):
         out = s.strip([Tile(key="a", poster=_poster(size=(240, 135)))])
         self.assertEqual(out["iw"], 240)
         self.assertEqual(out["ih"], 135 + 44)
+
+
+class TestCoverCrop(unittest.TestCase):
+    """Artwork fills its tile in EVERY theme, not just the rounded ones.
+
+    The crop used to ride on the theme's ``rounded`` flag, so the stock look
+    letterboxed whatever the server had not already cropped for us -- offline
+    artwork (a local file, no server-side resize) and chapter thumbnails
+    (fetched by max width, so they keep the video's aspect). ``rounded`` now
+    decides the card's SHAPE and nothing about the picture inside it.
+
+    Painted with a wide poster in a portrait tile: whether it was cropped or
+    letterboxed is the colour of the bands above and below it.
+    """
+
+    def _paint(self, rounded=False, **tile):
+        g = TileGeom().physical()
+        img = Image.new("RGBA", (g.tile_w, g.strip_h), (0, 0, 0, 0))
+        store = StripStore(cache_dir=None, mem_store=None)
+        orig = theme.active
+        if rounded:
+            theme.active = lambda: dict(orig() or {}, rounded=True)
+        try:
+            store._paint_poster(
+                img, ImageDraw.Draw(img), 0,
+                Tile(key="k", title="T", poster=_poster(size=(400, 100)),
+                     **tile),
+                g)
+        finally:
+            theme.active = orig
+        return img, g
+
+    def _bands(self, img, g):
+        """The strips the letterbox would put above and below the art. Taken
+        mid-width, which is inside a rounded card's silhouette as well as a
+        square one's."""
+        return [img.getpixel((g.tile_w // 2, 3))[:3],
+                img.getpixel((g.tile_w // 2, g.tile_h - 4))[:3]]
+
+    def test_the_stock_theme_crops_rather_than_letterboxing(self):
+        img, g = self._paint()
+        for got in self._bands(img, g):
+            self.assertEqual(got, (120, 30, 30))
+        # Square card, so the art reaches the corners too.
+        self.assertEqual(img.getpixel((3, 3))[:3], (120, 30, 30))
+
+    def test_the_rounded_theme_still_crops(self):
+        img, g = self._paint(rounded=True)
+        for got in self._bands(img, g):
+            self.assertEqual(got, (120, 30, 30))
+
+    def test_a_rounded_card_still_clips_the_art_to_its_corners(self):
+        """Cropping the art to the tile and then pasting it square would fill
+        the corner pixels the silhouette leaves transparent."""
+        img, _g = self._paint(rounded=True)
+        self.assertEqual(img.getpixel((1, 1))[3], 0)
+
+    def test_contain_still_draws_the_artwork_whole(self):
+        """A wordmark standing in for missing artwork: cropping it takes the
+        name off both ends, and that is the caller's call, not the theme's."""
+        img, g = self._paint(contain=True)
+        card = theme.rgb(theme.CARD_BG)[:3]
+        for got in self._bands(img, g):
+            self.assertEqual(got, card)
 
 
 class TestBitmapConcurrentMiss(unittest.TestCase):
