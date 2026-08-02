@@ -308,26 +308,40 @@ def chapter_target(chapters, pos, direction):
     The asymmetry is mpv's ``add chapter -1``, and every player's: going
     back restarts the chapter you are in, unless you are still in its first
     couple of seconds, in which case you meant the one before. Going forward
-    has no such grace: it is the next boundary strictly ahead of you.
+    has no grace at all: it is the next boundary strictly ahead of you, and
+    not "ahead by half a second" -- a position is a float from mpv and is
+    never exactly a boundary, while the half second before one is half a
+    second of real playback in which the button would do nothing.
 
-    Strictly, and not "ahead by half a second", which is what it used to
-    say. The tolerance was there so that sitting exactly ON a boundary did
-    not seek to where you already are -- but a position is a float from
-    mpv and is never exactly a boundary, while the half second before one
-    is half a second of real playback in which the button did nothing at
-    all. `> pos` handles the equality case on its own.
+    **The answer is clamped to 0**, which is what #614 turned out to be. A
+    matroska chapter can start at a slightly NEGATIVE timestamp -- container
+    start-time offsets put the first one at -0.005 on an ordinary episode --
+    and mpv reads a negative ABSOLUTE seek as the END of the file rather
+    than clamping it. Measured on mpv v0.41.0: `seek -0.005 absolute+exact`
+    on a 30s file lands at 29.96 with eof-reached true. So "previous
+    chapter" hit EOF and the shim's own EOF observer advanced the queue --
+    the reported "prev chapter plays the next episode". It predates this
+    branch: master's hud._chapter_jump passes ch["time"] on just as
+    unclamped. seek() refuses a negative absolute seek as well, because the
+    chapter PICKER hands it the very same value.
+
+    **Both directions can also answer None, and the caller must not seek.**
+    Back seeds its search with None rather than 0.0 for the same reason
+    forward ends with it: before the first boundary there is nowhere to go,
+    and a button that quietly restarts the file is worse than one that
+    declines. That covers the first seconds of any file, and a file with no
+    chapters at all, where every press used to jump to 0.0.
 
     One definition, because there are two callers with two different reasons
     to jump: the HUD's chapter buttons and the mouse's back/forward buttons
-    (mouse_chapter_nav). They used to be one implementation and a plan to
-    write the second.
+    (mouse_chapter_nav).
     """
     if direction < 0:
-        target = 0.0
+        target = None
         for ch in chapters:
             if ch["time"] < pos - 2.0:
                 target = ch["time"]
-        return target
+        return None if target is None else max(0.0, target)
     for ch in chapters:
         if ch["time"] > pos:
             return ch["time"]
@@ -2092,6 +2106,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         if exact is None:
             exact = absolute
+        if absolute and offset < 0:
+            # mpv reads a negative absolute target as the END of the file,
+            # not as 0 (v0.41.0: `seek -0.005 absolute+exact` on a 30s file
+            # lands at 29.96 with eof-reached true). Every caller that gets
+            # here with one means the start: a chapter whose container
+            # timestamp is fractionally negative, which ordinary matroska
+            # episodes carry, reaching us from chapter_target or straight
+            # off the chapter picker. Left alone it reads as "the file
+            # finished" and the queue advances (#614).
+            log.debug("Clamping negative absolute seek %r to 0.", offset)
+            offset = 0.0
         if self.syncplay.is_enabled() and not force:
             if not absolute:
                 offset += self._player.playback_time

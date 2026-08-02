@@ -444,8 +444,24 @@ class TestChapterJump(unittest.TestCase):
         mean "no, the previous one"."""
         self.assertEqual(self.target(41.0, -1), 0.0)
 
-    def test_back_from_the_first_chapter_goes_to_the_start(self):
-        self.assertEqual(self.target(1.0, -1), 0.0)
+    def test_back_from_the_first_chapter_declines(self):
+        """None, not 0.0. There is no boundary behind the first one, so the
+        button has nowhere to go and must not seek -- the same answer
+        forward gives at the last one.
+
+        This is not cosmetic. The old 0.0 seed meant back ALWAYS issued a
+        seek, and a redundant `seek 0 absolute+exact` at the head of a file
+        is what made the buttons advance the queue: mpv answered it with an
+        immediate EOF and the shim's finished_callback started the next
+        episode. Predates this branch -- master's hud._chapter_jump seeds
+        the same 0.0."""
+        self.assertIsNone(self.target(1.0, -1))
+        self.assertIsNone(self.target(0.0, -1))
+
+    def test_back_still_restarts_the_chapter_you_are_in(self):
+        """The grace only reaches backwards two seconds; ten seconds into
+        the first chapter there IS somewhere to go, and it is 0.0."""
+        self.assertEqual(self.target(10.0, -1), 0.0)
 
     def test_forward_takes_the_next_boundary(self):
         self.assertEqual(self.target(50.0, 1), 80.0)
@@ -467,10 +483,70 @@ class TestChapterJump(unittest.TestCase):
         self.assertEqual(self.target(39.6, 1), 40.0)
         self.assertEqual(self.target(39.999, 1), 40.0)
 
-    def test_a_file_with_no_chapters_answers_nothing_useful(self):
+    def test_a_file_with_no_chapters_answers_nothing_in_either_direction(self):
+        """Back used to answer 0.0 here, so a chapter button on a file with
+        no chapters restarted the film."""
         from jellyfin_mpv_shim.player import chapter_target
         self.assertIsNone(chapter_target([], 10.0, 1))
-        self.assertEqual(chapter_target([], 10.0, -1), 0.0)
+        self.assertIsNone(chapter_target([], 10.0, -1))
+
+    def test_a_negative_first_chapter_is_clamped_to_zero(self):
+        """#614, and the whole of it. Matroska start-time offsets put the
+        first chapter at a fractionally negative timestamp -- -0.005 on the
+        episode this was reported against -- and mpv reads a NEGATIVE
+        absolute seek as the end of the file, not as 0. So "previous
+        chapter" seeked to EOF and the shim's EOF observer started the next
+        episode.
+
+        Measured against mpv v0.41.0: `seek -0.005 absolute+exact` on a 30s
+        file lands at 29.96 with eof-reached true."""
+        from jellyfin_mpv_shim.player import chapter_target
+        chapters = [{"time": -0.005}, {"time": 40.0}, {"time": 80.0}]
+        self.assertEqual(chapter_target(chapters, 9.468, -1), 0.0)
+        self.assertEqual(chapter_target(chapters, 50.0, -1), 40.0)
+        # forward is unaffected -- it only ever returns a boundary > pos
+        self.assertEqual(chapter_target(chapters, 9.468, 1), 40.0)
+
+
+class TestNegativeAbsoluteSeekIsClamped(unittest.TestCase):
+    """seek() is the choke point, because chapter_target is not the only
+    thing that hands it a raw chapter timestamp: the HUD's chapter PICKER
+    seeks to chs[i]["time"] directly, so selecting the first chapter of the
+    same file reproduced #614 on its own."""
+
+    def _pm(self):
+        import threading
+
+        class FakePlayer:
+            playback_abort = False
+            def __init__(self): self.cmds = []
+            def command(self, *a): self.cmds.append(a)
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._lock = threading.RLock()
+        pm._player = FakePlayer()
+        pm.syncplay = type("S", (), {"is_enabled": lambda self: False})()
+        pm.timeline_handle = lambda: None
+        pm.push_playstate = lambda: None
+        return pm
+
+    def test_negative_absolute_seek_becomes_zero(self):
+        pm = self._pm()
+        PlayerManager.seek(pm, -0.005, absolute=True)
+        self.assertEqual(pm._player.cmds, [("seek", 0.0, "absolute+exact")])
+
+    def test_a_normal_absolute_seek_is_untouched(self):
+        pm = self._pm()
+        PlayerManager.seek(pm, 42.5, absolute=True)
+        self.assertEqual(pm._player.cmds, [("seek", 42.5, "absolute+exact")])
+
+    def test_a_relative_seek_may_still_be_negative(self):
+        """The HUD's back-10 button, and every keyboard seek: a negative
+        RELATIVE offset is the ordinary way to go backwards and must not be
+        clamped."""
+        pm = self._pm()
+        PlayerManager.seek(pm, -10, absolute=False)
+        self.assertEqual(pm._player.cmds, [("seek", -10)])
 
 
 class TestMouseChapterNavIsOptional(unittest.TestCase):
