@@ -174,17 +174,23 @@ because each one is a thing somebody will otherwise rediscover.
 `jellyfin_mpv_shim/` consults `EnableContentDownloading`,
 `EnableMediaPlayback` or `SyncPlayAccess`. The only policy-derived behaviour
 is Live TV, and that is inferred from whether the server put a Live TV view in
-`/Views` rather than read from the policy. So Download, Play and SyncPlay are
-offered to accounts the server may refuse — a gap against jellyfin-web, which
-hides them. `qa-nodownload`, `qa-noplayback` and `qa-nosyncplay` exist to make
-this visible.
+`/Views` rather than read from the policy — which does gate browsing
+correctly, and `LiveTvAccessTest` pins that.
 
-**`EnableMediaPlayback: False` does not stop playback.** `qa-noplayback`
-plays a file start to finish: PlaybackInfo returns no error and the server
-serves the `static=true` direct-play URL regardless. So the account cannot
-find the spinner it was built to find, because there is no refusal — worth
-knowing before writing a test that asserts one. Whether the server should
-refuse is a Jellyfin question, not ours.
+The two that matter are written up as work items in
+`docs/PERMISSION_GAPS.md`: SyncPlay has three unconditional entry points and
+never reads `SyncPlayAccess`, and the Settings → Home Screen editor offers
+Live TV sections to users who cannot have them, producing a slot that renders
+nothing forever.
+
+**`EnableMediaPlayback: False` does not stop playback, and cannot.**
+`qa-noplayback` plays a file start to finish: PlaybackInfo returns no error
+and the server serves the `static=true` URL regardless. Jellyfin's video
+endpoints are `AllowAnonymous` — as far as the API is concerned the item id
+*is* the credential — so the server cannot structurally refuse and no
+client-side check would make it able to. That account therefore cannot find
+the spinner it was built to find, because there is no refusal. Worth knowing
+before writing a test that asserts one.
 
 **`qa-onesession` refuses the newcomer rather than evicting the incumbent.**
 The account's description says a second login must evict the first; measured,

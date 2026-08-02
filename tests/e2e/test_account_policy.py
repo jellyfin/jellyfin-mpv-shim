@@ -11,16 +11,17 @@ path above it.
 `EnableMediaPlayback` or `SyncPlayAccess`, and the only policy-derived
 behaviour is Live TV, which comes from whether the server put a Live TV view
 in `/Views` (`repository.get_libraries`). So Download, Play and SyncPlay are
-offered to accounts the server may refuse. That is a gap against jellyfin-web,
-which hides them — recorded in `docs/E2E_PLAN.md` rather than asserted here,
-because the tests below can only pin what the code actually promises.
+offered to accounts the server may refuse. The two that matter are written up
+as work items in `docs/PERMISSION_GAPS.md`; they are not asserted here,
+because these tests can only pin what the code actually promises today.
 
 Two things that are *not* tested here, because measurement said they are not
 true (both in `docs/E2E_PLAN.md`):
 
-* `qa-noplayback` can play. `EnableMediaPlayback: False` does not stop the
-  server serving a `static=true` direct-play URL, so there is no refusal for
-  the client to handle and no spinner for this account to find.
+* `qa-noplayback` can play, and no client can change that. Jellyfin's video
+  endpoints are `AllowAnonymous`, so the item id is effectively the
+  credential; `EnableMediaPlayback: False` does not stop the server serving a
+  `static=true` URL, and there is no refusal for the client to handle.
 * `qa-onesession` does not evict. The server refuses the *second* login with
   403 and leaves the first working, which is the opposite way round from the
   account's description.
