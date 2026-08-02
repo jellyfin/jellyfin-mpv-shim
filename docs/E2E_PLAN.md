@@ -165,6 +165,7 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
 | `test_mpv_reopen` | playback | 6 | close mid-playback → re-open → auto-advance (#458) |
 | `test_input_routing` | playback | — | real keys across every UI transition (f70ad1e7, #614) |
+| `test_scroll_recovery` | playback | — | wheel-scrolling 1000 items in a real window; blank-tile recovery |
 
 The contract tier never imports `player.py`, so it runs **once** and without a
 display — the whole of it is under two seconds. Only the playback tier pays

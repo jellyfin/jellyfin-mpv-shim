@@ -52,6 +52,7 @@ E1 and E2 exist so far:
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
 | `test_mpv_reopen` | E2 | closing mpv mid-playback then playing again (#458) — runs out of process |
 | `test_input_routing` | E2 | real keys through mpv's input layer across every UI transition |
+| `test_scroll_recovery` | E2 | wheel-scrolling 1000 items hard in a real window; tiles come back |
 
 **E1 runs once, without a display**, because nothing in it imports
 `player.py`; the runner keeps it in its own tier and the whole of it is under
@@ -145,6 +146,13 @@ the whole path runs (device selection, format negotiation, the AudioMixin
 settings), it just ends nowhere, so this suite can grow audio tests. With no
 `pactl` it falls back to mpv's own `null` device — quiet and contention-free,
 just less of the path exercised. Both paths are verified.
+
+**A wheel event goes to whatever is under the pointer, and under xvfb
+nothing has ever moved a mouse.** `mouse-pos` reports no hover and the
+coordinates sit at (-1, -1), so wheel events are delivered and discarded.
+Send `mouse <x> <y>` first and wait for `hover`. Without it a scroll test
+scrolls nothing — and reads as "the app stops scrolling two thirds of the way
+down" when it never started.
 
 **Input tests must press real keys.** `test_input_routing` exists because
 declaring a key binding and *enabling its section* are different calls, and
