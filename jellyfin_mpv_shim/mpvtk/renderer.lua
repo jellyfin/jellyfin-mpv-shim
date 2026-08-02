@@ -1418,22 +1418,42 @@ end
 function popup_thumb(g)
     local count = g.count or g.n
     if not g or count <= g.n then return nil end
-    local track_y, track_h = g.y + 4, g.n * g.ih - 8
-    local th = math.max(18, track_h * g.n / count)
+    -- Scaled, like the rest of this file's drawing constants: a 5px thumb
+    -- beside a row that has trebled in height is not a scrollbar (#620).
+    -- One definition serves drawing and hit-testing, so they scale together.
+    local track_y, track_h = g.y + ui_px(4), g.n * g.ih - 2 * ui_px(4)
+    local th = math.max(ui_px(18), track_h * g.n / count)
     local ty = track_y + (track_h - th) * ((g.off or 0) / (count - g.n))
-    return { x = g.x + g.w - 8, y = ty, w = 5, h = th,
+    return { x = g.x + g.w - ui_px(8), y = ty, w = ui_px(5), h = th,
              track_y = track_y, track_h = track_h }
 end
+
+-- Opacity of the subordinate hover wash in a list that already has a
+-- stronger cursor. Same idiom (and roughly the same weight) as the icon
+-- trigger's hover disc above: enough to read as a highlight on any theme's
+-- popup surface, not enough to be mistaken for the solid accent.
+local HOVER_WASH = 70
 
 -- Generic floating list (dropdown popups, context menus). sel may be
 -- nil; icons is an optional parallel list of unit-canvas ASS paths
 -- ('' = none).
-local function draw_list(ass, g, items, sel, size, icons)
-    draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
-        fill = state.tok.popup_bg, radius = 6, bc = state.tok.outline_strong, bw = 1,
-    })
+-- `ranked` says the list has a VALUE, one row of which is what the control
+-- is currently set to (a dropdown popup). A context menu does not: it is a
+-- list of actions, `sel` there is the keyboard cursor, and the pointer is
+-- the only other cursor there is. That difference decides how loud hover is
+-- allowed to be — see the fills below.
+local function draw_list(ass, g, items, sel, size, icons, ranked)
+    -- The paddings are scaled for the same reason the seek bar's are (see
+    -- draw_slider): they are constants of the drawing rather than fields of
+    -- a node, so scale_scene never reaches them, and at 200% they left a
+    -- tall row with a 10px gutter. `size` and `g.ih` arrive scaled already.
+    local pad = ui_px(10)
     local isz = math.floor(size * 1.1)
-    local indent = icons and (isz + 10) or 0
+    local indent = icons and (isz + pad) or 0
+    draw_rect(ass, g.x, g.y, g.w, g.n * g.ih, {
+        fill = state.tok.popup_bg, radius = ui_px(6),
+        bc = state.tok.outline_strong, bw = 1,
+    })
     local off = g.off or 0
     local count = g.count or #items
     for vis = 1, g.n do
@@ -1444,19 +1464,61 @@ local function draw_list(ass, g, items, sel, size, icons)
         local hovered = state.mouse.x >= g.x and
             state.mouse.x <= g.x + g.w and
             state.mouse.y >= iy and state.mouse.y < iy + g.ih
-        if hovered or (sel ~= nil and (i - 1) == sel) then
-            draw_rect(ass, g.x + 2, iy + 1, g.w - 4, g.ih - 2, {
-                fill = hovered and state.accent or state.tok.control_bg, radius = 4,
-            })
+        local chosen = sel ~= nil and (i - 1) == sel
+        -- Two states, and which is which is the whole of #620. The STRONG
+        -- one is "what ENTER would act on / what this control is set to";
+        -- the WEAK one is "where the pointer is". This used to draw them the
+        -- other way round -- hover took the accent and the selected row took
+        -- control_bg, one step off popup_bg (0x2e3138 on 0x26292f in the
+        -- stock theme) -- so "which quality am I on" was a question about
+        -- two greys nobody can tell apart.
+        --
+        -- The weak state is the accent at LOW ALPHA rather than a grey
+        -- token, and that is load-bearing: control_hover over popup_bg is
+        -- BUTTON_ACTIVE over PANEL_BG, which in four of the six shipped
+        -- themes is a weaker contrast than the fill this commit is
+        -- replacing, and in jf-wmc is 1.00:1 -- the same relative luminance,
+        -- ie. not drawn at all. Derived from the accent it cannot collapse
+        -- into the background unless the accent already has.
+        --
+        -- `sel` in an UNRANKED list (a context menu) is the keyboard cursor
+        -- rather than a value, so there the pointer and the cursor are the
+        -- same kind of thing. With no keyboard cursor up, hover IS the
+        -- cursor and takes the strong state -- which is what menus have
+        -- always drawn. With one up, hover steps down to the weak state
+        -- instead: both used to take the accent, so a right-click followed
+        -- by Down painted two rows identically, and ENTER and a click would
+        -- then act on different ones.
+        local strong_hover = hovered and not (ranked or sel ~= nil)
+        local fill, alpha = nil, nil
+        if chosen then
+            fill = hovered and state.tok.accent_hover or state.accent
+        elseif strong_hover then
+            fill = state.accent
+        elseif hovered then
+            fill, alpha = state.accent, HOVER_WASH
         end
+        if fill then
+            draw_rect(ass, g.x + ui_px(2), iy + ui_px(1),
+                      g.w - 2 * ui_px(2), g.ih - 2 * ui_px(1),
+                      { fill = fill, a = alpha, radius = ui_px(4) })
+        end
+        -- ...and the ink follows the fill it lands on, text and icon alike.
+        -- ON_ACCENT is the one token that exists precisely because a theme's
+        -- body text is not guaranteed to read on its accent -- but only over
+        -- a SOLID one. The wash is mostly popup_bg, so body text is both
+        -- correct over it and far more legible than on_accent would be.
+        local on_accent = chosen or strong_hover
+        local ink = on_accent and state.tok.on_accent or state.tok.on_surface
         if icons and icons[i] and icons[i] ~= '' then
-            draw_icon_path(ass, icons[i], g.x + 8,
-                iy + (g.ih - isz) / 2, isz, state.tok.on_surface_muted, nil)
+            draw_icon_path(ass, icons[i], g.x + ui_px(8),
+                iy + (g.ih - isz) / 2, isz,
+                on_accent and ink or state.tok.on_surface_muted, nil)
         end
-        local tnode = { w = g.w - 20 - indent, h = g.ih, size = size,
+        local tnode = { w = g.w - 2 * pad - indent, h = g.ih, size = size,
                         align = 'left' }
-        draw_text(ass, tnode, g.x + 10 + indent, iy, nil,
-            ellipsize(item, size, false, tnode.w), state.tok.on_surface)
+        draw_text(ass, tnode, g.x + pad + indent, iy, nil,
+            ellipsize(item, size, false, tnode.w), ink)
     end
     if count > g.n then
         -- a thumb, so a clipped list doesn't look like the whole list
@@ -1465,7 +1527,7 @@ local function draw_list(ass, g, items, sel, size, icons)
             draw_rect(ass, t.x, t.y, t.w, t.h,
                       { fill = state.dd_bar_drag and state.tok.scrollbar_thumb_active
                                or state.tok.scrollbar_thumb,
-                        radius = 3 })
+                        radius = t.w / 2 })
         end
     end
 end
@@ -1475,7 +1537,7 @@ local function draw_popup(ass, node)
     local g = state.dd_geo or popup_geometry(node)
     -- keyboard navigation highlights its own index while active
     draw_list(ass, g, node.items, state.nav_pidx or d.sel, node.size,
-        node.icons)
+        node.icons, true)
 end
 
 local function menu_geometry(node)
@@ -1615,32 +1677,43 @@ local function draw_slider(ass, node, ex, ey, clip)
         -- value it is stuck at stays readable) and loses its colour
         accent = state.tok.on_surface_faint
     end
-    draw_rect(ass, tx1, ty - 3, tw, 6,
+    -- The bar's own geometry is scaled here rather than by scale_scene:
+    -- these are constants of the DRAWING, not fields of the node, so
+    -- nothing on the Python side ever sees them. Left literal they made the
+    -- seek bar a 6px hairline with 2px chapter slits inside a HUD that had
+    -- otherwise doubled -- which is #620's "the timeline bar is pretty thin
+    -- and it's hard to see where the chapters are". SLIDER_PAD is already
+    -- scaled (on receipt of mpvtk-scale) because a click maps through it.
+    local th = ui_px(6)               -- track thickness
+    local tr = th / 2
+    local mw, mh = ui_px(2), ui_px(11)   -- chapter slit
+    local kw = ui_px(16)              -- thumb diameter
+    draw_rect(ass, tx1, ty - tr, tw, th,
         { fill = ov and '3a3a3a' or state.tok.control_sunken,
-          radius = 3, clip = clip })
+          radius = tr, clip = clip })
     -- buffered/seekable ranges, shaded like the jellyfin OSC's
     if node.ranges then
         for _, r in ipairs(node.ranges) do
             local r1, r2 = clamp(r[1], 0, 1), clamp(r[2], 0, 1)
             if r2 > r1 then
-                draw_rect(ass, tx1 + tw * r1, ty - 3,
-                    tw * (r2 - r1), 6,
+                draw_rect(ass, tx1 + tw * r1, ty - tr,
+                    tw * (r2 - r1), th,
                     { fill = ov and 'ffffff' or state.tok.on_surface_muted,
                       a = 100, clip = clip })
             end
         end
     end
     if frac > 0 then
-        draw_rect(ass, tx1, ty - 3, tw * frac, 6,
-            { fill = accent, radius = 3, clip = clip })
+        draw_rect(ass, tx1, ty - tr, tw * frac, th,
+            { fill = accent, radius = tr, clip = clip })
     end
-    -- chapter slits (2x11px): accent once passed, dim white ahead —
+    -- chapter slits (2x11 logical): accent once passed, dim white ahead —
     -- same treatment as the jellyfin OSC's seekbar markers
     if node.marks then
         for _, m in ipairs(node.marks) do
             if m > 0 and m < 1 then
                 local passed = m <= frac
-                draw_rect(ass, tx1 + tw * m - 1, ty - 5.5, 2, 11, {
+                draw_rect(ass, tx1 + tw * m - mw / 2, ty - mh / 2, mw, mh, {
                     fill = passed and accent
                            or (ov and 'ffffff' or state.tok.on_surface),
                     a = passed and 255 or 77,
@@ -1649,10 +1722,10 @@ local function draw_slider(ass, node, ex, ey, clip)
             end
         end
     end
-    draw_rect(ass, tx1 + tw * frac - 8, ty - 8, 16, 16,
+    draw_rect(ass, tx1 + tw * frac - kw / 2, ty - kw / 2, kw, kw,
         { fill = node.dis and state.tok.on_surface_faint
                  or (ov and 'dddddd' or state.tok.on_surface),
-          radius = 8, clip = clip })
+          radius = kw / 2, clip = clip })
 end
 
 -- Scrub semantics for seek-style sliders: 'change' fires (throttled)
@@ -1787,13 +1860,20 @@ local function draw_scrollbar(ass, node)
     if not node.bar or maxs <= 0 or not g then return end
     local x1, y1, x2, y2 = g.x1, g.y1, g.x2, g.y2
     -- geometry of viewport (unclipped by ancestors for simplicity)
-    local track_x = node.x + node.w - 8
+    -- Scaled for the same reason the seek bar and the popup's own thumb are
+    -- (see draw_slider): drawing constants never pass through scale_scene.
+    -- Left at 1x this was the only scrollbar in the app that did not follow
+    -- the UI scale, so at 200% a dropdown's 10px thumb sat beside a 6px page
+    -- scrollbar. Drawing and hit-testing both come from these numbers via
+    -- state.bars below, so they move together.
+    local bw = ui_px(6)
+    local track_x = node.x + node.w - ui_px(8)
     local p = node.sc and state.geo[node.sc]
     if p then track_x = track_x - p.dx end
     local ty = node.y - (p and p.dy or 0)
     local th = node.h
     local frac = node.h / node.ch
-    local thumb_h = math.max(24, th * frac)
+    local thumb_h = math.max(ui_px(24), th * frac)
     -- Default: the thumb rides the continuous offset, so it glides a notch at
     -- a time even while the content only steps on detent crossings -- the
     -- feedback that keeps sub-row scrolling from feeling dead. In
@@ -1804,12 +1884,12 @@ local function draw_scrollbar(ass, node)
         or clamp(state.scroll[node.id] or 0, 0, maxs)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
     local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
-    draw_rect(ass, track_x, ty, 6, th,
-        { fill = state.tok.control_sunken, radius = 3, clip = clip })
-    draw_rect(ass, track_x, thumb_y, 6, thumb_h,
-        { fill = state.tok.scrollbar_thumb, radius = 3, clip = clip })
+    draw_rect(ass, track_x, ty, bw, th,
+        { fill = state.tok.control_sunken, radius = bw / 2, clip = clip })
+    draw_rect(ass, track_x, thumb_y, bw, thumb_h,
+        { fill = state.tok.scrollbar_thumb, radius = bw / 2, clip = clip })
     state.bars[node.id] = {
-        x = track_x, y = ty, w = 6, h = th,
+        x = track_x, y = ty, w = bw, h = th,
         thumb_y = thumb_y, thumb_h = thumb_h,
     }
 end
