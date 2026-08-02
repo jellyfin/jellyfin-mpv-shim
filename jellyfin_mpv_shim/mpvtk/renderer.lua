@@ -2186,8 +2186,18 @@ render = function()
         else
             ts = string.format('%d:%02d', math.floor(whole / 60), whole % 60)
         end
-        local bw = math.max(fw, text_w(ts, fs, true),
-                            cap and text_w(cap, fs, false) or 0) + 2 * pad
+        -- Capped at the window, and the caption ellipsized to fit it.
+        -- A chapter name comes from container metadata and can run to a
+        -- sentence; clamp() returns its LOW bound when hi < lo, so an
+        -- over-wide bubble pinned itself at x=8, ran off the right edge,
+        -- and stopped being centred on the position it labels -- which is
+        -- #612, the bug this block exists to fix.
+        local bwmax = state.w - 2 * ui_px(8)
+        local bw = math.min(bwmax,
+                            math.max(fw, text_w(ts, fs, true),
+                                     cap and text_w(cap, fs, false) or 0)
+                            + 2 * pad)
+        if cap then cap = ellipsize(cap, fs, false, bw - 2 * pad) end
         local bh = 2 * pad + lh + (fh > 0 and (fh + gap) or 0)
                    + (cap and (lh + gap) or 0)
         local ex, ey = eff(pv_node)

@@ -1487,6 +1487,27 @@ ok(preview() ~= nil and math.abs(preview().secs - dragged) < 20,
    string.format("released at %s, was dragged to %s",
                  tostring(preview() and preview().secs), tostring(dragged)))
 
+-- A chapter name comes from container metadata and can run to a sentence.
+-- clamp() returns its LOW bound when hi < lo, so an over-wide bubble pinned
+-- itself at x=8 and ran off the right edge -- and stopped being centred on
+-- the position it labels, which is #612 all over again.
+fake.log.props["chapter-list"] = {
+    { title = string.rep("A very long chapter name ", 12), time = 0 },
+}
+fake.observe("chapter-list", fake.log.props["chapter-list"])
+hud_pointer(640, 675)
+pv_paint()
+local wide = preview()
+ok(wide ~= nil, "no bubble to measure")
+ok(wide and wide.x >= 0 and wide.x + wide.w <= 1280,
+   "the bubble runs off the window",
+   wide and string.format("x=%d w=%d right=%d", wide.x, wide.w,
+                          wide.x + wide.w))
+ok(wide and math.abs((wide.x + wide.w / 2) - 640) < 2,
+   "a long chapter name knocked the bubble off centre",
+   wide and ("centre=" .. tostring(wide.x + wide.w / 2)))
+fake.observe("chapter-list", {})
+
 -- A bar that does not ask for a preview never gets one: this is opt-in
 -- (the volume slider is the same widget).
 scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
