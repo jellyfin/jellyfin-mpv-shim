@@ -757,6 +757,12 @@ class GridPage(Page):
         # first page.
         for k in ("_items", "_total", "_win_tried", "_win_load"):
             self.route.pop(k, None)
+        # ...and the page cache, which holds tiles carrying the artwork tags
+        # this refetch exists to replace. Its page size is unchanged, so
+        # `ensure` would serve them straight back and the setting would look
+        # like it had done nothing -- which is the bug this method is named
+        # for, one level down.
+        self._pages.reset(self.route)
         if self.ctx.nav.is_current(self.route):
             self.ctx.nav.reload(self.route)
         else:
@@ -884,6 +890,13 @@ class GridPage(Page):
         for k in ("_items", "_total", "_loading", "_grid_shape",
                   "_win_tried", "_win_load"):
             self.route.pop(k, None)
+        # The paginator too. `ensure` only rebuilds its cache when the page
+        # SIZE changes, and this does not change it -- so a paginated grid
+        # went on drawing the films it had cached for pages n-1..n+1 over a
+        # list that is now this library's collections, and paging around the
+        # neighbourhood did not heal it. Everything else that replaces the
+        # result set goes through _reload, which does this.
+        self._pages.reset(self.route)
         self.ctx.nav.reload(self.route)
 
     def _play_all_capable(self):

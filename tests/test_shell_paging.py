@@ -739,6 +739,162 @@ class TestPagination(unittest.TestCase):
         bar = self.b._pagination_bar(route, 1280)
         self.assertIsNotNone(bar)
 
+
+class TestEveryPagedGridHasABar(unittest.TestCase):
+    """A route that DRAWS a paged grid must be in ``PAGEABLE_KINDS``.
+
+    The two are wired at opposite ends -- the page decides to draw one page
+    of tiles instead of a scroller, the shell decides whether to put a bar
+    under it -- so they can disagree, and when they do the result is a
+    screen showing its first page with no scrollbar and no way forward.
+    That is #638 (Networks) and #639 (a Favorites row's "see all"), both of
+    which are ``list`` routes: ``ListPage`` subclasses ``GridPage`` and
+    inherits the render that paginates, and nothing named it here.
+    """
+
+    def _paged_kinds(self):
+        """Kinds whose page class reaches ``GridPage._paged_grid``."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages import PAGES
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import GridPage
+        return {kind for kind, page in PAGES.items()
+                if issubclass(page, GridPage)
+                and page.render is GridPage.render}
+
+    def test_the_kinds_that_paginate_are_the_kinds_with_a_bar(self):
+        self.assertTrue(self._paged_kinds() <= MpvtkBrowser.PAGEABLE_KINDS,
+                        "these draw a paged grid with no bar under it: %s"
+                        % sorted(self._paged_kinds()
+                                 - MpvtkBrowser.PAGEABLE_KINDS))
+
+    def test_a_list_route_is_one_of_them(self):
+        """Named outright, because it is the one that regressed and the
+        derivation above would happily pass with an empty set."""
+        self.assertIn("list", self._paged_kinds())
+        self.assertIn("list", MpvtkBrowser.PAGEABLE_KINDS)
+
+    class _PagingSource(FakeSource):
+        """A ``get_list`` that HONOURS ``limit``.
+
+        ``FakeSource``'s answers 20 rows whatever it is asked for, which is
+        the one way a fixture can diverge from ``LibrarySource`` that this
+        screen is sensitive to: ``ensure``'s seed rule tests ``len(seed)``,
+        and ``ListPage.load`` pads the list to the server's total, so a
+        short answer seeds page 0 with holes and the page draws blank tiles
+        that nothing will ever fill. The real repository pages at 100 and
+        ``PAGE_MAX`` is 60, which is what makes that impossible in
+        production -- so a test that cannot tell the difference is not
+        testing the thing.
+        """
+
+        def __init__(self, n=200):
+            super().__init__()
+            self.all = [{"Id": "s%d" % i, "Name": "Net %d" % i,
+                         "Type": "Studio"} for i in range(n)]
+            self.calls = []
+
+        def get_list(self, server_uuid, spec, sort_by="SortName",
+                     sort_order="Ascending", start_index=0, limit=100,
+                     filters=None):
+            self.calls.append((start_index, limit))
+            return self.all[start_index:start_index + limit], len(self.all)
+
+    def _listing(self, size=(1920, 1080)):
+        b = MpvtkBrowser(app=None, source=self._PagingSource(),
+                         controller=None)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b._pages.enabled = lambda: True
+        b.navigate({"kind": "list", "server": "srv1", "title": "Networks",
+                    "list": {"type": "studios", "shape": "landscape"}})
+        build_scene(b, size=size)
+        return b
+
+    def test_a_paginated_listing_draws_its_bar(self):
+        """End to end: navigate to a Networks-shaped listing with the
+        setting on and look for the Next button."""
+        b = self._listing()
+        nodes, _h = build_scene(b, size=(1920, 1080))
+        self.assertTrue(b.route.get("_npages", 0) > 1, "not paged at all")
+        self.assertIn("pg-next", {n.get("id") for n in nodes})
+
+    def test_page_one_is_whole(self):
+        """No holes. `ensure` seeds page 0 from the loaded head, and that
+        list is `_total` long and mostly None past the first fetch -- so the
+        seed is only safe while the initial fetch is at least a page."""
+        b = self._listing()
+        page = b.route["_pages"][0]
+        self.assertEqual(len(page), b.route["_page_size"])
+        self.assertTrue(all(page), "page 1 has holes in it")
+
+    def test_page_two_is_the_next_items_and_not_the_first_again(self):
+        """The bar has to go somewhere. Nothing in the suite checked that a
+        list route's page 2 is page 2."""
+        b = self._listing()
+        ps = b.route["_page_size"]
+        b._page_go(b.route, 1)
+        build_scene(b, size=(1920, 1080))
+        page = b.route["_pages"][1]
+        self.assertTrue(all(page))
+        self.assertEqual([i["Id"] for i in page],
+                         ["s%d" % i for i in range(ps, 2 * ps)])
+
+    def test_a_page_in_flight_across_a_resize_is_dropped(self):
+        """A page NUMBER means nothing without the size it was asked at.
+
+        A resize (or the now-playing bar appearing, which is the same thing
+        to page_size) rebuilds the cache at the new size, but the jobs
+        already submitted still carry the old one -- and nothing navigated,
+        so the epoch cannot tell them apart. One landing late used to write
+        30 tiles into a 12-slot page and hide the items that belonged there.
+        """
+        b = self._listing()
+        route = b.route
+        big = route["_page_size"]
+        landed = []
+        inline = b._async.run
+
+        # Capture a fetch instead of running it, so it can land late.
+        def deferred(work, on_done, epoch, on_error=None, always=None):
+            landed.append((work, on_done, always))
+        b._async.run = deferred
+        b._page_go(route, 2)
+        build_scene(b, size=(1920, 1080))      # queues page 2 at `big`
+        self.assertTrue(landed, "nothing was queued")
+
+        b._async.run = inline
+        build_scene(b, size=(800, 400))        # smaller page; cache rebuilt
+        small = route["_page_size"]
+        self.assertNotEqual(small, big, "the resize did not change the page")
+
+        for work, on_done, always in landed:   # ...now let the old job land
+            on_done(work())
+            if always:
+                always()
+        for page, items in route["_pages"].items():
+            self.assertLessEqual(
+                len(items), small,
+                "page %d holds %d items in a %d-slot page"
+                % (page, len(items), small))
+
+    def test_a_page_outstanding_across_a_reset_does_not_raise(self):
+        """`reset` pops the dicts outright, so a callback that indexes them
+        blows up in a place nobody can see. Two logged warnings and a page
+        that never loads again."""
+        b = self._listing()
+        route = b.route
+        landed = []
+        b._async.run = lambda w, d, e, on_error=None, always=None: landed.append(
+            (w, d, always))
+        b._page_go(route, 1)
+        build_scene(b, size=(1920, 1080))
+        self.assertTrue(landed)
+        b._pages.reset(route)
+        for work, on_done, always in landed:
+            on_done(work())
+            if always:
+                always()
+
+
 class TestPaginatedToggle(unittest.TestCase):
     """The inline Paginated checkbox writes the global setting."""
 
