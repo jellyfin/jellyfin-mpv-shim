@@ -27,7 +27,7 @@ from PIL import Image, ImageDraw  # noqa: E402
 from jellyfin_mpv_shim import imageutil  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser import theme  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.strips import (  # noqa: E402
-    StripStore, Tile, TileGeom,
+    StripStore, Tile, TileGeom, logo_plate,
 )
 from jellyfin_mpv_shim.mpvtk_browser.thumbnails import (  # noqa: E402
     ThumbnailStore, make_key,
@@ -315,7 +315,11 @@ class TestDecode(unittest.TestCase):
 class TestTileCompositing(unittest.TestCase):
     """StripStore._paint_poster: what a channel tile actually looks like."""
 
-    def _painted(self, poster, rounded=False):
+    def _painted(self, poster, rounded=False, live=True):
+        """``live`` defaults TRUE because this class is about channel logos
+        -- dark ink on transparency, which is the convention the plate exists
+        for and the one that ships plated. The library convention is the
+        other way round and is covered by TestLogoLegibilitySettings."""
         g = TileGeom().physical()
         img = Image.new("RGBA", (g.tile_w, g.strip_h), (0, 0, 0, 0))
         store = StripStore(cache_dir=None, mem_store=None)
@@ -323,8 +327,9 @@ class TestTileCompositing(unittest.TestCase):
         if rounded:
             theme.active = lambda: dict(orig() or {}, rounded=True)
         try:
-            store._paint_poster(img, ImageDraw.Draw(img), 0,
-                                Tile(key="k", title="T", poster=poster), g)
+            store._paint_poster(
+                img, ImageDraw.Draw(img), 0,
+                Tile(key="k", title="T", poster=poster, live=live), g)
         finally:
             theme.active = orig
         return img, g
@@ -391,6 +396,178 @@ class TestTileCompositing(unittest.TestCase):
                            "the left edge should still be plate, not ink")
         self.assertGreater(imageutil._luma(img.getpixel((g.tile_w - 2, mid))),
                            200, "the right edge should still be plate")
+
+
+class TestLogoLegibilitySettings(unittest.TestCase):
+    """"Make ... logos more legible" -- two settings, one per convention.
+
+    Transparent artwork arrives in two flavours that want opposite
+    treatment, and the item type is what tells them apart. A broadcaster's
+    channel logo is dark ink drawn for a white page and is invisible here
+    without the plate; a film's Logo artwork is white by convention, reads
+    on a dark surface already, and it is the plate that then makes it need
+    a drop shadow. So they default opposite ways and are configurable
+    separately (#637).
+
+    ``strips.logo_plate`` is the single place that decides, so the tile
+    compositor and the table's art cells cannot answer it differently.
+    """
+
+    KEYS = ("logo_legibility_live_tv", "logo_legibility_library")
+
+    def setUp(self):
+        from jellyfin_mpv_shim.conf import settings
+        self.settings = settings
+        for key in self.KEYS:
+            self.addCleanup(setattr, settings, key, getattr(settings, key))
+
+    def _set(self, live_tv=None, library=None):
+        if live_tv is not None:
+            self.settings.logo_legibility_live_tv = live_tv
+        if library is not None:
+            self.settings.logo_legibility_library = library
+
+    def test_the_defaults_split_by_convention(self):
+        """The whole point of there being two. Asserted on the class
+        annotations rather than the live values, which a sibling test may
+        have moved."""
+        from jellyfin_mpv_shim.conf import Settings
+        self.assertIs(Settings.logo_legibility_live_tv, True)
+        self.assertIs(Settings.logo_legibility_library, False)
+
+    def test_a_channel_logo_is_plated_and_a_library_logo_is_not(self):
+        """Both at the shipped defaults, which is the behaviour that
+        matters: the same picture, two answers, chosen by where it came
+        from."""
+        self._set(live_tv=True, library=False)
+        black = _logo((0, 0, 0))
+        self.assertGreater(imageutil._luma(logo_plate(black, True).color), 200)
+        self.assertEqual(tuple(logo_plate(black, False).color),
+                         theme.rgb(theme.CARD_BG))
+
+    def test_each_setting_moves_only_its_own_half(self):
+        """They are separate settings, not one with a scope."""
+        self._set(live_tv=False, library=True)
+        black = _logo((0, 0, 0))
+        self.assertEqual(tuple(logo_plate(black, True).color),
+                         theme.rgb(theme.CARD_BG))
+        self.assertGreater(imageutil._luma(logo_plate(black, False).color), 200)
+
+    def test_off_never_shadows(self):
+        """Not "recompute the verdict against the grey" -- against a dark
+        plate the question simply flips to the black ink, and the point of
+        turning this off is that there are no drop shadows at all."""
+        self._set(live_tv=False, library=False)
+        for colour in ((255, 255, 255), (0, 0, 0), (230, 60, 60)):
+            for live in (True, False):
+                with self.subTest(colour=colour, live=live):
+                    self.assertFalse(logo_plate(_logo(colour), live).shadow)
+
+    def test_a_missing_key_falls_back_to_that_half_s_default(self):
+        """Not to True. A settings object without the keys must not plate a
+        library -- the fallback is the half's own default, per half."""
+        import jellyfin_mpv_shim.conf as conf
+        real, conf.settings = conf.settings, type("S", (), {})()
+        self.addCleanup(setattr, conf, "settings", real)
+        black = _logo((0, 0, 0))
+        self.assertGreater(imageutil._luma(logo_plate(black, True).color), 200)
+        self.assertEqual(tuple(logo_plate(black, False).color),
+                         theme.rgb(theme.CARD_BG))
+
+    def test_it_does_not_change_WHETHER_there_is_a_plate(self):
+        """The callers read that for a second thing: artwork on a
+        transparent background is a mark rather than a photograph, so it is
+        letterboxed rather than cover-cropped. True whichever backing it
+        gets, so an opaque poster is still left alone and a logo is still
+        recognised."""
+        for on in (True, False):
+            for live in (True, False):
+                with self.subTest(on=on, live=live):
+                    self._set(live_tv=on, library=on)
+                    self.assertIsNone(logo_plate(
+                        Image.new("RGB", (60, 60), (5, 5, 5)), live))
+                    self.assertIsNotNone(logo_plate(_logo((0, 0, 0)), live))
+
+    def test_the_tile_card_follows_it(self):
+        """End to end through the compositor: the card behind a black logo
+        is the theme's, not a light plate."""
+        self._set(live_tv=False)
+        logo = _logo((0, 0, 0), size=(140, 140))
+        imageutil.measure_transparency(logo)
+        img, _g = TestTileCompositing()._painted(logo, live=True)
+        self.assertEqual(img.getpixel((4, 4))[:3], theme.rgb(theme.CARD_BG))
+
+    def test_the_tile_carries_which_half_it_is(self):
+        """The compositor has the picture and not the item it came from, so
+        the answer has to ride along -- and it has to be part of the cache
+        key, or one tile's card colour is served to the other."""
+        store = StripStore(cache_dir=None, mem_store=None)
+        self.addCleanup(store.shutdown)
+        art = _logo((0, 0, 0))
+        a = Tile(key="k", title="T", poster=art, live=True)
+        b = Tile(key="k", title="T", poster=art, live=False)
+        self.assertNotEqual(store._tile_key(a), store._tile_key(b))
+
+    def test_the_type_is_what_decides(self):
+        """Every Live TV DTO that can resolve to a channel logo, and nothing
+        else.
+
+        ``Timer`` and ``SeriesTimer`` are the ones easily missed and were:
+        a plain ``TimerInfoDto`` has neither ``ImageTags`` nor
+        ``ParentPrimaryImage*``, so ``image_spec`` always falls through to
+        the channel-logo branch for it -- which is also what jellyfin-web's
+        schedule draws, via showChannelLogo. Left out, the Schedule tab was
+        the one Live TV screen whose channel logos went unplated.
+
+        A finished recording is excluded and does not need including: the
+        server hands it back as an ordinary item, and ``recordings_page``
+        never asks for ``ChannelImage``, so it cannot reach that branch.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser import live_tv
+        for itype in ("TvChannel", "Program", "Timer", "SeriesTimer"):
+            with self.subTest(itype):
+                self.assertTrue(live_tv.is_channel_artwork({"Type": itype}))
+        for itype in ("Movie", "Episode", "Series", "Recording", "Video",
+                      "MusicAlbum", "Studio"):
+            with self.subTest(itype):
+                self.assertFalse(live_tv.is_channel_artwork({"Type": itype}))
+        self.assertFalse(live_tv.is_channel_artwork(None))
+
+    def test_a_timer_and_its_channel_resolve_to_the_SAME_artwork(self):
+        """Which is why the type test above has to cover both: the two DTOs
+        produce a byte-identical image spec, so if they disagreed about the
+        setting the identical logo would be plated on one screen and not on
+        the next."""
+        from jellyfin_mpv_shim.mpvtk_browser import live_tv
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+
+        src = LibrarySource.__new__(LibrarySource)
+        timer = {"Type": "Timer", "Id": "t1", "ChannelId": "c1",
+                 "ChannelPrimaryImageTag": "ctag"}
+        channel = {"Type": "TvChannel", "Id": "c1",
+                   "ImageTags": {"Primary": "ctag"}}
+        self.assertEqual(src.image_spec(timer, "Primary", 280),
+                         src.image_spec(channel, "Primary", 280))
+        self.assertEqual(live_tv.is_channel_artwork(timer),
+                         live_tv.is_channel_artwork(channel))
+
+    def test_a_toggle_makes_the_cached_strips_unreachable(self):
+        """The plate is baked into the composited bitmap, so a strip that is
+        already cached would go on showing the old backing until it aged out
+        of the LRU -- which for the rows on screen is never."""
+        store = StripStore(cache_dir=None, mem_store=None)
+        self.addCleanup(store.shutdown)
+        store.set_theme_tag("default")
+        seen = [store.tag]
+        for _i in range(3):
+            store.retag()
+            self.assertNotIn(store.tag, seen, "a retag reused a tag")
+            seen.append(store.tag)
+        # ...and the two axes are independent: a theme change after a retag
+        # still invalidates, and does not undo one.
+        store.set_theme_tag("nordic")
+        self.assertNotIn(store.tag, seen)
+        self.assertIn("nordic", store.tag)
 
 
 class TestStripsEndToEnd(unittest.TestCase):

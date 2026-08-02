@@ -210,6 +210,22 @@ class Settings(SettingsBase):
     # move between pages; adjacent pages are prefetched so paging is instant.
     # Global — applies to every tile grid at once.
     paginated: bool = False
+    # Artwork on a transparent background gets a light plate — the page it was
+    # drawn for — plus, where its outermost ink is itself white, a drop shadow
+    # to hold its shape against that plate. Off, it gets the theme's own card
+    # grey and no shadow, which is what jellyfin-web does.
+    #
+    # Two settings rather than one, because transparent artwork arrives in two
+    # conventions that want opposite treatment (see live_tv.is_channel_artwork).
+    # A broadcaster's channel logo is usually DARK ink drawn for a white page,
+    # and on this UI's near-black surfaces it is invisible without the plate.
+    # A film's or series' Logo artwork is white by convention and reads on a
+    # dark surface perfectly well — plating that is how you end up needing a
+    # shadow to rescue white ink from a white plate, which is what #637 was
+    # about. Hence the split defaults. Both are reachable either way: neither
+    # is a bug, and libraries differ.
+    logo_legibility_live_tv: bool = True
+    logo_legibility_library: bool = False
     library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
     work_offline: bool = False

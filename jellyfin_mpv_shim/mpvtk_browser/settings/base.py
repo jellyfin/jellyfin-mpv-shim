@@ -82,6 +82,14 @@ class SettingsBase:
             apply_cover = getattr(self, "apply_cover_size", None)
             if apply_cover is not None:
                 apply_cover()
+        if ok and key.startswith("logo_legibility"):
+            # Which backing a transparent logo gets is baked into the strip
+            # bitmap, so the rows on screen have to be made unreachable or
+            # nothing changes until they age out of the LRU. getattr for the
+            # config stand-in this mixin is also exercised against.
+            apply_logos = getattr(self, "apply_logo_legibility", None)
+            if apply_logos is not None:
+                apply_logos()
         if ok and key == "theme":
             # Colours apply immediately; sizes still need a restart, which is
             # what set_theme's docstring explains and what NOTES tells the

@@ -1052,6 +1052,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._scroll.reset()
         self.invalidate()
 
+    def apply_logo_legibility(self):
+        """Adopt a changed "Make logos more legible" without a restart.
+
+        The plate behind a transparent logo is baked into the composited
+        strip, so retag the store exactly as a theme change does -- the rows
+        recomposite as they are next drawn, and the old bitmaps age out
+        through the LRU rather than being freed under a running compositor.
+
+        Nothing else moves: the geometry, the scroll offsets and the grid
+        shapes are all unaffected by which colour goes behind a logo.
+        """
+        if self.strips is not None:
+            self.strips.retag()
+        self.invalidate()
+
     def invalidate(self):
         if self.app is not None:
             self.app.invalidate()

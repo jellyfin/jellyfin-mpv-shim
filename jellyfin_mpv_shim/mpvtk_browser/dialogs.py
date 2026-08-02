@@ -422,6 +422,12 @@ class DialogsMixin:
                      wrap=True),
             ]
             device = self._cover_size_row()
+            # Only while this library is actually drawing logos. It is a
+            # global setting, so it is reachable from Settings whatever is on
+            # screen; here it is offered at the moment it is visibly doing
+            # something, which is the same argument Cover Size rides in on.
+            if stored == "logo":
+                device += self._logo_legibility_row()
             if paginated is not None:
                 is_on, toggle = paginated
                 device += [
@@ -479,6 +485,47 @@ class DialogsMixin:
                           selected=sel, w=200, size=16, force=True,
                           on_select=pick)],
                 gap=8, align="center"),
+        ]
+
+    def _logo_legibility_row(self):
+        """"Make library logos more legible", on the View menu.
+
+        The LIBRARY half of the pair -- the Live TV one is Settings-only,
+        because Live TV has no View menu to put it on and its default is the
+        one nobody has to go looking for. This is the half that is off by
+        default (a film's logo is white by convention and already reads on a
+        dark background), so this is the one someone with dark logo artwork
+        has to be able to find, and here is where they are looking: the
+        library they just set to Logo artwork (#637).
+
+        Offered only in that case, for the same reason. It is this device's
+        setting rather than this library's, so it sits under the rule with
+        Cover Size and Paginated.
+
+        Returns [] when there is no config to write to (the offline
+        stand-ins), exactly as :meth:`_cover_size_row` does.
+        """
+        from ..conf import settings
+        from . import config as cfg
+
+        config = self._config()
+        if not hasattr(config, "set_setting"):
+            return []
+        key = "logo_legibility_library"
+        on = bool(getattr(settings, key, False))
+
+        def toggle():
+            if config.set_setting(key, not on):
+                self.apply_logo_legibility()
+
+        return [
+            Checkbox(cfg.label_for(key), on,
+                     id="vs-logolegible", on_toggle=toggle),
+            Text(_("Backs transparent logos with the light plate they were "
+                   "drawn for, and shadows the ones whose own outline is "
+                   "white. Off puts the theme's card colour behind them "
+                   "instead, with no shadows."),
+                 size=13, color=theme.SUBTLE_FG, wrap=True),
         ]
 
     @staticmethod

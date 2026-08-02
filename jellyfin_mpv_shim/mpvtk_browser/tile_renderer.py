@@ -57,7 +57,7 @@ from ..mpvtk.widgets import (
 )
 from . import components, theme
 from .components import chrome
-from .strips import Tile
+from .strips import Tile, logo_plate
 from .thumbnails import make_key
 
 log = logging.getLogger("mpvtk_browser.tile_renderer")
@@ -542,7 +542,21 @@ class TileRenderer:
                                         itag, ps, ps, fill=True)
             img = self._request_image(key, url, (ps, ps))
             if img is not None:
-                img = self._plated(img)
+                # Derived here rather than asked of the caller: the guide's
+                # channel column and a track list both reach this, and a flag
+                # every call site has to remember is one some call site will
+                # not.
+                from . import live_tv
+
+                live = live_tv.is_channel_artwork(item)
+                img = self._plated(img, live)
+                # The plate is baked into the cached bitmap, and `key` is
+                # keyed on the RESOLVED ARTWORK rather than on the item --
+                # a Timer and its TvChannel produce the identical spec, and
+                # get opposite answers here. Nothing routes both through an
+                # art cell today; keeping them apart costs one character and
+                # means nothing has to.
+                key = key + ":l" if live else key
                 # No lsize: this is decoded artwork, not a canvas we sized.
                 # The server preserves aspect, so a "square" request comes
                 # back e.g. 56x52 and the logical footprint is whatever the
@@ -553,18 +567,22 @@ class TileRenderer:
                              w=b["lw"], h=b["lh"])
         return self._art_placeholder(size)
     @staticmethod
-    def _plated(img):
-        """``img``, given the light backing transparent artwork is drawn for.
+    def _plated(img, live=False):
+        """``img``, given the backing transparent artwork should sit on.
 
         An art cell is its own overlay with nothing drawn behind it, so a
         transparent logo composites straight onto ``WINDOW_BG`` — which is
         where the guide's channel column draws every logo it has. A tile gets
         the same treatment by recolouring its card (see
         ``StripStore._paint_poster``); this is the no-card version of it.
-        """
-        from ..imageutil import flatten_onto, plate_for, with_shadow
 
-        plate = plate_for(img)
+        Which backing that is comes from ``strips.logo_plate``, so this and
+        the tile compositor answer #637's settings the same way. ``live``
+        picks which of the two applies — see ``live_tv.is_channel_artwork``.
+        """
+        from ..imageutil import flatten_onto, with_shadow
+
+        plate = logo_plate(img, live)
         if plate is None:
             return img
         if plate.shadow:
@@ -756,6 +774,7 @@ class TileRenderer:
             recording=recording,
             record=record,
             contain=contain,
+            live=live_tv.is_channel_artwork(item),
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False,
