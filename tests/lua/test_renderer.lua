@@ -1345,6 +1345,21 @@ local function hud_bars()
             { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
 end
 
+-- A caller that sends no opts at all gets the toolkit's own default, not
+-- the 0.5s floor: `or 0` folded "absent" into "zero", and zero is
+-- meaningful here (it forces hover mode), so PHUD_HIDE.def was unreachable.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes")
+hud_pointer(600, 300)
+hud_pointer(600, 310)
+hud_bars()
+fake.reset_events()
+fake.advance(1.0)
+fake.fire_timers()
+ok(not hud_hidden(), "no opts hid the controls after under a second")
+hud_wait()
+ok(hud_hidden(), "...and then never hid them at all")
+
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
 -- The first pointer event after engaging only records the position, so this

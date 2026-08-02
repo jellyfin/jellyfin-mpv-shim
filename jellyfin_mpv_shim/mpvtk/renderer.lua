@@ -4883,7 +4883,13 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         local opts = opts_json and utils.parse_json(opts_json) or nil
         state.phud.grab = (opts and opts.grab) or false
         state.phud.wake_key = (opts and opts.key) or 'ENTER'
-        state.phud.hide_s = (opts and opts.hide) or 0
+        -- `or` would fold an ABSENT hide into 0, and 0 is meaningful
+        -- here (it forces hover mode below). Absent means "the toolkit's
+        -- own default", which is what PHUD_HIDE.def is for -- it was
+        -- unreachable, so a caller that sent no opts got the 0.5s floor
+        -- instead of the ~4s every docstring promises.
+        local hide = opts and opts.hide
+        state.phud.hide_s = hide ~= nil and hide or PHUD_HIDE.def
         state.phud.hide_mode = (opts and opts.mode) or 'hover'
         state.phud.shadow = (opts and opts.shadow) or false
         if state.phud.hide_s <= 0 then
