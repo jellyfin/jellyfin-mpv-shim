@@ -48,12 +48,16 @@ E1 and E2 exist so far:
 | `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
+| `test_connection_loss` | E1 | the server stops answering: gone, token revoked, or a page-in that fails after a screenful drew |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
 | `test_mpv_reopen` | E2 | closing mpv mid-playback then playing again (#458) — runs out of process |
 | `test_input_routing` | E2 | real keys through mpv's input layer across every UI transition |
 | `test_scroll_recovery` | E2 | wheel-scrolling 1000 items hard in a real window; tiles come back |
+| `test_track_selection` | E2 | Jellyfin's stream index vs mpv's track id, in both numbering schemes, and reported back |
+| `test_photos` | E2 | one still is held, an album is a slideshow, and neither inherits the browser's endless display duration |
+| `test_window_resize` | E2 | the window changes size under the UI, down to a size nobody could use |
 
 **E1 runs once, without a display**, because nothing in it imports
 `player.py`; the runner keeps it in its own tier and the whole of it is under
