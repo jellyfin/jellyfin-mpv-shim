@@ -152,12 +152,52 @@ swapped for the live one. Classes 5 and 6.
 Green on both backends, 8/8 legs, about two minutes for the matrix. See
 `tests/e2e/README.md` to run it.
 
-| Module | Starter items | Covers |
-| --- | --- | --- |
-| `test_playback_advance` | 1, 5 | queue advance + watched-marking + resume position |
-| `test_playback_eof` | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
-| `test_playback_failure` | 7, 8 | truncated, zero-byte, single-frame |
-| `test_mpv_reopen` | 6 | close mid-playback → re-open → auto-advance (#458) |
+| Module | Tier | Starter items | Covers |
+| --- | --- | --- | --- |
+| `test_account_policy` | contract | 17 | restricted libraries, Live TV access, the awkward logins |
+| `test_source_conformance` | contract | 12 | the fake source still describes the real one |
+| `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
+| `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
+| `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
+| `test_mpv_reopen` | playback | 6 | close mid-playback → re-open → auto-advance (#458) |
+
+The contract tier never imports `player.py`, so it runs **once** and without a
+display — the whole of it is under two seconds. Only the playback tier pays
+for the backend matrix.
+
+## Gaps and server behaviours the account tests turned up
+
+None of these is a crash, and none is asserted as a failure; they are recorded
+because each one is a thing somebody will otherwise rediscover.
+
+**The shim reads no user policy fields.** Confirmed by grep: nothing in
+`jellyfin_mpv_shim/` consults `EnableContentDownloading`,
+`EnableMediaPlayback` or `SyncPlayAccess`. The only policy-derived behaviour
+is Live TV, and that is inferred from whether the server put a Live TV view in
+`/Views` rather than read from the policy. So Download, Play and SyncPlay are
+offered to accounts the server may refuse — a gap against jellyfin-web, which
+hides them. `qa-nodownload`, `qa-noplayback` and `qa-nosyncplay` exist to make
+this visible.
+
+**`EnableMediaPlayback: False` does not stop playback.** `qa-noplayback`
+plays a file start to finish: PlaybackInfo returns no error and the server
+serves the `static=true` direct-play URL regardless. So the account cannot
+find the spinner it was built to find, because there is no refusal — worth
+knowing before writing a test that asserts one. Whether the server should
+refuse is a Jellyfin question, not ours.
+
+**`qa-onesession` refuses the newcomer rather than evicting the incumbent.**
+The account's description says a second login must evict the first; measured,
+the server answers the second login 403 and leaves the first working.
+
+**Sessions and devices leak unless you log out.** `client.stop()` closes the
+socket and leaves the session registered, and the server keeps a Device record
+per device id forever. Random per-session device ids left 119 of them behind
+before this was noticed, and the accumulated sessions then exhausted
+`qa-onesession`'s cap so its test failed on the *first* login — which looks
+exactly like the cap working. `Session` now uses one deterministic device id
+per account, `stop()` POSTs `/Sessions/Logout`, and the cap test purges the
+account's devices as admin in `setUp`.
 
 ## Bugs found
 

@@ -35,25 +35,36 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 
-MODULES = [
+# Contract tier: never imports player.py, so the mpv backend is irrelevant and
+# these run ONCE and without a display. Seconds, not minutes.
+CONTRACT = [
+    "tests.e2e.test_account_policy",
+    "tests.e2e.test_source_conformance",
+]
+
+# Playback tier: a real mpv, so once per backend under xvfb.
+PER_BACKEND = [
     "tests.e2e.test_playback_advance",
     "tests.e2e.test_playback_eof",
     "tests.e2e.test_playback_failure",
     "tests.e2e.test_mpv_reopen",
 ]
 
+MODULES = CONTRACT + PER_BACKEND
+
 BACKENDS = ("libmpv", "jsonipc")
 
 
 def run_leg(module, backend, use_xvfb, verbosity):
     env = dict(os.environ)
-    env["JMS_TEST_BACKEND"] = backend
+    if backend:
+        env["JMS_TEST_BACKEND"] = backend
     cmd = [sys.executable, "-m", "unittest", module]
     if verbosity > 1:
         cmd.append("-v")
     if use_xvfb:
         cmd = ["xvfb-run", "-a"] + cmd
-    print("\n=== %s [%s] ===" % (module, backend), flush=True)
+    print("\n=== %s [%s] ===" % (module, backend or "contract"), flush=True)
     proc = subprocess.run(cmd, cwd=REPO_ROOT, env=env)
     return proc.returncode == 0
 
@@ -89,14 +100,19 @@ def main():
     modules = args.module or MODULES
 
     results = []
+    # Contract modules once, with no display: they never import player.py.
+    for module in [m for m in modules if m in CONTRACT]:
+        ok = run_leg(module, None, False, args.verbose)
+        results.append((module, "contract", ok))
+
     for backend in backends:
-        for module in modules:
+        for module in [m for m in modules if m not in CONTRACT]:
             ok = run_leg(module, backend, use_xvfb, args.verbose)
             results.append((module, backend, ok))
 
     print("\n" + "=" * 60)
     for module, backend, ok in results:
-        print("%-6s %-45s %s" % (backend, module, "PASS" if ok else "FAIL"))
+        print("%-8s %-45s %s" % (backend, module, "PASS" if ok else "FAIL"))
     failed = [r for r in results if not r[2]]
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))

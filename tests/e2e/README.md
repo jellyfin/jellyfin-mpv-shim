@@ -37,14 +37,21 @@ that "up" moves the error somewhere that explains nothing.
 | E2 playback | server + mpv + xvfb | the playback loop with the server *in* it |
 | E3 app | server + mpv + browser | route walk, scroll under real latency |
 
-Only E2 exists so far:
+E1 and E2 exist so far:
 
-| Module | Covers |
-| --- | --- |
-| `test_playback_advance` | an episode finishes and the next starts; the server agrees; resume position |
-| `test_playback_eof` | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
-| `test_playback_failure` | truncated, zero-byte and single-frame media fail rather than hang |
-| `test_mpv_reopen` | closing mpv mid-playback then playing again (#458) — runs out of process |
+| Module | Tier | Covers |
+| --- | --- | --- |
+| `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
+| `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
+| `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
+| `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
+| `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
+| `test_mpv_reopen` | E2 | closing mpv mid-playback then playing again (#458) — runs out of process |
+
+**E1 runs once, without a display**, because nothing in it imports
+`player.py`; the runner keeps it in its own tier and the whole of it is under
+two seconds. Only E2 pays for the backend matrix. Put a new test in E1 if it
+can answer its question without a player — it is thirty times cheaper.
 
 The plan doc has the ordered list of what comes next and which past bug each
 line would have caught, plus the two defects this suite has already found.
@@ -82,6 +89,15 @@ raises `BrokenPipeError: socket is closed`.
 **Playstate is the state these tests share.** Watched flags and resume
 positions persist on the server, so anything that dirties them registers
 `Session.reset_played` with `addCleanup`, both before and after.
+
+**Sessions and devices leak unless you log out.** `client.stop()` only closes
+the socket; the session stays registered and the server keeps a Device record
+per device id forever. So `Session` uses one deterministic device id per
+account (not a fresh uuid — that left 119 device records behind) and `stop()`
+POSTs `/Sessions/Logout`. It matters beyond tidiness: accumulated sessions
+exhaust `qa-onesession`'s cap, and its test then fails on the *first* login,
+which looks exactly like the cap working. That test purges the account's
+devices as admin in `setUp` for the same reason.
 
 **Both backends, always.** External mpv is the least-tested path in the app
 and one of the two largest open-bug clusters in the tracker. The runner makes

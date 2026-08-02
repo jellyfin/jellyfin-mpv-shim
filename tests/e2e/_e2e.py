@@ -29,8 +29,8 @@ import tempfile
 import time
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
-import uuid
 
 # The integration harness already probes mpv/ffmpeg/display, primes the arg
 # parser and knows how to tell a FakeMPV-bound player module from a real one.
@@ -43,9 +43,50 @@ import _harness as h  # noqa: E402
 SERVER = (os.environ.get("JMS_E2E_SERVER") or "").rstrip("/")
 BACKEND = h.BACKEND
 
+# Done at import, before any test module can pull a shim module in. Two traps,
+# both of which bite whichever module imports first rather than the one at
+# fault:
+#   * the app parses sys.argv the first time anything resolves the config dir,
+#     and under a test runner argv carries tokens its argparse rejects — it
+#     exits with a usage message, which reads as a broken test file.
+#   * without an isolated config dir the suite reads and writes the
+#     developer's real one.
+_CONFIG_DIR = tempfile.mkdtemp(prefix="jms-e2e-config-")
+os.environ["XDG_CONFIG_HOME"] = _CONFIG_DIR
+h.prime_args()
+
 # stdjflib's fixed accounts. Password is the same for all of them except
 # qa-nopassword, whose whole point is not having one.
 PASSWORD = "stdjflib"
+
+# The server uuid a LibrarySource built by `Session.library_source` answers to.
+SOURCE_UUID = "e2e"
+
+
+def public_users():
+    """`/Users/Public` — the login list a client offers without credentials.
+
+    Deliberately raw rather than through the apiclient: this endpoint is what
+    an unauthenticated client sees, so asking it with a token would be asking
+    a different question.
+    """
+    with urllib.request.urlopen(SERVER + "/Users/Public", timeout=10) as resp:
+        return [u.get("Name") for u in json.loads(resp.read())]
+
+
+def login_refused(account, password=PASSWORD, device_id=None):
+    """True when the server refuses this login.
+
+    Returns rather than raises so a test can say what it means. `Session`
+    raises on a refusal because every other test wants that; here the refusal
+    *is* the assertion.
+    """
+    try:
+        session = Session(account, password, device_id=device_id)
+    except AssertionError:
+        return True
+    session.stop()
+    return False
 
 
 # --------------------------------------------------------------------------
@@ -203,9 +244,14 @@ class Session:
             CLIENT_VERSION, USER_APP_NAME, USER_AGENT,
         )
 
-        # Unique per Session: two of these must look like two devices to the
-        # server, or a test that logs in twice (qa-onesession) evicts itself.
-        self.device_id = device_id or ("jms-e2e-" + uuid.uuid4().hex[:12])
+        # Deterministic, one per account, and NOT a fresh uuid per Session.
+        # A real client has one persistent device id, and the server keeps a
+        # Device record per id forever: a random one leaked a device per
+        # Session ever constructed (119 of them before this was noticed),
+        # which is junk on the server and makes `/Sessions` lookups
+        # ambiguous. Tests that genuinely need to look like a second device
+        # — qa-onesession — pass `device_id` explicitly.
+        self.device_id = device_id or ("jms-e2e-" + account)
         self.account = account
 
         client = JellyfinClient(allow_multiple_clients=True)
@@ -230,10 +276,65 @@ class Session:
         self.api = client.jellyfin
 
     def stop(self):
+        """Revoke the token, then close the HTTP session.
+
+        `client.stop()` alone only closes the socket — the session stays
+        registered on the server, which is how a suite that logs in freely
+        exhausts `qa-onesession`'s cap with its own leftovers. Logging out is
+        also what keeps `/Sessions` readable for the tests that consult it.
+        """
+        try:
+            self._request("/Sessions/Logout", method="POST")
+        except Exception:
+            pass
         try:
             self.client.stop()
         except Exception:
             pass
+
+    def _request(self, path, method="GET"):
+        """A raw authenticated call, for the handful of endpoints the
+        apiclient does not expose (logout, the Devices admin API)."""
+        req = urllib.request.Request(
+            SERVER + path, method=method,
+            headers={"Authorization": 'MediaBrowser Token="%s"' % self.token})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = resp.read()
+            return json.loads(body) if body else None
+
+    def purge_devices(self, account):
+        """Delete every Device record belonging to `account`. Admin only.
+
+        For `qa-onesession`, whose cap counts what the server still believes
+        is connected: a session left behind by a crashed run refuses the next
+        one, and the failure looks like the cap working rather than like
+        litter. Called from `setUp` so the test starts from a known state
+        however the last run ended.
+        """
+        devices = self._request("/Devices") or {}
+        items = devices.get("Items", devices if isinstance(devices, list) else [])
+        for device in items:
+            if device.get("LastUserName") != account:
+                continue
+            try:
+                self._request("/Devices?id=" + urllib.parse.quote(device["Id"]),
+                              method="DELETE")
+            except Exception:
+                pass
+
+    def library_source(self):
+        """A real `LibrarySource` over this session's credentials.
+
+        The browser is handed one of these and does everything through it, so
+        it is the seam the contract tests belong at — above the apiclient,
+        below the UI.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        source = LibrarySource(
+            [{"uuid": SOURCE_UUID, "name": "e2e", "address": SERVER,
+              "user_id": self.user_id, "token": self.token}],
+            self.device_id, "jms-e2e", False)
+        return source
 
     # -- lookup ------------------------------------------------------------
     #
