@@ -52,6 +52,7 @@ PER_BACKEND = [
     "tests.e2e.test_playback_advance",
     "tests.e2e.test_playback_eof",
     "tests.e2e.test_playback_failure",
+    "tests.e2e.test_track_selection",
     "tests.e2e.test_mpv_reopen",
     "tests.e2e.test_input_routing",
     "tests.e2e.test_scroll_recovery",
