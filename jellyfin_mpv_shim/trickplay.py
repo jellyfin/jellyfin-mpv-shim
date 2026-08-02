@@ -32,6 +32,26 @@ log = logging.getLogger("trickplay")
 IMG_PREFIX = "raw_images"
 IMG_SUFFIX = ".bin"
 
+# Module-level, not per-instance. A new TrickPlay is built on every mpv
+# re-creation, so a per-instance counter restarts at 0 and the SECOND
+# generation of the second worker reuses the first's path -- which is the
+# one thing the comment above says cannot happen. stop(join=False) lets a
+# straggler finish and publish, and script_message resolves the live mpv at
+# call time, so the new renderer can be pointed at a name the new worker is
+# about to open("wb"). mpv mmaps what it is handed and reading past a
+# truncated EOF is a SIGBUS in the mpv process; the mpvtk HUD reads these
+# frames through mpv now rather than in Python, so that stopped being a
+# missing thumbnail and became a crash.
+_seq_lock = threading.Lock()
+_seq = 0
+
+
+def _next_seq():
+    global _seq
+    with _seq_lock:
+        _seq += 1
+        return _seq
+
 
 def _img_path(seq):
     return conffile.get(APP_NAME, "%s.%d%s" % (IMG_PREFIX, seq, IMG_SUFFIX))
@@ -79,10 +99,9 @@ class TrickPlay(threading.Thread):
         self.trigger = threading.Event()
         self.halt = False
         self.player = player
-        # Generation counter for frame-file names, and the file the renderer
-        # is currently pointed at. Only the worker thread advances _seq; both
-        # it and stop()/clear() touch _current, hence the lock.
-        self._seq = 0
+        # The file the renderer is currently pointed at. The generation
+        # counter behind the names is module-level (see _next_seq); this is
+        # touched by the worker thread and by stop()/clear(), hence the lock.
         self._current = None
         self._file_lock = threading.Lock()
 
@@ -121,10 +140,9 @@ class TrickPlay(threading.Thread):
     # -- frame-file lifecycle ---------------------------------------------
 
     def _next_file(self):
-        """A fresh path for the next set of frames. Never an existing one."""
-        with self._file_lock:
-            self._seq += 1
-            return _img_path(self._seq)
+        """A fresh path for the next set of frames. Never an existing one,
+        for the life of the PROCESS -- see _next_seq."""
+        return _img_path(_next_seq())
 
     def _publish(self, path):
         """Adopt `path` as the live frame file and drop the previous one.
