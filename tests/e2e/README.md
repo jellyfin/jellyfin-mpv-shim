@@ -100,12 +100,15 @@ exhaust `qa-onesession`'s cap, and its test then fails on the *first* login,
 which looks exactly like the cap working. That test purges the account's
 devices as admin in `setUp` for the same reason.
 
-**Live TV timers need a permission nobody has.** `EnableLiveTvManagement` is
-a third Live TV permission and stdjflib grants it to no account, not even
-`qa-admin`, so `POST /LiveTv/Timers` is 403 for everyone. `TimerTest` grants
-it in `setUpClass` and restores the original policy in `tearDownClass` — the
-only mutation of server *configuration* in the suite, and acceptable only
-because the server is disposable. See `docs/PERMISSION_GAPS.md`.
+**Live TV timers need a third permission.** `EnableLiveTvManagement` is
+separate from `EnableLiveTvAccess`, a newly created Jellyfin user does not get
+it, and there is no administrator bypass — so `POST /LiveTv/Timers` is 403
+until someone grants it. Current stdjflib grants it to `qa-admin` and
+`qa-user`, so `TimerTest` needs nothing; against a server provisioned before
+that fix it grants the permission as admin and restores the original policy
+afterwards. That fallback is the only place the suite writes server
+*configuration*. See `docs/PERMISSION_GAPS.md` for why the permission is off
+on a fresh server and on for anyone who upgraded into it.
 
 **Both backends, always.** External mpv is the least-tested path in the app
 and one of the two largest open-bug clusters in the tracker. The runner makes

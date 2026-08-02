@@ -108,17 +108,30 @@ on the login response's policy, it is per-server, and whatever holds
 `EnableLiveTvManagement` is offered no Record buttons and no Schedule tab,
 while one with both is offered all of them.
 
-### stdjflib should grant it to `qa-admin`
+### Why this was invisible, and the stdjflib half (fixed)
 
-Not a shim issue, but it blocks testing this one. **No stdjflib account has
-`EnableLiveTvManagement`**, `qa-admin` included — so the entire DVR surface
-(timers, series rules, recordings, the Schedule tab) is unreachable against a
-stock QA server, and every client would find it "broken" identically.
+Jellyfin has **two** sets of user-policy defaults and both are live, on
+different paths:
 
-`tests/e2e/test_live_tv.TimerTest` works around it by granting the flag to
-`qa-admin` in `setUpClass` and restoring the original policy in
-`tearDownClass`, which is only acceptable because the server is disposable.
-The better fix is upstream: `qa-admin` is described as "Administrator.
-Dashboard, scheduled tasks, library management" and plainly ought to have it,
-and an account with Live TV access but *without* management would be a useful
-thirteenth — it is exactly the state this gap is about.
+| Path | Source | `EnableLiveTvManagement` |
+| --- | --- | --- |
+| Account **migrated** from an older install | `UserPolicy` constructor | `true` |
+| Account **created** on a modern server | `AddDefaultPermissions` | `false` |
+
+`MigrateUserDb` deserializes the old policy file into a `UserPolicy`, so any
+field absent from it keeps the constructor's value. That is why someone who
+has carried an install forward has this permission and never remembers
+granting it, while a server built from nothing has it on nobody — and why the
+DTO constructor is the wrong thing to read if you are asking about a new user.
+
+There is no administrator bypass either: `UserPermissionHandler` asks
+`HasPermission` and stops, so `IsAdministrator` does not help. jellyfin-web's
+dashboard does not couple them — "Allow browsing Live TV" and "Allow Live TV
+recording management" are independent checkboxes.
+
+**Fixed in stdjflib** (`b32b586`): `qa-admin` now carries every management
+permission — its policy was previously declared and then never applied,
+because `provision` skipped the account it authenticates as — and `qa-user`
+gets `EnableLiveTvManagement` as well, since its description already claimed
+everything a non-admin can have. The other ten accounts still lack it, which
+is the state this gap is about and is what makes it testable.

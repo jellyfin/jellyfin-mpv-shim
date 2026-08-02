@@ -354,49 +354,59 @@ class TimerTest(_LiveTvCase):
     Timers are the one thing in this file that writes to the server, so every
     one created is registered for cancellation the moment it exists.
 
-    **This class grants itself a permission and gives it back.** Scheduling a
-    recording needs `EnableLiveTvManagement`, which is a *third* Live TV
-    permission distinct from `EnableLiveTvAccess` — and stdjflib grants it to
-    nobody, not even `qa-admin`, so without this every DVR path is
-    unreachable and `POST /LiveTv/Timers` answers 403 for every account on the
-    server. Rather than leave the whole surface untested, the class runs as
-    `qa-admin`, turns the flag on in `setUpClass` and restores whatever it
-    found in `tearDownClass`. The server is disposable by design; that is the
-    only reason this is acceptable, and it is why the restore is not
-    conditional on the tests passing.
+    Scheduling needs `EnableLiveTvManagement`, a *third* Live TV permission
+    distinct from `EnableLiveTvAccess`. A freshly created Jellyfin user does
+    not get it — `AddDefaultPermissions` stores `false` and there is no
+    administrator bypass — so on an unfixed server `POST /LiveTv/Timers`
+    answers 403 for everyone and this whole surface is unreachable. stdjflib
+    grants it to `qa-admin` and `qa-user` now; against a server provisioned
+    before that, `setUpClass` grants it as admin and `tearDownClass` puts the
+    original policy back, so the tests run either way rather than skipping.
+    That fallback is the only place the suite writes server *configuration*,
+    and it is a no-op on a current server.
     """
 
-    ACCOUNT = "qa-admin"
+    ACCOUNT = "qa-user"
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls._original_policy = None
-        policy = cls.session.policy()
-        if not policy.get("EnableLiveTvManagement"):
-            cls._original_policy = dict(policy)
-            granted = dict(policy)
-            granted["EnableLiveTvManagement"] = True
-            try:
-                cls.session.set_policy(granted)
-            except Exception as exc:
-                cls._original_policy = None
-                raise unittest.SkipTest(
-                    "cannot grant EnableLiveTvManagement, so no DVR path is "
-                    "reachable: %s" % exc)
-            # The token's cached policy is stale now; a fresh session sees it.
-            cls.session.stop()
-            cls.session = _e2e.Session(cls.ACCOUNT)
-            cls.source = cls.session.library_source()
-            cls.source.get_libraries(_e2e.SOURCE_UUID)
+        cls._admin = None
+        if cls.session.policy().get("EnableLiveTvManagement"):
+            return                      # a current stdjflib server: nothing to do
+
+        cls._admin = _e2e.Session("qa-admin")
+        target = cls._admin.user_by_name(cls.ACCOUNT)
+        cls._original_policy = dict(target.get("Policy") or {})
+        granted = dict(cls._original_policy)
+        granted["EnableLiveTvManagement"] = True
+        try:
+            cls._admin.set_policy(granted, user_id=target["Id"])
+        except Exception as exc:
+            cls._original_policy = None
+            cls._admin.stop()
+            raise unittest.SkipTest(
+                "cannot grant EnableLiveTvManagement, so no DVR path is "
+                "reachable: %s" % exc)
+        # The session's cached policy is stale now; a fresh one sees it.
+        cls.session.stop()
+        cls.session = _e2e.Session(cls.ACCOUNT)
+        cls.source = cls.session.library_source()
+        cls.source.get_libraries(_e2e.SOURCE_UUID)
 
     @classmethod
     def tearDownClass(cls):
         try:
             if cls._original_policy is not None:
-                cls.session.set_policy(cls._original_policy)
+                target = cls._admin.user_by_name(cls.ACCOUNT)
+                cls._admin.set_policy(cls._original_policy,
+                                      user_id=target["Id"])
         except Exception:
             pass
+        finally:
+            if cls._admin is not None:
+                cls._admin.stop()
         super().tearDownClass()
 
     def setUp(self):

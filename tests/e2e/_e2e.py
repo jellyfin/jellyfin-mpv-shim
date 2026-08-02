@@ -310,15 +310,24 @@ class Session:
     def policy(self):
         return (self.api.get_user() or {}).get("Policy") or {}
 
-    def set_policy(self, policy):
-        """Replace this user's policy. Admin only.
+    def set_policy(self, policy, user_id=None):
+        """Replace a user's policy (this user's by default). Admin only.
 
-        Used by the Live TV timer tests, which cannot run at all without
-        `EnableLiveTvManagement` — stdjflib grants it to nobody, not even
-        qa-admin. They grant it, run, and put the original back.
+        A fallback for the Live TV timer tests. Current stdjflib grants
+        `EnableLiveTvManagement` to `qa-user`, so they need no mutation at
+        all — but an older server, or one provisioned before that fix, has it
+        on nobody, and there the tests grant it and put the original back
+        rather than skipping the whole DVR surface.
         """
-        self._request("/Users/%s/Policy" % self.user_id, method="POST",
-                      body=policy)
+        self._request("/Users/%s/Policy" % (user_id or self.user_id),
+                      method="POST", body=policy)
+
+    def user_by_name(self, name):
+        """A user record by name. Admin only."""
+        for user in self._request("/Users") or []:
+            if user.get("Name") == name:
+                return user
+        raise AssertionError("no user named %r" % name)
 
     def purge_devices(self, account):
         """Delete every Device record belonging to `account`. Admin only.
