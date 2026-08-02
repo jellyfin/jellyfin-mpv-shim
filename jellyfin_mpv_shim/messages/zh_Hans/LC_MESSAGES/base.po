@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-02 06:49+0000\n"
+"PO-Revision-Date: 2026-08-02 06:50+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -898,7 +898,7 @@ msgstr "鼠标悬停时隐藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always hide"
-msgstr "永远隐藏"
+msgstr "总是隐藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
