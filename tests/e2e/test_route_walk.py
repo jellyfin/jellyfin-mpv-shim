@@ -52,6 +52,9 @@ if REPO_ROOT not in sys.path:
 
 SIZE = (1280, 720)
 
+#: Window chrome, excluded from the interaction sweep — see `_interact`.
+CHROME_PREFIXES = ("nav-", "chrome-", "topbar-", "bar-")
+
 
 #: A route whose loader raised carries this, set by `_route_async`. The
 #: primary signal, because it depends on no logging configuration and names
@@ -185,7 +188,8 @@ class RouteWalkTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk.layout import layout
         try:
             tree = self.browser.build(SIZE)
-            nodes, _handlers = layout(tree, *SIZE)
+            nodes, handlers = layout(tree, *SIZE)
+            self._handlers = handlers
         except Exception as exc:
             raise AssertionError(
                 "%s raised while building its scene against real data: "
@@ -208,6 +212,73 @@ class RouteWalkTest(unittest.TestCase):
             "%s logged a failure while loading or building against real "
             "data: %s" % (label, broken))
         return nodes
+
+    def _interact(self, label):
+        """Right-click, scroll and hover every content node, then repaint.
+
+        The route walk above only *loads and renders* each screen, and two
+        real crashes fired on interaction instead: an `AttributeError` deep
+        in `layout.py` from right-clicking, and a raster `ValueError` while
+        scrolling the library that logged "scene build failed; keeping the
+        previous frame" every frame. Both look like a UI that ignored the
+        gesture, because that is exactly what a kept frame is.
+
+        Best-effort by design — a screen with no tiles has nothing to
+        right-click and that is not a failure. What is asserted is that
+        nothing raised and nothing logged.
+
+        **Verified on the home rows only.** A negative control that made
+        `TilesMixin._open_tile_menu` raise is caught on `test_home` and NOT on
+        the grid, detail or music screens: they build the same
+        `TileRenderer.image_map` lambda but wire `on_context` to something
+        else, so that control never reaches them. So this sweep is known to
+        fire and known to propagate on one path, and unproven on the others —
+        do not read a green run here as "right-click is covered everywhere".
+        Closing that means finding each page's `on_context` and controlling
+        against it, or making the failure observable (the two real crashes
+        both surfaced as `scene build failed`, which the trap does catch).
+        """
+        for event in ("hover", "context", "scroll", "hover_end"):
+            # CONTENT nodes only. The chrome carries these events too, and
+            # firing e.g. nav-back's context first can navigate away — taking
+            # the tiles this is actually about out of the scene, so the sweep
+            # silently stopped testing anything. (It did: a negative control
+            # that made right-click raise was caught on the home screen and
+            # not on a grid.)
+            targets = [i for i, _h in self.handlers_for(event)
+                       if not any(i.startswith(p) for p in CHROME_PREFIXES)]
+            for node_id in targets[:3]:
+                if node_id not in self._handlers:
+                    continue        # the scene moved on; nothing to fire
+                handler = self._handlers[node_id].get(event)
+                if handler is None:
+                    continue
+                try:
+                    if event == "scroll":
+                        handler(240.0, 4000.0)
+                    elif event == "context":
+                        handler(400.0, 300.0)
+                    else:
+                        handler()
+                except TypeError:
+                    # Signatures differ per event; a mismatch here is the
+                    # test's problem, not the app's.
+                    continue
+                except Exception as exc:
+                    raise AssertionError(
+                        "%s raised on %s of %s against real data: %s: %s"
+                        % (label, event, node_id, type(exc).__name__, exc)
+                    ) from exc
+                # Repaint with the gesture's state applied — an open menu is
+                # where the layout crash lived, so the build MUST happen
+                # while it is still up.
+                self._render("%s after %s" % (label, event))
+            if event == "context":
+                self.browser._close_menu()
+                self._render("%s after dismissing the menu" % label)
+
+    def handlers_for(self, event):
+        return [(i, h) for i, h in self._handlers.items() if event in h]
 
     def _walk(self, label, route):
         self.browser.navigate(dict(route))
@@ -239,6 +310,7 @@ class RouteWalkTest(unittest.TestCase):
     def test_home(self):
         nodes = self._render("home")
         self.assertTrue(nodes)
+        self._interact("home")
 
     def test_library_grids(self):
         """Every library, not one: the grid classifies itself by collection

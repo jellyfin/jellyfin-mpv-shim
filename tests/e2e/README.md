@@ -75,6 +75,12 @@ passed against the build check alone: `_route_async` catches a failing loader,
 records the error on the route and leaves it empty, and an empty route builds
 perfectly. Write the negative control before trusting a walk.
 
+**The interaction sweep is verified on one path only.** `test_route_walk`
+right-clicks, scrolls and hovers each screen, but a negative control that made
+`_open_tile_menu` raise is caught on the home rows and *not* on the grid,
+detail or music screens — they wire `on_context` elsewhere. Green there does
+not mean right-click is covered everywhere; see `_interact`.
+
 **Log traps go on the root logger.** The two that matter are named `mpvtk` and
 `mpvtk_browser.async_runner` — outside the package hierarchy, so a handler on
 `jellyfin_mpv_shim` sees neither.
