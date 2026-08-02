@@ -366,6 +366,13 @@ NOTES = {
                            "buttons stay Back and Forward. Off by default "
                            "because they are easy to hit by accident on some "
                            "mice. Takes effect after a restart."),
+    # xgettext: no-python-format
+    # "100% on" reads as the conversion "% o" (space flag, octal), so xgettext
+    # marks this python-format and msgfmt --check then rejects any translation
+    # that does not carry the fake directive through -- which zh_Hans already
+    # tripped over. This string is a NOTES entry rendered as-is and is never
+    # %-formatted, so the flag is wrong rather than unmet. The override changes
+    # no msgid, so nothing already translated is discarded.
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
