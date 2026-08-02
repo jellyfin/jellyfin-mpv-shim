@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-02 18:29+0000\n"
+"PO-Revision-Date: 2026-08-02 20:18+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1522,6 +1522,8 @@ msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Mostra una pàgina de mosaics a la vegada en comptes de lliscar. S'aplica a "
+"totes les mediateques d'aquest dispositiu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "View Settings"
@@ -1554,6 +1556,8 @@ msgid ""
 "Install the \"%(package)s\" package (for example \"apt install "
 "%(package)s\"), or use MPV 0.41 or newer."
 msgstr ""
+"Instal·leu el paquet \"%(package)s\" (per exemple, \"apt install %(package)"
+"s\"), o feu servir MPV 0.41 o posterior."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
@@ -2161,7 +2165,7 @@ msgstr "Reproducció"
 # seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Pause"
-msgstr "Atura"
+msgstr "Pausa"
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2417,7 +2421,7 @@ msgstr "Programa"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Series"
-msgstr "Sèries"
+msgstr "Sèrie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
@@ -2712,6 +2716,8 @@ msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
 msgstr ""
+"Encara s'està llegint des del servidor la visibilitat d'aquesta llista de "
+"reproducció. Torna-ho a provar en una estona."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
@@ -2847,7 +2853,7 @@ msgstr "Valor invàlid: %s"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
-msgstr ""
+msgstr "S'ha desat: %(key)s (també s'ha desactivat \"%(other)s\")"
 
 # seeded from jellyfin-web: Display
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
@@ -2877,12 +2883,15 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Use episode images in Next Up and Continue Watching"
 msgstr ""
+"Fes servir imatges d'episodis a \"A continuació\" i \"Continueu mirant\""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid ""
 "Off by default: the show's artwork is used instead, because an episode image "
 "can spoil the episode you have not watched yet."
 msgstr ""
+"Desactivat per defecte: es fa servir la il·lustració de la sèrie, perquè la "
+"imatge d'un episodi pot fer malbé l'episodi que encara no s'ha vist."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Could not load your display settings."
@@ -2935,17 +2944,21 @@ msgid ""
 "To stop the application, re-launch and uncheck this option or run `jellyfin-"
 "mpv-shim stop`."
 msgstr ""
+"Per aturar l'aplicació, reinicieu-la i desmarqueu aquesta opció o executeu "
+"`jellyfin-mpv-shim stop`."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
 "Not active: the \"pypresence\" package is missing or failed to load. Install "
 "it and restart. (Details in the Logs tab.)"
 msgstr ""
+"No actiu: falta el paquet \"pypresence\" o no s'ha pogut carregar. "
+"Instal·leu-lo i reinicieu. (Detalls a la pestanya de registres.)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Applies to %s, enable other servers in servers tab."
-msgstr ""
+msgstr "S'aplica a %s, activa altres servidors a la pestanya de servidors."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
@@ -3009,7 +3022,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
 msgid "Set to “%s” in Jellyfin Web, which this app does not display."
-msgstr ""
+msgstr "Establert a “%s” a Jellyfin Web, que aquesta aplicació no mostra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
@@ -3099,6 +3112,8 @@ msgid ""
 "Each user has its own servers and device identity; a locked user needs a PIN "
 "to switch to."
 msgstr ""
+"Cada usuari té els seus propis servidors i identitat de dispositiu; un "
+"usuari bloquejat necessita un PIN per a fer el canvi."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3120,7 +3135,7 @@ msgstr "Establiu el PIN"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Delete user %s and its saved logins?"
-msgstr ""
+msgstr "Desitgeu eliminar l'usuari %s i els seus inicis de sessió desats?"
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
