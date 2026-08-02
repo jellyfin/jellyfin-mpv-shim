@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-05-15 14:08+0000\n"
+"PO-Revision-Date: 2026-08-02 15:04+0000\n"
 "Last-Translator: \"Thadah D. Denyse\" <thadahdenyse@protonmail.com>\n"
 "Language-Team: Basque <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/eu/>\n"
@@ -56,14 +56,16 @@ msgstr "Oraingoa ezartzen..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Ireki Jellyfin, joan zure erabiltzailearen menura -> Konexio azkarra, eta "
+"sartu kode hau:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Baimenaren zain..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Dauden kontu guztiak garbitzen."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -75,19 +77,15 @@ msgstr "Errorea zerbitzaria gehitzen."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Kontua dagoeneko existitzen da. Kredentzialak eguneratzen."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Zerbitzaria zuzenki gehitu da."
+msgstr "Zerbitzariaren kredentzialak ondo eguneratu dira."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Errorea zerbitzaria gehitzen."
+msgstr "Zerbitzariaren kredentzialak eguneratzeak huts egin du."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -106,28 +104,20 @@ msgid "Add another server?"
 msgstr "Beste zerbitzari bat gehitu?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Ezin izan da zerbitzaria gehitu.\n"
-"Egiaztatu zure konexioaren informazioa."
+msgstr "Ezin izan da zerbitzarira konektatu."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Konexio azkarra ez dago zerbitzari honetan gaituta."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Ezin izan da Konexio azkarra hasi."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Kredituak Saltatu Dira"
+msgstr "Kredituak saltatu"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -138,15 +128,12 @@ msgid "Seek to Skip Credits"
 msgstr "Kredituak Saltatzen Saiatu"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Bereziak"
+msgstr "Iragarkia saltatu"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Kredituak Saltatu Dira"
+msgstr "Iragarkia saltatu da"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
