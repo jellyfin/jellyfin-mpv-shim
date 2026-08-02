@@ -160,6 +160,7 @@ Green on both backends, 8/8 legs, about two minutes for the matrix. See
 | `test_route_walk` | contract | 18 | every screen loads and renders against the real library |
 | `test_paging` | contract | 19 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_keyboard_nav` | contract | 20 | keyboard reach/activation of real screens; duplicate node ids |
+| `test_large_queue` | contract | — | 400-id queue metadata; the 414 request-line limit |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
@@ -380,3 +381,34 @@ smaller build.
 
 [stdjflib]: ~/Desktop/stdjflib
 [faketvsource]: ~/Desktop/faketvsource
+
+## Attempted and blocked: the mpv console's keyboard handover
+
+Candidate 2 of the transcript survey — `45346365`: "the renderer's ENTER and
+arrow bindings are FORCED and so outrank its input: typing a command and
+pressing ENTER summoned the playback HUD and toggled pause instead of running
+the command, with no way back but ESC."
+
+The renderer's contract is the property `user-data/mpv/console/open`, which
+mpv's console script sets and `renderer.lua` observes to hand the nav, summon
+and skip groups over and take them back. A test would open the console, assert
+arrows no longer move focus, close it, and assert exactly the groups that were
+taken come back — including the case where they must *not*, during plain
+playback where the arrows are mpv's seek keys.
+
+**Both ways in are blocked as the harness stands:**
+
+- The property cannot be injected from Python. `handle.command("set",
+  "user-data/mpv/console/open", "yes")` returns without error and changes
+  nothing, and both a typed read and `set_property` answer "mpv property does
+  not exist" — `user-data` subtrees are node-typed, and the renderer reaches
+  them from Lua (`mp.set_property_native`), which python-mpv's typed path does
+  not reproduce. Measured: arrows kept moving focus with the console
+  ostensibly open, i.e. the observer never fired.
+- The real console is not loaded. `mpvtk.app._SPAWN_OPTS` sets
+  `load_scripts: "no"`, so pressing `` ` `` in the test handle does nothing.
+
+The faithful fix is the second one: spawn this test's handle with scripts
+enabled and drive mpv's actual console, which tests the real precedence rather
+than a simulated signal. That is a change to how `_spawn_handle` builds the
+handle, so it wants doing deliberately rather than as a flag on one test.
