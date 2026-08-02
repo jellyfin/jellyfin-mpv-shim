@@ -45,6 +45,7 @@ E1 and E2 exist so far:
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
 | `test_route_walk` | E1 | every screen loads and renders against the real library |
+| `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
@@ -155,10 +156,29 @@ races exactly as `finished_callback` did — a SIGSEGV *after* all the
 assertions passed, roughly one run in four. `_close_child.verdict` stops first
 for this reason. The real app stops before it terminates; so should a test.
 
+**Tear the libmpv handle down explicitly at exit.**
+`PlayerManager.terminate` destroys the handle only for *external* mpv; on
+in-process libmpv it is left to CPython's finalization. Fine for the app — a
+desktop process exiting lets the OS reap it — and racy under a test runner,
+where it surfaced as a rare SIGSEGV *after* "OK" was printed and a leg the
+runner then called failed. `_terminate_player` does it explicitly.
+
 **A scenario that can crash belongs in a child process.** `_close_child.py`
 exists because a use-after-free on the mpv handle is a SIGSEGV, and a segfault
 in-process loses the whole run instead of failing one test. Same reasoning as
 `tests/integration/_idle_reopen_child.py`.
+
+**Bulk items all share a creation time.** They are built by one scan, so
+`DateCreated` ties and the server falls back to name order — "Date Added" and
+"Name" return the same first item, which makes a resort look like a refetch
+that never happened. Use "Release Date" to prove a reorder.
+
+**The grid's query is typed and recursive** from the collection type
+(`LIBRARY_ITEM_TYPES`). A hand-rolled comparison query that omits that
+describes a different set and lands on different indices — index 500 came back
+"Midnight Yard" untyped against the grid's "Midnight Zenith", which reads as
+an off-by-something in the shim and is not one. Compare through
+`source.get_library_items`.
 
 ## Fixtures worth knowing about
 

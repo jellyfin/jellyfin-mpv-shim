@@ -42,6 +42,7 @@ CONTRACT = [
     "tests.e2e.test_source_conformance",
     "tests.e2e.test_live_tv",
     "tests.e2e.test_route_walk",
+    "tests.e2e.test_paging",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.

@@ -284,11 +284,34 @@ def ensure_real_player():
 
 
 def _terminate_player():
+    """Shut the player down while the interpreter is still healthy.
+
+    `PlayerManager.terminate` tears the handle down only for **external** mpv
+    (`if is_using_ext_mpv: self._player.terminate()`); in-process libmpv is
+    left for CPython's finalization. That is fine for the app — a desktop
+    process exiting lets the OS reap it — and racy under a test runner, where
+    finalization runs with atexit handlers and daemon threads still in play.
+    It showed up as a rare SIGSEGV *after* "OK" was printed, which the runner
+    then reported as a failed leg on a run whose assertions all passed:
+    roughly one in five to eight, libmpv only.
+
+    So terminate the handle here too, explicitly, before the interpreter
+    starts pulling itself apart. Harness-only — nothing about the app's own
+    exit path changes.
+    """
+    if _PLAYER is None:
+        return
+    manager = _PLAYER.playerManager
+    handle = getattr(manager, "_player", None)
     try:
-        if _PLAYER is not None:
-            _PLAYER.playerManager.terminate()
+        manager.terminate()
     except Exception:
         pass
+    if not getattr(_PLAYER, "is_using_ext_mpv", False) and handle is not None:
+        try:
+            handle.terminate()
+        except Exception:
+            pass
 
 
 def import_real_player():
