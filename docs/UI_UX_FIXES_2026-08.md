@@ -947,7 +947,7 @@ thing that was fixed but the thing beside it.
 
 ### Highest risk — shared code paths
 
-- [ ] **Mouse Back/Forward, everywhere** (`86f113e2`). This is the biggest
+- [X] **Mouse Back/Forward, everywhere** (`86f113e2`). This is the biggest
       blast radius on the branch: the buttons moved to their own key-binding
       section and its enable/disable is now asserted at three points. Check
       Back in the library, in a dialog, in a modal, on the cast screen, on
@@ -957,99 +957,101 @@ thing that was fixed but the thing beside it.
       playlist-prev/next, i.e. previous/next queue item — and with it on.
       Restart the app and do the library ones again first thing: the bug
       was that they were dead from launch until a playback round trip.
-- [ ] **Every slider still drags** (`971126c3`). `slider_set_from_x` gained
+- [X] **Every slider still drags** (`971126c3`). `slider_set_from_x` gained
       the preview write and is shared by the volume slider and the music
       now-playing bar, not just the seek bar. Drag all three.
-- [ ] **Any click, anywhere** (`73fbf6ca`). `node_at` gained `dis` to its
+- [X] **Any click, anywhere** (`73fbf6ca`). `node_at` gained `dis` to its
       interactivity test and `_arrange_box` emits a node for a disabled
       element. Nothing in the app passes `disabled=` yet, so this *should*
       be inert — but it is the function every hit test goes through. A
       general poke around the library, dialogs and the HUD is the check.
-- [ ] **Chapter navigation near a boundary** (`9f7a394f`). The forward
+- [X] **Chapter navigation near a boundary** (`9f7a394f`). The forward
       direction lost its 0.5s tolerance. Test the HUD's chapter buttons AND
       the mouse buttons, from just before a boundary, exactly on one, and
       from the last chapter (should do nothing).
 
 ### The #617 cluster
 
-- [ ] **Change Image Type on a scrolled library** (`4b0e3afd`) — the fix.
+- [X] **Change Image Type on a scrolled library** (`4b0e3afd`) — the fix.
       Scroll well past the first page, View → Image Type → Banner. Every
       tile should become a banner, not just the first hundred.
       *Blast radius:* the refetch now drops the loaded list, so it will
       re-fetch from the top. Check it does not blink jarringly, and note
       where the scroll position ends up.
-- [ ] **Favorites, a genre listing, Next Up, a studio, a person page**
+- [X] **Favorites, a genre listing, Next Up, a studio, a person page**
       (`f18088aa`). These were windowing without padding. The scrollbar
       should be full-length from the first frame and must not jump as pages
       land. The count line now reads the server's total.
-- [ ] **`--debug` on a library over 100 items** (`fd8c9b94`). It used to
+- [X] **`--debug` on a library over 100 items** (`fd8c9b94`). It used to
       throw out of render and leave a spinner. Should just work.
-- [ ] **List view, scrolled into unloaded rows** (`fd8c9b94`). Blank rows
+- [X] **List view, scrolled into unloaded rows** (`fd8c9b94`). Blank rows
       must not hover-highlight or respond to a click or right-click.
-- [ ] **A library that shrinks under you** (`375a3763`) — hard to stage; if
+- [-] **A library that shrinks under you** (`375a3763`) — hard to stage; if
       you can delete items server-side mid-scroll, the count line and the
       grid height should agree afterwards.
 
 ### Playback HUD
 
-- [ ] **Live TV seek bar** (`1cbd3cdb`). Hovering it should show *nothing*.
+- [*] **Live TV seek bar** (`1cbd3cdb`). Hovering it should show *nothing*.
       Then a normal file: the bubble should appear once mpv reports a
       duration, not before.
-- [ ] **A film with long chapter names** (`f46f1635`). The bubble stays
+      - It does show a bubble with just the seek time. This is fine.
+- [-] **A film with long chapter names** (`f46f1635`). The bubble stays
       inside the window and stays centred on the pointer; the name
       ellipsizes rather than the box growing.
-- [ ] **Scrub, release, look** (`4038ecdf` fixed the test, `971126c3` the
+- [X] **Scrub, release, look** (`4038ecdf` fixed the test, `971126c3` the
       code). Drag the seek bar and let go — the bubble must not jump back.
-- [ ] Auto-hide unchanged in all three modes (`ee08a40a` only made the
+- [X] Auto-hide unchanged in all three modes (`ee08a40a` only made the
       *toolkit's* default reachable; the shim always sends its own).
 
 ### Offline
 
-- [ ] **Re-download an episode, then play it** (`8c1817f8`, `3983a296`).
+- [X] **Re-download an episode, then play it** (`8c1817f8`, `3983a296`).
       Skip Intro should offer where it does when streaming — and a segment
       type set to "off" should now behave exactly as it does online, i.e.
       not eat a forward seek with `skip_intro_on_seek` on.
-- [ ] **Downloaded Shows grid** (`8a946e39`) — posters, not squares.
-- [ ] **Trickplay across an mpv restart** (`6158df6b`). Play a downloaded or
+- [X] **Downloaded Shows grid** (`8a946e39`) — posters, not squares.
+- [X] **Trickplay across an mpv restart** (`6158df6b`). Play a downloaded or
       streamed file, let mpv be re-created (idle quit, or stop and start),
       scrub in the new one. Watch for mpv errors in the log.
 
 ### Config and text
 
-- [ ] **Upgrade a real 2.x config** (`0f6d55ef`). Back it up first. Confirm
+- [X] **Upgrade a real 2.x config** (`0f6d55ef`). Back it up first. Confirm
       the segment settings land where you expect. If you have any
       hand-edited quoted booleans, this is the case that used to flip them
       to "always".
-- [ ] **A config still saying `hud_scrim: "half"`** (`bd267d6f`) — draws the
+- [-] **A config still saying `hud_scrim: "half"`** (`bd267d6f`) — draws the
       default ramp, picker reads Default.
-- [ ] **Minimize to tray, and restore** (`3e4c32af`). This crashed before;
+      - Will never happen to end user.
+- [X] **Minimize to tray, and restore** (`3e4c32af`). This crashed before;
       also check the OSC state afterwards.
-- [ ] **"Skip Credits" in three places** (`1f9a58ad`): the HUD/OSD Skip
+- [X] **"Skip Credits" in three places** (`1f9a58ad`): the HUD/OSD Skip
       button, the settings form row, and the OSD menu row. The button keeps
       its existing translations; the two labels are a new key and will read
       English until Weblate catches up.
-- [ ] **The OSD menu's segment rows** now read Never/Ask/Always, matching
+- [X] **The OSD menu's segment rows** now read Never/Ask/Always, matching
       the settings form.
-- [ ] **Theme settings** no longer claims cover size needs a restart.
+- [X] **Theme settings** no longer claims cover size needs a restart.
 
 ### Music windowing (`b6d24a1e`, `aedee927`)
 
-- [ ] **Albums / Album Artists / Artists** on a big library: full-length
+- [X] **Albums / Album Artists / Artists** on a big library: full-length
       scrollbar from the first frame, no jump as pages land, drag to the
       middle and get *that* neighbourhood.
-- [ ] **A genre with many albums**, same.
-- [ ] **Genres tab** — unpaged, so nothing should change at all.
-- [ ] **Artist page** — not windowed (its query takes no offset); check it
+- [X] **A genre with many albums**, same.
+- [X] **Genres tab** — unpaged, so nothing should change at all.
+- [X] **Artist page** — not windowed (its query takes no offset); check it
       still shows a full discography.
-- [ ] **Songs tab**: scroll deep, then click a song. It should play from
+- [X] **Songs tab**: scroll deep, then click a song. It should play from
       *that* song, with the next few hundred queued behind it. Check the
       now-playing bar and the queue view agree.
-- [ ] **Songs tab, unloaded rows**: blank rows must not respond to a click
+- [X] **Songs tab, unloaded rows**: blank rows must not respond to a click
       or a right-click, and must not hover-highlight.
-- [ ] **Switch tabs and come back** — the per-tab cache should still work
+- [X] **Switch tabs and come back** — the per-tab cache should still work
       and should not re-request what it had.
-- [ ] **Paginated mode on**, across the music tabs.
-- [ ] **Live TV channels** — deliberately still append-on-approach; check it
+- [X] **Paginated mode on**, across the music tabs.
+- [X] **Live TV channels** — deliberately still append-on-approach; check it
       is unchanged.
 
 ### Known and deliberate
