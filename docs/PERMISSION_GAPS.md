@@ -8,11 +8,11 @@ will refuse creates confusion and issue reports.** A user with SyncPlay
 revoked who is offered a SyncPlay button does not conclude they lack
 permission; they conclude the client is broken, and they are half right.
 
-Nothing here is a crash, and none of it is asserted as a failure by the test
-suite — `test_account_policy` pins what the code currently promises and its
-docstring names these as known gaps.
+**Items 1 and 3 are now fixed** (`jellyfin_mpv_shim/user_policy.py`); their
+sections below are kept as the record of what was wrong and why, with what
+shipped noted at the end of each. Item 2 is still open.
 
-## 1. SyncPlay is offered to users who do not have it
+## 1. SyncPlay is offered to users who do not have it  — FIXED
 
 `SyncPlayAccess` is never read. Grep for it in `jellyfin_mpv_shim/` returns
 nothing.
@@ -37,8 +37,30 @@ whatever holds it has to be keyed by server the way `has_live_tv` is, or a
 two-server user gets the wrong answer. Note `JoinGroups` is a third state, not
 a boolean: that user should reach the dialog but not the create button.
 
-**Testable once fixed**: `qa-nosyncplay` must not be offered any of the three
-entry points, and `qa-user` must still get all of them.
+**What shipped.** `user_policy.py` holds the answer, cached on the client
+object rather than in any one owner — the browser reaches its clients through
+`LibrarySource`, the player through `clientManager`, and both have to get the
+same answer. `GET /Users/Me`, once per server per session, taken lazily: the
+policy does arrive on the login response, but credentials are restored from
+`cred.json` on every run after the first, so most of the time there is no
+login response to read.
+
+It **fails open** throughout, and that is asserted as much as the hiding is.
+Only an answer the server actually gave closes a gate; a fetch that failed, a
+source without the method, an older server with no such field — all leave the
+button where it was. Taking a working feature away because a request failed
+would be a worse bug than the one being fixed. (Same doctrine as
+`ItemActions.can_edit`.)
+
+The three entry points: the top-bar button (`window_chrome._may_syncplay`),
+the HUD button and the OSD menu row (both via `osc_bridge._may_syncplay`,
+which returns `None` from `_syncplay` — the shape hud.py already treats as
+"no button"). `JoinGroups` keeps the dialog and loses only **New Group**.
+
+Pinned by `tests/test_user_policy.py` and, against the real accounts,
+`tests/e2e/test_account_policy.py:SyncPlayPermissionTest` — which is where
+the field name itself is checked, since a unit test with a hand-written
+policy dict proves the branch and not the spelling.
 
 ## 2. The home-screen editor offers Live TV sections to users without Live TV
 
@@ -87,7 +109,7 @@ this client look broken against a server that will happily serve the stream.
 
 Recorded so the next person to measure it does not file it as a shim bug.
 
-## 3. Recording is offered to users who cannot record
+## 3. Recording is offered to users who cannot record  — FIXED
 
 Found while writing `tests/e2e/test_live_tv.py`, which could not schedule a
 timer as any account on the server.
@@ -104,9 +126,22 @@ Same family as the SyncPlay gap above and probably the same fix: the flag is
 on the login response's policy, it is per-server, and whatever holds
 `SyncPlayAccess` should hold this too.
 
-**Testable once fixed**: a user with `EnableLiveTvAccess` but not
-`EnableLiveTvManagement` is offered no Record buttons and no Schedule tab,
-while one with both is offered all of them.
+**What shipped.** Same module, same fail-open rule. `can_record` already
+existed as an *apiclient capability* probe with exactly this doctrine, so the
+permission folded into it: both questions have to say yes, and it now takes
+the server it is asking about (it is per server; the probe is not).
+
+The Live TV page hides the **Schedule** and **Series** tabs, and only those —
+`Recordings` stays, because a finished recording is something you watch and
+this permission does not gate watching. A tab carried in on a route that the
+user may not have falls back to the default rather than rendering a screen
+with no way out of it.
+
+Pinned by `tests/test_user_policy.py` and
+`tests/e2e/test_account_policy.py:LiveTvManagementPermissionTest`, which
+checks it both ways round against `qa-user` (granted) and `qa-restricted`
+(never granted, which is the default for any account created on a modern
+server).
 
 ### Why this was invisible, and the stdjflib half (fixed)
 

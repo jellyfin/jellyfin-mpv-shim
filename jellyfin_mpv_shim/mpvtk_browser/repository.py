@@ -417,6 +417,31 @@ class LibrarySource:
         return (getattr(self, "_has_live_tv", None) or {}).get(
             server_uuid, False)
 
+    # -- what this user is allowed to do (see user_policy.py) --------------
+    #
+    # Thin, and deliberately so: the answer is cached on the client object,
+    # not here, because the player side reaches the same clients through
+    # clientManager and both have to get the same answer. These exist so the
+    # browser never has to reach for a client itself.
+
+    def syncplay_access(self, server_uuid):
+        from ..user_policy import syncplay_access
+
+        try:
+            return syncplay_access(self._conn(server_uuid).client)
+        except Exception:
+            from ..user_policy import CREATE_AND_JOIN
+
+            return CREATE_AND_JOIN      # fails open; see user_policy
+
+    def can_manage_live_tv(self, server_uuid):
+        from ..user_policy import may_manage_live_tv
+
+        try:
+            return may_manage_live_tv(self._conn(server_uuid).client)
+        except Exception:
+            return True                 # fails open; see user_policy
+
     # -- home screen layout (shared with jellyfin-web) ---------------------
 
     def _display_prefs_dto(self, api):
@@ -2524,6 +2549,16 @@ class OfflineLibrarySource:
         online one falls back TO, so a missing method here turns a degraded
         screen into an AttributeError on the fallback path.
         """
+        return False
+
+    def syncplay_access(self, server_uuid):
+        """Nobody to sync with, and no server to ask. Declared for the same
+        reason has_live_tv is."""
+        from ..user_policy import NO_SYNCPLAY
+
+        return NO_SYNCPLAY
+
+    def can_manage_live_tv(self, server_uuid):
         return False
 
     def get_genres(self, server_uuid, parent_id=None):

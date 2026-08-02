@@ -615,6 +615,18 @@ class DialogsMixin:
         # Fetch groups off-thread, then show the dialog on the loop.
         self.run_async(work, done, ep)
 
+    def _may_create_sync_group(self, server):
+        """Fails open; see user_policy."""
+        from ..user_policy import CREATE_AND_JOIN
+
+        ask = getattr(self.source, "syncplay_access", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return ask(server) == CREATE_AND_JOIN
+        except Exception:
+            return True
+
     def _show_syncplay(self, server, groups, state=None):
         joined = (state or {}).get("group_id")
         multi = len({g.get("server_uuid") for g in groups}) > 1
@@ -655,10 +667,14 @@ class DialogsMixin:
             else:
                 rows.append(Text(_("No active groups."), size=15,
                                  color=theme.SUBTLE_FG))
-            buttons = [
-                Button(_("New Group"), id="sp-new",
-                       on_click=lambda: self._sync_new(server)),
-            ]
+            buttons = []
+            # SyncPlayAccess is three-valued: `JoinGroups` may join a group
+            # somebody else made and may not make one. Treating it as a
+            # boolean either hides a dialog that works or offers a button
+            # that 403s. See user_policy.
+            if self._may_create_sync_group(server):
+                buttons.append(Button(_("New Group"), id="sp-new",
+                                      on_click=lambda: self._sync_new(server)))
             if joined is not None:
                 # Only when there is something to leave. It used to render
                 # unconditionally, so the one control that changes state was

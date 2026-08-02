@@ -187,7 +187,8 @@ class TilesMixin:
             return out
         if item.get("ChannelId"):
             out.append((_("Watch Channel"), "play_arrow", "play"))
-        if not self._actions.can_record():
+        if not self._actions.can_record(self.route.get("server")
+                                       or self.server):
             return out
         # single_timer_state, not timer_state: the two answer different
         # questions and a showing covered by a series rule answers yes to

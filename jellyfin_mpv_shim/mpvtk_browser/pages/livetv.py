@@ -47,10 +47,45 @@ class LiveTvPage(Page):
 
     DEFAULT_TAB = "programs"
 
+    #: The two tabs that are *about* scheduling rather than about watching.
+    #: Recordings is not one of them -- a finished recording is something you
+    #: watch, and `EnableLiveTvManagement` does not gate watching.
+    MANAGEMENT_TABS = ("schedule", "series")
+
     # -- load --------------------------------------------------------------
 
-    def load(self, epoch):
+    def _tabs(self):
+        """The tabs this user can actually use.
+
+        Scheduling is `EnableLiveTvManagement`, which is granted separately
+        from the access that put Live TV in the sidebar at all -- so a user
+        can browse the guide perfectly well and have every timer they try to
+        set answered with a 403.
+        """
+        if self._may_manage():
+            return self.TABS
+        return tuple(t for t in self.TABS if t[0] not in self.MANAGEMENT_TABS)
+
+    def _may_manage(self):
+        ask = getattr(self.ctx.source, "can_manage_live_tv", None)
+        if ask is None:
+            return True                 # fails open; see user_policy
+        try:
+            return bool(ask(self._srv()))
+        except Exception:
+            return True
+
+    def _current_tab(self):
+        """The tab to draw. A tab this user may not have -- carried in on a
+        route, or left behind by a permission change -- falls back to the
+        default rather than rendering a screen with no way out of it."""
         tab = self.route.get("_tab") or self.DEFAULT_TAB
+        if tab not in [key for key, _label in self._tabs()]:
+            return self.DEFAULT_TAB
+        return tab
+
+    def load(self, epoch):
+        tab = self._current_tab()
         getattr(self, "_load_" + tab, self._load_programs)(epoch)
 
     def _put(self, key="_data"):
@@ -190,7 +225,7 @@ class LiveTvPage(Page):
     # -- render ------------------------------------------------------------
 
     def render(self, size):
-        tab = self.route.get("_tab") or self.DEFAULT_TAB
+        tab = self._current_tab()
         body = getattr(self, "_render_" + tab, self._render_programs)
         return Column([self._tab_bar(tab), body(size)], flex=1,
                       align="stretch")
@@ -198,7 +233,7 @@ class LiveTvPage(Page):
     def _tab_bar(self, current):
         tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
                                  lambda k=key: self._set_tab(k))
-                for key, label in self.TABS]
+                for key, label in self._tabs()]
         return Row(tabs, gap=8, pad=12, align="center")
 
     def _scroll(self, children, scroll_id, gap=16):
@@ -819,7 +854,7 @@ class ProgramPage(Page):
                 "pg-watch",
                 lambda: actions.play_list([channel], server, 0),
                 primary=live_tv.is_airing(item), size=18))
-        if not actions.can_record():
+        if not actions.can_record(server):
             return Row(btns, gap=10)
         if single:
             btns.append(controls.action_btn(

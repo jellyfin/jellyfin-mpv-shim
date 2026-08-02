@@ -155,8 +155,15 @@ class OSDMenu(object):
                 (_("Change Audio"), self.change_audio_menu),
                 (_("Change Subtitles"), self.change_subtitle_menu),
                 (_("Change Video Quality"), self.change_transcode_quality),
-                (_("SyncPlay"), self.playerManager.syncplay.menu_action),
             ]
+            # Omitted for a user the server refuses SyncPlay to: every path
+            # behind this row ends in "Could not join the SyncPlay group.",
+            # which reads as a broken client rather than as a permission.
+            # Same question the HUD's button asks (osc_bridge._may_syncplay).
+            bridge = getattr(self.playerManager, "osc_bridge", None)
+            if bridge is None or bridge._may_syncplay():
+                self.menu_list.append(
+                    (_("SyncPlay"), self.playerManager.syncplay.menu_action))
             if self.playerManager.update_check.new_version is not None:
                 self.menu_list.insert(
                     0,

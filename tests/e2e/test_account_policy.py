@@ -6,14 +6,13 @@ against any of them by anything automatic. These are contract tests: no mpv,
 no window, just the seam the browser is handed (`LibrarySource`) and the login
 path above it.
 
-**The shim reads no user policy fields.** Confirmed by grep: nothing in
-`jellyfin_mpv_shim/` consults `EnableContentDownloading`,
-`EnableMediaPlayback` or `SyncPlayAccess`, and the only policy-derived
-behaviour is Live TV, which comes from whether the server put a Live TV view
-in `/Views` (`repository.get_libraries`). So Download, Play and SyncPlay are
-offered to accounts the server may refuse. The two that matter are written up
-as work items in `docs/PERMISSION_GAPS.md`; they are not asserted here,
-because these tests can only pin what the code actually promises today.
+**Two of the gaps these tests turned up are now closed** (`user_policy.py`)
+and asserted below: SyncPlay is not offered to a user the server refuses it
+to, and the Record affordances are not offered without
+`EnableLiveTvManagement`. `EnableContentDownloading` is still unread, and
+Live TV *browsing* was already gated by whether the server put a Live TV
+view in `/Views` (`repository.get_libraries`). See
+`docs/PERMISSION_GAPS.md`.
 
 Two things that are *not* tested here, because measurement said they are not
 true (both in `docs/E2E_PLAN.md`):
@@ -194,6 +193,84 @@ class LoginTest(unittest.TestCase):
             first.api.get_views()["Items"],
             "the incumbent session stopped working when a second login was "
             "refused")
+
+
+@_e2e.require_server
+class SyncPlayPermissionTest(unittest.TestCase):
+    """`qa-nosyncplay` — "SyncPlay refused, so the client's SyncPlay entry
+    points must go".
+
+    The policy is read from the server here, not fabricated: the point of
+    doing this end to end is that `SyncPlayAccess` really does come back on
+    `/Users/Me` for a real account, spelled the way the code expects. A unit
+    test with a hand-written policy dict proves the branch, not the field
+    name.
+    """
+
+    def _client(self, account):
+        session = _e2e.Session(account)
+        self.addCleanup(session.stop)
+        source = session.library_source()
+        self.addCleanup(source.stop)
+        return source
+
+    def test_the_refused_account_is_refused(self):
+        from jellyfin_mpv_shim import user_policy
+
+        source = self._client("qa-nosyncplay")
+        access = source.syncplay_access(_e2e.SOURCE_UUID)
+        self.assertEqual(
+            access, user_policy.NO_SYNCPLAY,
+            "qa-nosyncplay came back as %r — either the account no longer "
+            "has SyncPlay revoked, or the field is not where the client "
+            "looks for it" % access)
+
+    def test_an_ordinary_account_still_has_it(self):
+        """The control. Without this the test above passes just as well if
+        the client answers "no" to everybody."""
+        from jellyfin_mpv_shim import user_policy
+
+        source = self._client("qa-user")
+        self.assertEqual(source.syncplay_access(_e2e.SOURCE_UUID),
+                         user_policy.CREATE_AND_JOIN)
+
+
+@_e2e.require_server
+class LiveTvManagementPermissionTest(unittest.TestCase):
+    """`EnableLiveTvManagement` is a *third* Live TV permission, separate
+    from the access one — and the one that made this suite unable to
+    schedule a timer as any account on the server until stdjflib was fixed.
+
+    A user can therefore browse the guide perfectly well and have every
+    Record button answer 403.
+    """
+
+    def _source(self, account):
+        session = _e2e.Session(account)
+        self.addCleanup(session.stop)
+        source = session.library_source()
+        self.addCleanup(source.stop)
+        return source
+
+    def test_the_account_that_may_record_may(self):
+        self.assertTrue(
+            self._source("qa-user").can_manage_live_tv(_e2e.SOURCE_UUID),
+            "qa-user was granted EnableLiveTvManagement by stdjflib and the "
+            "client does not see it")
+
+    def test_an_account_without_it_is_refused(self):
+        """`qa-restricted` is an ordinary account that was never granted it.
+
+        Which is the default for every account created on a modern server:
+        `AddDefaultPermissions` leaves it False, and only an install
+        migrated from an older one has it on by default.
+        """
+        source = self._source("qa-restricted")
+        self.assertFalse(
+            source.can_manage_live_tv(_e2e.SOURCE_UUID),
+            "qa-restricted can manage Live TV recordings, so this server no "
+            "longer has an account without the permission and the gate is "
+            "untested")
 
 
 if __name__ == "__main__":
