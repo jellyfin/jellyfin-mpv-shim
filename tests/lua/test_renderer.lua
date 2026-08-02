@@ -1650,6 +1650,138 @@ ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
    "closing the console bound nav keys that were not bound before it opened")
 fake.send("mpvtk-active", "yes")
 
+-- ==================================================== what gets drawn
+--
+-- Two things in this file live entirely in the drawing and are invisible to
+-- every other assertion here: which colour says "this is the one you have
+-- chosen", and whether a constant baked into a draw call follows the UI
+-- scale. Both were reported as bugs in #620.
+
+--- Push `nodes`, run `setup` against them, and return the rectangles the
+--- next repaint drew. `setup` runs after the scene so it can click things
+--- that only exist once the scene is up.
+local function painted(nodes, setup)
+    scene(nodes)
+    if setup then setup() end
+    fake.reset_draw()
+    fake.advance(1.0)
+    fake.fire_timers()
+    return fake.shapes()
+end
+
+--- Rows drawn in `colour`, as a list of {opaque=bool} in draw order.
+local function fills(shapes, colour)
+    local out = {}
+    for _, s in ipairs(shapes) do
+        if s.fill == colour then
+            out[#out + 1] = { opaque = (s.alpha or 255) >= 255, y = s.y }
+        end
+    end
+    return out
+end
+
+local function count_solid(shapes, colour)
+    local n = 0
+    for _, s in ipairs(fills(shapes, colour)) do
+        if s.opaque then n = n + 1 end
+    end
+    return n
+end
+
+local function any_fill(shapes, colour)
+    return #fills(shapes, colour) > 0
+end
+
+-- The tokens are the stock ones (nothing has pushed mpvtk-theme), so the
+-- accent is 7aa2f7 and control_bg -- the old selection fill -- is 333333.
+local ACCENT, CONTROL_BG = "7aa2f7", "333333"
+
+local DD = { id = "dd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+             size = 18, items = { "Auto", "1080p", "720p" }, sel = 1 }
+
+local dd_shapes = painted({ DD }, function() click("dd") end)
+ok(count_solid(dd_shapes, ACCENT) == 1,
+   "the selected popup row is drawn in the accent",
+   "selection used to take control_bg, one step off popup_bg -- #620")
+ok(not any_fill(dd_shapes, CONTROL_BG),
+   "the popup no longer draws the near-invisible old selection fill")
+
+click("dd")     -- close it again, so later scenes are unaffected
+
+-- The weak state is the ACCENT AT LOW ALPHA, not a grey token. control_hover
+-- over popup_bg is BUTTON_ACTIVE over PANEL_BG, which in four of the six
+-- shipped themes is a weaker contrast than the fill #620 was filed about --
+-- and in jf-wmc is 1.00:1, the same relative luminance, ie. not drawn.
+-- Derived from the accent it cannot collapse into the background unless the
+-- accent already has.
+local dd_hover = painted({ DD }, function()
+    click("dd")
+    fake.mouse(140, 78)      -- into the popup, on a row that is NOT selected
+end)
+local washes = fills(dd_hover, ACCENT)
+ok(#washes >= 2, "a hovered popup row is highlighted at all",
+   string.format("%d accent rows drawn", #washes))
+ok(count_solid(dd_hover, ACCENT) == 1,
+   "exactly one popup row is solid -- the selected one",
+   "the hover must not be mistakable for the selection")
+click("dd")
+
+-- A context menu is not a ranked list: it is a list of actions, the gear
+-- menu marks its current option with a check icon rather than a highlighted
+-- row, and with no keyboard cursor up the pointer is the only cursor there
+-- is. So hover keeps the solid accent it has always had -- demoting it along
+-- with the dropdown's would have taken the feedback off every menu in the
+-- app to fix a problem menus do not have.
+local MENU = { id = "mnu", t = "menu", x = 40, y = 40, w = 200, rh = 30,
+               size = 18, items = { "Screenshot", "Playback Data" } }
+-- Parked by coordinate rather than by id: a menu carries `rh`, not `h`, so
+-- the debug hover command has no box to find the centre of.
+local menu_shapes = painted({ MENU }, function() fake.mouse(140, 55) end)
+ok(count_solid(menu_shapes, ACCENT) == 1,
+   "a hovered menu row keeps the solid accent")
+
+-- ...but once a keyboard cursor is up, the two are the same kind of thing
+-- and only ONE may be strong. Both took the accent, so a right-click
+-- followed by Down painted two rows identically -- and ENTER and a click
+-- would then act on different ones.
+local menu_nav = painted({ MENU }, function()
+    fake.mouse(140, 55)                                  -- pointer on row 0
+    fake.send("mpvtk-debug", fake.token({ cmd = "nav", dir = "down" }))
+end)
+ok(count_solid(menu_nav, ACCENT) == 1,
+   "the keyboard cursor and the pointer drew two identical rows",
+   string.format("%d solid accent rows", count_solid(menu_nav, ACCENT)))
+ok(#fills(menu_nav, ACCENT) >= 2,
+   "the pointer stopped being drawn at all once the cursor moved")
+
+-- Scale. A seek bar's track, chapter slits and thumb are constants of the
+-- draw rather than fields of the node, so scale_scene never reaches them --
+-- they were left at 1x inside a HUD that had otherwise doubled.
+local SEEK = { id = "seek", t = "slider", x = 0, y = 100, w = 400, h = 26,
+               min = 0, max = 100, value = 50, ov = true,
+               marks = { 0.25, 0.75 } }
+
+--- The chapter slit: the narrowest rectangle the slider drew.
+local function slit_w(shapes)
+    local narrowest
+    for _, s in ipairs(shapes) do
+        if s.h > 0 and s.w > 0 and (not narrowest or s.w < narrowest) then
+            narrowest = s.w
+        end
+    end
+    return narrowest
+end
+
+fake.send("mpvtk-scale", fake.token({ s = 1 }))
+local at1x = slit_w(painted({ SEEK }))
+fake.send("mpvtk-scale", fake.token({ s = 2 }))
+local at2x = slit_w(painted({ SEEK }))
+ok(at1x and at2x and at2x > at1x * 1.5,
+   "chapter marks follow the UI scale",
+   string.format("1x drew %s wide, 2x drew %s", tostring(at1x),
+                 tostring(at2x)))
+fake.send("mpvtk-scale", fake.token({ s = 1 }))
+
 -- ========================================================== teardown
 
 scene({})

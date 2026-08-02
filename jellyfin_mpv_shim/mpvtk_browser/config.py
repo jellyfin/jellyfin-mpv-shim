@@ -119,7 +119,8 @@ SECTIONS = [
                                  "segment_commercial", "segment_preview",
                                  "segment_recap", "skip_intro_on_seek"]),
     (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
-                            "scroll_mode", "paginated"]),
+                            "scroll_mode", "paginated", "logo_legibility_live_tv",
+                            "logo_legibility_library"]),
     (_("Downloads"), ["sync_path", "prefer_downloaded",
                       "auto_download_enable", "auto_download_next_up",
                       "auto_download_next_up_limit",
@@ -238,6 +239,8 @@ LABEL_OVERRIDES = {
     "ui_scale": _("Interface Scale"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
+    "logo_legibility_live_tv": _("Make Live TV logos more legible"),
+    "logo_legibility_library": _("Make library logos more legible"),
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
@@ -349,6 +352,18 @@ NOTES = {
                    "scrolling: each page is one screenful with First / "
                    "Previous / Next / Last controls and a page number you can "
                    "type into. Easier than precise scrolling on a trackpad."),
+    "logo_legibility_live_tv": _(
+        "Channel logos come as ink on a transparent background, drawn for the "
+        "white page other clients put them on — so on a dark one the black "
+        "ones vanish. On, they are backed with the light plate they were made "
+        "for, and the few whose own outline is white get a drop shadow so "
+        "they still have an edge against it. Off, they get the theme's card "
+        "colour and no shadows, as Jellyfin Web does."),
+    "logo_legibility_library": _(
+        "The same treatment for a library set to draw Logo artwork. Off by "
+        "default, because a film's or series' logo is white by convention and "
+        "already reads on a dark background — the plate is what makes it need "
+        "a shadow. Turn it on if yours are dark."),
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),

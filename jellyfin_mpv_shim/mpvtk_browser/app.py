@@ -167,7 +167,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     PAGE_MAX = pagination.PAGE_MAX
     # Route kinds that paginate. The music songs list and genre grids stay
     # scrolling (a list, and an unpaged single request).
-    PAGEABLE_KINDS = {"grid", "person", "music"}
+    #
+    # "list" is here because ``ListPage`` subclasses ``GridPage`` and so
+    # inherits its render -- it draws a *paged* grid whenever the setting is
+    # on, whether or not this set names it. Leaving it out did not make the
+    # Networks screen or a "see all" listing scroll; it drew one page of
+    # tiles and no bar to leave it with, which is #638 and #639.
+    PAGEABLE_KINDS = {"grid", "list", "person", "music"}
 
     # How long shutdown() waits for a long job (a download-store move) to
     # finish before giving up on it. Long enough to cover a same-drive move,
@@ -711,6 +717,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         route.pop("_data", None)
         route.pop("_items", None)
         route.pop("_loading", None)
+        self._pages.reset(route)
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()
@@ -1045,6 +1052,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._scroll.reset()
         self.invalidate()
 
+    def apply_logo_legibility(self):
+        """Adopt a changed "Make logos more legible" without a restart.
+
+        The plate behind a transparent logo is baked into the composited
+        strip, so retag the store exactly as a theme change does -- the rows
+        recomposite as they are next drawn, and the old bitmaps age out
+        through the LRU rather than being freed under a running compositor.
+
+        Nothing else moves: the geometry, the scroll offsets and the grid
+        shapes are all unaffected by which colour goes behind a logo.
+        """
+        if self.strips is not None:
+            self.strips.retag()
+        self.invalidate()
+
     def invalidate(self):
         if self.app is not None:
             self.app.invalidate()
@@ -1202,6 +1224,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         route.pop("_data", None)
         route.pop("_items", None)
         route.pop("_loading", None)
+        # The page cache goes with the items. `ensure` only rebuilds when the
+        # page SIZE changes, so pages left from before the failure would be
+        # served straight back -- and `_npages` left set draws the bottom bar
+        # over the spinner of a route that is loading again from nothing.
+        self._pages.reset(route)
         self._bump_epoch()
         self._load_route(route)
         self.invalidate()

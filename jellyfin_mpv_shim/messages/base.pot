@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 01:33-0400\n"
+"POT-Creation-Date: 2026-08-02 09:56-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1044,6 +1044,14 @@ msgid "Cover Size"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make Live TV logos more legible"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make library logos more legible"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
 msgstr ""
 
@@ -1203,6 +1211,24 @@ msgid ""
 "Page the library and music tile grids instead of scrolling: each page is one "
 "screenful with First / Previous / Next / Last controls and a page number you "
 "can type into. Easier than precise scrolling on a trackpad."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Channel logos come as ink on a transparent background, drawn for the white "
+"page other clients put them on — so on a dark one the black ones vanish. On, "
+"they are backed with the light plate they were made for, and the few whose "
+"own outline is white get a drop shadow so they still have an edge against "
+"it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
+"does."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The same treatment for a library set to draw Logo artwork. Off by default, "
+"because a film's or series' logo is white by convention and already reads on "
+"a dark background — the plate is what makes it need a shadow. Turn it on if "
+"yours are dark."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1442,6 +1468,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid ""
+"Backs transparent logos with the light plate they were drawn for, and "
+"shadows the ones whose own outline is white. Off puts the theme's card "
+"colour behind them instead, with no shadows."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py

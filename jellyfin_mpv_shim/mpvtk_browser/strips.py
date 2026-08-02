@@ -50,6 +50,47 @@ def _px(v):
     return px(v)
 
 
+def logo_plate(image, live=False):
+    """The plate for transparent artwork, or ``None`` to leave it alone.
+
+    ``imageutil.plate_for`` decides *whether* a picture is a logo on a
+    transparent background and what a light plate would swallow; this is the
+    one place that decides what the app then does about it, so the tile
+    compositor and the table's art cells cannot drift apart.
+
+    ``live`` says the artwork is a channel logo rather than a film's or
+    series' own Logo art -- the caller's answer, from
+    ``live_tv.is_channel_artwork``, because only it knows what it is drawing.
+    The two are settings apart because they are conventions apart: channel
+    logos are dark ink drawn for a white page and need the plate to be
+    visible at all, film logos are white and do not. See ``conf.py``.
+
+    Both answers are honest, which is why both are reachable: the light plate
+    the artwork was drawn for, or the theme's own card grey with no shadow --
+    which is what jellyfin-web puts behind the same logos (#637).
+
+    Only the colour and the shadow move. Whether there is a plate at all is
+    still ``plate_for``'s answer, because the callers read it for a second
+    thing as well -- artwork on a transparent background is a mark rather
+    than a photograph, so it is letterboxed rather than cover-cropped, and
+    that is true whichever backing it gets.
+    """
+    from ..conf import settings
+    from ..imageutil import Plate, plate_for
+
+    key = "logo_legibility_live_tv" if live else "logo_legibility_library"
+    # Fall back to the setting's own default rather than to True: a config
+    # stand-in without the key must not silently plate a library.
+    if getattr(settings, key, live):
+        return plate_for(image)
+    grey = theme.rgb(theme.CARD_BG)
+    plate = plate_for(image, light=grey)
+    # Not plate_for's shadow verdict recomputed against the grey: the point
+    # of turning this off is that there are no drop shadows, and against a
+    # dark plate the question would simply flip to the black ink instead.
+    return None if plate is None else Plate(grey, False)
+
+
 def _font(size, bold=False, text=None):
     """Font for baked caption text. ``text`` selects the script-appropriate
     face — Pillow does no font fallback, so a Japanese title drawn with the
@@ -160,6 +201,12 @@ class Tile:
     #: strip, a banner on a 16:9 card -- loses the name to a cover-crop.
     #: Set by TileRenderer.poster_for, which knows what the chain resolved to.
     contain: bool = False
+    #: This tile's artwork is a CHANNEL LOGO rather than a film's or series'
+    #: own Logo art. The two are opposite conventions and get separate
+    #: settings -- see ``logo_plate`` and ``live_tv.is_channel_artwork``.
+    #: Carried on the tile because the compositor has the picture and not
+    #: the item it came from.
+    live: bool = False
 
 
 class StripStore:
@@ -216,13 +263,39 @@ class StripStore:
         #: ordinary LRU, which only ever frees the least-recently-used one --
         #: by definition not the one on screen.
         self.tag = ""
+        #: The theme half of ``tag``, and how many times :meth:`retag` has
+        #: run. Held apart so the two cannot corrupt each other -- a theme
+        #: whose name happened to contain the joining character would
+        #: otherwise be truncated by the next retag. The counter is its own
+        #: rather than the LRU's ``_counter``, so a cache invalidation cannot
+        #: reorder the eviction queue.
+        self._tag_theme = ""
+        self._retag = 0
         self._pool = ThreadPoolExecutor(max_workers=workers,
                                         thread_name_prefix="strip")
 
     def set_theme_tag(self, tag):
         """Invalidate every cached bitmap by changing what the keys look
         like. Safe to call while mpv is compositing; see ``tag``."""
-        self.tag = str(tag)
+        self._tag_theme = str(tag)
+        self._apply_tag()
+
+    def retag(self):
+        """Invalidate every cached bitmap without changing theme.
+
+        For a setting that is baked into a composited strip but is not the
+        theme -- ``logo_legibility``, which decides what goes behind a
+        transparent logo. Same mechanism and the same safety argument as
+        :meth:`set_theme_tag`; a counter rather than a value because the
+        caller has nothing to name the new state with, only the fact that it
+        changed.
+        """
+        self._retag += 1
+        self._apply_tag()
+
+    def _apply_tag(self):
+        self.tag = ("%s~%d" % (self._tag_theme, self._retag) if self._retag
+                    else self._tag_theme)
 
     def set_notify(self, notify):
         """Attach the wake-up callback after construction (mirrors
@@ -246,6 +319,9 @@ class StripStore:
             t.record,
             t.glyph if t.poster is None else "",
             bool(t.contain),
+            # In the key because it picks the card colour: the same picture
+            # is plated in one place and not in another.
+            bool(t.live),
         )
 
     @staticmethod
@@ -510,9 +586,7 @@ class StripStore:
             # drawn for, rather than sliding one in behind just the art, keeps
             # the tile a single shape: the silhouette, the border and the
             # rounded corners are all still drawn once, by the code below.
-            from ..imageutil import plate_for
-
-            plate = plate_for(t.poster)
+            plate = logo_plate(t.poster, t.live)
             if plate is not None:
                 card = tuple(plate.color) + (255,)
         if rounded:

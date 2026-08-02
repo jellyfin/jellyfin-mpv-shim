@@ -282,8 +282,59 @@ mp.msg = { error = function() end, warn = function() end,
 mp.utils = utils
 
 -- assdraw: only ass_new() and the builder methods the renderer chains.
+--
+-- The methods used to be swallowed outright. They are recorded now, because
+-- a class of bug lives entirely in the drawing and nowhere in the state the
+-- rest of this file exposes: a selection highlight drawn in a colour nobody
+-- can tell from the background, a bar whose thickness ignores the UI scale.
+-- Recording is cheap (a table append per call) and the accessors below
+-- reduce it to the two things worth asserting on -- rectangles and their
+-- fills.
+local shapes = {}
+local pending = {}      -- \-tags appended since the last new_event
+
+--- Rectangles drawn since the last :reset_draw(), as
+--- {x, y, w, h, radius, fill = "rrggbb" or nil, alpha = 0-255}.
+--- `fill` is decoded back out of the ASS \1c tag, so a test names the
+--- colour the way the theme does rather than in ASS's reversed hex.
+function M.shapes() return shapes end
+
+function M.reset_draw()
+    shapes = {}
+    pending = {}
+end
+
+local function un_ass_color(tag)
+    -- "&Hbbggrr&" -> "rrggbb"
+    local bb, gg, rr = tag:match("&H(%x%x)(%x%x)(%x%x)&")
+    if not rr then return nil end
+    return (rr .. gg .. bb):lower()
+end
+
+local function tags()
+    local blob = table.concat(pending)
+    local fill = blob:match("\\1c(&H%x+&)")
+    local alpha = blob:match("\\1a&H(%x%x)&")
+    return un_ass_color(fill or ""),
+           alpha and (255 - tonumber(alpha, 16)) or 255
+end
+
+local function rect(_s, x1, y1, x2, y2, radius)
+    local fill, alpha = tags()
+    shapes[#shapes + 1] = { x = x1, y = y1, w = x2 - x1, h = y2 - y1,
+                            radius = radius, fill = fill, alpha = alpha }
+end
+
 local Ass = {}
-Ass.__index = function(_t, _k) return function(s) return s end end
+local ASS_METHODS = {
+    new_event = function(s) pending = {}; return s end,
+    append = function(s, t) pending[#pending + 1] = tostring(t or ""); return s end,
+    rect_cw = function(s, ...) rect(s, ...); return s end,
+    round_rect_cw = function(s, ...) rect(s, ...); return s end,
+}
+Ass.__index = function(_t, k)
+    return ASS_METHODS[k] or function(s) return s end
+end
 mp.assdraw = { ass_new = function()
     return setmetatable({ text = "" }, Ass)
 end }

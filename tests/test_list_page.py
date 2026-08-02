@@ -978,6 +978,49 @@ class ViewImageTypeTest(unittest.TestCase):
         b._page_for(b.route)._open_view_settings()
         self.assertIn("vs-paginated", ids(build_scene(b)[0]))
 
+    def test_the_logo_legibility_switch_rides_the_logo_view(self):
+        """The LIBRARY half of the pair (#637). It is the one that is off by
+        default, so it is the one someone with dark logo artwork has to be
+        able to find -- and here is where they are looking, in the library
+        they just set to Logo. The Live TV half is Settings-only: Live TV has
+        no View menu, and its default is the one nobody goes looking for."""
+        b, _src = self._grid(imageType="logo")
+        b._page_for(b.route)._open_view_settings()
+        self.assertIn("vs-logolegible", ids(build_scene(b)[0]))
+
+    def test_and_is_absent_from_every_other_view(self):
+        """A library not drawing logos has nothing for it to act on, and a
+        control that does nothing where it sits reads as a broken one."""
+        for image_type in ("primary", "poster", "thumb", "banner", "disc"):
+            with self.subTest(image_type):
+                b, _src = self._grid(imageType=image_type)
+                b._page_for(b.route)._open_view_settings()
+                self.assertNotIn("vs-logolegible", ids(build_scene(b)[0]))
+
+    def test_the_logo_switch_writes_the_setting_and_repaints(self):
+        """The library key, not the Live TV one -- writing the wrong half
+        from here would change the guide and leave the grid you are looking
+        at alone. And the plate is baked into the composited strip, so
+        flipping it without retagging the store changes nothing on screen."""
+        b, _src = self._grid(imageType="logo")
+        saved, retagged = {}, []
+
+        class Cfg:
+            def set_setting(self, k, v):
+                saved[k] = v
+                return True
+
+            @staticmethod
+            def label_for(key):
+                return key
+        b._config = lambda: Cfg()
+        b.apply_logo_legibility = lambda: retagged.append(True)
+        b._page_for(b.route)._open_view_settings()
+        _n, handlers = build_scene(b)
+        handlers["vs-logolegible"]["click"]()
+        self.assertEqual(saved, {"logo_legibility_library": True})
+        self.assertEqual(retagged, [True])
+
     def test_the_pagination_switch_is_wired_to_the_paginator(self):
         """It reads the live global rather than a copy, and clicking it goes
         through Paginator.toggle -- which also has to reset the page state

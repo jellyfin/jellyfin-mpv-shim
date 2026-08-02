@@ -367,8 +367,20 @@ class Paginator:
         start = page * ps
 
         def done(res):
+            # Only if the page is still that size. A page number means
+            # nothing on its own -- "page 2" is items 24..35 at ps=12 and
+            # 60..89 at ps=30 -- so a job submitted before a resize (or
+            # before the now-playing bar appeared, which is the same thing
+            # to page_size) answers the question that WAS asked and lands on
+            # the cache the answer no longer fits. The stale page then draws
+            # 30 tiles into a 12-slot page and hides the ones that belong
+            # there. The epoch cannot cover this: nothing navigated.
+            if route.get("_page_size") != ps:
+                return
             items, total = res
-            route["_pages"][page] = list(items)
+            # setdefault-shaped for the same reason `clear` is: `reset` may
+            # have replaced these between submit and land.
+            route.setdefault("_pages", {})[page] = list(items)
             if total:
                 route["_total"] = total
 
@@ -379,7 +391,10 @@ class Paginator:
                 self._status(_("Could not load this page."))
 
         def clear():
-            route["_page_loading"].discard(page)
+            # setdefault, like _window_fetch's: `reset` pops the key
+            # outright, so a job outstanding across a toggle would otherwise
+            # raise KeyError in a callback nobody can see.
+            route.setdefault("_page_loading", set()).discard(page)
 
         self.run.run(lambda: fetch(start, ps), done, ep,
                      on_error=failed, always=clear)

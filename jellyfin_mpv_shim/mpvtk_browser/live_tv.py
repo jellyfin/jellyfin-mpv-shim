@@ -500,6 +500,54 @@ def single_timer_state(item):
     return "recording" if status == "InProgress" else "timer"
 
 
+def is_channel_artwork(item):
+    """Whether this item's artwork is (or falls back to) a CHANNEL LOGO.
+
+    Which matters because transparent artwork comes in two conventions that
+    want opposite treatment, and the item type is what tells them apart. A
+    broadcaster's channel logo is usually *dark* ink drawn for the white page
+    every other client puts it on, so on this UI it needs a light plate to be
+    visible at all. A film's or series' Logo artwork is white by convention
+    and reads on a dark surface perfectly well -- plating that is how you end
+    up needing a drop shadow to rescue white ink from a white plate, which is
+    what #637 was about.
+
+    So the two get separate settings (``logo_legibility_live_tv`` and
+    ``logo_legibility_library``) and this is the line between them.
+
+    All four Live TV DTO types, not just the two in ``LIVE_TYPES``:
+
+    * ``TvChannel`` wears the logo itself.
+    * ``Program`` mostly has no artwork of its own, so the channel logo is
+      the whole fallback -- see ``repository.PROGRAM_FIELDS``.
+    * ``Timer`` has *neither* ``ImageTags`` nor ``ParentPrimaryImage*``, so
+      it always falls through to the channel-logo branch of
+      ``image_spec`` -- which is also what jellyfin-web's schedule shows,
+      via ``showChannelLogo``. Leaving it out made the Schedule tab the one
+      Live TV screen that drew its channel logos unplated.
+    * ``SeriesTimer`` reaches the same branch whenever the series the rule
+      was made from has no poster.
+
+    A ``SeriesTimer`` that *does* have one resolves to the series poster
+    instead, and gets asked the Live TV question about it. That imprecision
+    is deliberate: a poster is opaque, ``plate_for`` returns ``None`` for it,
+    and no plate rule applies either way -- so paying for a resolved-artwork
+    check here would buy nothing over a type test the reader can verify at a
+    glance.
+
+    A finished recording is NOT included, and does not need to be: the
+    server hands it back as a Movie/Episode/Video wearing its own artwork,
+    and ``recordings_page`` never asks for ``ChannelImage``, so it cannot
+    reach the channel-logo branch at all.
+    """
+    # Imported here: repository imports THIS module at import time, so the
+    # dependency can only run the other way at call time.
+    from .repository import LIVE_TYPES
+
+    itype = (item or {}).get("Type")
+    return itype in LIVE_TYPES or itype in ("Timer", "SeriesTimer")
+
+
 def is_recording_now(item):
     """Whether this is being written to disk *right now*.
 

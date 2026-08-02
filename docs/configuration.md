@@ -207,6 +207,12 @@ You can use the config file to enable and disable features.
   - **Replaces `snapped_scrolling` and `force_scroll_snapping`, and is not migrated from either.** `snapped_scrolling: true` in an existing config is ignored (with a warning in the log) and you start on `continuous`. It was set when continuous scrolling was not on offer, so keeping it would hold exactly the people who wanted smooth scrolling on the workaround for not having it. Set `scroll_mode` to `row` if you want it back.
 - `paginated` - Page the library and music tile grids instead of scrolling them. Default: `false`
   - Each page is one screenful (no scrolling within a page), with a bottom bar for First / Previous / Next / Last and a page-number box you can type into. Adjacent pages are prefetched so paging is instant. Global — applies to every tile grid. The songs list and genre grids keep scrolling.
+- `logo_legibility_live_tv` - Back transparent **channel logos** with the light plate they were drawn for. Default: `true`
+  - Channel logos arrive as ink on a transparent background, drawn for the white page every other client puts them on — so on a dark one the black ones vanish. On, they get a light plate, and the few whose own outline is white get a drop shadow so they still have an edge against it.
+  - Off, they get the theme's card colour behind them and no shadows, which is what Jellyfin Web does.
+- `logo_legibility_library` - The same, for a library set to draw **Logo** artwork. Default: `false`
+  - Off by default because the two conventions are opposite: a film's or series' logo is white by convention and already reads on a dark background, and it is the plate that then makes it need a shadow. Turn it on if your logo artwork is dark.
+  - Also on the **View** menu of any library set to draw Logo artwork, which is where you would be when you notice.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
   - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
     X11 and the compositor's factor on Wayland/macOS.
