@@ -152,5 +152,58 @@ class EndStopRepaintTest(unittest.TestCase):
         self.assertEqual(len(self.hits), 1)
 
 
+class OffsetPrecedenceTest(unittest.TestCase):
+    """Who answers "where is this container", and in what order.
+
+    Three sources, and the order between them is the whole of two separate
+    blank-screen bugs — see ``ScrollState.offset``.
+    """
+
+    class _App:
+        def __init__(self, offsets):
+            self.offsets = offsets
+
+        def scroll_offsets(self):
+            return self.offsets
+
+    def _state(self, live=None, route=None):
+        st = ScrollState(lambda: None)
+        st.refresh(self._App(live) if live is not None else None, route)
+        return st
+
+    def _parked(self, **offsets):
+        return {ScrollState.PARK_KEY: dict(offsets)}
+
+    def test_the_renderer_is_the_authority(self):
+        st = self._state(live={"grid": 900}, route=self._parked(grid=1500))
+        self.assertEqual(st.offset("grid"), 900)
+
+    def test_a_live_zero_still_outranks_a_parked_offset(self):
+        """The container is on screen and at the top because the user put it
+        there. Preferring the parked value here is the Paginated-toggle bug
+        wearing a new hat: a window built around an offset nothing has."""
+        st = self._state(live={"grid": 0}, route=self._parked(grid=1500))
+        self.assertEqual(st.offset("grid"), 0)
+
+    def test_a_container_the_renderer_has_not_met_takes_the_parked_offset(self):
+        """It has just entered the scene, and the scene carries off0 to put
+        it back — so that is where it is about to be."""
+        st = self._state(live={"detail": 40}, route=self._parked(grid=1500))
+        self.assertEqual(st.offset("grid"), 1500)
+
+    def test_a_container_with_nothing_parked_is_at_the_top(self):
+        st = self._state(live={}, route={})
+        self.assertEqual(st.offset("grid"), 0)
+
+    def test_the_recorded_copy_is_still_a_whole_snapshot_fallback(self):
+        """mpv < 0.36 has no live snapshot at all. It does NOT get consulted
+        per-id to fill gaps in one that answered."""
+        st = self._state(live={"other": 5}, route={})
+        st._recorded["grid"] = 1500
+        self.assertEqual(st.offset("grid"), 0)
+        st.refresh(None, {})                  # no live snapshot at all
+        self.assertEqual(st.offset("grid"), 1500)
+
+
 if __name__ == "__main__":
     unittest.main()

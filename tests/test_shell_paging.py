@@ -944,6 +944,25 @@ class _Albums(FakeSource):
         return albums[start:start + kw.get("limit", 300)], len(albums)
 
 
+class _BigLibrary(FakeSource):
+    """A library long enough to virtualize. The stock fixture's 30 items all
+    fit in one window, so nothing is ever a hole and no windowing bug can
+    show itself."""
+
+    def __init__(self):
+        super().__init__()
+        self.grid_items = [
+            {"Id": "g%d" % i, "Name": "Item %d" % i, "Type": "Movie",
+             "PrimaryImageAspectRatio": 2 / 3}
+            for i in range(600)
+        ]
+
+    def get_library_items(self, server_uuid, parent_id, start_index=0,
+                          limit=100, **kw):
+        return (self.grid_items[start_index:start_index + limit],
+                len(self.grid_items))
+
+
 class TestAReturningScrollContainerStartsAtTheTop(unittest.TestCase):
     """A virtualized grid that leaves the scene and comes back rendered
     blank: it was windowed around the offset it had before it left, while
@@ -1061,6 +1080,107 @@ class TestAReturningScrollContainerStartsAtTheTop(unittest.TestCase):
         self.assertEqual(grid.get("off0"), 1500,
                          "the grid came back at the top instead of where it "
                          "was left")
+
+    def test_back_navigation_windows_around_where_it_is_going(self):
+        """The other half of the restore, and the half that was missing.
+
+        Sending ``off0`` puts the container back at the bottom. Building its
+        virtualized window is a *separate* question, and it was answered
+        from the renderer's live offsets -- where the container has just
+        entered the scene and so is reported at 0. So the frame that jumped
+        to the bottom carried the tiles for the top, and the screen came
+        back empty and stayed empty until a scroll rebuilt the window.
+
+        Reported from a real session: scroll a library to the end, open
+        something, press Back, and there is nothing on screen until you
+        nudge the wheel.
+        """
+        b, app = self._browser(_BigLibrary())
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        app.on_screen = {"grid"}
+        end = self._grid_node(b)["ch"] - self._grid_node(b)["h"]
+
+        # To the end, and let the window catch up (the items for a jump are
+        # asked for during the build that needs them, so they land in the
+        # next one -- see Paginator.window).
+        app.scroll["grid"] = end
+        b._on_scroll("grid", end, end)
+        self._grid_node(b)
+        drawn = self._drawn(b)
+        self.assertTrue(drawn, "test premise: the end of the grid has tiles")
+        self.assertGreater(drawn[-1], 500, "test premise: those are last ones")
+
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "g1"})
+        app.scroll.pop("grid")                 # the scroller left the scene
+        b.go_back()
+        app.on_screen = {"grid"}
+
+        back = self._drawn(b)
+        self.assertTrue(
+            back, "the grid came back with no tiles built at all")
+        self.assertGreater(
+            back[-1], 500,
+            "the grid came back windowed at the top (items %s..%s) while "
+            "off0 put it at the bottom -- a screenful of holes"
+            % (back[0], back[-1]))
+
+    def test_playing_something_and_coming_back_lands_where_you_left_it(self):
+        """The play overlay, which is not a navigation at all.
+
+        Pressing it yields the whole window to the video, and the empty
+        scene that goes with that makes every scroll container vanish — so
+        the renderer drops their offsets. Coming back is a rebuild of the
+        *same* route: nothing pushes, nothing pops, so ``navigate``'s park
+        never ran and there was nothing for ``parked_scroll`` to restore.
+        The library came back at the top, and (depending on whether the live
+        read had caught up when the window was built) came back blank.
+
+        Reported from a real session, one screen further in than the Back
+        case above: scroll to the end, press Play on a tile, come back.
+        """
+        b, app = self._browser(_BigLibrary())
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "title": "Movies"})
+        app.on_screen = {"grid"}
+        end = self._grid_node(b)["ch"] - self._grid_node(b)["h"]
+        app.scroll["grid"] = end
+        b._on_scroll("grid", end, end)
+        self._drawn(b)                       # let the window catch up
+        self.assertGreater(self._drawn(b)[-1], 500, "test premise")
+
+        b.on_playstate({"stopped": False, "is_audio": False, "id": "g1",
+                        "title": "Item 1", "position": 1, "duration": 100})
+        self.assertAlmostEqual(
+            (b.route.get("_scroll") or {}).get("grid", 0), end,
+            msg="the offsets were not parked on the way into playback")
+
+        app.scroll.pop("grid")               # the empty scene dropped it
+        app.on_screen = set()
+        b.enter_browse()
+        app.on_screen = {"grid"}
+
+        grid = self._grid_node(b)
+        self.assertAlmostEqual(grid.get("off0") or 0, end,
+                               msg="the library came back at the top")
+        self.assertGreater(
+            self._drawn(b)[-1], 500,
+            "the library came back windowed at the top while off0 put it at "
+            "the bottom -- a screenful of holes")
+
+    def _grid_node(self, b, size=(1280, 720)):
+        nodes, _h = layout(b.build(size), *size)
+        return next(n for n in nodes
+                    if n.get("id") == "grid" and n.get("t") == "scroll")
+
+    def _drawn(self, b, size=(1280, 720)):
+        """Indexes of the library items this build actually composited."""
+        import re
+
+        pat = re.compile(r"^grid-\d+-g(\d+)")
+        nodes, _h = layout(b.build(size), *size)
+        return sorted({int(m.group(1)) for n in nodes
+                       for m in [pat.match(n.get("id") or "")] if m})
 
     def test_a_first_visit_carries_no_offset(self):
         """Only *returning* restores. A route opened fresh must not inherit
