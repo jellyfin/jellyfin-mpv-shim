@@ -1551,6 +1551,42 @@ hud_pointer(642, 670)
 pv_paint()
 ok(preview() == nil, "a slider without pv draws no bubble")
 
+-- ===================================== mpv's console owns the keyboard
+
+-- Our ENTER/arrow bindings are FORCED, so they outrank the console's own
+-- input: typing a command and pressing ENTER summoned the HUD and toggled
+-- pause instead of running it.
+-- force a real transition into browse: the tests above leave the renderer
+-- in HUD mode, where the arrows are mpv's seek keys
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-active", "yes")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse should own ENTER before the console")
+
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "the console is up and ENTER is still ours")
+ok(fake.log.keybinds["mpvtk_nav_UP"] == nil,
+   "the console is up and the arrows are still ours")
+
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "ENTER was not taken back when the console closed")
+ok(fake.log.keybinds["mpvtk_nav_UP"] ~= nil,
+   "the arrows were not taken back when the console closed")
+
+-- Restore puts back what was BOUND, not what some second copy of
+-- ui_resume's rules thinks should be. During plain playback the arrows are
+-- mpv's seek keys and nav is suspended, so closing the console there must
+-- not hand them to us.
+fake.send("mpvtk-active", "no")
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil, "playback should not own ENTER")
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "closing the console bound nav keys that were not bound before it opened")
+fake.send("mpvtk-active", "yes")
+
 -- ========================================================== teardown
 
 scene({})

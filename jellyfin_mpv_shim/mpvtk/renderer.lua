@@ -4011,12 +4011,14 @@ local function bind_nav_keys()
         mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
             { repeatable = true })
     end
+    state.kb_nav = true
 end
 
 local function unbind_nav_keys()
     for _, k in ipairs(NAV_KEYS) do
         mp.remove_key_binding('mpvtk_nav_' .. k[1])
     end
+    state.kb_nav = false
 end
 
 bind_nav_keys()
@@ -4590,11 +4592,13 @@ local function phud_skip_bind()
         send({ t = 'hudskip' })
         phud_skip_hide()
     end)
+    state.kb_skip = true
 end
 
 -- Give ENTER back to the scene without taking the button down.
 function phud_skip_unbind()
     mp.remove_key_binding('mpvtk_skip_enter')
+    state.kb_skip = false
 end
 
 function phud_skip_hide()
@@ -4660,6 +4664,7 @@ function phud_bind_summon()
             mp.commandv('cycle', 'pause')
         end
     end)
+    state.kb_summon = true
 end
 
 local function phud_unbind_summon()
@@ -4668,6 +4673,7 @@ local function phud_unbind_summon()
         mp.remove_key_binding('mpvtk_summon_' .. key)
     end
     mp.remove_key_binding('mpvtk_phud_click')
+    state.kb_summon = false
 end
 
 local function phud_disarm()
@@ -5258,5 +5264,42 @@ mp.register_script_message('mpvtk-debug', function(json)
                 phud_summon('mouse')
             end
         end
+    end
+end)
+
+-- mpv's console (`) wants the keyboard, but our ENTER and arrow bindings
+-- are FORCED and outrank it: typing a command and pressing ENTER summoned
+-- the HUD (and toggled pause) instead of running the command, with no way
+-- back but ESC. Hand the keys over for as long as the console is up, and
+-- take them again when it closes.
+--
+-- Restored from what was actually bound rather than re-derived: which of
+-- the three groups is live depends on browse-vs-HUD, hud_grab_keys and
+-- whether the standalone Skip button is showing, and a second copy of that
+-- decision would drift from ui_resume's. The mouse and wheel sections stay
+-- put -- the console does not want them, and mpvtk_mouse is what dismisses
+-- a stray click.
+--
+-- Everything hangs off `state` and the handler is anonymous deliberately:
+-- this chunk is at 192 of LuaJIT's 200 top-level locals, and going over
+-- does not fail at the call, it fails to load the renderer at all.
+--
+-- The property is mpv >= 0.38 and reads nil both before the console is
+-- first opened and on builds without it. nil is falsy, which is the right
+-- answer for "the console is not up" in either case.
+mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
+    if open then
+        if state.kb_saved then return end
+        state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
+                           skip = state.kb_skip }
+        if state.kb_nav then unbind_nav_keys() end
+        if state.kb_summon then phud_unbind_summon() end
+        if state.kb_skip then phud_skip_unbind() end
+    elseif state.kb_saved then
+        local was = state.kb_saved
+        state.kb_saved = nil
+        if was.nav then bind_nav_keys() end
+        if was.summon then phud_bind_summon() end
+        if was.skip then phud_skip_bind() end
     end
 end)
