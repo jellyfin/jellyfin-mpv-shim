@@ -806,15 +806,25 @@ class MpvtkApp:
         out of the way for other OSCs — HUD mode keeps it attached
         during playback with a blank scene and only a lightweight
         summon surface bound (the wake key + mouse motion). Summoning
-        rebinds the full input sections and fires ``on_hud(True)``;
-        the ~4s inactivity timer drops back to idle with
-        ``on_hud(False)``. ``set_active`` in either direction also
-        leaves HUD mode.
+        rebinds the full input sections and fires ``on_hud(True)``; the
+        inactivity timer drops back to idle with ``on_hud(False)``.
+        ``set_active`` in either direction also leaves HUD mode.
 
-        ``opts`` is the keyboard policy: ``{"grab": bool, "key": str}``
-        — grab summons on all arrows/ENTER while idle; otherwise only
-        ``key`` is taken over (mpv key name; ENTER also pause-toggles
-        on wake)."""
+        ``opts`` is everything the renderer owns about the HUD, and is
+        re-sent on every engage — which is what lets a settings change
+        stick without a restart:
+
+        ``grab`` / ``key``
+            keyboard policy. Grab summons on all arrows/ENTER while idle;
+            otherwise only ``key`` is taken over (an mpv key name; ENTER
+            also pause-toggles on wake).
+        ``hide`` / ``mode``
+            auto-hide delay in seconds and policy ("hover" / "always" /
+            "paused"). Absent means the toolkit's own default
+            (``PHUD_HIDE.def``); ``0`` is not absent, it forces "hover".
+        ``shadow``
+            draw the glyphs with their own dark halo, for the app that
+            paints no scrim behind them."""
         args = ["script-message", "mpvtk-hud", "yes" if on else "no"]
         if on and opts is not None:
             args.append(json.dumps(opts))

@@ -169,9 +169,6 @@ LABELED_ENUMS = {
         (_("Aligned to rows"), "aligned"),
         (_("One row per notch"), "row"),
     ],
-    # Every label points at the value it has always pointed at -- "Small" is
-    # the base size, which reads oddly beside two smaller steps but is the
-    # price of not silently re-pointing a string 86 locales have translated.
     # One list, five settings: the three things that can be done about a
     # media segment (jellyfin-web offers the same three).
     "segment_intro": _SEGMENT_ACTIONS,
@@ -189,6 +186,9 @@ LABELED_ENUMS = {
         (_("Always hide"), "always"),
         (_("Never hide while paused"), "paused"),
     ],
+    # Every label points at the value it has always pointed at -- "Small" is
+    # the base size, which reads oddly beside two smaller steps but is the
+    # price of not silently re-pointing a string 86 locales have translated.
     "poster_scale": [
         (_("Theme default"), None),
         (_("Extra Compact"), 0.75),

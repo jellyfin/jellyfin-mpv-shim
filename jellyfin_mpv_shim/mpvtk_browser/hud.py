@@ -3,7 +3,8 @@
 Rendered by the browser while it is yielded to video playback, via the
 renderer's attached-but-idle lifecycle (``mpvtk-hud``): playback runs
 clean until an arrow key / ENTER / mouse motion summons the HUD, and
-~4s without input hides it again (both renderer-side; see
+``hud_hide_secs`` without input hides it again, on the policy
+``hud_autohide`` sets (both renderer-side; see
 renderer.lua). ``hud_control.HudController`` owns the summoned flag and
 calls :func:`build_hud` from ``build()``; playstate comes from the
 same ``push_playstate`` snapshots that feed the audio now-playing bar,

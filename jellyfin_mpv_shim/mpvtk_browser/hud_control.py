@@ -2,9 +2,8 @@
 
 ``hud.py`` builds the HUD's widget tree; this owns what that tree reads. The
 two halves were split across two files for no reason other than history: the
-builders went into ``hud.py`` when it was written, and the eight pieces of
-state plus the eleven handlers stayed on ``MpvtkBrowser`` because that is
-where ``__init__`` was.
+builders went into ``hud.py`` when it was written, and the state plus the
+handlers stayed on ``MpvtkBrowser`` because that is where ``__init__`` was.
 
 Nothing here is browser chrome. The HUD belongs to *video playback* — the
 renderer owns its summon/auto-hide lifecycle and reports it through
@@ -92,8 +91,13 @@ class HudController:
                 and c.use_hud())
 
     def engage(self):
-        """``set_hud(True)`` with the controller's keyboard policy attached
-        (grab arrows vs. wake-key-only; see hud_grab_keys)."""
+        """``set_hud(True)`` with everything the renderer owns attached:
+        the keyboard policy (grab arrows vs. wake-key-only), the auto-hide
+        delay and mode, and whether the glyphs carry their own shadow.
+
+        Idempotent, and that matters — re-engaging is the ONLY thing that
+        carries a changed setting to the renderer, so those settings apply
+        without a restart."""
         opts = None
         get = getattr(self.controller, "hud_key_opts", None)
         if get is not None:
