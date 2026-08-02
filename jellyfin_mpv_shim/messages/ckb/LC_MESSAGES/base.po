@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 19:44-0400\n"
+"POT-Creation-Date: 2026-08-02 01:33-0400\n"
 "PO-Revision-Date: 2026-07-31 22:01+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
@@ -117,6 +117,88 @@ msgstr "پەیوەندیی خێرا لەم ڕاژەکارەدا چالاک نە�
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
 msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Credits"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Commercial"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Commercial"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Commercial"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Preview"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Preview"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Preview"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Recap"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Recap"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Intro"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Intro"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Intro"
+msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -283,6 +365,18 @@ msgstr "دەنگی یابانی /بە ژێرنووسی ئینگلیزی"
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "ناخۆکارانە بە پێی ناوەڕۆکی بەش (کەمتر پشت پێ بەستراوە)"
 
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Ask"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always"
+msgstr ""
+
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
 msgstr "دیاریکردنی لاڕووی بنەڕەتی تڕانسکۆد"
@@ -389,25 +483,36 @@ msgstr "چاوخشاندنەوە بۆ نوێکردنەوە"
 msgid "Discord Rich Presence"
 msgstr "پێم بگە لە ڕیگەی دیسکۆردەوە"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Intros"
-msgstr "هەردەم سەرەتاکان بپەڕێنە"
-
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Intros"
-msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
-
-#: jellyfin_mpv_shim/menu.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-#| msgid "Always Skip Intros"
-msgid "Always Skip Credits"
-msgstr "هەردەم سەرەتاکان بپەڕێنە"
+#| msgid "Skipped Intro"
+msgid "Skip Intros"
+msgstr "سەرەتا پەڕێنراوەکان"
 
-#: jellyfin_mpv_shim/menu.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-#| msgid "Ask to Skip Intros"
-msgid "Ask to Skip Credits"
-msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
+#| msgid "Skipped Intro"
+msgctxt "setting"
+msgid "Skip Credits"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Commercials"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Previews"
+msgstr "سەرەتا پەڕێنراوەکان"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Recaps"
+msgstr "سەرەتا پەڕێنراوەکان"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -453,11 +558,13 @@ msgstr ""
 msgid "The change could not be applied."
 msgstr ""
 
+# seeded from jellyfin-web: LiveTV
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
+#, fuzzy
 msgid "Live TV"
-msgstr ""
+msgstr "تەلەفزیۆنی ڕاستەوخۆ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
@@ -504,13 +611,15 @@ msgstr ""
 msgid "PIN"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
+#, fuzzy
 msgid "Cancel"
-msgstr ""
+msgstr "هەڵوەشاندنەوە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -728,19 +837,23 @@ msgstr ""
 msgid "Interface"
 msgstr ""
 
+# seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
 msgid "Theme"
-msgstr ""
+msgstr "ڕووکار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Playback"
 msgstr ""
 
+# seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Audio"
-msgstr ""
+msgstr "دەنگ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
@@ -783,6 +896,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No player controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
 msgstr ""
 
@@ -815,7 +932,41 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Panel behind the controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "None (shadowed text)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide unless hovered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always hide"
+msgstr "هەردەم سەرەتاکان بپەڕێنە"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never hide while paused"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Extra Compact"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Compact"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -951,6 +1102,7 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
 msgstr ""
 
@@ -972,6 +1124,22 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Shading Behind the Player Controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "When the Player Controls Hide"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Player Controls After (seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Mouse Back/Forward Buttons Skip Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1055,7 +1223,9 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard."
+"drive the player controls by keyboard. \"No player controls\" leaves "
+"playback bare; the library, the keyboard shortcuts and the menu key still "
+"work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1107,11 +1277,38 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Overrides the theme's cover size. Takes effect after a restart."
+msgid ""
+"Overrides the theme's cover size. Applies immediately, and is also on the "
+"View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, python-format
+msgid ""
+"The controls have to stay legible over any frame. \"None\" gives the text a "
+"drop shadow instead of shading the picture behind it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Hide unless hovered\" keeps them up only while the pointer is on them, "
+"paused or not."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
+"hovered\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"During playback only — in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice. Takes "
+"effect after a restart."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, no-python-format
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
@@ -1199,11 +1396,13 @@ msgstr "هێشتا هیچ کۆمەڵەیەک نییە."
 msgid "New collection name…"
 msgstr "ناوی کۆمەڵەی نوێ…"
 
+# seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Back"
-msgstr ""
+msgstr "گەڕانەوە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not check what needs downloading."
@@ -1269,9 +1468,11 @@ msgstr ""
 msgid "Banner"
 msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکراوەکان"
 
+# seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Logo"
-msgstr ""
+msgstr "لۆگۆ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Disc"
@@ -1330,9 +1531,11 @@ msgstr ""
 msgid "Notice"
 msgstr ""
 
+# seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "OK"
-msgstr ""
+msgstr "باشە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1552,9 +1755,11 @@ msgstr "گۆڕینی کوالێتی ڤیدیۆ"
 msgid "Playback Speed"
 msgstr ""
 
+# seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
 msgid "Aspect Ratio"
-msgstr ""
+msgstr "ڕێژەی لایەنەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -1797,9 +2002,11 @@ msgstr ""
 msgid "Stop late (minutes)"
 msgstr ""
 
+# seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#, fuzzy
 msgid "As many as possible"
-msgstr ""
+msgstr "تا بتوانرێت زۆرترین"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "1 episode"
@@ -1891,10 +2098,12 @@ msgstr ""
 msgid "News"
 msgstr ""
 
+# seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#, fuzzy
 msgid "Live"
-msgstr ""
+msgstr "ڕاستەوخۆ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -1950,9 +2159,11 @@ msgstr ""
 msgid "Play"
 msgstr "کارپێکردنی هاوکاتگەری"
 
+# seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, fuzzy
 msgid "Pause"
-msgstr ""
+msgstr "وەستاندن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Stop"
@@ -2015,9 +2226,11 @@ msgstr ""
 msgid "Version %d"
 msgstr ""
 
+# seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
 msgid "Version"
-msgstr ""
+msgstr "وەشان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
@@ -2099,8 +2312,9 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
-msgid "%(shown)d of %(total)d"
+msgid "%d items"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2181,10 +2395,12 @@ msgstr ""
 msgid "Guide"
 msgstr ""
 
+# seeded from jellyfin-web: MediaInfoChannels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
 msgid "Channels"
-msgstr ""
+msgstr "کەناڵەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
@@ -2363,17 +2579,25 @@ msgstr "%d تراکەکان"
 msgid "Album Artists"
 msgstr ""
 
+# seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
 msgid "Artists"
-msgstr ""
+msgstr "هونەرمەندان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Songs"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
+#| msgid "Could not load this page."
+msgid "Could not start playback."
+msgstr "نەتوانرا ئەم لاپەڕەیە باربکرێت."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -2460,19 +2684,25 @@ msgstr "لابردنی ڕاژە"
 msgid "Delete the playlist %s?"
 msgstr "سڕینەوەی پلەی لیستەکە %s؟"
 
+# seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Title"
-msgstr ""
+msgstr "سەردێڕ"
 
+# seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#, fuzzy
 msgid "Type"
-msgstr ""
+msgstr "جۆر"
 
+# seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Time"
-msgstr ""
+msgstr "کات"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
@@ -2667,11 +2897,6 @@ msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
@@ -2693,7 +2918,7 @@ msgid "Show advanced settings"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Cover size and interface scale require a restart."
+msgid "Interface scale requires a restart."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -2936,17 +3161,21 @@ msgstr ""
 msgid "That user could not be renamed."
 msgstr ""
 
+# seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Year"
-msgstr ""
+msgstr "ساڵ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
 msgstr ""
 
+# seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
 msgid "Artist"
-msgstr ""
+msgstr "هونەرمەند"
 
 # seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -3080,26 +3309,6 @@ msgid "Please wait, loading..."
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skipped Credits"
-msgstr "سەرەتا پەڕێنراوەکان"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Skipped Intro"
-msgstr "سەرەتا پەڕێنراوەکان"
-
-#: jellyfin_mpv_shim/player.py
-#, fuzzy
-#| msgid "Seek to Skip Intro"
-msgid "Seek to Skip Credits"
-msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Intro"
-msgstr "گواستنەوە بۆ پەڕاندنی سەرەتا"
-
-#: jellyfin_mpv_shim/player.py
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -3110,18 +3319,6 @@ msgstr ""
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
 msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skip Credits"
-msgstr "سەرەتا پەڕێنراوەکان"
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skip Intro"
-msgstr "سەرەتا پەڕێنراوەکان"
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -3321,6 +3518,22 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr ""
+
+#~ msgid "Always Skip Intros"
+#~ msgstr "هەردەم سەرەتاکان بپەڕێنە"
+
+#~ msgid "Ask to Skip Intros"
+#~ msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
+
+#, fuzzy
+#~| msgid "Always Skip Intros"
+#~ msgid "Always Skip Credits"
+#~ msgstr "هەردەم سەرەتاکان بپەڕێنە"
+
+#, fuzzy
+#~| msgid "Ask to Skip Intros"
+#~ msgid "Ask to Skip Credits"
+#~ msgstr "داوابکە بۆ پەڕاندنی سەرەتاکان"
 
 #~ msgid "Select your media in Jellyfin and play it here"
 #~ msgstr "میدیای خۆت هەڵبژێرە لە جێلی فین وە کاری پێ بکە لێرە"

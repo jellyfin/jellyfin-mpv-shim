@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 19:44-0400\n"
+"POT-Creation-Date: 2026-08-02 01:33-0400\n"
 "PO-Revision-Date: 2026-01-09 22:16+0000\n"
 "Last-Translator: SilentSkies <toby.taylor400@outlook.com>\n"
 "Language-Team: Welsh <https://translate.jellyfin.org/projects/jellyfin/"
@@ -123,6 +123,89 @@ msgstr ""
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
 msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Credits"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Credits"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Credits"
+msgstr "Ceisio Hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+msgid "Skip Commercial"
+msgstr "Penodau arbennig"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Commercial"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Commercial"
+msgstr "Ceisio Hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Preview"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Preview"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Preview"
+msgstr "Ceisio Hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skip Recap"
+msgstr ""
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skipped Recap"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Seek to Skip Intro"
+msgid "Seek to Skip Recap"
+msgstr "Ceisio Hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Intro"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Intro"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Intro"
+msgstr "Ceisio Hepgor y Cyflwyniad"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -289,6 +372,20 @@ msgstr "Sain Japaneaidd gydag Isdeitlau Saesneg"
 msgid "Manual by Track Index (Less Reliable)"
 msgstr "Llawlyfr yn ôl Mynegai Trac (Llai Dibynadwy)"
 
+# seeded from jellyfin-web: Never
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Never"
+msgstr "Byth"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Ask"
+msgstr ""
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Always"
+msgstr ""
+
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
 msgstr "Dewiswch Proffil Trawsgodio Arferol"
@@ -394,25 +491,35 @@ msgstr "Gwirio am Ddiweddariadau"
 msgid "Discord Rich Presence"
 msgstr "Presenoldeb Cyfoethog Discord"
 
-#: jellyfin_mpv_shim/menu.py
-msgid "Always Skip Intros"
-msgstr "Hepgor Rhagarweiniadau bob amser"
-
-#: jellyfin_mpv_shim/menu.py
-msgid "Ask to Skip Intros"
-msgstr "Gofynnwch i Hepgor Intros"
-
-#: jellyfin_mpv_shim/menu.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-#| msgid "Always Skip Intros"
-msgid "Always Skip Credits"
-msgstr "Hepgor Rhagarweiniadau bob amser"
+#| msgid "Skipped Intro"
+msgid "Skip Intros"
+msgstr "Wedi hepgor y Cyflwyniad"
 
-#: jellyfin_mpv_shim/menu.py
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-#| msgid "Ask to Skip Intros"
-msgid "Ask to Skip Credits"
-msgstr "Gofynnwch i Hepgor Intros"
+#| msgid "Skipped Intro"
+msgctxt "setting"
+msgid "Skip Credits"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Skip Commercials"
+msgstr "Penodau arbennig"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Previews"
+msgstr "Wedi hepgor y Cyflwyniad"
+
+#: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Skipped Intro"
+msgid "Skip Recaps"
+msgstr "Wedi hepgor y Cyflwyniad"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -849,6 +956,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No player controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
 msgstr ""
 
@@ -880,8 +991,46 @@ msgstr ""
 msgid "One row per notch"
 msgstr ""
 
+# seeded from jellyfin-web: Default
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Default"
+msgstr "Diofyn"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Panel behind the controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "None (Disabled)"
+msgid "None (shadowed text)"
+msgstr "Dim (Wedi'i Ddiffodd)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide unless hovered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Always Skip Intros"
+msgid "Always hide"
+msgstr "Hepgor Rhagarweiniadau bob amser"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Never hide while paused"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Extra Compact"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Compact"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1017,6 +1166,7 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
 msgstr ""
 
@@ -1038,6 +1188,22 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Shading Behind the Player Controls"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "When the Player Controls Hide"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Player Controls After (seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Mouse Back/Forward Buttons Skip Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1123,7 +1289,9 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard."
+"drive the player controls by keyboard. \"No player controls\" leaves "
+"playback bare; the library, the keyboard shortcuts and the menu key still "
+"work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1175,11 +1343,38 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Overrides the theme's cover size. Takes effect after a restart."
+msgid ""
+"Overrides the theme's cover size. Applies immediately, and is also on the "
+"View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, python-format
+msgid ""
+"The controls have to stay legible over any frame. \"None\" gives the text a "
+"drop shadow instead of shading the picture behind it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"\"Hide unless hovered\" keeps them up only while the pointer is on them, "
+"paused or not."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
+"hovered\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"During playback only — in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice. Takes "
+"effect after a restart."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, no-python-format
 msgid ""
 "Takes effect after a restart. \"Follow display\" uses the scale your desktop "
 "reports, which is 100% on X11."
@@ -1341,9 +1536,11 @@ msgstr ""
 msgid "Auto"
 msgstr "Awto-Chwarae"
 
+# seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "Poster"
-msgstr ""
+msgstr "Poster"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
@@ -1383,7 +1580,6 @@ msgstr ""
 msgid "Show titles"
 msgstr "Maint Isdeitl: {0}"
 
-# seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
 msgid "Show years"
@@ -2309,8 +2505,9 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
-msgid "%(shown)d of %(total)d"
+msgid "%d items"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2619,6 +2816,16 @@ msgstr ""
 #, fuzzy
 msgid "Songs"
 msgstr "Caneuon"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not start playback."
+msgstr ""
+"Methu ychwanegu gweinydd.\n"
+"Gwiriwch eich gwybodaeth cyswllt."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2970,11 +3177,6 @@ msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
@@ -2999,7 +3201,7 @@ msgid "Show advanced settings"
 msgstr "Dangos gosodiadau uwch"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Cover size and interface scale require a restart."
+msgid "Interface scale requires a restart."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -3450,26 +3652,6 @@ msgid "Please wait, loading..."
 msgstr ""
 
 #: jellyfin_mpv_shim/player.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skipped Credits"
-msgstr "Wedi hepgor y Cyflwyniad"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Skipped Intro"
-msgstr "Wedi hepgor y Cyflwyniad"
-
-#: jellyfin_mpv_shim/player.py
-#, fuzzy
-#| msgid "Seek to Skip Intro"
-msgid "Seek to Skip Credits"
-msgstr "Ceisio Hepgor y Cyflwyniad"
-
-#: jellyfin_mpv_shim/player.py
-msgid "Seek to Skip Intro"
-msgstr "Ceisio Hepgor y Cyflwyniad"
-
-#: jellyfin_mpv_shim/player.py
 msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
@@ -3480,18 +3662,6 @@ msgstr ""
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
 msgstr ""
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skip Credits"
-msgstr "Wedi hepgor y Cyflwyniad"
-
-#: jellyfin_mpv_shim/player_reporting.py
-#, fuzzy
-#| msgid "Skipped Intro"
-msgid "Skip Intro"
-msgstr "Wedi hepgor y Cyflwyniad"
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -3691,6 +3861,22 @@ msgstr ""
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Dewis Proffil Cysgodydd"
+
+#~ msgid "Always Skip Intros"
+#~ msgstr "Hepgor Rhagarweiniadau bob amser"
+
+#~ msgid "Ask to Skip Intros"
+#~ msgstr "Gofynnwch i Hepgor Intros"
+
+#, fuzzy
+#~| msgid "Always Skip Intros"
+#~ msgid "Always Skip Credits"
+#~ msgstr "Hepgor Rhagarweiniadau bob amser"
+
+#, fuzzy
+#~| msgid "Ask to Skip Intros"
+#~ msgid "Ask to Skip Credits"
+#~ msgstr "Gofynnwch i Hepgor Intros"
 
 #~ msgid "Select your media in Jellyfin and play it here"
 #~ msgstr "Dewiswch eich cyfryngau yn Jellyfin a'i chwarae yma"
