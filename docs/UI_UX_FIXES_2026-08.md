@@ -840,3 +840,74 @@ The thumbnail-request pressure from free scrollbar dragging (2) and the
 chapter-image trickplay fallback (1). Neither has a real-data test, and both
 only misbehave at scale. If there is time for two things, those.
 --> It works wonderfully. Am very pleased.
+## Next up: windowing the music routes
+
+Deferred from #617 and settled here so it is not re-litigated. Lands after
+the review round's fixes.
+
+### What is left on append-on-approach
+
+| Route | Drawn as | Paging today | Windowable |
+|---|---|---|---|
+| Music → Albums / Album Artists / Artists | `grid_of` | `more`, 100/page | **yes, mechanical** |
+| Music → Songs | `track_list` | `more`, 100/page | yes, with the action change below |
+| Music → Genres | `grid_of` | none — one unpaged request | **nothing to do** |
+| Genre page (albums) | `grid_of` | `more`, 100/page | **yes, mechanical** |
+| Artist page (albums) | `grid_of` | none — `get_artist_albums` takes no offset | no: already fetches everything |
+| Live TV channels | `grid_of` | `more` | **no, deliberately** |
+
+Genres and the artist page are non-cases, not omissions: one is a single
+unpaged request whose `_total` already equals its length (the same shape that
+exempts a Random grid), and the other has no paged query to window.
+
+Live TV stays out for the reason its section gives: those lists re-read and
+merge themselves on a timer and four websocket events, and a windowed fetch
+driven from render would fight that discipline.
+
+### The tile grids are mechanical
+
+Everything they need landed with #617 — `grid_of`/`image_map` tolerate `None`
+holes, `TileRenderer.row_window` is public so a page can fetch exactly what it
+draws, and `Paginator.window` is generic over `get`/`put`/`fetch`. Per route:
+pad on load, call `window` from render, drop `_on_scroll_end`, hang
+`Paginator.rewindow` off the scroll handler. About thirty lines each.
+
+The tab cache needs nothing: `_set_tab` already calls `pages.reset(route)`,
+which clears `_win_tried`/`_win_load`, and coming back to a cached tab
+re-requests nothing because `window` skips a page whose slots are all filled.
+
+### The songs tab: actions ask the server
+
+[iw] "The actual songs tab has the potential to have thousands of items in
+it. Actions on it should probably work like other library-wide actions and
+pull from the server with a cap like web does."
+
+`track_list` needs the hole tolerance `_list_view` already got. The part that
+is not mechanical is this, in `_songs_body`:
+
+```python
+ids = [s.get("Id") for s in data]
+... play_list(ids, server, i, audio=True)
+```
+
+built from the whole list and indexed by row. Over a sparse list that is a
+list of `None`s and a broken index→id mapping.
+
+**jellyfin-web does not play what is on screen either.** `shortcuts.js`'s
+`playAllFromHere` re-runs the *container's own query* (`itemsContainer
+.fetchData`) and plays `result.Items`, using the scraped DOM ids only as a
+fallback for a container with no fetcher — and that re-fetch goes through
+`getItemsForPlayback`, i.e. the same `Limit: 300` cap `repository.QUEUE_LIMIT`
+already matches.
+
+So: clicking a song asks the server for `QUEUE_LIMIT` songs **starting at that
+row's index** and plays from the top of the answer. Our sparse list makes this
+*easier* than web's, not harder — the row index IS the item's absolute
+position in the library, which is the invariant windowing is built on, so
+there is nothing to reconstruct. (Web computes its start from the DOM, which
+only lines up because its list is a single rendered page.)
+
+### Order
+
+1. Tile grids — Albums, Album Artists, Artists, genre page.
+2. Songs — `track_list` holes plus the server-backed play action.
