@@ -22,8 +22,11 @@ Not named `test_*` so unittest discovery ignores it. `tests/e2e/` has no
 `__init__.py`, so `python3 -m unittest discover tests` never recurses in.
 """
 
+import atexit
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -134,6 +137,89 @@ def require_server_and_mpv(obj):
 # Settings + the player module
 # --------------------------------------------------------------------------
 
+_SINK_MODULE = None
+SINK_NAME = "jms-e2e-sink"
+
+
+def dummy_audio_device():
+    """An mpv `audio-device` that makes noise nowhere. Created on first use.
+
+    The playback tests decode real media, so mpv opens a real audio output —
+    which on a developer's box means the suite is audible, fights whatever
+    else is playing, and can fail on a device another process holds. (A run
+    against the real device already produced "Audio device underrun
+    detected".)
+
+    A PipeWire/PulseAudio **null sink** is better than `ao=null` here: mpv
+    genuinely opens an output and the whole audio path runs — device
+    selection, format negotiation, the AudioMixin settings — it just ends
+    nowhere. `ao=null` would skip all of that, and audio behaviour is
+    something this suite should be able to grow tests for.
+
+    The sink is created explicitly and addressed explicitly; **the default
+    sink is never changed**, so nothing about the developer's audio moves.
+    Unloaded at exit.
+
+    Returns None when there is no `pactl` or the sink cannot be made, in
+    which case the caller falls back to mpv's own null device — quiet, and
+    still no contention, just less of the path exercised.
+    """
+    global _SINK_MODULE
+    if _SINK_MODULE is not None:
+        return "pulse/" + SINK_NAME
+    # The runner makes one sink for the whole matrix and names it here, so the
+    # eleven legs (and the children they spawn) share it instead of each
+    # loading a module — eleven sinks with one requested name is eleven
+    # deduplicated names, and any leg that dies takes its unload with it.
+    from_runner = os.environ.get("JMS_E2E_AUDIO_DEVICE")
+    if from_runner:
+        return from_runner
+    if not shutil.which("pactl"):
+        return None
+    if _sink_exists():
+        # Left by a crashed run, or a sibling process. Reuse it and do not
+        # register an unload: this process did not create it and unloading
+        # someone else's sink mid-run would pull the device out from under
+        # them. A stray null sink is harmless and gets reused next time.
+        return "pulse/" + SINK_NAME
+    try:
+        out = subprocess.run(
+            ["pactl", "load-module", "module-null-sink",
+             "sink_name=" + SINK_NAME,
+             "sink_properties=device.description=" + SINK_NAME],
+            capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    module_id = (out.stdout or "").strip()
+    if out.returncode != 0 or not module_id.isdigit():
+        return None
+    _SINK_MODULE = module_id
+    atexit.register(_unload_sink)
+    return "pulse/" + SINK_NAME
+
+
+def _sink_exists():
+    try:
+        out = subprocess.run(["pactl", "list", "short", "sinks"],
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return any(line.split("\t")[1:2] == [SINK_NAME]
+               for line in (out.stdout or "").splitlines())
+
+
+def _unload_sink():
+    global _SINK_MODULE
+    if _SINK_MODULE is None:
+        return
+    module_id, _SINK_MODULE = _SINK_MODULE, None
+    try:
+        subprocess.run(["pactl", "unload-module", module_id],
+                       capture_output=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def quiet_settings():
     """Turn off everything that is not under test, and pin the backend.
 
@@ -142,6 +228,10 @@ def quiet_settings():
     """
     from jellyfin_mpv_shim.conf import settings
     h.prime_args()
+    # "null" rather than leaving it unset: mpv's own null device is the
+    # fallback when there is no sound server to make a sink in, and it is
+    # still better than opening whatever the box's default output is.
+    settings.audio_device = dummy_audio_device() or "null"
     settings.thumbnail_enable = False
     settings.shader_pack_enable = False
     settings.menu_mouse = False

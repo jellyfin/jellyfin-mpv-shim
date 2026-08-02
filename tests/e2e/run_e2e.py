@@ -55,6 +55,46 @@ MODULES = CONTRACT + PER_BACKEND
 
 BACKENDS = ("libmpv", "jsonipc")
 
+SINK_NAME = "jms-e2e-sink"
+
+
+def make_dummy_sink():
+    """One null audio sink for the whole matrix. Returns (device, unload).
+
+    The playback legs decode real media, so mpv opens a real output — audible
+    on a developer's box, contending with whatever else is playing, and able
+    to fail on a device another process holds. A null sink keeps the entire
+    audio path live (device selection, format negotiation, the AudioMixin
+    settings) while ending nowhere.
+
+    Made here rather than per-leg so eleven processes share one sink instead
+    of loading eleven modules under one requested name, and so a leg that dies
+    does not leak its own. The **default sink is never changed** — this one is
+    addressed explicitly and nothing about the developer's audio moves.
+    """
+    if not shutil.which("pactl"):
+        return None, None
+    try:
+        out = subprocess.run(
+            ["pactl", "load-module", "module-null-sink",
+             "sink_name=" + SINK_NAME,
+             "sink_properties=device.description=" + SINK_NAME],
+            capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None, None
+    module_id = (out.stdout or "").strip()
+    if out.returncode != 0 or not module_id.isdigit():
+        return None, None
+
+    def unload():
+        try:
+            subprocess.run(["pactl", "unload-module", module_id],
+                           capture_output=True, timeout=20)
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    return "pulse/" + SINK_NAME, unload
+
 
 def run_leg(module, backend, use_xvfb, verbosity):
     env = dict(os.environ)
@@ -96,6 +136,15 @@ def main():
     else:
         print("server: %s" % server)
 
+    device, unload_sink = make_dummy_sink()
+    if device:
+        os.environ["JMS_E2E_AUDIO_DEVICE"] = device
+        print("audio:  %s (null sink; your default output is untouched)"
+              % device)
+    else:
+        print("audio:  no null sink available; mpv's own null device",
+              file=sys.stderr)
+
     use_xvfb = not args.no_xvfb and shutil.which("xvfb-run") is not None
     backends = [args.backend] if args.backend else list(BACKENDS)
     modules = args.module or MODULES
@@ -114,6 +163,8 @@ def main():
     print("\n" + "=" * 60)
     for module, backend, ok in results:
         print("%-8s %-45s %s" % (backend, module, "PASS" if ok else "FAIL"))
+    if unload_sink:
+        unload_sink()
     failed = [r for r in results if not r[2]]
     print("=" * 60)
     print("%d/%d legs passed" % (len(results) - len(failed), len(results)))

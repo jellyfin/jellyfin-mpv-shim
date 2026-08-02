@@ -110,6 +110,21 @@ afterwards. That fallback is the only place the suite writes server
 *configuration*. See `docs/PERMISSION_GAPS.md` for why the permission is off
 on a fresh server and on for anyone who upgraded into it.
 
+**Audio goes to a null sink, not your speakers.** The playback legs decode
+real media, so mpv opens a real output — audible, contending with whatever
+else is playing, and able to fail on a device another process holds (a run
+against the real device produced "Audio device underrun detected"). The runner
+loads one PipeWire/PulseAudio null sink for the whole matrix, exports it as
+`JMS_E2E_AUDIO_DEVICE`, and unloads it at the end; `quiet_settings` puts it in
+`settings.audio_device`. **The default sink is never changed** — nothing about
+your audio moves.
+
+A null sink rather than `ao=null` on purpose: mpv still opens an output and
+the whole path runs (device selection, format negotiation, the AudioMixin
+settings), it just ends nowhere, so this suite can grow audio tests. With no
+`pactl` it falls back to mpv's own `null` device — quiet and contention-free,
+just less of the path exercised. Both paths are verified.
+
 **Both backends, always.** External mpv is the least-tested path in the app
 and one of the two largest open-bug clusters in the tracker. The runner makes
 it a separate leg so a jsonipc-only regression is unmissable — and the first

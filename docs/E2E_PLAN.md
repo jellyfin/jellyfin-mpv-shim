@@ -278,6 +278,10 @@ Each of these produced a failure that read as a shim bug and was not:
   Tests that need the abort path drive `send_timeline_stopped(finished=True)`
   instead; the close itself is still exercised, but only for outcomes that do
   not depend on who won.
+- **The playback legs must not use the real audio device.** They decode real
+  media, so mpv opens a real output: audible, contending with the desktop, and
+  able to fail on a device something else holds. The runner owns one null sink
+  for the matrix and addresses it explicitly, never touching the default sink.
 - **A truncated file behaves correctly** — reported at 0.29s, not marked
   watched — and a zero-byte file is refused with no session at all. Neither is
   a route to the margin defect above; they were checked as candidates.
