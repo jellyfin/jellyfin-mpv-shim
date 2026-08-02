@@ -97,6 +97,7 @@ def make_manager(root, cleanup=None):
     m._download_artwork = lambda *a, **k: None
     m._download_subs = lambda *a, **k: None
     m._download_trickplay = lambda *a, **k: None
+    m._download_segments = lambda *a, **k: None
     m._download_series_art = lambda *a, **k: None
     m._download_season_art = lambda *a, **k: None
     return m
@@ -667,3 +668,54 @@ class QueryClosedCatalogTest(TmpTest):
         t.join(timeout=5)
         self.assertEqual(errors, [], "a concurrent close escaped as %r"
                          % (errors[:1],))
+
+
+class DownloadSegmentsTest(unittest.TestCase):
+    """Media segments are cached beside the file so Skip Intro/Credits works
+    over a downloaded item (there was no offline detection at all before).
+
+    Best-effort like the trickplay tiles beside it: segments come from a
+    plugin, so most items legitimately have none and a server without it
+    answers nothing. A failure must not fail the download.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.m = SyncManager.__new__(SyncManager)
+
+    def _client(self, answer):
+        class Api:
+            def get_media_segments(self, _src_id):
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+
+        return type("C", (), {"jellyfin": Api()})()
+
+    def _run(self, answer):
+        self.m._download_segments(self._client(answer), {"Id": "src"},
+                                  self.tmp.name)
+        path = os.path.join(self.tmp.name, "segments.json")
+        if not os.path.exists(path):
+            return None
+        with open(path) as fh:
+            return json.load(fh)
+
+    def test_segments_are_written_beside_the_media(self):
+        seg = {"Type": "Intro", "StartTicks": 0, "EndTicks": 10}
+        self.assertEqual(self._run({"Items": [seg]}), [seg])
+
+    def test_every_type_is_kept(self):
+        """The settings filter at playback (conf.segment_action), because
+        what is on disk outlives the settings that wrote it."""
+        segs = [{"Type": t, "StartTicks": 0, "EndTicks": 10}
+                for t in ("Intro", "Recap", "Commercial")]
+        self.assertEqual([s["Type"] for s in self._run({"Items": segs})],
+                         ["Intro", "Recap", "Commercial"])
+
+    def test_no_segments_writes_no_file(self):
+        self.assertIsNone(self._run({"Items": []}))
+
+    def test_a_server_without_the_plugin_is_not_an_error(self):
+        self.assertIsNone(self._run(RuntimeError("404")))
