@@ -49,6 +49,56 @@ def error(msg):
                pad=24, flex=1, align="start", direction="row")
 
 
+def wrap_row(items, avail, gap=8, align="center", row_gap=None):
+    """``items`` in a Row, broken onto further rows when one will not fit.
+
+    A Row does not wrap: it lays its children out end to end and lets the
+    tail run off the window. That is invisible at 1x on a wide window and
+    routine at 200%, where a 1280px window is a 640px page (see
+    ``mpvtk/scaling.py`` -- view code is logical, so the UI scale is a width
+    problem). It is equally reachable at 100% by making the window small,
+    and by translation: "Servers & Users" is "Server und Benutzer" in German.
+
+    Measured rather than switched on a width constant, for the same reason
+    ``GridPage._fit_bar`` is: what fits depends on these particular items.
+
+    Returns the plain Row when everything fits on one, so the common case
+    produces the same tree it always did.
+    """
+    from ...mpvtk.layout import measure
+
+    one_row = Row(items, gap=gap, align=align)
+    if not items or avail <= 0:
+        return one_row
+    # A flexible Spacer is "push these apart", which is what pins a trailing
+    # group to the right edge -- and so is what puts those particular buttons
+    # off the window. It has nothing left to say once the row is full, so it
+    # is dropped on the way to wrapping (and only then: a row that fits keeps
+    # the tree it always had).
+    packable = [i for i in items
+                if not (isinstance(i, Spacer) and getattr(i, "flex", 0))]
+    try:
+        widths = [measure(i)[0] for i in packable]
+    except Exception:
+        # Never fail a render over a decoration: an unmeasurable item keeps
+        # the old behaviour, which is one row that may be too wide.
+        return one_row
+    rows, cur, used = [], [], 0.0
+    for item, iw in zip(packable, widths):
+        need = iw if not cur else used + gap + iw
+        if cur and need > avail:
+            rows.append(cur)
+            cur, used = [item], iw
+        else:
+            cur.append(item)
+            used = need
+    rows.append(cur)
+    if len(rows) == 1:
+        return one_row
+    return Column([Row(r, gap=gap, align=align) for r in rows],
+                  gap=gap if row_gap is None else row_gap, align="start")
+
+
 def body_width(w, pad=CONTENT_PAD):
     """Usable text width inside a padded, scrollable content column.
 

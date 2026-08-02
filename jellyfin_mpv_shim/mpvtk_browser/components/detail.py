@@ -44,7 +44,13 @@ def meta_line(item):
     # Genres are already fetched (repository asks for them); Tk showed up
     # to three here and dropping them lost the quickest read on what a
     # thing actually is.
-    genres = ", ".join(item.get("Genres") or [])
+    #
+    # Three, as Tk had it and as the Live TV cards do -- this is the quick
+    # read, not the full list, and a film tagged with eight of them pushed
+    # everything else off the line. The banner ellipsizes past its width
+    # anyway, but that backstop should be rare rather than routine: the
+    # genres are last, so they are what the ellipsis eats.
+    genres = ", ".join((item.get("Genres") or [])[:3])
     if genres:
         parts.append(genres)
     return "   ·   ".join(parts)

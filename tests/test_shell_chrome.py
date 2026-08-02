@@ -394,6 +394,136 @@ class TestBanner(unittest.TestCase):
         self.assertEqual(titled.size, (600, 225))
         self.assertNotEqual(plain.tobytes(), titled.tobytes())
 
+    #: Everything compose_banner draws sits inside this much margin.
+    def _margin(self, w):
+        from jellyfin_mpv_shim.mpvtk.scaling import px
+        return max(px(18), w // 40)
+
+    def _ink_columns(self, img, x_from):
+        """Columns at or right of ``x_from`` carrying anything brighter than
+        the backdrop. The art is black and the gradient only darkens it, so
+        every bright pixel in a banner is text."""
+        w, h = img.size
+        return [x for x in range(x_from, w)
+                if any(max(img.getpixel((x, y))[:3]) > 100
+                       for y in range(h))]
+
+    def test_a_long_meta_line_stays_inside_the_backdrop(self):
+        """The meta line ends in the genres, and it used to be drawn with a
+        raw draw.text -- no wrap, no ellipsis. A film carrying a handful of
+        them ran off the right edge of the artwork, cut mid-letter by the
+        canvas. Nothing downstream can clip a baked bitmap back."""
+        from PIL import Image as PILImage
+        art = PILImage.new("RGB", (800, 800), (0, 0, 0))
+        meta = ("1998   ·   2:22:15   ·   R   ·   ★ 8.1   ·   "
+                "Drama, Romance, Thriller, Science Fiction, Adventure, "
+                "Mystery, Crime, Fantasy")
+        img = components.compose_banner(art, (600, 225), title="The Film",
+                                        meta=meta)
+        spill = self._ink_columns(img, 600 - self._margin(600))
+        self.assertEqual(spill, [], "text drawn into the right margin")
+
+    def test_a_long_title_and_context_stay_inside_too(self):
+        """The other two lines wrap and ellipsize already — pinned so the
+        margin is a property of the banner rather than of one line."""
+        from PIL import Image as PILImage
+        art = PILImage.new("RGB", (800, 800), (0, 0, 0))
+        img = components.compose_banner(
+            art, (600, 225),
+            title="A Deliberately Overlong Episode Title That Cannot Fit",
+            meta="2020",
+            context="Some Series With A Long Name · S01E01 · Pilot Episode")
+        spill = self._ink_columns(img, 600 - self._margin(600))
+        self.assertEqual(spill, [], "text drawn into the right margin")
+
+
+class TestWrapRow(unittest.TestCase):
+    """``chrome.wrap_row``: a Row that breaks onto more lines rather than
+    running off the window. The screens that use it are checked end to end
+    by tests/test_dpi_matrix.py; this pins the contract."""
+
+    def _row(self, avail, n=6, **kw):
+        from jellyfin_mpv_shim.mpvtk.widgets import Button
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        items = [Button("Button %d" % i, id="b%d" % i) for i in range(n)]
+        return chrome.wrap_row(items, avail, **kw), items
+
+    def test_a_row_that_fits_is_the_row_it_always_was(self):
+        """Returning a Column unconditionally would move every screen's
+        layout at every width; the snapshots would all need regenerating for
+        a change that is meant to be invisible until it is needed."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Row
+        out, items = self._row(4000)
+        self.assertIsInstance(out, Row)
+        self.assertEqual(out.children, items)
+
+    def test_a_row_that_does_not_fit_is_broken_up(self):
+        from jellyfin_mpv_shim.mpvtk.widgets import Column, Row
+        out, items = self._row(260)
+        self.assertIsInstance(out, Column)
+        self.assertGreater(len(out.children), 1)
+        for row in out.children:
+            self.assertIsInstance(row, Row)
+        drawn = [c for row in out.children for c in row.children]
+        self.assertEqual(drawn, items, "wrapping dropped or reordered items")
+
+    def test_an_unmeasurable_width_leaves_it_alone(self):
+        """A page that does not know its width yet passes 0. One row is the
+        honest answer there — better than guessing at a break."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Row
+        self.assertIsInstance(self._row(0)[0], Row)
+        self.assertIsInstance(self._row(-32)[0], Row)
+
+    def test_a_flexible_spacer_is_dropped_only_when_it_wraps(self):
+        """The Spacer means 'push these apart', which is what pins a
+        trailing group to the right edge — and so is what puts those buttons
+        off the window. It has nothing to say once the row is full."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Button, Spacer
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        items = [Button("One", id="b1"), Spacer(),
+                 Button("Two", id="b2"), Button("Three", id="b3")]
+        wide = chrome.wrap_row(items, 4000)
+        self.assertIn(items[1], wide.children)
+        narrow = chrome.wrap_row(items, 90)
+        drawn = [c for row in narrow.children for c in row.children]
+        self.assertNotIn(items[1], drawn)
+        self.assertEqual([c for c in drawn],
+                         [items[0], items[2], items[3]])
+
+    def test_an_item_wider_than_the_space_gets_its_own_line(self):
+        """Rather than an empty line before it, or an endless loop."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Column
+        out, items = self._row(10, n=3)
+        self.assertIsInstance(out, Column)
+        self.assertEqual([len(r.children) for r in out.children], [1, 1, 1])
+
+
+class TestMetaLine(unittest.TestCase):
+    """``meta_line`` is the year · runtime · rating · genres line, shared by
+    the detail, series and music headers."""
+
+    def _line(self, **item):
+        from jellyfin_mpv_shim.mpvtk_browser.components import detail
+        return detail.meta_line(item)
+
+    def test_genres_are_capped_at_three(self):
+        """The quick read on what a thing is, not the full tag list. Eight
+        genres pushed the year and rating off the visible line."""
+        line = self._line(ProductionYear=1998,
+                          Genres=["Drama", "Romance", "Thriller",
+                                  "Science Fiction", "Adventure"])
+        self.assertIn("Drama, Romance, Thriller", line)
+        self.assertNotIn("Adventure", line)
+        self.assertNotIn("Science Fiction", line)
+
+    def test_a_short_genre_list_is_untouched(self):
+        line = self._line(Genres=["Drama", "Romance"])
+        self.assertEqual(line, "Drama, Romance")
+
+    def test_no_genres_leaves_no_empty_separator(self):
+        line = self._line(ProductionYear=1998, Genres=[])
+        self.assertEqual(line, "1998")
+
 class TestOneBlue(unittest.TestCase):
     """There is exactly one blue. A second, unrelated blue makes the UI look
     assembled from parts, so anything the app colours itself must come from

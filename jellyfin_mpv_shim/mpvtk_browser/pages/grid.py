@@ -417,7 +417,7 @@ class GridPage(Page):
         ], gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
         cur_letter = filters.get("letter")
-        letters = Row([
+        cells = [
             # flex + align="center" centres the glyph horizontally; a bare
             # Text is packed at the box's left edge (Box only centres on its
             # cross axis), which left every letter hugging its left border.
@@ -436,7 +436,14 @@ class GridPage(Page):
                        else theme.BUTTON_BG},
                 on_click=lambda c=ch: self._set_filter(
                     "letter", None if cur_letter == c else c))
-            for ch in _LETTERS], gap=2, align="center")
+            for ch in _LETTERS]
+        # 27 cells at 28px is 754px of row, which is wider than the page
+        # itself once the UI scale is up -- a 1280px window at 200% is a
+        # 640px page. Wrapped rather than shrunk: the cell is already only
+        # 26px, and the point of an A-Z bar is that every letter is one
+        # click away, which a horizontal scroll would take back.
+        letters = chrome.wrap_row(cells, width - 2 * chrome.CONTENT_PAD,
+                                  gap=2, row_gap=4)
         return Column([bar, letters], gap=8)
 
     def _paged_grid(self, size, header, geom, image_type="Primary",
