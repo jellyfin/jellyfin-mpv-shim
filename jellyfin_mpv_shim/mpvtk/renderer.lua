@@ -2286,7 +2286,7 @@ local function node_at(x, y)
             node.t ~= 'menu' and
             (not modal or node.mod) and
             (node.click or node.ctx or node.dbl or node.tip or
-             node.hev or
+             node.hev or node.dis or
              node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then

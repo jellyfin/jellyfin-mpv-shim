@@ -1145,6 +1145,20 @@ type_text("Z")
 click("elsewhere")
 ok(last_event("commit") == nil, "a disabled textbox cannot be edited")
 
+-- A disabled control that mutes itself in Python carries ONLY `dis` -- no
+-- click, no hover, no tip. node_at has to keep returning it anyway, or the
+-- press it is supposed to swallow reaches whatever it sits over. Over the
+-- playback HUD that is bare video, where a click toggles pause.
+scene({ { id = "card", t = "rect", x = 0, y = 0, w = 400, h = 200,
+          click = true },
+        { id = "muted", t = "rect", x = 50, y = 50, w = 120, h = 40,
+          dis = true } })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 100, y = 70 }))
+eq(last_event("click"), nil,
+   "a press on a self-muted disabled control fell through to the node "
+   .. "underneath")
+
 -- ================================================ thumb-button sections
 
 -- The thumb buttons are the browser's Back/Forward, but over a FILM they

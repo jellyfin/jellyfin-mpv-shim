@@ -1001,7 +1001,15 @@ def _arrange_stack(ctx, el, x, y, w, h, sc, path):
 
 def _arrange_box(ctx, el, x, y, w, h, sc, path):
     """The workhorse: a padded flex row or column. Also the fallthrough."""
-    if el.bg or el.border or el.on_click:
+    # `el.disabled` counts as something to draw even when nothing else
+    # does. A disabled Button(flat=True) has no bg, no border and no
+    # handler -- it mutes itself by dropping all three (widgets.Button) --
+    # and a Checkbox never had a bg on its outer row. Without a node the
+    # renderer has nothing to absorb the pointer with, so the press reaches
+    # whatever sits under it: over the playback HUD, that is bare video and
+    # a toggled pause. The node also carries the `tip` explaining why the
+    # control is off, and its id.
+    if el.bg or el.border or el.on_click or el.disabled:
         node = _base(el, "rect", x, y, w, h, sc, path)
         if el.bg:
             node["fill"] = el.bg

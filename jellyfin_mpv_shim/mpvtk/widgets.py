@@ -48,9 +48,11 @@ class Element:
         # that flow — ordinary scenes never steal focus.
         self.autofocus = autofocus
         # A control that is on screen but cannot be used right now: the
-        # renderer draws it muted and the pointer passes through it, so it
-        # takes no hover, no click and no spatial-nav focus (see
-        # renderer.lua's node_at / nav_candidates). Say WHY next to the
+        # renderer draws it muted and it takes no hover, no click and no
+        # spatial-nav focus. It still ABSORBS the pointer -- node_at keeps
+        # returning it and each consumer drops it (renderer.lua's
+        # on_mouse_move / on_mouse_down), so a press stops there instead of
+        # reaching whatever the control sits over. Say WHY next to the
         # control -- a disabled thing with no explanation reads as broken.
         #
         # Composite widgets (Button, Checkbox) additionally mute their own
