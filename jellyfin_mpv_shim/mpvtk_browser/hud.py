@@ -604,8 +604,15 @@ def build_hud(b, size):
         on_change=b.hud.scrub_change,
         on_commit=b.hud.scrub_commit,
         on_cancel=b.hud.scrub_cancel,
-        # the renderer floats the trickplay/chapter bubble itself
-        preview=True)
+        # The renderer floats the trickplay/chapter bubble itself -- but
+        # only where there is a timeline to describe. `max` is floored at
+        # 1.0 above so the renderer's frac has a divisor, which also
+        # defeats its own `max > 0` guard; a live channel reports no
+        # duration, and without this the bubble tracked the pointer along
+        # the bar reading 0:00 the whole way. Guarded like `marks` and
+        # `ranges` beside it. (The deleted _preview_float opened with the
+        # same test.)
+        preview=dur > 0)
 
     menu_state = None
     if b.controller is not None and hasattr(b.controller, "hud_menu_state"):

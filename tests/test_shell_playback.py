@@ -257,6 +257,23 @@ class TestHudScrimAndAutohide(unittest.TestCase):
         self.assertLess(bottom["y"], bar["y"],
                         "the bar's top edge sits above the shading")
 
+    def test_a_stream_with_no_duration_gets_no_scrub_preview(self):
+        """A live channel reports no duration. `max` is floored at 1.0 so
+        the renderer's frac has a divisor, which also defeats its own
+        `max > 0` guard -- so the bubble tracked the pointer along the bar
+        reading 0:00 the whole way. Guarded like `marks` and `ranges`."""
+        self.settings.hud_scrim = "default"
+        b, _ctl = self._browser()
+        b.hud.state = dict(b.hud.state, duration=0)
+        nodes, _h = build_scene(b, (1280, 720))
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertFalse(seek.get("pv"),
+                         "a durationless stream offers a scrub preview")
+        b.hud.state = dict(b.hud.state, duration=100.0)
+        nodes, _h = build_scene(b, (1280, 720))
+        seek = next(n for n in nodes if n.get("id") == "hud-seek")
+        self.assertTrue(seek.get("pv"), "a real timeline lost its preview")
+
     def test_a_retired_scrim_value_reads_as_the_default(self):
         """"half" was offered while this branch was in flight and is gone.
         A config that still says it must draw the default ramp, not nothing
