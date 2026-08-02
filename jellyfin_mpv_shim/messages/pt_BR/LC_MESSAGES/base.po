@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-31 22:01+0000\n"
-"Last-Translator: Nairon David <nairon.david@hotmail.com>\n"
+"PO-Revision-Date: 2026-08-02 15:04+0000\n"
+"Last-Translator: Guilherme Naves <navesbm@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -80,16 +80,12 @@ msgid "Account already exists. Updating credentials."
 msgstr "Conta existente. Atualize as credenciais."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Servidor adicionado com sucesso."
+msgstr "Credenciais do servidor atualizadas com sucesso."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Erro ao adicionar servidor."
+msgstr "Falha ao atualizar as credenciais do servidor."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -101,7 +97,7 @@ msgstr "Usuário: "
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Password: "
-msgstr "Senha: "
+msgstr "Senha: . "
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Add another server?"
@@ -120,10 +116,8 @@ msgid "Could not start Quick Connect."
 msgstr "Não foi possível iniciar a Conexão Rápida."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Introduções Puladas"
+msgstr "Pular créditos"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -134,21 +128,16 @@ msgid "Seek to Skip Credits"
 msgstr "Tentar pular créditos"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Especiais"
+msgstr "Pular comercial"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Introduções Puladas"
+msgstr "Pular anúncio"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Tentar pular créditos"
+msgstr "Avançar para pular anúncio"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -539,10 +528,8 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Servidor adicionado com sucesso."
+msgstr "Página anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Next page"
@@ -702,10 +689,8 @@ msgid "Connect to Jellyfin"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Servidor adicionado com sucesso."
+msgstr "Servidores adicionados anteriormente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -728,10 +713,8 @@ msgid "Requesting…"
 msgstr "Configurações SVP"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL do servidor: "
+msgstr "URL do servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -762,14 +745,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Não foi possível adicionar o servidor.\n"
-"Por favor verifique os dados da conexão."
+msgstr "Conectando ao servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -842,10 +819,8 @@ msgid "Ready to cast"
 msgstr "Pronto para transmitir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Selecione sua mídia no Jellyfin e reproduza-a aqui"
+msgstr "Selecione sua mídia no Jellyfin e reproduza-a aqui."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -909,10 +884,8 @@ msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transcodificar)"
+msgstr "Transcodificação"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -1454,16 +1427,12 @@ msgid "Add to Collection"
 msgstr "Remover servidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Remover servidor"
+msgstr "Nenhuma coleção ainda."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Usuário: "
+msgstr "Nome da nova coleção…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1643,10 +1612,9 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} entrou."
+msgstr "%s (conectou-se)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2084,10 +2052,8 @@ msgid "Series Options"
 msgstr "Opções da Série"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Transcodificar)"
+msgstr "Gravando"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3364,10 +3330,8 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL do servidor: "
+msgstr "Servidores & Usuários"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -3415,10 +3379,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Usuário: "
+msgstr "Novo nome de usuário…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3656,10 +3618,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transcodificar)"
+msgstr "Transcodificar"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/osc_bridge.py
