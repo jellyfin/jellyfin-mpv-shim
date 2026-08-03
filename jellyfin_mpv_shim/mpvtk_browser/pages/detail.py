@@ -125,14 +125,31 @@ class DetailPage(Page):
                     "title": item.get("SeriesName", "")})))
         return Row(btns, gap=8, align="center")
 
-    def _play_buttons(self, item, server, trailers=None):
-        actions = self.ctx.actions
-        route = self.route
-        ud = item.get("UserData") or {}
-        pos = ud.get("PlaybackPositionTicks") or 0
-        srcid = (route.get("_srcid")
+    def _start(self, item, server, offset_ticks=None):
+        """Play `item` with the version and tracks selected **now**.
+
+        Read when the button is pressed rather than when it was built. The
+        track pickers write their choice straight to the route and force no
+        repaint -- nothing drawn depends on them, and the dropdown shows its
+        own selection -- so a pair captured at build time is the selection as
+        of the last time this page happened to draw. That is the *previous*
+        choice, which is what plays, unless some unrelated repaint (a
+        thumbnail landing, a websocket item update) rebuilt the closure in
+        between. Hence a bug that came and went.
+
+        The version picker escaped it only because `_pick_source` invalidates
+        for its own reasons -- the streams shown have to change with it.
+        """
+        srcid = (self.route.get("_srcid")
                  or ((item.get("MediaSources") or [{}])[0]).get("Id"))
         aid, sid = self._effective_tracks(item)
+        self.ctx.actions.play(item, server, offset_ticks=offset_ticks,
+                              srcid=srcid, aid=aid, sid=sid)
+
+    def _play_buttons(self, item, server, trailers=None):
+        actions = self.ctx.actions
+        ud = item.get("UserData") or {}
+        pos = ud.get("PlaybackPositionTicks") or 0
         buttons = []
         # Opened from a remote or the arrow keys, this page lands focused on
         # whichever of the two is the call to action -- Resume when there is
@@ -144,12 +161,11 @@ class DetailPage(Page):
                 "play_arrow",
                 _("Resume") + "  " + detail_components.fmt_ticks(pos),
                 "btn-resume",
-                lambda: actions.play(item, server, offset_ticks=pos,
-                                     srcid=srcid, aid=aid, sid=sid),
+                lambda: self._start(item, server, offset_ticks=pos),
                 primary=True, size=18, autofocus=True))
         buttons.append(controls.action_btn(
             "play_arrow", _("Play"), "btn-play",
-            lambda: actions.play(item, server, srcid=srcid, aid=aid, sid=sid),
+            lambda: self._start(item, server),
             primary=(pos <= 0), size=18, autofocus=(pos <= 0)))
         tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
         if tids:
@@ -165,7 +181,6 @@ class DetailPage(Page):
         ready-made image spec+url (see TileRenderer.poster_for) — image_spec
         can't address it."""
         art = self.ctx.art
-        route = self.route
         chapters = item.get("Chapters") or []
         if len(chapters) < 2:
             return None          # a single chapter is just the start
@@ -207,15 +222,14 @@ class DetailPage(Page):
             })
         # Starting at a chapter has to carry the same version and tracks
         # the Play button would — Tk's chapter click routes through the
-        # detail view's own play for exactly that reason.
-        srcid = (route.get("_srcid")
-                 or ((item.get("MediaSources") or [{}])[0]).get("Id"))
-        aid, sid = self._effective_tracks(item)
+        # detail view's own play for exactly that reason. Through _start for
+        # the rest of it: read at click time, so a chapter started after a
+        # track pick gets the pick rather than what was showing when the row
+        # was built.
         return art.tiles.tile_row(
             _("Scenes"), scene_tiles, "detail-scenes", geom=geom,
-            on_click=lambda t: self.ctx.actions.play(
-                item, server, offset_ticks=t.get("_start_ticks") or 0,
-                srcid=srcid, aid=aid, sid=sid))
+            on_click=lambda t: self._start(
+                item, server, offset_ticks=t.get("_start_ticks") or 0))
 
     # -- version / track selection ----------------------------------------
 

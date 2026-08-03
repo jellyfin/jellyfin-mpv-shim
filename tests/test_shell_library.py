@@ -696,13 +696,49 @@ class TestDetailActions(unittest.TestCase):
         self.assertTrue(any(k.startswith("detail-people-") for k in _h))
 
     def test_track_selection_passed_to_play(self):
+        """**No rebuild between the pick and the click.** There is none in
+        the app either: a track picker writes to the route and forces no
+        repaint, because nothing drawn depends on the choice and the dropdown
+        shows its own selection.
+
+        This used to rebuild the scene here, which quietly refreshed the Play
+        button's closure and made the whole thing pass while the app was
+        playing the *previous* selection. It came back as an intermittent bug
+        precisely because a repaint from somewhere else -- a thumbnail
+        landing, a websocket item update -- fixed it by accident, so it
+        depended on how long you sat on the page.
+        """
         _n, h = self._detail()
         h["dt-audio"]["select"](0, "English 5.1")     # aid=1
         h["dt-sub"]["select"](1, "English")           # sid=2 (index 0 = None)
+        h["btn-play"]["click"]()
+        self.assertEqual(self.ctl.tracks[-1],
+                         {"srcid": "src1", "aid": 1, "sid": 2})
+
+    def test_a_repaint_does_not_change_what_play_sends(self):
+        """The same, with the repaint that used to be doing the work. Both
+        orders have to give the same answer or one of them is luck."""
+        _n, h = self._detail()
+        h["dt-audio"]["select"](0, "English 5.1")
+        h["dt-sub"]["select"](1, "English")
         _n, h = build_scene(self.b)
         h["btn-play"]["click"]()
         self.assertEqual(self.ctl.tracks[-1],
                          {"srcid": "src1", "aid": 1, "sid": 2})
+
+    def test_resume_carries_the_selection_too(self):
+        """Resume is a second closure over the same pair, and the button a
+        part-watched item lands focused on."""
+        self.b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1",
+                         "title": "Movie"})
+        route = self.b.route
+        route["_data"]["item"]["UserData"] = {
+            "PlaybackPositionTicks": 6000000000}
+        _n, h = build_scene(self.b)
+        h["dt-audio"]["select"](0, "English 5.1")
+        h["btn-resume"]["click"]()
+        self.assertEqual(self.ctl.tracks[-1]["aid"], 1)
+        self.assertEqual(self.ctl.played[-1][2], 6000000000)  # offset_ticks
 
     def test_mark_watched_from_detail(self):
         _n, h = self._detail()
