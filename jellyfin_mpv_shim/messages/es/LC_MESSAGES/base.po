@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-28 06:16+0000\n"
-"Last-Translator: Antonio Toledo <atoledozambrana@gmail.com>\n"
+"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -140,56 +140,40 @@ msgid "Seek to Skip Credits"
 msgstr "Solicitar omitir créditos"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercial"
-msgstr "Especiales"
+msgstr "Saltar publicidad"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Créditos omitidos"
+msgstr "Publicidad omitida"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Solicitar omitir créditos"
+msgstr "Avanzar hasta saltar la publicidad"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Créditos omitidos"
+msgstr "Omitir vista previa"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Créditos omitidos"
+msgstr "Vista previa omitida"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Solicitar omitir créditos"
+msgstr "Avanzar hasta saltar la vista previa"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Créditos omitidos"
+msgstr "Resumen omitido"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Solicitar omitir créditos"
+msgstr "Avanzar hasta saltar el resumen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
@@ -489,35 +473,25 @@ msgid "Discord Rich Presence"
 msgstr "Rich Presence de Discord"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skip Intro"
 msgid "Skip Intros"
-msgstr "Saltar intro"
+msgstr "Saltar intros"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Créditos omitidos"
+msgstr "Omitir créditos"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercials"
-msgstr "Especiales"
+msgstr "Omitir publicidades"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Créditos omitidos"
+msgstr "Omitir vista previas"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Créditos omitidos"
+msgstr "Omitir los resúmenes"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -934,30 +908,24 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default"
-msgstr "Por defecto (auto)"
+msgstr "Por defecto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Ninguna (Deshabilitada)"
+msgstr "Ninguna (texto sombreado)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Saltar siempre los créditos"
+msgstr "Ocultar siempre"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
@@ -1301,12 +1269,12 @@ msgstr ""
 "aplican tras reiniciar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Overrides the theme's cover size. Takes effect after a restart."
 msgid ""
 "Overrides the theme's cover size. Applies immediately, and is also on the "
 "View menu of any library."
-msgstr "Sobrescribe el tamaño de portada del tema. Se aplica tras reiniciar."
+msgstr ""
+"Sobrescribe el tamaño de portada del tema. Se aplica inmediatamente y "
+"también está disponible en el menú Ver de cualquier biblioteca."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1520,10 +1488,8 @@ msgid "Thumbnail"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Salir y Marcar como No Visto"
+msgstr "Baner"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1548,10 +1514,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Tamaño de Subtítulo: {0}"
+msgstr "Mostrar títulos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1578,10 +1542,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View Settings"
-msgstr "Configuración de SVP"
+msgstr "Configuración de visualización"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -2551,17 +2513,13 @@ msgid "Sort"
 msgstr "Ordenar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "That view setting could not be saved."
-msgstr "El PIN no pudo ser guardado."
+msgstr "No se pudo guardar esa configuración de visualización."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There is nothing here to play."
-msgstr "No hay contenidos descargados para ser explorados."
+msgstr "No hay nada que reproducir aquí."
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -2755,10 +2713,8 @@ msgid "Showing the next %d programs."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "Salir y Marcar como No Visto"
+msgstr "Canal"
 
 # seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
@@ -2811,10 +2767,8 @@ msgid "Songs"
 msgstr "Canciones"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not start playback."
-msgstr "No se pudo iniciar la Conexión Rápida."
+msgstr "No se pudo iniciar la reproducción."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -3052,10 +3006,8 @@ msgid "Upcoming News"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailers"
-msgstr "Falla"
+msgstr "Avances"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
@@ -3117,10 +3069,8 @@ msgid "Connect to a server to change these settings."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "Those items could not be added to the queue."
 msgid "These settings could not be loaded from your server."
-msgstr "Esos elementos no pudieron ser añadidos a la cola."
+msgstr "No se pudieron cargar estas configuraciones desde tu servidor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3142,28 +3092,16 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load your display settings."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo cargar la configuración de pantalla."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Display settings saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save your display settings."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudieron guardar tus configuraciones de pantalla."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
