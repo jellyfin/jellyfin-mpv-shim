@@ -726,11 +726,11 @@ class TileRenderer:
         if self.art.server is not None:
             spec = self.art.source.backdrop_spec(item)
         if spec:
-            owner_id, tag = spec
+            owner_id, itype, tag = spec
             # box is logical (it came off the surface width); the bitmap and
             # everything baked into it are physical.
             pbox = raster(*box)
-            key = make_key(owner_id, "Backdrop", tag, pbox[0], pbox[1])
+            key = make_key(owner_id, itype, tag, pbox[0], pbox[1])
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
@@ -749,7 +749,7 @@ class TileRenderer:
             # ~1.8x, in the commit whose point was making banners cheaper.
             fetch_w = self._banner_fetch_w(pbox[0])
             fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
-            fetch_key = make_key(owner_id, "Backdrop", tag, fetch_w, fetch_h)
+            fetch_key = make_key(owner_id, itype, tag, fetch_w, fetch_h)
             url = self.art.source.backdrop_url(self.art.server, item,
                                                width=fetch_w, height=fetch_h,
                                                fill=True)

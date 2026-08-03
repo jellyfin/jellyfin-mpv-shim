@@ -111,7 +111,7 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         class _Source:
             @staticmethod
             def backdrop_spec(_item):
-                return ("m1", "tag9")
+                return ("m1", "Backdrop", "tag9")
 
             @staticmethod
             def backdrop_url(_server, _item, width=None, height=None,
