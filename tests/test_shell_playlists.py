@@ -406,6 +406,70 @@ class TestAddToDialogLayout(unittest.TestCase):
         nodes, _h = build_scene(self.b)
         self.assertNotIn("add-private", ids(nodes))
 
+    def _ticks(self, nodes):
+        """How many check marks the Private box is drawing (0 or 1)."""
+        return len([n for n in nodes if n.get("text") == "✓"])
+
+    def test_toggling_private_shows_on_screen(self):
+        """The value the box would draw, both ways round.
+
+        Note what this does NOT catch: `build_scene` re-renders on demand,
+        so it sees a correct tree whether or not anything asked for one. The
+        bug here was precisely that nothing asked — see the test below, which
+        is the one with teeth. Kept because the value-to-tick mapping is
+        worth pinning on its own, not because it guards this.
+        """
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("Road Trip")
+        nodes, h = build_scene(self.b)
+        self.assertEqual(self._ticks(nodes), 1,
+                         "playlists are private by default, so the box "
+                         "starts ticked")
+        h["add-private"]["click"]()
+        nodes, h = build_scene(self.b)
+        self.assertEqual(self._ticks(nodes), 0, "the tick did not clear")
+        h["add-private"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(self._ticks(nodes), 1, "the tick did not come back")
+
+    def test_toggling_private_asks_for_a_repaint(self):
+        """The half a rebuilt scene cannot see.
+
+        A Checkbox is composited on this side -- the renderer has no notion
+        of one and draws whatever colour the last tree gave it -- so in the
+        app nothing changes unless something asks for a redraw, and this
+        asked for nothing. The box flipped invisibly: no feedback, and after
+        two clicks no way to tell what would be created.
+
+        Every state-changing handler in the browser owes this assertion, and
+        a scene-based one cannot stand in for it: the harness renders when
+        asked, so it draws the corrected tree either way.
+        """
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("Road Trip")
+        _n, h = build_scene(self.b)
+        calls = []
+        real = self.b.invalidate
+        self.b.invalidate = lambda *a, **kw: (calls.append(1), real(*a, **kw))
+        h["add-private"]["click"]()
+        self.assertTrue(calls, "toggling Private redrew nothing")
+
+    def test_the_toggled_value_is_what_gets_created(self):
+        created = []
+        self.b.controller.playlist_new = (
+            lambda srv, name, ids, is_public=False:
+            created.append((name, is_public)) or "pl-new")
+        _n, h = build_scene(self.b)
+        h["add-newname"]["change"]("Road Trip")
+        _n, h = build_scene(self.b)
+        h["add-private"]["click"]()            # private -> public
+        _n, h = build_scene(self.b)
+        h["add-create"]["click"]()
+        self.assertTrue(created, "no playlist was created")
+        self.assertEqual(created[0][0], "Road Trip")
+        self.assertTrue(created[0][1],   # is_public
+                        "the un-ticked box still created a private playlist")
+
     def test_an_empty_playlist_list_says_so(self):
         self.src.get_playlists = lambda srv: []
         self.b._open_add_to({"Id": "m1", "Type": "Movie"})
