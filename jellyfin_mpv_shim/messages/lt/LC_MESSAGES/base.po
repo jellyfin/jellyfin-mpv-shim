@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-03-24 19:36+0000\n"
-"Last-Translator: Justas Pranauskis <justas.pranauskis@ktu.edu>\n"
+"PO-Revision-Date: 2026-08-03 18:58+0000\n"
+"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -41,10 +41,9 @@ msgid "Set Subbed: {0} ok, {1} fail"
 msgstr "Nustatyti Subtitruotus: {0} gerai, {1} nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
-#, fuzzy, python-brace-format
-#| msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
+#, python-brace-format
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Nustatyti Įgarsintus: {1} gerai, {1} tik garsas, {2} nepavyko"
+msgstr "Nustatyti Įgarsintus: {0} gerai, {1} tik garsas, {2} nepavyko"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
