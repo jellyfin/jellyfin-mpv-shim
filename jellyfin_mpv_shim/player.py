@@ -2682,7 +2682,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         if audio_uid is not None and not video.is_transcode:
             log.info("PlayerManager::play selecting audio stream index=%s" % audio_uid)
-            self._player.audio = video.audio_seq[audio_uid]
+            # An aid the map does not know is not a reason to abandon the
+            # whole start -- and it used to be, because this indexed the map
+            # directly and a KeyError here aborts _play_media halfway. The
+            # index can be stale (carried over from the previous item, or
+            # from a version that has since been swapped) or simply
+            # unmappable (a source the server never probed reports no
+            # streams at all). mpv's own default track is the right answer
+            # in every one of those cases. Same shape as the subtitle branch.
+            track = video.audio_seq.get(audio_uid)
+            if track is None:
+                log.warning("PlayerManager::audio index %s not in the stream "
+                            "map %s; leaving mpv's default track.",
+                            audio_uid, video.audio_seq)
+            else:
+                self._player.audio = track
 
         if sub_uid is None or sub_uid == -1:
             log.info("PlayerManager::play selecting subtitle stream (none)")

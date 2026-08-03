@@ -42,6 +42,7 @@ import os
 import sys
 import time
 import unittest
+import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _e2e  # noqa: E402
@@ -333,6 +334,144 @@ class NoAudioTrackTest(_TrackTest):
         self.assertIsNone(self._selected("audio"))
         # And it is genuinely playing, rather than having failed to open.
         self.assertTrue(self.pm._player.duration)
+
+    def test_nothing_invents_a_track_for_it(self):
+        """No audio streams, so no default to adopt and nothing to select.
+
+        The defaulting `map_streams` does -- language_config, then the
+        server's `DefaultAudioStreamIndex` -- has to come out empty-handed
+        here rather than settling on some index that would then be reported
+        to the server as playing.
+        """
+        self.assertIsNone(self.video.aid)
+        self.assertFalse([t for t in self.pm._player.track_list
+                          if t["type"] == "audio"],
+                         "mpv found an audio track in a silent file")
+
+    def test_a_stale_audio_index_does_not_abort_the_start(self):
+        """The shrug this class's docstring asks for.
+
+        An aid can arrive from outside the file entirely: the previous item's
+        remembered track, or a browser page that resolved a default against a
+        media source since swapped. Nothing about a silent film makes that
+        index mappable, and raising from the middle of `_play_media` leaves
+        playback half-started -- mpv's own (absent) audio track is the answer.
+        """
+        from jellyfin_mpv_shim.media import Media
+        media = Media(self.session.client, [self.item["Id"]],
+                      user_id=self.session.user_id,
+                      aid=3, explicit_tracks=True)
+        self.pm.play(media.video, is_initial_play=True)     # used to KeyError
+        self.assertTrue(self.pm._player.duration,
+                        "a stale audio index stopped the file from opening")
+        self.assertIsNone(self._selected("audio"))
+
+
+@_e2e.require_server_and_mpv
+class TranscodedTrackTest(_e2e.E2ETestCase):
+    """Choosing an audio track on a stream the server is re-encoding.
+
+    A transcode carries **one** re-encoded audio track, so mpv's ids are the
+    *transcoder's* and the source's stream map does not describe what mpv
+    opened. The choice is made server-side instead: the index goes out with
+    `PlaybackInfo` and comes back in the `TranscodingUrl`.
+
+    What keeps that straight is the `is_transcode` gate in
+    `configure_streams`, and it is worth being explicit about which guard does
+    what. `map_streams` also used to return early for anything but
+    `Protocol=File`, which reads like transcode protection and never was one:
+    the commonest transcode there is -- a local file the server re-encodes --
+    is `Protocol=File`, so that map has always been built and never applied.
+    Delete the `is_transcode` gate and `test_mpv_is_not_told_to_switch_tracks`
+    fails; the protocol check could not have caught it.
+    """
+
+    ITEM = "Six audio tracks"
+
+    def setUp(self):
+        super().setUp()
+        self.item = self.session.find(self.ITEM, library=LIBRARY)
+        streams = (self.session.api.get_item(self.item["Id"])
+                   ["MediaSources"][0]["MediaStreams"])
+        audio = [s for s in streams if s["Type"] == "Audio"]
+        self.assertGreater(
+            len(audio), 1,
+            "this needs a fixture with more than one audio track, or asking "
+            "for a particular one proves nothing")
+        # The last one: never the server's default, so a client that quietly
+        # ignored the request would come back with a different number.
+        self.pick = audio[-1]
+
+    def play_transcoded(self, aid):
+        """Play the fixture with `aid`, forced through the transcoder.
+
+        `set_trs_override(None, True)` is what the player's own
+        force-transcode retry does, so this is the app's path rather than a
+        hand-built URL.
+        """
+        from jellyfin_mpv_shim.media import Media
+        media = Media(self.session.client, [self.item["Id"]],
+                      user_id=self.session.user_id,
+                      aid=aid, explicit_tracks=True)
+        video = media.video
+        video.set_trs_override(None, True)
+        self.pm.play(video, is_initial_play=True)
+        self.assertTrue(video.is_transcode,
+                        "the server direct played it, so nothing here is "
+                        "about a transcode")
+        self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
+                        "mpv never opened the transcoded stream")
+        return video
+
+    def test_the_requested_track_is_the_one_the_server_transcodes(self):
+        video = self.play_transcoded(self.pick["Index"])
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(
+            video.media_source.get("TranscodingUrl") or "").query)
+        self.assertEqual(
+            query.get("AudioStreamIndex"), [str(self.pick["Index"])],
+            "asked to transcode audio index %d (%s / %s) and the server is "
+            "sending %r" % (self.pick["Index"], self.pick.get("Language"),
+                            self.pick.get("Title"),
+                            query.get("AudioStreamIndex")))
+
+    def test_mpv_is_not_told_to_switch_tracks(self):
+        """The map exists and must stay unused.
+
+        `audio_seq` maps index 6 to mpv track 6; the transcode has exactly one
+        audio track, so applying it asks for a track that is not there.
+        """
+        video = self.play_transcoded(self.pick["Index"])
+        self.assertIn(self.pick["Index"], video.audio_seq,
+                      "the source's map is missing, so this cannot show that "
+                      "the map is deliberately not applied")
+        tracks = [t for t in self.pm._player.track_list if t["type"] == "audio"]
+        self.assertEqual(len(tracks), 1,
+                         "a transcode should carry one audio track, got %d"
+                         % len(tracks))
+        self.assertEqual(
+            self.pm._player.aid, tracks[0]["id"],
+            "mpv is playing audio track %r, which is not the only track it "
+            "has (%r) -- the source's stream map was applied to a transcode"
+            % (self.pm._player.aid, tracks[0]["id"]))
+        # ...and it is genuinely running, not stalled on a track it cannot find.
+        self.assertTrue(
+            self.pump_until(lambda: (self.pm._player.playback_time or 0) > 1.0),
+            "the transcode never advanced")
+
+    def test_the_server_is_told_which_track_is_playing(self):
+        """Other clients read `AudioStreamIndex` off the session. For a
+        transcode it is the only description of what is playing that exists,
+        since the stream itself no longer carries the track's identity."""
+        self.play_transcoded(self.pick["Index"])
+        self.pm.send_timeline()
+        reported = _e2e.wait_for(
+            lambda: ((self.session.my_session() or {}).get("PlayState") or {})
+            .get("AudioStreamIndex") == self.pick["Index"])
+        self.assertTrue(
+            reported,
+            "the server reports audio index %r for a transcode of index %d"
+            % (((self.session.my_session() or {}).get("PlayState") or {})
+               .get("AudioStreamIndex"), self.pick["Index"]))
 
 
 if __name__ == "__main__":

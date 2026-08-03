@@ -31,6 +31,7 @@ any other module in this suite.
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _e2e  # noqa: E402
@@ -162,6 +163,134 @@ class StrmResumeTest(_e2e.E2ETestCase):
         self.assertFalse(
             self.session.user_data(self.item["Id"]).get("Played"),
             "a .strm stopped in the middle was marked watched")
+
+
+@_strm.require_origin(_strm.LOCAL_MOVIE)
+@_e2e.require_server_and_mpv
+class RemoteTrackSelectionTest(_e2e.E2ETestCase):
+    """Starting a stream file with the track the library browser picked.
+
+    The browser's detail page resolves the audio and subtitle defaults itself
+    so its pickers can show what will actually play, and sends them with the
+    play — `explicit_tracks`. That index is a real stream index off the same
+    media source, so it can only be honoured if the client mapped that source
+    to mpv's numbering.
+
+    It did not, for anything remote: `map_streams` returned before doing any
+    of its work unless the source was `Protocol=File`, which was written long
+    before stream files and reads as "not a local file, so no real tracks".
+    A `.strm` that direct plays is a real container reaching mpv either from
+    the origin or proxied through the server, and its tracks line up exactly
+    as a local file's do. With the maps empty, starting one with an explicit
+    aid raised `KeyError` from the middle of `_play_media` and playback never
+    started. Playing the same item from anywhere that sends no track (the
+    search results' play button) was unaffected, because the early return
+    also skipped the defaulting that would have chosen one.
+
+    The unit half is `tests/test_remote_playback.MapStreamsTest`; this is the
+    half that proves the numbering is right against a real probed source.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.item = self.session.find(_strm.LOCAL_MOVIE, library="Movies")
+        source = (self.session.api.get_item(self.item["Id"])
+                  .get("MediaSources") or [{}])[0]
+        self.aid = source.get("DefaultAudioStreamIndex")
+        self.assertIsNotNone(
+            self.aid,
+            "the fixture's source names no default audio stream, so this "
+            "cannot reproduce what the browser sends")
+
+    def test_playing_with_the_browser_s_audio_index_selects_that_track(self):
+        from jellyfin_mpv_shim.media import Media
+        media = Media(self.session.client, [self.item["Id"]],
+                      user_id=self.session.user_id,
+                      aid=self.aid, explicit_tracks=True)
+        video = media.video
+        self.assertIsNotNone(video, "Media built no video for a .strm")
+
+        self.pm.play(video, is_initial_play=True)      # KeyError lived here
+        self.assertTrue(self.pm._player.duration,
+                        "mpv never opened the stream")
+        self.assertFalse(video.is_transcode,
+                         "the source transcoded, so mpv's track ids are the "
+                         "transcoder's and this measures nothing")
+
+        self.assertEqual(video.aid, self.aid,
+                         "the explicit index was not the one played")
+        self.assertIn(self.aid, video.audio_seq,
+                      "a remote source came back with no audio mapping")
+        # And mpv is playing the track that mapping names, not merely some
+        # track it opened with.
+        self.assertEqual(self.pm._player.aid, video.audio_seq[self.aid])
+        selected = next((t for t in self.pm._player.track_list
+                         if t["type"] == "audio" and t.get("selected")), None)
+        self.assertIsNotNone(selected, "mpv is playing no audio at all")
+        self.assertEqual(selected["id"], video.audio_seq[self.aid])
+
+    def test_playing_with_no_track_takes_the_server_s_default(self):
+        """Started from anywhere that sends no track -- the search results'
+        play button, a queue advancing -- a stream file gets the same track it
+        would get from the detail page.
+
+        `map_streams` applies `DefaultAudioStreamIndex` (where the user's
+        choice in another client lives) after language_config and before
+        anything else, and the early return skipped that too: remote sources
+        were left on `aid=None` and whatever mpv happened to open with. The
+        two entry points then disagreed about the same item.
+
+        Track memory is turned off for this: it would arrive at the same
+        number from the previous item and hide whether the default was read
+        at all.
+        """
+        from jellyfin_mpv_shim.conf import settings
+        with mock.patch.object(settings, "remember_audio_track", False):
+            video = strm_media(self.session, [self.item["Id"]]).video
+            self.pm.play(video, is_initial_play=True)
+
+        self.assertEqual(
+            video.aid, self.aid,
+            "a stream file started on audio index %r, not the server's "
+            "default %r" % (video.aid, self.aid))
+        self.assertEqual(self.pm._player.aid, video.audio_seq[self.aid],
+                         "mpv is not playing the default track")
+        self.pm.send_timeline()
+        self.assertTrue(
+            _e2e.wait_for(
+                lambda: ((self.session.my_session() or {}).get("PlayState")
+                         or {}).get("AudioStreamIndex") == self.aid),
+            "the server was told a different track was playing")
+
+    def test_a_forced_transcode_leaves_the_track_to_the_server(self):
+        """The same source re-encoded: mpv gets one track and the map, which
+        is now built for a remote source like any other, must stay unused.
+
+        This is the case the old `Protocol=File` check was thought to be
+        guarding. It is `is_transcode` in `configure_streams` that guards it,
+        for remote and local alike -- see
+        `test_track_selection.TranscodedTrackTest`, which pins the same rule
+        on a fixture with six audio tracks to choose between.
+        """
+        video = strm_media(self.session, [self.item["Id"]]).video
+        video.set_trs_override(None, True)
+        self.pm.play(video, is_initial_play=True)
+        self.assertTrue(video.is_transcode,
+                        "the server direct played it, so this measures "
+                        "nothing about a transcode")
+        self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
+                        "mpv never opened the transcoded stream")
+
+        tracks = [t for t in self.pm._player.track_list if t["type"] == "audio"]
+        self.assertEqual(len(tracks), 1,
+                         "expected one transcoded audio track, got %d"
+                         % len(tracks))
+        self.assertEqual(self.pm._player.aid, tracks[0]["id"],
+                         "the source's stream map was applied to a transcode")
+        self.assertTrue(
+            self.pump_until(lambda: (self.pm._player.playback_time or 0) > 1.0,
+                            timeout=60),
+            "the transcoded stream never advanced")
 
 
 @_strm.require_origin(_strm.VERSIONS)

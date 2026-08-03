@@ -200,11 +200,23 @@ class Video(object):
         self.audio_seq = {}
         self.audio_uid = {}
 
-        if self.media_source is None or self.media_source["Protocol"] != "File":
+        # Protocol is deliberately NOT consulted. This used to return early
+        # for anything but Protocol=File, which predates stream files: a
+        # remote source that direct plays hands mpv the same container a
+        # local one would -- whether mpv fetches it from the origin or the
+        # server proxies it -- so its tracks line up with MediaStreams the
+        # same way. Bailing out left both maps empty while the rest of the
+        # client still had a perfectly real stream index to select, and
+        # configure_streams looked that index up in the empty map. The case
+        # where mpv's track ids are somebody else's numbering is a
+        # transcode, and that is gated on is_transcode where it is used.
+        if self.media_source is None:
             return
 
+        streams = self.media_source.get("MediaStreams") or []
+
         index = 1
-        for stream in self.media_source["MediaStreams"]:
+        for stream in streams:
             if stream.get("Type") != "Audio":
                 continue
 
@@ -215,7 +227,7 @@ class Video(object):
                 index += 1
 
         index = 1
-        for sub in self.media_source["MediaStreams"]:
+        for sub in streams:
             if sub.get("Type") != "Subtitle":
                 continue
 
