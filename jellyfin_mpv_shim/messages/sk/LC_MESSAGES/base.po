@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2024-06-11 08:41+0000\n"
-"Last-Translator: nextlooper42 <nextlooper42@protonmail.com>\n"
+"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"Last-Translator: dodog <preklady@mayday.sk>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/sk/>\n"
+"jellyfin-mpv-shim/sk/>\n"
 "Language: sk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
@@ -56,10 +56,12 @@ msgstr "Nastavujem aktuálne..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Otvorte Jellyfin, prejdite do používateľského menu -> Rýchle pripojenie a "
+"zadajte tento kód:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Čaká sa na autorizáciu..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
@@ -75,19 +77,15 @@ msgstr "Pridanie serveru zlyhalo."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Účet už existuje. Aktualizujú sa prihlasovacie údaje."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Server bol úspešne pridaný."
+msgstr "Prihlasovacie údaje k serveru boli úspešne aktualizované."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Pridanie serveru zlyhalo."
+msgstr "Aktualizácia prihlasovacích údajov servera sa nepodarila."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -543,10 +541,8 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Server bol úspešne pridaný."
+msgstr "Predchádzajúca stránka"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Next page"
@@ -641,10 +637,9 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Server:"
+msgstr "Nastaviť PIN pre %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -706,10 +701,8 @@ msgid "Connect to Jellyfin"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Server bol úspešne pridaný."
+msgstr "Predtým pridané servery"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -732,22 +725,16 @@ msgid "Requesting…"
 msgstr "Nastavenia SVP"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Server URL: "
+msgstr "URL adresa servera"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Používateľské meno:"
+msgstr "Používateľské meno"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Heslo:"
+msgstr "Heslo"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -766,14 +753,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Nebolo možné pridať server.\n"
-"Skontrolujte prosím informácie o pripojení."
+msgstr "Nadväzovanie spojenia so serverom…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -846,10 +827,8 @@ msgid "Ready to cast"
 msgstr "Pripravené k prenosu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Vyberte médium v Jellyfine a pustite ho"
+msgstr "Vyberte si médium v aplikácii Jellyfin a prehrajte ho."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -913,10 +892,8 @@ msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Prekódovať)"
+msgstr "Prekódovanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -1486,10 +1463,8 @@ msgstr ""
 "Skontrolujte prosím informácie o pripojení."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "Nastavenia SVP"
+msgstr "Odhaduje sa…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1645,10 +1620,9 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "Používateľ {0} sa pripojil."
+msgstr "Používateľ {0} sa pripojil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1657,10 +1631,8 @@ msgid "Group"
 msgstr "Nová skupina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Nová skupina"
+msgstr "Žiadne aktívne skupiny."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -1930,10 +1902,8 @@ msgid "Previous"
 msgstr "Predchádzajúca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "Server bol úspešne pridaný."
+msgstr "Predchádzajúca kapitola"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -2050,10 +2020,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Odstrániť server"
+msgstr "Chcete odstrániť stiahnutú kópiu %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -2088,10 +2057,8 @@ msgid "Series Options"
 msgstr "Nastavenia seriálov"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Prekódovať)"
+msgstr "Nahrávanie"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -2324,14 +2291,8 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"Nebolo možné pridať server.\n"
-"Skontrolujte prosím informácie o pripojení."
+msgstr "Túto položku sa nepodarilo prehrať"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -2666,10 +2627,8 @@ msgid "No programs are listed right now."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Server bol úspešne pridaný."
+msgstr "Predchádzajúci deň"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
@@ -2693,10 +2652,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Server bol úspešne pridaný."
+msgstr "Predchádzajúce kanály"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -2722,10 +2679,8 @@ msgid "Recording Folders"
 msgstr "Otvoriť konfiguračný priečinok"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Konfigurácia servera"
+msgstr "Zatiaľ nič nebolo nahrané."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -2753,10 +2708,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "Ukončiť a označiť ako nepozreté"
+msgstr "Pozrieť"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2939,10 +2892,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Používateľské meno:"
+msgstr "Premenovať"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -2955,10 +2906,9 @@ msgid "Delete Playlist"
 msgstr "Odstrániť server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Odstrániť server"
+msgstr "Chcete odstrániť zoznam skladieb %s?"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -2999,10 +2949,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Server:"
+msgstr "Výsledky pre „%s“"
 
 # seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -3372,10 +3321,8 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "Server URL: "
+msgstr "Servery a používatelia"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -3423,10 +3370,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Používateľské meno: "
+msgstr "Nové používateľské meno…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3435,16 +3380,12 @@ msgid "Add User"
 msgstr "Pridať server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Konfigurácia servera"
+msgstr "Zatiaľ nie sú nastavené žiadne servery."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Používateľské meno:"
+msgstr "Používatelia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -3453,16 +3394,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Server:"
+msgstr "Servery pre %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Server:"
+msgstr "Servery"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -3471,10 +3409,8 @@ msgid "Change PIN"
 msgstr "Zmeniť zvuk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Server:"
+msgstr "Nastaviť PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3609,16 +3545,12 @@ msgid "Home"
 msgstr "Domov"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Server:"
+msgstr "Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Používateľské meno:"
+msgstr "Používateľ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -3664,10 +3596,8 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Prekódovať)"
+msgstr "Prekódovať"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -3676,10 +3606,8 @@ msgid "External"
 msgstr "Externé"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay bol povolený."
+msgstr "SyncPlay povolené"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
