@@ -476,19 +476,66 @@ class TileRenderer:
             attempts,
             time.time() + self.IMG_RETRY_BACKOFF * (2 ** (attempts - 1)))
         self._requested.discard(key)
-    #: Artwork that must be shown WHOLE, by the type it resolved to and the
-    #: type that was asked for. Everything else is cover-cropped: a poster, a
-    #: still and a backdrop are all photographs of a frame, and a crop takes
-    #: scenery off the edges. A wordmark loses the name.
-    #:
-    #: A Logo never covers -- it is a wordmark on transparency and there is no
-    #: frame it was cut for. A Banner covers only its own strip: standing in
-    #: for a missing logo on a 16:9 card, cropping it to that card would trim
-    #: exactly the title it was borrowed for.
+    @classmethod
+    def _contains(cls, resolved, geom, item=None):
+        """Whether this artwork must be drawn WHOLE rather than filling the
+        tile. **Contain is the default; one pairing covers.**
+
+        The one is a POSTER GOING INTO A POSTER TILE. There, cropping is
+        free -- a few percent off the edge of a 2:3 key art loses nothing and
+        the grid comes out perfectly uniform, which is most of what a wall of
+        posters is for -- and it is the case where the two are close enough
+        that a contain would only add thin bars.
+
+        Everywhere else the tile and the artwork can disagree by a lot, and a
+        crop is destructive in proportion to the disagreement:
+
+        * A **Home Videos** library is arbitrary footage. 4:3, phone video
+          shot in portrait, and 16:9 all sit in one grid, so whatever shape
+          the row takes, most of what goes in it is the wrong shape for it.
+        * A **film in a playlist of episodes**. ``auto_geom`` shapes a row
+          from the MEDIAN aspect ratio, which is the right call for the row
+          and necessarily the wrong one for its minority: the row comes out
+          landscape and the one 2:3 poster in it gets its top and bottom
+          taken off.
+        * A **Logo** is a wordmark on transparency, with no frame it was cut
+          for; a **Banner** standing in for one would be cropped to exactly
+          the title it was borrowed for. Both used to be named here as
+          exceptions and are now simply covered by the default.
+
+        The per-row shape decision cannot fix any of that, because the
+        mismatch is per ITEM. This is the half that can.
+
+        Note this is nearly free where it changes nothing: when the artwork
+        and the tile already agree, contain and cover produce the same
+        picture. It only diverges where cover was destroying something.
+        """
+        if geom is None:
+            return True                      # unknown shape: the safe answer
+        if resolved != "Primary":
+            return True                      # Thumb, Backdrop, Logo, Banner…
+        if not cls._poster_shaped(geom.tile_w / float(geom.tile_h or 1)):
+            return True
+        return not cls._poster_shaped(cls._item_ratio(item))
+
+    @classmethod
+    def _poster_shaped(cls, ratio):
+        """Taller than square, or unmeasurable.
+
+        Unmeasurable counts as a poster ON PURPOSE, and only ever reaches
+        here about artwork already going into a poster tile: most library
+        items carry no ``PrimaryImageAspectRatio`` at all, and treating that
+        as "not a poster" would letterbox every ordinary film grid on the
+        strength of a missing field.
+        """
+        return ratio is None or ratio <= cls.SQUARE_RATIO
+
     @staticmethod
-    def _contains(resolved, requested):
-        return resolved == "Logo" or (resolved == "Banner"
-                                      and requested != "Banner")
+    def _item_ratio(item):
+        ratio = (item or {}).get("PrimaryImageAspectRatio")
+        if isinstance(ratio, (int, float)) and ratio > 0:
+            return float(ratio)
+        return None
 
     def poster_for(self, item, geom, image_type="Primary", inherit=True):
         """Return (PIL image or None, cache tag, contain). Requests the
@@ -512,14 +559,18 @@ class TileRenderer:
             # art is indexed, so it isn't addressable through image_spec.
             spec, url = item.get("_image_spec"), item.get("_image_url")
             if not spec or not url:
-                return None, "", False
+                return None, "", True
             key = make_key(spec[0], spec[1], spec[2], w, h)
-            return self._request_image(key, url, (w, h)), key, False
+            # Contained, like everything that is not a poster. The chapter
+            # tile is shaped from the video's own aspect, but only from two
+            # choices -- a 4:3 source lands in the 16:9 tile, and a crop
+            # there takes the sides off a frame of the film.
+            return self._request_image(key, url, (w, h)), key, True
         spec = self.art.source.image_spec(item, image_type, w, inherit=inherit)
         if not spec or self.art.server is None:
-            return None, "", False
+            return None, "", True
         item_id, itype, itag = spec
-        contain = self._contains(itype, image_type)
+        contain = self._contains(itype, geom, item)
         # In the key as well as in the request: fill and fit are two different
         # pictures of one source at one size, and the store caches them to
         # disk.
