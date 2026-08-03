@@ -90,7 +90,11 @@ class LiveTvDialogsMixin:
         self._timer_dlg = {"server": server, "id": timer_id,
                            "series": series, "timer": None,
                            "on_change": on_change, "error": None,
-                           "fields": {}}
+                           "fields": {},
+                           # Asked once, at open: whether this is an editor
+                           # or a read-only look at what is scheduled. See
+                           # _timer_editable.
+                           "editable": self._timer_editable(server)}
         ep = self._epoch
         source = self.source
 
@@ -120,6 +124,27 @@ class LiveTvDialogsMixin:
 
         self.run_async(work, done, ep, on_error=failed)
         self._show_timer_editor()     # open immediately, in a loading state
+
+    def _timer_editable(self, server):
+        """May this user change the DVR on ``server``?
+
+        The Schedule and Series tabs are shown to everyone who can see Live
+        TV -- what is going to record is information, and the server serves
+        it to anyone (see ``LiveTvPage._tabs``). Only *changing* it needs
+        ``EnableLiveTvManagement``, so without it this dialog opens as a
+        read-only look at the rule: the form is disabled and Save, Cancel
+        Recording and Cancel Series are not offered at all.
+
+        ``can_record`` is the same question the Record buttons ask -- both
+        halves of it apply here too, since cancelling a timer needs the
+        apiclient's Live TV APIs just as much as creating one does. It fails
+        open, so an unanswered probe leaves the dialog editable and the API
+        call remains the real check.
+        """
+        try:
+            return bool(self._actions.can_record(server))
+        except Exception:
+            return True
 
     @staticmethod
     def _timer_fields(dto, series):
@@ -158,11 +183,16 @@ class LiveTvDialogsMixin:
             elif timer is None:
                 body = [Text(_("Loading…"), size=15, color=theme.SUBTLE_FG)]
             else:
-                body = self._timer_form(timer, fields, dlg["series"])
+                body = self._timer_form(timer, fields, dlg["series"],
+                                        editable=dlg.get("editable", True))
             title = _("Series Options") if dlg["series"] else _("Recording")
             buttons = [Button(_("Close"), id="tm-close",
                               on_click=self._close_timer_editor)]
-            if timer is not None and not dlg.get("error"):
+            # Not offered rather than disabled: a greyed Save invites the
+            # question "why", and the answer is a permission the user cannot
+            # do anything about from here. Close alone is a complete dialog.
+            if (timer is not None and not dlg.get("error")
+                    and dlg.get("editable", True)):
                 buttons.insert(0, Button(
                     _("Cancel Series") if dlg["series"]
                     else _("Cancel Recording"), id="tm-cancel",
@@ -188,7 +218,12 @@ class LiveTvDialogsMixin:
         """
         return 260 if dlg.get("series") else 120
 
-    def _timer_form(self, timer, fields, series):
+    def _timer_form(self, timer, fields, series, editable=True):
+        """The form. ``editable=False`` is the read-only look a user
+        without `EnableLiveTvManagement` gets: the same rows, showing the
+        same settings, with nothing that invites an edit the server would
+        refuse. The subtitle and the values are the point of opening it.
+        """
         rows = []
         when = live_tv.air_time_label(timer)
         channel = timer.get("ChannelName") or ""
@@ -204,12 +239,13 @@ class LiveTvDialogsMixin:
                 _p("series recording rule setting", "Record"), "tm-showtype",
                 [_("New episodes only"), _("All episodes")],
                 0 if fields["new_only"] else 1,
-                lambda i, v: self._timer_set("new_only", i == 0)))
+                lambda i, v: self._timer_set("new_only", i == 0), editable))
             rows.append(Checkbox(
                 _("Skip episodes already in my library"),
                 fields["skip_in_library"], id="tm-skip",
                 on_toggle=lambda: self._timer_set(
-                    "skip_in_library", not fields["skip_in_library"])))
+                    "skip_in_library", not fields["skip_in_library"]),
+                disabled=not editable))
             one_channel = (_("Only %s") % channel if channel
                            else _("One channel"))
             rows.append(self._picker(
@@ -218,27 +254,28 @@ class LiveTvDialogsMixin:
                 "tm-channels",
                 [one_channel, _("All channels")],
                 1 if fields["any_channel"] else 0,
-                lambda i, v: self._timer_set("any_channel", i == 1)))
+                lambda i, v: self._timer_set("any_channel", i == 1), editable))
             start = live_tv.parse_time(timer.get("StartDate"))
             rows.append(self._picker(
                 _("Air time"), "tm-airtime",
                 [(_("Around %s") % live_tv.fmt_time(start)) if start
                  else _("Original air time"), _("Any time")],
                 1 if fields["any_time"] else 0,
-                lambda i, v: self._timer_set("any_time", i == 1)))
+                lambda i, v: self._timer_set("any_time", i == 1), editable))
             keep = fields["keep_up_to"]
             choices = _keep_choices(keep)
             rows.append(self._picker(
                 _("Keep up to"), "tm-keep",
                 [self._keep_label(n) for n in choices],
                 choices.index(keep) if keep in choices else 0,
-                lambda i, v, c=choices: self._timer_set("keep_up_to", c[i])))
+                lambda i, v, c=choices: self._timer_set("keep_up_to", c[i]),
+                editable))
         rows.append(self._padding_row(
             _("Start early (minutes)"), "tm-pre", fields["pre"],
-            lambda s: self._timer_set("pre", s)))
+            lambda s: self._timer_set("pre", s), editable))
         rows.append(self._padding_row(
             _("Stop late (minutes)"), "tm-post", fields["post"],
-            lambda s: self._timer_set("post", s)))
+            lambda s: self._timer_set("post", s), editable))
         return rows
 
     @staticmethod
@@ -250,19 +287,21 @@ class LiveTvDialogsMixin:
         return _("%d episodes") % count
 
     @staticmethod
-    def _picker(label, node_id, items, selected, on_select):
+    def _picker(label, node_id, items, selected, on_select, editable=True):
         return Row([Text(label, w=170, size=16, color=theme.SUBTLE_FG),
                     Dropdown(node_id, items, selected=selected, w=280,
-                             size=16, on_select=on_select)],
+                             size=16, on_select=on_select,
+                             disabled=not editable)],
                    gap=8, align="center")
 
     @staticmethod
-    def _padding_row(label, node_id, value, on_change):
+    def _padding_row(label, node_id, value, on_change, editable=True):
         # on_commit as well as on_submit: a padding typed and then dismissed
         # with a click on Save (rather than ENTER) must still be read.
         return Row([Text(label, w=170, size=16, color=theme.SUBTLE_FG),
                     TextBox(node_id, value, size=16, w=90,
-                            on_submit=on_change, on_commit=on_change)],
+                            on_submit=on_change, on_commit=on_change,
+                            disabled=not editable)],
                    gap=8, align="center")
 
     def _timer_save(self):

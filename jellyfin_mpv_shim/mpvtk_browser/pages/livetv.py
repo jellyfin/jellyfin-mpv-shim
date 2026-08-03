@@ -47,38 +47,32 @@ class LiveTvPage(Page):
 
     DEFAULT_TAB = "programs"
 
-    #: The two tabs that are *about* scheduling rather than about watching.
-    #: Recordings is not one of them -- a finished recording is something you
-    #: watch, and `EnableLiveTvManagement` does not gate watching.
-    MANAGEMENT_TABS = ("schedule", "series")
-
     # -- load --------------------------------------------------------------
 
     def _tabs(self):
-        """The tabs this user can actually use.
+        """Every tab, to every user who can see Live TV at all.
 
-        Scheduling is `EnableLiveTvManagement`, which is granted separately
-        from the access that put Live TV in the sidebar at all -- so a user
-        can browse the guide perfectly well and have every timer they try to
-        set answered with a 403.
+        `EnableLiveTvManagement` gates *changing* the DVR, not reading it.
+        Schedule and Series used to be hidden without it, which took away
+        information the user is entitled to: what is going to record, and
+        which series rules exist, are things a household member wants to know
+        whether or not they are allowed to change them -- and the server
+        agrees, answering `/LiveTv/Timers` and `/LiveTv/SeriesTimers` with 200
+        for an account that has no management permission (measured against a
+        real server; the 403 is on the writes).
+
+        jellyfin-web draws the same conclusion: its `getTabs` consults no
+        policy at all and it gates the mutating context-menu entries instead
+        (`itemContextMenu.js` -- Cancel Recording, Cancel Series). Actions are
+        gated here too: the Record buttons via `can_record`, and the timer
+        editor opens read-only (see `livetv_dialogs`).
         """
-        if self._may_manage():
-            return self.TABS
-        return tuple(t for t in self.TABS if t[0] not in self.MANAGEMENT_TABS)
-
-    def _may_manage(self):
-        ask = getattr(self.ctx.source, "can_manage_live_tv", None)
-        if ask is None:
-            return True                 # fails open; see user_policy
-        try:
-            return bool(ask(self._srv()))
-        except Exception:
-            return True
+        return self.TABS
 
     def _current_tab(self):
-        """The tab to draw. A tab this user may not have -- carried in on a
-        route, or left behind by a permission change -- falls back to the
-        default rather than rendering a screen with no way out of it."""
+        """The tab to draw. An unknown tab carried in on a route falls back
+        to the default rather than rendering a screen with no way out of
+        it."""
         tab = self.route.get("_tab") or self.DEFAULT_TAB
         if tab not in [key for key, _label in self._tabs()]:
             return self.DEFAULT_TAB

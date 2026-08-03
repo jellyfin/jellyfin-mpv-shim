@@ -272,6 +272,25 @@ class LiveTvManagementPermissionTest(unittest.TestCase):
             "longer has an account without the permission and the gate is "
             "untested")
 
+    def test_it_may_still_READ_what_is_scheduled(self):
+        """The premise of showing Schedule and Series to everyone.
+
+        The permission gates writes. If the server ever starts refusing
+        these reads as well, hiding those two tabs becomes right again and
+        this is the test that says so — no unit test can, because the answer
+        is the server's and not ours.
+        """
+        source = self._source("qa-restricted")
+        for name in ("get_timers", "get_series_timers"):
+            with self.subTest(name):
+                # Not "returns rows": the QA server schedules nothing, so an
+                # empty list is the honest answer. What is being asserted is
+                # that asking is allowed at all -- a 403 raises.
+                self.assertIsNotNone(
+                    getattr(source, name)(_e2e.SOURCE_UUID),
+                    "%s was refused for an account without "
+                    "EnableLiveTvManagement" % name)
+
 
 if __name__ == "__main__":
     unittest.main()

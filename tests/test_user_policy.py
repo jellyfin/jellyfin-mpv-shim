@@ -247,8 +247,15 @@ class TheNewGroupButton(unittest.TestCase):
 
 
 class TheLiveTvTabs(unittest.TestCase):
-    """Schedule and Series are about scheduling. Recordings is not — a
-    finished recording is something you watch."""
+    """Every tab, to everyone who can see Live TV at all.
+
+    `EnableLiveTvManagement` gates changing the DVR, not reading it. Schedule
+    and Series were hidden without it, which took away information the server
+    itself hands out: both endpoints answer 200 for an account with no
+    management permission (measured against a real server; the 403 is on the
+    writes). jellyfin-web's `getTabs` consults no policy either and gates the
+    mutating context-menu entries instead.
+    """
 
     def _tabs(self, may_manage):
         from tests.test_live_tv import browser, open_live_tv
@@ -261,10 +268,11 @@ class TheLiveTvTabs(unittest.TestCase):
     def test_all_six_with_management(self):
         self.assertEqual(len(self._tabs(True)), 6)
 
-    def test_the_scheduling_tabs_go_without_it(self):
-        tabs = self._tabs(False)
-        self.assertNotIn("schedule", tabs)
-        self.assertNotIn("series", tabs)
+    def test_all_six_without_it_as_well(self):
+        """What is going to record is worth knowing whether or not you may
+        change it. The actions are what go — see TheTimerEditor."""
+        self.assertEqual(sorted(self._tabs(False)),
+                         sorted(self._tabs(True)))
 
     def test_watching_recordings_survives(self):
         """The permission is about managing recordings, not about playing
@@ -273,14 +281,26 @@ class TheLiveTvTabs(unittest.TestCase):
         for key in ("programs", "guide", "channels", "recordings"):
             self.assertIn(key, tabs)
 
-    def test_a_hidden_tab_carried_in_on_a_route_falls_back(self):
-        """Otherwise the tab bar shows nothing selected and the body draws a
-        screen with no way out of it."""
+    def test_the_scheduling_tabs_are_reachable_by_route(self):
+        """The route carries `_tab`; a remote or a deep link can land on
+        Schedule directly, and it must not bounce to Programs."""
         from tests.test_live_tv import browser, open_live_tv
 
         b = browser()
         b.source.can_manage_live_tv = lambda _srv: False
-        page = open_live_tv(b, tab="schedule")
+        for tab in ("schedule", "series"):
+            with self.subTest(tab):
+                page = open_live_tv(b, tab=tab)
+                self.assertEqual(page._current_tab(), tab)
+
+    def test_an_unknown_tab_still_falls_back(self):
+        """The guard that outlived the permission it was added for: without
+        it the tab bar shows nothing selected and the body draws a screen
+        with no way out of it."""
+        from tests.test_live_tv import browser, open_live_tv
+
+        b = browser()
+        page = open_live_tv(b, tab="nonsense")
         self.assertEqual(page._current_tab(), page.DEFAULT_TAB)
 
     def test_a_source_that_cannot_answer_keeps_them(self):
@@ -291,6 +311,82 @@ class TheLiveTvTabs(unittest.TestCase):
             del b.source.can_manage_live_tv
         page = open_live_tv(b)
         self.assertEqual(len(page._tabs()), 6)
+
+
+class TheTimerEditor(unittest.TestCase):
+    """Opening a scheduled recording without permission to change it.
+
+    The dialog is where the information lives — channel, air time, padding,
+    which episodes a series rule keeps — so it still opens. What goes is
+    everything that would be answered with a 403.
+    """
+
+    def _dialog(self, may_manage, series=True):
+        from tests.test_live_tv import browser, open_live_tv
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        b = browser()
+        b.source.can_manage_live_tv = lambda _srv: may_manage
+        page = open_live_tv(b, "series" if series else "schedule")
+        if series:
+            page._open_series_timer({"Id": "st1"})
+        else:
+            page._open_timer({"Id": "tm1"})
+        nodes, _h = layout(b.build((1280, 720)), 1280, 720)
+        return {n.get("id"): n for n in nodes if n.get("id")}
+
+    def test_the_form_is_still_shown(self):
+        """Read-only, not withheld: the settings are the reason to open it."""
+        nodes = self._dialog(False)
+        for node_id in ("tm-showtype", "tm-channels", "tm-airtime",
+                        "tm-keep", "tm-pre", "tm-post"):
+            with self.subTest(node_id):
+                self.assertIn(node_id, nodes)
+
+    def test_nothing_that_would_be_refused_is_offered(self):
+        nodes = self._dialog(False)
+        self.assertNotIn("tm-save", nodes)
+        self.assertNotIn("tm-cancel", nodes)
+
+    def test_close_is_still_there(self):
+        """A dialog you cannot dismiss is worse than one you cannot use."""
+        self.assertIn("tm-close", self._dialog(False))
+
+    def test_the_controls_are_disabled(self):
+        """Left live, they would take an edit that Save is not there to
+        apply — a form that silently discards what you type."""
+        nodes = self._dialog(False)
+        for node_id in ("tm-showtype", "tm-channels", "tm-airtime",
+                        "tm-keep", "tm-pre", "tm-post"):
+            with self.subTest(node_id):
+                self.assertTrue(nodes[node_id].get("dis"),
+                                "%s is still editable" % node_id)
+
+    def test_with_permission_it_is_an_editor_again(self):
+        nodes = self._dialog(True)
+        self.assertIn("tm-save", nodes)
+        self.assertIn("tm-cancel", nodes)
+        self.assertFalse(nodes["tm-pre"].get("dis"))
+
+    def test_a_single_timer_is_read_only_too(self):
+        nodes = self._dialog(False, series=False)
+        self.assertIn("tm-pre", nodes)
+        self.assertTrue(nodes["tm-pre"].get("dis"))
+        self.assertNotIn("tm-cancel", nodes)
+
+    def test_it_fails_open(self):
+        """Same doctrine as everywhere else: only an answer the server gave
+        closes a gate. A source that cannot answer leaves it an editor."""
+        from tests.test_live_tv import browser, open_live_tv
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        b = browser()
+        if hasattr(b.source, "can_manage_live_tv"):
+            del b.source.can_manage_live_tv
+        page = open_live_tv(b, "series")
+        page._open_series_timer({"Id": "st1"})
+        nodes, _h = layout(b.build((1280, 720)), 1280, 720)
+        self.assertIn("tm-save", {n.get("id") for n in nodes})
 
 
 class TheRecordButtons(unittest.TestCase):

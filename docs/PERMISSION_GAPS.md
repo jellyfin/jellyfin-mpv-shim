@@ -131,11 +131,33 @@ existed as an *apiclient capability* probe with exactly this doctrine, so the
 permission folded into it: both questions have to say yes, and it now takes
 the server it is asking about (it is per server; the probe is not).
 
-The Live TV page hides the **Schedule** and **Series** tabs, and only those —
-`Recordings` stays, because a finished recording is something you watch and
-this permission does not gate watching. A tab carried in on a route that the
-user may not have falls back to the default rather than rendering a screen
-with no way out of it.
+**The tabs all stay.** The first cut hid **Schedule** and **Series** without
+the permission, on the reasoning that they are about scheduling. That was
+wrong, and measuring the server says so: `GET /LiveTv/Timers` and
+`GET /LiveTv/SeriesTimers` both answer **200 for `qa-restricted`**, an account
+that has never had `EnableLiveTvManagement`. The permission gates the writes.
+What is going to record, and which series rules exist, is information the
+server hands to anyone who can see Live TV — and a household member who
+cannot change the DVR still has every reason to want to know what it is
+about to do.
+
+jellyfin-web reaches the same place from the other direction: `getTabs`
+(`livetvsuggested.js:158`) consults no policy at all, and the gating lives on
+the *actions* — `itemContextMenu.js` hides Cancel Recording and Cancel Series
+behind the permission, `itemDetails/index.js` hides the Record buttons.
+
+So the gate moved to where the 403s are:
+
+* the **Record** buttons, via `can_record` (unchanged);
+* the **timer editor**, which now opens read-only — the form renders with the
+  same rows and values, disabled, and Save / Cancel Recording / Cancel Series
+  are not offered at all. Not greyed: a disabled Save invites "why", and the
+  answer is a permission the user cannot do anything about from that dialog.
+
+`tests/e2e/test_account_policy.py` pins the premise (the reads are allowed),
+because no unit test can — that answer belongs to the server. If it ever
+starts refusing them, hiding the tabs becomes right again and that test is
+what will say so.
 
 Pinned by `tests/test_user_policy.py` and
 `tests/e2e/test_account_policy.py:LiveTvManagementPermissionTest`, which
