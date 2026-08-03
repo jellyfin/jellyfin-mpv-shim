@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-05-18 17:22+0000\n"
-"Last-Translator: serzh-photograf <serzh.photograf@gmail.com>\n"
+"PO-Revision-Date: 2026-08-04 00:34+0000\n"
+"Last-Translator: potuzhnyj <ivvvvvca@gmail.com>\n"
 "Language-Team: Ukrainian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/uk/>\n"
 "Language: uk\n"
@@ -57,10 +57,12 @@ msgstr "Задаємо поточні..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Відкрийте Jellyfin, перейдіть до меню вашого користувача -> Швидке "
+"підключення, та введіть цей код:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Очікування на авторизацію..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
@@ -76,19 +78,15 @@ msgstr "Сервер не було додано."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Обліковий запис уже існує. Оновлюю обліковi данi."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Сервер успішно додано."
+msgstr "Повноваження для доступу до сервера успішно оновлено."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Сервер не було додано."
+msgstr "Помилка під час оновлення даних сервера."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -107,28 +105,20 @@ msgid "Add another server?"
 msgstr "Додати ще один сервер?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Не вдалося додати сервер.\n"
-"Перевірте дані для підключення."
+msgstr "Не вдалося встановити з'єднання з сервером."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "На цьому сервері функція Швидке пiдключення не ввімкнена."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Не вдалося запустити функцiю Швидкого пiдключення."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Пропущені титри"
+msgstr "Пропустити титри"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -139,61 +129,44 @@ msgid "Seek to Skip Credits"
 msgstr "Пропустити титри"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Спецепізоди"
+msgstr "Пропустити рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Пропущені титри"
+msgstr "Пропущена реклама"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Пропустити титри"
+msgstr "Спробувати пропустити рекламу"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Пропущені титри"
+msgstr "Пропустити попередній перегляд"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Пропущені титри"
+msgstr "Пропущений попереднiй перегляд"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Пропустити титри"
+msgstr "Спробувати пропустити попередній перегляд"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Пропустити підсумок"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Пропущені титри"
+msgstr "Пропущений пiдсумок"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Пропустити титри"
+msgstr "Спробувати пропустити пiдсумок"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Пропущений вступ"
+msgstr "Пропустити вступ"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -376,11 +349,11 @@ msgstr "Ніколи"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Запитати"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Завжди"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -415,10 +388,9 @@ msgid "Middle"
 msgstr "Центрувати"
 
 #: jellyfin_mpv_shim/menu.py
-#, fuzzy, python-brace-format
-#| msgid "Remote Transcode Quality: {0:0.1f} Mbps"
+#, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Якість віддаленого перекодування: {0: 0,1f} Мбіт/с"
+msgstr "Якість віддаленого транскодування: {0:0.1f} Мбіт/с"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
