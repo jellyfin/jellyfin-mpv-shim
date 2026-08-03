@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-03 06:15+0000\n"
-"Last-Translator: Guilherme Naves <navesbm@gmail.com>\n"
+"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"Last-Translator: Nairon David <nairon.david@hotmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/pt_BR/>\n"
 "Language: pt_BR\n"
@@ -2809,10 +2809,8 @@ msgid "Songs"
 msgstr "Músicas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not start playback."
-msgstr "Não foi possível iniciar a Conexão Rápida."
+msgstr "Não foi possível iniciar a reprodução."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2823,7 +2821,7 @@ msgstr "Editar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist is empty."
-msgstr ""
+msgstr "Essa lista de reprodução está vazia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 msgid "This playlist has no supported media types."
