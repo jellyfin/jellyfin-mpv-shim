@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-03 18:58+0000\n"
+"PO-Revision-Date: 2026-08-04 00:34+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -80,16 +80,12 @@ msgid "Account already exists. Updating credentials."
 msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Serverio kredencialai sėkmingai atnaujinti."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Nepavyko pridėti serverio."
+msgstr "Nepavyko atnaujinti serverio kredencialų."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -108,28 +104,20 @@ msgid "Add another server?"
 msgstr "Pridėti kitą serverį?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko prisijungti prie serverio."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Šiame serveryje neįgalintas Quick Connect."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Nepavyko paleisti Quick Connect."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Titrai praleisti"
+msgstr "Praleisti titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -141,59 +129,43 @@ msgstr "Klausti, ar praleisti pabaigos titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
+msgstr "Praleisti reklamą"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Commercial"
+msgstr "Praleista reklama"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Commercial"
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
-msgid "Skipped Commercial"
-msgstr "Titrai praleisti"
-
-#: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
-msgid "Seek to Skip Commercial"
-msgstr "Klausti, ar praleisti pabaigos titrus"
-
-#: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Titrai praleisti"
+msgstr "Praleisti peržiūrą"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Titrai praleisti"
+msgstr "Praleista peržiūra"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Klausti, ar praleisti pabaigos titrus"
+msgstr ""
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
+msgstr "Praleisti santrauką"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Skipped Recap"
+msgstr "Praleista santrauka"
+
+#: jellyfin_mpv_shim/media.py
+msgid "Seek to Skip Recap"
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
-msgid "Skipped Recap"
-msgstr "Titrai praleisti"
-
-#: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
-msgid "Seek to Skip Recap"
-msgstr "Klausti, ar praleisti pabaigos titrus"
-
-#: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Praleistas intro"
+msgstr "Praleisti įvadą"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -370,15 +342,15 @@ msgstr "Rankinis pagal takelio indeksą (mažiau patikimas)"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never"
-msgstr ""
+msgstr "Niekada"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Klausti"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Visada"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -486,35 +458,25 @@ msgid "Discord Rich Presence"
 msgstr "Daugiau informacijos Discord platformoje"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Praleistas intro"
+msgstr "Praleisti įžangas"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Titrai praleisti"
+msgstr "Praleisti titrus"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Commercials"
-msgstr "Titrai praleisti"
+msgstr "Praleisti reklamas"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "Titrai praleisti"
+msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Titrai praleisti"
+msgstr "Praleisti santraukas"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -523,38 +485,36 @@ msgstr "Įjungti miniatūrų peržiūrą"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Night Mode (Auto Volume Adj)"
-msgstr ""
+msgstr "Naktinis režimas (automatinis garsumo reguliavimas)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Nepavyko įkelti. Patikrinkite ryšį."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Page"
-msgstr ""
+msgstr "Puslapis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "iš %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Pirmas puslapis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous page"
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Ankstesnis puslapis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Next page"
-msgstr ""
+msgstr "Kitas puslapis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Paskutinis puslapis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -601,14 +561,8 @@ msgid "Retry"
 msgstr "Pabandyti iš naujo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Vis dar nepavyksta pasiekti serverio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -637,23 +591,22 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Serveris:"
+msgstr "Nustatyti PIN kodą %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Dabartinis PIN kodas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Naujas PIN kodas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Patvirtinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
