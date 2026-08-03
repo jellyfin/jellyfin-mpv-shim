@@ -151,7 +151,7 @@ class DefaultThemeIsTheStockLookTest(unittest.TestCase):
     def test_the_default_theme_asks_for_no_extra_decoration(self):
         d = theme.apply("default")
         self.assertFalse(d["glow"])       # no blurred accent halo
-        self.assertFalse(d["rounded"])    # square cards, letterboxed art
+        self.assertFalse(d["rounded"])    # square cards (the art still crops)
         self.assertFalse(d["accent_buttons"])   # plain top-bar buttons
         self.assertEqual(d["poster_scale"], 1.0)
         self.assertEqual(d["heading_size"], 24)

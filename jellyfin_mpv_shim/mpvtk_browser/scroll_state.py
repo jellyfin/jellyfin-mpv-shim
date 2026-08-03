@@ -27,6 +27,13 @@ Three pieces of state, and each exists for a different failure:
     comparing adjacent events lets a slow scroll drift a whole window without
     ever crossing the gap — and the virtualized rows fall out of the built
     window as blank spacers until some larger coalesced jump finally trips it.
+
+``_pending``
+    The offsets **this frame's scene is about to command** — the route's
+    parked offsets, which the pages pass as ``Scroll(offset=…)``. For a
+    container the renderer has not heard of yet, this outranks its silence:
+    the scene is telling it where to go, so that is where it will be by the
+    time anything is drawn.
 """
 
 
@@ -50,18 +57,24 @@ class ScrollState:
         self._recorded = {}
         self._rendered = {}
         self._live = None
+        self._pending = {}
 
     # -- per-frame ---------------------------------------------------------
 
-    def refresh(self, app):
+    def refresh(self, app, route=None):
         """Take the renderer's live offsets. Call once at the top of
         ``build()``.
 
         Cleared first, so a failed read degrades to the recorded fallback
         rather than silently reusing last frame's numbers against this
         frame's content.
+
+        ``route`` is the route about to be built, and it is read for one
+        thing: the offsets parked on it, which its page is about to pass as
+        ``Scroll(offset=…)``. See ``offset``.
         """
         self._live = None
+        self._pending = (route or {}).get(self.PARK_KEY) or {}
         if app is None or not hasattr(app, "scroll_offsets"):
             return
         try:
@@ -72,20 +85,38 @@ class ScrollState:
     def offset(self, scroll_id):
         """Where ``scroll_id`` is scrolled to, in logical pixels.
 
-        When the renderer answered at all, it is the only authority — an id
-        it does not list is at the top, not "unknown, use my copy". The
-        renderer drops the state of containers that left the scene, so
-        letting ``_recorded`` fill that gap re-armed an offset the container
-        no longer has: tick Paginated on a scrolled grid and untick it, or
-        change a sort (which drops to the busy screen and takes the scroll
-        container with it), and the returning grid was virtualized around
-        the old offset while the real one sat at 0 — a screenful of blank
-        spacers with no tiles in it.
+        Where the renderer has an answer, it is the only authority — its
+        copy is the one clamped to the current content. What it does *not*
+        answer for is a container that has only just entered the scene, and
+        there are two of those, which want opposite things:
+
+        * The container really is at the top. Tick Paginated on a scrolled
+          grid and untick it, or change a sort (which drops to the busy
+          screen and takes the scroll container with it): the renderer built
+          a fresh container at 0. Letting ``_recorded`` fill that gap re-armed
+          an offset the container no longer has, and windowed the returning
+          grid around it — a screenful of blank spacers with no tiles in it.
+          So ``_recorded`` is a whole-snapshot fallback for mpv < 0.36 and
+          never a per-id one.
+        * The container is being *restored*. Press Back onto a library you
+          had scrolled to the end of: the scene we are building carries
+          ``off0`` for exactly that, and the renderer applies it before it
+          draws anything. Windowing that frame from its silence built the
+          top of the list and then jumped to the bottom, so the screen came
+          back empty and stayed empty until a scroll rebuilt it.
+
+        ``_pending`` is what tells them apart, and it is not a memory of
+        where the container *was*: it is where this frame's scene is about to
+        *put* it. A container the user has since scrolled has a live entry,
+        which still wins — including when that entry is 0.
         """
         live = self._live
         if live is not None:
-            return float(live.get(scroll_id) or 0.0)
-        return float(self._recorded.get(scroll_id, 0.0))
+            if scroll_id in live:
+                return float(live[scroll_id] or 0.0)
+        elif scroll_id in self._recorded:
+            return float(self._recorded[scroll_id])
+        return float(self._pending.get(scroll_id) or 0.0)
 
     # -- events ------------------------------------------------------------
 

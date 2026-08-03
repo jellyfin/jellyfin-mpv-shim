@@ -605,11 +605,16 @@ local function compute_geo()
                 vx2 = math.min(vx2, p.x2); vy2 = math.min(vy2, p.y2)
             end
             local off = snap_round(node, state.scroll[node.id] or 0)
-            state.geo[node.id] = {
+            local g = {
                 dx = dx + (node.axis == 'x' and off or 0),
                 dy = dy + (node.axis == 'y' and off or 0),
                 x1 = vx1, y1 = vy1, x2 = vx2, y2 = vy2,
             }
+            -- The OUTERMOST viewport this one sits in (itself, when there is
+            -- no parent). Decorations that are allowed to spill out of their
+            -- own container still may not leave the page -- see glow_clip.
+            g.root = p and p.root or g
+            state.geo[node.id] = g
         end
     end
 end
@@ -633,6 +638,31 @@ local function visible(node)
         ex + node.w > clip.x1 and ey + node.h > clip.y1
 end
 
+-- Clip for a decoration that is allowed to spill OUT of its own viewport,
+-- but not out of the page: the container's rect grown by `spill`, clamped
+-- back to the outermost scroll ancestor.
+--
+-- Both of the themed glows want this. Clipped to their own container the
+-- blur is chopped into a hard edge, which is the box they exist to replace
+-- (a card fills its row's viewport, so the halo is entirely outside it).
+-- Clipped to nothing -- which is what they used to do -- the halo of a card
+-- near the top of the page paints over the header, because chrome is drawn
+-- BEFORE content and ASS has no z-order beyond scene order.
+--
+-- Growing the already-intersected rect and re-clamping gives the same
+-- answer as growing the container's own rect would: where the parent had
+-- already cut this viewport, the clamp puts the edge straight back.
+local function spill_clip(clip, spill)
+    if not clip then return nil end
+    local r = clip.root or clip
+    return {
+        x1 = math.max(clip.x1 - spill, r.x1),
+        y1 = math.max(clip.y1 - spill, r.y1),
+        x2 = math.min(clip.x2 + spill, r.x2),
+        y2 = math.min(clip.y2 + spill, r.y2),
+    }
+end
+
 local function clip_tag(clip)
     if not clip then return '' end
     return string.format('\\clip(%.1f,%.1f,%.1f,%.1f)',
@@ -654,9 +684,9 @@ local function draw_rect(ass, x, y, w, h, o)
     -- o: {fill, a, radius, bc, bw, clip, blur}
     ass:new_event()
     ass:append('{\\pos(0,0)\\an7\\bord0\\shad0')
-    -- blur softens the border into a halo (the themed selection glow); the
-    -- caller must leave the clip off, or the container's viewport chops the
-    -- blur back into a hard edge.
+    -- blur softens the border into a halo (the themed selection glow); pass
+    -- such a caller's clip through spill_clip, or the container's viewport
+    -- chops the blur back into a hard edge.
     if o.blur then ass:append(string.format('\\blur%.1f', o.blur)) end
     if o.fill then
         ass:append('\\1c' .. ass_color(o.fill))
@@ -713,7 +743,11 @@ local function draw_text(ass, node, ex, ey, clip, text, color, extra,
         glow = '\\bord1.4\\blur2\\3c&H000000&\\3a&H40&'
     end
     ass:append(string.format(
-        '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0' ..
+        -- %.2f, not %d: a font size arrives already scaled and is NOT rounded
+        -- (mpvtk/scaling.py _EXACT_KEYS). Truncating it here would put the
+        -- rounding error straight back, and it is the whole reason a wrapped
+        -- paragraph used to overrun its column on a fractional UI scale.
+        '{\\q2\\an%d\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0' ..
         '\\1c%s\\1a&H00&%s%s%s%s%s}',
         an, px, ey + node.h / 2, node.size,
         ass_color(color), glow, node.bold and '\\b1' or '',
@@ -2009,11 +2043,13 @@ render = function()
                 if hs and hs.bc then
                     if state.glow then
                         -- Themed selection: a soft accent halo instead of a
-                        -- hard box. No clip — the row viewport would chop the
-                        -- blur back into the box this replaces.
+                        -- hard box. Clipped to the page rather than to the
+                        -- row — the row viewport would chop the blur back
+                        -- into the box this replaces (see spill_clip).
                         draw_rect(ass, ex - 3, ey - 3,
                             node.w + 6, node.h + 6, {
                                 bc = hs.bc, bw = 3, radius = 14, blur = 16,
+                                clip = spill_clip(clip, 3 + 3 + 16),
                             })
                     else
                         draw_rect(ass, ex - 2, ey - 2,
@@ -2036,12 +2072,14 @@ render = function()
                 if state.glow and hs and hs.glow then
                     -- Soft accent halo behind a hovered box (themed chrome:
                     -- hover={"glow": true}). Drawn first so the box sits on
-                    -- top of it, and unclipped — a clip would chop the blur
-                    -- back into a hard edge.
+                    -- top of it, and clipped to the page rather than to its
+                    -- own container — the latter chops the blur back into a
+                    -- hard edge (see spill_clip).
                     draw_rect(ass, ex - 2, ey - 2,
                         node.w + 4, node.h + 4, {
                             bc = hs.bc or node.bc or state.accent, bw = 2,
                             radius = (node.radius or 0) + 2, blur = 10,
+                            clip = spill_clip(clip, 2 + 2 + 10),
                         })
                 end
                 draw_rect(ass, ex, ey, node.w, node.h, {
@@ -2191,7 +2229,7 @@ render = function()
         -- box: the background is what softens against the picture, and
         -- fading the text with it would cost legibility on bright frames.
         ass:append(string.format(
-            '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%d\\bord0\\shad0\\1c%s' ..
+            '{\\q2\\an5\\pos(%.1f,%.1f)\\fs%.2f\\bord0\\shad0\\1c%s' ..
             '\\1a&H00&\\b0%s}',
             x1 + bw / 2, y1 + bh / 2, fs, ass_color(PHUD_SKIP_FG),
             ui_font and ('\\fn' .. ui_font) or ''))

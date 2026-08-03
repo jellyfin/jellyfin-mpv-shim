@@ -75,7 +75,13 @@ def compose_banner(image, box, title=None, meta=None, context=None):
     if meta:
         f = pil_font(int(size * 0.6), text=meta)
         asc, desc = f.getmetrics()
-        draw.text((margin, y - asc - desc), meta, font=f,
+        # Ellipsized to the width, like the context line below and unlike
+        # what this used to do: the meta line ends in the genres, and a film
+        # carrying five of them drew straight off the right edge of the
+        # backdrop. Nothing clips a baked bitmap back -- the text IS the
+        # picture by the time the compositor sees it.
+        line = wrap_pil(draw, meta, f, avail, max_lines=1)[0]
+        draw.text((margin, y - asc - desc), line, font=f,
                   fill=(200, 200, 200, 255))
         y -= asc + desc + px(6)
     f = pil_font(size, bold=True, text=title)

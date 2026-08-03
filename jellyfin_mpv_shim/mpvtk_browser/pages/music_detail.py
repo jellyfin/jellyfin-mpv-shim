@@ -9,7 +9,7 @@ from ...mpvtk.widgets import Column, Row, Spacer, Text, VScroll
 from .. import pagination
 from ..components import chrome
 from ..tile_renderer import GRID_GAP
-from .music import MusicPage
+from .music import HEADER_ART, HEADER_GAP, MusicPage
 
 
 class AlbumPage(MusicPage):
@@ -38,8 +38,9 @@ class AlbumPage(MusicPage):
         server = route.get("server") or self.ctx.server
         ids = [t.get("Id") for t in tracks]
         header = Row([
-            art.tiles.art_cell(item, size=132),
-            Column(self.header_text(item, tracks, size[0]) + [
+            art.tiles.art_cell(item, size=HEADER_ART),
+            Column(self.header_text(item, tracks, size[0],
+                                    indent=HEADER_ART + HEADER_GAP) + [
                 self.action_bar(server, ids, route["item_id"], "album",
                                 items=tracks),
             ], gap=8, flex=1, align="stretch"),
@@ -104,8 +105,10 @@ class ArtistPage(MusicPage):
         ids = [s.get("Id") for s in songs]
         item = data.get("item") or {}
         rows: list = [Row([
-            art.tiles.art_cell(item, size=132) if item else Spacer(w=0),
-            Column(self.header_text(item, songs, size[0]) + [
+            art.tiles.art_cell(item, size=HEADER_ART) if item else Spacer(w=0),
+            Column(self.header_text(item, songs, size[0],
+                                    indent=(HEADER_ART if item else 0)
+                                    + HEADER_GAP) + [
                 self.action_bar(server, ids, route["item_id"], "art",
                                 items=songs),
             ], gap=8, flex=1, align="stretch"),

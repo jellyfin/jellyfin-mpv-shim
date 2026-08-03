@@ -49,8 +49,37 @@ class LiveTvPage(Page):
 
     # -- load --------------------------------------------------------------
 
-    def load(self, epoch):
+    def _tabs(self):
+        """Every tab, to every user who can see Live TV at all.
+
+        `EnableLiveTvManagement` gates *changing* the DVR, not reading it.
+        Schedule and Series used to be hidden without it, which took away
+        information the user is entitled to: what is going to record, and
+        which series rules exist, are things a household member wants to know
+        whether or not they are allowed to change them -- and the server
+        agrees, answering `/LiveTv/Timers` and `/LiveTv/SeriesTimers` with 200
+        for an account that has no management permission (measured against a
+        real server; the 403 is on the writes).
+
+        jellyfin-web draws the same conclusion: its `getTabs` consults no
+        policy at all and it gates the mutating context-menu entries instead
+        (`itemContextMenu.js` -- Cancel Recording, Cancel Series). Actions are
+        gated here too: the Record buttons via `can_record`, and the timer
+        editor opens read-only (see `livetv_dialogs`).
+        """
+        return self.TABS
+
+    def _current_tab(self):
+        """The tab to draw. An unknown tab carried in on a route falls back
+        to the default rather than rendering a screen with no way out of
+        it."""
         tab = self.route.get("_tab") or self.DEFAULT_TAB
+        if tab not in [key for key, _label in self._tabs()]:
+            return self.DEFAULT_TAB
+        return tab
+
+    def load(self, epoch):
+        tab = self._current_tab()
         getattr(self, "_load_" + tab, self._load_programs)(epoch)
 
     def _put(self, key="_data"):
@@ -190,7 +219,7 @@ class LiveTvPage(Page):
     # -- render ------------------------------------------------------------
 
     def render(self, size):
-        tab = self.route.get("_tab") or self.DEFAULT_TAB
+        tab = self._current_tab()
         body = getattr(self, "_render_" + tab, self._render_programs)
         return Column([self._tab_bar(tab), body(size)], flex=1,
                       align="stretch")
@@ -198,7 +227,7 @@ class LiveTvPage(Page):
     def _tab_bar(self, current):
         tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
                                  lambda k=key: self._set_tab(k))
-                for key, label in self.TABS]
+                for key, label in self._tabs()]
         return Row(tabs, gap=8, pad=12, align="center")
 
     def _scroll(self, children, scroll_id, gap=16):
@@ -819,7 +848,7 @@ class ProgramPage(Page):
                 "pg-watch",
                 lambda: actions.play_list([channel], server, 0),
                 primary=live_tv.is_airing(item), size=18))
-        if not actions.can_record():
+        if not actions.can_record(server):
             return Row(btns, gap=10)
         if single:
             btns.append(controls.action_btn(

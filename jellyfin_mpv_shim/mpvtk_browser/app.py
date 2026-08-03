@@ -1620,7 +1620,28 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         except Exception:
             log.exception("controller.%s failed", name)
 
+    def _park_on_leaving_browse(self):
+        """Park the scroll offsets on the way out of the browser.
+
+        Yielding to playback pushes an EMPTY scene, and the renderer drops
+        the state of every container that left the scene. Unlike a
+        navigation, coming back is a rebuild of the *same* route — nothing
+        pushes or pops — so ``navigate``'s park never runs and there was
+        nothing left for ``Page.parked_scroll`` to restore. Press play on
+        something near the end of a library and the library came back at the
+        top; whether it came back *blank* on the way depended on whether the
+        live read still had the old offsets when the window was built.
+
+        Guarded on ``_browsing``: a video start parks here and then reaches
+        ``_yield`` once playback reports in, by which time the container has
+        already left the scene — and ``park`` treats an empty snapshot as
+        "nothing was scrolled" and drops the key.
+        """
+        if self._browsing:
+            self._park_scroll()
+
     def _yield(self):
+        self._park_on_leaving_browse()
         self._browsing = False
         self._tell_controller("on_browse_leave")
         if self.hud.available():
@@ -1653,6 +1674,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # _browsing first, then begin(): begin() arms the spinner timer,
             # and the original armed it last. Keeping that order means the
             # timer can never observe a half-applied start.
+            #
+            # Parked here rather than only in _yield: the loading screen
+            # replaces the content as soon as the spinner is due, so the
+            # scroll container can leave the scene well before playback
+            # reports in and the yield happens.
+            self._park_on_leaving_browse()
             self._browsing = False
             self.load.begin(title)
             self.invalidate()
@@ -1779,6 +1806,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         a cast target. This is the player's "playback_abort yes, force_window
         no" state; there is no separate window to hide, so minimizing *is*
         dropping force_window with nothing playing."""
+        self._park_on_leaving_browse()
         self._minimized = True
         self._browsing = False
         self.hud.shown = False
@@ -2115,8 +2143,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         w, h = size
         self._size = size
         # One synchronous read per frame: the renderer's live scroll offsets,
-        # which virtualization windows against (see _offset).
-        self._scroll.refresh(self.app)
+        # which virtualization windows against (see _offset). The route goes
+        # with it for the offsets parked on it — on the frame a screen comes
+        # back, those are what its containers are about to be restored to,
+        # and so what its window has to be built around.
+        self._scroll.refresh(self.app, self.route)
         # Load feedback outranks everything, including the yield to video:
         # that yield is exactly what left a blank window during a load, and a
         # failed start has no video to show through.

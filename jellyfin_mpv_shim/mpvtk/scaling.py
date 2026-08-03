@@ -89,8 +89,22 @@ def _round(v):
 
 # Pixel geometry, uniform across every node type (audited against
 # layout.py's emission and renderer.lua's reads).
-_PX_KEYS = ("x", "y", "w", "h", "size", "radius", "bw", "pw", "cw", "ch",
+_PX_KEYS = ("x", "y", "w", "h", "radius", "bw", "pw", "cw", "ch",
             "rh", "snap", "snap_off", "off0")
+
+# Scaled but NOT rounded. A font size is not a box: nothing is rasterized at
+# it, no stride depends on it, and libass takes a fractional `\fs` happily.
+# What does depend on it is that the text comes out the width layout wrapped
+# and ellipsized it to -- and px()'s rounding broke exactly that. At 0.75x,
+# an 18px run is drawn at px(18) = 14, which is 18.67 logical: every line
+# renders 3.7% wider than the width it was fitted to, so a full-width
+# paragraph overruns its column by tens of pixels and disappears under the
+# scrollbar. The error is worst at the fractional scales (0 at 1x and 2x),
+# which is why this only ever showed up on a scaled display.
+#
+# Rounding here bought nothing. The one thing that must round exactly like
+# every other rasterizer is the LINE BOX (h/rh), and that still does.
+_EXACT_KEYS = ("size",)
 
 # Pixel geometry that arrives as a LIST of numbers (scaled elementwise).
 _PX_LIST_KEYS = ("snaps",)
@@ -121,6 +135,10 @@ def scale_scene(nodes):
             v = node.get(key)
             if v is not None:
                 node[key] = px(v)
+        for key in _EXACT_KEYS:
+            v = node.get(key)
+            if v is not None:
+                node[key] = v * _scale
         for key in _PX_LIST_KEYS:
             v = node.get(key)
             if v is not None:

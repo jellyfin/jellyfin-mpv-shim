@@ -52,6 +52,14 @@ log = logging.getLogger("mpvtk_browser.repository")
 # why doing so was invisible; a stricter server would 400 the whole query.
 LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
 
+#: An item's own artwork counts as landscape at or above this, which is what
+#: lets `backdrop_spec` use a home video's extracted still for its header and
+#: refuse a film's poster. Square is the boundary: anything taller is key art
+#: and a banner crop through the middle of it is worse than no banner at all.
+#: Same threshold as TileRenderer.SQUARE_RATIO, kept here because the source
+#: cannot import the renderer.
+_LANDSCAPE_ART = 0.8
+
 # Fields for a library GRID, which is the one place a hundred items arrive at
 # once. Overview is a third of that response body (154KB -> 108KB for a
 # hundred series here) and a tile draws a name, a year and a runtime -- none
@@ -416,6 +424,31 @@ class LibrarySource:
         """
         return (getattr(self, "_has_live_tv", None) or {}).get(
             server_uuid, False)
+
+    # -- what this user is allowed to do (see user_policy.py) --------------
+    #
+    # Thin, and deliberately so: the answer is cached on the client object,
+    # not here, because the player side reaches the same clients through
+    # clientManager and both have to get the same answer. These exist so the
+    # browser never has to reach for a client itself.
+
+    def syncplay_access(self, server_uuid):
+        from ..user_policy import syncplay_access
+
+        try:
+            return syncplay_access(self._conn(server_uuid).client)
+        except Exception:
+            from ..user_policy import CREATE_AND_JOIN
+
+            return CREATE_AND_JOIN      # fails open; see user_policy
+
+    def can_manage_live_tv(self, server_uuid):
+        from ..user_policy import may_manage_live_tv
+
+        try:
+            return may_manage_live_tv(self._conn(server_uuid).client)
+        except Exception:
+            return True                 # fails open; see user_policy
 
     # -- home screen layout (shared with jellyfin-web) ---------------------
 
@@ -2207,24 +2240,60 @@ class LibrarySource:
 
     @staticmethod
     def backdrop_spec(item):
-        """(owner_item_id, tag) identifying which backdrop image backdrop_url
-        would serve — the cache key must carry the real tag, or the same item
-        cached from another source/an older backdrop is served forever."""
+        """``(owner_item_id, image_type, tag)`` for the header banner, or
+        None when this item has nothing wide enough to draw one from.
+
+        The tag is part of the cache key, so it has to be the real one or the
+        same item cached from another source — or against an older backdrop —
+        is served forever. The *type* is in there too because the chain no
+        longer ends at Backdrop.
+
+        **The landscape fallbacks matter for video that is not a film.** A
+        home video, a clip, a recording — anything scanned out of a folder
+        rather than matched against a metadata provider — has no backdrop and
+        never will, and the header was a blank grey box for it. What it does
+        have is the still the server extracted, which is a frame of the thing
+        itself and exactly what belongs across the top of its page.
+
+        **A poster is not a fallback.** The banner is ~2.67:1; a 2:3 poster
+        cropped into it is a horizontal strip through the middle of the key
+        art, which is worse than the placeholder because it looks like a
+        rendering fault rather than like missing artwork. So the Primary step
+        is taken only when the item's own aspect ratio says it is landscape
+        (``_LANDSCAPE_ART``), which is what tells a home video's extracted
+        frame apart from a film's poster. Where that leaves nothing, the
+        caller still draws its heading as text — see ``backdrop_node``.
+        """
         tags = item.get("BackdropImageTags") or []
         if tags:
-            return item["Id"], tags[0]
+            return item["Id"], "Backdrop", tags[0]
         parent_tags = item.get("ParentBackdropImageTags") or []
         if parent_tags and item.get("ParentBackdropItemId"):
-            return item["ParentBackdropItemId"], parent_tags[0]
+            return item["ParentBackdropItemId"], "Backdrop", parent_tags[0]
+        image_tags = item.get("ImageTags") or {}
+        if image_tags.get("Thumb"):
+            return item["Id"], "Thumb", image_tags["Thumb"]
+        if item.get("ParentThumbImageTag") and item.get("ParentThumbItemId"):
+            return (item["ParentThumbItemId"], "Thumb",
+                    item["ParentThumbImageTag"])
+        ratio = item.get("PrimaryImageAspectRatio")
+        if (image_tags.get("Primary")
+                and isinstance(ratio, (int, float))
+                and ratio >= _LANDSCAPE_ART):
+            return item["Id"], "Primary", image_tags["Primary"]
         return None
 
     def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
         spec = self.backdrop_spec(item)
         if spec is None:
             return None
-        owner_id, tag = spec
-        return self.image_url(server_uuid, owner_id, "Backdrop", tag,
-                              width, height=height, fill=fill, index=0)
+        owner_id, image_type, tag = spec
+        # index=0 for a Backdrop only: backdrops are a numbered set and the
+        # indexed form is what matches the tag cached above, while a Thumb or
+        # a Primary is a single image and has no index at all.
+        return self.image_url(server_uuid, owner_id, image_type, tag,
+                              width, height=height, fill=fill,
+                              index=0 if image_type == "Backdrop" else None)
 
 
 class _OfflineSnapshot:
@@ -2524,6 +2593,16 @@ class OfflineLibrarySource:
         online one falls back TO, so a missing method here turns a degraded
         screen into an AttributeError on the fallback path.
         """
+        return False
+
+    def syncplay_access(self, server_uuid):
+        """Nobody to sync with, and no server to ask. Declared for the same
+        reason has_live_tv is."""
+        from ..user_policy import NO_SYNCPLAY
+
+        return NO_SYNCPLAY
+
+    def can_manage_live_tv(self, server_uuid):
         return False
 
     def get_genres(self, server_uuid, parent_id=None):
@@ -2887,8 +2966,13 @@ class OfflineLibrarySource:
     def backdrop_spec(item):
         """Cache-key spec matching LibrarySource.backdrop_spec. The "offline"
         sentinel keeps offline header art keyed apart from the online tags, so
-        source switches can't serve each other's cached bitmaps."""
-        return item.get("Id"), "offline"
+        source switches can't serve each other's cached bitmaps.
+
+        Three-tuple like the online one, and the middle element is the
+        sentinel rather than a type: a downloaded item has exactly one header
+        image on disk whatever it was online, so there is no chain here to
+        name a step of."""
+        return item.get("Id"), "offline", "offline"
 
     def backdrop_url(self, server_uuid, item, width=1280, height=None, fill=False):
         return self._art_path(item.get("Id"), "Backdrop")

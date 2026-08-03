@@ -256,6 +256,12 @@ class OscBridge:
         syncplay = self.playerManager.syncplay
         if syncplay is None:
             return None
+        # None here is what removes the HUD's SyncPlay button entirely (see
+        # hud.py: `if syncplay is not None`), which is the right shape for a
+        # user whose SyncPlayAccess is None -- the dialog behind it can only
+        # fail, with a message indistinguishable from a network problem.
+        if not self._may_syncplay():
+            return None
         enabled = syncplay.is_enabled()
         groups = []
         for group in self._syncplay_groups:
@@ -269,6 +275,27 @@ class OscBridge:
             "current": _("SyncPlay Enabled") if enabled else _("None (Disabled)"),
             "groups": groups,
         }
+
+    def _may_syncplay(self):
+        """Whether the current server grants this user SyncPlay.
+
+        Asked of the *player's* client rather than the browser's source: the
+        HUD and the OSD menu are up while something is playing, and what is
+        playing decides which server the question is about. Fails open --
+        see user_policy.
+        """
+        from .user_policy import may_use_syncplay
+
+        try:
+            client = self.playerManager.get_current_client()
+        except Exception:
+            return True
+        if client is None:
+            return True
+        try:
+            return may_use_syncplay(client)
+        except Exception:
+            return True
 
     # ----------------------------------------------------------- actions
 

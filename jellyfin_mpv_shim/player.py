@@ -1856,7 +1856,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A start that got this far succeeded; nothing is left to retry.
         self._failed_playback = None
         self._video = video
-        if getattr(video, "is_photo", False) and pause_stills and is_initial_play:
+        # Carried down to the set_paused() below, which is unconditional and
+        # would otherwise undo this a few dozen lines later.
+        hold_still = bool(
+            getattr(video, "is_photo", False) and pause_stills
+            and is_initial_play)
+        if hold_still:
             # A photo is a video that happens to be still: mpv holds it for
             # --image-display-duration and then advances, which is a
             # slideshow nobody asked for when they opened one picture. Paused
@@ -1928,7 +1933,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.set_speed(1)
             self.syncplay.play_done()
         else:
-            self.set_paused(False, False)
+            # `hold_still`, not False: a photo opened on its own was paused
+            # above and this call undid it, so the picture the user asked to
+            # look at started a slideshow instead. The unpause predates the
+            # photo branch by five years, which is why it reads as unrelated.
+            # Still routed through set_paused rather than left to the earlier
+            # assignment, because this is also what pushes the playstate.
+            self.set_paused(hold_still, False)
 
         # Trickplay (scrubbing thumbnails) is video-only — skip the fetch for
         # audio so switching songs isn't slowed by a pointless request.
@@ -2278,10 +2289,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # showing the ended video paused.
             self.should_send_timeline = False
             self._video = None
-            try:
-                self._player.command("stop")
-            except _mpv_errors:
-                self._handle_mpv_disconnect()
+            # _mpv_alive first, and not merely the try/except. Closing the
+            # window makes mpv end the file AND shut down, so this callback
+            # (queued by end-file) runs on the action thread while
+            # _on_shutdown_event's terminate thread is inside
+            # player.terminate(). On the external backend the command is a
+            # socket write and the race surfaces as BrokenPipeError, which
+            # _mpv_errors catches; on in-process libmpv the handle has been
+            # freed underneath us and the command is a use-after-free, which
+            # is a SIGSEGV no except clause can see. _terminate_mpv clears
+            # this flag before it calls terminate(), so checking it is what
+            # closes the window. Found by tests/e2e/test_mpv_reopen.
+            if self._mpv_alive:
+                try:
+                    self._player.command("stop")
+                except _mpv_errors:
+                    self._handle_mpv_disconnect()
             # Before releasing the stream, not after: this is the browser's
             # cue to come back, and the release is a blocking round trip that
             # the library screen has no reason to wait behind.

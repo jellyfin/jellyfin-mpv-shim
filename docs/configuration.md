@@ -226,8 +226,8 @@ You can use the config file to enable and disable features.
     at 1x and will be upscaled.
 - `theme` - Visual theme for the library browser. Default: `default`
   - `default` - The stock look, unchanged from earlier versions.
-  - `nebula` - A deep-violet, glowing theme with rounded, cover-cropped cards
-    and larger covers.
+  - `nebula` - A deep-violet, glowing theme with rounded cards and larger
+    covers.
   - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv` -
     Translations of jellyfin-web's own Blue Radiance, Windows Media Center,
     Purple Haze, Light and Apple TV themes, so the shim can match the web
@@ -238,10 +238,12 @@ You can use the config file to enable and disable features.
     white HUD over a dark film is unreadable, and jellyfin-web keeps its
     player controls dark for the same reason.
   - A theme sets the palette, the mpv browse background, whether titles and
-    the selected card glow, whether cover cards are rounded and cover-cropped
-    (rather than square and letterboxed), where the carousel page buttons sit,
-    and the default cover, caption and heading sizes. `poster_scale` and
-    `ui_scale` still override the sizing.
+    the selected card glow, whether cover cards are rounded or square, where
+    the carousel page buttons sit, and the default cover, caption and heading
+    sizes. `poster_scale` and `ui_scale` still override the sizing. Artwork is
+    cover-cropped to fill its tile under every theme — except a wordmark or a
+    logo on a transparent background, which is drawn whole because a crop
+    would take a bite out of the name.
   - **Colours apply immediately** when you change this in Settings, including
     the controls the player draws for itself. Cover and heading *sizes* still
     need a restart: changing a poster's dimensions means re-compositing every
@@ -524,7 +526,7 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `palette` | Colour table; see below. |
 | `browse_bg` | mpv's `background-color` behind the browser, `"#rrggbb"`. |
 | `glow` | Blurred accent halo behind bold titles and around the selected card. |
-| `rounded` | Rounded, cover-cropped cards instead of square and letterboxed. |
+| `rounded` | Rounded cards instead of square ones. Card shape only — the artwork is cover-cropped to fill its tile under every theme. |
 | `accent_buttons` | Accent-bordered top bar and settings tabs. |
 | `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
 | `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |

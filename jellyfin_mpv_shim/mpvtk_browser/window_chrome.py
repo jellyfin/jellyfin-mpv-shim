@@ -62,6 +62,28 @@ def toast_node(b, w, h):
         x=(w - tw) / 2, y=max(20, h - 140), w=tw)
 
 
+def _may_syncplay(b):
+    """Whether to offer this user SyncPlay at all, on the current server.
+
+    Fails open in every direction — a source without the method (the
+    offline one declares it, but a test double may not), no server yet, or
+    an error asking — because the cost of being wrong that way is the
+    button being there, which is where it was before.
+    """
+    from ..user_policy import NO_SYNCPLAY
+
+    source, server = getattr(b, "source", None), getattr(b, "server", None)
+    if source is None or server is None:
+        return True
+    ask = getattr(source, "syncplay_access", None)
+    if ask is None:
+        return True
+    try:
+        return ask(server) != NO_SYNCPLAY
+    except Exception:
+        return True
+
+
 def chrome(b, w):
     # Fit probe instead of a hardcoded breakpoint: the bar goes
     # icon-only exactly when the labelled version wouldn't leave
@@ -186,11 +208,16 @@ def chrome_bar(b, compact, probe=False, servers=None,
                tip=_("Search"),
                on_click=lambda: b._search(
                    b._search_box.get("term", "")), **accent_style),
-        nav_button(_("SyncPlay"), "nav-syncplay", "groups",
-                   b._open_syncplay),
         nav_button(_("Settings"), "nav-settings", "settings",
                    b._open_settings),
     ]
+    # A user whose SyncPlayAccess is None gets a dialog that can only fail,
+    # and "Could not join the SyncPlay group." is indistinguishable from a
+    # network problem. Inserted rather than appended so the order is
+    # unchanged for everyone who does have it.
+    if _may_syncplay(b):
+        right.insert(-1, nav_button(_("SyncPlay"), "nav-syncplay", "groups",
+                                    b._open_syncplay))
     middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
     bar = Row(
         left + middle + right,

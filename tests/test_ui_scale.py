@@ -395,5 +395,73 @@ class ScaleResolutionTest(unittest.TestCase):
         self.assertEqual(scaling.logical_size((2560, 1440)), (1280.0, 720.0))
 
 
+class FontSizeIsNotRoundedTest(unittest.TestCase):
+    """A font size scales exactly; a box rounds.
+
+    Text is fitted to a width by ``layout`` at the LOGICAL size and drawn by
+    libass at the physical one, so the two agree only if the physical size is
+    exactly ``logical * scale``. Rounding it made every run come out at a
+    slightly different size than it was measured at — and the error is a
+    *percentage*, so it lands hardest on the longest line on the screen.
+
+    Worst at fractional scales and worst of all below 1x: at 0.75, an 18px
+    paragraph was drawn at ``px(18) = 14``, i.e. 18.67 logical. 3.7% of a
+    1200px column is 44px, which is well past the scrollbar. Reported from a
+    real session as the description on a movie page overflowing, visible at
+    0.75x and at no other scale the reporter tried.
+    """
+
+    def tearDown(self):
+        scaling.set_scale(1.0)
+
+    def _text_node(self, scale, size=18):
+        scaling.set_scale(scale)
+        nodes, _ = layout(Column([Text("hello", size=size, id="t")]),
+                          800, 600)
+        node = next(n for n in nodes if n.get("id") == "t")
+        scaling.scale_scene(nodes)
+        return node
+
+    def test_the_size_is_scaled_exactly(self):
+        for scale in (0.75, 0.8, 1.25, 1.5, 1.75, 2.0):
+            with self.subTest(scale=scale):
+                self.assertAlmostEqual(
+                    self._text_node(scale)["size"], 18 * scale, places=6)
+
+    def test_a_size_that_would_have_rounded_no_longer_does(self):
+        """0.75 * 18 = 13.5, which px() rounds up to 14 — a 3.7% error."""
+        self.assertNotEqual(self._text_node(0.75)["size"],
+                            scaling.px(18))
+
+    def test_the_line_box_still_rounds_like_every_other_rasterizer(self):
+        """Only the glyph size is exempt. Geometry must keep going through
+        px(), or it stops agreeing with the bitmaps beside it."""
+        node = self._text_node(1.5)
+        for key in ("x", "y", "w", "h"):
+            self.assertEqual(node[key], int(node[key]),
+                             "%s came out fractional" % key)
+
+    def test_text_fitted_to_a_width_is_drawn_no_wider(self):
+        """The invariant the whole thing is for, end to end: what layout
+        ellipsized to a box must still be inside that box once both have been
+        scaled."""
+        from jellyfin_mpv_shim.mpvtk.layout import text_width
+
+        long_label = "A deliberately overlong label that will be ellipsized"
+        for scale in (0.75, 0.8, 1.25, 1.5, 1.75, 2.0):
+            with self.subTest(scale=scale):
+                scaling.set_scale(scale)
+                nodes, _ = layout(
+                    Column([Text(long_label, size=18, id="t", w=200)]),
+                    800, 600)
+                node = next(n for n in nodes if n.get("id") == "t")
+                scaling.scale_scene(nodes)
+                drawn = text_width(node["text"], node["size"], False)
+                self.assertLessEqual(
+                    drawn, node["w"] + 1.0,
+                    "%r is drawn %.1fpx wide in a %spx box"
+                    % (node["text"], drawn, node["w"]))
+
+
 if __name__ == "__main__":
     unittest.main()

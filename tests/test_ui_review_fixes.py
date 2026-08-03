@@ -300,15 +300,59 @@ class ArtPathMemoTest(unittest.TestCase):
 
 
 class BackdropSpecTest(unittest.TestCase):
+    """The header banner's fallback chain: backdrop, parent backdrop, thumb,
+    parent thumb, then the item's own still IF it is landscape."""
+
     def test_own_backdrop_tag_wins(self):
         item = {"Id": "i", "BackdropImageTags": ["t1"],
-                "ParentBackdropImageTags": ["p1"], "ParentBackdropItemId": "P"}
-        self.assertEqual(LibrarySource.backdrop_spec(item), ("i", "t1"))
+                "ParentBackdropImageTags": ["p1"], "ParentBackdropItemId": "P",
+                "ImageTags": {"Thumb": "th"}}
+        self.assertEqual(LibrarySource.backdrop_spec(item),
+                         ("i", "Backdrop", "t1"))
 
     def test_parent_backdrop_fallback(self):
         item = {"Id": "i", "ParentBackdropImageTags": ["p1"],
                 "ParentBackdropItemId": "P"}
-        self.assertEqual(LibrarySource.backdrop_spec(item), ("P", "p1"))
+        self.assertEqual(LibrarySource.backdrop_spec(item),
+                         ("P", "Backdrop", "p1"))
+
+    def test_a_thumb_beats_having_nothing(self):
+        item = {"Id": "i", "ImageTags": {"Thumb": "th", "Primary": "p"}}
+        self.assertEqual(LibrarySource.backdrop_spec(item),
+                         ("i", "Thumb", "th"))
+
+    def test_a_parent_thumb_is_next(self):
+        item = {"Id": "i", "ParentThumbItemId": "P",
+                "ParentThumbImageTag": "pt"}
+        self.assertEqual(LibrarySource.backdrop_spec(item),
+                         ("P", "Thumb", "pt"))
+
+    def test_a_home_video_uses_its_own_still(self):
+        """The case this chain was extended for: video scanned out of a
+        folder has no backdrop and never will, and its header was a blank
+        grey box. The still the server extracted is a frame of the thing
+        itself."""
+        for ratio in (16 / 9, 4 / 3, 1.0):
+            with self.subTest(ratio=round(ratio, 2)):
+                item = {"Id": "i", "Type": "Video",
+                        "PrimaryImageAspectRatio": ratio,
+                        "ImageTags": {"Primary": "p"}}
+                self.assertEqual(LibrarySource.backdrop_spec(item),
+                                 ("i", "Primary", "p"))
+
+    def test_a_poster_is_not_a_banner(self):
+        """A 2:3 poster cropped into a 2.67:1 banner is a strip through the
+        middle of the key art -- worse than the placeholder, because it reads
+        as a rendering fault rather than as missing artwork."""
+        item = {"Id": "i", "Type": "Movie", "PrimaryImageAspectRatio": 2 / 3,
+                "ImageTags": {"Primary": "p"}}
+        self.assertIsNone(LibrarySource.backdrop_spec(item))
+
+    def test_an_unmeasured_primary_is_not_used_either(self):
+        """Unknown shape, and the downside is asymmetric: a wrong guess here
+        mutilates the header, while the placeholder is merely plain."""
+        item = {"Id": "i", "ImageTags": {"Primary": "p"}}
+        self.assertIsNone(LibrarySource.backdrop_spec(item))
 
     def test_no_backdrop(self):
         self.assertIsNone(LibrarySource.backdrop_spec({"Id": "i"}))
@@ -317,7 +361,7 @@ class BackdropSpecTest(unittest.TestCase):
         # The offline spec must never collide with a real server tag, so a
         # source switch can't serve the other source's cached bitmap.
         self.assertEqual(OfflineLibrarySource.backdrop_spec({"Id": "i"}),
-                         ("i", "offline"))
+                         ("i", "offline", "offline"))
 
 
 if __name__ == "__main__":

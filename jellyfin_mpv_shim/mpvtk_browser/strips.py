@@ -166,8 +166,9 @@ WIDE_GEOM = LANDSCAPE_GEOM  # backwards-compatible alias
 class Tile:
     """One tile's data. ``key`` is the stable identity (usually the
     Jellyfin item id) — it becomes the hit-region id and part of the
-    cache key. ``poster`` is a decoded PIL image (any size; centered and
-    letterboxed into the tile) or None for a placeholder. ``poster_tag``
+    cache key. ``poster`` is a decoded PIL image (any size; cover-cropped to
+    fill the tile, unless ``contain`` or ``logo_plate`` says this artwork is a
+    mark rather than a photograph) or None for a placeholder. ``poster_tag``
     identifies the poster's content for cache keying ("" when absent, so
     the strip recomposites when the real poster lands). ``glyph`` is the
     placeholder character drawn when there's no poster (initial / ♪)."""
@@ -568,10 +569,13 @@ class StripStore:
     def _paint_poster(self, img, dr, x, t, g):
         from PIL import Image as PILImage, ImageDraw, ImageOps
 
-        # The card look is theme-driven: a "rounded" theme draws
-        # jellyfin-web-style rounded corners and cover-crops the art; the
-        # stock look is a square opaque card with the poster letterboxed into
-        # it, so an untouched install renders exactly as before.
+        # The card's SHAPE is theme-driven -- a "rounded" theme draws
+        # jellyfin-web-style rounded corners, the stock look is a square
+        # opaque card. What the artwork does inside that shape is not: every
+        # theme cover-crops, as jellyfin-web does in all of its. The two used
+        # to be one flag, which left no way to say "square cards, cropped
+        # art" and made a letterboxed tile look like a theme choice rather
+        # than the accident it was.
         rounded = bool((theme.active() or {}).get("rounded"))
         r = _px(14)
         box = [x, 0, x + g.tile_w - 1, g.tile_h - 1]
@@ -619,17 +623,21 @@ class StripStore:
             # `plate` is the PICTURE's: anything on a transparent background
             # is a mark rather than a photograph, which covers the channel
             # logos nothing declares a type for. Either is enough.
-            if rounded and plate is None and not t.contain:
+            if plate is None and not t.contain:
                 if poster.size != (g.tile_w, g.tile_h):
                     # Cover-crop, like CSS object-fit: cover — scale to FILL
                     # the tile and crop the overflow, so odd-aspect art fills
                     # the frame edge to edge instead of letterboxing.
                     poster = ImageOps.fit(poster, (g.tile_w, g.tile_h),
                                           lanczos, centering=(0.5, 0.5))
-                # Clip the art to the same rounded rect so its corners match.
-                mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
-                ImageDraw.Draw(mask).rounded_rectangle(
-                    [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
+                mask = None
+                if rounded:
+                    # Clip the art to the same rounded rect so its corners
+                    # match. A square card needs no clip: the art is now
+                    # exactly the card, edge to edge.
+                    mask = PILImage.new("L", (g.tile_w, g.tile_h), 0)
+                    ImageDraw.Draw(mask).rounded_rectangle(
+                        [0, 0, g.tile_w - 1, g.tile_h - 1], radius=r, fill=255)
                 if poster.mode == "RGBA":
                     # paste() takes ONE mask, so the art's own transparency has
                     # to be folded into the corner clip — passing the rounded
@@ -637,7 +645,9 @@ class StripStore:
                     # put the black back.
                     from PIL import ImageChops
 
-                    mask = ImageChops.multiply(mask, poster.getchannel("A"))
+                    alpha = poster.getchannel("A")
+                    mask = (alpha if mask is None
+                            else ImageChops.multiply(mask, alpha))
                 img.paste(poster, (x, 0), mask)
             else:
                 if poster.size != (g.tile_w, g.tile_h):

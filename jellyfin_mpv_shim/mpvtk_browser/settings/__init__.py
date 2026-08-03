@@ -27,7 +27,7 @@ from ...mpvtk.widgets import (
     Row,
 )
 from .. import theme
-from ..components import controls
+from ..components import chrome, controls
 
 from .base import SettingsBase
 from .display import DisplayTabMixin
@@ -97,7 +97,10 @@ class SettingsMixin(
                 lambda t=t: self._set_settings_tab(route, t),
                 style=tab_style)
 
-        tabs = Row([tab_button(t) for t in self.SETTINGS_TABS], gap=8)
+        # Wrapped: six translated labels do not fit a narrow page, and
+        # "Logs" -- the last one -- was drawn off the right edge at 200%.
+        tabs = chrome.wrap_row([tab_button(t) for t in self.SETTINGS_TABS],
+                               (size[0] if size else 0) - 2 * 12, gap=8)
         body = {
             "home": self._settings_home,
             "display": self._settings_display,

@@ -294,9 +294,16 @@ local shapes = {}
 local pending = {}      -- \-tags appended since the last new_event
 
 --- Rectangles drawn since the last :reset_draw(), as
---- {x, y, w, h, radius, fill = "rrggbb" or nil, alpha = 0-255}.
+--- {x, y, w, h, radius, fill = "rrggbb" or nil, alpha = 0-255,
+---  blur = number or nil, clip = {x1, y1, x2, y2} or nil}.
 --- `fill` is decoded back out of the ASS \1c tag, so a test names the
 --- colour the way the theme does rather than in ASS's reversed hex.
+---
+--- `blur` and `clip` are here for the themed glow, whose whole bug surface
+--- is the pair: it is blurred, so it must reach outside the box it decorates,
+--- and it is clipped, so it must not reach outside the page. Neither is
+--- observable anywhere else -- an unclipped halo is a correct rectangle
+--- drawn over the header.
 function M.shapes() return shapes end
 
 function M.reset_draw()
@@ -315,14 +322,24 @@ local function tags()
     local blob = table.concat(pending)
     local fill = blob:match("\\1c(&H%x+&)")
     local alpha = blob:match("\\1a&H(%x%x)&")
+    local clip
+    local cx1, cy1, cx2, cy2 = blob:match(
+        "\\clip%(([%d%.%-]+),([%d%.%-]+),([%d%.%-]+),([%d%.%-]+)%)")
+    if cx1 then
+        clip = { x1 = tonumber(cx1), y1 = tonumber(cy1),
+                 x2 = tonumber(cx2), y2 = tonumber(cy2) }
+    end
     return un_ass_color(fill or ""),
-           alpha and (255 - tonumber(alpha, 16)) or 255
+           alpha and (255 - tonumber(alpha, 16)) or 255,
+           tonumber(blob:match("\\blur([%d%.]+)") or ""),
+           clip
 end
 
 local function rect(_s, x1, y1, x2, y2, radius)
-    local fill, alpha = tags()
+    local fill, alpha, blur, clip = tags()
     shapes[#shapes + 1] = { x = x1, y = y1, w = x2 - x1, h = y2 - y1,
-                            radius = radius, fill = fill, alpha = alpha }
+                            radius = radius, fill = fill, alpha = alpha,
+                            blur = blur, clip = clip }
 end
 
 local Ass = {}

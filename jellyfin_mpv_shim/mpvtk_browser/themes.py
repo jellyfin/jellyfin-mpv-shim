@@ -63,7 +63,10 @@ DEFAULT = {
     },
     "browse_bg": "#141414",
     "glow": False,       # blurred accent halo behind titles + on card selection
-    "rounded": False,    # rounded cover cards + cover-crop (False = stock square/letterbox)
+    # Rounded jellyfin-web-style cards (False = stock square cards). Card
+    # SHAPE only: cover-cropping the artwork is unconditional, so this no
+    # longer decides whether a tile letterboxes. See strips._paint_poster.
+    "rounded": False,
     "accent_buttons": False,  # accent-bordered top-bar buttons
     # Where a carousel's page buttons live. "header" is jellyfin-web's design
     # and the default: a flat pair in the section heading, clear of the

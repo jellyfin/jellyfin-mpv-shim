@@ -16,6 +16,13 @@ from ..tile_renderer import GRID_GAP
 from .base import Page
 
 
+#: The cover beside an album's or artist's header, and the gap after it.
+#: Here rather than at the two call sites because ``header_text`` has to
+#: subtract exactly what they draw -- see its ``indent``.
+HEADER_ART = 132
+HEADER_GAP = 16
+
+
 class MusicPage(Page):
     """Shared furniture for the music screens. Not a route on its own."""
 
@@ -48,13 +55,22 @@ class MusicPage(Page):
                 lambda: actions.instant_mix(seed_id, server)))
         return Row(btns, gap=8, align="center")
 
-    def header_text(self, item, tracks, width):
+    def header_text(self, item, tracks, width, indent=0):
         """Title / metadata / overview for an album or artist page.
 
         Both were a bare title: no cover, no year or genre, no Overview, and
         on the artist page no heading over the album grid either. Tk showed
         all of it, and on a music library it is most of what tells one entry
-        from another."""
+        from another.
+
+        ``width`` is the WINDOW's; ``indent`` is whatever sits to the left of
+        this column inside it -- the cover and the gap after it. Both pages
+        put the text beside a 132px cover, and passing the window width alone
+        wrapped the overview to the full page: every line then started 148px
+        in and ran that far off the right edge. Not a scale bug, though the
+        scale matrix is what found it -- it was doing this at 1x on any
+        window narrower than the overview is long.
+        """
         out = [Text(item.get("Name") or self.route.get("title", ""), size=28,
                     bold=True)]
         meta = [x for x in (detail_components.meta_line(item),
@@ -66,7 +82,8 @@ class MusicPage(Page):
         overview = (item.get("Overview") or "").strip()
         if overview:
             out.append(chrome.paragraph(
-                overview, 15, self.ctx.art.tiles.body_w(width)))
+                overview, 15,
+                max(120, self.ctx.art.tiles.body_w(width) - indent)))
         return out
 
 

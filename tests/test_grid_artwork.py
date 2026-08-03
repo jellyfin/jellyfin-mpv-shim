@@ -12,6 +12,7 @@ import unittest
 
 sys.argv = ["test"]
 
+from jellyfin_mpv_shim.mpvtk_browser.strips import TileGeom  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     LibrarySource, browse_image_types)
@@ -138,35 +139,79 @@ class SpecTest(unittest.TestCase):
 
 
 class CoverOrContainTest(unittest.TestCase):
-    """A poster, a still and a backdrop are photographs of a frame: cropping
-    one takes scenery off the edges. A wordmark loses the name."""
+    """**Contain is the default. One pairing covers: a poster into a poster
+    tile.**
 
-    def _contains(self, resolved, requested):
+    Cropping is only free where the artwork and the tile already agree, and
+    the one place they reliably do is 2:3 key art in a 2:3 card. Everywhere
+    else the crop is destructive in proportion to the disagreement, and the
+    disagreement is per ITEM -- which is why ``auto_geom``'s per-row shape
+    cannot be the whole answer.
+    """
+
+    POSTER = TileGeom(tile_w=150, tile_h=225)
+    WIDE = TileGeom(tile_w=240, tile_h=135)
+    SQUARE = TileGeom(tile_w=180, tile_h=180)
+
+    def _contains(self, resolved, geom, ratio=None):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
-        return TileRenderer._contains(resolved, requested)
+        item = {"Id": "i"}
+        if ratio is not None:
+            item["PrimaryImageAspectRatio"] = ratio
+        return TileRenderer._contains(resolved, geom, item)
 
-    def test_a_banner_fills_its_own_strip(self):
-        """Asked for and delivered: the artwork was cut for this shape, and
-        the user asked for it to cover rather than letterbox."""
-        self.assertFalse(self._contains("Banner", "Banner"))
+    # -- the one that covers ------------------------------------------------
 
-    def test_a_poster_standing_in_still_fills_the_strip(self):
-        self.assertFalse(self._contains("Primary", "Banner"))
+    def test_a_poster_in_a_poster_tile_covers(self):
+        self.assertFalse(self._contains("Primary", self.POSTER, 2 / 3))
 
-    def test_a_borrowed_banner_is_drawn_whole(self):
-        """On a 16:9 logo card, cropping the banner would trim exactly the
-        title it was borrowed for."""
-        self.assertTrue(self._contains("Banner", "Logo"))
+    def test_artwork_with_no_measured_ratio_still_covers_in_a_poster_tile(self):
+        """Most library items carry no ``PrimaryImageAspectRatio``. Reading
+        that absence as "not a poster" would letterbox every ordinary film
+        grid on the strength of a missing field."""
+        self.assertFalse(self._contains("Primary", self.POSTER))
 
-    def test_a_logo_is_never_cropped(self):
-        for requested in ("Logo", "Banner", "Primary", "Thumb"):
-            with self.subTest(requested):
-                self.assertTrue(self._contains("Logo", requested))
+    # -- the cases this rule exists for -------------------------------------
 
-    def test_photographs_are_untouched(self):
-        for resolved in ("Primary", "Thumb", "Backdrop", "Disc"):
-            with self.subTest(resolved):
-                self.assertFalse(self._contains(resolved, "Primary"))
+    def test_a_film_in_a_row_of_episodes_is_drawn_whole(self):
+        """``auto_geom`` shapes a row from the MEDIAN ratio, so a playlist
+        that is mostly episodes comes out landscape — and the one film in it
+        had the top and bottom taken off its poster."""
+        self.assertTrue(self._contains("Primary", self.WIDE, 2 / 3))
+
+    def test_home_video_footage_is_drawn_whole(self):
+        """Arbitrary footage: 4:3, 16:9 and portrait phone video in one
+        grid. Whatever shape the row takes, most of it is the wrong shape
+        for what goes in it."""
+        for ratio in (4 / 3, 9 / 16, 1.0, 2.35):
+            with self.subTest(ratio=round(ratio, 2)):
+                self.assertTrue(self._contains("Primary", self.WIDE, ratio))
+
+    def test_a_still_in_a_poster_tile_is_drawn_whole(self):
+        """The mismatch the other way round."""
+        self.assertTrue(self._contains("Primary", self.POSTER, 16 / 9))
+
+    # -- everything that is not a Primary -----------------------------------
+
+    def test_nothing_but_a_primary_ever_covers(self):
+        """A Thumb, a Backdrop, a Disc, a Logo and a Banner are all drawn
+        whole now — the first three because they are never the shape of a
+        poster tile, and the last two because they never were cropped."""
+        for resolved in ("Thumb", "Backdrop", "Disc", "Logo", "Banner"):
+            for geom in (self.POSTER, self.WIDE, self.SQUARE):
+                with self.subTest(resolved=resolved, w=geom.tile_w):
+                    self.assertTrue(self._contains(resolved, geom, 2 / 3))
+
+    def test_a_square_tile_never_covers(self):
+        """Album art is square and the tile is square, so contain and cover
+        are the same picture — and where they are not, the artwork is not a
+        poster and must not be cropped to look like one."""
+        for ratio in (1.0, 2 / 3, 16 / 9, None):
+            with self.subTest(ratio=ratio):
+                self.assertTrue(self._contains("Primary", self.SQUARE, ratio))
+
+    def test_an_unknown_tile_shape_is_the_safe_answer(self):
+        self.assertTrue(self._contains("Primary", None, 2 / 3))
 
     def test_the_two_crops_are_cached_apart(self):
         """Fill and fit are different pictures of one source at one size,

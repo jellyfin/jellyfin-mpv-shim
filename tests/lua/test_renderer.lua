@@ -1782,6 +1782,80 @@ ok(at1x and at2x and at2x > at1x * 1.5,
                  tostring(at2x)))
 fake.send("mpvtk-scale", fake.token({ s = 1 }))
 
+-- ============================================= the themed glow's clip
+--
+-- The glow is the one decoration that is meant to draw OUTSIDE the box it
+-- decorates: a card fills its row's viewport, so a halo clipped to that
+-- viewport is chopped back into the hard rectangle the glow exists to
+-- replace. It used to buy that by passing no clip at all -- and chrome is
+-- drawn BEFORE content (app.build stacks header, then the page), so a card
+-- near the top of the page had its halo painted over the header. ASS has no
+-- z-order beyond scene order, so nothing downstream could put it back.
+--
+-- The rule now: out of your own viewport, never out of the page.
+
+local HDR_H = 60
+
+--- A header, a page below it, a carousel inside that, and a tile in the
+--- carousel -- the arrangement every library screen has.
+local function glow_scene(tile)
+    return {
+        { id = "hdr", t = "rect", x = 0, y = 0, w = 1280, h = HDR_H,
+          fill = "202020" },
+        { id = "page", t = "scroll", axis = "y", x = 0, y = HDR_H,
+          w = 1280, h = 720 - HDR_H, cw = 1280, ch = 2000 },
+        { id = "row", t = "scroll", axis = "x", sc = "page",
+          x = 0, y = 70, w = 1280, h = 220, cw = 4000, ch = 220 },
+        tile,
+    }
+end
+
+--- The blurred rectangle, ie. the glow. Nothing else in a scene is blurred.
+local function blurred(shapes)
+    for _, s in ipairs(shapes) do
+        if s.blur then return s end
+    end
+    return nil
+end
+
+fake.send("mpvtk-theme", fake.token({ glow = true }))
+
+local TILE = { id = "tile", t = "rect", sc = "row", x = 10, y = 70,
+               w = 140, h = 210, ring = true,
+               hover = { bc = "a855f7", bw = 3 } }
+
+local ring = blurred(painted(glow_scene(TILE), function()
+    fake.mouse(80, 150)      -- onto the tile
+end))
+ok(ring ~= nil, "a hovered tile draws a blurred halo under a glow theme")
+ok(ring and ring.clip, "the halo is clipped at all",
+   "an unclipped halo is what painted over the header")
+ok(ring and ring.clip and ring.clip.y1 >= HDR_H,
+   "the halo stops at the header",
+   ring and ring.clip and ("clip starts at y=" .. tostring(ring.clip.y1)))
+ok(ring and ring.clip and ring.clip.y1 < 70,
+   "...but still escapes its own row, or it is the box it replaces",
+   ring and ring.clip and ("clip starts at y=" .. tostring(ring.clip.y1)))
+
+-- A box glow (themed chrome: hover={glow=true}) sitting DIRECTLY in the page
+-- has no inner viewport to escape, so the page is the whole answer.
+local BTN = { id = "btn", t = "rect", sc = "page", x = 40, y = 70,
+              w = 200, h = 40, fill = "2a1656", radius = 6,
+              hover = { fill = "3d2170", glow = true } }
+local box = blurred(painted({
+    { id = "hdr", t = "rect", x = 0, y = 0, w = 1280, h = HDR_H,
+      fill = "202020" },
+    { id = "page", t = "scroll", axis = "y", x = 0, y = HDR_H,
+      w = 1280, h = 720 - HDR_H, cw = 1280, ch = 2000 },
+    BTN,
+}, function() fake.mouse(100, 90) end))
+ok(box ~= nil, "a hovered themed box draws its halo")
+ok(box and box.clip and box.clip.y1 >= HDR_H,
+   "the box halo stops at the header too",
+   box and box.clip and ("clip starts at y=" .. tostring(box.clip.y1)))
+
+fake.send("mpvtk-theme", fake.token({ glow = false }))
+
 -- ========================================================== teardown
 
 scene({})

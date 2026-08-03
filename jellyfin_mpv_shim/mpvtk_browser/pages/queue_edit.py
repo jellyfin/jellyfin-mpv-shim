@@ -200,7 +200,7 @@ class QueuePage(SelectionPage):
         current = data.get("current_id")
         sel = self.selection()
         n = len(entries)
-        toolbar = Row([
+        toolbar = chrome.wrap_row([
             Text(_("Play Queue"), size=26, bold=True), Spacer(),
             Button(_("Top"), id="q-top", icon="vertical_align_top",
                    on_click=lambda: self._move("top")),
@@ -220,7 +220,7 @@ class QueuePage(SelectionPage):
                    on_click=lambda: self._to_playlist()),
             Button(_("Remove"), id="q-remove", icon="delete",
                    on_click=lambda: self._remove_selected()),
-        ], gap=8, align="center")
+        ], size[0] - 2 * chrome.CONTENT_PAD, gap=8)
         rows = [toolbar, Spacer(h=2)]
         if not entries:
             rows.append(Text(_("The queue is empty."), size=18,
@@ -343,7 +343,7 @@ class PlaylistEditPage(SelectionPage):
             return chrome.busy()
         sel = self.selection()
         n = len(items)
-        toolbar = Row([
+        toolbar = chrome.wrap_row([
             Button(_("Top"), id="pe-top", icon="vertical_align_top",
                    on_click=lambda: self._move("top")),
             Button(_("Up"), id="pe-up", icon="keyboard_arrow_up",
@@ -361,7 +361,7 @@ class PlaylistEditPage(SelectionPage):
                    on_click=lambda: self.set_selection(set())),
             Button(_("Remove"), id="pe-remove", icon="delete",
                    on_click=lambda: self._remove()),
-        ], gap=8, align="center")
+        ], size[0] - 2 * chrome.CONTENT_PAD, gap=8)
         rename_row = Row([
             TextBox("pe-name", text=route.get("title", ""), w=280,
                     on_change=lambda v: route.__setitem__("_newname", v),

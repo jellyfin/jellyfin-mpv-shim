@@ -86,8 +86,28 @@ class PlaylistPage(Page):
             # the PLAYLIST from that point — going through the tile's normal
             # open meant Play on the detail page queued the item's series
             # instead, silently abandoning the playlist the user was in.
+            # Shaped by its own artwork, like every other grid in the app
+            # (and like jellyfin-web's cardBuilder). This was the one that
+            # was not: a playlist can hold anything, and a playlist of
+            # episodes -- whose art is 16:9 stills -- was drawn in 2:3
+            # poster tiles, so the server was asked to fill-crop every
+            # still into a portrait frame and most of each picture went.
+            # A playlist of films still comes out as posters; that is the
+            # same rule reaching a different answer.
+            geom, image_type = art.tiles.auto_geom(items)
             body = art.tiles.grid_of(
-                items, "pl", size, scroll_id="playlist", head_h=70,
+                items, "pl", size, geom=geom, image_type=image_type,
+                # inherit=False, for the reason the season listing gives:
+                # this is a list of *entries*, and each cell has to be the
+                # thing you would be playing. The Thumb chain otherwise
+                # borrows the series' thumb or backdrop for an episode that
+                # has no still of its own, so a playlist built out of one
+                # show draws the same series artwork in every cell and stops
+                # distinguishing anything. Borrowing is right for a Continue
+                # Watching card, which is a pointer back to the show; a
+                # playlist entry is not one.
+                inherit=False,
+                scroll_id="playlist", head_h=70,
                 on_click=lambda it: actions.play_list(
                     ids, server, items.index(it), audio=False, items=items))
         return VScroll(Column([header, Spacer(h=2)] + body,

@@ -387,12 +387,23 @@ class ItemActions:
 
     # -- capability --------------------------------------------------------
 
-    def can_record(self):
+    def can_record(self, server=None):
         """Whether the Record affordances should be offered.
 
-        Fails OPEN, exactly as ``can_edit`` does and for the same reason:
-        only a probe that positively answers False hides them. The API call
-        is the real check.
+        Two independent questions, and both have to say yes:
+
+        1. Can this *apiclient* schedule a recording at all — the version
+           probe ``live_tv_apis``, cached because it is a question about
+           imported code and cannot change while we run.
+        2. May this *user*, on this server. ``EnableLiveTvManagement`` is a
+           third Live TV permission, separate from the access one the
+           browse gate reads, and without it every Record button answers
+           403 with a generic failure. Not cached here: it is per server
+           and the answer already is cached, on the client.
+
+        Fails OPEN in both, exactly as ``can_edit`` does and for the same
+        reason: only a probe that positively answers False hides them. The
+        API call is the real check.
         """
         if self._record_ok is None:
             try:
@@ -400,7 +411,16 @@ class ItemActions:
             except Exception:
                 answer = None
             self._record_ok = answer is not False
-        return self._record_ok
+        if not self._record_ok:
+            return False
+        source = getattr(self.services, "source", None)
+        ask = getattr(source, "can_manage_live_tv", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return bool(ask(server))
+        except Exception:
+            return True
 
     def can_edit(self):
         """Whether the apiclient can edit playlists/collections.
