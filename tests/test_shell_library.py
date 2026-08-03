@@ -1894,6 +1894,84 @@ class TestNoDeadButtons(unittest.TestCase):
         self.assertIn("pl-play", present)
         self.assertIn("pl-shuffle", present)
 
+    def _playlist_tiles(self, items):
+        """The tile geometry a playlist of ``items`` is drawn at."""
+        src = FakeSource()
+        src.get_playlist_items = lambda srv, pid: list(items)
+        b = self._browser(src)
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        nodes, _h = build_scene(b)
+        return b, [n for n in nodes
+                   if str(n.get("id") or "").startswith("pl-")
+                   and n.get("t") == "rect" and n.get("ring")]
+
+    @staticmethod
+    def _video(i, ratio):
+        return {"Id": "v%d" % i, "Name": "Item %d" % i, "Type": "Episode",
+                "PrimaryImageAspectRatio": ratio,
+                "ImageTags": {"Primary": "t%d" % i}}
+
+    def test_a_playlist_of_stills_is_drawn_as_stills(self):
+        """A playlist can hold anything, and this was the one grid in the app
+        whose shape did not follow its artwork: 16:9 episode stills were
+        drawn in 2:3 poster tiles, so the fill crop threw most of each
+        picture away. jellyfin-web's cardBuilder shapes a row from the
+        median aspect ratio; so does every other grid here."""
+        b, tiles = self._playlist_tiles([self._video(i, 16 / 9)
+                                         for i in range(8)])
+        self.assertTrue(tiles, "no playlist tiles were drawn")
+        wide = b.tiles.art.geom_wide
+        # strip_h, not tile_h: a hit region spans the caption under the tile.
+        self.assertAlmostEqual(tiles[0]["w"], wide.tile_w, delta=1)
+        self.assertAlmostEqual(tiles[0]["h"], wide.strip_h, delta=1)
+
+    def test_a_playlist_of_posters_still_gets_posters(self):
+        """The same rule reaching the other answer — this must not become
+        "landscape always"."""
+        b, tiles = self._playlist_tiles([self._video(i, 2 / 3)
+                                         for i in range(8)])
+        self.assertTrue(tiles)
+        poster = b.tiles.art.geom
+        self.assertAlmostEqual(tiles[0]["w"], poster.tile_w, delta=1)
+        self.assertAlmostEqual(tiles[0]["h"], poster.strip_h, delta=1)
+
+    def test_a_playlist_entry_shows_its_own_art_not_the_series(self):
+        """Same exception the season listing takes. Once the row is shaped
+        for stills, the Thumb chain will borrow the SERIES' thumb or backdrop
+        for an episode with no still of its own — so a playlist built out of
+        one show drew the same series artwork in every cell and stopped
+        distinguishing anything. Borrowing is right for a Continue Watching
+        card, which is a pointer back to the show; a playlist entry is the
+        thing you are about to play."""
+        asked = []
+        src = FakeSource()
+        real = src.image_spec
+
+        def image_spec(item, image_type="Primary", width=280, inherit=True):
+            asked.append(inherit)
+            return real(item, image_type, width, inherit=inherit)
+
+        src.image_spec = image_spec
+        src.get_playlist_items = lambda srv, pid: [
+            self._video(i, 16 / 9) for i in range(6)]
+        b = self._browser(src)
+        b.navigate({"kind": "playlist", "server": "srv1", "item_id": "P",
+                    "title": "Mix"})
+        build_scene(b)
+        self.assertTrue(asked, "no artwork was resolved for the tiles")
+        self.assertNotIn(True, asked,
+                         "a playlist tile inherited its parent's artwork")
+
+    def test_artwork_with_no_ratio_keeps_the_poster_default(self):
+        """Nothing to measure: the shape it has always had, not a guess."""
+        b, tiles = self._playlist_tiles(
+            [{"Id": "v%d" % i, "Name": "N", "Type": "Video"}
+             for i in range(4)])
+        self.assertTrue(tiles)
+        self.assertAlmostEqual(tiles[0]["w"], b.tiles.art.geom.tile_w,
+                               delta=1)
+
     def test_the_artist_bar_drops_play_when_the_songs_failed_to_load(self):
         b = self._browser()
         bar = music_page(b, {"kind": "artist", "item_id": "art1"}) \
