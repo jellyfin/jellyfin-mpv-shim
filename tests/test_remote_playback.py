@@ -17,10 +17,16 @@ from jellyfin_mpv_shim.player import PlayerManager  # noqa: E402
 
 
 def make_video(item=None, media_source=None, is_transcode=False,
-               playback_info=None):
-    """Build a Video without __init__ (which would hit the network)."""
+               playback_info=None, item_id="item-1"):
+    """Build a Video without __init__ (which would hit the network).
+
+    `item_id` matters to `get_duration`: a media source standing for the
+    item's own file carries the item's id, and that is what decides whether
+    the Item's runtime describes the source being played.
+    """
     video = Video.__new__(Video)
     video.item = item if item is not None else {}
+    video.item_id = item_id
     video.media_source = media_source
     video.is_transcode = is_transcode
     video.playback_info = playback_info
@@ -55,6 +61,37 @@ class GetDurationTest(unittest.TestCase):
     def test_zero_ticks_is_not_a_duration(self):
         video = make_video(item={"RunTimeTicks": 0}, media_source={"RunTimeTicks": 0})
         self.assertIsNone(video.get_duration())
+
+    def test_an_alternate_version_never_borrows_the_item_s_runtime(self):
+        """A .strm grouped as a version beside real media.
+
+        Measured against 12.0: the server probes only the source it is about
+        to play, and declines to probe an alternate even when PlaybackInfo
+        names it — so the remote version arrives with no runtime while the
+        Item still carries the local file's. Taking that number gave a
+        ten-minute stream the local version's twelve seconds, which called
+        the file finished twelve seconds in and wiped the resume position.
+        """
+        video = make_video(item={"RunTimeTicks": 12 * 10000000},
+                           media_source={"Id": "other-version"},
+                           item_id="item-1")
+        self.assertIsNone(video.get_duration())
+
+    def test_the_item_s_own_source_still_uses_the_item_s_runtime(self):
+        # The source standing for the item's own file carries the item's id,
+        # so the fallback that .strm needs is untouched for everything else.
+        video = make_video(item={"RunTimeTicks": 42 * 10000000},
+                           media_source={"Id": "item-1"}, item_id="item-1")
+        self.assertEqual(video.get_duration(), 42)
+
+    def test_an_unidentified_source_keeps_the_fallback(self):
+        # Withheld only where the source is *known* to be an alternate. A
+        # source that names no id says nothing either way, and guessing
+        # "alternate" there would drop the duration for callers that never
+        # had a version set at all.
+        video = make_video(item={"RunTimeTicks": 42 * 10000000},
+                           media_source={}, item_id="item-1")
+        self.assertEqual(video.get_duration(), 42)
 
 
 class TerminateTranscodeTest(unittest.TestCase):

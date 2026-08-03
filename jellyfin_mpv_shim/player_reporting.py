@@ -243,7 +243,17 @@ class ReportingMixin:
         if finished and self._finished_at_eof(video, playback_time):
             # Genuine end-of-file: report the full duration so the item is
             # recorded as fully watched.
-            safe_pos = video.get_duration() or 0
+            #
+            # `or` the last position rather than `or 0`: an item can reach a
+            # real end-of-file with no duration we can name -- a stream file
+            # inside a version set, which the server never probes (see
+            # Video.get_duration). Reporting 0 for one of those says "put it
+            # back to the beginning" at the exact moment the user finished
+            # watching it, which is both a lost completion and a resume
+            # position invented out of nothing. Where mpv stopped is the best
+            # statement of the end we have.
+            safe_pos = (video.get_duration() or playback_time
+                        or self._last_playback_position or 0)
         elif finished:
             # "Finished" without a real EOF means an abort (decode/network
             # failure, or mpv already exited). Don't pretend it was watched to

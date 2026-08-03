@@ -692,8 +692,35 @@ class Video(object):
         # the Item we fetched earlier stays stale. Reading only the Item left
         # every .strm with no duration, which disabled the player's near-end
         # finish check and stranded the queue on a frozen last frame.
-        for source in ((self.media_source or {}), self.item):
-            ticks = source.get("RunTimeTicks")
+        source = self.media_source or {}
+        ticks = source.get("RunTimeTicks")
+        if ticks:
+            return ticks / 10000000
+
+        # The Item's runtime describes the item's OWN file, so it is only a
+        # fallback for that file — never for an alternate version.
+        #
+        # Measured against 12.0: the remote probe is gated on the *item's*
+        # path ending in .strm (MediaSourceManager.GetPlaybackMediaSources),
+        # and a version set's item.Path is its PRIMARY's. So a .strm sitting
+        # beside an .mkv never qualifies — naming it with MediaSourceId does
+        # not help — and it arrives with no runtime while the Item still
+        # carries the local file's. Falling through gave a thirty-second
+        # stream the sibling's ten seconds: _finished_at_eof called it
+        # finished ten seconds in, the queue advanced, and the completion
+        # that got reported is what actually wiped the resume position.
+        #
+        # No duration is the honest answer, and the callers are built for it
+        # — _finished_at_eof and _check_stalled_finish both decline to place
+        # a position they cannot measure. Withheld only where the source is
+        # *known* to be an alternate: a source naming no id (none resolved
+        # yet) says nothing either way and keeps the old fallback.
+        #
+        # The id test is Jellyfin's own convention — a source standing for
+        # the item's own file carries the item's id.
+        source_id = source.get("Id")
+        if source_id is None or source_id == self.item_id:
+            ticks = self.item.get("RunTimeTicks")
             if ticks:
                 return ticks / 10000000
 

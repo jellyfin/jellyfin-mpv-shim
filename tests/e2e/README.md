@@ -43,6 +43,7 @@ E1 and E2 exist so far:
 | --- | --- | --- |
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
+| `test_strm_source` | E1 | `.strm` shortcuts: where the source is, where the runtime is, what a refused one resolves to |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
 | `test_route_walk` | E1 | every screen loads and renders against the real library |
 | `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
@@ -52,6 +53,7 @@ E1 and E2 exist so far:
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |
+| `test_strm_playback` | E2 | resuming a `.strm`, and not finishing a version-set alternate at its sibling's length |
 | `test_mpv_reopen` | E2 | closing mpv mid-playback then playing again (#458) — runs out of process |
 | `test_input_routing` | E2 | real keys through mpv's input layer across every UI transition |
 | `test_scroll_recovery` | E2 | wheel-scrolling 1000 items hard in a real window; tiles come back |
@@ -106,6 +108,60 @@ below `MinResumeDurationSeconds` (300 by default) and clamps to
 `MinResumePct` 5% / `MaxResumePct` 90%. A resume test written against a
 10-second episode fails in a way that reads as a shim bug. Use `x-long`
 ("Three hours").
+
+**A `.strm` has no runtime until something asks for `PlaybackInfo`.** A library
+scan never probes a shortcut, so the item carries no `RunTimeTicks`; the server
+learns it from the probe it runs during the playback request and puts it on the
+**MediaSource**. That is not cosmetic — `UserDataManager.UpdatePlayState` marks
+an item whose runtime it does not know *fully played* on the first progress
+report and stores no position, which is the whole of "resume does not work on
+my .strm". Two consequences for tests here: never assert "the item DTO has no
+runtime" (true only until the first play, then false for ever), and expect a
+stream file to be marked watched if anything reports progress before the URL
+was resolved.
+
+**Stream fixtures come with two kinds of origin.** stdjflib's **local origin**
+(`127.0.0.1:8410`, started by `stdjflib serve`) is h264+aac that Jellyfin
+treats as genuinely remote — `Protocol=Http`, `IsRemote=true`, probed over
+HTTP, direct play — so only the route is local: a loose 30s movie, a 400s one
+(`Long Origin Stream Movie`) and **two version sets that differ only in which
+file is primary**. Its **catalogue** fixtures are archive.org over TLS.
+
+**Prefer the local ones.** With the internet blocked, 21 of the 22 strm tests
+still run — the whole of `test_strm_playback` included. The one that skips is
+the commented fixture, which is the file built out of everything
+`FetchShortcutInfo` tolerates and has no local equivalent yet. Networked
+classes carry `_strm.require_origin(...)` and **skip** rather than fail;
+somebody else's host being slow is not a defect in this client. `_strm.py`
+holds the fixture names and the probe.
+
+**A resume position needs the 400s clip.** The server discards one below
+`MinResumeDurationSeconds` (300) and clamps to `MinResumePct` 5% /
+`MaxResumePct` 90%, so `Long Origin Stream Movie` is the only item in the
+library that can hold one at all; the usable window is 20s–360s.
+
+**A `.strm` inside a version set is never probed, and the gate is the item's
+path.** `item.Path.EndsWith(".strm")` decides it, and a version set's
+`item.Path` is its *primary's* — so the shortcut in the set never qualifies and
+naming it with `MediaSourceId` does not change the answer. It arrives with no
+runtime *and* no `MediaStreams`, which also means it can never match a
+direct-play profile: every play of one is a transcode of a source whose length
+the server does not know, so mpv gets a growing HLS estimate rather than a
+length. Do not assert on `_player.duration` for one. The sibling's runtime is
+right there on the Item and is the wrong answer; see `Video.get_duration`.
+
+**The two version sets are opposites and you need both.** `Local Origin
+Versions` has an `.mkv` primary, so its `.strm` alternate goes unprobed — the
+shape that broke, where every assertion is about an absence. `Origin Primary
+Versions` names the `.strm` exactly like its folder, which puts it in the
+primary slot and ends `item.Path` in `.strm`, so the gate fires and **both**
+sources come back measured (30s remote primary, 20s local alternate, Item
+reporting the primary's 30s). Only the second can assert that the shim uses an
+alternate's *own* runtime rather than the Item's; only the first reproduces the
+bug. Do not "simplify" them into one.
+
+The refused fixtures (a dead loopback `rtsp://`, and a local path) reach nobody
+at all and need no gate.
 
 **The player is a process-wide singleton.** `playerManager` is shared by every
 test class in the interpreter, so it is built once and terminated at exit
