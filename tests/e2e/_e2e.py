@@ -140,6 +140,12 @@ def require_server_and_mpv(obj):
 _SINK_MODULE = None
 SINK_NAME = "jms-e2e-sink"
 
+#: Every device id this suite registers starts with this, and `purge_devices`
+#: will not delete one that does not. The QA server is a machine a developer
+#: also points a real client at, and a device record is a live session: a
+#: purge that matched on the account alone signed that client out mid-run.
+DEVICE_PREFIX = "jms-e2e-"
+
 
 def dummy_audio_device():
     """An mpv `audio-device` that makes noise nowhere. Created on first use.
@@ -364,7 +370,15 @@ class Session:
         # which is junk on the server and makes `/Sessions` lookups
         # ambiguous. Tests that genuinely need to look like a second device
         # — qa-onesession — pass `device_id` explicitly.
-        self.device_id = device_id or ("jms-e2e-" + account)
+        # DEVICE_PREFIX, not a literal: `purge_devices` will not delete a
+        # device whose id does not carry it, so an id built any other way
+        # becomes litter this suite can no longer clear up after itself.
+        self.device_id = device_id or (DEVICE_PREFIX + account)
+        if not self.device_id.startswith(DEVICE_PREFIX):
+            raise AssertionError(
+                "device_id %r does not start with %r, so purge_devices "
+                "cannot clean it up and it becomes permanent litter on the "
+                "server" % (self.device_id, DEVICE_PREFIX))
         self.account = account
 
         client = JellyfinClient(allow_multiple_clients=True)
@@ -443,18 +457,33 @@ class Session:
         raise AssertionError("no user named %r" % name)
 
     def purge_devices(self, account):
-        """Delete every Device record belonging to `account`. Admin only.
+        """Delete THIS SUITE's Device records for `account`. Admin only.
 
         For `qa-onesession`, whose cap counts what the server still believes
         is connected: a session left behind by a crashed run refuses the next
         one, and the failure looks like the cap working rather than like
         litter. Called from `setUp` so the test starts from a known state
         however the last run ended.
+
+        **Ours only.** A Device record is a live session, and deleting one
+        signs that client out. This matched on the account alone, which meant
+        a run against the QA server signed out whatever real client a
+        developer had pointed at it under the same login -- observed exactly
+        once, with a client on `qa-nosyncplay` while `RevokedSessionTest`
+        purged that account. The litter this exists to clear is always ours,
+        and ours always carries `DEVICE_PREFIX`, so there is nothing to
+        trade off: `qa-onesession`'s own ids are `jms-e2e-1session-a/b`.
+
+        A foreign device holding the cap is a real possibility and is
+        deliberately left to fail loudly -- deleting somebody's session to
+        make a test pass is the wrong way round.
         """
         devices = self._request("/Devices") or {}
         items = devices.get("Items", devices if isinstance(devices, list) else [])
         for device in items:
             if device.get("LastUserName") != account:
+                continue
+            if not str(device.get("Id") or "").startswith(DEVICE_PREFIX):
                 continue
             try:
                 self._request("/Devices?id=" + urllib.parse.quote(device["Id"]),
