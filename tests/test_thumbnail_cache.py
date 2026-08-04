@@ -315,8 +315,6 @@ class DiskCacheLocationTest(unittest.TestCase):
         self.assertLess(budget, thumbnails.DEFAULT_DISK_MB)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class RouteChangeTrimTest(unittest.TestCase):
@@ -442,3 +440,6 @@ class MemoryTrimTest(unittest.TestCase):
         c.put("a", 40)
         c.trim(0)
         self.assertEqual(len(c), 0)
+
+if __name__ == "__main__":
+    unittest.main()
