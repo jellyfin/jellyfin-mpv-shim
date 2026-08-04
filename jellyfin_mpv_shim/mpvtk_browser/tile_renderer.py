@@ -826,6 +826,9 @@ class TileRenderer:
             record=record,
             contain=contain,
             live=live_tv.is_channel_artwork(item),
+            # Absent unless the query asked for MediaSourceCount *and* there
+            # is more than one -- the server leaves the property off at 1.
+            sources=int(item.get("MediaSourceCount") or 0),
         )
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
                   bleed=False, on_click=None, parent_item=False,

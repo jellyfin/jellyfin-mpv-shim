@@ -21,7 +21,7 @@ sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
-    GRID_FIELDS, LIBRARY_ITEM_TYPES, LibrarySource)
+    GRID_FIELDS, LIBRARY_ITEM_TYPES, LIST_FIELDS, LibrarySource)
 
 from tests._shell_harness import (  # noqa: E402
     FakeController, FakeSource, _SyncPool)
@@ -77,6 +77,16 @@ class QueryShapeTest(unittest.TestCase):
         Overview was a third of the response body for a hundred items."""
         self.assertNotIn("Overview", GRID_FIELDS)
         self.assertIn("PrimaryImageAspectRatio", self._call("movies")["fields"])
+
+    def test_every_browse_query_asks_for_the_version_count(self):
+        """MediaSourceCount is not one of the unconditional properties: leave
+        it out of Fields and the DTO carries no count at all, so a film the
+        library holds twice draws exactly like one it holds once. Both field
+        sets, because a film reaches the screen through a row as often as
+        through a grid."""
+        self.assertIn("MediaSourceCount", self._call("movies")["fields"])
+        self.assertIn("MediaSourceCount", GRID_FIELDS)
+        self.assertIn("MediaSourceCount", LIST_FIELDS)
 
     def test_the_filter_pickers_are_scoped_to_the_type(self):
         api = FakeApi()

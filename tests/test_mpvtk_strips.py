@@ -246,6 +246,66 @@ class TestCoverCrop(unittest.TestCase):
             self.assertEqual(got, card)
 
 
+class TestVersionCountBadge(unittest.TestCase):
+    """The multi-version indicator -- jellyfin-web's `.mediaSourceIndicator`.
+
+    It shares the top-LEFT corner with the watched tick, which is the only
+    corner with room: the right-hand one already stacks a recording symbol,
+    a download arrow, a type marker and the unplayed count. So the two have
+    to sit beside each other rather than either winning the spot, which is
+    what the offset assertions here are about.
+    """
+
+    ACCENT = theme.rgb(theme.ACCENT, 255)[:3]
+
+    def _paint(self, **tile):
+        g = TileGeom().physical()
+        img = Image.new("RGBA", (g.tile_w, g.strip_h), (0, 0, 0, 0))
+        store = StripStore(cache_dir=None, mem_store=None)
+        store._paint_decorations(img, ImageDraw.Draw(img), 0,
+                                 Tile(key="k", **tile), g)
+        return img
+
+    @staticmethod
+    def _slot(img, n):
+        """A point on the disc in the n'th left-hand slot: near its top edge,
+        which is inside r=11 but clear of both the digit and the tick, so
+        neither their ink nor their antialiased fringe is what gets sampled.
+        """
+        return img.getpixel((17 + 26 * n, 17 - 9))
+
+    def test_two_versions_draw_a_badge_in_the_corner(self):
+        self.assertEqual(self._slot(self._paint(sources=2), 0)[:3], self.ACCENT)
+
+    def test_one_version_draws_nothing(self):
+        """The server omits MediaSourceCount entirely at 1, so 0 and 1 are
+        the same answer and neither is worth a chip on every tile."""
+        for n in (0, 1):
+            with self.subTest(n):
+                self.assertEqual(self._slot(self._paint(sources=n), 0)[3], 0)
+
+    def test_a_watched_multiversion_film_shows_both(self):
+        img = self._paint(sources=3, watched=True)
+        # The tick keeps the corner; the count is pitched one slot right.
+        self.assertEqual(self._slot(img, 0)[:3], self.ACCENT)
+        self.assertEqual(self._slot(img, 1)[:3], self.ACCENT)
+
+    def test_the_second_slot_is_empty_without_a_tick(self):
+        """Otherwise the count would be drawn to the right of a badge that
+        is not there, leaving a gap in the corner."""
+        self.assertEqual(self._slot(self._paint(sources=2), 1)[3], 0)
+
+    def test_the_count_is_part_of_the_cache_key(self):
+        """It is baked into the composited strip like every other decoration,
+        so an item that gains a version has to recomposite rather than serve
+        the old bitmap."""
+        s = StripStore(cache_dir=None, mem_store=MemoryStore())
+        base = dict(key="a", title="A", poster=_poster(), poster_tag="p1")
+        a = s.strip([Tile(**base)])
+        b = s.strip([Tile(**dict(base, sources=2))])
+        self.assertNotEqual(a["src"], b["src"])
+
+
 class TestBitmapConcurrentMiss(unittest.TestCase):
     """bitmap() drops its lock across _store(), so two callers can both miss
     and both allocate. cast.py's compositor runs on the browser's shared pool

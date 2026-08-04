@@ -50,7 +50,16 @@ log = logging.getLogger("mpvtk_browser.repository")
 # whether or not it was asked for, so listing it achieves nothing. The comma
 # binder drops names it cannot parse instead of rejecting the request, which is
 # why doing so was invisible; a stricter server would 400 the whole query.
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
+#
+# MediaSourceCount is the exception that has to be asked for, and it is the
+# whole of the multi-version indicator: a Video's DTO carries the count only
+# under this field, and the server omits it entirely when it is 1 -- so an
+# absent value means "one version", not "not asked for". jellyfin-web puts it
+# on every grid and row query for the same reason, and it costs nothing extra
+# to answer (it is the length of the item's own alternate-version lists, not a
+# media-source resolution -- that is MediaSources, which DETAIL_FIELDS pays
+# for and a browse query must not).
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount"
 
 #: An item's own artwork counts as landscape at or above this, which is what
 #: lets `backdrop_spec` use a home video's extracted still for its header and
@@ -65,9 +74,9 @@ _LANDSCAPE_ART = 0.8
 # hundred series here) and a tile draws a name, a year and a runtime -- none
 # of them fields. Rows keep LIST_FIELDS: they are twelve to twenty items and
 # a clicked one seeds a page that shows the text while the real DTO loads.
-# jellyfin-web's grid asks for less again (MediaSourceCount, and the aspect
-# ratio only when the view is Primary).
-GRID_FIELDS = "PrimaryImageAspectRatio"
+# jellyfin-web's grid asks for the aspect ratio only when the view is Primary;
+# MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
+GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount"
 
 # What a library's grid lists, by collection type -- jellyfin-web's default
 # tab for that view (LibraryTab.Movies -> Movie, and so on).
