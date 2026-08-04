@@ -135,6 +135,13 @@ class DiskCacheBoundTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         store = ThumbnailStore(tmp, **kw)
         self.addCleanup(store.shutdown)
+        # The constructor's own prune is on a worker thread, and every test
+        # below builds a cache state by hand and then prunes it on purpose.
+        # Left running, it lands in the middle of that setup: it took
+        # `warm.img` in test_a_read_keeps_an_entry_alive during the window
+        # where the mtime says a month ago and the read that saves it has
+        # not happened yet. Let it finish against the empty directory first.
+        store._startup_prune.result(timeout=10)
         return store
 
     def _fill(self, store, count, size, start=0):

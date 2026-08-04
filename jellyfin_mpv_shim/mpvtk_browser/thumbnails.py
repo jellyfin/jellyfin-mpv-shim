@@ -263,7 +263,13 @@ class ThumbnailStore:
         # opens the browser window. One listdir plus a stat per entry is
         # seconds on a cold cache or on NTFS, all of it before anything is
         # on screen.
-        self._pool.submit(self._prune_disk)
+        #
+        # The future is kept so that this prune can be waited for. Nothing in
+        # the app does -- it is fire-and-forget by design -- but it reaps by
+        # mtime against a directory the caller is free to keep writing to,
+        # so anything that wants to reason about what is in there has to be
+        # able to let it finish first.
+        self._startup_prune = self._pool.submit(self._prune_disk)
 
     # -- public API (loop thread) -----------------------------------------
 
