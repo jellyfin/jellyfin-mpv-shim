@@ -276,6 +276,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Client-side decorations: draw our own title bar because the desktop
+        # is not drawing one. Pushed by refresh_window_controls rather than
+        # read per frame -- the answer is an mpv property, and on the jsonipc
+        # backend a property read is an IPC round trip.
+        self._csd = False
+        self._maximized = False
         # Modal dialog: a builder callable -> Dialog node, or None.
         self._dialog = None
         # Download dialog state {"server","item","est","watched"} or None.
@@ -2349,6 +2355,58 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
         self._update = {"version": version, "url": url}
         self.invalidate()
+
+    # -- client-side decorations -------------------------------------------
+
+    @property
+    def window_controls(self):
+        """Whether the top bar is standing in for a title bar this frame."""
+        return self._csd
+
+    @property
+    def maximized(self):
+        """Live only while ``window_controls`` is on — it is read to pick the
+        maximize button's glyph and nothing else consults it."""
+        return self._maximized
+
+    def refresh_window_controls(self):
+        """Re-take the window-chrome snapshot.
+
+        Called at startup and from ``playerManager.on_decorations_changed``.
+        It has to be a push, not a poll: on Wayland the answer arrives in a
+        compositor configure event, so a session's first frames can be drawn
+        before mpv knows, and fullscreen/maximize change it again later.
+        """
+        ask = getattr(self.controller, "window_chrome_state", None)
+        if ask is None:
+            return          # no player behind us (tests, offline stand-ins)
+        try:
+            state = ask() or {}
+        except Exception:
+            log.debug("could not ask about window decorations", exc_info=True)
+            return
+        wanted = bool(state.get("controls"))
+        maximized = bool(state.get("maximized"))
+        if (wanted, maximized) != (self._csd, self._maximized):
+            self._csd = wanted
+            self._maximized = maximized
+            self.invalidate()
+
+    def close_window(self):
+        """The title bar's close button. Deliberately the same path as mpv's
+        own close (CLOSE_WIN), so ``close_to_tray`` and the no-tray safeguard
+        decide what closing means here exactly as they do there -- a second
+        close button with its own idea of "close" is how the two drift."""
+        self._tell_controller("close_window")
+
+    def minimize_window(self):
+        """Iconify. Not ``minimize()``, which is this app's own tray-minimize
+        (it tears the window down and keeps running headless) -- the title
+        bar's button has to mean what it means in every other window."""
+        self._tell_controller("minimize_window")
+
+    def toggle_maximized(self):
+        self._tell_controller("toggle_window_maximized")
 
     @property
     def offline(self):

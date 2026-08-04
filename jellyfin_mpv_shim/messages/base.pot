@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 23:40-0400\n"
+"POT-Creation-Date: 2026-08-04 02:47-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -863,6 +863,10 @@ msgid "200%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Only when the window has no title bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
 msgstr ""
 
@@ -1027,6 +1031,10 @@ msgid "Remember Window Size"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Window Buttons in the Top Bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr ""
 
@@ -1161,6 +1169,15 @@ msgid ""
 "only way back is editing conf.json. For the classic cast-target setup you "
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+"player window, leaving no way to move or close it. This puts minimize, "
+"maximize and close in the top bar instead, and lets you drag the window by "
+"it. Left on \"Only when the window has no title bar\", MPV is asked whether "
+"this window got one, so desktops that do decorate it are left alone."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1338,6 +1355,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Close"
 msgstr ""
 
@@ -3065,6 +3083,18 @@ msgid "Search"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Minimize"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Restore"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Maximize"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Home"
 msgstr ""
 
@@ -3254,6 +3284,19 @@ msgstr ""
 #: jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
 msgid "{0} is buffering."
+msgstr ""
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"GNOME does not draw a system tray on its own. Install the \"AppIndicator and "
+"KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
+"Background\" in Settings to run without a window anyway."
+msgstr ""
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"No system tray is running on this desktop. Turn on \"Allow Background\" in "
+"Settings to run without a window anyway."
 msgstr ""
 
 #: jellyfin_mpv_shim/tray.py

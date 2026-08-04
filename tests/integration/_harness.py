@@ -477,6 +477,7 @@ def build_player(player_module, video=None):
     pm.on_load_start = None
     pm.on_load_error = None
     pm.on_mpv_terminated = None
+    pm.on_decorations_changed = None
     pm._showing_browse_bg = False
     # Window bookkeeping the force-window paths read before they write:
     # _rearm_window_geometry compares against _geometry_armed, and

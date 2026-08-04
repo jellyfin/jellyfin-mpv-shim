@@ -51,6 +51,7 @@ class FakePlayer:
         self.on_hud_menu = None
         self.on_nav_back = None
         self.on_nav_command = None
+        self.on_decorations_changed = None
 
     @staticmethod
     def get_mpv():
@@ -210,6 +211,7 @@ PLAYER_CALLBACKS = [
     "on_nav_command",
     "on_load_start",
     "on_load_error",
+    "on_decorations_changed",
 ]
 
 
@@ -294,6 +296,26 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
         # A failure must also clear any in-flight loading state, or both
         # screens are live at once and build() picks by precedence alone.
         self.assertIsNone(browser.load.starting)
+
+    def test_losing_the_title_bar_reaches_the_top_bar(self):
+        """On Wayland this arrives from a compositor configure event, which
+        can land well after the first frames are drawn — so the browser has
+        to learn about it from this callback, not from what it read at
+        startup."""
+        self.player.window_chrome_state = lambda: {"controls": True,
+                                                   "maximized": True}
+        browser = self._login()
+        self.player.on_decorations_changed()
+        self.assertTrue(browser.window_controls,
+                        "on_decorations_changed is not bound to this browser")
+        self.assertTrue(browser.maximized)
+
+    def test_a_decorated_window_draws_no_controls_of_its_own(self):
+        self.player.window_chrome_state = lambda: {"controls": False,
+                                                   "maximized": False}
+        browser = self._login()
+        self.player.on_decorations_changed()
+        self.assertFalse(browser.window_controls)
 
     def test_mpv_teardown_reaches_this_ui(self):
         self._login()

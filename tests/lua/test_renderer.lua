@@ -521,6 +521,67 @@ for _, e in ipairs(fake.log.events) do
 end
 eq(fwd, 1, "the mouse forward button sends one forward event")
 
+-- ========================================== client-side title bar
+
+-- `wdrag` marks a node that stands in for a title bar, on a window the
+-- desktop drew none for. Both gestures are handled HERE rather than sent
+-- to Python as events: `begin-vo-dragging` means "the button the user is
+-- holding is now moving the window", so it has to be issued during the
+-- press, and a round trip is not a gesture mpv will still accept.
+local function titlebar(extra)
+    local node = { id = "csd-bar", t = "rect", x = 0, y = 0, w = 400, h = 60 }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+local function commanded(name)
+    for _, c in ipairs(fake.log.commands) do
+        if type(c) == "table" and c[1] == name then return true end
+    end
+    return false
+end
+
+scene({ titlebar({ wdrag = true }) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(commanded("begin-vo-dragging"), "pressing the title bar drags the window")
+
+-- Double-clicking a title bar maximizes it, everywhere.
+fake.log.props["window-maximized"] = false
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], true,
+   "double-clicking the title bar maximizes the window")
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], false,
+   "and again restores it")
+
+-- A bar that is also a button stays a button. The window controls sitting
+-- ON the bar are separate, higher nodes, and node_at prefers them -- so
+-- without this, every button in the top bar would drag the window instead
+-- of doing its job.
+scene({ titlebar({ wdrag = true, click = true }) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.reset_events()
+fake.key("mbtn_left")
+ok(not commanded("begin-vo-dragging"),
+   "a clickable node on the title bar does not drag the window")
+
+-- An ordinary bar is not a title bar. `wdrag` is set only while the UI is
+-- standing in for one, so a window WITH a title bar must not get a second,
+-- worse one that ignores snapping and edge tiling.
+scene({ titlebar({}) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not commanded("begin-vo-dragging"),
+   "a plain bar does not drag the window")
+fake.log.props["window-maximized"] = false
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], false,
+   "and double-clicking it does not maximize")
+
 -- ============================== the MENU key and mpvtk-focus
 
 -- Two gestures that name a destination rather than a direction, and the

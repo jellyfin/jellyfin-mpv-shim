@@ -195,6 +195,11 @@ You can use the config file to enable and disable features.
   - The settings form only offers this once the toggle above it (`close_to_tray`, or `allow_background` where there is no tray) is enabled, since it is asking the app to start in the state that toggle permits. Turning that toggle back off also turns this one off, so it can't keep acting from a checkbox that is no longer on screen; the form says so when it happens.
 - `remember_window_size` - Persist the window size across launches. Default: `true`
   - Off means the size is a fixed preference the app always opens at, which is what you want if you deliberately pinned one.
+- `window_controls` - Draw a drag handle and minimize/maximize/close buttons into the library browser's own top bar, for windows the desktop gives no title bar of its own. One of `auto`, `always`, `never`. Default: `auto`
+  - `auto` asks MPV rather than guessing from the desktop environment, because MPV's `border` property already is the answer. On a Wayland compositor with no `zxdg_decoration_manager_v1` — which is every GNOME session, since mutter supports client-side decorations only — MPV reports `border=no` for a window nothing is decorating; where the protocol does exist it reports whichever mode the compositor actually granted. So KDE, sway and X11 keep their real title bars and get no second one, and GNOME Wayland gets a working one instead of a window it cannot move or close.
+  - It follows `--border=no` for the same reason, so setting that deliberately gets you the controls rather than a window with no way out.
+  - The top bar becomes the title bar: drag it to move the window, double-click it to maximize. Buttons on the bar keep working — only the empty space drags. Fullscreen suppresses all of it, there being no title bar anywhere in fullscreen.
+  - `always` and `never` override the detection. `never` is the escape hatch if your compositor decorates windows in a way MPV does not report.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Disk budget for cached library artwork. Default: `256`

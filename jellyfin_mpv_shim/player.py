@@ -576,6 +576,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Remote menu commands the in-window UI answers itself ("home",
         # "settings"). Returns True when handled.
         self.on_nav_command = None
+        # The window gained or lost a server-drawn title bar (set by the UI,
+        # which redraws its own chrome to match). On Wayland this is not
+        # something we did: mpv writes `border` from what the compositor
+        # granted, and that answer can arrive after the window is already up.
+        self.on_decorations_changed = None
         # Opens the playback HUD's gear menu (set by mpvtk_browser.ui).
         # During video under the in-window OSC, the kb_menu key routes
         # here instead of the OSD menu. Returns True when handled.
@@ -881,6 +886,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # key, so the setting needs a restart.
             p.on_key_press("MBTN_BACK")(self._on_chapter_prev_key)
             p.on_key_press("MBTN_FORWARD")(self._on_chapter_next_key)
+        # Not a setting we push: on Wayland mpv writes `border` from the
+        # decoration mode the compositor granted, so this is how the UI hears
+        # that it has to draw its own title bar — and it can land after the
+        # first frame, since the configure arrives asynchronously.
+        self._observe("border", self._on_border_change)
+        # The other two the UI's own title bar draws from: which glyph the
+        # maximize button wears, and whether there is a title bar to draw at
+        # all (there is not, fullscreen). Same handler -- the UI re-takes the
+        # whole snapshot either way, so splitting them would only mean three
+        # ways to get half of it.
+        self._observe("window-maximized", self._on_border_change)
+        self._observe("fullscreen", self._on_border_change)
         self._observe("eof-reached", self._on_eof_reached)
         self._observe("playback-abort", self._on_playback_abort)
         self._observe("seeking", self._on_seeking)

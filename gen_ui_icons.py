@@ -112,6 +112,13 @@ ICON_NAMES = [
     "schedule",
     "keyboard_double_arrow_left",
     "keyboard_double_arrow_right",
+    # client-side window controls (window_controls); "close" is already
+    # above. crop_square is maximize and filter_none is restore -- the same
+    # two glyphs GNOME, KDE and Windows all draw for those buttons, so the
+    # buttons read as window controls rather than as more app chrome.
+    "minimize",
+    "crop_square",
+    "filter_none",
 ]
 
 SVG_URL = (

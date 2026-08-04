@@ -153,6 +153,22 @@ class Settings(SettingsBase):
     window_width: int = 1280
     window_height: int = 720
     window_maximized: bool = False
+    # Client-side decorations: draw a drag handle and minimize/maximize/close
+    # buttons into the browser's own top bar, for windows the desktop gives no
+    # title bar of its own.
+    #
+    # "auto" asks mpv rather than sniffing the environment, because mpv's
+    # `border` property already IS the answer: on a Wayland compositor with no
+    # zxdg_decoration_manager_v1 (GNOME/mutter, which supports client-side
+    # decorations only) mpv writes border=false back into the option itself,
+    # and where the protocol does exist it writes whichever mode the
+    # compositor actually granted. So "no server-side title bar" is one
+    # property read, correct on every platform and both backends -- and it
+    # also covers someone who simply set --border=no, who wants these controls
+    # for exactly the same reason. See window_controls_wanted().
+    #
+    # "always" / "never" override it.
+    window_controls: str = "auto"
     # Persist the window size across launches. Off means window_width/height
     # are a fixed preference the app always opens at, which is what you want
     # if you deliberately pinned a size.

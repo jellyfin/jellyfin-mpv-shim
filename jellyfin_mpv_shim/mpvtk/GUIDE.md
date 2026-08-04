@@ -44,7 +44,11 @@ Principles:
 
 Layout: `Box` (direction, `pad` — uniform or `(pad_x, pad_y)`, gap,
 cross-axis `align`, main-axis `justify` start/center/end/between,
-bg/radius/border, on_click/on_dbl, hover, `tip=` tooltip),
+bg/radius/border, on_click/on_dbl, hover, `tip=` tooltip,
+`window_drag=True` — this box IS the title bar: pressing it drags
+the window and double-clicking it toggles maximized, both handled
+renderer-side because a drag must start on the press; it also
+forces a hit rect, since the box may have no fill of its own),
 `Row`/`Column` sugar, `Spacer` (flexes unless given w/h — a
 sized Spacer is the stand-in for virtualized content), `Stack`
 (children share one rect, per-child `anchor`/`dx`/`dy`; scrolls with
@@ -199,7 +203,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 
 | t | extra fields |
 |---|---|
-| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring |
+| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring, wdrag (title bar: press drags the window, dbl toggles maximized — renderer-side, no event) |
 | text | text, size, c, bold, align, click, hover (one node per wrapped line: `id`, `id.l1`, …) |
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |

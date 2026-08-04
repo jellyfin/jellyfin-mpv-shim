@@ -84,7 +84,7 @@ SECTIONS = [
                       "display_mirror_summon",
                       "close_to_tray", "allow_background",
                       "start_minimized",
-                      "remember_window_size",
+                      "remember_window_size", "window_controls",
                       "fullscreen", "osc_style",
                       "hud_grab_keys", "hud_wake_key",
                       "hud_scrim", "hud_autohide", "hud_hide_secs",
@@ -164,6 +164,14 @@ LABELED_ENUMS = {
     # settings.general._dynamic_enum.
     # Order and values must match conf.SCROLL_MODES, which is what actually
     # decides behaviour; test_mpvtk_adopt pins them together.
+    # Phrased as what the user sees, not as "client-side decorations":
+    # "auto" is not a guess about the desktop, it is MPV reporting whether
+    # anything decorated this window. See conf.window_controls.
+    "window_controls": [
+        (_("Only when the window has no title bar"), "auto"),
+        (_("Always"), "always"),
+        (_("Never"), "never"),
+    ],
     "scroll_mode": [
         (_("Continuous"), "continuous"),
         (_("Aligned to rows"), "aligned"),
@@ -234,6 +242,7 @@ LABEL_OVERRIDES = {
     "close_to_tray": _("Close to Tray (keep running)"),
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
+    "window_controls": _("Window Buttons in the Top Bar"),
     "osc_style": _("Player Controls Style"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
@@ -309,6 +318,17 @@ NOTES = {
                   "editing conf.json. For the classic cast-target setup you "
                   "want the Interface settings instead; this is for a shared "
                   "TV nobody should be able to browse from."),
+    # Says what it is for, not what it is called. "Client-side decorations"
+    # is the right term and means nothing to the person whose window has no
+    # close button; the note has to be recognisable from the symptom.
+    "window_controls": _("Some desktops \u2014 GNOME on Wayland in particular \u2014 "
+                         "draw no title bar on the player window, leaving no "
+                         "way to move or close it. This puts minimize, "
+                         "maximize and close in the top bar instead, and "
+                         "lets you drag the window by it. Left on "
+                         "\"Only when the window has no title bar\", MPV is "
+                         "asked whether this window got one, so desktops "
+                         "that do decorate it are left alone."),
     "osc_style": _("Requires restart to change. MPV keybinds are used by "
                    "default. Press ENTER to drive the player controls by "
                    "keyboard. \"No player controls\" leaves playback bare; "

@@ -2404,7 +2404,7 @@ local function node_at(x, y)
             node.t ~= 'menu' and
             (not modal or node.mod) and
             (node.click or node.ctx or node.dbl or node.tip or
-             node.hev or node.dis or
+             node.hev or node.dis or node.wdrag or
              node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then
@@ -3240,6 +3240,27 @@ local function on_mouse_down()
         -- over. Focus was already dropped above.
         return
     end
+    if node.wdrag and not node.click then
+        -- Client-side title bar: drag the window. Started HERE, on the
+        -- press, because that is the only moment mpv will take it -- the
+        -- command means "the button the user is holding is now moving the
+        -- window", so it cannot be an event round-tripped through Python.
+        --
+        -- `not node.click` so a bar that is also a button keeps being a
+        -- button; the controls sitting on the bar are separate, higher
+        -- nodes and node_at has already preferred them.
+        --
+        -- Inline rather than a helper, and pcall rather than a version
+        -- check: begin-vo-dragging is mpv 0.38+ and a VO that cannot drag
+        -- raises instead of declining. A window that will not drag is a
+        -- disappointment; an error out of the mouse handler would take the
+        -- renderer down and with it every other click on screen. (The main
+        -- chunk is at Lua's 200-local ceiling -- see
+        -- tests/test_renderer_lua.py -- so this cannot be a file-scope
+        -- function anyway.)
+        pcall(mp.commandv, 'begin-vo-dragging')
+        return
+    end
     if node.t == 'textbox' then
         focus_textbox(node)
         local tb = tb_state(node)
@@ -3525,6 +3546,16 @@ local function on_dbl()
     if node.t ~= 'textbox' then
         if node.dbl then
             send({ t = 'dbl', id = node.id })
+        elseif node.wdrag and not node.click then
+            -- Double-clicking a title bar maximizes it, everywhere. Kept
+            -- beside the drag rather than sent as a 'dbl' event so the two
+            -- halves of "this is a title bar" cannot be wired up separately
+            -- and drift; a bar that declared on_dbl above keeps its own
+            -- meaning.
+            local ok, cur = pcall(mp.get_property_bool, 'window-maximized')
+            if ok then
+                pcall(mp.set_property_bool, 'window-maximized', not cur)
+            end
         end
         return
     end

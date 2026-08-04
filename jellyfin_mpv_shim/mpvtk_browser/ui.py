@@ -246,6 +246,12 @@ class UserInterface:
         playerManager.notify_update = browser.notify_update
 
         playerManager.on_window_closed = self.on_window_closed
+        # Client-side decorations. Pushed, not polled: on Wayland whether the
+        # window has a title bar is settled by a compositor configure event
+        # that can land after the first frames are already drawn, so the
+        # startup read below is a starting point and this hook is the truth.
+        playerManager.on_decorations_changed = browser.refresh_window_controls
+        browser.refresh_window_controls()
         # A server that was down at startup must appear once it answers,
         # rather than staying invisible until a manual retry or restart.
         clientManager.on_server_connected = self._on_server_connected
