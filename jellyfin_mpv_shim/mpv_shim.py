@@ -3,6 +3,7 @@
 import hashlib
 import logging
 import os
+import platform
 import sys
 import multiprocessing
 from threading import Event
@@ -20,6 +21,35 @@ from .log_utils import (
 )
 
 logging.getLogger("requests").setLevel(logging.CRITICAL)
+
+
+def scratch_namespace():
+    """The directory this instance's scratch caches live in, inside whichever
+    base is chosen. Everything in it is reclaimable by whoever holds it, so
+    what goes into the name is exactly what bounds that claim.
+
+    The **config directory**, because that is what the single-instance lock
+    covers: two copies started with different ``--config`` directories are
+    legal and share a machine's temp space.
+
+    The **host**, because a home directory can be shared. ``~/.cache`` is one
+    of the bases, and ``flock`` is host-local on plenty of network
+    filesystems -- so two machines mounting the same home can each hold what
+    each believes is the only lock, and a name keyed on the config path alone
+    would have them reclaiming each other's live caches. A per-host name
+    costs nothing to a normal setup and makes that case structurally
+    impossible rather than merely unlikely.
+
+    Hashed rather than spelled out, because both parts are long, one is a
+    path, and neither is meant to be read: this is an identity, not a label.
+    The cost is that a machine which renames itself abandons its old
+    namespace -- nothing sweeps a namespace but its owner -- so one run's
+    worth of scratch stays behind on real disk until the OS reclaims it.
+    """
+    key = "%s\0%s" % (platform.node(),
+                      os.path.abspath(conffile.confdir(APP_NAME)))
+    digest = hashlib.sha1(key.encode("utf-8", "replace")).hexdigest()
+    return "%s.%s" % (APP_NAME, digest[:8])
 
 
 def main():
@@ -134,16 +164,19 @@ def main():
     single.on_stop = halt.set
 
     # Give this configuration's scratch caches their own directory, and with
-    # it the right to reclaim everything already in it. acquire() only
-    # returns here if it took the lock, so there is at most one live process
-    # per configuration -- which is exactly the scope the namespace has.
-    # Anything else in there was left behind by a copy that is gone, on any
-    # platform, with nothing to ask about a pid. See set_instance_namespace.
+    # it the right to reclaim everything already in it: anything else in
+    # there was left behind by a copy that is gone, on any platform, with
+    # nothing to ask about a pid. See set_instance_namespace.
+    #
+    # Only against a lock that was really taken, though. acquire() fails open
+    # when the guard file cannot be opened at all, and a second copy that
+    # merely *believes* it is alone would reclaim the first one's cache out
+    # from under it. Without the namespace the pid rules still apply, which
+    # is what every release before this one ran on.
     from .mpvtk.rawimage import set_instance_namespace
 
-    set_instance_namespace("%s.%s" % (APP_NAME, hashlib.sha1(
-        os.path.abspath(conffile.confdir(APP_NAME)).encode("utf-8", "replace")
-    ).hexdigest()[:8]))
+    if single.holds_lock:
+        set_instance_namespace(scratch_namespace())
 
     user_interface = None
     use_gui = False

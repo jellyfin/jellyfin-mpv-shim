@@ -22,6 +22,12 @@ process.
 If the guard file can't even be opened we fail open (run without the guard);
 if the lock is held but the primary doesn't answer, we still refuse to run a
 second instance — a wedged listener must not lead to two catalog writers.
+
+Failing open means ``acquire()`` returning True does not by itself promise
+there is only one of us. ``holds_lock`` is the stronger statement — the OS
+lock was actually taken — and anything whose safety rests on that uniqueness
+rather than merely preferring it (the scratch-cache namespace does: it
+reclaims every directory it finds) must read that instead.
 """
 
 import logging
@@ -48,6 +54,9 @@ class SingleInstance:
         self.on_stop = lambda: None
         self._sock = None
         self._guard_fd = None
+        # Whether the OS lock is genuinely held, as opposed to acquire()
+        # having failed open. See the module docstring.
+        self.holds_lock = False
         self._token = secrets.token_hex(16).encode("ascii")
         self._lockpath = conffile.get(APP_NAME, "instance.lock")
         self._guardpath = self._lockpath + ".guard"
@@ -71,6 +80,7 @@ class SingleInstance:
             return False
 
         self._guard_fd = fd
+        self.holds_lock = True
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.bind(("127.0.0.1", 0))
@@ -107,6 +117,7 @@ class SingleInstance:
             except OSError:
                 pass
             self._guard_fd = None
+        self.holds_lock = False
         try:
             os.remove(self._lockpath)
         except OSError:

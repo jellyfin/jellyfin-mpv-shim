@@ -340,6 +340,41 @@ class OwnDirectoriesAreNeverSweptTest(unittest.TestCase):
         self.assertTrue(os.path.exists(moved))
 
 
+class ScratchNamespaceTest(unittest.TestCase):
+    """What the namespace name is keyed on, which is what bounds the claim
+    that everything inside it is this app's to delete."""
+
+    def _name(self, host="host-a", confdir="/home/u/.config/app"):
+        from unittest import mock
+        from jellyfin_mpv_shim import mpv_shim
+
+        with mock.patch.object(mpv_shim.platform, "node", lambda: host), \
+                mock.patch.object(mpv_shim.conffile, "confdir",
+                                  lambda app: confdir):
+            return mpv_shim.scratch_namespace()
+
+    def test_two_configurations_do_not_share_one(self):
+        self.assertNotEqual(self._name(confdir="/home/u/.config/app"),
+                            self._name(confdir="/home/u/alt"))
+
+    def test_two_hosts_do_not_share_one(self):
+        # A shared home directory: ~/.cache is one of the bases, and flock is
+        # host-local on plenty of network filesystems, so both machines can
+        # hold what each believes is the only lock for this config.
+        self.assertNotEqual(self._name(host="host-a"),
+                            self._name(host="host-b"))
+
+    def test_the_same_machine_and_config_comes_back_to_the_same_one(self):
+        # Or the previous run's cache is never found, and never reclaimed.
+        self.assertEqual(self._name(), self._name())
+
+    def test_it_says_which_app_it_belongs_to(self):
+        # These sit in /tmp and /dev/shm next to everyone else's directories.
+        from jellyfin_mpv_shim.constants import APP_NAME
+
+        self.assertTrue(self._name().startswith(APP_NAME + "."))
+
+
 class WhatMayBeSweptTest(unittest.TestCase):
     """The two ways this could be pointed at somebody else's directory.
 
