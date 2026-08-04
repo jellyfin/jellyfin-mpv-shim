@@ -24,6 +24,7 @@ display size.
 import logging
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import time
@@ -175,7 +176,7 @@ def _reclaimable(base, name, prefix, now):
         return False
 
 
-def sweep_stale(base, prefix="", now=None):
+def sweep_stale(base, prefix, now=None):
     """Remove abandoned cache dirs under ``base``. Returns the number gone.
 
     This is the cleanup that actually happens: the atexit hook below covers
@@ -192,7 +193,19 @@ def sweep_stale(base, prefix="", now=None):
     stronger and simpler -- it needs no liveness probe, so it works on
     Windows, and it reclaims every prefix at once rather than only the one
     a given store happens to ask for.
+
+    Outside one it is required, and required to be non-empty, because it is
+    then the only thing that says a directory has anything to do with us:
+    ``base`` is a shared location (/tmp, /dev/shm, ~/.cache) full of other
+    programs' state. Everything ``startswith("")``, so an empty prefix does
+    not sweep our directories a bit more eagerly -- it puts every neighbour
+    in scope of the rules below, and the age rule then reclaims any of them
+    that has gone a day without being written to.
     """
+    if not _namespace and not prefix:
+        raise ValueError(
+            "sweep_stale needs a prefix outside a namespace: without one it "
+            "would consider every directory in %s ours" % (base,))
     now = now or time.time()
     removed = 0
     try:
@@ -219,15 +232,57 @@ def sweep_stale(base, prefix="", now=None):
     return removed
 
 
+def _is_own_directory(path):
+    """Whether ``path`` is a real directory belonging to this user.
+
+    ``lstat``, so a symlink is not a directory here whatever it points at.
+    That is the question worth asking, because ``makedirs(exist_ok=True)``
+    is perfectly happy with a symlink that resolves to a directory, and the
+    sweep that follows would then empty out whatever it aims at.
+
+    Owner as well as kind, for the other half of it: a directory somebody
+    else created is not one to write scratch files into either, whatever
+    the mode on it says. There is no ``st_uid`` to read on Windows, so
+    there the kind is the whole answer -- which is still the half that
+    matters, since %TEMP% is per-user there rather than shared.
+    """
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    if not stat.S_ISDIR(st.st_mode):
+        return False
+    return os.name == "nt" or st.st_uid == os.getuid()
+
+
 def _namespaced(base):
     """``base`` itself, or this instance's own directory inside it. None if
-    that directory cannot be made, which takes the base out of the running."""
+    that directory cannot be made or is not ours, either of which takes the
+    base out of the running.
+
+    The check matters more here than anywhere else in this module: inside a
+    namespace the sweep takes *every* directory it finds, so the claim that
+    everything in there was left by a dead copy of us is only as good as the
+    directory itself. The bases include /tmp and /dev/shm, which any local
+    user may create entries in, under a name derived from a config path that
+    is not hard to guess -- so the directory has to be shown to be ours
+    rather than assumed to be, and a base that fails simply loses to the
+    next one.
+
+    ``mode=0o700`` for the same reason, on the way in: nothing here is
+    anyone else's business, and a directory only this user may add entries
+    to is one nobody else can plant anything inside later.
+    """
     if not _namespace:
         return base
     path = os.path.join(base, _namespace)
     try:
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(path, mode=0o700, exist_ok=True)
     except OSError:
+        return None
+    if not _is_own_directory(path):
+        log.warning("Not caching in %s: it is not a directory this user "
+                    "owns", path)
         return None
     return path
 

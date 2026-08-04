@@ -20,6 +20,7 @@ answer depends on the machine the suite happens to run on.
 
 import os
 import shutil
+import stat
 import tempfile
 import unittest
 
@@ -335,5 +336,109 @@ class OwnDirectoriesAreNeverSweptTest(unittest.TestCase):
         rawimage._ours.discard(path)
         rawimage._ours.add(moved)
         self.addCleanup(rawimage._ours.discard, moved)
-        rawimage.sweep_stale(os.path.dirname(moved))
+        rawimage.sweep_stale(os.path.dirname(moved), "jms-x-")
         self.assertTrue(os.path.exists(moved))
+
+
+class WhatMayBeSweptTest(unittest.TestCase):
+    """The two ways this could be pointed at somebody else's directory.
+
+    Everything above is about not deleting a *cache* that is still in use.
+    This is the harder question a `shutil.rmtree` running on every startup
+    has to answer: how does it know the directory it is emptying has
+    anything to do with this app at all? Scratch space is shared -- /tmp and
+    /dev/shm are writable by every user on the machine, and ~/.cache is full
+    of other programs' state.
+    """
+
+    def setUp(self):
+        self.base = tempfile.mkdtemp(prefix="jms-scope-")
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.addCleanup(rawimage.set_instance_namespace, None)
+        original = rawimage._bases
+        self.addCleanup(setattr, rawimage, "_bases", original)
+        rawimage._bases = lambda: [self.base]
+
+    def _namespace(self, name):
+        """Name this instance's namespace, and clean up after the copy of it
+        that lands in the system temp dir when the fake base is refused --
+        every candidate is prepared, not just the one that wins."""
+        rawimage.set_instance_namespace(name)
+        self.addCleanup(shutil.rmtree,
+                        os.path.join(tempfile.gettempdir(), name),
+                        ignore_errors=True)
+
+    def _neighbour(self, base, name):
+        """Somebody else's directory, old enough to be reclaimable by age."""
+        path = os.path.join(base, name)
+        os.makedirs(path)
+        with open(os.path.join(path, "theirs.txt"), "w") as fh:
+            fh.write("not ours")
+        os.utime(path, (1_000_000, 1_000_000))
+        return path
+
+    def test_a_sweep_with_no_prefix_is_refused(self):
+        # "" is not a narrower sweep than "mpvtk-", it is the widest one
+        # there is: everything startswith it, so every neighbour falls
+        # through to the pid and age rules meant for our own leftovers.
+        theirs = self._neighbour(self.base, "fontconfig")
+        with self.assertRaises(ValueError):
+            rawimage.sweep_stale(self.base, "")
+        self.assertTrue(os.path.exists(theirs))
+
+    def test_inside_a_namespace_no_prefix_is_fine(self):
+        # There it is genuinely ignored -- the directory itself is the scope.
+        rawimage.set_instance_namespace("jms-scope-ns0")
+        home = os.path.join(self.base, "jms-scope-ns0")
+        os.makedirs(home)
+        stale = self._neighbour(home, "jms-thumbs-1-abc")
+        rawimage.sweep_stale(home, "")
+        self.assertFalse(os.path.exists(stale))
+
+    @unittest.skipIf(os.name == "nt", "POSIX symlink semantics")
+    def test_a_symlinked_namespace_is_not_followed(self):
+        # /tmp and /dev/shm are world-writable, and the namespace name is
+        # derived from a config path that is not hard to guess -- so the
+        # directory has to be shown to be ours before anything inside it is
+        # swept, or a symlink planted there aims the sweep somewhere else.
+        elsewhere = tempfile.mkdtemp(prefix="jms-elsewhere-")
+        self.addCleanup(shutil.rmtree, elsewhere, ignore_errors=True)
+        theirs = self._neighbour(elsewhere, "Photos")
+        self._namespace("jms-scope-ns1")
+        os.symlink(elsewhere, os.path.join(self.base, "jms-scope-ns1"))
+
+        path = rawimage.cache_dir(prefix="jms-x-", min_free=0)
+        self.addCleanup(shutil.rmtree, path, ignore_errors=True)
+
+        self.assertTrue(os.path.exists(theirs),
+                        "swept a directory the namespace merely pointed at")
+        self.assertFalse(path.startswith(self.base + os.sep),
+                         "cached into a base whose namespace is a symlink")
+
+    @unittest.skipIf(os.name == "nt", "POSIX ownership")
+    def test_a_namespace_someone_else_owns_loses_the_base(self):
+        # The same directory as a real one made by another user: still not
+        # ours to empty, and not ours to write in either.
+        from unittest import mock
+
+        self._namespace("jms-scope-ns2")
+        home = os.path.join(self.base, "jms-scope-ns2")
+        os.makedirs(home)
+        theirs = self._neighbour(home, "jms-thumbs-1-abc")
+        somebody_else = os.getuid() + 1        # not through the patch below
+        with mock.patch.object(os, "getuid", lambda: somebody_else):
+            path = rawimage.cache_dir(prefix="jms-x-", min_free=0)
+        self.addCleanup(shutil.rmtree, path, ignore_errors=True)
+
+        self.assertTrue(os.path.exists(theirs))
+        self.assertFalse(path.startswith(self.base + os.sep))
+
+    @unittest.skipIf(os.name == "nt", "POSIX modes")
+    def test_the_namespace_directory_is_private(self):
+        # Nobody else can plant anything in a directory swept this broadly.
+        self._namespace("jms-scope-ns3")
+        path = rawimage.cache_dir(prefix="jms-x-", min_free=0)
+        self.addCleanup(shutil.rmtree, path, ignore_errors=True)
+        mode = os.stat(os.path.dirname(path)).st_mode
+        self.assertEqual(stat.S_IMODE(mode) & 0o077, 0,
+                         "the namespace directory is group/world accessible")
