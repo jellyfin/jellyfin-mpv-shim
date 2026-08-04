@@ -200,11 +200,23 @@ class Video(object):
         self.audio_seq = {}
         self.audio_uid = {}
 
-        if self.media_source is None or self.media_source["Protocol"] != "File":
+        # Protocol is deliberately NOT consulted. This used to return early
+        # for anything but Protocol=File, which predates stream files: a
+        # remote source that direct plays hands mpv the same container a
+        # local one would -- whether mpv fetches it from the origin or the
+        # server proxies it -- so its tracks line up with MediaStreams the
+        # same way. Bailing out left both maps empty while the rest of the
+        # client still had a perfectly real stream index to select, and
+        # configure_streams looked that index up in the empty map. The case
+        # where mpv's track ids are somebody else's numbering is a
+        # transcode, and that is gated on is_transcode where it is used.
+        if self.media_source is None:
             return
 
+        streams = self.media_source.get("MediaStreams") or []
+
         index = 1
-        for stream in self.media_source["MediaStreams"]:
+        for stream in streams:
             if stream.get("Type") != "Audio":
                 continue
 
@@ -215,7 +227,7 @@ class Video(object):
                 index += 1
 
         index = 1
-        for sub in self.media_source["MediaStreams"]:
+        for sub in streams:
             if sub.get("Type") != "Subtitle":
                 continue
 
@@ -692,8 +704,35 @@ class Video(object):
         # the Item we fetched earlier stays stale. Reading only the Item left
         # every .strm with no duration, which disabled the player's near-end
         # finish check and stranded the queue on a frozen last frame.
-        for source in ((self.media_source or {}), self.item):
-            ticks = source.get("RunTimeTicks")
+        source = self.media_source or {}
+        ticks = source.get("RunTimeTicks")
+        if ticks:
+            return ticks / 10000000
+
+        # The Item's runtime describes the item's OWN file, so it is only a
+        # fallback for that file — never for an alternate version.
+        #
+        # Measured against 12.0: the remote probe is gated on the *item's*
+        # path ending in .strm (MediaSourceManager.GetPlaybackMediaSources),
+        # and a version set's item.Path is its PRIMARY's. So a .strm sitting
+        # beside an .mkv never qualifies — naming it with MediaSourceId does
+        # not help — and it arrives with no runtime while the Item still
+        # carries the local file's. Falling through gave a thirty-second
+        # stream the sibling's ten seconds: _finished_at_eof called it
+        # finished ten seconds in, the queue advanced, and the completion
+        # that got reported is what actually wiped the resume position.
+        #
+        # No duration is the honest answer, and the callers are built for it
+        # — _finished_at_eof and _check_stalled_finish both decline to place
+        # a position they cannot measure. Withheld only where the source is
+        # *known* to be an alternate: a source naming no id (none resolved
+        # yet) says nothing either way and keeps the old fallback.
+        #
+        # The id test is Jellyfin's own convention — a source standing for
+        # the item's own file carries the item's id.
+        source_id = source.get("Id")
+        if source_id is None or source_id == self.item_id:
+            ticks = self.item.get("RunTimeTicks")
             if ticks:
                 return ticks / 10000000
 

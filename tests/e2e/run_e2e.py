@@ -40,6 +40,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
 CONTRACT = [
     "tests.e2e.test_account_policy",
     "tests.e2e.test_source_conformance",
+    "tests.e2e.test_strm_source",
     "tests.e2e.test_live_tv",
     "tests.e2e.test_route_walk",
     "tests.e2e.test_paging",
@@ -53,6 +54,7 @@ PER_BACKEND = [
     "tests.e2e.test_playback_advance",
     "tests.e2e.test_playback_eof",
     "tests.e2e.test_playback_failure",
+    "tests.e2e.test_strm_playback",
     "tests.e2e.test_track_selection",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",

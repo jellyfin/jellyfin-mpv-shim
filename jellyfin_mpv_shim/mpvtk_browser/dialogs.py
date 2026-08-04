@@ -111,8 +111,7 @@ class DialogsMixin:
                 rows.append(Checkbox(
                     _("Private (only you can see it)"),
                     bool(self._addto_name.get("private")), id="add-private",
-                    on_toggle=lambda: self._addto_name.__setitem__(
-                        "private", not self._addto_name.get("private"))))
+                    on_toggle=self._addto_private_toggled))
             buttons = []
             # Gated on whether the SOURCE does collections, not on whether
             # any exist — gating on the latter meant you could never create
@@ -130,6 +129,20 @@ class DialogsMixin:
                           on_dismiss=self._close_dialog)
         self._addto_build = build
         self._show_dialog(build)
+
+    def _addto_private_toggled(self):
+        """Flip Private, and redraw so the tick moves.
+
+        A Checkbox is composited on this side -- the renderer has no notion
+        of one, and draws whatever colour the last tree gave it -- so a
+        toggle that only writes state changes nothing on screen. Clicking it
+        used to flip the value invisibly: no feedback at all, and after two
+        clicks no way to tell what it was going to create. Every other
+        on_toggle in the browser redraws; this one was the exception.
+        """
+        self._addto_name["private"] = not self._addto_name.get("private")
+        if self._addto_build:
+            self._show_dialog(self._addto_build)
 
     def _addto_name_changed(self, value):
         """Rebuild only when the name crosses empty <-> non-empty, which is
