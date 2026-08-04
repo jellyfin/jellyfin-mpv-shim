@@ -90,10 +90,34 @@ class TestTrayWillRender(unittest.TestCase):
         self.assertEqual(probed, [], "a native tray was probed over D-Bus")
 
     def test_appindicator_asks_the_session_bus(self):
-        self.assertIs(False, tray_will_render("appindicator",
-                                              sni=lambda: False))
         self.assertIs(True, tray_will_render("appindicator",
-                                             sni=lambda: True))
+                                             sni=lambda: True,
+                                             xembed=lambda: False))
+        self.assertIs(False, tray_will_render("appindicator",
+                                              sni=lambda: False,
+                                              xembed=lambda: False))
+
+    def test_an_appindicator_falls_back_to_the_old_style_tray(self):
+        """No D-Bus host is not no tray (#4).
+
+        libappindicator and libayatana-appindicator both keep a
+        GtkStatusIcon fallback and use it exactly when no
+        StatusNotifierWatcher owns the name. So on i3 with i3bar's tray,
+        xfce4-panel or tint2 -- most of X11 that is not KDE -- the icon
+        docks and works, while the D-Bus probe alone says there is no tray
+        and the app offers "Keep Running in Background" to somebody
+        looking straight at their icon.
+        """
+        self.assertIs(True, tray_will_render("appindicator",
+                                             sni=lambda: False,
+                                             xembed=lambda: True))
+
+    def test_an_unanswerable_fallback_is_not_a_confident_no(self):
+        # Without an X connection the fallback cannot be ruled out, and a
+        # maybe must not read as a no.
+        self.assertIsNone(tray_will_render("appindicator",
+                                           sni=lambda: False,
+                                           xembed=lambda: None))
 
     def test_xembed_backends_ask_x11(self):
         for backend in ("gtk", "xorg"):
@@ -111,7 +135,8 @@ class TestTrayWillRender(unittest.TestCase):
         # probe that cannot run (no PyGObject, no X connection, a backend we
         # have never heard of) must not take a working tray away from
         # someone -- only a confident False may change behaviour.
-        self.assertIsNone(tray_will_render("appindicator", sni=lambda: None))
+        self.assertIsNone(tray_will_render("appindicator", sni=lambda: None,
+                                           xembed=lambda: None))
         self.assertIsNone(tray_will_render("gtk", xembed=lambda: None))
         self.assertIsNone(tray_will_render(""))
         self.assertIsNone(tray_will_render("some_future_backend"))

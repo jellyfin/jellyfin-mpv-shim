@@ -37,7 +37,9 @@ SNI_WATCHER = "org.kde.StatusNotifierWatcher"
 
 #: pystray backends that talk to a native tray API which is always there.
 _NATIVE_BACKENDS = ("win32", "darwin")
-#: ...ones that publish a StatusNotifierItem over D-Bus.
+#: ...ones that publish a StatusNotifierItem over D-Bus -- and, when nothing
+#: is listening for one, quietly dock a GtkStatusIcon instead, which is why
+#: tray_will_render has to ask both questions for these.
 _SNI_BACKENDS = ("appindicator", "ayatana_appindicator")
 #: ...and ones that dock an XEmbed window into an X11 system tray.
 _XEMBED_BACKENDS = ("gtk", "xorg")
@@ -113,30 +115,58 @@ def sni_watcher_present(timeout_ms=2000):
 
 def xembed_tray_present():
     """Whether an X11 system tray owns the ``_NET_SYSTEM_TRAY_S<n>``
-    selection — the equivalent question for the GtkStatusIcon and Xorg
-    backends. ``None`` if it could not be asked.
+    selection. ``None`` if it could not be asked.
 
     Same shape of failure as the SNI one: docking an XEmbed window with no
     tray to dock into is not an error, it is an icon nobody sees.
+
+    Asked of the GtkStatusIcon and Xorg backends, which dock one directly --
+    and of the AppIndicator ones, which fall back to doing so when no
+    StatusNotifier host exists. See ``tray_will_render``.
     """
+    if not os.environ.get("DISPLAY"):
+        return False        # no X server to hold the selection at all
+    # ctypes against libX11 rather than python-xlib, which is not a
+    # dependency of ours or of the backends that need this answer, and
+    # rather than GDK, which cannot give it: gdk_selection_owner_get_for_
+    # display resolves the owner window through GDK's own table and returns
+    # NULL for a window belonging to another client -- which every tray is.
+    # Verified against a real i3bar: Xlib says 0x0010000d, GDK says None.
     try:
-        from Xlib import X
-        from Xlib import display as xdisplay
+        import ctypes
+        import ctypes.util
+
+        name = ctypes.util.find_library("X11")
+        x11 = ctypes.CDLL(name) if name else None
     except Exception:
+        x11 = None
+    if x11 is None:
+        log.debug("no libX11; cannot probe for an XEmbed tray")
         return None
     display = None
     try:
-        display = xdisplay.Display()
-        atom = display.intern_atom(
-            "_NET_SYSTEM_TRAY_S%d" % display.get_default_screen())
-        return display.get_selection_owner(atom) != X.NONE
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
+                                    ctypes.c_int]
+        x11.XInternAtom.restype = ctypes.c_ulong
+        x11.XGetSelectionOwner.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+        x11.XGetSelectionOwner.restype = ctypes.c_ulong
+        x11.XDefaultScreen.argtypes = [ctypes.c_void_p]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        display = x11.XOpenDisplay(None)
+        if not display:
+            return False
+        selection = b"_NET_SYSTEM_TRAY_S%d" % x11.XDefaultScreen(display)
+        # only_if_exists: nobody has ever docked here if the atom is unknown
+        atom = x11.XInternAtom(display, selection, 1)
+        return bool(atom) and x11.XGetSelectionOwner(display, atom) != 0
     except Exception:
         log.debug("XEmbed tray probe failed", exc_info=True)
         return None
     finally:
-        if display is not None:
+        if display:
             try:
-                display.close()
+                x11.XCloseDisplay(display)
             except Exception:
                 pass
 
@@ -155,10 +185,28 @@ def tray_will_render(backend, sni=None, xembed=None):
     if backend == "dummy":
         # pystray's own "there is no tray here" backend.
         return False
-    if backend in _SNI_BACKENDS:
-        return (sni or sni_watcher_present)()
     if backend in _XEMBED_BACKENDS:
         return (xembed or xembed_tray_present)()
+    if backend in _SNI_BACKENDS:
+        watcher = (sni or sni_watcher_present)()
+        if watcher:
+            return True
+        # No watcher is NOT the end of the story, and reading it that way is
+        # what made this wrong on X11 (#4). libappindicator and its
+        # ayatana fork both keep a GtkStatusIcon fallback -- see
+        # `start_fallback_timer` in libayatana-appindicator3 -- and use it
+        # exactly when no StatusNotifierWatcher owns the name. So on a
+        # desktop with an old-style XEmbed tray and no D-Bus host (i3 with
+        # i3bar's tray, xfce4-panel, tint2, most of X11 that is not KDE)
+        # the icon appears perfectly well, and the app was offering
+        # "Keep Running in Background" to people who had a working tray in
+        # front of them. Confirmed by watching the icon dock into i3bar
+        # while the watcher name was unowned.
+        fallback = (xembed or xembed_tray_present)()
+        if fallback:
+            return True
+        # Only now, and only if both probes actually ran.
+        return False if watcher is False and fallback is False else None
     return None
 
 
@@ -355,6 +403,15 @@ class TrayProcess(Process):
             self.r_queue.put(("ready", None))
 
         def vanished(*_a):
+            # The full probe again, for the same reason `appeared` re-runs
+            # it: losing the D-Bus host is not losing the tray if this
+            # desktop also has an XEmbed one, and libappindicator falls
+            # back to it by itself. Saying otherwise would take Close to
+            # Tray away from a user whose icon is still on screen.
+            if tray_will_render(backend) is not False:
+                log.info("The StatusNotifier host went away; the icon falls "
+                         "back to the desktop's own tray.")
+                return
             log.warning("The StatusNotifier host went away; "
                         "the tray icon is no longer displayed.")
             self.r_queue.put(("tray_died", "watcher_gone"))
