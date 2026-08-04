@@ -102,19 +102,19 @@ class TestStripStore(unittest.TestCase):
         ctypes buffers here, tmpfs files on jsonipc -- and both are RAM on
         the machines that can least afford it."""
         s = self._store()
-        s.begin_frame()
+        s.on_scene_pushed()
         one = self._row(s, "size")
         entry_bytes = one["iw"] * one["ih"] * 4
         s.MAX_BYTES = entry_bytes * 3
         srcs = []
         for i in range(8):
-            s.begin_frame()             # one row per frame, so each may age
+            s.on_scene_pushed()             # one row per frame, so each may age
             srcs.append(self._row(s, "k%d" % i)["src"])
         self.assertLessEqual(s._bytes, s.MAX_BYTES)
         self.assertFalse(os.path.exists(srcs[0]), "the oldest row survived")
         self.assertTrue(os.path.exists(srcs[-1]), "the newest row was freed")
 
-    def test_an_owner_that_marks_no_frames_keeps_the_old_bound(self):
+    def test_an_owner_that_pushes_no_scenes_keeps_the_old_bound(self):
         # Not knowing what is on screen is a reason to free less, not more:
         # the byte pass would otherwise evict below the entry count that
         # exists to guarantee a whole scene fits.
@@ -124,7 +124,7 @@ class TestStripStore(unittest.TestCase):
         for src in srcs:
             self.assertTrue(os.path.exists(src))
 
-    def test_this_frames_rows_are_never_freed_under_byte_pressure(self):
+    def test_the_live_scenes_rows_are_never_freed_under_byte_pressure(self):
         """The safety invariant the entry bound exists for. Freeing a bitmap
         the live scene references is a read of freed memory by mpv on the
         libmpv path -- not a missing picture. The byte pass stops at the
@@ -133,26 +133,26 @@ class TestStripStore(unittest.TestCase):
         composing over a freed buffer."""
         s = self._store()
         s.MAX_BYTES = 1          # nothing at all would fit
-        s.begin_frame()
+        s.on_scene_pushed()
         srcs = [self._row(s, "row%d" % i)["src"] for i in range(6)]
         for src in srcs:
             self.assertTrue(os.path.exists(src),
                             "freed a strip the frame being built is using")
 
-    def test_the_frame_before_is_protected_too(self):
-        # The scene on screen is the last one PUSHED, which while a build
-        # runs is still the previous frame's.
+    def test_the_scene_before_is_protected_too(self):
+        # The scene on screen is the last one PUSHED, and the renderer
+        # re-issues its overlays without a new push besides.
         s = self._store()
-        s.begin_frame()
+        s.on_scene_pushed()
         old = self._row(s, "onscreen")["src"]
-        s.begin_frame()          # a build starts; the old scene is still up
+        s.on_scene_pushed()          # a build starts; the old scene is still up
         s.MAX_BYTES = 1
         self._row(s, "new")
         self.assertTrue(os.path.exists(old),
                         "freed the strip the renderer is still compositing")
         # ...and once a frame has gone by without asking for it, it may go.
-        s.begin_frame()
-        s.begin_frame()
+        s.on_scene_pushed()
+        s.on_scene_pushed()
         self._row(s, "newer")
         self.assertFalse(os.path.exists(old))
 
@@ -169,6 +169,75 @@ class TestStripStore(unittest.TestCase):
             s._bytes,
             sum(r["iw"] * r["ih"] * 4
                 for r in list(s._cache.values())))
+
+    def test_a_second_build_for_one_push_does_not_free_the_live_scene(self):
+        """MpvtkApp.render builds TWICE when a scene turns up glyphs whose
+        widths were never measured -- which is what a new screen does. If
+        the cache counted builds, the second one rotated the protected
+        window off the scene mpv was compositing and freed it, before the
+        new scene had been pushed at all."""
+        s = self._store()
+        s.MAX_BYTES = 1
+        onscreen = self._row(s, "onscreen")["src"]
+        s.on_scene_pushed()
+        # The re-layout: two builds, no push between them.
+        self._row(s, "next")
+        self._row(s, "next")
+        self.assertTrue(os.path.exists(onscreen),
+                        "a re-laid-out build freed the scene on screen")
+
+    def test_a_build_that_raises_does_not_free_the_live_scene(self):
+        """A failed build keeps the previous frame up (views index into
+        state that arrives asynchronously, so this is not theoretical) and
+        pushes nothing. Counting builds, the displayed scene fell out of the
+        protected window two failures later."""
+        s = self._store()
+        s.MAX_BYTES = 1
+        onscreen = self._row(s, "onscreen")["src"]
+        s.on_scene_pushed()
+        for _ in range(5):
+            pass            # builds that raised: no touches, and no push
+        self._row(s, "elsewhere")
+        self.assertTrue(os.path.exists(onscreen),
+                        "the scene on screen was freed while it was up")
+
+    def test_an_entry_held_across_frames_can_say_it_is_still_there(self):
+        """The cast screen composites one full-window bitmap on a worker and
+        renders from the parked entry forever. Nothing re-requests it, so it
+        would age out of the protected window while being the only thing on
+        screen -- and it is the biggest buffer the app makes."""
+        s = self._store()
+        s.MAX_BYTES = 1
+        entry = s.bitmap("cast-backdrop", _poster(size=(400, 300)))
+        for _ in range(6):
+            s.keep(entry)
+            self._row(s, "other")
+            s.on_scene_pushed()
+        self.assertTrue(os.path.exists(entry["src"]),
+                        "freed the bitmap the cast screen is drawing")
+
+    def test_the_same_key_arriving_twice_frees_one_and_counts_one(self):
+        """Both insert paths drop the lock across the composite, and the
+        same key really does arrive by two routes (a grid composites through
+        the pool while the paginated view of the same items composites
+        inline). Overwriting stranded a buffer with no cache reference to
+        free it by, and added its size to a total nothing subtracts -- until
+        the drift alone exceeded MAX_BYTES and the cache trimmed itself to
+        nothing on every insert."""
+        s = self._store()
+        first = self._row(s, "dup")
+        before = s._bytes
+        # Compose the identical row again and hand it to the same key, as
+        # the racing path does.
+        again = s._compose([Tile(key="dup0", title="dup", poster=_poster(),
+                                 poster_tag="pdup0")], s.geom)
+        key = list(s._cache.keys())[-1]
+        with s._lock:
+            kept = s._insert(key, again)
+        self.assertIs(kept, first, "the incumbent was replaced")
+        self.assertFalse(os.path.exists(again["src"]),
+                         "the loser's buffer was stranded")
+        self.assertEqual(s._bytes, before, "the byte count was inflated")
 
     def test_clearing_resets_the_byte_count(self):
         s = self._store()
@@ -187,14 +256,22 @@ class TestStripStore(unittest.TestCase):
         live set nor the previous one and the ordinary gate lets them go.
         """
         s = self._store()
-        s.begin_frame()
+        s.on_scene_pushed()
         old = self._row(s, "old")["src"]          # the screen being left
-        s.begin_frame()
+        s.on_scene_pushed()
         new = self._row(s, "new")["src"]          # first frame of the next
         s.trim_soon()
         self.assertTrue(os.path.exists(old),
                         "freed the scene mpv is still compositing")
-        s.begin_frame()                           # ...and the frame after
+        s.on_scene_pushed()
+        self.assertTrue(os.path.exists(old),
+                        "freed a scene still inside the protection window")
+        # ...and once it has aged out of that window, the booked trim runs.
+        # Each frame re-requests what it draws, which is what keeps the
+        # screen on show live -- exactly as a real build does.
+        for _ in range(s.PROTECT_GENERATIONS + 1):
+            self._row(s, "new")
+            s.on_scene_pushed()
         self.assertFalse(os.path.exists(old), "the old screen was not freed")
         self.assertTrue(os.path.exists(new), "freed the screen now on show")
 
@@ -202,14 +279,14 @@ class TestStripStore(unittest.TestCase):
         # Otherwise every frame would free anything not drawn on the last
         # two, and scrolling a row off screen would cost a recomposite.
         s = self._store()
-        s.begin_frame()
+        s.on_scene_pushed()
         self._row(s, "a")
         s.trim_soon()
-        s.begin_frame()
-        s.begin_frame()
+        for _ in range(6):
+            s.on_scene_pushed()
         kept = self._row(s, "b")["src"]
-        s.begin_frame()
-        s.begin_frame()
+        for _ in range(6):
+            s.on_scene_pushed()
         self.assertTrue(os.path.exists(kept),
                         "a one-off trim kept trimming")
 

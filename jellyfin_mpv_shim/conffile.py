@@ -73,7 +73,11 @@ cachedirs = (
     ("cygwin", posix_cache),
     (
         "darwin",
-        lambda app: os.path.join("/Users", username, "Library/Caches", app),
+        # expanduser rather than /Users/<name>: a home directory is not
+        # always under /Users (a service account, a home on another volume),
+        # and getpass.getuser() trusts $LOGNAME before it asks the system.
+        lambda app: os.path.join(
+            os.path.expanduser("~"), "Library/Caches", app),
     ),
 )
 
@@ -109,7 +113,13 @@ def cachedir(app: str):
         return os.path.join(custom_config, "cache")
     if _cachedir is not None:
         return _cachedir(app)
-    return os.path.join(confdir(app), "cache")
+    base = confdir(app)
+    # "" is confdir's own "nowhere known", and joining it yields the
+    # RELATIVE path "cache" -- which os.makedirs would happily create in
+    # whatever directory the app was launched from, and then fill with up to
+    # a gigabyte of artwork. Refuse instead, and let the caller fall back to
+    # scratch space.
+    return os.path.join(base, "cache") if base else ""
 
 
 def get_cache_dir(app: str, subfolder: str):

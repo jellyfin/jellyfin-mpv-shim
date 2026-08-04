@@ -359,10 +359,27 @@ class RouteChangeTrimTest(unittest.TestCase):
     def test_a_screen_change_trims_once(self):
         b = self._browser()
         b._shed_caches_on_screen_change()
+        self.assertEqual(b.thumbs.trims, 0,
+                         "shed before a screen had been left at all")
+        b._screen_seq += 1                    # a navigation
+        b._shed_caches_on_screen_change()
         self.assertEqual(b.thumbs.trims, 1)
-        b._bump_epoch()
+        b._screen_seq += 1
         b._shed_caches_on_screen_change()
         self.assertEqual(b.thumbs.trims, 2)
+
+    def test_an_in_place_reload_is_not_a_screen_change(self):
+        """The first version keyed off the async epoch, which means "cancel
+        what is in flight" -- and four things bump it without leaving the
+        screen: a sort or filter change, the collections toggle, a retry
+        after a failure, and a server switch that keeps its place. Shedding
+        on those cut the cache for the page still on screen, so toggling a
+        sort re-decoded the visible screenful for nothing."""
+        b = self._browser()
+        b._bump_epoch()                      # a reload, not a navigation
+        b._shed_caches_on_screen_change()
+        self.assertEqual(b.thumbs.trims, 0,
+                         "shed the artwork of the screen still on show")
 
     def test_frames_on_one_screen_do_not_trim(self):
         # This runs on every frame. A repaint is not a navigation, and a
@@ -370,6 +387,7 @@ class RouteChangeTrimTest(unittest.TestCase):
         # epoch -- so a guide repainting every few seconds must not keep
         # throwing its own artwork away.
         b = self._browser()
+        b._screen_seq += 1
         for _ in range(5):
             b._shed_caches_on_screen_change()
         self.assertEqual(b.thumbs.trims, 1, "trimmed on a plain repaint")
@@ -383,6 +401,7 @@ class RouteChangeTrimTest(unittest.TestCase):
 
         b = self._browser()
         b.strips = self._Strips()
+        b._screen_seq += 1
         with mock.patch("jellyfin_mpv_shim.mpvtk_browser.app.memory_is_tight",
                         return_value=True):
             b._shed_caches_on_screen_change()
@@ -393,6 +412,7 @@ class RouteChangeTrimTest(unittest.TestCase):
 
         b = self._browser()
         b.strips = self._Strips()
+        b._screen_seq += 1
         with mock.patch("jellyfin_mpv_shim.mpvtk_browser.app.memory_is_tight",
                         return_value=False):
             b._shed_caches_on_screen_change()

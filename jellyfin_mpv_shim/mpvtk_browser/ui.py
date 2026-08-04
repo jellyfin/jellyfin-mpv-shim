@@ -388,6 +388,14 @@ class UserInterface:
         except Exception:
             log.debug("clearing the tile cache failed", exc_info=True)
         try:
+            # The cast screen parks a full-window bitmap on itself rather
+            # than re-requesting it, so clear() alone leaves it pointing at
+            # a buffer that is now freed -- and mpv may be re-created under
+            # it (on_mpv_recreated) and handed that address.
+            self._browser.forget_cast_bitmap()
+        except Exception:
+            log.debug("could not reset the cast bitmap", exc_info=True)
+        try:
             # Decoded posters, which nothing outside this process ever
             # referenced -- so unlike the strips they need no permission
             # from mpv, only somewhere sensible to be dropped. This is it:

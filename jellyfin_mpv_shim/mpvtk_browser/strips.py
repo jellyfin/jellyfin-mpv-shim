@@ -244,6 +244,10 @@ class StripStore:
     #: already built for exactly that wait.
     MAX_BYTES = 128 * 1024 * 1024
 
+    #: How many pushed scenes back a bitmap is treated as possibly-bound.
+    #: See _protected.
+    PROTECT_GENERATIONS = 2
+
     def __init__(self, cache_dir=None, mem_store=None, geom=None,
                  notify=None, workers=2):
         self.dir = cache_dir
@@ -266,13 +270,13 @@ class StripStore:
         # current build, hence most-recent — is never the one freed.
         self._lock = threading.Lock()
         self._counter = 0
-        #: Bytes of bitmap the cache is holding, and the keys the current and
-        #: previous frames asked for -- see begin_frame and _evict.
+        #: Bytes of bitmap the cache is holding, and the pushed-scene
+        #: generation that decides what may be freed -- see _protected.
         self._bytes = 0
-        self._live = set()
-        self._prev_live = set()
-        self._framed = False
-        self._trim_pending = False
+        self._gen = 0
+        self._marked = False
+        #: Generation at which a requested full trim may run; see trim_soon.
+        self._trim_at = None
         self.hits = 0
         self.misses = 0
         # Called (thread-safe, no args) when an async composite lands, so the
@@ -399,11 +403,7 @@ class StripStore:
         # Outside the lock — it is the expensive part and touches no cache.
         entry = self._compose(tiles, g)
         with self._lock:
-            self._cache[key] = entry
-            self._bytes += self._entry_bytes(entry)
-            self._touch(key)
-            self._evict()
-        return entry
+            return self._insert(key, entry)
 
     def _compose_task(self, key, tiles, g):
         """Pool worker: composite off the loop thread, then insert + notify."""
@@ -421,10 +421,7 @@ class StripStore:
                 # this buffer in it. Free it right back.
                 self._free(entry["src"])
                 return
-            self._cache[key] = entry
-            self._bytes += self._entry_bytes(entry)
-            self._touch(key)
-            self._evict()
+            self._insert(key, entry)
         if self._notify is not None:
             try:
                 self._notify()
@@ -460,16 +457,7 @@ class StripStore:
         entry = self._compose_blank(n, g)
         with self._lock:
             # Another thread may have built the same shape while we composed.
-            hit = self._cache.get(bkey)
-            if hit is not None:
-                self._free(entry["src"])
-                self._touch(bkey)
-                return hit
-            self._cache[bkey] = entry
-            self._bytes += self._entry_bytes(entry)
-            self._touch(bkey)
-            self._evict()
-        return entry
+            return self._insert(bkey, entry)
 
     def shutdown(self):
         """Stop the compositor pool. Call before clear() on teardown so no
@@ -514,16 +502,7 @@ class StripStore:
             # stranded a full-window BGRA buffer (~8 MB at 1080p) that nothing
             # would ever evict: a ctypes buffer on libmpv, an unlinked
             # strip*.bgra on jsonipc.
-            hit = self._cache.get(ck)
-            if hit is not None:
-                self._free(src)
-                self._touch(ck)
-                return hit
-            self._cache[ck] = entry
-            self._bytes += self._entry_bytes(entry)
-            self._touch(ck)
-            self._evict()
-        return entry
+            return self._insert(ck, entry)
 
     def clear(self):
         """Drop every cached bitmap and release its backing buffer.
@@ -536,8 +515,6 @@ class StripStore:
             entries = list(self._cache.values())
             self._cache.clear()
             self._bytes = 0
-            self._live = set()
-            self._prev_live = set()
         for entry in entries:
             self._free(entry["src"])
 
@@ -1011,40 +988,80 @@ class StripStore:
         except Exception:
             return 0
 
-    def begin_frame(self):
-        """Mark a build boundary. Called by the browser at the top of every
-        ``build()``; everything asked for from here until the next call is
-        this frame's working set.
+    def _insert(self, key, entry):
+        """Put ``entry`` in the cache under ``key``, or drop it for the one
+        already there. Returns the entry the caller should use. Callers hold
+        ``_lock``.
 
-        This is what makes a BYTE bound safe to have at all. The count bound
-        above is set where it is because a scene may reference 63 overlays
-        and the cache must be able to hold a whole one -- otherwise a dense
-        scene evicts, and on libmpv *frees*, buffers it is itself still
-        using. A byte bound has no such number to hide behind: three 4K rows
-        can exceed the budget on their own.
+        The re-check is the point. Every insert site drops the lock across
+        the composite, so two callers can miss the same key and both
+        allocate -- and the same key really does arrive by two routes: a
+        grid composites through the pool (async_=True) while the paginated
+        view of the same items composites inline, and the keys are equal.
+        Overwriting would strand the loser's buffer with no cache reference
+        to free it by, and -- since this cache now counts bytes -- would add
+        its size to a total nothing ever subtracts, until the drift alone
+        exceeds MAX_BYTES and the cache trims itself to nothing on every
+        insert.
+        """
+        hit = self._cache.get(key)
+        if hit is not None:
+            if hit is not entry:
+                self._free(entry["src"])
+            self._touch(key)
+            return hit
+        self._cache[key] = entry
+        self._bytes += self._entry_bytes(entry)
+        self._touch(key)
+        self._evict()
+        return entry
 
-        So the byte pass does not guess. It evicts from the LRU head and
-        stops dead at the first entry belonging to this frame or the one
-        before it -- the previous frame because the scene on screen is the
-        last one PUSHED, which during a build is still frame n-1's.
+    def on_scene_pushed(self):
+        """A scene has been handed to the renderer. Call once per PUSH.
 
-        An owner that never calls it (a test double, an embedder) turns the
-        byte bound OFF rather than making it guess, leaving the count bound
-        as it was. Fail-safe in the conservative direction: not knowing what
-        is on screen is a reason to free less, not more.
+        This is the clock the byte bound is safe against, and "a scene was
+        pushed" is deliberately not "build() ran" -- they are different
+        events and using the wrong one frees bitmaps mpv is compositing:
+
+        * ``MpvtkApp.render`` builds a SECOND time when a scene turns up
+          glyphs whose widths were never measured, which is exactly what a
+          new screen does. Two builds, one push.
+        * A build that raises keeps the previous frame on screen (by design
+          -- views index into state that arrives asynchronously). No push at
+          all, and the scene still up is the one before it.
+
+        Counting builds, both of those slide the protected window off the
+        scene that is actually on screen. Counting pushes cannot: the
+        generation only advances when the renderer has been given something
+        new.
         """
         with self._lock:
-            pending = self._trim_pending
-            self._trim_pending = False
-            self._framed = True
-            self._prev_live = self._live
-            self._live = set()
-            if pending:
-                # Armed a frame ago, on the first frame of the new screen.
-                # THIS frame is the first one where the old screen's strips
-                # are neither live nor previous -- so this is the first
-                # moment mpv can be known to have let go of them.
+            self._gen += 1
+            self._marked = True
+            if self._trim_at is not None and self._gen >= self._trim_at:
+                self._trim_at = None
                 self._trim_to(0)
+
+    def keep(self, entry):
+        """Say that ``entry`` is still on screen, for a caller that holds one
+        across frames instead of asking for it again.
+
+        Almost everything re-requests what it draws every frame -- a strip
+        row, a placeholder, an art cell -- so the ordinary cache hit is also
+        the liveness signal. The cast screen does not: it composites one
+        full-window bitmap on a worker, parks the entry, and renders from
+        that entry forever after. Nothing would touch it again, so it would
+        age out of the protected window while being the only thing on
+        screen, and its src is the biggest single buffer this app makes.
+        """
+        if not entry:
+            return
+        src = entry.get("src") if isinstance(entry, dict) else None
+        with self._lock:
+            for key, cached in self._cache.items():
+                if cached is entry or (src and cached.get("src") == src):
+                    self._touch(key)
+                    return
 
     def trim_soon(self):
         """Free everything the live scene is not using, at the first moment
@@ -1054,35 +1071,61 @@ class StripStore:
         change): on a machine short of RAM, the rows of the screen you just
         left are worth more as memory than as a fast trip back.
 
-        Deferred by exactly one frame, and the reason is the refcount. When
-        a screen changes, the scene mpv is compositing is still the old
-        one's -- the new scene has not been pushed yet -- so the old strips
-        are precisely the ones that must not be freed at that instant. One
-        frame later they are neither the live set nor the previous one, and
-        the ordinary gate lets them go on its own.
+        Deferred to the next push, and then still filtered by _protected.
+        When a screen changes the scene mpv is compositing is STILL the old
+        one, so the old strips are precisely the ones that must not be freed
+        at that instant; a few generations later they are nobody's and the
+        ordinary gate lets them go.
         """
         with self._lock:
-            self._trim_pending = True
+            # Not "the next push": the screen being left has to age out of
+            # the protected window first, and _trim_to would simply refuse
+            # to free it before then -- consuming the request and leaving
+            # the memory held. Book it for the generation it can actually
+            # happen in. Re-arming while one is pending just moves it out,
+            # which is right: the newest screen change is the one that
+            # decides what is behind you.
+            self._trim_at = self._gen + self.PROTECT_GENERATIONS + 1
 
     def _touch(self, key):
-        """Move ``key`` to the LRU tail and mark it live for this frame.
-        Callers hold ``_lock``.
-
-        Only while somebody is marking frames: otherwise the live set would
-        grow without bound and pin the entire cache, which is the same leak
-        the byte bound exists to close, wearing a different hat.
-        """
+        """Move ``key`` to the LRU tail and stamp it with the current
+        generation. Callers hold ``_lock``."""
         self._cache.move_to_end(key)
-        if self._framed:
-            self._live.add(key)
+        entry = self._cache.get(key)
+        if entry is not None:
+            entry["gen"] = self._gen
+
+    def _protected(self, entry):
+        """Whether mpv may still have this bitmap bound. Callers hold
+        ``_lock``.
+
+        Anything touched during the current build, the scene on screen, or
+        the one it replaced. Two generations rather than one because a push
+        is not the moment the renderer acts on it -- the scene message is
+        processed on mpv's own loop, and the renderer re-issues overlays
+        without a new push besides (a scroll, a slot renumber). One spare
+        generation covers both lags.
+        """
+        return entry.get("gen", 0) >= self._gen - self.PROTECT_GENERATIONS
 
     def _evict(self):
         while len(self._cache) > self.MAX_ENTRIES:
-            _key, old = self._cache.popitem(last=False)
+            key = next(iter(self._cache))
+            if self._marked and self._protected(self._cache[key]):
+                # Every entry behind the head is protected too (the LRU is
+                # ordered by last touch and the protected span is the most
+                # recent generations), so there is nothing left to take.
+                # Over the count with nothing droppable is a dense screen:
+                # draw over it rather than free what is being composited.
+                break
+            old = self._cache.pop(key)
             self._bytes -= self._entry_bytes(old)
             self._free(old["src"])
-        if not self._framed:
-            return          # nothing says what is on screen; see begin_frame
+        if not self._marked:
+            # Nobody is telling us when a scene reaches the renderer, so
+            # nothing can say what is on screen. Leave the byte bound off
+            # and keep the count bound above, which is where this started.
+            return
         self._trim_to(self.MAX_BYTES)
 
     def _trim_to(self, target):
@@ -1092,13 +1135,12 @@ class StripStore:
         This is the refcount, such as it is: mpv holds overlay bindings to
         the bitmaps in the scene it was last pushed, and freeing one of
         those is a read of freed memory on the libmpv path rather than a
-        missing picture. Approximated by the current frame's working set
-        plus the previous frame's, which is the widest set mpv can have a
-        binding to (see begin_frame).
+        missing picture. Approximated by generation -- see _protected and
+        on_scene_pushed.
         """
         while self._bytes > target and self._cache:
             key = next(iter(self._cache))
-            if key in self._live or key in self._prev_live:
+            if self._protected(self._cache[key]):
                 # The head of the LRU is on screen, so everything behind it
                 # is too. Over budget with nothing droppable is a big window
                 # full of big rows: keep them and draw, rather than free a

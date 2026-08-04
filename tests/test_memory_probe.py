@@ -69,10 +69,45 @@ class MemoryIsTightTest(unittest.TestCase):
         self.assertFalse(utils.memory_is_tight(32 * self.GB, 20 * self.GB))
 
     def test_the_boundaries_are_where_they_are_documented(self):
-        self.assertFalse(utils.memory_is_tight(8 * self.GB, 8 * self.GB))
-        self.assertTrue(utils.memory_is_tight(8 * self.GB - 1, 8 * self.GB))
+        self.assertFalse(utils.memory_is_tight(16 * self.GB, 8 * self.GB))
         self.assertFalse(utils.memory_is_tight(16 * self.GB, 2 * self.GB))
         self.assertTrue(utils.memory_is_tight(16 * self.GB, 2 * self.GB - 1))
+
+    def test_an_8gb_machine_is_small_however_it_is_measured(self):
+        """The two sources disagree about the same hardware. Linux reports
+        MemTotal, which is installed RAM less the kernel/firmware
+        reservation (~7.7 GiB on a nominal 8 GB box); sysconf, which is the
+        macOS path, reports exactly 8589934592. A threshold at 8 GiB calls
+        that machine small on Linux and roomy on macOS -- and it is the
+        population this whole feature is for."""
+        for reported in (7.6, 7.7, 7.8, 8.0):
+            with self.subTest(gib=reported):
+                self.assertTrue(
+                    utils.memory_is_tight(int(reported * self.GB), None))
+        self.assertFalse(utils.memory_is_tight(16 * self.GB, None))
+
+    def test_a_sysconf_that_answers_minus_one_does_not_pin_it_true(self):
+        """os.sysconf returns -1 for "indeterminate" WITHOUT raising, and
+        -1 * the page size is a negative total that is truthy and compares
+        less than every threshold -- so it would report a permanently tight
+        machine that may have 64 GiB."""
+        import sys as _sys
+        from unittest import mock
+
+        utils._total_memory = None
+        self.addCleanup(setattr, utils, "_total_memory", None)
+        def sysconf(name):
+            return -1 if name == "SC_PHYS_PAGES" else 4096
+
+        with mock.patch.object(_sys, "platform", "darwin"), \
+                mock.patch("os.sysconf", sysconf):
+            self.assertEqual(utils.system_memory(), (None, None))
+            self.assertFalse(utils.memory_is_tight())
+        # ...and both answering -1, whose product is a positive 1.
+        utils._total_memory = None
+        with mock.patch.object(_sys, "platform", "darwin"), \
+                mock.patch("os.sysconf", return_value=-1):
+            self.assertEqual(utils.system_memory(), (None, None))
 
     def test_unknown_is_roomy_not_tight(self):
         """A probe that cannot answer has no business degrading the app on a

@@ -3212,6 +3212,39 @@ local function on_mouse_down()
         request_render()
         return
     end
+    -- The resize grip outranks the scrollbar gutter it shares a corner
+    -- with. bar_at has no z-order -- it takes any scrollbar whose rect
+    -- contains the point -- and a page scroller's gutter runs the full
+    -- height of the window at its right edge, straight through the drawn
+    -- dots. Without this, pressing the one visible resize affordance
+    -- page-scrolls the list and starts a thumb drag.
+    --
+    -- Below the popup/menu checks above, though: a dropdown over the corner
+    -- is still what the press belongs to.
+    local grip = node_at(x, y)
+    if grip and grip.wsize and not grip.click then
+        -- mpv has no "begin resizing" command -- only Wayland has an edge
+        -- zone, and it implements that itself, in the compositor's own
+        -- protocol, before the press ever reaches a script. Everywhere else
+        -- the window is resized the one way a client can: by writing
+        -- `geometry`, which every VO treats as a resize command (see
+        -- player_window._sync_window_geometry).
+        --
+        -- The grab is the distance from the pointer to the corner it is
+        -- pulling, so the corner stays under the cursor however far the
+        -- drag runs. Refused while maximized or fullscreen: there the write
+        -- would silently un-maximize the window instead of resizing it,
+        -- which is not what dragging a corner asks for.
+        local ww = mp.get_property_number('osd-width', 0)
+        local wh = mp.get_property_number('osd-height', 0)
+        if ww > 0 and wh > 0
+            and not mp.get_property_bool('window-maximized', false)
+            and not mp.get_property_bool('fullscreen', false) then
+            state.wsize = { edge = grip.wsize, w = ww, h = wh,
+                            dx = ww - x, dy = wh - y, t = 0 }
+        end
+        return
+    end
     local bar_id, b = bar_at(x, y)
     if bar_id then
         local node = state.byid[bar_id]
@@ -3285,29 +3318,6 @@ local function on_mouse_down()
         -- tests/test_renderer_lua.py -- so this cannot be a file-scope
         -- function anyway.)
         pcall(mp.commandv, 'begin-vo-dragging')
-        return
-    end
-    if node.wsize and not node.click then
-        -- Client-side resize grip. mpv has no "begin resizing" command --
-        -- only Wayland has an edge zone, and it implements that itself, in
-        -- the compositor's own protocol, before the press ever reaches a
-        -- script. Everywhere else the window is resized the one way a
-        -- client can: by writing `geometry`, which every VO treats as a
-        -- resize command (see player_window._sync_window_geometry).
-        --
-        -- The grab is the distance from the pointer to the corner it is
-        -- pulling, so the corner stays under the cursor however far the
-        -- drag runs. Refused while maximized or fullscreen: there the
-        -- write would silently un-maximize the window instead of resizing
-        -- it, which is not what dragging a corner asks for.
-        local ww = mp.get_property_number('osd-width', 0)
-        local wh = mp.get_property_number('osd-height', 0)
-        if ww > 0 and wh > 0
-            and not mp.get_property_bool('window-maximized', false)
-            and not mp.get_property_bool('fullscreen', false) then
-            state.wsize = { edge = node.wsize, w = ww, h = wh,
-                            dx = ww - x, dy = wh - y, t = 0 }
-        end
         return
     end
     if node.t == 'textbox' then
@@ -4411,6 +4421,9 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
         -- forget where the pointer was, which stalls the resize on its
         -- first pixel and then computes a 320x240 window from x,y = -1.
         if state.wsize then
+            -- Report the truth -- the pointer really is outside -- but keep
+            -- tracking it. Only the coordinates matter to the drag.
+            state.mouse.hover = false
             on_mouse_move(pos.x, pos.y)
             return
         end
@@ -5064,6 +5077,12 @@ local function phud_busy()
     if state.dd_open ~= nil or state.modal ~= nil
         or state.tb_menu ~= nil or state.slider_drag ~= nil
         or state.pressed ~= nil
+        -- A resize drag holds the button down without moving the pointer
+        -- for as long as it likes, and the grip press deliberately sets no
+        -- `pressed` (it is not a click). Without this the HUD auto-hides
+        -- mid-gesture, ui_suspend drops the drag state, and the window
+        -- stops at whatever size it had reached.
+        or state.wsize ~= nil
         or active_menu() ~= nil then
         return true
     end

@@ -90,11 +90,13 @@ class TestTrayWillRender(unittest.TestCase):
         self.assertEqual(probed, [], "a native tray was probed over D-Bus")
 
     def test_appindicator_asks_the_session_bus(self):
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
         self.assertIs(True, tray_will_render("appindicator",
                                              sni=lambda: True,
                                              xembed=lambda: False))
         self.assertIs(False, tray_will_render("appindicator",
-                                              sni=lambda: False,
+                                              sni=lambda: NO_WATCHER,
                                               xembed=lambda: False))
 
     def test_an_appindicator_falls_back_to_the_old_style_tray(self):
@@ -108,15 +110,35 @@ class TestTrayWillRender(unittest.TestCase):
         and the app offers "Keep Running in Background" to somebody
         looking straight at their icon.
         """
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
         self.assertIs(True, tray_will_render("appindicator",
-                                             sni=lambda: False,
+                                             sni=lambda: NO_WATCHER,
                                              xembed=lambda: True))
+
+    def test_a_watcher_with_no_host_is_worse_than_no_watcher(self):
+        """The distinction the fallback turns on, and the one case where an
+        XEmbed tray on the same desktop must NOT rescue the verdict.
+
+        With nobody owning the name, libappindicator docks a GtkStatusIcon.
+        With a watcher present but no host registered behind it, the item
+        registers successfully, the fallback never starts, and nothing draws
+        it -- so asking about XEmbed would turn an invisible icon into a
+        confident yes. Reachable on an X11 Plasma/xfce session where a
+        half-started watcher owns the name while xembedsniproxy owns the
+        old-style selection.
+        """
+        self.assertIs(False, tray_will_render("appindicator",
+                                              sni=lambda: False,
+                                              xembed=lambda: True))
 
     def test_an_unanswerable_fallback_is_not_a_confident_no(self):
         # Without an X connection the fallback cannot be ruled out, and a
         # maybe must not read as a no.
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
         self.assertIsNone(tray_will_render("appindicator",
-                                           sni=lambda: False,
+                                           sni=lambda: NO_WATCHER,
                                            xembed=lambda: None))
 
     def test_xembed_backends_ask_x11(self):
@@ -137,6 +159,8 @@ class TestTrayWillRender(unittest.TestCase):
         # someone -- only a confident False may change behaviour.
         self.assertIsNone(tray_will_render("appindicator", sni=lambda: None,
                                            xembed=lambda: None))
+        self.assertIsNone(tray_will_render("appindicator", sni=lambda: None,
+                                           xembed=lambda: False))
         self.assertIsNone(tray_will_render("gtk", xembed=lambda: None))
         self.assertIsNone(tray_will_render(""))
         self.assertIsNone(tray_will_render("some_future_backend"))

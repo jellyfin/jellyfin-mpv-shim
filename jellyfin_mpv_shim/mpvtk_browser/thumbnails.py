@@ -255,11 +255,15 @@ class ThumbnailStore:
         self._closed = False
         # Bytes written since the last prune; see _note_written.
         self._unpruned = 0
+        self._prune_lock = threading.Lock()
 
-        # Still worth doing once at startup even though a fresh dir is
-        # empty: a cache dir handed in by the caller need not be one, and
-        # this is where a budget lowered since the last run first bites.
-        self._prune_disk()
+        # Once at startup -- but NOT on this thread. This used to measure a
+        # directory that had just been created; it now measures a persistent
+        # one that may hold thousands of files, and it runs on the path that
+        # opens the browser window. One listdir plus a stat per entry is
+        # seconds on a cold cache or on NTFS, all of it before anything is
+        # on screen.
+        self._pool.submit(self._prune_disk)
 
     # -- public API (loop thread) -----------------------------------------
 
@@ -486,25 +490,52 @@ class ThumbnailStore:
     def _load_remote(self, key, url):
         path = os.path.join(self.cache_dir, key + ".img")
         if os.path.exists(path):
+            data = None
             try:
-                os.utime(path, None)  # touch for LRU pruning
                 with open(path, "rb") as fh:
-                    return fh.read()
+                    data = fh.read()
             except OSError:
                 pass
+            if data is not None:
+                # AFTER the read, in its own try. The touch is what makes the
+                # age bound mean "unused for a month" rather than "fetched a
+                # month ago", but sharing a try with the read meant a cache
+                # dir that would not take a utime (read-only, wrong owner)
+                # re-downloaded and re-wrote every image on every request.
+                try:
+                    os.utime(path, None)
+                except OSError:
+                    pass
+                return data
 
         resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl,
                                  headers=self._headers_for(url))
         resp.raise_for_status()
         data = resp.content
-        tmp = path + ".tmp"
+        # Unique per writer. Two writers for one key is reachable inside a
+        # single process -- cancel() drops a pending entry while its worker
+        # is still in here and a re-request submits a second one -- and
+        # trivially so across instances, now that the cache is shared and
+        # persistent. On a shared name the loser's writes land in the inode
+        # the winner has already renamed into place.
+        tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())
+        written = False
         try:
             with open(tmp, "wb") as fh:
                 fh.write(data)
             os.replace(tmp, path)
-            self._note_written(len(data))
+            written = True
         except OSError:
             log.debug("Could not write thumbnail cache %s", path, exc_info=True)
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        if written:
+            # Outside the try. Inside it, one failed replace -- Windows, over
+            # a file another reader has open -- also skipped the accounting,
+            # so the prune trigger stalled for the rest of the session.
+            self._note_written(len(data))
         return data
 
     def _note_written(self, nbytes):
@@ -562,6 +593,22 @@ class ThumbnailStore:
         return min(self.max_disk_bytes, max(share, floor))
 
     def _prune_disk(self, now=None):
+        """One pruner at a time; the work is in _prune_disk_locked.
+
+        Two workers -- or two app instances sharing the persistent cache --
+        each scan, each compute the same total, and each delete towards it.
+        But a file the other already removed raises ENOENT, so without this
+        the loser never decremented its own running total and kept deleting:
+        between them they evicted roughly twice the excess.
+        """
+        if not self._prune_lock.acquire(blocking=False):
+            return
+        try:
+            self._prune_disk_locked(now)
+        finally:
+            self._prune_lock.release()
+
+    def _prune_disk_locked(self, now=None):
         """Reap by age, then by size. Both, because they answer different
         questions: the size bound decides what a busy cache may keep, and
         the age bound decides what an idle one is still *for* (see
@@ -596,6 +643,11 @@ class ThumbnailStore:
                     break
                 try:
                     os.remove(full)
+                    total -= size
+                except FileNotFoundError:
+                    # Another instance got there first. The space is freed
+                    # either way, so it still comes off the running total --
+                    # not doing so is what made two pruners over-evict.
                     total -= size
                 except OSError:
                     pass

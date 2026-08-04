@@ -35,6 +35,20 @@ log = logging.getLogger("tray")
 #: precisely why its absence is a usable answer.
 SNI_WATCHER = "org.kde.StatusNotifierWatcher"
 
+#: What sni_watcher_present() returns when NOBODY owns the watcher name, as
+#: opposed to a watcher being there with no host behind it. Falsy, so every
+#: "is there a StatusNotifier tray" test reads the same as before -- but
+#: distinguishable, because only this case starts libappindicator's
+#: GtkStatusIcon fallback. A watcher that exists and has no host registered
+#: is worse than none: the item registers successfully, the fallback never
+#: starts, and nothing draws it.
+class _NoWatcher(int):
+    def __repr__(self):
+        return "NO_WATCHER"
+
+
+NO_WATCHER = _NoWatcher(0)
+
 #: pystray backends that talk to a native tray API which is always there.
 _NATIVE_BACKENDS = ("win32", "darwin")
 #: ...ones that publish a StatusNotifierItem over D-Bus -- and, when nothing
@@ -94,7 +108,10 @@ def sni_watcher_present(timeout_ms=2000):
         log.debug("StatusNotifierWatcher probe failed", exc_info=True)
         return None
     if not owned:
-        return False
+        # No watcher on the bus at all. libappindicator's GtkStatusIcon
+        # fallback engages in exactly this case and no other, which is why
+        # tray_will_render distinguishes it below.
+        return NO_WATCHER
     # A watcher with no host registered is a watcher nothing draws for. Rare,
     # but it is the difference between "the extension is installed" and "the
     # extension is enabled". Failing open here: the name IS owned, so someone
@@ -132,12 +149,26 @@ def xembed_tray_present():
     # display resolves the owner window through GDK's own table and returns
     # NULL for a window belonging to another client -- which every tray is.
     # Verified against a real i3bar: Xlib says 0x0010000d, GDK says None.
+    x11 = None
     try:
         import ctypes
         import ctypes.util
 
-        name = ctypes.util.find_library("X11")
-        x11 = ctypes.CDLL(name) if name else None
+        # By SONAME first. ctypes.util.find_library shells out to
+        # `ldconfig -p` on every call -- a fork out of the tray's GTK main
+        # loop, since the watch callbacks reach here -- and in a bundle with
+        # no ldconfig and no compiler it returns None, which would make this
+        # answer "cannot ask" inside a process that has libX11 mapped
+        # already. That is the i3 case this exists for, silently reverted.
+        for name in ("libX11.so.6", "libX11.so", "libX11.6.dylib"):
+            try:
+                x11 = ctypes.CDLL(name)
+                break
+            except OSError:
+                continue
+        if x11 is None:
+            found = ctypes.util.find_library("X11")
+            x11 = ctypes.CDLL(found) if found else None
     except Exception:
         x11 = None
     if x11 is None:
@@ -155,6 +186,10 @@ def xembed_tray_present():
         x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
         display = x11.XOpenDisplay(None)
         if not display:
+            # A confident no even though this covers auth failure as well
+            # as "no server". GTK in this same process opens the same
+            # display for the icon itself, so if we cannot reach it neither
+            # can the thing that would draw.
             return False
         selection = b"_NET_SYSTEM_TRAY_S%d" % x11.XDefaultScreen(display)
         # only_if_exists: nobody has ever docked here if the atom is unknown
@@ -191,6 +226,12 @@ def tray_will_render(backend, sni=None, xembed=None):
         watcher = (sni or sni_watcher_present)()
         if watcher:
             return True
+        if watcher is False:
+            # A watcher IS on the bus, with no host registered behind it.
+            # The item will register with it and never fall back, so an
+            # XEmbed tray on the same desktop is irrelevant -- asking would
+            # turn an invisible icon into a confident yes.
+            return False
         # No watcher is NOT the end of the story, and reading it that way is
         # what made this wrong on X11 (#4). libappindicator and its
         # ayatana fork both keep a GtkStatusIcon fallback -- see
@@ -206,7 +247,7 @@ def tray_will_render(backend, sni=None, xembed=None):
         if fallback:
             return True
         # Only now, and only if both probes actually ran.
-        return False if watcher is False and fallback is False else None
+        return False if watcher is not None and fallback is False else None
     return None
 
 
@@ -402,7 +443,19 @@ class TrayProcess(Process):
             log.info("A StatusNotifier host appeared; the tray icon is live.")
             self.r_queue.put(("ready", None))
 
+        seen_host = [False]
+
+        def appeared_seen(*_a):
+            seen_host[0] = True
+            appeared()
+
         def vanished(*_a):
+            if not seen_host[0]:
+                # GLib calls this at registration when the name is already
+                # unowned, which on the desktops this fallback exists for
+                # (i3, xfce with only a systray) is every launch. Nothing
+                # went away; there was never a host.
+                return
             # The full probe again, for the same reason `appeared` re-runs
             # it: losing the D-Bus host is not losing the tray if this
             # desktop also has an XEmbed one, and libappindicator falls
@@ -422,7 +475,7 @@ class TrayProcess(Process):
             # the loop it was registered on.
             self._name_watch = Gio.bus_watch_name(
                 Gio.BusType.SESSION, SNI_WATCHER,
-                Gio.BusNameWatcherFlags.NONE, appeared, vanished)
+                Gio.BusNameWatcherFlags.NONE, appeared_seen, vanished)
         except Exception:
             log.debug("could not watch for a StatusNotifier host",
                       exc_info=True)
@@ -468,7 +521,19 @@ class TrayManager:
             try:
                 command, param = self._queue.get(timeout=0.5)
             except Exception:
-                continue  # Empty, or the queue died with the child
+                # Empty, or the queue died with the child. Which of those it
+                # was matters: a child that CRASHED sends nothing, and
+                # without this the manager would report a tray that is not
+                # there for the rest of the session -- so the window would
+                # go on hiding behind an icon nobody can click, which is the
+                # app's only way back on screen. A GTK process has ways to
+                # die that do not run our code: Xlib's default I/O error
+                # handler calls exit() on a lost display, and GDK's calls
+                # _exit().
+                if (self._process is not None and self.available
+                        and not self._process.is_alive()):
+                    self.dispatch("tray_died", "child_gone")
+                continue
             self.dispatch(command, param)
 
     #: Why the child says there is no tray -> what to tell the user. The
@@ -478,6 +543,7 @@ class TrayManager:
     #: reinstall a package they already have sends them the wrong way.
     _DEATH_REASONS = {
         "not_rendered": "nothing on this desktop displays it",
+        "child_gone": "the tray process exited",
         "watcher_gone": "the desktop's tray host went away",
     }
 

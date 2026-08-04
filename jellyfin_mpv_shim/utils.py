@@ -381,10 +381,22 @@ def get_text(*path):
 # and it is a compiled dependency to ask "how much RAM is there".
 
 #: A machine with less RAM than this is small, whatever it is doing.
-SMALL_MEMORY_BYTES = 8 * 1024 * 1024 * 1024
+#:
+#: Deliberately above a round 8 GiB, because the two sources disagree about
+#: what an 8 GB machine has. Linux reports MemTotal, which is installed RAM
+#: LESS the kernel and firmware reservation -- a nominal 8 GB box says about
+#: 7.7 GiB -- while sysconf (the macOS path) reports exactly 8589934592. A
+#: threshold at 8 GiB would therefore call the same hardware small on one
+#: platform and roomy on the other, which is the worst of both. 8 GB machines
+#: are the ones this is for, so the line goes above all of their spellings.
+SMALL_MEMORY_BYTES = 9 * 1024 * 1024 * 1024
 #: ...and any machine with less than this actually free right now is under
 #: pressure, however much it started with.
 TIGHT_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
+
+#: No machine running a video player has less RAM than this, so an answer
+#: below it is not a small machine, it is a broken measurement.
+_ABSURDLY_SMALL = 64 * 1024 * 1024
 
 _total_memory = None            # never changes; read once
 
@@ -465,6 +477,16 @@ def system_memory():
                                  * os.sysconf("SC_PAGE_SIZE"))
             except (ValueError, OSError, AttributeError):
                 _total_memory = False       # asked and answered: no
+            if not _total_memory or _total_memory < _ABSURDLY_SMALL:
+                # sysconf returns -1 for "indeterminate" WITHOUT raising
+                # (CPython only raises when errno was set). -1 * the page
+                # size is a negative "total" that is truthy, survives the
+                # `or None` below, and compares less than every threshold --
+                # pinning memory_is_tight() True for the life of the process
+                # on a machine that may have 64 GiB. A floor rather than a
+                # sign test, because both values can come back -1 and their
+                # product is then a perfectly positive 1.
+                _total_memory = False
         total = _total_memory or None
     return total, avail
 

@@ -502,3 +502,21 @@ class TestRefreshFromThePlayer(ChromeCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheGripCostsThePageNothing(ChromeCase):
+    """A Float is drawn absolutely, but a Column still divides its main axis
+    by what its children DECLARE. Declaring a height on the Float reserved
+    22px of page for something positioned outside the flow: every scroll
+    viewport lost it, and the now-playing bar floated that far off the
+    bottom of the window with an empty strip beneath it."""
+
+    def _viewport(self, csd):
+        self.b._csd = csd
+        nodes, _h = build_scene(self.b, (1280, 720))
+        scrolls = [n for n in nodes if n.get("t") == "scroll"]
+        self.assertTrue(scrolls, "no scroll container on the home screen")
+        return max(n["y"] + n["h"] for n in scrolls)
+
+    def test_the_content_still_reaches_the_bottom_of_the_window(self):
+        self.assertEqual(self._viewport(csd=True), self._viewport(csd=False))

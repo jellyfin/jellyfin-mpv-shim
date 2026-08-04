@@ -239,6 +239,16 @@ class CastMixin:
             # Nothing baked yet: a plain dark field rather than a flash of
             # whatever was behind us.
             return Column([], w=size[0], h=size[1])
+        # Say it is still on screen. Everything else in the browser asks the
+        # store for what it draws on every frame, so the cache hit doubles
+        # as the liveness signal; this screen composites once on a worker
+        # and then renders from the parked entry forever, so nothing would
+        # ever touch it again. It would age out of the protected window
+        # while being the ONLY thing on screen -- and it is the largest
+        # single buffer the app makes (a full-window BGRA: ~8 MiB at 1080p,
+        # ~33 MiB at 4K), so it is also the first thing a trim reaches for.
+        if self.strips is not None:
+            self.strips.keep(entry)
         # The entry's OWN size, not the requested one. _recomposite_cast is
         # async, so during a resize this entry is still the previous size's
         # bitmap; declaring the new box against the old bitmap fails
@@ -289,6 +299,17 @@ class CastMixin:
             self._cast_backdrop = None
             self._cast_backdrop_key = None
         self._recomposite_cast()
+
+    def forget_cast_bitmap(self):
+        """Drop the parked full-window bitmap, because its buffer is gone.
+
+        Called when the strip store is cleared wholesale (mpv died). The
+        entry lives on ``self`` rather than in the scene, so nothing else
+        would notice: _render_cast would go on declaring a freed address to
+        the *next* mpv, and only a resize would rebuild it.
+        """
+        self._cast_entry = None
+        self._cast_size = None
 
     def _recomposite_cast(self):
         if self._cast_size is None or self.strips is None:

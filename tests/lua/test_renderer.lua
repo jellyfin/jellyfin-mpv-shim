@@ -669,15 +669,33 @@ fake.advance(1)
 fake.mouse(700, 700)
 eq(geometry(), "510x510", "and moving after the release resizes nothing")
 
+-- The grip outranks a scrollbar gutter it shares a corner with. bar_at has
+-- no z-order and a page scroller's gutter runs the full height of the window
+-- at its right edge, straight through the drawn dots -- so without this the
+-- one visible resize affordance page-scrolls the list instead.
+scene({
+    { id = "page", t = "scroll", axis = "y", x = 0, y = 0, w = 400, h = 600,
+      cw = 400, ch = 4000, bar = true },
+    grip(),
+})
+fake.log.props["geometry"] = nil
+fake.mouse(390, 590)
+fake.send("mpvtk-debug", fake.token({ cmd = "down", x = 390, y = 590 }))
+fake.advance(1)
+fake.mouse(440, 640)
+eq(geometry(), "450x650", "the scrollbar gutter swallowed the resize grip")
+fake.send("mpvtk-debug", fake.token({ cmd = "up", x = 440, y = 640 }))
+
 -- Maximized, the geometry write would silently un-maximize the window
 -- instead of resizing it, which is not what dragging a corner asks for.
 -- (The grip is not drawn there either; this is the second lock.)
 fake.log.props["window-maximized"] = true
+local geo_before = geometry()
 fake.mouse(390, 590)
 fake.send("mpvtk-debug", fake.token({ cmd = "down", x = 390, y = 590 }))
 fake.advance(1)
 fake.mouse(600, 600)
-eq(geometry(), "510x510", "a maximized window is not resized by the grip")
+eq(geometry(), geo_before, "a maximized window is not resized by the grip")
 fake.log.props["window-maximized"] = false
 fake.send("mpvtk-debug", fake.token({ cmd = "up", x = 600, y = 600 }))
 

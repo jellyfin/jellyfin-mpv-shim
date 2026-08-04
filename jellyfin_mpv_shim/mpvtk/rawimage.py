@@ -69,11 +69,26 @@ def _process_alive(pid):
     return True
 
 
+#: Bigger than any pid any OS hands out, and small enough for os.kill's C
+#: long. A name claiming more than this is not a pid, it is garbage or bait.
+_MAX_PID = 2 ** 31 - 1
+
+
 def _owner_pid(name, prefix):
-    """The pid encoded in a cache dir name, or None if it carries none."""
+    """The pid encoded in a cache dir name, or None if it carries none.
+
+    ``isdecimal`` rather than ``isdigit``: the latter is true for "²" and
+    every other Unicode digit form, and ``int()`` then raises. These names
+    come off a shared, world-writable directory (/dev/shm, /tmp), so a
+    malformed one is not only a typo -- and an exception here is thrown
+    from the browser's startup path.
+    """
     rest = name[len(prefix):]
     head = rest.split("-", 1)[0]
-    return int(head) if head.isdigit() else None
+    if not head.isdecimal():
+        return None
+    pid = int(head)
+    return pid if 0 < pid <= _MAX_PID else None
 
 
 def sweep_stale(base, prefix, now=None):
@@ -99,21 +114,33 @@ def sweep_stale(base, prefix, now=None):
     for name in names:
         if not name.startswith(prefix):
             continue
-        path = os.path.join(base, name)
-        if not os.path.isdir(path):
-            continue
-        pid = _owner_pid(name, prefix)
-        if pid is not None:
-            if pid == os.getpid() or _process_alive(pid):
+        try:
+            path = os.path.join(base, name)
+            if not os.path.isdir(path) or os.path.islink(path):
                 continue
-        else:
-            try:
+            pid = _owner_pid(name, prefix)
+            if pid is not None:
+                if pid == os.getpid() or _process_alive(pid):
+                    continue
+            elif "-" in name[len(prefix):]:
+                # Not ours to age out. A name with further dashes after the
+                # prefix is another prefix's directory seen through a
+                # shorter one ("mpvtk-" sees "mpvtk-browser-1234-ab"), and
+                # its pid is not where we looked -- so treating it as
+                # pid-less and reclaiming it by age would delete a running
+                # session's cache. mkdtemp's own suffix has no dashes, so
+                # this cannot exclude a real pre-pid leftover.
+                continue
+            else:
                 if now - os.stat(path).st_mtime < STALE_SECS:
                     continue
-            except OSError:
-                continue
-        shutil.rmtree(path, ignore_errors=True)
-        removed += 1
+            shutil.rmtree(path, ignore_errors=True)
+            removed += 1
+        except Exception:
+            # One unreadable or oddly-named entry must not take the app's
+            # startup with it -- this runs before the browser exists.
+            log.debug("could not consider %s for sweeping", name,
+                      exc_info=True)
     if removed:
         log.info("Reclaimed %d abandoned cache director%s under %s",
                  removed, "y" if removed == 1 else "ies", base)
@@ -163,10 +190,18 @@ def cache_dir(prefix="mpvtk-", min_free=MIN_FREE_BYTES):
     cheapest cleanup when the app gets to exit cleanly.
     """
     base = None
-    for cand in _bases():
+    # Every candidate is swept, not just the one that wins: a run that
+    # spilled to /dev/shm because the runtime dir was tight leaves its
+    # directory THERE, and a later run that fits in the runtime dir again
+    # would never look. tempfile's own base is in the list for the same
+    # reason -- it is where Windows and macOS put everything, so leaving it
+    # out meant those platforms swept nothing at all, ever.
+    for cand in _bases() + [tempfile.gettempdir()]:
         if not (os.path.isdir(cand) and os.access(cand, os.W_OK)):
             continue
         sweep_stale(cand, prefix)
+        if base is not None:
+            continue        # already chosen; this pass is only the sweep
         try:
             free = shutil.disk_usage(cand).free
         except OSError:
@@ -176,7 +211,6 @@ def cache_dir(prefix="mpvtk-", min_free=MIN_FREE_BYTES):
                      cand, free // (1024 * 1024), min_free // (1024 * 1024))
             continue
         base = cand
-        break
     # The pid is what makes the sweep above possible: it is the only thing
     # in the name that says whether the session that owns this dir is still
     # running. mkdtemp's own suffix keeps two runs of the same pid apart.

@@ -193,12 +193,18 @@ def resize_grip(b, w, h):
         Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
             anchor="se", dx=-3, dy=-9),
     ]
+    # No w/h on the Float itself. _arrange_overlay ignores them (it measures
+    # the child), but a Column reads a child's declared `h` when it divides
+    # the main axis -- so declaring one here reserved 22px of PAGE for a
+    # thing that is drawn absolutely, shortening every scroll viewport and
+    # floating the now-playing bar 22px off the bottom of the window. The
+    # toast above does the same thing correctly: size the child, not the
+    # Float.
     return Float(
         Box([Stack(dots, w=RESIZE_GRIP, h=RESIZE_GRIP)],
             id="win-resize", w=RESIZE_GRIP, h=RESIZE_GRIP,
             window_resize="se", tip=_("Resize")),
-        x=w - RESIZE_GRIP, y=h - RESIZE_GRIP,
-        w=RESIZE_GRIP, h=RESIZE_GRIP)
+        x=w - RESIZE_GRIP, y=h - RESIZE_GRIP)
 
 
 def chrome_bar(b, compact, probe=False, servers=None,
