@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-04 00:34+0000\n"
+"PO-Revision-Date: 2026-08-04 22:40+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -58,14 +58,16 @@ msgstr "Nustatomas dabartinis..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Atidarykite Jellyfin, eikite į vartotojo meniu -> Quick Connect ir įveskite "
+"šį kodą:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Laukiama autorizacijos..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Visų esamų paskyrų išvalymas."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -77,7 +79,7 @@ msgstr "Nepavyko pridėti serverio."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Paskyra jau yra. Atnaujinami prisijungimo duomenys."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully updated server credentials."
@@ -121,7 +123,7 @@ msgstr "Praleisti titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Titrai praleisti"
+msgstr "Praleisti titrai"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
@@ -310,15 +312,15 @@ msgstr "Pasirinkti subtitrų takelį"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "None"
-msgstr "Tuščia"
+msgstr "Nėra"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Transcode Quality"
-msgstr "Pasirinkti transkodavimo kokybę"
+msgstr "Pasirinkti perkodavimo kokybę"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "No Transcode"
-msgstr "Jokio transkodavimo"
+msgstr "Jokio perkodavimo"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Maximum"
@@ -354,7 +356,7 @@ msgstr "Visada"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
-msgstr "Pasirinkti numatytajį transkodavimo profilį"
+msgstr "Pasirinkti numatytajį perkodavimo profilį"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Color"
@@ -406,11 +408,11 @@ msgstr "Subtitrų spalva: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode Hi10p to 8bit"
-msgstr "Transkoduoti iš Hi10p į 8 bitus"
+msgstr "Perkoduoti iš Hi10p į 8 bitus"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode HDR"
-msgstr "Transkoduoti HDR"
+msgstr "Perkoduoti HDR"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Direct Paths"
@@ -472,7 +474,7 @@ msgstr "Praleisti reklamas"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Previews"
-msgstr ""
+msgstr "Praleisti peržiūras"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Recaps"
@@ -520,18 +522,18 @@ msgstr "Paskutinis puslapis"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Pakeitimo pritaikyti nepavyko."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr ""
+msgstr "Tiesioginė TV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Pasirinkta: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -539,18 +541,18 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Kraunama…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Nepavyko pradėti atkūrimo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Eilė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -567,11 +569,11 @@ msgstr "Vis dar nepavyksta pasiekti serverio."
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Perjungti į %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -579,7 +581,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -588,7 +590,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Neteisingas PIN kodas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -610,38 +612,36 @@ msgstr "Patvirtinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Reikalauti šio PIN kodo paleidžiant"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti PIN kodą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Save"
-msgstr ""
+msgstr "Išsaugoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Dabartinis PIN kodas neteisingas."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Įveskite naują PIN kodą."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "PIN kodai nesutampa."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "Nepavyko pašalinti PIN kodo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "PIN kodo išsaugoti nepavyko."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -650,13 +650,11 @@ msgstr "Pridėti serverį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Prisijunkite prie Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Anksčiau pridėti serveriai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
@@ -671,28 +669,20 @@ msgid "Enter this code in the Jellyfin app or web client:"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Requesting…"
-msgstr "SVP nustatymai"
+msgstr "Prašoma…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "Serverio adresas: "
+msgstr "Serverio adresas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Prisijungimo vardas:"
+msgstr "Vartotojo vardas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Slaptažodis:"
+msgstr "Slaptažodis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use Quick Connect"
@@ -707,14 +697,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Susisiekiama su serveriu…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -729,14 +713,8 @@ msgid "Connecting…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko prisijungti. Patikrinkite savo duomenis."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
@@ -765,7 +743,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Įveskite PIN kodą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -785,10 +763,8 @@ msgid "Ready to cast"
 msgstr "Pasiruošęs perduoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Pasirink savo turinį Jellyfin ir leisk jį čia"
+msgstr "Pasirinkite savo mediją programoje Jellyfin ir paleiskite ją čia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 msgid "Cast & Crew"
@@ -801,16 +777,12 @@ msgid "Download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti atsisiuntimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Žiūrėtas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -833,27 +805,23 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Audio"
-msgstr ""
+msgstr "Garsas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (transkoduota)"
+msgstr "Perkodavimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Klausti, ar praleisti pabaigos titrus"
+msgstr "Praleisti įžangą / titrus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
@@ -922,20 +890,16 @@ msgid "Panel behind the controls"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "Nėra (Išjungta)"
+msgstr "Nėra (užtamsintas tekstas)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Visada praleisti pabaigos titrus"
+msgstr "Visada slėpti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
@@ -958,10 +922,8 @@ msgid "Medium"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Didelis"
+msgstr "Ypač didelis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
@@ -1048,10 +1010,8 @@ msgid "Storage Limit for Automatic Downloads (GB)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Automatic Downloads Once Watched"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti automatinius atsisiuntimus peržiūrėjus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
@@ -1139,16 +1099,12 @@ msgid "Take the Device Exclusively"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Enable Video Playback Profiles"
-msgstr "Vaizdo atkūrimo profiliai"
+msgstr "Įjungti vaizdo įrašų atkūrimo profilius"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile Group"
-msgstr "Nauja Grupė"
+msgstr "Profilių grupė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
@@ -1338,10 +1294,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Pašalinti serverį"
+msgstr "Pridėti prie grojaraščio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
@@ -1360,10 +1314,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Pašalinti serverį"
+msgstr "Kolekcijos…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1371,22 +1323,16 @@ msgid "Close"
 msgstr "Uždaryti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Pašalinti serverį"
+msgstr "Pridėti prie kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Pašalinti serverį"
+msgstr "Kolekcijų dar nėra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Prisijungimo vardas "
+msgstr "Naujas kolekcijos pavadinimas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1395,20 +1341,12 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko patikrinti, ką reikia atsisiųsti."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP nustatymai"
+msgstr "Įvertinama…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1427,11 +1365,9 @@ msgid "%d watched"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgctxt "dialog heading"
 msgid "Download"
-msgstr "Pašalinti serverį"
+msgstr "Atsisiųsti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
@@ -1447,10 +1383,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Automatinis paleidimas"
+msgstr "Automatinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Poster"
@@ -1461,10 +1395,8 @@ msgid "Thumbnail"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Reklaminė juosta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Logo"
@@ -1485,10 +1417,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Subtitrų dydis: {0}"
+msgstr "Rodyti pavadinimus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Show years"
@@ -1514,10 +1444,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View Settings"
-msgstr "SVP nustatymai"
+msgstr "Peržiūrėti nustatymus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -1555,22 +1483,17 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} prisijungė."
+msgstr "%s (prisijungė)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Nauja Grupė"
+msgstr "Grupė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Nauja Grupė"
+msgstr "Nėra aktyvių grupių."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -1579,10 +1502,8 @@ msgid "New Group"
 msgstr "Nauja Grupė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Nauja Grupė"
+msgstr "Palikti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1591,51 +1512,29 @@ msgid "Refresh"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko prisijungti prie SyncPlay grupės."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko sukurti SyncPlay grupės."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko išeiti iš SyncPlay grupės."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Automatinis"
+msgstr "Automatiškai: Toliau"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Automatic: Actively Watched"
-msgstr "Pašalinti serverį"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Automatic"
-msgstr "Automatinis"
+msgstr "Automatiškai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -1659,18 +1558,14 @@ msgid "Downloading %d%%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading"
-msgstr "Pašalinti serverį"
+msgstr "Atsisiunčiama"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
 msgstr "Nepavyko"
 
@@ -1701,11 +1596,9 @@ msgid "No channels available."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
-#| msgid "None"
 msgctxt "home screen section type"
 msgid "None"
-msgstr "Tuščia"
+msgstr "Nėra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
@@ -1743,10 +1636,8 @@ msgid "Secondary…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "Pasirinkti subtitrų takelį"
+msgstr "Subtitrų takelis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -1759,16 +1650,12 @@ msgid "Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "Pasirinkti garso takelį"
+msgstr "Garso takelis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video Quality"
-msgstr "Pakeisti vaizdo kokybę"
+msgstr "Vaizdo įrašo kokybė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Speed"
@@ -1779,22 +1666,16 @@ msgid "Aspect Ratio"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Size"
-msgstr "Subtitrų dydis: {0}"
+msgstr "Subtitrų dydis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Position: {0}"
 msgid "Subtitle Position"
-msgstr "Subtitrų pozicija: {0}"
+msgstr "Subtitrų pozicija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Subtitle Color: {0}"
 msgid "Subtitle Color"
-msgstr "Subtitrų spalva: {0}"
+msgstr "Subtitrų spalva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
@@ -1812,10 +1693,8 @@ msgid "Previous"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Chapter"
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Ankstesnis skyrius"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -1847,16 +1726,12 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Settings"
-msgstr "SVP nustatymai"
+msgstr "Nustatymai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Auto Fullscreen"
 msgid "Fullscreen"
-msgstr "Automatinis pilno ekrano režimas"
+msgstr "Visas ekranas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1900,10 +1775,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Configure Servers"
 msgid "Cancel Series"
-msgstr "Konfigūruoti serverius"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "The recording could not be cancelled."
@@ -1919,17 +1792,14 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti atsisiųstą %s kopiją?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Download"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti atsisiuntimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -1953,17 +1823,13 @@ msgid "Series Options"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (transkoduota)"
+msgstr "Įrašymas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (transkoduota)"
+msgstr "Įrašyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
@@ -1987,11 +1853,9 @@ msgid "One channel"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgctxt "series recording rule setting"
 msgid "Channels"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Kanalai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "All channels"
@@ -2044,16 +1908,12 @@ msgid "Sort channels by"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Channel number"
-msgstr "Pakeisti subtitrus"
+msgstr "Kanalo numeris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Recently watched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Neseniai žiūrėtas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Place favorite channels first"
@@ -2073,10 +1933,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Guide Settings"
-msgstr "SVP nustatymai"
+msgstr "Gido nustatymai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Guide settings could not be saved."
@@ -2149,20 +2007,12 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko paleisti šio elemento"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid "No Transcode"
 msgid "Retry with Transcode"
-msgstr "Jokio transkodavimo"
+msgstr "Bandykite dar kartą naudodami Perkodavimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat All"
@@ -2180,10 +2030,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play"
-msgstr "SyncPlay"
+msgstr "Leisti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Pause"
@@ -2196,10 +2044,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Favorites"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti iš mėgstamų"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2236,10 +2082,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "Nepavyko"
+msgstr "Anonsas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Scenes"
@@ -2259,10 +2103,8 @@ msgid "Sub"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Subtitrų dydis: {0}"
+msgstr "Subtitrai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
@@ -2300,10 +2142,8 @@ msgid "Community Rating"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Date Played"
-msgstr "Automatinis paleidimas"
+msgstr "Paleidimo data"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Play Count"
@@ -2363,23 +2203,17 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Pašalinti serverį"
+msgstr "Mėgstami"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections"
-msgstr "Pašalinti serverį"
+msgstr "Kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "SyncPlay"
+msgstr "Leisti viską"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -2428,7 +2262,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Schedule"
-msgstr ""
+msgstr "Tvarkaraštis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -2440,10 +2274,8 @@ msgid "No programs are listed right now."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Ankstesnė diena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
@@ -2467,10 +2299,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Serveris sėkmingai pridėtas."
+msgstr "Ankstesni kanalai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -2490,16 +2320,12 @@ msgid "Latest Recordings"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Recording Folders"
-msgstr "Atidaryti konfigūracijos aplanką"
+msgstr "Įrašymo aplankai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Serverio konfigūracija"
+msgstr "Dar nieko neužfiksuota."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -2527,17 +2353,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Žiūrėti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch Channel"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Žiūrėti kanalą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2556,10 +2378,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record Series"
-msgstr "Pašalinti serverį"
+msgstr "Įrašyti seriją"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
@@ -2571,10 +2391,8 @@ msgid "Showing the next %d programs."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Channel"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Kanalas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -2597,10 +2415,9 @@ msgid "Instant Mix"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Pasirinkti garso takelį"
+msgstr "%d takelių"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Album Artists"
@@ -2619,14 +2436,8 @@ msgid "Songs"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko pradėti atkūrimo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -2667,19 +2478,15 @@ msgid "Clear"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "To Playlist"
-msgstr "Pašalinti serverį"
+msgstr "Į grojaraštį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The queue is empty."
@@ -2695,26 +2502,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Prisijungimo vardas:"
+msgstr "Pervardyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti grojarašti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti %s grojaraštį?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -2749,10 +2551,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Serveris:"
+msgstr "Rezultatai pagal užklausą \"%s\""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "People"
@@ -2789,24 +2590,12 @@ msgid "Seasons"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko įkelti daugiau elementų."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko įkelti šio puslapio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "On Now"
@@ -2838,10 +2627,8 @@ msgid "Upcoming News"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailers"
-msgstr "Nepavyko"
+msgstr "Anonsai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
@@ -2920,50 +2707,33 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load your display settings."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko įkelti ekrano nustatymų."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
 msgid "Display settings saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save your display settings."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko išsaugoti ekrano nustatymų."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Remove Watched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Pašalinti žiūrėtus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "žiūrėtas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Pašalinti serverį"
+msgstr "Ištrinti žiūrėtus atsisiuntimus %s aplanke?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Show advanced settings"
@@ -3032,14 +2802,8 @@ msgid "Nothing downloaded to browse offline."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko pasiekti serverio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home Screen Layout"
@@ -3068,28 +2832,16 @@ msgid "Section %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen layout."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko įkelti pagrindinio ekrano išdėstymo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko išsaugoti pagrindinio ekrano išdėstymo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "General"
@@ -3100,10 +2852,8 @@ msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "Serverio adresas: "
+msgstr "Serveriai ir vartotojai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -3127,14 +2877,8 @@ msgid "There is nothing to copy yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the log."
-msgstr ""
-"Nepavyko pridėti serverio.\n"
-"Patikrinkite savo sąsajos informaciją."
+msgstr "Nepavyko nukopijuoti žurnalo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -3147,28 +2891,20 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Prisijungimo vardas "
+msgstr "Naujas vartotojo vardas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Add Server"
 msgid "Add User"
-msgstr "Pridėti serverį"
+msgstr "Pridėti vartotoją"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Serverio konfigūracija"
+msgstr "Dar nėra sukonfigūruotų serverių."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Prisijungimo vardas:"
+msgstr "Vartotojai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -3177,28 +2913,21 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Serveris:"
+msgstr "Serveriai, skirti %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Serveris:"
+msgstr "Serveriai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Change Audio"
 msgid "Change PIN"
-msgstr "Pakeisti garsą"
+msgstr "Pakeisti PIN kodą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Serveris:"
+msgstr "Nustatyti PIN kodą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -3226,10 +2955,9 @@ msgid "Auto-download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti %s ir su juo išsaugotą prisijungimą?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3272,40 +3000,30 @@ msgid "Play from Beginning"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark Unwatched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Pažymėti kaip neperžiūrėtą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark Watched"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Pažymėti kaip žiūrėtą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Playlist"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti iš grojaraščio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Collection"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti iš kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti %s iš šio grojaraščio?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "Pašalinti serverį"
+msgstr "Pašalinti %s iš šios kolekcijos?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -3321,16 +3039,12 @@ msgid "Home"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Serveris:"
+msgstr "Serveris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Prisijungimo vardas:"
+msgstr "Vartotojas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -3376,20 +3090,16 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (transkoduota)"
+msgstr "Perkoduoti"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "SyncPlay įjungtas."
+msgstr "SyncPlay įjungtas"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
@@ -3431,7 +3141,7 @@ msgstr "SVP yra neaktyvus"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Disable"
-msgstr "Išjungtas"
+msgstr "Išjungti"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "SVP is Disabled"
