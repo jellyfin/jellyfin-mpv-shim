@@ -164,6 +164,35 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
         self.assertEqual(self.browser.route["kind"], "grid")
         self.assertEqual(self.browser.route["parent_id"], "lib1")
 
+    def test_the_ui_takes_mpvs_own_window_dragging(self):
+        """The renderer's half of the client-side title bar, against a real
+        mpv -- which is the only place it can be checked.
+
+        mpv refuses every VO drag while the pointer is inside an input
+        section enabled without ``allow-vo-dragging``, and every section
+        covers the whole screen unless given a mouse area. Ours are not, so
+        the title bar's ``begin-vo-dragging`` succeeded and moved nothing;
+        no error, no log, on every platform at once. The flag fixes that and
+        re-arms mpv's *built-in* dragging as a side effect, which would move
+        the window from a press-and-move over any scrollbar in the browser --
+        so the renderer turns that off for as long as the UI is up.
+
+        Only the second half is observable from out here (a section's enable
+        flags are not a property), and it is the load-bearing one: without
+        it the flag must not be passed at all. ``tests/lua/test_renderer.lua``
+        pins the flag itself; this pins that mpv accepts the trade.
+        """
+        self.assertTrue(self.app.ready.wait(15))
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if self.handle.input_builtin_dragging is False:
+                break
+            time.sleep(0.2)
+        self.assertIs(
+            self.handle.input_builtin_dragging, False,
+            "mpv's built-in dragging is still on while the browser owns the "
+            "pointer: dragging a scrollbar will move the window")
+
 
 
 

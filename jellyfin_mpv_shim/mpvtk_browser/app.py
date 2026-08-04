@@ -64,6 +64,7 @@ from types import SimpleNamespace
 from ..i18n import _
 from ..mpvtk.layout import natural_size
 from ..mpvtk.rawimage import cache_dir
+from ..utils import memory_is_tight
 from ..mpvtk.widgets import (
     Box,
     Busy,
@@ -276,6 +277,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Client-side decorations: draw our own title bar because the desktop
+        # is not drawing one. Pushed by refresh_window_controls rather than
+        # read per frame -- the answer is an mpv property, and on the jsonipc
+        # backend a property read is an IPC round trip.
+        # Screens left, and the count the caches were last shed at. Bumped
+        # by the navigation itself rather than derived from the async epoch;
+        # see _shed_caches_on_screen_change.
+        self._screen_seq = 0
+        self._shed_seq = 0
+        self._csd = False
+        self._maximized = False
         # Modal dialog: a builder callable -> Dialog node, or None.
         self._dialog = None
         # Download dialog state {"server","item","est","watched"} or None.
@@ -473,6 +485,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # triggered by a click leaves the pointer exactly where it was.
         self.tiles.set_hover(None)
         self._reset_scroll()
+        self._screen_seq += 1
         self._bump_epoch()
         self._load_route(route)
         # Ask the renderer to land focus on the page's own default action —
@@ -637,6 +650,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         refetched it.
         """
         self._reset_scroll()
+        self._screen_seq += 1
         self._bump_epoch()
         # Stale-while-revalidate: refresh Home on return (watched/resume
         # state may have changed) while showing the cached view meanwhile.
@@ -680,6 +694,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if route is None:
             return
         self._reset_scroll()
+        self._screen_seq += 1
         self._bump_epoch()
         # A page can be left before its fetch ever landed — Back bumps the
         # epoch, which drops the result on the floor. Going *back* to such
@@ -904,9 +919,76 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _pool(self, value):
         self._async.pool = value
 
+    def _on_scene_pushed(self):
+        """A scene reached the renderer (MpvtkApp.on_scene_pushed).
+
+        The strip cache frees bitmaps mpv may be compositing, so it needs to
+        count *pushes* and not builds -- a build can run twice for one push
+        and can raise without pushing at all. See StripStore.on_scene_pushed.
+        """
+        if self.strips is not None:
+            self.strips.on_scene_pushed()
+
     def _bump_epoch(self):
         """Invalidate every in-flight async result. Returns the new epoch."""
         return self._async.bump()
+
+    def _shed_caches_on_screen_change(self):
+        """Drop the decoded artwork of the screen just left.
+
+        Decoded images are the most expensive thing this app holds per
+        picture -- a 4K backdrop is 33 MB decoded against ~400 KB on the
+        wire -- and they exist for one job: compositing tile strips. Once a
+        row has been composited they are not needed again, and once the
+        screen is behind you neither is the row. So the moment the screen
+        changes is the moment nearly all of that memory has nothing left to
+        do, and holding it to a 96 MiB ceiling means holding it until
+        something else needs the room.
+
+        **Observed here, not done in the navigation itself.** navigate() is
+        reachable from mpv's event thread and from the websocket (a remote's
+        GoHome, a phone's DisplayContent), and this cache has no lock --
+        every other access to it is on the loop thread, where build() runs.
+        A counter bumped there and read here turns a cross-thread call into
+        a loop-thread observation, and costs nothing on the frames where
+        nothing happened, which is nearly all of them.
+
+        **Not the async epoch**, which was the first thing tried and is a
+        different question. _bump_epoch means "cancel what is in flight",
+        and four things do it without leaving the screen at all: a sort or
+        filter change, a collections toggle, a retry after a failure, and a
+        server switch that keeps its place. Shedding on those cut the cache
+        for the page the user is still looking at, so toggling a sort
+        re-decoded the visible screenful for nothing.
+        """
+        seq = self._screen_seq
+        if seq == self._shed_seq:
+            return
+        self._shed_seq = seq
+        if self.thumbs is not None:
+            self.thumbs.trim_memory()
+        # The composited rows are a different trade and normally not worth
+        # making: they are what makes going BACK instant, and back is the
+        # most common move there is. Recompositing a screenful is 20-140ms
+        # per row on a two-worker pool, behind placeholders, on a page whose
+        # scroll position was just restored -- paid to reclaim memory that a
+        # roomy machine was never short of. The 128 MiB LRU already sheds
+        # the screens you do not return to.
+        #
+        # It IS worth making on a machine that is short, which is the whole
+        # of the difference. Asked per screen change rather than once at
+        # startup because "busy" is a state, not a property: the answer on a
+        # laptop changes when something else wakes up. One small file read
+        # on Linux, one syscall on Windows, and only on a navigation.
+        if self.strips is not None:
+            tight = memory_is_tight()
+            # The composited rows are memory on both backends -- buffers in
+            # this process on libmpv, files in a RAM-backed scratch dir on
+            # mpv_ext -- so a short machine gets a smaller cache as well as
+            # a shed. One probe answers both.
+            self.strips.set_memory_pressure(tight)
+            if tight:
+                self.strips.trim_soon()
 
     # -------------------------------------------------------- async model
 
@@ -1579,6 +1661,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_clipboard_error = self._on_clipboard_error
         if hasattr(app, "on_forward"):
             app.on_forward = self._on_mouse_forward
+        if hasattr(app, "on_scene_pushed"):
+            # The strip cache's clock. Not build(): see StripStore.
+            app.on_scene_pushed = self._on_scene_pushed
 
     def reassert_window_state(self):
         """Re-assert window ownership on a FRESH renderer (which starts
@@ -2167,6 +2252,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Deliver any decoded posters before composing strips this frame.
         if self.thumbs is not None:
             self.thumbs.pump()
+        # Outside that guard: an owner with strips but no thumbs (a test
+        # double, an embedder) still has composited rows to shed.
+        self._shed_caches_on_screen_change()
         route = self.route
         if route["kind"] in LIVE_KINDS:
             self._poll_live_tv(route)
@@ -2205,6 +2293,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         toast = window_chrome.toast_node(self, w, h)
         if toast is not None:
             children.append(toast)
+        # Last: the window's own corner has to be over the page's, and over
+        # the now-playing bar that ends at the same pixel.
+        grip = window_chrome.resize_grip(self, w, h)
+        if grip is not None:
+            children.append(grip)
         page = Column(children, w=w, h=h, align="stretch")
         stops = theme.window_gradient()
         if not stops:
@@ -2349,6 +2442,58 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
         self._update = {"version": version, "url": url}
         self.invalidate()
+
+    # -- client-side decorations -------------------------------------------
+
+    @property
+    def window_controls(self):
+        """Whether the top bar is standing in for a title bar this frame."""
+        return self._csd
+
+    @property
+    def maximized(self):
+        """Live only while ``window_controls`` is on — it is read to pick the
+        maximize button's glyph and nothing else consults it."""
+        return self._maximized
+
+    def refresh_window_controls(self):
+        """Re-take the window-chrome snapshot.
+
+        Called at startup and from ``playerManager.on_decorations_changed``.
+        It has to be a push, not a poll: on Wayland the answer arrives in a
+        compositor configure event, so a session's first frames can be drawn
+        before mpv knows, and fullscreen/maximize change it again later.
+        """
+        ask = getattr(self.controller, "window_chrome_state", None)
+        if ask is None:
+            return          # no player behind us (tests, offline stand-ins)
+        try:
+            state = ask() or {}
+        except Exception:
+            log.debug("could not ask about window decorations", exc_info=True)
+            return
+        wanted = bool(state.get("controls"))
+        maximized = bool(state.get("maximized"))
+        if (wanted, maximized) != (self._csd, self._maximized):
+            self._csd = wanted
+            self._maximized = maximized
+            self.invalidate()
+
+    def close_window(self):
+        """The title bar's close button. Deliberately the same path as mpv's
+        own close (CLOSE_WIN), so ``close_to_tray`` and the no-tray safeguard
+        decide what closing means here exactly as they do there -- a second
+        close button with its own idea of "close" is how the two drift."""
+        self._tell_controller("close_window")
+
+    def minimize_window(self):
+        """Iconify. Not ``minimize()``, which is this app's own tray-minimize
+        (it tears the window down and keeps running headless) -- the title
+        bar's button has to mean what it means in every other window."""
+        self._tell_controller("minimize_window")
+
+    def toggle_maximized(self):
+        self._tell_controller("toggle_window_maximized")
 
     @property
     def offline(self):

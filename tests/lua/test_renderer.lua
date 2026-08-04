@@ -17,6 +17,11 @@ fake.install()
 local RENDERER = arg[1]
 assert(RENDERER, "usage: test_renderer.lua <path to renderer.lua>")
 
+-- Present on mpv 0.39+, and the renderer reads it at load time to decide
+-- whether it may hand VO dragging back (see state.vodrag). Set BEFORE the
+-- chunk runs, because that answer is taken once and never revisited.
+fake.log.props["input-builtin-dragging"] = true
+
 local chunk = assert(loadfile(RENDERER))
 chunk()
 
@@ -520,6 +525,179 @@ for _, e in ipairs(fake.log.events) do
     if type(e) == "table" and e.t == "forward" then fwd = fwd + 1 end
 end
 eq(fwd, 1, "the mouse forward button sends one forward event")
+
+-- ========================================== client-side title bar
+
+-- `wdrag` marks a node that stands in for a title bar, on a window the
+-- desktop drew none for. Both gestures are handled HERE rather than sent
+-- to Python as events: `begin-vo-dragging` means "the button the user is
+-- holding is now moving the window", so it has to be issued during the
+-- press, and a round trip is not a gesture mpv will still accept.
+local function titlebar(extra)
+    local node = { id = "csd-bar", t = "rect", x = 0, y = 0, w = 400, h = 60 }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+local function commanded(name)
+    for _, c in ipairs(fake.log.commands) do
+        if type(c) == "table" and c[1] == name then return true end
+    end
+    return false
+end
+
+scene({ titlebar({ wdrag = true }) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(commanded("begin-vo-dragging"), "pressing the title bar drags the window")
+
+-- Double-clicking a title bar maximizes it, everywhere.
+fake.log.props["window-maximized"] = false
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], true,
+   "double-clicking the title bar maximizes the window")
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], false,
+   "and again restores it")
+
+-- A bar that is also a button stays a button. The window controls sitting
+-- ON the bar are separate, higher nodes, and node_at prefers them -- so
+-- without this, every button in the top bar would drag the window instead
+-- of doing its job.
+scene({ titlebar({ wdrag = true, click = true }) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.reset_events()
+fake.key("mbtn_left")
+ok(not commanded("begin-vo-dragging"),
+   "a clickable node on the title bar does not drag the window")
+
+-- An ordinary bar is not a title bar. `wdrag` is set only while the UI is
+-- standing in for one, so a window WITH a title bar must not get a second,
+-- worse one that ignores snapping and edge tiling.
+scene({ titlebar({}) })
+fake.mouse(200, 30)
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not commanded("begin-vo-dragging"),
+   "a plain bar does not drag the window")
+fake.log.props["window-maximized"] = false
+fake.key("mbtn_left_dbl")
+eq(fake.log.props["window-maximized"], false,
+   "and double-clicking it does not maximize")
+
+-- mpv refuses EVERY VO drag while the pointer is inside an input section
+-- that was enabled without `allow-vo-dragging`, and a section's mouse area
+-- covers the whole screen unless one is set. Our three sections set none,
+-- so without the flag begin-vo-dragging above succeeds and moves nothing --
+-- which is exactly how it shipped, and is invisible from inside the
+-- renderer. These pin the flag onto every section that can be on screen.
+for _, section in ipairs({ "mpvtk_mouse", "mpvtk_wheel", "mpvtk_thumb" }) do
+    eq(fake.log.section_flags[section], "allow-vo-dragging",
+       section .. " is enabled with allow-vo-dragging")
+end
+
+-- ...and the other half of that trade: the flag also re-arms mpv's OWN
+-- dragging, which starts a window move from a press-and-move anywhere and
+-- swallows the click. Over a UI that means dragging a scrollbar moves the
+-- window, so it is off for as long as the UI owns the pointer.
+eq(fake.log.props["input-builtin-dragging"], false,
+   "mpv's built-in dragging is off while the UI is up")
+fake.send("mpvtk-active", "no")
+eq(fake.log.props["input-builtin-dragging"], true,
+   "and is given back for playback, where it is mpv's own behaviour")
+fake.send("mpvtk-active", "yes")
+eq(fake.log.props["input-builtin-dragging"], false,
+   "and taken away again when the UI comes back")
+
+-- ========================================== client-side resize grip
+
+-- `wsize` marks the corner. mpv has no "begin resizing" command outside
+-- Wayland's own edge zone, so the renderer resizes the window the one way a
+-- client always can: by writing `geometry`, which every VO honours as a
+-- resize command.
+local function grip(extra)
+    local node = { id = "csd-grip", t = "rect", x = 378, y = 578,
+                   w = 22, h = 22, wsize = "se" }
+    for k, v in pairs(extra or {}) do node[k] = v end
+    return node
+end
+
+local function geometry()
+    return fake.log.props["geometry"]
+end
+
+fake.log.props["osd-width"] = 400
+fake.log.props["osd-height"] = 600
+fake.log.props["window-maximized"] = false
+fake.log.props["fullscreen"] = false
+fake.log.props["geometry"] = nil
+
+scene({ grip() })
+fake.mouse(390, 590)
+fake.send("mpvtk-debug", fake.token({ cmd = "down", x = 390, y = 590 }))
+fake.advance(1)
+fake.mouse(490, 640)
+eq(geometry(), "500x650",
+   "dragging the grip resizes the window to the pointer plus the grab")
+
+-- The pointer is OUTSIDE the window for most of a grow -- the corner only
+-- catches up once the window has grown -- so hover goes false on the first
+-- pixel of the drag. Those events still carry live coordinates, because the
+-- held button keeps the pointer grabbed, and ignoring them stalls the whole
+-- gesture: no resize, so the pointer never comes back inside, so no resize.
+-- (Measured against a real mpv: this is what made the grip do nothing.)
+fake.advance(1)
+fake.observe("mouse-pos", { x = 600, y = 700, hover = false })
+eq(geometry(), "610x710",
+   "a resize keeps tracking the pointer once it leaves the window")
+
+-- A floor, and the same one player_window uses -- a window dragged down to
+-- nothing is one the app would then refuse to reopen at that size.
+fake.advance(1)
+fake.mouse(10, 10)
+eq(geometry(), "320x240", "the window cannot be dragged below 320x240")
+
+-- The release writes the final size unthrottled: the pacing above is there
+-- so a fast drag does not queue dozens of resize commands, and it can drop
+-- the last few pixels -- which are the ones the user actually chose.
+fake.mouse(500, 500)
+fake.send("mpvtk-debug", fake.token({ cmd = "up", x = 500, y = 500 }))
+eq(geometry(), "510x510", "releasing writes the size the drag ended on")
+fake.advance(1)
+fake.mouse(700, 700)
+eq(geometry(), "510x510", "and moving after the release resizes nothing")
+
+-- The grip outranks a scrollbar gutter it shares a corner with. bar_at has
+-- no z-order and a page scroller's gutter runs the full height of the window
+-- at its right edge, straight through the drawn dots -- so without this the
+-- one visible resize affordance page-scrolls the list instead.
+scene({
+    { id = "page", t = "scroll", axis = "y", x = 0, y = 0, w = 400, h = 600,
+      cw = 400, ch = 4000, bar = true },
+    grip(),
+})
+fake.log.props["geometry"] = nil
+fake.mouse(390, 590)
+fake.send("mpvtk-debug", fake.token({ cmd = "down", x = 390, y = 590 }))
+fake.advance(1)
+fake.mouse(440, 640)
+eq(geometry(), "450x650", "the scrollbar gutter swallowed the resize grip")
+fake.send("mpvtk-debug", fake.token({ cmd = "up", x = 440, y = 640 }))
+
+-- Maximized, the geometry write would silently un-maximize the window
+-- instead of resizing it, which is not what dragging a corner asks for.
+-- (The grip is not drawn there either; this is the second lock.)
+fake.log.props["window-maximized"] = true
+local geo_before = geometry()
+fake.mouse(390, 590)
+fake.send("mpvtk-debug", fake.token({ cmd = "down", x = 390, y = 590 }))
+fake.advance(1)
+fake.mouse(600, 600)
+eq(geometry(), geo_before, "a maximized window is not resized by the grip")
+fake.log.props["window-maximized"] = false
+fake.send("mpvtk-debug", fake.token({ cmd = "up", x = 600, y = 600 }))
 
 -- ============================== the MENU key and mpvtk-focus
 

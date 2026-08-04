@@ -43,8 +43,8 @@ class TestSettings(unittest.TestCase):
     def test_settings_tabs_present(self):
         self.b._open_settings()
         nodes, _h = build_scene(self.b)
-        for tab in ("general", "home", "display", "servers", "downloads",
-                    "logs"):
+        for tab in ("general", "browse", "playback", "home", "servers",
+                    "downloads", "logs"):
             self.assertIn("stab-" + tab, ids(nodes))
 
     def test_advanced_section_is_collapsed_by_default(self):
@@ -72,9 +72,9 @@ class TestSettings(unittest.TestCase):
         not buried in the auto-generated Advanced list."""
         from jellyfin_mpv_shim.mpvtk_browser import config as real
 
-        interface = dict(real.sections())["Interface"]
+        controls = dict(real.sections("playback"))["Player Controls"]
         self.assertEqual(
-            interface[interface.index("osc_style"):][:3],
+            controls[controls.index("osc_style"):][:3],
             ["osc_style", "hud_grab_keys", "hud_wake_key"])
         self.assertIn("osc_style", real.NOTES)
         advanced = dict(real.sections()).get("Advanced", [])
@@ -86,7 +86,8 @@ class TestSettings(unittest.TestCase):
         it on was to know the key existed."""
         from jellyfin_mpv_shim.mpvtk_browser import config as real
 
-        self.assertIn("discord_presence", dict(real.sections())["Interface"])
+        self.assertIn("discord_presence",
+                      dict(real.sections())["This Device"])
         self.assertNotIn("discord_presence",
                          dict(real.sections()).get("Advanced", []))
         self.assertIn("discord_presence", real.NOTES)
@@ -103,8 +104,12 @@ class TestSettings(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser import config as real
 
         groups = dict(real.sections())
+        advanced_title = next(t for t in groups
+                              if t not in dict(real.SECTIONS))
+        curated = {k for title, keys in groups.items()
+                   if title != advanced_title for k in keys}
         for key in ("enable_gui", "headless"):
-            self.assertNotIn(key, groups["Interface"])
+            self.assertNotIn(key, curated)
             self.assertIn(key, groups.get("Advanced", []))
             note = real.NOTES.get(key)
             self.assertIsNotNone(note, "%s hides the way to undo it and says "
@@ -123,7 +128,7 @@ class TestSettings(unittest.TestCase):
             for label in (real.label_for("start_minimized"),
                           real.label_for("fullscreen")):
                 self.assertIn(label, note)
-        shown = dict(real.sections())["Interface"]
+        shown = dict(real.sections())["Window"]
         self.assertTrue({"close_to_tray", "allow_background"} & set(shown),
                         "the recipe's anchor left the visible section")
 
@@ -185,7 +190,10 @@ class TestSettings(unittest.TestCase):
 
         b = MpvtkBrowser(app=None, source=FakeSource())   # the real schema
         b.controller = Ctl()
-        b._open_settings()
+        # The audio group lives on the Playback tab since the General page
+        # was split; opening on the default tab renders a form with no audio
+        # controls in it at all.
+        b.open_settings("playback")
         return b
 
     @staticmethod
@@ -773,11 +781,119 @@ class TestOfflineGates(unittest.TestCase):
             {"id": "u2", "name": "B", "active": False}]
         self.assertIn("nav-user", ids(build_scene(b)[0]))
 
-class TestDisplayTab(unittest.TestCase):
-    """The Display tab: per-user preferences held on the *server*.
+class TestTheTabSplit(unittest.TestCase):
+    """The config form is one page per tab now (config.TAB_SECTIONS).
+
+    A reorganization's failure mode is not a crash, it is a setting that
+    quietly stops being reachable — or one that appears on three pages at
+    once. Both are cheap to pin and impossible to eyeball on a form this
+    size, so they are pinned.
+    """
+
+    def _real(self):
+        from jellyfin_mpv_shim.mpvtk_browser import config as real
+        return real
+
+    def _keys(self, groups):
+        return [k for _t, keys in groups for k in keys]
+
+    def test_no_setting_was_lost_in_the_split(self):
+        real = self._real()
+        everywhere = set(self._keys(real.sections()))
+        tabbed = set()
+        for tab in real.TAB_SECTIONS:
+            tabbed |= set(self._keys(real.sections(tab)))
+        self.assertEqual(everywhere - tabbed, set(),
+                         "these settings are on no tab and cannot be reached")
+
+    def test_no_setting_is_on_two_tabs(self):
+        real = self._real()
+        seen, twice = set(), set()
+        for tab in real.TAB_SECTIONS:
+            for key in self._keys(real.sections(tab)):
+                (twice if key in seen else seen).add(key)
+        self.assertEqual(twice, set(),
+                         "these settings are drawn on more than one tab")
+
+    def test_advanced_lands_on_exactly_one_tab(self):
+        """Advanced is "everything uncurated", computed against every tab's
+        keys. Computed per tab it would list the other two tabs' settings as
+        uncurated — every key on every page, and the split would have made
+        the form longer."""
+        from jellyfin_mpv_shim.i18n import _ as translate
+
+        real = self._real()
+        title = translate("Advanced")
+        with_advanced = [tab for tab in real.TAB_SECTIONS
+                         if title in dict(real.sections(tab))]
+        self.assertEqual(with_advanced, [real.ADVANCED_TAB])
+        advanced = set(dict(real.sections(real.ADVANCED_TAB))[title])
+        # Curated groups only -- Advanced is itself one of the groups on the
+        # General tab, so comparing it against every group would compare it
+        # against itself.
+        curated = {k for tab in real.TAB_SECTIONS
+                   for t, keys in real.sections(tab) if t != title
+                   for k in keys}
+        self.assertEqual(curated & advanced, set(),
+                         "these are curated onto a tab AND listed under "
+                         "Advanced, so they are editable in two places")
+
+    def test_every_tab_actually_has_something_on_it(self):
+        # A tab in the bar that renders an empty page reads as broken.
+        real = self._real()
+        for tab in real.TAB_SECTIONS:
+            with self.subTest(tab=tab):
+                self.assertTrue(real.sections(tab), "%s is empty" % tab)
+
+    def test_an_unknown_tab_draws_nothing_rather_than_everything(self):
+        # sections(None) means "every group" — the answer for "is this key
+        # reachable at all". A typo'd tab name must not silently get that.
+        real = self._real()
+        self.assertEqual(real.sections("nonesuch"), [])
+        self.assertTrue(real.sections(None))
+
+    def test_the_activity_split_actually_holds(self):
+        """The tabs are meant to divide by what you are doing. Spot-checked
+        on the settings people go looking for, because the grouping is the
+        whole feature and a later edit can quietly undo it."""
+        real = self._real()
+        expected = {
+            "playback": ["osc_style", "audio_device", "subtitle_size",
+                         "transcode_hevc", "skip_intro_on_seek"],
+            # Downloading is acquiring library content for later, so it
+            # browses rather than watches -- and the Downloads *tab* is the
+            # manager, already full of per-item media management.
+            "browse": ["theme", "scroll_mode", "poster_scale",
+                       "library_image_cache_mb", "sync_path",
+                       "auto_download_enable"],
+            "general": ["player_name", "window_controls", "check_updates"],
+        }
+        for tab, keys in expected.items():
+            on_tab = set(self._keys(real.sections(tab)))
+            for key in keys:
+                with self.subTest(tab=tab, key=key):
+                    self.assertIn(key, on_tab)
+        # The keep-running pair is one question asked of two machines, and
+        # sections() shows whichever this one can honour -- so assert on the
+        # pair, not on either name.
+        self.assertTrue(
+            {"close_to_tray", "allow_background"}
+            & set(self._keys(real.sections("general"))),
+            "neither keep-running toggle is on the General tab")
+
+
+class TestHomeScreenTab(unittest.TestCase):
+    """The Home Screen tab: which rows the home screen has, and how two of
+    them are illustrated. Both are per-user preferences held on the
+    *server*.
 
     Everything here is shared with jellyfin-web, which is why it loads and
     saves asynchronously and why a stale read must never be written back.
+
+    The artwork half was a tab of its own ("Display") holding that single
+    checkbox; it lives here now because what it governs is the Next Up and
+    Continue Watching *rows*, so the tab that decides whether you have those
+    rows is the tab that decides what they look like.
     """
 
     def _browser(self, prefs=None, fail=None):
@@ -799,17 +915,36 @@ class TestDisplayTab(unittest.TestCase):
 
         src.get_user_prefs = get_user_prefs
         src.save_user_prefs = save_user_prefs
+        # Present so the tab is not in its offline state; the layout half is
+        # not what these assert on.
+        src.save_home_layout = lambda *a: None
         b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
         b._pool = _SyncPool()
         b.server = "srv1"
         b._open_settings()
-        b.route["_tab"] = "display"
+        b.route["_tab"] = "home"
         # These preferences live on the server, so the first frame of the tab
-        # is a spinner that kicks the fetch off -- exactly as the Home Screen
-        # tab behaves. Under _SyncPool the fetch completes inside that frame,
-        # so one throwaway build leaves the tab showing its real contents.
+        # is a spinner that kicks the fetch off. Under _SyncPool the fetch
+        # completes inside that frame, so one throwaway build leaves the tab
+        # showing its real contents.
         build_scene(b)
         return b
+
+    def test_the_layout_and_the_artwork_option_share_one_page(self):
+        # The point of the fold: one page, one fetch, one error state.
+        b = self._browser()
+        nodes, _h = build_scene(b)
+        got = ids(nodes)
+        self.assertIn("home-slot-0", got)
+        self.assertIn("display-episode-images", got)
+
+    def test_both_halves_come_from_one_fetch(self):
+        # Two reads of the same DisplayPreferences document. Two spinners and
+        # two retries on one page would be a worse screen than the two tabs
+        # this replaced.
+        b = self._browser()
+        self.assertIsNotNone(b.route.get("_home_layout"))
+        self.assertIsNotNone(b.route.get("_display_prefs"))
 
     def test_the_toggle_renders_with_the_servers_value(self):
         b = self._browser({"episode_images": True})
@@ -856,20 +991,25 @@ class TestDisplayTab(unittest.TestCase):
         'keep' a value that was never loaded, then save that guess."""
         b = self._browser(fail="load")
         nodes, _h = build_scene(b)
-        self.assertIn("display-retry", ids(nodes))
+        self.assertIn("home-retry", ids(nodes))
         self.assertNotIn("display-episode-images", ids(nodes))
+        self.assertNotIn("home-slot-0", ids(nodes))
 
     def test_offline_says_so_instead_of_failing_at_save_time(self):
         src = FakeSource()
+        # Neither half of the page has a server to write to. Offering the
+        # controls would fail only at save time, which is the worst moment.
         self.assertFalse(hasattr(src, "save_user_prefs"))
+        self.assertFalse(hasattr(src, "save_home_layout"))
         b = MpvtkBrowser(app=None, source=src, config=FakeConfig())
         b._pool = _SyncPool()
         b._open_settings()
-        b.route["_tab"] = "display"
+        b.route["_tab"] = "home"
         build_scene(b)
         nodes, _h = build_scene(b)
         self.assertNotIn("display-episode-images", ids(nodes))
-        self.assertNotIn("display-retry", ids(nodes))
+        self.assertNotIn("home-retry", ids(nodes))
+        self.assertNotIn("home-slot-0", ids(nodes))
 
     def test_a_superseded_fetch_does_not_strand_the_tab(self):
         """`on_done` is epoch-gated, so a fetch overtaken by a background
@@ -893,10 +1033,11 @@ class TestDisplayTab(unittest.TestCase):
 
         src.get_user_prefs = get_user_prefs
         src.save_user_prefs = lambda *a: None
+        src.save_home_layout = lambda *a: None
         b._open_settings()
-        b.route["_tab"] = "display"
+        b.route["_tab"] = "home"
         build_scene(b)
-        self.assertFalse(b.route.get("_display_loading"),
+        self.assertFalse(b.route.get("_home_loading"),
                          "the tab is stuck on a spinner for good")
         # ...and the next visit actually re-fetches rather than returning
         # early on the stale guard.

@@ -195,9 +195,22 @@ You can use the config file to enable and disable features.
   - The settings form only offers this once the toggle above it (`close_to_tray`, or `allow_background` where there is no tray) is enabled, since it is asking the app to start in the state that toggle permits. Turning that toggle back off also turns this one off, so it can't keep acting from a checkbox that is no longer on screen; the form says so when it happens.
 - `remember_window_size` - Persist the window size across launches. Default: `true`
   - Off means the size is a fixed preference the app always opens at, which is what you want if you deliberately pinned one.
+- `window_controls` - Draw a drag handle and minimize/maximize/close buttons into the library browser's own top bar, for windows the desktop gives no title bar of its own. One of `auto`, `always`, `never`. Default: `auto`
+  - `auto` asks MPV rather than guessing from the desktop environment, because MPV's `border` property already is the answer. On a Wayland compositor with no `zxdg_decoration_manager_v1` — which is every GNOME session, since mutter supports client-side decorations only — MPV reports `border=no` for a window nothing is decorating; where the protocol does exist it reports whichever mode the compositor actually granted. So KDE, sway and X11 keep their real title bars and get no second one, and GNOME Wayland gets a working one instead of a window it cannot move or close.
+  - It follows `--border=no` for the same reason, so setting that deliberately gets you the controls rather than a window with no way out.
+  - The top bar becomes the title bar: drag it to move the window, double-click it to maximize. Buttons on the bar keep working — only the empty space drags. Fullscreen suppresses all of it, there being no title bar anywhere in fullscreen.
+  - The bottom-right corner becomes a resize grip (three dots), because a window with no frame has no edges to drag either. It is not drawn while the window is maximized. On Wayland MPV also implements its own invisible resize zone along the window edges, which takes over within a few pixels of the border.
+  - The playback HUD grows the same three buttons and the same corner, so a windowed video is not a window you can only get out of by pressing ESC first.
+  - `always` and `never` override the detection. `never` is the escape hatch if your compositor decorates windows in a way MPV does not report.
+  - **Dragging needs MPV 0.39.** MPV refuses to drag its window while the pointer is inside a script's input section, and the only way to say "except for this one" also re-arms MPV's own drag-from-anywhere — which over a UI moves the window instead of dragging a scrollbar. Turning that off is `--input-builtin-dragging`, added in 0.39, so on 0.38 the buttons and the resize grip work but the bar does not drag. Resizing and the buttons need nothing special.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
-- `library_image_cache_mb` - Disk budget for cached library artwork. Default: `256`
+- `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
+  - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.
+  - Two other caches sit behind this one, and neither has a setting because neither wants a number from you.
+  - The **artwork cache** keeps the server's own compressed images in `$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork` (`~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows; `--config DIR` puts it in `DIR/cache` so an isolated config stays isolated). It is **persistent**: every entry is keyed by the server's own image tag, so last week's poster is still this week's poster, and it is kept between launches rather than re-fetching a whole library on every start. Up to **1 GiB**, but never more than 5% of what is free on that filesystem — so it shrinks continuously on a filling disk instead of waiting for a threshold. Anything unread for 30 days is reaped, which is also what clears out entries orphaned by changing the Cover Size or the theme's tile shape (those change the cache key rather than replacing the entry). Deleting the directory is always safe.
+  - The **strip cache** holds composited rows as raw bitmaps — in this process on libmpv, in a scratch directory on `mpv_ext` — capped at 128 MiB, or 32 MiB on a machine short of RAM (under 8 GB installed, or under 2 GB free). One row is up to ~31 MiB at 4K, so the larger figure is a few screenfuls; a miss is a recomposite on a worker thread, not a refetch. The cap matters most under `mpv_ext`, where these are files in a scratch directory that is RAM-backed wherever one exists — on a small machine `/run/user` is small too, so they land in `/dev/shm`, which is RAM under another name. Rows the current frame is drawing are never evicted, whatever the budget says. These are not persistent and should not be: they are composited for this window, this theme and this cover size.
+  - Where there is nowhere persistent to write (a sandbox, a read-only home), the artwork cache falls back to a RAM-backed scratch directory at 64 MiB. Scratch directories live in a per-configuration namespace (`<base>/jellyfin-mpv-shim.<id>/`) and are swept at startup, so a session that crashed or was killed does not leave its artwork behind forever — including on Windows, where a process cannot be probed for liveness at all: the single-instance lock guarantees one live copy per configuration, so anything else in that namespace was left by a copy that is gone. Two copies started with different `--config` directories get different namespaces and cannot reclaim each other's.
 - `scroll_wheel_pixels` - Pixels a single wheel notch scrolls in the library browser. Default: `80`
   - Scrolling glides. On an equal-row grid the step is rounded so a whole number of notches spans one row, so a trackpad or trackball never leaves you a sliver of a row off. Raise it to scroll faster, lower it for finer control.
 - `scroll_mode` - How much of a row the wheel may leave you in the middle of. One of `continuous`, `aligned`, `row`. Default: `continuous`
@@ -338,7 +351,7 @@ You can use the config file to enable and disable features.
 - `notify_updates` - Display update notification when playing media. Default: `true`
   - Notification will only display once until the application is restarted.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
-  - Also in Settings → Interface. Needs the optional `pypresence` package
+  - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
     restart; with it missing the setting stays on but does nothing, which
     the settings screen now says.
@@ -353,7 +366,7 @@ episodes are fetched for you automatically.
 
 - `sync_path` - Where downloaded media is stored. Default: `null` (a `downloads` folder in the
   config directory)
-  - Change this from *Settings → Downloads*, not by hand: moving the store copies the files and
+  - Change this from *Settings → Browse → Downloads*, not by hand: moving the store copies the files and
     updates the catalog. Editing the path directly leaves the existing downloads behind.
 - `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
 - `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`

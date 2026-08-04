@@ -88,6 +88,21 @@ class Box(Element):
         # safe to request unconditionally and the stock look stays flat.
         hover=None,
         repeat=False,  # hold-repeat: on_click refires while held down
+        # Client-side decorations: pressing this box drags the whole window
+        # and double-clicking it toggles maximized, the way a title bar does.
+        # Handled renderer-side (mpv's begin-vo-dragging) rather than as an
+        # event, because a drag has to start on the PRESS, while the button is
+        # still down -- a round trip to Python and back is not a gesture mpv
+        # will still accept. Children keep their own clicks: node_at returns
+        # the topmost node, so a button on the bar is hit before the bar is.
+        window_drag=False,
+        # Client-side decorations, the other half: pressing this box and
+        # dragging resizes the window from the edge(s) named here -- "e",
+        # "s" or "se". Renderer-side for the same reason as window_drag (a
+        # resize is a gesture, not a click), but by a different mechanism:
+        # mpv has no "begin resizing" command, so the renderer writes
+        # `geometry`, which every VO honours as a resize.
+        window_resize=None,
         **kw,
     ):
         super().__init__(**kw)
@@ -111,6 +126,8 @@ class Box(Element):
         self.on_context = on_context
         self.hover = hover
         self.repeat = repeat
+        self.window_drag = window_drag
+        self.window_resize = window_resize
 
 
 class Row(Box):

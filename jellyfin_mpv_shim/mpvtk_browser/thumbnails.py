@@ -19,9 +19,11 @@ not just an in-memory LRU.
 import hashlib
 import logging
 import os
+import shutil
 from urllib.parse import urlparse
 import queue
 import threading
+import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -34,7 +36,57 @@ log = logging.getLogger("mpvtk_browser.thumbnails")
 
 # Default in-memory budget for decoded images, sized by bytes (not entry
 # count) so a mix of small posters and large backdrops can't balloon memory.
-DEFAULT_MEM_MB = 128
+# Kept equal to conf.py's library_image_cache_mb, which is what the app
+# actually passes -- see there for why it is a working set and not a library.
+DEFAULT_MEM_MB = 96
+
+# ...and on disk, where what is kept is the server's own COMPRESSED bytes,
+# not decoded pixels: a poster is 20-80 KiB here against ~300 KiB decoded.
+#
+# The budget follows the MEDIUM, which is what these two numbers are for.
+# Artwork is long-lived -- the cache key folds in the server's own image tag,
+# so an entry is never wrong, only unwanted -- and it belongs on a disk that
+# keeps it between launches. A gigabyte there is a whole large library's
+# artwork at every size it has been drawn at, kept for as long as it is being
+# used, on a medium where that is a rounding error.
+#
+# The small one is the fallback, for when there is nowhere persistent to put
+# it and the cache lands in the session's tmpfs instead. That is RAM, on
+# machines that may only have 8 GiB of it, and everything in it dies with the
+# session anyway, so it gets a sixteenth of the room.
+#
+# Neither is a promise: see ThumbnailStore.LOW_DISK_SHARE.
+DEFAULT_DISK_MB = 1024
+SCRATCH_DISK_MB = 64
+
+
+def disk_cache(app=None):
+    """Where the artwork cache goes, and how much it may hold there.
+
+    Returns ``(path, max_disk_mb)``. Prefers a real cache directory
+    (XDG_CACHE_HOME, ~/Library/Caches, LOCALAPPDATA) so the artwork survives
+    a restart -- every entry is content-addressed, so a poster fetched last
+    week is still the right poster, and re-fetching a whole library on every
+    launch is a cost paid for nothing.
+
+    Falls back to a scratch directory, RAM-backed where one is available,
+    only when that directory cannot be created at all -- a read-only home,
+    a sandbox. Which is to say: hardly ever, and never on its own, since a
+    machine that will not take a cache directory will not take a config one
+    either. It is here so that a cache cannot stop the app starting. Smaller
+    there, and swept like any scratch directory (``rawimage.cache_dir``).
+    """
+    from ..conffile import get_cache_dir
+    from ..constants import APP_NAME
+
+    path = get_cache_dir(app or APP_NAME, "artwork")
+    if path is not None:
+        return path, DEFAULT_DISK_MB
+    from ..mpvtk.rawimage import cache_dir
+
+    log.info("No persistent cache directory; artwork will not be kept "
+             "between launches.")
+    return cache_dir("mpvtk-thumbs-"), SCRATCH_DISK_MB
 
 # Distinct hosts we keep pools for. Small on purpose: this store talks to the
 # logged-in Jellyfin servers and nothing else.
@@ -88,6 +140,15 @@ class MemoryCache:
             _k, (_v, nb) = self._items.popitem(last=False)
             self._bytes -= nb
 
+    def trim(self, max_bytes):
+        """Drop least-recently-used entries until the total is within
+        ``max_bytes``. Unlike ``put``'s eviction this may empty the cache
+        entirely -- it is called when the caller knows the entries have
+        stopped being interesting, not when one more has to fit."""
+        while self._bytes > max_bytes and self._items:
+            _k, (_v, nb) = self._items.popitem(last=False)
+            self._bytes -= nb
+
     def __len__(self):
         return len(self._items)
 
@@ -105,8 +166,42 @@ def _image_bytes(image):
 
 
 class ThumbnailStore:
+    #: Bytes written between prunes. A prune stats the whole cache dir, so
+    #: it is paced by traffic rather than run per file -- a few times per
+    #: browsing session instead of a few times per screen.
+    PRUNE_EVERY = 16 * 1024 * 1024
+
+    #: The most of a filesystem the cache will ever occupy, whatever its
+    #: configured budget says: five per cent of what is available to it.
+    #:
+    #: One rule rather than a "low disk space" mode, because it already is
+    #: one. On a roomy disk 5% is far more than the budget and the budget
+    #: binds; the share only starts to matter below ~20 GiB free, and from
+    #: there it shrinks the cache continuously instead of waiting for a
+    #: threshold to trip. It is measured against free space *plus what we
+    #: already hold*, or the cache would ratchet its own allowance down
+    #: every time it grew.
+    LOW_DISK_SHARE = 0.05
+
+    #: ...and the floor that headroom may not push the cache below. A cache
+    #: too small for one screenful re-fetches every tile on every scroll,
+    #: which costs the server and the user more than the space saves.
+    MIN_DISK_BYTES = 24 * 1024 * 1024
+
+    #: How long an untouched entry is kept. The size bound alone would let a
+    #: persistent cache sit at its ceiling forever, full of artwork for a
+    #: library that has since been deleted or a poster size nobody uses any
+    #: more: the key folds in the image tag and the requested pixel size, so
+    #: changing the Cover Size, the theme's tile shape, or the window it is
+    #: measured against *orphans* every entry made for the old one rather
+    #: than replacing it. Nothing invalidates those explicitly -- an orphan
+    #: is only recognisable by nobody having read it -- so this is the reaper
+    #: for all of it, and a month is long enough that a library you go back
+    #: to seasonally is still warm.
+    MAX_AGE_SECS = 30 * 24 * 60 * 60
+
     def __init__(self, cache_dir, verify_ssl=True, max_mem_mb=DEFAULT_MEM_MB,
-                 max_disk_mb=256, workers=6, notify=None):
+                 max_disk_mb=DEFAULT_DISK_MB, workers=6, notify=None):
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
         self.verify_ssl = verify_ssl
@@ -158,8 +253,23 @@ class ThumbnailStore:
         self._gone = set()
         self._lock = threading.Lock()
         self._closed = False
+        # Bytes written since the last prune; see _note_written.
+        self._unpruned = 0
+        self._prune_lock = threading.Lock()
 
-        self._prune_disk()
+        # Once at startup -- but NOT on this thread. This used to measure a
+        # directory that had just been created; it now measures a persistent
+        # one that may hold thousands of files, and it runs on the path that
+        # opens the browser window. One listdir plus a stat per entry is
+        # seconds on a cold cache or on NTFS, all of it before anything is
+        # on screen.
+        #
+        # The future is kept so that this prune can be waited for. Nothing in
+        # the app does -- it is fire-and-forget by design -- but it reaps by
+        # mtime against a directory the caller is free to keep writing to,
+        # so anything that wants to reason about what is in there has to be
+        # able to let it finish first.
+        self._startup_prune = self._pool.submit(self._prune_disk)
 
     # -- public API (loop thread) -----------------------------------------
 
@@ -175,6 +285,30 @@ class ThumbnailStore:
         one callable for another is atomic.
         """
         self._notify = notify
+
+    #: What the decoded cache keeps when the screen changes. Not zero: the
+    #: chrome that outlives a navigation draws from this cache too -- the
+    #: now-playing bar's album art most visibly -- and clearing outright
+    #: would give it a placeholder for a frame or two on every single move
+    #: between screens. Anything asked for on the frame just before the
+    #: change is at the recent end and survives; a screenful of posters is
+    #: ~7 MiB, so this keeps the chrome and sheds the screen.
+    ROUTE_KEEP_BYTES = 16 * 1024 * 1024
+
+    def trim_memory(self, max_bytes=None):
+        """Shrink the decoded-image cache to ``max_bytes``.
+
+        Called when the browser leaves a screen. Decoded images exist to
+        composite tile strips, and a strip that has been composited does not
+        need them again -- so once a screen is behind you, its decoded
+        posters are the most expensive thing in the process with the least
+        left to do. What makes going *back* fast is the strip cache, which
+        is a separate question and deliberately not trimmed here.
+
+        Loop thread only, like every other access to this cache.
+        """
+        self._mem.trim(self.ROUTE_KEEP_BYTES if max_bytes is None
+                       else max_bytes)
 
     def get_cached(self, key):
         return self._mem.get(key)
@@ -362,29 +496,131 @@ class ThumbnailStore:
     def _load_remote(self, key, url):
         path = os.path.join(self.cache_dir, key + ".img")
         if os.path.exists(path):
+            data = None
             try:
-                os.utime(path, None)  # touch for LRU pruning
                 with open(path, "rb") as fh:
-                    return fh.read()
+                    data = fh.read()
             except OSError:
                 pass
+            if data is not None:
+                # AFTER the read, in its own try. The touch is what makes the
+                # age bound mean "unused for a month" rather than "fetched a
+                # month ago", but sharing a try with the read meant a cache
+                # dir that would not take a utime (read-only, wrong owner)
+                # re-downloaded and re-wrote every image on every request.
+                try:
+                    os.utime(path, None)
+                except OSError:
+                    pass
+                return data
 
         resp = self._session.get(url, timeout=(5, 20), verify=self.verify_ssl,
                                  headers=self._headers_for(url))
         resp.raise_for_status()
         data = resp.content
-        tmp = path + ".tmp"
+        # Unique per writer. Two writers for one key is reachable inside a
+        # single process -- cancel() drops a pending entry while its worker
+        # is still in here and a re-request submits a second one -- and
+        # trivially so across instances, now that the cache is shared and
+        # persistent. On a shared name the loser's writes land in the inode
+        # the winner has already renamed into place.
+        tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())
+        written = False
         try:
             with open(tmp, "wb") as fh:
                 fh.write(data)
             os.replace(tmp, path)
+            written = True
         except OSError:
             log.debug("Could not write thumbnail cache %s", path, exc_info=True)
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        if written:
+            # Outside the try. Inside it, one failed replace -- Windows, over
+            # a file another reader has open -- also skipped the accounting,
+            # so the prune trigger stalled for the rest of the session.
+            self._note_written(len(data))
         return data
+
+    def _note_written(self, nbytes):
+        """Count bytes towards the next prune, and prune when they add up.
+
+        The budget used to be applied once, in ``__init__``, against a
+        directory that had just been created -- so it measured an empty dir,
+        found nothing to do, and the cache then grew without limit for the
+        whole session. A long browse writes every poster and backdrop it
+        ever fetched, which on a RAM-backed cache dir is a session filling
+        the tmpfs the rest of the desktop shares (#3).
+
+        Counting writes rather than pruning per write, because a prune
+        stats the whole directory: at PRUNE_EVERY it happens a few times
+        per browsing session instead of a few times per screen.
+        """
+        with self._lock:
+            self._unpruned += nbytes
+            due = self._unpruned >= self.PRUNE_EVERY
+            if due:
+                self._unpruned = 0
+        if due:
+            self._prune_disk()
 
     # -- internals ---------------------------------------------------------
 
-    def _prune_disk(self):
+    def _disk_budget(self, held):
+        """The cache's ceiling right now, in bytes, given the ``held`` we
+        are already using.
+
+        Usually ``max_disk_bytes``. But free space is not ours alone --
+        something else can take it while we are running, and the configured
+        budget then describes a cache that no longer fits. So the ceiling is
+        also never more than LOW_DISK_SHARE of what is available, and the
+        smaller of the two wins. A cache that shrinks as a disk fills gives
+        space back rather than merely stopping where it is, which matters
+        because somebody else filling it is the common case and holding
+        still does not help them.
+
+        MIN_DISK_BYTES is the floor -- a cache too small to hold one
+        screenful re-fetches every tile on every scroll, which is worse for
+        everyone than the megabytes it saves -- but not an unconditional
+        one: on a filesystem where even that is a quarter of everything
+        left, the floor is the rudeness, so it gives way too.
+        """
+        try:
+            free = shutil.disk_usage(self.cache_dir).free
+        except OSError:
+            return self.max_disk_bytes
+        # Available = free space plus what this cache is already holding,
+        # since freeing our own entries is what makes room for the rest.
+        room = max(0, held + free)
+        share = int(room * self.LOW_DISK_SHARE)
+        floor = min(self.MIN_DISK_BYTES, room // 4)
+        return min(self.max_disk_bytes, max(share, floor))
+
+    def _prune_disk(self, now=None):
+        """One pruner at a time; the work is in _prune_disk_locked.
+
+        Two workers -- or two app instances sharing the persistent cache --
+        each scan, each compute the same total, and each delete towards it.
+        But a file the other already removed raises ENOENT, so without this
+        the loser never decremented its own running total and kept deleting:
+        between them they evicted roughly twice the excess.
+        """
+        if not self._prune_lock.acquire(blocking=False):
+            return
+        try:
+            self._prune_disk_locked(now)
+        finally:
+            self._prune_lock.release()
+
+    def _prune_disk_locked(self, now=None):
+        """Reap by age, then by size. Both, because they answer different
+        questions: the size bound decides what a busy cache may keep, and
+        the age bound decides what an idle one is still *for* (see
+        MAX_AGE_SECS -- a cache pinned at its ceiling by artwork nobody can
+        reach any more is a cache doing no good at its full price)."""
+        now = now or time.time()
         try:
             entries = []
             total = 0
@@ -394,16 +630,30 @@ class ThumbnailStore:
                     st = os.stat(full)
                 except OSError:
                     continue
+                if now - st.st_mtime > self.MAX_AGE_SECS:
+                    try:
+                        os.remove(full)
+                        continue
+                    except OSError:
+                        pass
                 entries.append((st.st_mtime, st.st_size, full))
                 total += st.st_size
-            if total <= self.max_disk_bytes:
+            budget = self._disk_budget(total)
+            if total <= budget:
                 return
+            log.debug("Thumbnail cache at %d MiB, pruning to %d MiB",
+                      total // (1024 * 1024), budget // (1024 * 1024))
             entries.sort()  # oldest first
             for _mtime, size, full in entries:
-                if total <= self.max_disk_bytes:
+                if total <= budget:
                     break
                 try:
                     os.remove(full)
+                    total -= size
+                except FileNotFoundError:
+                    # Another instance got there first. The space is freed
+                    # either way, so it still comes off the running total --
+                    # not doing so is what made two pruners over-evict.
                     total -= size
                 except OSError:
                     pass

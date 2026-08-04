@@ -127,14 +127,36 @@ class MpvtkAuthBase(unittest.TestCase):
                        for n in (self.app._nodes or []))
         self._wait(present, "%s never rendered" % node_id, timeout)
 
+    def _click_until_focused(self, node_id, timeout=6.0):
+        """Click ``node_id`` until the renderer says it has focus.
+
+        Clicking once and then waiting is what this used to do, and it is
+        flaky by construction: ``_wait_rendered`` polls ``app._nodes``, which
+        ``MpvtkApp.render`` assigns **before** it serializes and pushes the
+        scene. A click that lands in that gap is addressed to a node the
+        renderer has not been told about yet, so it resolves to nothing and
+        is silently dropped -- and no amount of waiting afterwards produces
+        a focus that nothing asked for. Measured at roughly one run in three
+        on the jsonipc backend, where the push is an IPC round trip.
+
+        Re-clicking is safe: focusing a textbox is idempotent, and these are
+        debug-hook clicks, which do not synthesize double-clicks however
+        close together they land.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            self.app.debug(cmd="click", id=node_id)
+            if (self.app.debug_state() or {}).get("focus") == node_id:
+                return
+            time.sleep(0.15)
+        self.fail("clicking %s did not focus it" % node_id)
+
     def _type_into(self, node_id, text):
         """Focus a textbox by clicking it and type through the renderer's
         real key path — not by calling on_change, which would prove nothing
         about whether keystrokes reach the field."""
         self._wait_rendered(node_id)
-        self.app.debug(cmd="click", id=node_id)
-        self._wait(lambda: (self.app.debug_state() or {}).get("focus")
-                   == node_id, "clicking %s did not focus it" % node_id)
+        self._click_until_focused(node_id)
         self.app.debug(cmd="text", s=text)
 
 

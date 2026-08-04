@@ -51,6 +51,7 @@ class FakePlayer:
         self.on_hud_menu = None
         self.on_nav_back = None
         self.on_nav_command = None
+        self.on_decorations_changed = None
 
     @staticmethod
     def get_mpv():
@@ -210,6 +211,7 @@ PLAYER_CALLBACKS = [
     "on_nav_command",
     "on_load_start",
     "on_load_error",
+    "on_decorations_changed",
 ]
 
 
@@ -294,6 +296,26 @@ class TestTheCallbacksActuallyReachTheBrowser(WiringHarness):
         # A failure must also clear any in-flight loading state, or both
         # screens are live at once and build() picks by precedence alone.
         self.assertIsNone(browser.load.starting)
+
+    def test_losing_the_title_bar_reaches_the_top_bar(self):
+        """On Wayland this arrives from a compositor configure event, which
+        can land well after the first frames are drawn — so the browser has
+        to learn about it from this callback, not from what it read at
+        startup."""
+        self.player.window_chrome_state = lambda: {"controls": True,
+                                                   "maximized": True}
+        browser = self._login()
+        self.player.on_decorations_changed()
+        self.assertTrue(browser.window_controls,
+                        "on_decorations_changed is not bound to this browser")
+        self.assertTrue(browser.maximized)
+
+    def test_a_decorated_window_draws_no_controls_of_its_own(self):
+        self.player.window_chrome_state = lambda: {"controls": False,
+                                                   "maximized": False}
+        browser = self._login()
+        self.player.on_decorations_changed()
+        self.assertFalse(browser.window_controls)
 
     def test_mpv_teardown_reaches_this_ui(self):
         self._login()
@@ -397,6 +419,10 @@ class _FakeBrowser:
         self.app = "old-app"
         self.calls = []
         self.strips = self
+        self.thumbs = self
+
+    def trim_memory(self, max_bytes=None):     # thumbs.trim_memory()
+        self.calls.append("thumbs.trim(%r)" % max_bytes)
 
     def set_app(self, app):
         self.app = app
@@ -413,6 +439,11 @@ class _FakeBrowser:
 
     def build(self, size):                 # the render loop's callback
         return None
+
+
+class _RaisingStore:
+    def clear(self):
+        raise RuntimeError("nope")
 
 
 class TestMpvLifecycleHandlers(unittest.TestCase):
@@ -448,6 +479,25 @@ class TestMpvLifecycleHandlers(unittest.TestCase):
         ui = self._ui()
         ui.on_mpv_terminated()
         self.assertIn("strips.clear", ui._browser.calls)
+
+    def test_terminated_also_drops_the_decoded_images(self):
+        """The one moment everything can go. Every other release is a
+        partial -- the strips may only shed what the live scene is not
+        using, and decoded images go a screen at a time -- but with no mpv
+        there is no scene and nothing on screen. Keeping 96 MiB of posters
+        alive here defeats the point of quitting mpv while minimized, which
+        is that a windowless cast target should be small."""
+        ui = self._ui()
+        ui.on_mpv_terminated()
+        self.assertIn("thumbs.trim(0)", ui._browser.calls)
+
+    def test_terminated_still_drops_the_images_if_the_strips_throw(self):
+        # Two independent caches; one failing must not strand the other.
+        browser = _FakeBrowser()
+        browser.strips = _RaisingStore()
+        ui = self._ui(browser)
+        ui.on_mpv_terminated()
+        self.assertIn("thumbs.trim(0)", browser.calls)
 
     def test_terminated_survives_a_store_that_throws(self):
         browser = _FakeBrowser()

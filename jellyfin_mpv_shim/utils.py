@@ -373,3 +373,138 @@ def get_resource(*path):
 def get_text(*path):
     with open(get_resource(*path)) as fh:
         return fh.read()
+
+
+# -- system memory ---------------------------------------------------------
+#
+# Read rather than depended on: psutil would answer all of this in one line,
+# and it is a compiled dependency to ask "how much RAM is there".
+
+#: A machine with less RAM than this is small, whatever it is doing.
+#:
+#: Deliberately above a round 8 GiB, because the two sources disagree about
+#: what an 8 GB machine has. Linux reports MemTotal, which is installed RAM
+#: LESS the kernel and firmware reservation -- a nominal 8 GB box says about
+#: 7.7 GiB -- while sysconf (the macOS path) reports exactly 8589934592. A
+#: threshold at 8 GiB would therefore call the same hardware small on one
+#: platform and roomy on the other, which is the worst of both. 8 GB machines
+#: are the ones this is for, so the line goes above all of their spellings.
+SMALL_MEMORY_BYTES = 9 * 1024 * 1024 * 1024
+#: ...and any machine with less than this actually free right now is under
+#: pressure, however much it started with.
+TIGHT_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
+
+#: No machine running a video player has less RAM than this, so an answer
+#: below it is not a small machine, it is a broken measurement.
+_ABSURDLY_SMALL = 64 * 1024 * 1024
+
+_total_memory = None            # never changes; read once
+
+
+def _meminfo():
+    """Linux: (MemTotal, MemAvailable) in bytes, or (None, None).
+
+    MemAvailable rather than MemFree, and it is not a detail: MemFree
+    excludes reclaimable page cache, so a healthy Linux box that has simply
+    read some files looks nearly out of memory. MemAvailable is the kernel's
+    own estimate of what a new allocation could actually get.
+    """
+    total = avail = None
+    try:
+        with open("/proc/meminfo", "r") as fh:
+            for line in fh:
+                name, _sep, rest = line.partition(":")
+                if name == "MemTotal":
+                    total = int(rest.split()[0]) * 1024
+                elif name == "MemAvailable":
+                    avail = int(rest.split()[0]) * 1024
+                if total is not None and avail is not None:
+                    break
+    except (OSError, ValueError, IndexError):
+        return None, None
+    return total, avail
+
+
+def _win_memory():
+    """Windows: (total, available) in bytes via GlobalMemoryStatusEx."""
+    import ctypes
+
+    class _Status(ctypes.Structure):
+        _fields_ = [("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+    status = _Status()
+    status.dwLength = ctypes.sizeof(_Status)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+        return None, None
+    return status.ullTotalPhys, status.ullAvailPhys
+
+
+def system_memory():
+    """``(total_bytes, available_bytes)``, either of which may be None.
+
+    None means "could not tell", and every caller must read it as "assume
+    there is room": a probe that cannot answer has no business degrading the
+    app on a machine that may be perfectly comfortable.
+
+    Total is answerable almost everywhere (POSIX ``sysconf`` covers macOS and
+    the BSDs); *available* is the one that needs a per-platform source, and
+    there is no portable one. macOS would need ``vm_stat``'s page breakdown,
+    which is a subprocess per call, so it answers None and falls back to the
+    total alone.
+    """
+    global _total_memory
+
+    total = avail = None
+    if sys.platform.startswith("linux"):
+        total, avail = _meminfo()
+    elif sys.platform.startswith("win"):
+        try:
+            total, avail = _win_memory()
+        except Exception:
+            log.debug("GlobalMemoryStatusEx failed", exc_info=True)
+    if total is None:
+        if _total_memory is None:
+            try:
+                _total_memory = (os.sysconf("SC_PHYS_PAGES")
+                                 * os.sysconf("SC_PAGE_SIZE"))
+            except (ValueError, OSError, AttributeError):
+                _total_memory = False       # asked and answered: no
+            if not _total_memory or _total_memory < _ABSURDLY_SMALL:
+                # sysconf returns -1 for "indeterminate" WITHOUT raising
+                # (CPython only raises when errno was set). -1 * the page
+                # size is a negative "total" that is truthy, survives the
+                # `or None` below, and compares less than every threshold --
+                # pinning memory_is_tight() True for the life of the process
+                # on a machine that may have 64 GiB. A floor rather than a
+                # sign test, because both values can come back -1 and their
+                # product is then a perfectly positive 1.
+                _total_memory = False
+        total = _total_memory or None
+    return total, avail
+
+
+def memory_is_tight(total=None, available=None):
+    """Whether this machine is one to trade speed for memory on.
+
+    True when the machine is small (under SMALL_MEMORY_BYTES of RAM at all)
+    or busy (under TIGHT_MEMORY_BYTES free right now). Unknown is False --
+    see system_memory.
+
+    The two are separate questions on purpose. A 4 GiB box with 3 GiB free
+    is not under pressure this second, but it has no headroom to be wrong
+    about; a 64 GiB workstation with 1 GiB free is not small, but something
+    else needs the room now.
+    """
+    if total is None and available is None:
+        total, available = system_memory()
+    if total is not None and total < SMALL_MEMORY_BYTES:
+        return True
+    return available is not None and available < TIGHT_MEMORY_BYTES

@@ -10,7 +10,13 @@ import multiprocessing
 import threading
 import unittest
 
-from jellyfin_mpv_shim.tray import TrayManager, wants_x11_backend
+from jellyfin_mpv_shim.tray import (
+    TrayManager,
+    backend_name,
+    tray_unavailable_advice,
+    tray_will_render,
+    wants_x11_backend,
+)
 
 
 class TestTrayDispatch(unittest.TestCase):
@@ -45,6 +51,169 @@ class TestTrayDispatch(unittest.TestCase):
         # ready is set either way, so nothing waiting on the tray can hang
         # when pystray/AppIndicator is missing.
         self.assertTrue(m.ready.is_set())
+
+    def test_availability_follows_the_tray_host_both_ways(self):
+        # The child watches the StatusNotifier host appear and vanish, so
+        # availability is no longer a one-shot answer: an autostarted copy
+        # that lost the race with the shell extension must be able to say so
+        # later, and a shell restart must be able to take it back.
+        m = TrayManager({})
+        m.dispatch("tray_died", "not_rendered")
+        self.assertFalse(m.available)
+        m.dispatch("ready")
+        self.assertTrue(m.available)
+        m.dispatch("tray_died", "watcher_gone")
+        self.assertFalse(m.available)
+
+    def test_death_reason_is_optional(self):
+        # The pump forwards whatever the child sent; older reasons (and the
+        # import-failure path) carry no param at all.
+        TrayManager({}).dispatch("tray_died")
+
+
+class TestTrayWillRender(unittest.TestCase):
+    """Whether an icon pystray happily created is one anybody can see.
+
+    This is the gap the bug lived in: on GNOME with libayatana-appindicator
+    installed but no AppIndicator extension, pystray builds the indicator,
+    sets ``visible = True``, raises nothing -- and no icon appears. The app
+    then treated the tray as a way back to itself and hid behind it.
+    """
+
+    def test_native_backends_are_never_probed(self):
+        probed = []
+        for backend in ("win32", "darwin"):
+            with self.subTest(backend=backend):
+                self.assertIs(True, tray_will_render(
+                    backend, sni=lambda: probed.append("sni"),
+                    xembed=lambda: probed.append("xembed")))
+        self.assertEqual(probed, [], "a native tray was probed over D-Bus")
+
+    def test_appindicator_asks_the_session_bus(self):
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
+        self.assertIs(True, tray_will_render("appindicator",
+                                             sni=lambda: True,
+                                             xembed=lambda: False))
+        self.assertIs(False, tray_will_render("appindicator",
+                                              sni=lambda: NO_WATCHER,
+                                              xembed=lambda: False))
+
+    def test_an_appindicator_falls_back_to_the_old_style_tray(self):
+        """No D-Bus host is not no tray (#4).
+
+        libappindicator and libayatana-appindicator both keep a
+        GtkStatusIcon fallback and use it exactly when no
+        StatusNotifierWatcher owns the name. So on i3 with i3bar's tray,
+        xfce4-panel or tint2 -- most of X11 that is not KDE -- the icon
+        docks and works, while the D-Bus probe alone says there is no tray
+        and the app offers "Keep Running in Background" to somebody
+        looking straight at their icon.
+        """
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
+        self.assertIs(True, tray_will_render("appindicator",
+                                             sni=lambda: NO_WATCHER,
+                                             xembed=lambda: True))
+
+    def test_a_watcher_with_no_host_is_worse_than_no_watcher(self):
+        """The distinction the fallback turns on, and the one case where an
+        XEmbed tray on the same desktop must NOT rescue the verdict.
+
+        With nobody owning the name, libappindicator docks a GtkStatusIcon.
+        With a watcher present but no host registered behind it, the item
+        registers successfully, the fallback never starts, and nothing draws
+        it -- so asking about XEmbed would turn an invisible icon into a
+        confident yes. Reachable on an X11 Plasma/xfce session where a
+        half-started watcher owns the name while xembedsniproxy owns the
+        old-style selection.
+        """
+        self.assertIs(False, tray_will_render("appindicator",
+                                              sni=lambda: False,
+                                              xembed=lambda: True))
+
+    def test_an_unanswerable_fallback_is_not_a_confident_no(self):
+        # Without an X connection the fallback cannot be ruled out, and a
+        # maybe must not read as a no.
+        from jellyfin_mpv_shim.tray import NO_WATCHER
+
+        self.assertIsNone(tray_will_render("appindicator",
+                                           sni=lambda: NO_WATCHER,
+                                           xembed=lambda: None))
+
+    def test_xembed_backends_ask_x11(self):
+        for backend in ("gtk", "xorg"):
+            with self.subTest(backend=backend):
+                self.assertIs(False, tray_will_render(
+                    backend, xembed=lambda: False))
+                self.assertIs(True, tray_will_render(
+                    backend, xembed=lambda: True))
+
+    def test_dummy_backend_renders_nothing(self):
+        self.assertIs(False, tray_will_render("dummy"))
+
+    def test_unanswerable_is_none_and_never_false(self):
+        # None means "could not tell", and callers must read it as yes. A
+        # probe that cannot run (no PyGObject, no X connection, a backend we
+        # have never heard of) must not take a working tray away from
+        # someone -- only a confident False may change behaviour.
+        self.assertIsNone(tray_will_render("appindicator", sni=lambda: None,
+                                           xembed=lambda: None))
+        self.assertIsNone(tray_will_render("appindicator", sni=lambda: None,
+                                           xembed=lambda: False))
+        self.assertIsNone(tray_will_render("gtk", xembed=lambda: None))
+        self.assertIsNone(tray_will_render(""))
+        self.assertIsNone(tray_will_render("some_future_backend"))
+
+
+class TestBackendName(unittest.TestCase):
+    def test_reads_the_module_pystray_picked(self):
+        # pystray exposes its choice only as the module Icon came from.
+        class Icon:
+            pass
+
+        Icon.__module__ = "pystray._appindicator"
+        self.assertEqual(backend_name(Icon), "appindicator")
+        Icon.__module__ = "pystray._win32"
+        self.assertEqual(backend_name(Icon), "win32")
+
+    def test_unreadable_module_is_empty_not_an_error(self):
+        # Which routes to tray_will_render's None -- "could not tell" -- and
+        # so leaves behaviour exactly as it was before this check existed.
+        self.assertEqual(backend_name(object()), "")
+        self.assertIsNone(tray_will_render(backend_name(object())))
+
+    def test_every_name_it_can_produce_is_classified_or_unknown(self):
+        # The real backends pystray ships. Anything here that came back None
+        # would silently keep the old, wrong behaviour on that desktop.
+        from jellyfin_mpv_shim import tray
+
+        for backend in ("appindicator", "gtk", "xorg", "win32", "darwin",
+                        "dummy"):
+            with self.subTest(backend=backend):
+                self.assertIsNot(
+                    None,
+                    tray.tray_will_render(backend, sni=lambda: True,
+                                          xembed=lambda: True),
+                    "pystray backend %r is not classified" % backend)
+
+
+class TestTrayAdvice(unittest.TestCase):
+    """The message has to name the way out. "No tray" on its own reads as a
+    broken install on the one desktop where it is the default state."""
+
+    def test_gnome_is_told_about_the_extension(self):
+        msg = tray_unavailable_advice({"XDG_CURRENT_DESKTOP": "ubuntu:GNOME"})
+        self.assertIn("AppIndicator", msg)
+        self.assertIn("Allow Background", msg)
+
+    def test_elsewhere_gets_the_generic_way_out(self):
+        msg = tray_unavailable_advice({"XDG_CURRENT_DESKTOP": "KDE"})
+        self.assertNotIn("GNOME", msg)
+        self.assertIn("Allow Background", msg)
+
+    def test_no_environment_still_answers(self):
+        self.assertIn("Allow Background", tray_unavailable_advice({}))
 
     def test_stop_without_start_is_safe(self):
         TrayManager({}).stop()

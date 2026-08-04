@@ -153,6 +153,22 @@ class Settings(SettingsBase):
     window_width: int = 1280
     window_height: int = 720
     window_maximized: bool = False
+    # Client-side decorations: draw a drag handle and minimize/maximize/close
+    # buttons into the browser's own top bar, for windows the desktop gives no
+    # title bar of its own.
+    #
+    # "auto" asks mpv rather than sniffing the environment, because mpv's
+    # `border` property already IS the answer: on a Wayland compositor with no
+    # zxdg_decoration_manager_v1 (GNOME/mutter, which supports client-side
+    # decorations only) mpv writes border=false back into the option itself,
+    # and where the protocol does exist it writes whichever mode the
+    # compositor actually granted. So "no server-side title bar" is one
+    # property read, correct on every platform and both backends -- and it
+    # also covers someone who simply set --border=no, who wants these controls
+    # for exactly the same reason. See window_controls_wanted().
+    #
+    # "always" / "never" override it.
+    window_controls: str = "auto"
     # Persist the window size across launches. Off means window_width/height
     # are a fixed preference the app always opens at, which is what you want
     # if you deliberately pinned a size.
@@ -166,7 +182,20 @@ class Settings(SettingsBase):
     # "an invisible background process is what I want" -- it is off by default
     # because the only ways out are `jellyfin-mpv-shim stop` and killing it.
     allow_background: bool = False
-    library_image_cache_mb: int = 256
+    # RAM for DECODED artwork, which is the expensive form: a 4K backdrop is
+    # 33 MB decoded against ~400 KB on the wire.
+    #
+    # Deliberately modest, because this cache sits behind another one. What
+    # decoded images are *for* is compositing tile strips, and the strips are
+    # themselves cached -- so a decoded poster is only wanted while a row is
+    # being built, and scrolling back over a row that is still cached never
+    # asks for one. That makes this a working set, not a library: a screenful
+    # of posters is ~7 MB, and the big single items are backdrops.
+    #
+    # It is not a stand-in for the artwork cache on disk either. That one
+    # holds the server's compressed bytes and the OS page-caches them for
+    # free; what it cannot do is skip the decode, which is what this is.
+    library_image_cache_mb: int = 96
     # Pixels a single wheel notch scrolls in the library browser. This is the
     # step the settings page has always used; applying it everywhere lets the
     # scrollbar glide continuously while the content snaps to the nearest row

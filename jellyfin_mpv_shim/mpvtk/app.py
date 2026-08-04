@@ -289,6 +289,16 @@ class MpvtkApp:
         # renderer has no idea what is behind it. Its counterpart, the
         # back button, needs no hook because it presses ESC.
         self.on_forward = None
+        # called with no arguments immediately after a scene has been PUSHED
+        # to the renderer. Runs on the loop thread.
+        #
+        # "A scene was pushed" is not the same event as "build() ran", and
+        # anything freeing bitmaps the renderer may still have bound has to
+        # key off this one: a build can run twice for one push (the metrics
+        # re-layout below) and can raise without pushing at all (the previous
+        # frame stays on screen). Both were freeing the live scene when the
+        # strip cache counted build() calls instead. See StripStore.
+        self.on_scene_pushed = None
         # called (op, need) when a textbox copy/paste found no clipboard at
         # all -- neither mpv's clipboard/text nor a desktop helper. ``op``
         # is "copy" or "paste"; ``need`` names the package to install, or
@@ -574,6 +584,11 @@ class MpvtkApp:
         self.backend.command(
             "script-message", "mpvtk-scene", json.dumps(scene)
         )
+        if self.on_scene_pushed is not None:
+            try:
+                self.on_scene_pushed()
+            except Exception:
+                log.debug("on_scene_pushed handler failed", exc_info=True)
         t3 = time.perf_counter()
         # Per-frame timing: useful while the renderer was being built, pure
         # noise in a normal log now. Debug-level so it can still be turned

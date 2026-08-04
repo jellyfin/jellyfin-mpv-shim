@@ -7,6 +7,48 @@ from typing import Optional
 POLL_INTERVAL_SECS = 0.5
 
 
+def observe(instance, name, handler):
+    """Register ``handler`` for property ``name`` on either backend.
+
+    Deliberately NOT python-mpv's ``property_observer`` decorator. That writes
+    an ``unobserve_mpv_properties`` attribute onto the callback it is given,
+    and a **bound method has no __dict__ to write it to** -- it raises
+    AttributeError. jsonipc and the test fake both accept one, so a handler
+    that stops being a plain closure breaks on exactly one backend, at
+    runtime, and nowhere else.
+
+    Backend picked by class capability, like ``wait_property`` below and for
+    the same reason: libmpv's ``__getattr__`` turns an unknown *instance*
+    attribute into a property read, so an instance-level hasattr would be
+    both wrong and wasteful.
+
+    Returns the token :func:`unobserve` needs (jsonipc hands back an observer
+    id; libmpv identifies a registration by name and handler, so None).
+
+    Here rather than on ``PlayerManager`` because importing ``player`` builds
+    a real mpv as a side effect, and the one place that most needs to check
+    this dispatch against a real backend is a test that must not.
+    """
+    if hasattr(type(instance), "bind_property_observer"):
+        return instance.bind_property_observer(name, handler)
+    instance.observe_property(name, handler)
+    return None
+
+
+def unobserve(instance, name, handler, token=None):
+    """Undo :func:`observe`.
+
+    Nothing in the app calls this -- mpv is torn down whole, handle and
+    observers together. A caller that outlives its handle's observers has to,
+    though: libmpv segfaults the interpreter on the way out otherwise.
+    """
+    if hasattr(type(instance), "bind_property_observer"):
+        if token is not None:
+            instance.unbind_property_observer(token)
+    else:
+        instance.unobserve_property(name, handler)
+
+
 def wait_property(
     instance,
     name: str,

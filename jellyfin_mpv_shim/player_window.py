@@ -103,6 +103,7 @@ class WindowMixin:
         _colorspace_hint: Any
         _colorspace_hint_suspended: bool
         fullscreen_disable: bool
+        on_decorations_changed: Any
 
         # Provided by siblings on the composed PlayerManager. Three, and the
         # count is the point: if it grows, the window concern is drifting back
@@ -577,6 +578,153 @@ class WindowMixin:
         except Exception:
             wlog.debug("could not repaint the browse background",
                        exc_info=True)
+
+    # -- client-side decorations ------------------------------------------
+    #
+    # Whether the window has a title bar of its own is not an environment
+    # question, it is an mpv question, and mpv answers it in `border`.
+    #
+    # On Wayland mpv asks for a decoration mode over zxdg_decoration_manager_v1
+    # and writes the *granted* mode back into the option
+    # (wayland_common.c:configure_decorations). Where the compositor does not
+    # implement that protocol at all — mutter, i.e. every GNOME Wayland
+    # session, which is client-side-decorations-only — mpv writes border=false
+    # itself and logs "Compositor doesn't support the
+    # zxdg_decoration_manager_v1 protocol". So a false `border` means "nothing
+    # is drawing a title bar for this window", whoever decided that and for
+    # whatever reason, which is exactly the condition these controls exist for.
+    #
+    # It generalises for free: X11 and win32 honour --border, so someone who
+    # turned it off deliberately gets the controls too, and on a compositor
+    # that does grant server-side decorations they correctly stay away. No
+    # XDG_CURRENT_DESKTOP sniffing anywhere.
+
+    #: mpv < 0.38 has no `title-bar`; a KeyError/AttributeError there means
+    #: "this build only has `border`", not "there is no title bar".
+    _CSD_PROPS = ("border", "title_bar")
+
+    def _read_decorations(self):
+        """True if the window has a server-drawn title bar, False if it does
+        not, None if mpv could not be asked.
+
+        Both properties have to be true: win32 can drop the title bar while
+        keeping a resizable border, and a window with no title bar is one
+        with nothing to drag or close by, which is the whole question.
+        """
+        if not self._mpv_alive or self._player is None:
+            return None
+        seen = False
+        for prop in self._CSD_PROPS:
+            try:
+                value = getattr(self._player, prop)
+            except Exception:
+                continue        # absent on this mpv/backend; not evidence
+            if value is None:
+                continue
+            seen = True
+            if not value:
+                return False
+        return True if seen else None
+
+    def window_controls_wanted(self):
+        """Whether the UI should draw its own title bar right now."""
+        mode = (settings.window_controls or "auto").lower()
+        if mode == "never":
+            return False
+        # A fullscreen window has no title bar anywhere, and nothing to
+        # minimize, maximize or drag. Checked ahead of "always" because
+        # "always" is an answer to "does this desktop decorate my windows",
+        # not a request for furniture over the top of a fullscreen video.
+        try:
+            if self._player is not None and self._player.fullscreen:
+                return False
+        except Exception:
+            pass
+        if mode == "always":
+            return True
+        # "auto" and anything unrecognised: ask mpv. An unanswerable question
+        # means leave the window alone — drawing controls over a real title
+        # bar is a worse failure than not drawing them under none.
+        return self._read_decorations() is False
+
+    def window_chrome_state(self):
+        """``{"controls": bool, "maximized": bool}`` — everything the UI's
+        own title bar has to know, in one call.
+
+        One call because these are mpv property reads, and on the jsonipc
+        backend each one is an IPC round trip: the UI must be able to take a
+        snapshot on a change event rather than reading them per frame.
+        """
+        maximized = False
+        try:
+            maximized = bool(self._player.window_maximized)
+        except Exception:
+            pass
+        return {"controls": bool(self.window_controls_wanted()),
+                "maximized": maximized}
+
+    def _on_border_change(self, _name, _value):
+        """Something the UI's own title bar is drawn from changed —
+        `border`, `window-maximized` or `fullscreen`. On Wayland the first of
+        those is mpv reporting what the compositor granted, not us setting
+        anything. Runs on mpv's event thread, so it only notifies; the UI
+        re-reads and rebuilds on its own thread."""
+        handler = self.on_decorations_changed
+        if handler is None:
+            return
+        try:
+            handler()
+        except Exception:
+            log.debug("on_decorations_changed handler failed", exc_info=True)
+
+    def begin_window_drag(self):
+        """Start an interactive window move (mpv >= 0.38).
+
+        Normally issued from the renderer, which is holding the mouse button
+        down at the time; this is the fallback path for callers that are not.
+        """
+        return self._window_command("begin-vo-dragging")
+
+    def toggle_window_maximized(self):
+        if not self._mpv_alive:
+            return False
+        try:
+            self._player.window_maximized = not self._player.window_maximized
+            return True
+        except Exception:
+            wlog.debug("could not toggle window-maximized", exc_info=True)
+            return False
+
+    def minimize_window(self):
+        """Iconify via the window manager — NOT the app's own "minimize",
+        which tears the window down and lives on in the tray. This is the
+        title bar's button and it has to mean what that button means
+        everywhere else."""
+        if not self._mpv_alive:
+            return False
+        try:
+            self._player.window_minimized = True
+            return True
+        except Exception:
+            wlog.debug("could not minimize the window", exc_info=True)
+            return False
+
+    def _window_command(self, *args):
+        from .player import _mpv_errors
+
+        if not self._mpv_alive:
+            return False
+        try:
+            self._player.command(*args)
+            return True
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return False
+        except Exception:
+            # begin-vo-dragging is mpv 0.38+, and a VO that does not implement
+            # it errors rather than being absent. Neither is worth a traceback.
+            wlog.debug("window command %r failed", args, exc_info=True)
+            return False
 
     def raise_window(self):
         """Best-effort "bring the player window forward" — the tray's Show

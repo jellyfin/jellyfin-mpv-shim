@@ -1055,6 +1055,9 @@ class TestInvalidateIsNotLost(unittest.TestCase):
         app._build = build
         app._extend_metrics = lambda texts: False
         app._scene_texts = lambda nodes: []
+        # _render calls this after every push -- the strip cache counts
+        # pushes, not builds (see StripStore.on_scene_pushed).
+        app.on_scene_pushed = None
         return app
 
     def _run(self, app, build):

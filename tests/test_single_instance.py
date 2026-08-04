@@ -146,6 +146,32 @@ class SingleInstanceTest(unittest.TestCase):
             self.assertFalse(b.acquire())
         self.assertEqual(sent, [b"JMS1" + a._token + b"\n"])
 
+    def test_a_real_lock_says_so(self):
+        a = self._make()
+        self.assertFalse(a.holds_lock, "claimed the lock before acquire()")
+        self.assertTrue(a.acquire())
+        self.assertTrue(a.holds_lock)
+        a.release()
+        self.assertFalse(a.holds_lock)
+
+    def test_failing_open_does_not_claim_the_lock(self):
+        # acquire() returns True so the app still runs, but nothing may take
+        # that for uniqueness -- the scratch-cache namespace reclaims every
+        # directory it finds, and two copies believing this would delete each
+        # other's caches out from under them.
+        a = self._make()
+        with mock.patch.object(single_instance.os, "open",
+                               side_effect=OSError(13, "denied")):
+            self.assertTrue(a.acquire(), "should still run without the guard")
+        self.assertFalse(a.holds_lock)
+
+    def test_a_blocked_launch_does_not_claim_the_lock(self):
+        a = self._make()
+        self.assertTrue(a.acquire())
+        b = self._make()
+        self.assertFalse(b.acquire())
+        self.assertFalse(b.holds_lock)
+
     def test_lock_files_are_private(self):
         if os.name != "posix":
             self.skipTest("permission bits are POSIX-specific")

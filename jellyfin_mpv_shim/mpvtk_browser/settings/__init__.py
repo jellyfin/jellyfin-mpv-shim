@@ -1,16 +1,20 @@
 """The Settings route.
 
-Six tabs -- general, home screen, display, servers & users, downloads,
-logs. This
-module is the frame: the route entry, the tab bar, and the dispatch to
-whichever tab is selected. Each tab is a mixin in its own module, composed
-into ``SettingsMixin`` below.
+Seven tabs -- general, browse, playback, home screen, servers & users,
+downloads, logs. This module is the frame: the route entry, the tab bar, and
+the dispatch to whichever tab is selected. Each tab is a mixin in its own
+module, composed into ``SettingsMixin`` below.
 
-The home-screen and display tabs are the odd ones out: unlike every other
-setting here, their contents live on the *server* (DisplayPreferences,
-shared with jellyfin-web), so they load and save asynchronously rather than
-through the config module. They sit next to each other in the tab bar for
-that reason.
+**The first three are one renderer, not three.** They are the config form,
+split across tabs by ``config.TAB_SECTIONS``; ``_settings_form`` reads the
+tab off the route. They were a single page until it reached eleven groups
+and about a hundred controls in one scroll.
+
+The home-screen tab is the odd one out: unlike every other setting here, its
+contents live on the *server* (DisplayPreferences, shared with
+jellyfin-web), so it loads and saves asynchronously rather than through the
+config module. It absorbed the old "Display" tab, which held one checkbox
+out of the same document governing two home-screen rows.
 
 State on ``self``: ``_config_obj`` (the settings accessor; None means the
 real config module, tests inject a fake), ``_sync_path`` (download-folder
@@ -30,7 +34,6 @@ from .. import theme
 from ..components import chrome, controls
 
 from .base import SettingsBase
-from .display import DisplayTabMixin
 from .downloads import DownloadsTabMixin
 from .general import GeneralTabMixin
 from .home import HomeTabMixin
@@ -41,7 +44,6 @@ from .servers import ServersTabMixin
 class SettingsMixin(
     GeneralTabMixin,
     HomeTabMixin,
-    DisplayTabMixin,
     ServersTabMixin,
     DownloadsTabMixin,
     LogsTabMixin,
@@ -60,11 +62,27 @@ class SettingsMixin(
     ROUTES = {
         "settings": (None, "_render_settings"),
     }
-    #: "display" sits next to "home" because they are the two tabs whose
-    #: contents live on the server rather than in this installation's
-    #: config, and grouping them is the only hint the tab bar can give.
-    SETTINGS_TABS = ("general", "home", "display", "servers", "downloads",
-                     "logs")
+    #: General/Browse/Playback are one form each, split out of what was a
+    #: single hundred-control page (see config.TAB_SECTIONS); they are
+    #: adjacent because they are the same kind of thing. "Display" is gone:
+    #: it held exactly one preference, about two home-screen rows, and it
+    #: now sits on the Home Screen tab beside the layout it belongs to.
+    SETTINGS_TABS = ("general", "browse", "playback", "home", "servers",
+                     "downloads", "logs")
+    #: tab -> renderer method name. A table rather than the inline dict it
+    #: used to be, because "every tab in the bar has a renderer" stopped
+    #: being answerable from the method names alone once three tabs started
+    #: sharing ``_settings_form``; a dead tab raises when clicked, so it is
+    #: worth being able to check. tests/test_settings_mixins.py does.
+    TAB_RENDERERS = {
+        "general": "_settings_form",
+        "browse": "_settings_form",
+        "playback": "_settings_form",
+        "home": "_settings_home",
+        "servers": "_settings_servers",
+        "downloads": "_settings_downloads",
+        "logs": "_settings_logs",
+    }
     def _open_settings(self):
         self.open_settings()
     def open_settings(self, tab="general"):
@@ -81,8 +99,8 @@ class SettingsMixin(
                        "title": _("Settings"), "_tab": tab})
     def _render_settings(self, route, size):
         tab = route.get("_tab", "general")
-        labels = {"general": _("General"), "home": _("Home Screen"),
-                  "display": _("Display"),
+        labels = {"general": _("General"), "browse": _("Browse"),
+                  "playback": _("Playback"), "home": _("Home Screen"),
                   "servers": _("Servers & Users"),
                   "downloads": _("Downloads"), "logs": _("Logs")}
         # Same treatment as the top bar's buttons (accent border + hover
@@ -101,23 +119,19 @@ class SettingsMixin(
         # "Logs" -- the last one -- was drawn off the right edge at 200%.
         tabs = chrome.wrap_row([tab_button(t) for t in self.SETTINGS_TABS],
                                (size[0] if size else 0) - 2 * 12, gap=8)
-        body = {
-            "home": self._settings_home,
-            "display": self._settings_display,
-            "servers": self._settings_servers,
-            "downloads": self._settings_downloads,
-            "logs": self._settings_logs,
-        }.get(tab, self._settings_general)(route, size)
+        body = getattr(self, self.TAB_RENDERERS.get(tab, "_settings_form"))(
+            route, size)
         head = [Row([tabs], pad=12)]
         return Column(head + [body], flex=1, align="stretch")
     def _set_settings_tab(self, route, tab):
         route["_tab"] = tab
-        # Drop the home layout so entering the tab re-reads it. It is a
-        # server-side, cross-client setting, so a cached copy goes stale the
+        # Drop the home screen's state so entering that tab re-reads it. It
+        # is server-side and cross-client, so a cached copy goes stale the
         # moment the user touches Jellyfin Web — and saving from a stale copy
-        # would overwrite what they did there.
+        # would overwrite what they did there. Both halves (layout and the
+        # artwork preference) come from one fetch, so they clear together.
         for key in ("_home_layout", "_home_error", "_home_loading",
-                    "_display_prefs", "_display_error", "_display_loading"):
+                    "_display_prefs"):
             route.pop(key, None)
         self.status = ""
         self.invalidate()

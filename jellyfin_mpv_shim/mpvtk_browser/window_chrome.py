@@ -110,6 +110,103 @@ def chrome_lists(b):
     return servers, b._users()
 
 
+#: The three buttons a title bar has, in the order every desktop puts them.
+#: Narrower than the nav buttons on purpose: they are furniture, not
+#: features, and at the nav buttons' weight they read as three more app
+#: actions competing with Settings and Search.
+WINDOW_CONTROL_W = 34
+
+
+def window_controls(b, prefix="win", icon_size=16, w=WINDOW_CONTROL_W,
+                    fg=None, gap=4):
+    """Minimize / maximize / close, for a window the desktop drew no title
+    bar for. See ``WindowMixin.window_controls_wanted``.
+
+    Shared by the library's top bar and the playback HUD's, parameterized
+    rather than written twice: they are the same three buttons doing the
+    same three things, and the failure mode of a second copy is a window
+    you can close from one screen and not the other. ``prefix`` keeps the
+    node ids distinct, since a scene may not have two nodes with one id.
+
+    Only the close button departs from the shared hover: on every desktop
+    it is the one that is coloured, and it is the only one here whose
+    misclick costs anything.
+    """
+    if not b.window_controls:
+        return []
+
+    def ctl(icon, node_id, cb, tip, hover=None):
+        return Button("", id="%s-%s" % (prefix, node_id), icon=icon,
+                      size=icon_size, w=w, fg=fg,
+                      tip=tip, on_click=cb, flat=True, hover=hover)
+
+    return [
+        Spacer(w=gap),
+        ctl("minimize", "min", b.minimize_window, _("Minimize")),
+        # One button, two glyphs -- crop_square to maximize, filter_none to
+        # restore -- because that is the one piece of state a title bar
+        # actually shows, and a button that does not change when the window
+        # does reads as broken.
+        ctl("filter_none" if b.maximized else "crop_square", "max",
+            b.toggle_maximized,
+            _("Restore") if b.maximized else _("Maximize")),
+        # `circle` as well as the colour: flat buttons wash a circle on
+        # hover, and dropping it would make this the one button on the bar
+        # with a different hover *shape* as well as a different colour.
+        ctl("close", "close", b.close_window, _("Close"),
+            hover={"fill": theme.FAV_RED, "circle": True}),
+    ]
+
+
+#: The corner's hit box, and the three dots drawn in it. Bigger than it
+#: looks: this is the whole resize affordance on a window with no frame, and
+#: a grip you have to aim at is worse than no grip at all.
+RESIZE_GRIP = 22
+
+
+def resize_grip(b, w, h):
+    """The bottom-right corner, draggable to resize the window.
+
+    Only where the desktop drew no frame to resize by, and never while
+    maximized (there the geometry write would silently un-maximize instead
+    -- see the renderer's on_mouse_down).
+
+    On Wayland this is usually dead weight in the best way: mpv implements
+    its own edge-resize zone when ``border`` is false, and takes the press
+    in the compositor's protocol before it can reach a script. The grip is
+    for everywhere else -- and it is what the dots on screen are for
+    either way, since mpv's zone is invisible.
+
+    A ``Float`` so the corner is the *window's* corner, not the corner of
+    whatever the page happens to end in; and last in the scene, so it is
+    over the now-playing bar rather than under it. The dots are ordinary
+    Boxes with no interaction of their own, which is what leaves the hit
+    rect underneath them the topmost thing ``node_at`` will return.
+    """
+    if not b.window_controls or b.maximized or not w or not h:
+        return None
+    dots = [
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-3, dy=-3),
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-9, dy=-3),
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-3, dy=-9),
+    ]
+    # No w/h on the Float itself. _arrange_overlay ignores them (it measures
+    # the child), but a Column reads a child's declared `h` when it divides
+    # the main axis -- so declaring one here reserved 22px of PAGE for a
+    # thing that is drawn absolutely, shortening every scroll viewport and
+    # floating the now-playing bar 22px off the bottom of the window. The
+    # toast above does the same thing correctly: size the child, not the
+    # Float.
+    return Float(
+        Box([Stack(dots, w=RESIZE_GRIP, h=RESIZE_GRIP)],
+            id="win-resize", w=RESIZE_GRIP, h=RESIZE_GRIP,
+            window_resize="se", tip=_("Resize")),
+        x=w - RESIZE_GRIP, y=h - RESIZE_GRIP)
+
+
 def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
     title = "" if probe else (b.route.get("title") or _("Home"))
@@ -218,6 +315,11 @@ def chrome_bar(b, compact, probe=False, servers=None,
     if _may_syncplay(b):
         right.insert(-1, nav_button(_("SyncPlay"), "nav-syncplay", "groups",
                                     b._open_syncplay))
+    # Last, past Settings: this is window furniture, and on every desktop it
+    # sits outboard of everything the application put in the bar. Counted by
+    # the fit probe like everything else, so the bar simply goes icon-only
+    # sooner on an undecorated window rather than having a width reserved.
+    right += window_controls(b)
     middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
     bar = Row(
         left + middle + right,
@@ -225,6 +327,12 @@ def chrome_bar(b, compact, probe=False, servers=None,
         # No fill when a gradient is painting behind it, or the flat colour
         # would simply cover the gradient up.
         bg=None if theme.topbar_gradient() else theme.PANEL_BG,
+        # Drag the window by the bar, and double-click to maximize, when the
+        # bar IS the title bar. Not unconditional: with a real title bar
+        # above it, a top bar that also drags the window means two of them,
+        # and the one that is not the system's does not obey snapping or
+        # edge tiling.
+        window_drag=b.window_controls,
     )
     stops = theme.topbar_gradient()
     if not stops:

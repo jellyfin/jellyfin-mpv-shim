@@ -189,8 +189,11 @@ class UserInterface:
             self._quit()
             return
         if not self._can_run_windowless():
+            from ..tray import tray_unavailable_advice
+
             log.info("Window closed and no system tray is available; "
-                     "exiting rather than becoming unreachable.")
+                     "exiting rather than becoming unreachable. %s",
+                     tray_unavailable_advice())
             self._quit()
             return
         if self._browser is not None:
@@ -213,7 +216,7 @@ class UserInterface:
         from .app import MpvtkBrowser
         from .repository import LibrarySource
         from .strips import StripStore
-        from .thumbnails import ThumbnailStore
+        from .thumbnails import ThumbnailStore, disk_cache
 
         clientManager.load_credentials()
 
@@ -221,10 +224,17 @@ class UserInterface:
         self._app = app
         strips = (StripStore(mem_store=MemoryStore()) if app.in_process
                   else StripStore(cache_dir=cache_dir("mpvtk-browser-")))
+        # Artwork outlives the session: every entry is keyed by the server's
+        # own image tag, so last week's poster is still this week's poster,
+        # and a scratch directory meant re-fetching a whole library on every
+        # launch. Strips do not -- they are composited for this window, this
+        # theme and this cover size -- so they stay scratch.
+        thumb_dir, thumb_mb = disk_cache()
         thumbs = ThumbnailStore(
-            cache_dir("mpvtk-thumbs-"),
+            thumb_dir,
             verify_ssl=not settings.ignore_ssl_cert,
             max_mem_mb=settings.library_image_cache_mb,
+            max_disk_mb=thumb_mb,
         )
         # Open immediately on an empty source (spinner); populate on connect.
         source = LibrarySource([], clientManager.device_id,
@@ -243,6 +253,12 @@ class UserInterface:
         playerManager.notify_update = browser.notify_update
 
         playerManager.on_window_closed = self.on_window_closed
+        # Client-side decorations. Pushed, not polled: on Wayland whether the
+        # window has a title bar is settled by a compositor configure event
+        # that can land after the first frames are already drawn, so the
+        # startup read below is a starting point and this hook is the truth.
+        playerManager.on_decorations_changed = browser.refresh_window_controls
+        browser.refresh_window_controls()
         # A server that was down at startup must appear once it answers,
         # rather than staying invisible until a manual retry or restart.
         clientManager.on_server_connected = self._on_server_connected
@@ -268,9 +284,10 @@ class UserInterface:
             browser.minimize()
         else:
             if settings.start_minimized:
+                from ..tray import tray_unavailable_advice
+
                 log.info("start_minimized ignored: no system tray to restore "
-                         "the window from. Set allow_background to run "
-                         "windowless anyway.")
+                         "the window from. %s", tray_unavailable_advice())
             browser.enter_browse()  # take the window + hide the OSC
         if browser.headless:
             # Cast-target UX: the backdrop wants the whole screen, and the
@@ -344,22 +361,51 @@ class UserInterface:
             self._browser.app = None
 
     def on_mpv_terminated(self):
-        """mpv is really dead — now the tile buffers can go.
+        """mpv is really dead — now every picture in RAM can go.
 
-        Holding them would both leak and defeat the memory saving that
-        quitting mpv while minimized is for; freeing them any earlier
-        crashes. See playerManager.on_mpv_terminated."""
-        if self._browser is not None:
-            try:
-                # NB not strips.shutdown() here: mpv may be re-created
-                # afterward (on_mpv_recreated) and the browser reuses this
-                # store, so the pool must survive. clear() is lock-safe against
-                # a concurrent worker insert, and mpv is dead by contract, so a
-                # strip still composing can't fault. The pool is only really
-                # torn down in browser.shutdown().
-                self._browser.strips.clear()
-            except Exception:
-                log.debug("clearing the tile cache failed", exc_info=True)
+        This is the one moment the app can drop the lot. Everything else is
+        a partial: the strip cache can only shed what the live scene is not
+        using, because on libmpv those buffers are read BY ADDRESS by a
+        compositor that is still running, and the decoded-image cache sheds
+        a screen at a time as you navigate. With no mpv there is no scene,
+        no compositor and nothing on screen, so both go to zero.
+
+        Holding them past this point would both leak and defeat the memory
+        saving that quitting mpv while minimized is FOR -- the app is now a
+        cast target with no window, and a cast target does not need a
+        library's artwork. Freeing any earlier crashes. See
+        playerManager.on_mpv_terminated."""
+        if self._browser is None:
+            return
+        try:
+            # NB not strips.shutdown() here: mpv may be re-created
+            # afterward (on_mpv_recreated) and the browser reuses this
+            # store, so the pool must survive. clear() is lock-safe against
+            # a concurrent worker insert, and mpv is dead by contract, so a
+            # strip still composing can't fault. The pool is only really
+            # torn down in browser.shutdown().
+            self._browser.strips.clear()
+        except Exception:
+            log.debug("clearing the tile cache failed", exc_info=True)
+        try:
+            # The cast screen parks a full-window bitmap on itself rather
+            # than re-requesting it, so clear() alone leaves it pointing at
+            # a buffer that is now freed -- and mpv may be re-created under
+            # it (on_mpv_recreated) and handed that address.
+            self._browser.forget_cast_bitmap()
+        except Exception:
+            log.debug("could not reset the cast bitmap", exc_info=True)
+        try:
+            # Decoded posters, which nothing outside this process ever
+            # referenced -- so unlike the strips they need no permission
+            # from mpv, only somewhere sensible to be dropped. This is it:
+            # the window is gone and nothing will ask for a picture until
+            # one is opened again, by which time the artwork cache on disk
+            # answers without the server.
+            if self._browser.thumbs is not None:
+                self._browser.thumbs.trim_memory(0)
+        except Exception:
+            log.debug("clearing the decoded image cache failed", exc_info=True)
 
     def on_mpv_recreated(self):
         """A fresh mpv handle exists — attach a new renderer to it.

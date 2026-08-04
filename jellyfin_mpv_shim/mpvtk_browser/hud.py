@@ -35,7 +35,8 @@ from ..mpvtk.widgets import (
     Stack,
     Text,
 )
-from . import theme
+from . import theme, window_chrome
+from .window_chrome import WINDOW_CONTROL_W
 
 log = logging.getLogger("mpvtk_browser.hud")
 
@@ -754,8 +755,28 @@ def build_hud(b, size):
                                    anchor="hud-syncplay"),
             tip=_("SyncPlay"),
             fg=theme.ACCENT if syncplay.get("enabled") else "eeeeee"))
+    # The same three window buttons the library's top bar grows when the
+    # desktop draws no title bar. Here for the reason they exist there: a
+    # windowed video on such a desktop is otherwise a window with no way to
+    # close, minimize or move it. ESC does get you back to the library, but
+    # "press an undocumented key first" is not what a close button is.
+    #
+    # Smaller than the HUD's own buttons (sz(20) against sz(30)): window
+    # furniture sits below the content controls everywhere, and at transport
+    # size these would read as three more playback actions.
+    #
+    # Nothing extra is needed for fullscreen -- window_controls_wanted()
+    # already answers no there, which is right for both bars.
+    top_items += window_chrome.window_controls(
+        b, prefix="hud-win", icon_size=sz(20), w=sz(WINDOW_CONTROL_W),
+        fg="eeeeee", gap=sz(4))
     top = Row(top_items, gap=sz(10), pad=(sz(24), sz(10)), w=w,
-              anchor="n", align="center", id="hud-topbar", **_panel())
+              anchor="n", align="center", id="hud-topbar",
+              # Drag the video window by its header, as the library's bar
+              # does. `_panel()` may leave this bar with no fill at all
+              # (hud_scrim "none"), which is exactly when the marker has to
+              # be what conjures the hit rect -- see layout._arrange_box.
+              window_drag=b.window_controls, **_panel())
 
     children = _scrim(h, w) + [bar, top]
 
@@ -770,5 +791,13 @@ def build_hud(b, size):
     menu = _settings_menu(b, menu_state, size)
     if menu is not None:
         children.append(menu)
+
+    # The same corner the library grows, for the same reason the buttons
+    # above are here: a windowed video on a desktop that draws no frame is
+    # otherwise a window that cannot be resized either. Last, so it is over
+    # the transport bar it shares a corner with.
+    grip = window_chrome.resize_grip(b, w, h)
+    if grip is not None:
+        children.append(grip)
 
     return Stack(children, w=w, h=h)
