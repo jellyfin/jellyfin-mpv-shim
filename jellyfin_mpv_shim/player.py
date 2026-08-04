@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 from .utils import synchronous, Timer
 from .media import segment_labels
+from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
 from .player_audio import AudioMixin
 from .player_reporting import ReportingMixin
@@ -828,22 +829,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _observe(self, prop, handler):
         """Register a property observer on either backend.
 
-        Deliberately NOT `property_observer`. That decorator writes an
-        `unobserve_mpv_properties` attribute onto the callback it is given,
-        and a bound method has no __dict__ to write it to -- it raises
-        AttributeError, which is exactly what happens when these handlers stop
-        being plain closures. The underlying registration calls take the
-        handler directly and are what mpv_events.wait_property already uses.
-
-        Discriminated on the class, not the instance: libmpv's __getattr__
-        turns unknown instance attributes into property reads, so an
-        instance-level hasattr would be both wrong and wasteful (same reason
-        as mpv_events).
+        Thin by design: the dispatch (and the bound-method hazard it exists
+        to dodge) lives in ``mpv_events.observe``, so it can be checked
+        against a real mpv without importing this module -- which would
+        build a whole player as a side effect. Returns that function's
+        token; nothing here unregisters, because mpv is torn down whole.
         """
-        if hasattr(type(self._player), "bind_property_observer"):
-            self._player.bind_property_observer(prop, handler)
-        else:
-            self._player.observe_property(prop, handler)
+        return observe_property(self._player, prop, handler)
 
     def _bind_mpv_handlers(self):
         """Attach every key binding and event handler to the current mpv."""

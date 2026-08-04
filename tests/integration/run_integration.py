@@ -79,6 +79,11 @@ PER_BACKEND_REAL = [
     # disk, the real offline source, real keys, and the database checked
     # afterwards.
     "tests.integration.test_e2e_offline",
+    # Whether mpv will ANSWER about this window's decorations. Per backend
+    # because that is where it breaks: an unreadable property makes the
+    # window controls turn themselves off silently and permanently, on
+    # whichever backend stopped answering.
+    "tests.integration.test_window_decorations",
 ]
 
 # Backend-agnostic, run once. The harness's own contract: the fake mpv
