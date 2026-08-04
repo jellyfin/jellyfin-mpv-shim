@@ -27,6 +27,13 @@ from jellyfin_mpv_shim.mpvtk_browser.settings import (  # noqa: E402
 )
 
 #: Every public member of SettingsMixin immediately before the split.
+#:
+#: Two acknowledged renames since (this list is a ratchet, not a fossil):
+#: ``_settings_general`` -> ``_settings_form``, when the General page was
+#: split into General/Browse/Playback tabs and one renderer started drawing
+#: all three; and ``_settings_display``, which never appeared here because
+#: the Display tab post-dated the split and has since been folded into the
+#: Home Screen tab.
 BEFORE_SPLIT = {
     "DL_POLL_SECS", "INDENT", "LOG_POLL_SECS", "LOG_ROW_H", "ROUTES",
     "SETTINGS_TABS", "_add_user", "_after_users_changed",
@@ -40,7 +47,7 @@ BEFORE_SPLIT = {
     "_remove_server", "_render_settings", "_retry_home_layout", "_section",
     "_seed_auto_download_server", "_server_row", "_set_home_slot",
     "_set_setting", "_set_settings_tab", "_setting_row",
-    "_settings_downloads", "_settings_general", "_settings_home",
+    "_settings_downloads", "_settings_form", "_settings_home",
     "_settings_logs", "_settings_servers", "_toggle_advanced",
     "_toggle_auto_server", "_toggle_collections", "_user_row",
     "open_settings",
@@ -103,12 +110,28 @@ class TestTheRouteStillPointsAtTheFrame(unittest.TestCase):
 
     def test_every_tab_in_the_bar_has_a_renderer(self):
         """SETTINGS_TABS drives the tab bar by name; a tab whose renderer is
-        missing is a dead tab that raises when clicked."""
+        missing is a dead tab that raises when clicked.
+
+        Via TAB_RENDERERS rather than by guessing ``_settings_<tab>``: three
+        tabs share one renderer since the General page was split, so the
+        naming convention stopped being able to answer this.
+        """
         for entry in SettingsMixin.SETTINGS_TABS:
             key = entry[0] if isinstance(entry, (tuple, list)) else entry
-            self.assertTrue(
-                hasattr(SettingsMixin, "_settings_%s" % key),
-                "tab %r has no _settings_%s renderer" % (key, key))
+            name = SettingsMixin.TAB_RENDERERS.get(key)
+            self.assertIsNotNone(
+                name, "tab %r is in the bar with no entry in TAB_RENDERERS"
+                % key)
+            self.assertTrue(hasattr(SettingsMixin, name),
+                            "tab %r maps to %s, which does not exist"
+                            % (key, name))
+
+    def test_no_renderer_is_mapped_for_a_tab_nobody_can_reach(self):
+        # The other direction: a tab dropped from the bar but left in the
+        # table is dead code that reads as a screen that still exists.
+        self.assertEqual(
+            set(SettingsMixin.TAB_RENDERERS) - set(SettingsMixin.SETTINGS_TABS),
+            set())
 
 
 if __name__ == "__main__":

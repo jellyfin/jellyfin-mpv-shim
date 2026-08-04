@@ -708,7 +708,13 @@ class FakeConfig:
         self.schema = {"autoplay": "bool", "player_name": "str",
                        "seek_up": "int", "osc_mode": "str", "lang": "str"}
 
-    def sections(self):
+    def sections(self, tab=None):
+        # The real one splits its groups across the General/Browse/Playback
+        # tabs and takes which one to draw. This stand-in keeps one group on
+        # General and returns nothing for the other two, which is enough for
+        # a form test and keeps "an empty tab renders" exercised.
+        if tab in ("browse", "playback"):
+            return []
         return [("Interface", ["player_name", "osc_mode", "lang"]),
                 ("Advanced", ["autoplay", "seek_up"])]
 

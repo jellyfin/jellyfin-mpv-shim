@@ -133,7 +133,7 @@ the server selector.
 
 The first time you close the browser window, you're asked whether closing should **Minimize to Tray**
 (keep the app running as a cast target) or **Exit**. Your choice is remembered and can be changed later
-via **Close to Tray (keep running)** in *Settings → Interface*.
+via **Close to Tray (keep running)** in *Settings → General → Window*.
 
 Users are stored in `users.json` in the config folder (next to `cred.json`). On first run with this
 feature, your existing `cred.json` is migrated into the `(default)` user automatically.

@@ -343,7 +343,7 @@ You can use the config file to enable and disable features.
 - `notify_updates` - Display update notification when playing media. Default: `true`
   - Notification will only display once until the application is restarted.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
-  - Also in Settings → Interface. Needs the optional `pypresence` package
+  - Also in Settings → General → This Device. Needs the optional `pypresence` package
     (`pip install jellyfin-mpv-shim[discord]`) and takes effect after a
     restart; with it missing the setting stays on but does nothing, which
     the settings screen now says.
@@ -358,7 +358,7 @@ episodes are fetched for you automatically.
 
 - `sync_path` - Where downloaded media is stored. Default: `null` (a `downloads` folder in the
   config directory)
-  - Change this from *Settings → Downloads*, not by hand: moving the store copies the files and
+  - Change this from *Settings → Browse → Downloads*, not by hand: moving the store copies the files and
     updates the catalog. Editing the path directly leaves the existing downloads behind.
 - `prefer_downloaded` - Play the downloaded copy when one exists, instead of streaming. Default: `true`
 - `work_offline` - Browse only downloaded media and don't contact the server. Default: `false`

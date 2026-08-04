@@ -68,67 +68,117 @@ EXCLUSIVE_PLATFORMS = ("win32", "darwin")
 # offering a setting that cannot do anything. Shown directly below it.
 BACKGROUND_DEPENDENT = ("start_minimized",)
 
-# Curated groups, mirroring the Tk browser's form. Anything not listed shows
-# under "Advanced".
-SECTIONS = [
-    # enable_gui and headless are deliberately *not* here. Both are one-way
-    # doors from the settings form's point of view: enable_gui doesn't
-    # disable "the Jellyfin UI", it drops the whole app to CLI mode -- no
-    # window, no tray, no settings -- and headless makes the cast screen the
-    # only page, so with no system tray installed there is nothing left to
-    # reach Settings from. Either way the way back is hand-editing conf.json,
-    # which is not a thing to leave one click away in the main list. They stay
-    # editable under Advanced, with notes saying what they cost. Someone who
-    # wants mpv's own controls wants osc_style, which is in this section.
-    (_("Interface"), ["player_name", "browser_fullscreen",
-                      "display_mirror_summon",
-                      "close_to_tray", "allow_background",
-                      "start_minimized",
-                      "remember_window_size", "window_controls",
-                      "fullscreen", "osc_style",
-                      "hud_grab_keys", "hud_wake_key",
-                      "hud_scrim", "hud_autohide", "hud_hide_secs",
-                      "mouse_chapter_nav", "raise_mpv",
-                      "discord_presence",
-                      "check_updates", "notify_updates"]),
-    # The three startup-applied "look" settings, together: the theme sets the
-    # palette and its own cover size, and these two can override the sizing.
-    (_("Theme"), ["theme", "poster_scale", "ui_scale"]),
-    (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
-                     "remote_kbps", "direct_paths", "remote_direct_paths",
-                     "playback_timeout"]),
-    # Passthrough keys are listed in full here; sections() drops the ones the
-    # selected mode cannot carry.
-    (_("Audio"), ["audio_device", "audio_exclusive",
-                  "audio_mode", "audio_night_mode"]
-                 + [k for _c, k in AUDIO_PASSTHROUGH_KEYS]
-                 + ["audio_optical_encode_ac3"]),
-    (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
-                                  "subtitle_position", "language_preference",
-                                  "preferred_language", "remember_audio_track",
-                                  "remember_subtitle_track", "lang_filter",
-                                  "lang_filter_sub", "lang_filter_audio"]),
-    (_("Transcoding"), ["allow_transcode_to_h265", "prefer_transcode_to_h265",
-                        "transcode_hevc", "transcode_av1", "transcode_4k",
-                        "transcode_hdr", "transcode_hi10p",
-                        "transcode_dolby_vision", "force_video_codec",
-                        "force_audio_codec"]),
-    (_("Video Enhancement"), ["shader_pack_enable", "shader_pack_subtype",
-                              "shader_pack_remember", "shader_pack_gpu_api"]),
-    (_("Skip Intro / Credits"), ["segment_intro", "segment_outro",
-                                 "segment_commercial", "segment_preview",
-                                 "segment_recap", "skip_intro_on_seek"]),
-    (_("Library Browser"), ["library_image_cache_mb", "scroll_wheel_pixels",
-                            "scroll_mode", "paginated", "logo_legibility_live_tv",
-                            "logo_legibility_library"]),
-    (_("Downloads"), ["sync_path", "prefer_downloaded",
-                      "auto_download_enable", "auto_download_next_up",
-                      "auto_download_next_up_limit",
-                      "auto_download_lookahead", "auto_download_max_gb",
-                      "auto_download_delete_watched",
-                      "auto_download_keep_days",
-                      "auto_download_interval_mins"]),
-]
+# Curated groups, per settings tab. Anything not listed shows under
+# "Advanced", which lives on the General tab.
+#
+# **Three tabs, not one.** These were all one "General" page, which had grown
+# to eleven groups and about a hundred controls in a single scroll -- with a
+# twenty-key "Interface" group at the top holding four unrelated topics
+# (device identity, window behaviour, the playback HUD, and update
+# notifications). Finding anything meant scrolling past everything.
+#
+# The split is by *what you are doing when you want it*, not by which module
+# reads it: someone adjusting subtitles or the seek buttons is watching
+# something, and someone adjusting scrolling or covers is browsing. General
+# keeps what belongs to the installation rather than to either activity.
+#
+# TAB_SECTIONS is ordered, and so is each list; `sections(tab)` reads them
+# straight through.
+TAB_SECTIONS = {
+    "general": [
+        # enable_gui and headless are deliberately *not* here. Both are
+        # one-way doors from the settings form's point of view: enable_gui
+        # doesn't disable "the Jellyfin UI", it drops the whole app to CLI
+        # mode -- no window, no tray, no settings -- and headless makes the
+        # cast screen the only page, so with no system tray installed there
+        # is nothing left to reach Settings from. Either way the way back is
+        # hand-editing conf.json, which is not a thing to leave one click
+        # away in the main list. They stay editable under Advanced, with
+        # notes saying what they cost.
+        (_("This Device"), ["player_name", "raise_mpv",
+                            "discord_presence",
+                            "check_updates", "notify_updates"]),
+        # Everything about the window itself, in the order you meet it:
+        # how it opens, whether it remembers, what closing it means.
+        (_("Window"), ["fullscreen", "browser_fullscreen",
+                       "remember_window_size", "window_controls",
+                       "close_to_tray", "allow_background",
+                       "start_minimized", "display_mirror_summon"]),
+    ],
+    "browse": [
+        # The three startup-applied "look" settings, together: the theme
+        # sets the palette and its own cover size, and these two can
+        # override the sizing.
+        (_("Theme"), ["theme", "poster_scale", "ui_scale"]),
+        (_("Library Browser"), ["library_image_cache_mb",
+                                "scroll_wheel_pixels",
+                                "scroll_mode", "paginated",
+                                "logo_legibility_live_tv",
+                                "logo_legibility_library"]),
+        # Downloading is acquiring library content for later, which is a
+        # browsing activity rather than a watching one. NOT on the Downloads
+        # tab, the obvious-looking home: that tab is the *manager* -- what is
+        # on disk right now, per item, with delete and move buttons -- and it
+        # is already crowded with media management. A settings form bolted
+        # above it would be the smaller thing on a page about something else.
+        (_("Downloads"), ["sync_path", "prefer_downloaded",
+                          "auto_download_enable", "auto_download_next_up",
+                          "auto_download_next_up_limit",
+                          "auto_download_lookahead", "auto_download_max_gb",
+                          "auto_download_delete_watched",
+                          "auto_download_keep_days",
+                          "auto_download_interval_mins"]),
+    ],
+    "playback": [
+        # The in-player UI leads: it is the thing you are looking at while
+        # watching, and osc_style decides whether the rest of the group
+        # applies at all.
+        (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
+                                "hud_scrim", "hud_autohide", "hud_hide_secs",
+                                "mouse_chapter_nav"]),
+        (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
+                         "remote_kbps", "direct_paths",
+                         "remote_direct_paths", "playback_timeout"]),
+        # Passthrough keys are listed in full here; sections() drops the
+        # ones the selected mode cannot carry.
+        (_("Audio"), ["audio_device", "audio_exclusive",
+                      "audio_mode", "audio_night_mode"]
+                     + [k for _c, k in AUDIO_PASSTHROUGH_KEYS]
+                     + ["audio_optical_encode_ac3"]),
+        (_("Subtitles & Languages"), ["subtitle_size", "subtitle_color",
+                                      "subtitle_position",
+                                      "language_preference",
+                                      "preferred_language",
+                                      "remember_audio_track",
+                                      "remember_subtitle_track",
+                                      "lang_filter", "lang_filter_sub",
+                                      "lang_filter_audio"]),
+        (_("Transcoding"), ["allow_transcode_to_h265",
+                            "prefer_transcode_to_h265",
+                            "transcode_hevc", "transcode_av1",
+                            "transcode_4k", "transcode_hdr",
+                            "transcode_hi10p", "transcode_dolby_vision",
+                            "force_video_codec", "force_audio_codec"]),
+        (_("Video Enhancement"), ["shader_pack_enable",
+                                  "shader_pack_subtype",
+                                  "shader_pack_remember",
+                                  "shader_pack_gpu_api"]),
+        (_("Skip Intro / Credits"), ["segment_intro", "segment_outro",
+                                     "segment_commercial",
+                                     "segment_preview", "segment_recap",
+                                     "skip_intro_on_seek"]),
+    ],
+}
+
+#: Which tab "Advanced" (everything uncurated) is appended to. General, so
+#: the other two stay the size the split made them -- and so there is one
+#: place to look for a key you cannot find.
+ADVANCED_TAB = "general"
+
+#: Flattened, in tab order. Anything that wants "every curated key" reads
+#: this rather than knowing about the tabs.
+SECTIONS = [group for tab in ("general", "browse", "playback")
+            for group in TAB_SECTIONS[tab]]
 
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
@@ -164,6 +214,11 @@ LABELED_ENUMS = {
     # settings.general._dynamic_enum.
     # Order and values must match conf.SCROLL_MODES, which is what actually
     # decides behaviour; test_mpvtk_adopt pins them together.
+    "scroll_mode": [
+        (_("Continuous"), "continuous"),
+        (_("Aligned to rows"), "aligned"),
+        (_("One row per notch"), "row"),
+    ],
     # Phrased as what the user sees, not as "client-side decorations":
     # "auto" is not a guess about the desktop, it is MPV reporting whether
     # anything decorated this window. See conf.window_controls.
@@ -171,11 +226,6 @@ LABELED_ENUMS = {
         (_("Only when the window has no title bar"), "auto"),
         (_("Always"), "always"),
         (_("Never"), "never"),
-    ],
-    "scroll_mode": [
-        (_("Continuous"), "continuous"),
-        (_("Aligned to rows"), "aligned"),
-        (_("One row per notch"), "row"),
     ],
     # One list, five settings: the three things that can be done about a
     # media segment (jellyfin-web offers the same three).
@@ -321,7 +371,7 @@ NOTES = {
     # Says what it is for, not what it is called. "Client-side decorations"
     # is the right term and means nothing to the person whose window has no
     # close button; the note has to be recognisable from the symptom.
-    "window_controls": _("Some desktops \u2014 GNOME on Wayland in particular \u2014 "
+    "window_controls": _("Some desktops — GNOME on Wayland in particular — "
                          "draw no title bar on the player window, leaving no "
                          "way to move or close it. This puts minimize, "
                          "maximize and close in the top bar instead, and "
@@ -475,9 +525,19 @@ def tray_available():
         return False
 
 
-def sections():
-    """``[(title, [key, ...]), ...]`` — curated groups first, then Advanced
-    with everything else that's editable."""
+def sections(tab=None):
+    """``[(title, [key, ...]), ...]`` — curated groups, then Advanced with
+    everything else that's editable.
+
+    ``tab`` limits the result to one settings tab (see TAB_SECTIONS);
+    ``None`` returns every group, which is what anything asking "is this key
+    reachable at all" wants.
+
+    **Advanced is computed against every curated key, not the tab's.**
+    Otherwise each tab would list the other two tabs' settings as
+    uncurated — every key would appear three times, and the split would have
+    made the page longer rather than shorter.
+    """
     schema = settings_schema()
     mode = settings.audio_mode or "auto"
     # Seeded, not built up: an audio toggle hidden because the mode can't use
@@ -499,11 +559,17 @@ def sections():
     if getattr(settings, keep_running, False):
         shown.update(BACKGROUND_DEPENDENT)
     hidden = curated - shown
+    wanted = (None if tab is None
+              else {t for t, _k in TAB_SECTIONS.get(tab, [])})
     for title, keys in SECTIONS:
         present = [k for k in keys if k in schema and k not in hidden]
+        # Every group contributes to `curated` — see the docstring — but
+        # only this tab's groups are drawn.
         curated.update(present)
-        if present:
+        if present and (wanted is None or title in wanted):
             out.append((title, present))
+    if tab is not None and tab != ADVANCED_TAB:
+        return out
     advanced = sorted(k for k in schema if k not in curated)
     if advanced:
         out.append((_("Advanced"), advanced))

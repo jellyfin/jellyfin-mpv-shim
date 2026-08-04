@@ -14,268 +14,62 @@
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.7.1", "size": 20, "t": "text", "text": "Settings", "w": 74.4, "x": 1183.6, "y": 22.0}
 {"click": true, "fill": "00a4dc", "h": 45.0, "hover": {"fill": "1cb6e8"}, "id": "stab-general", "radius": 6, "t": "rect", "w": 87.6, "x": 12.0, "y": 72.0}
 {"align": "center", "c": "ffffff", "h": 25.0, "id": "r.1.0.0.0.0", "size": 20, "t": "text", "text": "General", "w": 67.6, "x": 22.0, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-home", "radius": 6, "t": "rect", "w": 136.2, "x": 107.6, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.1.0", "size": 20, "t": "text", "text": "Home Screen", "w": 116.2, "x": 117.6, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-display", "radius": 6, "t": "rect", "w": 87.6, "x": 251.8, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.2.0", "size": 20, "t": "text", "text": "Display", "w": 67.6, "x": 261.8, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-servers", "radius": 6, "t": "rect", "w": 166.6, "x": 347.4, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.3.0", "size": 20, "t": "text", "text": "Servers & Users", "w": 146.6, "x": 357.4, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-downloads", "radius": 6, "t": "rect", "w": 119.4, "x": 522.0, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 532.0, "y": 82.0}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 649.4, "y": 72.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.5.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 659.4, "y": 82.0}
-{"axis": "y", "bar": true, "ch": 4229.0, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "Interface", "w": 1238.0, "x": 16.0, "y": 145.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-browse", "radius": 6, "t": "rect", "w": 87.0, "x": 107.6, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.1.0", "size": 20, "t": "text", "text": "Browse", "w": 67.0, "x": 117.6, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-playback", "radius": 6, "t": "rect", "w": 102.4, "x": 202.6, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.2.0", "size": 20, "t": "text", "text": "Playback", "w": 82.4, "x": 212.6, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-home", "radius": 6, "t": "rect", "w": 136.2, "x": 313.0, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.3.0", "size": 20, "t": "text", "text": "Home Screen", "w": 116.2, "x": 323.0, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-servers", "radius": 6, "t": "rect", "w": 166.6, "x": 457.2, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.4.0", "size": 20, "t": "text", "text": "Servers & Users", "w": 146.6, "x": 467.2, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-downloads", "radius": 6, "t": "rect", "w": 119.4, "x": 631.8, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.5.0", "size": 20, "t": "text", "text": "Downloads", "w": 99.4, "x": 641.8, "y": 82.0}
+{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 63.2, "x": 759.2, "y": 72.0}
+{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.0.0.6.0", "size": 20, "t": "text", "text": "Logs", "w": 43.2, "x": 769.2, "y": 82.0}
+{"axis": "y", "bar": true, "ch": 649.0, "cw": 1270.0, "h": 591.0, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 129.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 145.0}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 186.4}
 {"h": 38.0, "id": "set-player_name", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 178.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 224.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 226.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.2.1", "sc": "settings", "size": 20, "t": "text", "text": "Fullscreen Library Browser", "w": 245.4, "x": 46.0, "y": 224.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 257.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 224.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 226.5}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.2.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 227.1}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.2.1", "sc": "settings", "size": 20, "t": "text", "text": "Raise MPV", "w": 94.6, "x": 46.0, "y": 224.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 257.0}
 {"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 259.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.3.1", "sc": "settings", "size": 20, "t": "text", "text": "Casting Opens the Library Browser", "w": 311.4, "x": 46.0, "y": 257.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 290.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.4.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 292.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.4.1", "sc": "settings", "size": 20, "t": "text", "text": "Keep Running in Background", "w": 254.4, "x": 46.0, "y": 290.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.5", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the way, plays fullscreen when something casts to it, and goes back to waiting when the", "w": 1238.0, "x": 16.0, "y": 323.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.5.l1", "sc": "settings", "size": 14, "t": "text", "text": "video ends or you press Q.", "w": 1238.0, "x": 16.0, "y": 340.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 366.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 368.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 369.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.6.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Window Size", "w": 219.2, "x": 46.0, "y": 366.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.7.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 407.4}
-{"force": true, "h": 38.0, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 399.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.8", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops \u2014 GNOME on Wayland in particular \u2014 draw no title bar on the player window, leaving no way to move or close it. This puts minimize, maximize and close in the top bar instead,", "w": 1238.0, "x": 16.0, "y": 445.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.8.l1", "sc": "settings", "size": 14, "t": "text", "text": "and lets you drag the window by it. Left on \"Only when the window has no title bar\", MPV is asked whether this window got one, so desktops that do decorate it are left alone.", "w": 1238.0, "x": 16.0, "y": 462.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 488.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.9.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 490.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.9.1", "sc": "settings", "size": 20, "t": "text", "text": "Fullscreen", "w": 96.0, "x": 46.0, "y": 488.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.10.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Controls Style", "w": 340.0, "x": 16.0, "y": 529.4}
-{"force": true, "h": 38.0, "id": "set-osc_style", "items": ["Jellyfin UI", "MPV UI with thumbnails", "MPV built-in default", "No player controls"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 521.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11", "sc": "settings", "size": 14, "t": "text", "text": "Requires restart to change. MPV keybinds are used by default. Press ENTER to drive the player controls by keyboard. \"No player controls\" leaves playback bare; the library, the keyboard", "w": 1238.0, "x": 16.0, "y": 567.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11.l1", "sc": "settings", "size": 14, "t": "text", "text": "shortcuts and the menu key still work.", "w": 1238.0, "x": 16.0, "y": 584.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-hud_grab_keys", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 610.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.12.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 612.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.12.1", "sc": "settings", "size": 20, "t": "text", "text": "Always Bind Arrow Keys to Player Controls", "w": 386.4, "x": 46.0, "y": 610.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.13.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Controls Activation Key", "w": 340.0, "x": 16.0, "y": 651.4}
-{"h": 38.0, "id": "set-hud_wake_key", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "ENTER", "w": 340.0, "x": 368.0, "y": 643.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.14.0", "sc": "settings", "size": 17, "t": "text", "text": "Shading Behind the Player Controls", "w": 340.0, "x": 16.0, "y": 697.4}
-{"force": true, "h": 38.0, "id": "set-hud_scrim", "items": ["Default", "Panel behind the controls", "None (shadowed text)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 689.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.15", "sc": "settings", "size": 14, "t": "text", "text": "The controls have to stay legible over any frame. \"None\" gives the text a drop shadow instead of shading the picture behind it.", "w": 1238.0, "x": 16.0, "y": 735.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.16.0", "sc": "settings", "size": 17, "t": "text", "text": "When the Player Controls Hide", "w": 340.0, "x": 16.0, "y": 768.9}
-{"force": true, "h": 38.0, "id": "set-hud_autohide", "items": ["Hide unless hovered", "Always hide", "Never hide while paused"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 760.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "\"Hide unless hovered\" keeps them up only while the pointer is on them, paused or not.", "w": 1238.0, "x": 16.0, "y": 806.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.18.0", "sc": "settings", "size": 17, "t": "text", "text": "Hide the Player Controls After (seconds)", "w": 340.0, "x": 16.0, "y": 840.4}
-{"h": 38.0, "id": "set-hud_hide_secs", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "4.0", "w": 340.0, "x": 368.0, "y": 832.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19", "sc": "settings", "size": 14, "t": "text", "text": "0 hides them as soon as the pointer is not on them, and forces \"Hide unless hovered\".", "w": 1238.0, "x": 16.0, "y": 878.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-mouse_chapter_nav", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 903.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.20.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 906.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.20.1", "sc": "settings", "size": 20, "t": "text", "text": "Mouse Back/Forward Buttons Skip Chapters", "w": 397.2, "x": 46.0, "y": 903.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.21", "sc": "settings", "size": 14, "t": "text", "text": "During playback only \u2014 in the library those buttons stay Back and Forward. Off by default because they are easy to hit by accident on some mice. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 936.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 962.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.22.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 964.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.22.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 965.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.22.1", "sc": "settings", "size": 20, "t": "text", "text": "Raise MPV", "w": 94.6, "x": 46.0, "y": 962.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 995.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.23.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 997.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.23.1", "sc": "settings", "size": 20, "t": "text", "text": "Show What You're Watching in Discord", "w": 351.4, "x": 46.0, "y": 995.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.24", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 1028.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1053.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.25.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1056.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.25.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1056.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.25.1", "sc": "settings", "size": 20, "t": "text", "text": "Check Updates", "w": 131.6, "x": 46.0, "y": 1053.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1086.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.26.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1089.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.26.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1089.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.26.1", "sc": "settings", "size": 20, "t": "text", "text": "Notify Updates", "w": 130.4, "x": 46.0, "y": 1086.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.27", "sc": "settings", "size": 20, "t": "text", "text": "Theme", "w": 1238.0, "x": 16.0, "y": 1119.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.28.0", "sc": "settings", "size": 17, "t": "text", "text": "Theme", "w": 340.0, "x": 16.0, "y": 1160.9}
-{"force": true, "h": 38.0, "id": "set-theme", "items": ["Default", "Apple TV (Jellyfin)", "Blue Radiance (Jellyfin)", "Light (Jellyfin)", "Nebula", "Purple Haze (Jellyfin)", "Windows Media Center (Jellyfin)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1152.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.29", "sc": "settings", "size": 14, "t": "text", "text": "Palette, glow, cover style and default cover size. Colours change immediately; cover and heading sizes take effect after a restart.", "w": 1238.0, "x": 16.0, "y": 1198.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.30.0", "sc": "settings", "size": 17, "t": "text", "text": "Cover Size", "w": 340.0, "x": 16.0, "y": 1232.4}
-{"force": true, "h": 38.0, "id": "set-poster_scale", "items": ["Theme default", "Extra Compact", "Compact", "Small", "Medium", "Large", "Extra Large"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1224.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.31", "sc": "settings", "size": 14, "t": "text", "text": "Overrides the theme's cover size. Applies immediately, and is also on the View menu of any library.", "w": 1238.0, "x": 16.0, "y": 1270.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.32.0", "sc": "settings", "size": 17, "t": "text", "text": "Interface Scale", "w": 340.0, "x": 16.0, "y": 1303.9}
-{"force": true, "h": 38.0, "id": "set-ui_scale", "items": ["Follow display", "100% (no scaling)", "125%", "150%", "200%"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1295.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.33", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. \"Follow display\" uses the scale your desktop reports, which is 100% on X11.", "w": 1238.0, "x": 16.0, "y": 1341.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.34", "sc": "settings", "size": 14, "t": "text", "text": "Interface scale requires a restart.", "w": 1238.0, "x": 16.0, "y": 1367.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.35", "sc": "settings", "size": 20, "t": "text", "text": "Playback", "w": 1238.0, "x": 16.0, "y": 1392.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_play", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1425.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.36.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1428.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.36.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 1428.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.36.1", "sc": "settings", "size": 20, "t": "text", "text": "Auto Play", "w": 84.4, "x": 46.0, "y": 1425.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-always_transcode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1458.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.37.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1461.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.37.1", "sc": "settings", "size": 20, "t": "text", "text": "Always Transcode", "w": 166.2, "x": 46.0, "y": 1458.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.38.0", "sc": "settings", "size": 17, "t": "text", "text": "Local kbps", "w": 340.0, "x": 16.0, "y": 1499.9}
-{"h": 38.0, "id": "set-local_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2147483", "w": 340.0, "x": 368.0, "y": 1491.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.39.0", "sc": "settings", "size": 17, "t": "text", "text": "Remote kbps", "w": 340.0, "x": 16.0, "y": 1545.9}
-{"h": 38.0, "id": "set-remote_kbps", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10000", "w": 340.0, "x": 368.0, "y": 1537.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1583.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.40.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1586.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.40.1", "sc": "settings", "size": 20, "t": "text", "text": "Direct Paths", "w": 108.8, "x": 46.0, "y": 1583.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remote_direct_paths", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1616.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.41.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1619.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.41.1", "sc": "settings", "size": 20, "t": "text", "text": "Remote Direct Paths", "w": 181.8, "x": 46.0, "y": 1616.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.42.0", "sc": "settings", "size": 17, "t": "text", "text": "Playback Timeout", "w": 340.0, "x": 16.0, "y": 1657.9}
-{"h": 38.0, "id": "set-playback_timeout", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 1649.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.43", "sc": "settings", "size": 20, "t": "text", "text": "Audio", "w": 1238.0, "x": 16.0, "y": 1695.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.44.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Device", "w": 340.0, "x": 16.0, "y": 1736.9}
-{"h": 38.0, "id": "set-audio_device", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 1728.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.45", "sc": "settings", "size": 14, "t": "text", "text": "Leave this to Default unless setting up passthrough. Note some audio servers like Pipewire don't like passthrough and will need to be disabled for a card before it'll let *any* audio through in", "w": 1238.0, "x": 16.0, "y": 1774.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.45.l1", "sc": "settings", "size": 14, "t": "text", "text": "passthrough mode. In my tests I got silence otherwise, but results may vary.", "w": 1238.0, "x": 16.0, "y": 1792.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.46.0", "sc": "settings", "size": 17, "t": "text", "text": "Audio Output Mode", "w": 340.0, "x": 16.0, "y": 1825.9}
-{"force": true, "h": 38.0, "id": "set-audio_mode", "items": ["Default (auto)", "Force Stereo", "Optical Surround", "HDMI Passthrough"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 1817.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.47", "sc": "settings", "size": 14, "t": "text", "text": "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. Pick a mode only if you are sending audio to a receiver.", "w": 1238.0, "x": 16.0, "y": 1863.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-audio_night_mode", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1889.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.48.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 1891.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.48.1", "sc": "settings", "size": 20, "t": "text", "text": "Night Mode (Auto Volume Adj)", "w": 267.6, "x": 46.0, "y": 1889.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.49", "sc": "settings", "size": 14, "t": "text", "text": "Evens out loud effects and quiet dialogue. This turns passthrough off while it is enabled, because the volume has to be adjusted before your receiver gets the audio.", "w": 1238.0, "x": 16.0, "y": 1922.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.50", "sc": "settings", "size": 20, "t": "text", "text": "Subtitles & Languages", "w": 1238.0, "x": 16.0, "y": 1947.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.51.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Size", "w": 340.0, "x": 16.0, "y": 1988.9}
-{"h": 38.0, "id": "set-subtitle_size", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "100", "w": 340.0, "x": 368.0, "y": 1980.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.52.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Color", "w": 340.0, "x": 16.0, "y": 2034.9}
-{"h": 38.0, "id": "set-subtitle_color", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "#FFFFFFFF", "w": 340.0, "x": 368.0, "y": 2026.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.53.0", "sc": "settings", "size": 17, "t": "text", "text": "Subtitle Position", "w": 340.0, "x": 16.0, "y": 2080.9}
-{"force": true, "h": 38.0, "id": "set-subtitle_position", "items": ["top", "bottom", "middle"], "sc": "settings", "sel": 1, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2072.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.54.0", "sc": "settings", "size": 17, "t": "text", "text": "Language Preference", "w": 340.0, "x": 16.0, "y": 2126.9}
-{"force": true, "h": 38.0, "id": "set-language_preference", "items": ["Unset", "Dubbed (shows only)", "Subbed (shows only)", "Dubbed (all)", "Subbed (all)", "Custom (set in config)"], "sc": "settings", "sel": 5, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2118.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.55.0", "sc": "settings", "size": 17, "t": "text", "text": "Preferred Language", "w": 340.0, "x": 16.0, "y": 2172.9}
-{"h": 38.0, "id": "set-preferred_language", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "eng", "w": 340.0, "x": 368.0, "y": 2164.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_audio_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2210.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.56.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2213.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.56.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2213.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.56.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Audio Track", "w": 206.8, "x": 46.0, "y": 2210.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_subtitle_track", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2243.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.57.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2246.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.57.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2246.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.57.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Subtitle Track", "w": 227.2, "x": 46.0, "y": 2243.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.58.0", "sc": "settings", "size": 17, "t": "text", "text": "Lang Filter", "w": 340.0, "x": 16.0, "y": 2284.9}
-{"h": 38.0, "id": "set-lang_filter", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "und,eng,jpn,mis,mul,zxx", "w": 340.0, "x": 368.0, "y": 2276.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_sub", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2322.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.59.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2325.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.59.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Sub", "w": 136.4, "x": 46.0, "y": 2322.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-lang_filter_audio", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2355.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.60.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2358.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.60.1", "sc": "settings", "size": 20, "t": "text", "text": "Lang Filter Audio", "w": 154.0, "x": 46.0, "y": 2355.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.61", "sc": "settings", "size": 20, "t": "text", "text": "Transcoding", "w": 1238.0, "x": 16.0, "y": 2388.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-allow_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2421.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.62.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2424.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.62.1", "sc": "settings", "size": 20, "t": "text", "text": "Allow Transcode To H265", "w": 228.2, "x": 46.0, "y": 2421.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_transcode_to_h265", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2454.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.63.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2457.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.63.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Transcode To H265", "w": 228.8, "x": 46.0, "y": 2454.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hevc", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2487.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.64.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2490.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.64.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HEVC", "w": 142.4, "x": 46.0, "y": 2487.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_av1", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2520.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.65.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2523.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.65.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode AV1", "w": 131.6, "x": 46.0, "y": 2520.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_4k", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2553.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.66.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2556.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.66.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode 4K", "w": 120.8, "x": 46.0, "y": 2553.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hdr", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2586.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.67.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2589.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.67.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode HDR", "w": 131.6, "x": 46.0, "y": 2586.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_hi10p", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2619.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.68.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2622.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.68.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Hi10P", "w": 149.2, "x": 46.0, "y": 2619.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-transcode_dolby_vision", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2652.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.69.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2655.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.69.1", "sc": "settings", "size": 20, "t": "text", "text": "Transcode Dolby Vision", "w": 212.0, "x": 46.0, "y": 2652.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.70.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Video Codec", "w": 340.0, "x": 16.0, "y": 2693.9}
-{"h": 38.0, "id": "set-force_video_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2685.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.71.0", "sc": "settings", "size": 17, "t": "text", "text": "Force Audio Codec", "w": 340.0, "x": 16.0, "y": 2739.9}
-{"h": 38.0, "id": "set-force_audio_codec", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 340.0, "x": 368.0, "y": 2731.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.72", "sc": "settings", "size": 20, "t": "text", "text": "Video Enhancement", "w": 1238.0, "x": 16.0, "y": 2777.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2810.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.73.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2813.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.73.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2813.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.73.1", "sc": "settings", "size": 20, "t": "text", "text": "Enable Video Playback Profiles", "w": 281.6, "x": 46.0, "y": 2810.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.74.0", "sc": "settings", "size": 17, "t": "text", "text": "Profile Group", "w": 340.0, "x": 16.0, "y": 2851.9}
-{"force": true, "h": 38.0, "id": "set-shader_pack_subtype", "items": ["lq", "hq"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2843.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.75", "sc": "settings", "size": 14, "t": "text", "text": "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card.", "w": 1238.0, "x": 16.0, "y": 2889.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-shader_pack_remember", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 2915.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.76.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 2917.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.76.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 2918.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.76.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Last Used Profile", "w": 254.8, "x": 46.0, "y": 2915.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.77.0", "sc": "settings", "size": 17, "t": "text", "text": "Graphics API for Shaders", "w": 340.0, "x": 16.0, "y": 2956.4}
-{"force": true, "h": 38.0, "id": "set-shader_pack_gpu_api", "items": ["Automatic (recommended)", "Vulkan", "Direct3D 11 (Windows only)", "OpenGL (compatibility)"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 2948.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.78", "sc": "settings", "size": 14, "t": "text", "text": "Leave on Automatic unless video breaks when a profile is loaded. This only applies while a profile is active, and OpenGL can cost you HDR output.", "w": 1238.0, "x": 16.0, "y": 2994.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.79", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro / Credits", "w": 1238.0, "x": 16.0, "y": 3019.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.80.0", "sc": "settings", "size": 17, "t": "text", "text": "Skip Intros", "w": 340.0, "x": 16.0, "y": 3060.9}
-{"force": true, "h": 38.0, "id": "set-segment_intro", "items": ["Never", "Ask", "Always"], "sc": "settings", "sel": 1, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3052.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.81.0", "sc": "settings", "size": 17, "t": "text", "text": "Skip Credits", "w": 340.0, "x": 16.0, "y": 3106.9}
-{"force": true, "h": 38.0, "id": "set-segment_outro", "items": ["Never", "Ask", "Always"], "sc": "settings", "sel": 1, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3098.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.82.0", "sc": "settings", "size": 17, "t": "text", "text": "Skip Commercials", "w": 340.0, "x": 16.0, "y": 3152.9}
-{"force": true, "h": 38.0, "id": "set-segment_commercial", "items": ["Never", "Ask", "Always"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3144.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.83.0", "sc": "settings", "size": 17, "t": "text", "text": "Skip Previews", "w": 340.0, "x": 16.0, "y": 3198.9}
-{"force": true, "h": 38.0, "id": "set-segment_preview", "items": ["Never", "Ask", "Always"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3190.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.84.0", "sc": "settings", "size": 17, "t": "text", "text": "Skip Recaps", "w": 340.0, "x": 16.0, "y": 3244.9}
-{"force": true, "h": 38.0, "id": "set-segment_recap", "items": ["Never", "Ask", "Always"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3236.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-skip_intro_on_seek", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3282.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.85.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3285.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.85.1", "sc": "settings", "size": 20, "t": "text", "text": "Skip Intro On Seek", "w": 164.0, "x": 46.0, "y": 3282.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.86", "sc": "settings", "size": 20, "t": "text", "text": "Library Browser", "w": 1238.0, "x": 16.0, "y": 3315.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.87.0", "sc": "settings", "size": 17, "t": "text", "text": "Library Image Cache Mb", "w": 340.0, "x": 16.0, "y": 3356.9}
-{"h": 38.0, "id": "set-library_image_cache_mb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "256", "w": 340.0, "x": 368.0, "y": 3348.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.88.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Wheel Pixels", "w": 340.0, "x": 16.0, "y": 3402.9}
-{"h": 38.0, "id": "set-scroll_wheel_pixels", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "80", "w": 340.0, "x": 368.0, "y": 3394.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.89", "sc": "settings", "size": 14, "t": "text", "text": "Pixels one wheel notch scrolls. On a grid this is rounded so a whole number of notches spans one row, whichever scroll mode you are in \u2014 a trackpad or trackball never leaves you a sliver of a", "w": 1238.0, "x": 16.0, "y": 3440.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.89.l1", "sc": "settings", "size": 14, "t": "text", "text": "row off. Raise it to scroll faster, lower it for finer control.", "w": 1238.0, "x": 16.0, "y": 3458.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.90.0", "sc": "settings", "size": 17, "t": "text", "text": "Scroll Mode", "w": 340.0, "x": 16.0, "y": 3491.9}
-{"force": true, "h": 38.0, "id": "set-scroll_mode", "items": ["Continuous", "Aligned to rows", "One row per notch"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 3483.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.91", "sc": "settings", "size": 14, "t": "text", "text": "\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it lines rows up by itself if the display cannot keep up. Pick \"Aligned to rows\" if scrolling still stutters \u2014 on a very large", "w": 1238.0, "x": 16.0, "y": 3529.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.91.l1", "sc": "settings", "size": 14, "t": "text", "text": "display, a slow or remote one, or with an external MPV. Pick \"One row per notch\" to move a whole row (or one home-screen section) at a time.", "w": 1238.0, "x": 16.0, "y": 3547.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-paginated", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3572.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.92.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3575.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.92.1", "sc": "settings", "size": 20, "t": "text", "text": "Paginated", "w": 89.2, "x": 46.0, "y": 3572.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.93", "sc": "settings", "size": 14, "t": "text", "text": "Page the library and music tile grids instead of scrolling: each page is one screenful with First / Previous / Next / Last controls and a page number you can type into. Easier than precise", "w": 1238.0, "x": 16.0, "y": 3605.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.93.l1", "sc": "settings", "size": 14, "t": "text", "text": "scrolling on a trackpad.", "w": 1238.0, "x": 16.0, "y": 3623.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-logo_legibility_live_tv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3648.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.94.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3651.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.94.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3651.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.94.1", "sc": "settings", "size": 20, "t": "text", "text": "Make Live TV logos more legible", "w": 299.2, "x": 46.0, "y": 3648.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.95", "sc": "settings", "size": 14, "t": "text", "text": "Channel logos come as ink on a transparent background, drawn for the white page other clients put them on \u2014 so on a dark one the black ones vanish. On, they are backed with the light plate", "w": 1238.0, "x": 16.0, "y": 3681.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.95.l1", "sc": "settings", "size": 14, "t": "text", "text": "they were made for, and the few whose own outline is white get a drop shadow so they still have an edge against it. Off, they get the theme's card colour and no shadows, as Jellyfin Web", "w": 1238.0, "x": 16.0, "y": 3699.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.95.l2", "sc": "settings", "size": 14, "t": "text", "text": "does.", "w": 1238.0, "x": 16.0, "y": 3716.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-logo_legibility_library", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3742.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.96.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3744.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.96.1", "sc": "settings", "size": 20, "t": "text", "text": "Make library logos more legible", "w": 292.0, "x": 46.0, "y": 3742.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.97", "sc": "settings", "size": 14, "t": "text", "text": "The same treatment for a library set to draw Logo artwork. Off by default, because a film's or series' logo is white by convention and already reads on a dark background \u2014 the plate is what", "w": 1238.0, "x": 16.0, "y": 3775.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.97.l1", "sc": "settings", "size": 14, "t": "text", "text": "makes it need a shadow. Turn it on if yours are dark.", "w": 1238.0, "x": 16.0, "y": 3792.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.98", "sc": "settings", "size": 20, "t": "text", "text": "Downloads", "w": 1238.0, "x": 16.0, "y": 3818.0}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.99.0", "sc": "settings", "size": 17, "t": "text", "text": "Download Folder", "w": 340.0, "x": 16.0, "y": 3862.9}
-{"h": 38.0, "id": "set-sync_path", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "", "w": 250.0, "x": 368.0, "y": 3854.5}
-{"click": true, "fill": "2e3138", "h": 45.0, "hover": {"fill": "3a3e46"}, "id": "set-sync-move", "radius": 6, "sc": "settings", "t": "rect", "w": 69.4, "x": 626.0, "y": 3851.0}
-{"align": "center", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.99.1.1.0", "sc": "settings", "size": 20, "t": "text", "text": "Move", "w": 49.4, "x": 636.0, "y": 3861.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-prefer_downloaded", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3904.0}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.100.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3906.5}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.100.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3907.1}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.100.1", "sc": "settings", "size": 20, "t": "text", "text": "Prefer Downloaded Copy", "w": 218.2, "x": 46.0, "y": 3904.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_enable", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3937.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.101.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3939.5}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.101.1", "sc": "settings", "size": 20, "t": "text", "text": "Automatically Download Upcoming Episodes", "w": 404.2, "x": 46.0, "y": 3937.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.102", "sc": "settings", "size": 14, "t": "text", "text": "Applies to srv1, enable other servers in servers tab.", "w": 1238.0, "x": 16.0, "y": 3970.0}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_next_up", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 3995.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.103.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 3998.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.103.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 3998.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.103.1", "sc": "settings", "size": 20, "t": "text", "text": "Include Next Up", "w": 140.4, "x": 46.0, "y": 3995.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.104.0", "sc": "settings", "size": 17, "t": "text", "text": "Next Up Entries to Consider", "w": 340.0, "x": 16.0, "y": 4036.9}
-{"h": 38.0, "id": "set-auto_download_next_up_limit", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "10", "w": 340.0, "x": 368.0, "y": 4028.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.105.0", "sc": "settings", "size": 17, "t": "text", "text": "Episodes to Keep Ahead (0 = off)", "w": 340.0, "x": 16.0, "y": 4082.9}
-{"h": 38.0, "id": "set-auto_download_lookahead", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "2", "w": 340.0, "x": 368.0, "y": 4074.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.106.0", "sc": "settings", "size": 17, "t": "text", "text": "Storage Limit for Automatic Downloads (GB)", "w": 340.0, "x": 16.0, "y": 4128.9}
-{"h": 38.0, "id": "set-auto_download_max_gb", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "20", "w": 340.0, "x": 368.0, "y": 4120.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-auto_download_delete_watched", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 4166.5}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.107.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 4169.0}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.107.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 4169.6}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.107.1", "sc": "settings", "size": 20, "t": "text", "text": "Delete Automatic Downloads Once Watched", "w": 392.6, "x": 46.0, "y": 4166.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.108.0", "sc": "settings", "size": 17, "t": "text", "text": "Delete Unwatched After (days, 0 = never)", "w": 340.0, "x": 16.0, "y": 4207.9}
-{"h": 38.0, "id": "set-auto_download_keep_days", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "30", "w": 340.0, "x": 368.0, "y": 4199.5}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.109.0", "sc": "settings", "size": 17, "t": "text", "text": "Check Every (minutes)", "w": 340.0, "x": 16.0, "y": 4253.9}
-{"h": 38.0, "id": "set-auto_download_interval_mins", "ph": "", "sc": "settings", "size": 20, "t": "textbox", "text": "60", "w": 340.0, "x": 368.0, "y": 4245.5}
-{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 4291.5}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.110.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 4294.0}
-{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.110.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 4291.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.111", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 4324.5}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.3.1", "sc": "settings", "size": 20, "t": "text", "text": "Show What You're Watching in Discord", "w": 351.4, "x": 46.0, "y": 257.0}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.4", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 290.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 315.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.5.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 318.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.5.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 318.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.5.1", "sc": "settings", "size": 20, "t": "text", "text": "Check Updates", "w": 131.6, "x": 46.0, "y": 315.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 348.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 351.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 351.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.6.1", "sc": "settings", "size": 20, "t": "text", "text": "Notify Updates", "w": 130.4, "x": 46.0, "y": 348.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.7", "sc": "settings", "size": 20, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 381.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 414.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.8.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 417.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.8.1", "sc": "settings", "size": 20, "t": "text", "text": "Fullscreen", "w": 96.0, "x": 46.0, "y": 414.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 447.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.9.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 450.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.9.1", "sc": "settings", "size": 20, "t": "text", "text": "Fullscreen Library Browser", "w": 245.4, "x": 46.0, "y": 447.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 480.5}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.10.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 483.0}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.10.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 483.6}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.10.1", "sc": "settings", "size": 20, "t": "text", "text": "Remember Window Size", "w": 219.2, "x": 46.0, "y": 480.5}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.11.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 521.9}
+{"force": true, "h": 38.0, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 20, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 513.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops \u2014 GNOME on Wayland in particular \u2014 draw no title bar on the player window, leaving no way to move or close it. This puts minimize, maximize and close in the top bar instead,", "w": 1238.0, "x": 16.0, "y": 559.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12.l1", "sc": "settings", "size": 14, "t": "text", "text": "and lets you drag the window by it. Left on \"Only when the window has no title bar\", MPV is asked whether this window got one, so desktops that do decorate it are left alone.", "w": 1238.0, "x": 16.0, "y": 577.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 602.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 605.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.13.1", "sc": "settings", "size": 20, "t": "text", "text": "Keep Running in Background", "w": 254.4, "x": 46.0, "y": 602.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the way, plays fullscreen when something casts to it, and goes back to waiting when the", "w": 1238.0, "x": 16.0, "y": 635.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14.l1", "sc": "settings", "size": 14, "t": "text", "text": "video ends or you press Q.", "w": 1238.0, "x": 16.0, "y": 653.0}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 678.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 681.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.15.1", "sc": "settings", "size": 20, "t": "text", "text": "Casting Opens the Library Browser", "w": 311.4, "x": 46.0, "y": 678.5}
+{"click": true, "h": 25.0, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 711.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 714.0}
+{"align": "left", "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.16.1", "sc": "settings", "size": 20, "t": "text", "text": "Show advanced settings", "w": 222.2, "x": 46.0, "y": 711.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 744.5}

@@ -34,13 +34,21 @@ class GeneralTabMixin:
     FIELD_W = 340
 
 
-    def _settings_general(self, route, size):
+    def _settings_form(self, route, size):
+        """One tab's worth of the config form.
+
+        Was ``_settings_general``, rendering every curated group in one
+        scroll. The tab is read from the route rather than passed in because
+        the dispatch table in ``settings/__init__`` maps three tabs onto this
+        one renderer, and a per-tab wrapper would be three ways to get the
+        same page slightly wrong.
+        """
         cfg = self._config()
         schema = cfg.settings_schema()
         values = cfg.get_settings()
         show_adv = bool(route.get("_advanced"))
         rows = []
-        for title, keys in cfg.sections():
+        for title, keys in cfg.sections(route.get("_tab", "general")):
             advanced = title == _("Advanced")
             if advanced:
                 rows.append(Checkbox(
