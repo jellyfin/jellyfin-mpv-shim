@@ -664,3 +664,53 @@ class TestMixedScriptCaptions(unittest.TestCase):
         # The control: whatever the host has, plain Latin must be fine.
         self.assertGreater(self.glyph_shapes(self.caption_band("Blade 2049")),
                            12)
+
+
+class TestTheBudgetFollowsTheMachine(unittest.TestCase):
+    """These bytes are memory on both backends: ctypes buffers in-process on
+    libmpv, and on mpv_ext files in a scratch directory that is RAM-backed
+    wherever one exists. That configuration is what filled a VM's memory and
+    started this work, and it is also the one a small machine lands in --
+    /run/user is small there, so the cache goes to /dev/shm, which is RAM
+    under another name."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="mpvtk-tight-")
+        self.addCleanup(__import__("shutil").rmtree, self.tmp,
+                        ignore_errors=True)
+        self.store = StripStore(cache_dir=self.tmp)
+
+    def test_a_short_machine_gets_the_smaller_cache(self):
+        self.store.set_memory_pressure(True)
+        self.assertEqual(self.store.MAX_BYTES, StripStore.TIGHT_MAX_BYTES)
+        self.store.set_memory_pressure(False)
+        self.assertEqual(self.store.MAX_BYTES, StripStore.MAX_BYTES)
+
+    def test_lowering_it_evicts_at_once(self):
+        # Otherwise the cache sits over its new budget until something else
+        # happens to insert.
+        s = self.store
+        for i in range(6):
+            s.strip([Tile(key="k%d" % i, title="T", poster=_poster(),
+                          poster_tag="p%d" % i)])
+            s.on_scene_pushed()
+        # Let them all age past the protected window, so what is left is the
+        # budget's doing and not the liveness gate's.
+        for _ in range(s.PROTECT_GENERATIONS + 1):
+            s.on_scene_pushed()
+        held = s._bytes
+        self.assertGreater(held, 0)
+        s.TIGHT_MAX_BYTES = held // 4
+        s.set_memory_pressure(True)
+        self.assertLessEqual(s._bytes, held // 4)
+
+    def test_it_still_cannot_free_what_is_on_screen(self):
+        # However far the budget drops. _protected has the last word.
+        s = self.store
+        s.TIGHT_MAX_BYTES = 1
+        live = s.strip([Tile(key="live", title="T", poster=_poster(),
+                             poster_tag="plive")])["src"]
+        s.on_scene_pushed()
+        s.set_memory_pressure(True)
+        self.assertTrue(os.path.exists(live),
+                        "freed a bitmap the live scene is using")

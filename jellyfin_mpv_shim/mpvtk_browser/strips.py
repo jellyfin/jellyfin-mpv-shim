@@ -244,6 +244,19 @@ class StripStore:
     #: already built for exactly that wait.
     MAX_BYTES = 128 * 1024 * 1024
 
+    #: ...and what that budget becomes on a machine short of RAM.
+    #:
+    #: These bytes ARE memory on both backends -- ctypes buffers in this
+    #: process on libmpv, and on mpv_ext files in a scratch directory that
+    #: is RAM-backed wherever one is available. That is not a corner case:
+    #: it is the configuration that filled a VM's memory and started all of
+    #: this. A small machine's /run/user is small too, so the cache lands in
+    #: /dev/shm, which is RAM by another name -- 128 MiB of it is 6% of a
+    #: 2 GiB box, for a cache. Enough for a screenful and a bit, which is
+    #: what a cache has to be to be worth having at all; the rest of the
+    #: trade is made by shedding on navigation.
+    TIGHT_MAX_BYTES = 32 * 1024 * 1024
+
     #: How many pushed scenes back a bitmap is treated as possibly-bound.
     #: See _protected.
     PROTECT_GENERATIONS = 2
@@ -1062,6 +1075,22 @@ class StripStore:
                 if cached is entry or (src and cached.get("src") == src):
                     self._touch(key)
                     return
+
+    def set_memory_pressure(self, tight):
+        """Switch between the roomy and the small-machine byte budget.
+
+        Asked per screen change rather than once at startup, for the same
+        reason the trim is: "busy" is a state, not a property. Lowering the
+        cap takes effect at the next eviction, and _protected still decides
+        what may actually go -- so this can never free something on screen,
+        however far the budget drops.
+        """
+        want = self.TIGHT_MAX_BYTES if tight else type(self).MAX_BYTES
+        if want == self.MAX_BYTES:
+            return
+        with self._lock:
+            self.MAX_BYTES = want
+            self._evict()
 
     def trim_soon(self):
         """Free everything the live scene is not using, at the first moment

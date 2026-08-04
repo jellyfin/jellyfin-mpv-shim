@@ -980,8 +980,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # startup because "busy" is a state, not a property: the answer on a
         # laptop changes when something else wakes up. One small file read
         # on Linux, one syscall on Windows, and only on a navigation.
-        if self.strips is not None and memory_is_tight():
-            self.strips.trim_soon()
+        if self.strips is not None:
+            tight = memory_is_tight()
+            # The composited rows are memory on both backends -- buffers in
+            # this process on libmpv, files in a RAM-backed scratch dir on
+            # mpv_ext -- so a short machine gets a smaller cache as well as
+            # a shed. One probe answers both.
+            self.strips.set_memory_pressure(tight)
+            if tight:
+                self.strips.trim_soon()
 
     # -------------------------------------------------------- async model
 

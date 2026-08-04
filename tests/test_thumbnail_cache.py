@@ -341,9 +341,13 @@ class RouteChangeTrimTest(unittest.TestCase):
     class _Strips:
         def __init__(self):
             self.armed = 0
+            self.pressure = None
 
         def trim_soon(self):
             self.armed += 1
+
+        def set_memory_pressure(self, tight):
+            self.pressure = tight
 
     def _browser(self):
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
@@ -404,6 +408,8 @@ class RouteChangeTrimTest(unittest.TestCase):
                         return_value=True):
             b._shed_caches_on_screen_change()
         self.assertEqual(b.strips.armed, 1)
+        self.assertIs(b.strips.pressure, True,
+                      "the cache budget did not follow the machine")
 
     def test_a_roomy_machine_keeps_them_so_back_stays_instant(self):
         from unittest import mock
@@ -419,6 +425,7 @@ class RouteChangeTrimTest(unittest.TestCase):
                          "was short of")
         self.assertEqual(b.thumbs.trims, 1,
                          "the decoded images go either way")
+        self.assertIs(b.strips.pressure, False)
 
 
 class MemoryTrimTest(unittest.TestCase):
