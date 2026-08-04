@@ -109,6 +109,67 @@ class EndOfQueueTest(_ShowCase):
 
 
 @_e2e.require_server_and_mpv
+class WindowTitleTest(_ShowCase):
+    """The window stops naming what you just watched (#647).
+
+    `force-media-title` is an option, not a per-file property, so it outlives
+    the file: stopping unloads the file and `media-title` still answers with
+    it. The window went on saying "Some Episode - Jellyfin MPV Shim" over the
+    library screen for the rest of the session.
+
+    Needs a real mpv, and this is why: the whole question is what mpv's own
+    `media-title` says *after* the file is gone, which no fake can answer.
+    It is also why the clear happens after the `stop` command rather than
+    before — with a file still loaded, clearing the forced title does not
+    empty `media-title`, it falls back to the file's own metadata title or
+    its path, which for us is a stream URL. Ordering asserted below by
+    checking the title never mentions the URL either.
+    """
+
+    SHOW = "Absolute Numbering Show"
+    NEEDED = 1
+
+    def media_title(self):
+        title = self.pm._player.media_title
+        return "" if title is None else str(title)
+
+    def test_playback_names_the_item(self):
+        """The premise. Without this the tests below pass on a title that
+        was never set in the first place."""
+        video = self.play_queue([self.eps[0]["Id"]])
+        self.assertEqual(self.media_title(), video.get_proper_title(),
+                         "playback did not put the item in the window title")
+
+    def test_stopping_puts_the_title_back(self):
+        self.play_queue([self.eps[0]["Id"]])
+        self.pm.stop()
+        self.assertEqual(
+            self.media_title(), "",
+            "the window still names the stopped item, so the title reads "
+            "as though it were still playing while the library is up")
+
+    def test_the_end_of_a_queue_puts_the_title_back(self):
+        """The other end-of-playback path, and the one nothing else follows:
+        the queue runs out on its own, so no stop() is ever called."""
+        self.play_queue([self.eps[0]["Id"]])
+        finished = self.pump_until(lambda: self.pm._video is None, timeout=45)
+        self.assertTrue(finished, "the item never finished")
+        self.assertEqual(self.media_title(), "",
+                         "the window still names the finished item")
+
+    def test_the_stream_url_never_becomes_the_title(self):
+        """Clearing the forced title too early falls back to the path. A
+        stream URL in the window title is worse than a stale name: it is
+        long, it is ugly, and depending on the auth path it can carry a
+        token."""
+        self.play_queue([self.eps[0]["Id"]])
+        self.pm.stop()
+        title = self.media_title()
+        self.assertNotIn("http", title.lower())
+        self.assertNotIn("/videos/", title.lower())
+
+
+@_e2e.require_server_and_mpv
 class SeekToEndTest(_ShowCase):
     """#541 — skipping to the end must fire EOF, not park there.
 

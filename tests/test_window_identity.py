@@ -132,5 +132,46 @@ class TitleTest(unittest.TestCase):
         self.assertNotEqual(USER_APP_NAME, "mpv")
 
 
+class ClearMediaTitleTest(unittest.TestCase):
+    """Putting the title back when playback ends (#647).
+
+    The expansion above is only half the story. `force-media-title` is an
+    option, not a per-file property, so it outlives the file it was set for:
+    stopping unloads the file and `media-title` still answers with it, which
+    left the window naming the last thing watched over a library screen for
+    the rest of the session.
+
+    Imports player, so it opens an mpv window — run the suite under xvfb.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim.player import PlayerManager
+        from unittest import mock
+
+        self.pm = PlayerManager.__new__(PlayerManager)
+        self.pm._player = mock.MagicMock()
+        self.pm._mpv_alive = True
+
+    def test_it_clears_the_forced_title(self):
+        self.pm.clear_media_title()
+        self.assertEqual(self.pm._player.force_media_title, "")
+
+    def test_a_dead_player_is_left_alone(self):
+        # Teardown paths call this while mpv may already be gone; touching a
+        # dead handle is a use-after-free on libmpv, not an exception.
+        self.pm._mpv_alive = False
+        self.pm.clear_media_title()
+        self.assertNotIn("force_media_title", self.pm._player.__dict__)
+
+    def test_a_failure_does_not_escape(self):
+        """It runs in the middle of stop(), which has real work left."""
+        type(self.pm._player).force_media_title = property(
+            fset=lambda *a: (_ for _ in ()).throw(RuntimeError("no")))
+        try:
+            self.pm.clear_media_title()          # must not raise
+        finally:
+            del type(self.pm._player).force_media_title
+
+
 if __name__ == "__main__":
     unittest.main()

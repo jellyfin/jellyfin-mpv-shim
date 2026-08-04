@@ -120,6 +120,38 @@ class WindowMixin:
     #: options as attributes with the dashes turned into underscores.
     _COLORSPACE_HINT = "target_colorspace_hint"
 
+    def clear_media_title(self):
+        """Put the window title back to the app's own, playback being over.
+
+        The ``title`` option expands ``${media-title}`` live (see
+        mpv_options), which is what lets the title follow playback without
+        anything pushing updates. But ``force-media-title`` -- what
+        ``_play_media`` sets -- is an *option*, not a per-file property: it
+        outlives the file it was set for. Measured against mpv 0.40: after
+        ``stop`` unloads the file, ``media-title`` still answers with it. So
+        the window went on naming the last thing watched for the rest of the
+        session, over a library screen (#647).
+
+        **Only after the file is gone.** With one still loaded, clearing
+        this does not empty ``media-title`` -- it falls back to the file's
+        own metadata title, or failing that its path, which for us is a
+        stream URL. Every caller therefore clears after its ``stop``
+        command, which both backends complete before returning.
+        """
+        from .player import _mpv_errors     # per call: see the module docs
+
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.force_media_title = ""
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            # Never worth failing a stop over: the title is cosmetic, and
+            # this runs in the middle of teardown paths that have real work
+            # left to do.
+            log.debug("could not clear the window title", exc_info=True)
+
     def suspend_colorspace_hint(self):
         """Let the window's colorspace follow the display while the UI owns it.
 

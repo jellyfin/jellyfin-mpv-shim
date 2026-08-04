@@ -2034,6 +2034,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.set_paused(False)
         self._video = None
         self._player.command("stop")
+        # After the stop, never before it: see clear_media_title.
+        self.clear_media_title()
         # As early as it can be true, and before any of the teardown below:
         # this is what sends the browser back to the library (and hides the
         # music bar), and every line after it is bookkeeping the user has no
@@ -2305,6 +2307,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     self._player.command("stop")
                 except _mpv_errors:
                     self._handle_mpv_disconnect()
+                # The queue ended on its own, so nothing else will put the
+                # title back. After the stop: see clear_media_title.
+                self.clear_media_title()
             # Before releasing the stream, not after: this is the browser's
             # cue to come back, and the release is a blocking round trip that
             # the library screen has no reason to wait behind.
