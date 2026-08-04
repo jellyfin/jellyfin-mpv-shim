@@ -32,6 +32,13 @@ from .base import Page
 #: screen used to be capped at, now applied per row instead of across them.
 ROW_MAX = 60
 
+#: The two entries in the section order that are not "filter the items by
+#: type into a carousel": People come from their own request, and Songs are
+#: a table. Objects rather than strings so they cannot collide with a row
+#: label, which is translated and therefore not a constant.
+PEOPLE_ROW = object()
+SONGS_ROW = object()
+
 
 class SearchPage(Page):
     kind = "search"
@@ -88,11 +95,6 @@ class SearchPage(Page):
             got, first[0] = first[0], False
             return got
 
-        if people:
-            rows.append(tiles.tile_row(_("People"), people[:ROW_MAX],
-                                       "search-people",
-                                       geom=art.geom,
-                                       autofocus_first=claim()))
         # Group by type, each with its natural tile shape (like the Tk browser).
         # The last column is ``inherit``: whether a tile may fall back to its
         # series' artwork. Episodes say no -- a result row of episodes is
@@ -102,17 +104,37 @@ class SearchPage(Page):
         # row sets no preferThumb at all, so it lands on the episode's own
         # Primary); asking for a *landscape* image of the episode first is
         # the same intent in a shape that fits the tile.
+        #
+        # **The order is jellyfin-web's** (SEARCH_SECTIONS_SORT_ORDER): what
+        # you searched for comes first and the people who made it come after.
+        # People used to lead, which put a row of faces above the film whose
+        # title had just been typed -- and, because the first row built takes
+        # focus, left the remote's first keypress on the cast. Web's People
+        # sits after Episodes, and its Artists after People; Videos falls
+        # below Songs. Studios, Playlists, Books and Photos are in that list
+        # too and are simply rows this client does not draw.
         groups = [
             (_("Movies"), ("Movie",), art.geom, "Primary", True),
             (_("Shows"), ("Series",), art.geom, "Primary", True),
             (_("Episodes"), ("Episode",), art.geom_wide, "Thumb", False),
+            (PEOPLE_ROW, (), art.geom, "Primary", True),
+            (_("Artists"), ("MusicArtist",), art.geom_square, "Primary", True),
+            (_("Albums"), ("MusicAlbum",), art.geom_square, "Primary", True),
+            (SONGS_ROW, (), None, None, None),
             (_("Videos"), ("Video", "MusicVideo"), art.geom_wide, "Primary",
              True),
-            (_("Albums"), ("MusicAlbum",), art.geom_square, "Primary", True),
-            (_("Artists"), ("MusicArtist",), art.geom_square, "Primary", True),
         ]
         used = set()
         for label, types_, geom, itype, inherit in groups:
+            if label is PEOPLE_ROW:
+                if people:
+                    rows.append(tiles.tile_row(
+                        _("People"), people[:ROW_MAX], "search-people",
+                        geom=art.geom, autofocus_first=claim()))
+                continue
+            if label is SONGS_ROW:
+                rows.extend(self._songs_row(items, route, tiles))
+                continue
             group = [it for it in items if it.get("Type") in types_][:ROW_MAX]
             if group:
                 used.update(types_)
@@ -120,6 +142,38 @@ class SearchPage(Page):
                     label, group, "search-" + label, geom=geom,
                     image_type=itype, inherit=inherit,
                     autofocus_first=claim()))
+        # Programs before Channels, which is the rest of web's order: what
+        # is on now is a result, a channel is a place to go and look.
+        live = data.get("live") or {}
+        if live.get("programs"):
+            rows.append(tiles.tile_row(_("On TV"), live["programs"],
+                                       "search-programs", geom=art.geom_wide,
+                                       image_type="Thumb"))
+        if live.get("channels"):
+            rows.append(tiles.tile_row(_("Channels"), live["channels"],
+                                       "search-channels",
+                                       geom=art.geom_square))
+        other = [it for it in items
+                 if it.get("Type") not in used
+                 and it.get("Type") != "Audio"][:ROW_MAX]
+        if other:
+            rows.append(tiles.tile_row(_("Other"), other, "search-other"))
+        if not items and not people and not any(live.values()):
+            rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
+        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
+                              align="stretch"), id="search", flex=1,
+                       offset=self.parked_scroll("search"))
+
+    def _songs_row(self, items, route, tiles):
+        """The Songs heading and its table, or an empty list.
+
+        A method only because the section order is a list the render loop
+        walks now, and songs are the one entry in it that is a table rather
+        than a carousel. It never claims focus: a table row is reachable by
+        arrow keys from the carousel above it, and a search that matched a
+        song and a film should land on the film.
+        """
+        rows = []
         songs = [it for it in items if it.get("Type") == "Audio"][:ROW_MAX]
         if songs:
             server = route.get("server") or self.ctx.server
@@ -153,22 +207,4 @@ class SearchPage(Page):
                 lambda i: self.ctx.actions.play_list(ids, server, i,
                                                      audio=True),
                 menu=True))
-        live = data.get("live") or {}
-        if live.get("channels"):
-            rows.append(tiles.tile_row(_("Channels"), live["channels"],
-                                       "search-channels",
-                                       geom=art.geom_square))
-        if live.get("programs"):
-            rows.append(tiles.tile_row(_("On TV"), live["programs"],
-                                       "search-programs", geom=art.geom_wide,
-                                       image_type="Thumb"))
-        other = [it for it in items
-                 if it.get("Type") not in used
-                 and it.get("Type") != "Audio"][:ROW_MAX]
-        if other:
-            rows.append(tiles.tile_row(_("Other"), other, "search-other"))
-        if not items and not people and not any(live.values()):
-            rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
-        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
-                              align="stretch"), id="search", flex=1,
-                       offset=self.parked_scroll("search"))
+        return rows

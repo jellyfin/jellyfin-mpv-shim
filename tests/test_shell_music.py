@@ -711,3 +711,54 @@ class TestSearchRowCaps(unittest.TestCase):
         nodes, handlers = self._search(3)
         rows = [k for k in handlers if str(k).startswith("search-song-")]
         self.assertEqual(len(rows), 3)
+
+
+class TestSearchSectionOrder(unittest.TestCase):
+    """Rows come in jellyfin-web's order (SEARCH_SECTIONS_SORT_ORDER).
+
+    What you searched for first, the people who made it after: Movies,
+    Shows, Episodes, People, Artists, Albums, Songs, Videos. People used to
+    lead, which put a row of faces above the film whose title had just been
+    typed -- and since the first row built takes focus, it also left a
+    remote's first keypress on the cast.
+
+    The Live TV pair at the end is web's order too: what is on now is a
+    result, a channel is a place to go and look.
+    """
+
+    def _rows(self):
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: [
+            {"Id": "m1", "Name": "M", "Type": "Movie"},
+            {"Id": "sr1", "Name": "S", "Type": "Series"},
+            {"Id": "e1", "Name": "E", "Type": "Episode"},
+            {"Id": "ar1", "Name": "A", "Type": "MusicArtist"},
+            {"Id": "al1", "Name": "L", "Type": "MusicAlbum"},
+            {"Id": "so1", "Name": "G", "Type": "Audio",
+             "RunTimeTicks": 1200000000},
+            {"Id": "v1", "Name": "V", "Type": "Video"},
+        ]
+        src.search_people = lambda srv, term, limit=100: [
+            {"Id": "p1", "Name": "P", "Type": "Person"}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        nodes, _h = build_scene(b, (1280, 720))
+        headings = [n for n in nodes if n.get("size") == 24 and n.get("text")]
+        headings.sort(key=lambda n: n.get("y", 0))
+        return [n["text"] for n in headings], nodes
+
+    def test_the_order_is_webs(self):
+        headings, _nodes = self._rows()
+        self.assertEqual(
+            headings,
+            ['Results for "x"', "Movies", "Shows", "Episodes", "People",
+             "Artists", "Albums", "Songs", "Videos", "On TV", "Channels"])
+
+    def test_the_first_result_row_takes_focus_not_the_cast(self):
+        """Submitting a search moves focus out of the box and onto the
+        results; it should land on what was searched for."""
+        _headings, nodes = self._rows()
+        focused = [n.get("id") for n in nodes if n.get("af")]
+        self.assertEqual(focused, ["search-Movies-m1"])
