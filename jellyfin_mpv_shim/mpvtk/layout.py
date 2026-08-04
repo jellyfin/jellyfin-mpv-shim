@@ -1015,7 +1015,8 @@ def _arrange_box(ctx, el, x, y, w, h, sc, path):
     # a gradient behind it, which is exactly when there would be no rect and
     # the title bar would silently stop being draggable.
     if (el.bg or el.border or el.on_click or el.disabled
-            or getattr(el, "window_drag", False)):
+            or getattr(el, "window_drag", False)
+            or getattr(el, "window_resize", None)):
         node = _base(el, "rect", x, y, w, h, sc, path)
         if el.bg:
             node["fill"] = el.bg
@@ -1041,6 +1042,8 @@ def _arrange_box(ctx, el, x, y, w, h, sc, path):
             node["hover"] = el.hover
         if getattr(el, "window_drag", False):
             node["wdrag"] = True
+        if getattr(el, "window_resize", None):
+            node["wsize"] = el.window_resize
         ctx.nodes.append(node)
     _arrange_children(ctx, el, x, y, w, h, sc, path)
     return

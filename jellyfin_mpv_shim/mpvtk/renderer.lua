@@ -2404,7 +2404,7 @@ local function node_at(x, y)
             node.t ~= 'menu' and
             (not modal or node.mod) and
             (node.click or node.ctx or node.dbl or node.tip or
-             node.hev or node.dis or node.wdrag or
+             node.hev or node.dis or node.wdrag or node.wsize or
              node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider' or
              node.hover) then
@@ -3032,6 +3032,32 @@ local function on_mouse_move(x, y)
         end
         return
     end
+    if state.wsize then
+        -- Dragging the resize grip (see on_mouse_down). The window's
+        -- top-left does not move, so window coordinates are stable and the
+        -- grabbed corner simply tracks `pointer + grab offset` -- no
+        -- accumulation, so a size the WM refuses cannot make the corner
+        -- drift away from the cursor.
+        local g = state.wsize
+        local wnow = mp.get_time()
+        -- A geometry write is a resize COMMAND, not bookkeeping, so this is
+        -- paced to roughly a frame rather than fired per motion event.
+        if wnow - g.t >= 0.016 then
+            g.t = wnow
+            local gw, gh = g.w, g.h
+            if g.edge:find('e') then gw = x + g.dx end
+            if g.edge:find('s') then gh = y + g.dy end
+            -- The same floor player_window uses, so a window dragged to
+            -- nothing is not one the app then refuses to reopen.
+            gw = math.max(320, math.floor(gw + 0.5))
+            gh = math.max(240, math.floor(gh + 0.5))
+            if gw ~= g.w or gh ~= g.h then
+                g.w, g.h = gw, gh
+                mp.set_property('geometry', string.format('%dx%d', gw, gh))
+            end
+        end
+        return
+    end
     local node = node_at(x, y)
     -- A popup floats above the page and eats the click, so the page must
     -- not light up under it either — tiles were hover-ringing through an
@@ -3261,6 +3287,29 @@ local function on_mouse_down()
         pcall(mp.commandv, 'begin-vo-dragging')
         return
     end
+    if node.wsize and not node.click then
+        -- Client-side resize grip. mpv has no "begin resizing" command --
+        -- only Wayland has an edge zone, and it implements that itself, in
+        -- the compositor's own protocol, before the press ever reaches a
+        -- script. Everywhere else the window is resized the one way a
+        -- client can: by writing `geometry`, which every VO treats as a
+        -- resize command (see player_window._sync_window_geometry).
+        --
+        -- The grab is the distance from the pointer to the corner it is
+        -- pulling, so the corner stays under the cursor however far the
+        -- drag runs. Refused while maximized or fullscreen: there the
+        -- write would silently un-maximize the window instead of resizing
+        -- it, which is not what dragging a corner asks for.
+        local ww = mp.get_property_number('osd-width', 0)
+        local wh = mp.get_property_number('osd-height', 0)
+        if ww > 0 and wh > 0
+            and not mp.get_property_bool('window-maximized', false)
+            and not mp.get_property_bool('fullscreen', false) then
+            state.wsize = { edge = node.wsize, w = ww, h = wh,
+                            dx = ww - x, dy = wh - y, t = 0 }
+        end
+        return
+    end
     if node.t == 'textbox' then
         focus_textbox(node)
         local tb = tb_state(node)
@@ -3327,6 +3376,15 @@ local function on_mouse_up()
     end
     if state.drag then
         state.drag = nil
+        return
+    end
+    if state.wsize then
+        -- The final size, unthrottled: the pace above can drop the last few
+        -- pixels of a drag, and where the window ends up is the one size
+        -- the user actually chose.
+        state.wsize.t = 0
+        on_mouse_move(state.mouse.x, state.mouse.y)
+        state.wsize = nil
         return
     end
     if state.rpt then
@@ -4296,12 +4354,44 @@ mp.set_key_bindings({
     { 'shift+wheel_up', function(e) on_wheel(-1, 'x', e) end },
     { 'shift+wheel_down', function(e) on_wheel(1, 'x', e) end },
 }, 'mpvtk_wheel', 'force')
-mp.enable_key_bindings('mpvtk_mouse')
-mp.enable_key_bindings('mpvtk_wheel')
+-- Whether these sections may be enabled with `allow-vo-dragging`, and what
+-- the user's own `input-builtin-dragging` was before we touched it. Kept on
+-- `state` rather than as file-scope locals purely for the local budget --
+-- renderer.lua's main chunk is at Lua's 200 ceiling (see
+-- tests/test_renderer_lua.py).
+--
+-- mpv refuses EVERY VO drag -- our begin-vo-dragging, its own built-in
+-- dragging, and on Wayland its CSD edge-resize zones -- while the pointer is
+-- inside an input section that was enabled without this flag. And a section's
+-- mouse area defaults to the WHOLE SCREEN (input.c: get_bind_section sets
+-- mouse_area_set on a rect of INT_MIN..INT_MAX), so these three, which set no
+-- mouse area at all, were enough on their own: mp_input_test_dragging said
+-- "the pointer is over a script's UI" wherever the pointer was, and
+-- vo_x11_begin_dragging returned without sending _NET_WM_MOVERESIZE. Measured
+-- exactly that way -- the command reported success and no message was sent.
+--
+-- The flag hands dragging back, and hands back mpv's BUILT-IN dragging with
+-- it: that starts a window move from a press-and-move anywhere and swallows
+-- the click it interrupted, which over a UI means dragging a slider or a
+-- scrollbar moves the window instead. So the flag is only used when the
+-- built-in one can also be turned off (`input-builtin-dragging`, mpv 0.39+),
+-- leaving the title bar's own begin-vo-dragging as the one thing that moves
+-- the window. An older mpv keeps both off, which is where this shipped.
+state.builtin_drag = mp.get_property_native('input-builtin-dragging')
+state.vodrag = state.builtin_drag ~= nil and 'allow-vo-dragging' or ''
+
+-- Take the built-in dragging away for as long as the UI owns the pointer;
+-- ui_suspend gives it back for playback, where dragging the video to move
+-- the window is mpv's own behaviour and nothing of ours is on screen.
+if state.vodrag ~= '' then
+    mp.set_property_bool('input-builtin-dragging', false)
+end
+mp.enable_key_bindings('mpvtk_mouse', state.vodrag)
+mp.enable_key_bindings('mpvtk_wheel', state.vodrag)
 -- set_key_bindings DEFINES a section; it does not enable it. Browse owns
 -- the thumb buttons from the moment the renderer loads, and the app does
 -- not necessarily transition mpvtk-active to get there (see below).
-mp.enable_key_bindings('mpvtk_thumb')
+mp.enable_key_bindings('mpvtk_thumb', state.vodrag)
 
 mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
     state.hud = not state.hud
@@ -4311,6 +4401,19 @@ end)
 mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     if pos.hover == false then
+        -- Mid-resize the pointer is OUTSIDE the window for most of the
+        -- gesture -- it has to be, since the corner only reaches it once
+        -- the window has grown -- and hover goes false the instant the
+        -- drag starts. The coordinates are still live: the button is held,
+        -- so the implicit pointer grab keeps motion coming to us (X11) and
+        -- the compositor keeps delivering to the focused surface
+        -- (Wayland). Taking the branch below would both drop the event and
+        -- forget where the pointer was, which stalls the resize on its
+        -- first pixel and then computes a 320x240 window from x,y = -1.
+        if state.wsize then
+            on_mouse_move(pos.x, pos.y)
+            return
+        end
         state.mouse.hover = false
         -- and forget WHERE it was. The coordinates outlive the pointer
         -- otherwise, and phud_busy would go on reading a mouse that had
@@ -4676,14 +4779,20 @@ end)
 -- Full-UI input ownership, shared by browse (mpvtk-active) and a
 -- summoned playback HUD (mpvtk-hud below).
 local function ui_resume(no_nav)
-    mp.enable_key_bindings('mpvtk_mouse')
-    mp.enable_key_bindings('mpvtk_wheel')
+    -- See the section definitions above: our sections are what decide
+    -- whether mpv will drag its window at all, and the flag is only safe
+    -- while its built-in dragging is off.
+    if state.vodrag ~= '' then
+        mp.set_property_bool('input-builtin-dragging', false)
+    end
+    mp.enable_key_bindings('mpvtk_mouse', state.vodrag)
+    mp.enable_key_bindings('mpvtk_wheel', state.vodrag)
     -- Browse takes the thumb buttons; a summoned playback HUD leaves them
     -- to whatever the user has under them. See the mpvtk_thumb bindings.
     if state.phud.mode then
         mp.disable_key_bindings('mpvtk_thumb')
     else
-        mp.enable_key_bindings('mpvtk_thumb')
+        mp.enable_key_bindings('mpvtk_thumb', state.vodrag)
     end
     -- no_nav: the playback HUD came up under the pointer with
     -- hud_grab_keys off — the mouse drives it and the arrows stay
@@ -4717,9 +4826,16 @@ local function ui_suspend()
     state.dd_open = nil
     state.tb_menu = nil
     state.modal = nil
+    state.wsize = nil
     mp.disable_key_bindings('mpvtk_mouse')
     mp.disable_key_bindings('mpvtk_wheel')
     mp.disable_key_bindings('mpvtk_thumb')
+    -- Give the user's own built-in dragging back: nothing of ours is on
+    -- screen now, and dragging the video to move the window is what mpv
+    -- does everywhere else.
+    if state.vodrag ~= '' then
+        mp.set_property_bool('input-builtin-dragging', state.builtin_drag)
+    end
     mp.remove_key_binding('mpvtk_hud')
     state.nodes = {}
     state.byid = {}
@@ -4753,7 +4869,7 @@ mp.register_script_message('mpvtk-active', function(on)
     -- TAB navigation at all, from the first video played onwards. Browse
     -- always takes the arrows, so there is no no_nav case to weigh here.
     if want and not state.phud.mode then
-        mp.enable_key_bindings('mpvtk_thumb')
+        mp.enable_key_bindings('mpvtk_thumb', state.vodrag)
         if state.kb_saved then
             -- mpv's console has them on loan; let it give them back.
             state.kb_saved.nav = true

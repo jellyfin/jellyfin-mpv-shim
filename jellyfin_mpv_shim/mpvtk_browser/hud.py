@@ -792,4 +792,12 @@ def build_hud(b, size):
     if menu is not None:
         children.append(menu)
 
+    # The same corner the library grows, for the same reason the buttons
+    # above are here: a windowed video on a desktop that draws no frame is
+    # otherwise a window that cannot be resized either. Last, so it is over
+    # the transport bar it shares a corner with.
+    grip = window_chrome.resize_grip(b, w, h)
+    if grip is not None:
+        children.append(grip)
+
     return Stack(children, w=w, h=h)

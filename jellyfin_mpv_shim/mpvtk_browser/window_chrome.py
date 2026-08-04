@@ -158,6 +158,49 @@ def window_controls(b, prefix="win", icon_size=16, w=WINDOW_CONTROL_W,
     ]
 
 
+#: The corner's hit box, and the three dots drawn in it. Bigger than it
+#: looks: this is the whole resize affordance on a window with no frame, and
+#: a grip you have to aim at is worse than no grip at all.
+RESIZE_GRIP = 22
+
+
+def resize_grip(b, w, h):
+    """The bottom-right corner, draggable to resize the window.
+
+    Only where the desktop drew no frame to resize by, and never while
+    maximized (there the geometry write would silently un-maximize instead
+    -- see the renderer's on_mouse_down).
+
+    On Wayland this is usually dead weight in the best way: mpv implements
+    its own edge-resize zone when ``border`` is false, and takes the press
+    in the compositor's protocol before it can reach a script. The grip is
+    for everywhere else -- and it is what the dots on screen are for
+    either way, since mpv's zone is invisible.
+
+    A ``Float`` so the corner is the *window's* corner, not the corner of
+    whatever the page happens to end in; and last in the scene, so it is
+    over the now-playing bar rather than under it. The dots are ordinary
+    Boxes with no interaction of their own, which is what leaves the hit
+    rect underneath them the topmost thing ``node_at`` will return.
+    """
+    if not b.window_controls or b.maximized or not w or not h:
+        return None
+    dots = [
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-3, dy=-3),
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-9, dy=-3),
+        Box([], w=3, h=3, bg=theme.SUBTLE_FG, radius=1,
+            anchor="se", dx=-3, dy=-9),
+    ]
+    return Float(
+        Box([Stack(dots, w=RESIZE_GRIP, h=RESIZE_GRIP)],
+            id="win-resize", w=RESIZE_GRIP, h=RESIZE_GRIP,
+            window_resize="se", tip=_("Resize")),
+        x=w - RESIZE_GRIP, y=h - RESIZE_GRIP,
+        w=RESIZE_GRIP, h=RESIZE_GRIP)
+
+
 def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
     title = "" if probe else (b.route.get("title") or _("Home"))

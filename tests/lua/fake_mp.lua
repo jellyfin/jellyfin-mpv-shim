@@ -19,6 +19,7 @@ M.log = {
     keybinds = {},
     sections = {},      -- set_key_bindings group name -> {key = true}
     enabled = {},       -- section name -> enable_key_bindings state
+    section_flags = {}, -- section name -> the flags it was enabled with
     -- osd updates, ie frames actually painted. The renderer paces itself to
     -- what a frame costs, so how many of them a gesture got is an
     -- observable and not just a detail.
@@ -247,7 +248,15 @@ function mp.remove_key_binding(name) M.log.keybinds[name] = nil end
 -- Whether a section is enabled cannot model mpv's section STACK, but it can
 -- model the flag, which is what a "this group was never turned on" bug looks
 -- like. M.log.enabled[name] is nil until someone enables or disables it.
-function mp.enable_key_bindings(name) M.log.enabled[name] = true end
+-- The FLAGS are recorded separately rather than in place of the boolean:
+-- whether a section is on and what it was enabled WITH are different
+-- questions, and only the second one decides whether mpv will drag or
+-- resize the window while the pointer is over our UI (see the renderer's
+-- state.vodrag).
+function mp.enable_key_bindings(name, flags)
+    M.log.enabled[name] = true
+    M.log.section_flags[name] = flags or ""
+end
 function mp.disable_key_bindings(name) M.log.enabled[name] = false end
 
 -- Mouse and wheel bindings arrive as a whole *group*, and an entry may

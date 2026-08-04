@@ -2211,6 +2211,11 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         toast = window_chrome.toast_node(self, w, h)
         if toast is not None:
             children.append(toast)
+        # Last: the window's own corner has to be over the page's, and over
+        # the now-playing bar that ends at the same pixel.
+        grip = window_chrome.resize_grip(self, w, h)
+        if grip is not None:
+            children.append(grip)
         page = Column(children, w=w, h=h, align="stretch")
         stops = theme.window_gradient()
         if not stops:

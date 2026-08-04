@@ -211,6 +211,23 @@ class TestWindowDragMarker(unittest.TestCase):
         self.assertTrue(rect["wdrag"])
 
 
+class TestWindowResizeMarker(unittest.TestCase):
+    """``window_resize`` has to produce a node too, and for a harder reason
+    than ``window_drag``: the grip has no background at all. It is an
+    invisible corner with three dots drawn over it, so the marker is the
+    only thing that can conjure a hit rect."""
+
+    def test_an_empty_corner_still_gets_a_hit_rect(self):
+        nodes, _h = layout(Row([], w=22, h=22, window_resize="se"), 800, 600)
+        rects = [n for n in nodes if n["t"] == "rect" and n.get("wsize")]
+        self.assertEqual(len(rects), 1, "no node for the resize to land on")
+        self.assertEqual(rects[0]["wsize"], "se")
+
+    def test_an_ordinary_box_does_not_resize_the_window(self):
+        nodes, _h = layout(Row([Text("hi")], h=60, bg="112233"), 800, 600)
+        self.assertFalse([n for n in nodes if n.get("wsize")])
+
+
 class ChromeCase(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
@@ -235,6 +252,44 @@ class TestTopBarAsTitleBar(ChromeCase):
         for node_id in ("win-min", "win-max", "win-close"):
             self.assertIn(node_id, got)
         self.assertTrue(self._bar(nodes), "the title bar cannot be dragged")
+
+    def _grip(self, nodes):
+        return [n for n in nodes if n.get("wsize")]
+
+    def test_an_undecorated_window_gets_a_resize_corner(self):
+        self.b._csd = True
+        nodes, _h = build_scene(self.b, (1280, 720))
+        grip = self._grip(nodes)
+        self.assertEqual(len(grip), 1, "nothing to resize the window by")
+        # The window's own corner, not the corner of whatever the page
+        # happens to end in.
+        self.assertEqual(grip[0]["x"] + grip[0]["w"], 1280)
+        self.assertEqual(grip[0]["y"] + grip[0]["h"], 720)
+
+    def test_a_decorated_window_gets_no_resize_corner(self):
+        nodes, _h = build_scene(self.b, (1280, 720))
+        self.assertFalse(self._grip(nodes),
+                         "a window with a frame grew a second resize handle")
+
+    def test_a_maximized_window_gets_no_resize_corner(self):
+        # Writing geometry there un-maximizes the window rather than
+        # resizing it, which is not what dragging a corner asks for.
+        self.b._csd = True
+        self.b._maximized = True
+        nodes, _h = build_scene(self.b, (1280, 720))
+        self.assertFalse(self._grip(nodes))
+
+    def test_the_dots_do_not_swallow_the_grip(self):
+        # node_at returns the TOPMOST interactive node, and the dots are
+        # drawn over the hit rect. They are plain filled boxes with no
+        # interaction of their own, which is what keeps the corner grabbable
+        # rather than dead in three places.
+        self.b._csd = True
+        nodes, _h = build_scene(self.b, (1280, 720))
+        grip = self._grip(nodes)[0]
+        over = [n for n in nodes[nodes.index(grip) + 1:]
+                if n.get("click") or n.get("wsize") or n.get("hover")]
+        self.assertFalse(over, "something is drawn over the resize corner")
 
     def test_the_controls_sit_outboard_of_the_apps_own_buttons(self):
         # Window furniture goes last, past Settings, as it does on every
@@ -362,6 +417,12 @@ class TestTheHudGetsThemToo(unittest.TestCase):
         self.assertEqual(len(bar), 1, "the HUD header has no node")
         self.assertTrue(bar[0].get("wdrag"),
                         "the video window cannot be dragged by its header")
+
+    def test_the_hud_gets_the_resize_corner_too(self):
+        # A windowed video on an undecorated desktop is otherwise a window
+        # that can be moved but never resized.
+        nodes, _h = build_scene(self._playing(), (1280, 720))
+        self.assertEqual(len([n for n in nodes if n.get("wsize")]), 1)
 
     def test_they_are_smaller_than_the_huds_own_buttons(self):
         # Window furniture sits below the content controls everywhere. At
