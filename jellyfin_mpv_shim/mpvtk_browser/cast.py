@@ -31,6 +31,7 @@ from typing import Optional
 
 from ..i18n import _
 from ..imageutil import apply_dark_gradient, pil_font, scale_to_cover
+from ..mpvtk import pilfont
 
 # PIL and requests are imported inside the functions that need them, as
 # strips.py does. Nothing here runs before mpv_shim has probed Pillow, but
@@ -178,12 +179,18 @@ def _fetch_image(url: Optional[str], timeout: int = 10):
 # ---- The window ---------------------------------------------------------
 
 def _wrap(draw, text, font, max_w):
+    """Word-wrap for the cast screen's text block.
+
+    Measured through pilfont for the same reason banner.py is: an overview
+    that mixes scripts is drawn a run at a time, and wrapping has to ask the
+    same question the drawing will answer.
+    """
     lines = []
     for para in text.split("\n"):
         cur = ""
         for word in para.split():
             trial = (cur + " " + word).strip()
-            if not cur or draw.textlength(trial, font=font) <= max_w:
+            if not cur or pilfont.text_length(draw, trial, font) <= max_w:
                 cur = trial
             else:
                 lines.append(cur)
@@ -400,7 +407,8 @@ class CastMixin:
             for line in reversed(lines):
                 asc, desc = font.getmetrics()
                 lh = asc + desc
-                draw.text((margin, y - lh), line, font=font, fill=fill)
+                pilfont.draw_text(draw, (margin, y - lh), line, font,
+                                  fill=fill)
                 y -= lh + px(4)
             y -= gap - px(4)
 

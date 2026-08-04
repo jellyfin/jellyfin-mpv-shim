@@ -50,7 +50,16 @@ log = logging.getLogger("mpvtk_browser.repository")
 # whether or not it was asked for, so listing it achieves nothing. The comma
 # binder drops names it cannot parse instead of rejecting the request, which is
 # why doing so was invisible; a stricter server would 400 the whole query.
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview"
+#
+# MediaSourceCount is the exception that has to be asked for, and it is the
+# whole of the multi-version indicator: a Video's DTO carries the count only
+# under this field, and the server omits it entirely when it is 1 -- so an
+# absent value means "one version", not "not asked for". jellyfin-web puts it
+# on every grid and row query for the same reason, and it costs nothing extra
+# to answer (it is the length of the item's own alternate-version lists, not a
+# media-source resolution -- that is MediaSources, which DETAIL_FIELDS pays
+# for and a browse query must not).
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount"
 
 #: An item's own artwork counts as landscape at or above this, which is what
 #: lets `backdrop_spec` use a home video's extracted still for its header and
@@ -65,9 +74,9 @@ _LANDSCAPE_ART = 0.8
 # hundred series here) and a tile draws a name, a year and a runtime -- none
 # of them fields. Rows keep LIST_FIELDS: they are twelve to twenty items and
 # a clicked one seeds a page that shows the text while the real DTO loads.
-# jellyfin-web's grid asks for less again (MediaSourceCount, and the aspect
-# ratio only when the view is Primary).
-GRID_FIELDS = "PrimaryImageAspectRatio"
+# jellyfin-web's grid asks for the aspect ratio only when the view is Primary;
+# MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
+GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount"
 
 # What a library's grid lists, by collection type -- jellyfin-web's default
 # tab for that view (LibraryTab.Movies -> Movie, and so on).
@@ -248,6 +257,33 @@ QUEUEABLE_MEDIA_PARAM = ",".join(sorted(QUEUEABLE_MEDIA))
 #: sitting, and the alternative is asking a server for forty thousand ids to
 #: use the first few.
 QUEUE_LIMIT = 300
+
+#: What a search asks the server for, in total, across every type it draws
+#: a row for. jellyfin-web's number (its search asks the same endpoint for
+#: 800 and splits the answer client-side, as the search screen does).
+#:
+#: It is one budget for all the rows, so it has to be generous: at 60 a
+#: term that matched a lot of episodes spent the whole allowance on them
+#: and the Movies row never appeared at all (#641). Sorting is the server's,
+#: and it does not interleave by type, so the shortfall is not spread
+#: evenly -- it takes whole rows off the bottom.
+SEARCH_LIMIT = 800
+
+#: What the item half of a search covers. Artists are NOT here: they have
+#: their own endpoint and their own request, exactly as in web, because
+#: /Items does not reliably answer with them. On the server this was
+#: developed against the item query returns fewer artists than /Artists (9
+#: against 13 for one term -- /Artists includes track-level and featured
+#: artists that are not library items), and on at least one real server it
+#: returns none at all, which is what "there is no Artists row" looked like
+#: from the outside.
+SEARCH_TYPES = "Movie,Series,Episode,Video,MusicAlbum,Audio"
+
+#: People and artists are separate endpoints with separate budgets, so
+#: these are not shared with anything. 20 was low enough that a common first
+#: name could fill it with people the user did not mean; web asks for 100.
+PEOPLE_SEARCH_LIMIT = 100
+ARTIST_SEARCH_LIMIT = 100
 
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
@@ -1699,9 +1735,22 @@ class LibrarySource:
         return self._music_items(server_uuid, "MusicAlbum", parent_id, sort_by,
                                  sort_order, start_index, limit, filters)
 
-    def get_songs(self, server_uuid, parent_id, sort_by="SortName",
+    def get_songs(self, server_uuid, parent_id, sort_by="Name",
                   sort_order="Ascending", start_index=0, limit=100,
                   filters=None):
+        """A music library's tracks, A-Z by title.
+
+        **Name, not SortName** -- the one place in this file where those two
+        differ. A track's SortName is not its name: the server builds it from
+        the disc and track numbers with the title only as a tie-break, which
+        is what makes an album's own listing come out in play order. Ask a
+        whole library for it and the ordering is by track number *across
+        albums* -- every album's track 1, then every album's track 2 -- with
+        the titles scattered through it. jellyfin-web's Songs tab has the same
+        two entries in its sort menu and spells its "Track Name" one `Name`
+        for this reason; the rest of its options end in SortName because they
+        are all album-grouped first.
+        """
         return self._music_items(server_uuid, "Audio", parent_id, sort_by,
                                  sort_order, start_index, limit, filters)
 
@@ -1878,10 +1927,28 @@ class LibrarySource:
             return []
         return result.get("Items", []) if isinstance(result, dict) else result
 
-    def search_people(self, server_uuid, term, limit=20):
-        """People matching a search term."""
+    def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
+        """People matching a search term.
+
+        Its own query, and its own budget: /Persons is a different endpoint
+        from the item search, so people can never be crowded out by episodes
+        the way rows sharing SEARCH_LIMIT can.
+        """
         api = self._conn(server_uuid).api
         result = api.get_persons(search_term=term, limit=limit) or {}
+        return result.get("Items", [])
+
+    def search_artists(self, server_uuid, term, limit=ARTIST_SEARCH_LIMIT):
+        """Artists matching a search term.
+
+        /Artists rather than the item query, which is what web does and what
+        the item query cannot be relied on for: it answers with fewer
+        artists on the server this was written against, and with none at all
+        on at least one real one. This endpoint also covers track-level and
+        featured artists, who have no MusicArtist item to be found as.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_artists(search_term=term, limit=limit) or {}
         return result.get("Items", [])
 
     def get_playlists(self, server_uuid, limit=300):
@@ -2010,12 +2077,29 @@ class LibrarySource:
         items = result.get("Items", [])
         return items[0] if items else None
 
-    def search(self, server_uuid, term, limit=60):
+    def search(self, server_uuid, term, limit=SEARCH_LIMIT):
+        """Everything matching ``term``, for the search screen to group.
+
+        **The limit is shared across every type, which is why it is large.**
+        The screen splits the answer into a row per type, so a budget of 60
+        was not "60 of each" -- it was 60 between them, handed out in
+        whatever order the server sorted them. One series with a matching
+        name brings its episodes along, and a term that hits an episode
+        title spends the lot: the movie the user was looking for never
+        arrived, and the row for it simply did not appear (#641).
+
+        jellyfin-web asks the same endpoint for 800 and splits client-side
+        exactly as we do, so this is its number. It also turns the total
+        count off, which we now do too -- nothing here shows a total, and
+        counting matches is work the server can skip.
+        """
         api = self._conn(server_uuid).api
-        result = api.search_media_items(
-            term=term,
-            media="Movie,Series,Episode,Video,MusicArtist,MusicAlbum,Audio",
+        result = api.get_user_items(
+            search_term=term,
+            include_item_types=SEARCH_TYPES,
+            recursive=True,
             limit=limit,
+            enable_total_record_count=False,
         ) or {}
         return result.get("Items", [])
 
@@ -2624,8 +2708,15 @@ class OfflineLibrarySource:
     def get_trailers(self, server_uuid, item_id):
         return []  # trailers aren't downloaded
 
-    def search_people(self, server_uuid, term, limit=20):
+    def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
         return []  # people aren't cached offline
+
+    def search_artists(self, server_uuid, term, limit=ARTIST_SEARCH_LIMIT):
+        # Artists are entities the server derives from its library; the
+        # downloaded catalog holds items. Names could be scraped off the
+        # tracks, but a tile built from one has no id to open, and a row of
+        # dead tiles is worse than no row.
+        return []
 
     def get_playlists(self, server_uuid, limit=300):
         return list(self._snap.playlists)
@@ -2837,7 +2928,10 @@ class OfflineLibrarySource:
                 return ep
         return eps[0] if eps else None
 
-    def search(self, server_uuid, term, limit=60):
+    def search(self, server_uuid, term, limit=SEARCH_LIMIT):
+        # Same budget as online, and for the same reason -- the screen above
+        # splits one answer into a row per type. A downloaded library is
+        # small enough that this is the whole of it either way.
         needle = term.lower()
         return [i for i in self._snap.items
                 if needle in (i.get("Name") or "").lower()][:limit]

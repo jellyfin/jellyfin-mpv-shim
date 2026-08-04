@@ -34,8 +34,11 @@ class MusicMixin:
 
 
 
-    def _queue_items(self, ids, server):
-        self._actions.queue_items(ids, server)
+    def _queue_items(self, ids, server, next_up=False):
+        if next_up:
+            self._actions.queue_next_items(ids, server)
+        else:
+            self._actions.queue_items(ids, server)
 
     # -------------------------------------------------- now-playing bar
 

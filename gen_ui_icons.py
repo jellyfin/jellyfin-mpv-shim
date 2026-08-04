@@ -61,6 +61,7 @@ ICON_NAMES = [
     "favorite",
     "favorite_border",
     "playlist_add",
+    "queue_play_next",
     "queue_music",
     "add",
     "home",

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 09:56-0400\n"
+"POT-Creation-Date: 2026-08-03 23:40-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2582,10 +2582,6 @@ msgid "Results for \"%s\""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-msgid "People"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
 msgstr ""
@@ -2593,6 +2589,10 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Videos"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+msgid "People"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -3023,6 +3023,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from Beginning"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Play Next"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py

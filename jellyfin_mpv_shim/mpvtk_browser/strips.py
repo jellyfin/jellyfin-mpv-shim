@@ -208,6 +208,10 @@ class Tile:
     #: Carried on the tile because the compositor has the picture and not
     #: the item it came from.
     live: bool = False
+    #: How many versions of this item the library holds (MediaSourceCount).
+    #: Drawn only above 1, which is also the only case the server sends it
+    #: -- so 0 and 1 both mean "one version, nothing to say".
+    sources: int = 0
 
 
 class StripStore:
@@ -323,6 +327,7 @@ class StripStore:
             # In the key because it picks the card colour: the same picture
             # is plated in one place and not in another.
             bool(t.live),
+            int(t.sources),
         )
 
     @staticmethod
@@ -674,13 +679,28 @@ class StripStore:
         # into a physical bitmap, so it goes through _px(). g is already
         # physical (see _compose); mixing the two silently is how a scaled
         # tile ends up with 1x decorations pinned to its corner.
+        # The top-LEFT stack, filled from the corner rightwards. Two entries
+        # so far, and the check keeps the corner because it is the one the
+        # eye has been trained to look for. jellyfin-web splits these the
+        # same way round the other way (its played tick is top-right and its
+        # version count top-left); ours are both on the left because the
+        # right-hand corner is already three deep.
+        lx = x + _px(17)
         if t.watched:
             # A real Material `check`, not two hand-drawn strokes. Same
             # reason _paint_record gives for the record dot: this glyph is
             # drawn elsewhere in the app from `ui_icon_paths`, and a
             # hand-rolled second copy of one symbol drifts from the first.
-            self._paint_glyph_badge(img, dr, x + _px(17), _px(17), "check",
+            self._paint_glyph_badge(img, dr, lx, _px(17), "check",
                                     theme.ACCENT)
+            lx += _px(self.BADGE_PITCH)
+        if t.sources > 1:
+            # "This film is here twice" -- a 4K and a 1080p, a theatrical and
+            # an extended. The count, not a symbol, because which of them
+            # plays is a choice the detail page offers and the number is what
+            # says there is one to make.
+            self._paint_count_badge(dr, lx, _px(17), str(t.sources),
+                                    g.badge_size)
         # The top-right stack, filled from the corner leftwards. These used
         # to be an if/elif chain -- one badge won and the rest silently did
         # not draw, so a downloaded clip in a Home Videos library lost the
@@ -796,6 +816,23 @@ class StripStore:
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     @staticmethod
+    def _paint_count_badge(dr, cx, cy, text, size):
+        """A number in white on a filled accent disc, centred on (cx, cy).
+
+        The same disc ``_paint_glyph_badge`` draws, carrying a digit instead
+        of a glyph -- which is how jellyfin-web draws its version count too
+        (`.mediaSourceIndicator` is a 2em circle in the primary colour). The
+        unplayed-episode badge on the other corner is deliberately a rounded
+        *rectangle*: it runs to three digits, where this one is a count of
+        files on disk and stays one.
+        """
+        r = _px(11)
+        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
+                   fill=theme.rgb(theme.ACCENT, 255))
+        dr.text((cx, cy), text, font=_font(size, bold=True), anchor="mm",
+                fill=(255, 255, 255))
+
+    @staticmethod
     def _paint_kind(img, dr, cx, cy, name):
         """The type marker, centred on (cx, cy).
 
@@ -851,21 +888,36 @@ class StripStore:
         # at the old offset instead would draw it a full line below the
         # artwork with a band of nothing between.
         y = g.tile_h + _px(6)
+        # pilfont.draw_text, not dr.text: a caption mixing scripts needs a
+        # face per run, or the Latin half of a Japanese title is tofu (see
+        # mpvtk.pilfont.runs). Single-script captions -- almost all of them
+        # -- take the same path they always did.
+        from ..mpvtk import pilfont
+
         if t.title:
             fnt = _font(g.title_size, text=t.title)
             title = self._ellipsize(dr, t.title, fnt, g.tile_w)
-            dr.text((x, y), title, font=fnt, fill=theme.rgb(theme.TEXT_FG))
+            pilfont.draw_text(dr, (x, y), title, fnt,
+                              fill=theme.rgb(theme.TEXT_FG))
             y += g.title_size + _px(7)
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
-            dr.text((x, y), sub, font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
+            pilfont.draw_text(dr, (x, y), sub, fnt,
+                              fill=theme.rgb(theme.SUBTLE_FG))
 
     @staticmethod
     def _ellipsize(dr, text, font, max_w):
-        if dr.textlength(text, font=font) <= max_w:
+        # Measured the way it will be drawn. The two disagree by a lot when
+        # they disagree at all -- a face that cannot draw a run renders it as
+        # .notdef boxes, which are wider than the digits they stand in for,
+        # so measuring one way and drawing the other truncates a caption that
+        # would have fitted.
+        from ..mpvtk import pilfont
+
+        if pilfont.text_length(dr, text, font) <= max_w:
             return text
-        while text and dr.textlength(text + "…", font=font) > max_w:
+        while text and pilfont.text_length(dr, text + "…", font) > max_w:
             text = text[:-1]
         return text + "…"
 

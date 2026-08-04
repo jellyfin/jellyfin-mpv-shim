@@ -654,3 +654,179 @@ class TestTrackRowsHaveAContextMenu(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSearchRowCaps(unittest.TestCase):
+    """One budget per row, not one shared across the screen (#641).
+
+    The query asks for a lot so that every type is represented -- a term
+    matching a thousand songs used to spend the whole 60-item allowance
+    before the movies were reached, and the Movies row simply did not
+    appear. Measured against a real server: searching "a" at 60 returned no
+    Audio at all, and at 800 returns 719 of them.
+
+    But the answer cannot be drawn whole. A tile row composites every tile
+    it is given and the Songs table is deliberately not virtualized, so the
+    same widening that fixes the missing row would lay out thousands of
+    nodes and blow mpv's 63-overlay budget. Hence a cap per row.
+    """
+
+    def _search(self, per_type):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.search import ROW_MAX
+        self.ROW_MAX = ROW_MAX
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: (
+            [{"Id": "m%d" % i, "Name": "Movie %d" % i, "Type": "Movie"}
+             for i in range(per_type)]
+            + [{"Id": "s%d" % i, "Name": "Song %d" % i, "Type": "Audio",
+                "RunTimeTicks": 1200000000} for i in range(per_type)])
+        src.search_people = lambda srv, term, limit=100: [
+            {"Id": "p%d" % i, "Name": "Person %d" % i, "Type": "Person"}
+            for i in range(per_type)]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        return build_scene(b, (1280, 720))
+
+    def test_the_songs_table_stops_at_the_cap(self):
+        found = 200
+        _nodes, handlers = self._search(found)
+        rows = [k for k in handlers if str(k).startswith("search-song-")]
+        self.assertEqual(len(rows), self.ROW_MAX,
+                         "the songs table drew %d rows for %d results"
+                         % (len(rows), found))
+
+    def test_every_type_still_gets_its_row(self):
+        """The point of widening the query. A row per type, none of them
+        starved by another's matches."""
+        nodes, _h = self._search(200)
+        texts = [n.get("text") or "" for n in nodes]
+        for heading in ("People", "Movies", "Songs"):
+            self.assertIn(heading, texts, "%s row is missing" % heading)
+
+    def test_a_small_result_is_untouched(self):
+        """The cap must not truncate ordinary searches -- it is a ceiling,
+        not a page size."""
+        nodes, handlers = self._search(3)
+        rows = [k for k in handlers if str(k).startswith("search-song-")]
+        self.assertEqual(len(rows), 3)
+
+
+class TestSearchSectionOrder(unittest.TestCase):
+    """Rows come in jellyfin-web's order (SEARCH_SECTIONS_SORT_ORDER).
+
+    What you searched for first, the people who made it after: Movies,
+    Shows, Episodes, People, Artists, Albums, Songs, Videos. People used to
+    lead, which put a row of faces above the film whose title had just been
+    typed -- and since the first row built takes focus, it also left a
+    remote's first keypress on the cast.
+
+    The Live TV pair at the end is web's order too: what is on now is a
+    result, a channel is a place to go and look.
+    """
+
+    def _rows(self):
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: [
+            {"Id": "m1", "Name": "M", "Type": "Movie"},
+            {"Id": "sr1", "Name": "S", "Type": "Series"},
+            {"Id": "e1", "Name": "E", "Type": "Episode"},
+            {"Id": "al1", "Name": "L", "Type": "MusicAlbum"},
+            {"Id": "so1", "Name": "G", "Type": "Audio",
+             "RunTimeTicks": 1200000000},
+            {"Id": "v1", "Name": "V", "Type": "Video"},
+        ]
+        src.search_people = lambda srv, term, limit=100: [
+            {"Id": "p1", "Name": "P", "Type": "Person"}]
+        src.search_artists = lambda srv, term, limit=100: [
+            {"Id": "ar1", "Name": "A", "Type": "MusicArtist"}]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        nodes, _h = build_scene(b, (1280, 720))
+        headings = [n for n in nodes if n.get("size") == 24 and n.get("text")]
+        headings.sort(key=lambda n: n.get("y", 0))
+        return [n["text"] for n in headings], nodes
+
+    def test_the_order_is_webs(self):
+        headings, _nodes = self._rows()
+        self.assertEqual(
+            headings,
+            ['Results for "x"', "Movies", "Shows", "Episodes", "People",
+             "Artists", "Albums", "Songs", "Videos", "On TV", "Channels"])
+
+    def test_the_first_result_row_takes_focus_not_the_cast(self):
+        """Submitting a search moves focus out of the box and onto the
+        results; it should land on what was searched for."""
+        _headings, nodes = self._rows()
+        focused = [n.get("id") for n in nodes if n.get("af")]
+        self.assertEqual(focused, ["search-Movies-m1"])
+
+
+class TestSearchArtists(unittest.TestCase):
+    """Artists come from /Artists, not from the item search.
+
+    Reported as "I see albums and songs but no artists". The item query is
+    not a reliable source for them: against the development server it
+    returns fewer than /Artists (9 against 13 for one term, the difference
+    being track-level and featured artists that have no MusicArtist item at
+    all), and against at least one real server it returns none, which is
+    what an absent row looks like from the outside. jellyfin-web asks
+    /Artists separately for exactly this reason.
+    """
+
+    def _search(self, artists=None, items=None):
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: items if items is not None \
+            else [{"Id": "m1", "Name": "M", "Type": "Movie"}]
+        src.search_people = lambda srv, term, limit=100: []
+        if artists is not None:
+            src.search_artists = lambda srv, term, limit=100: artists
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        return build_scene(b, (1280, 720))
+
+    def test_the_dedicated_request_fills_the_row(self):
+        nodes, _h = self._search(
+            artists=[{"Id": "ar1", "Name": "A", "Type": "MusicArtist"}])
+        self.assertIn("Artists", [n.get("text") for n in nodes])
+        self.assertIn("search-Artists-ar1", ids(nodes))
+
+    def test_item_results_are_the_fallback(self):
+        """The other direction, which has also been seen: a server that
+        answers the item query with artists but has no usable /Artists."""
+        nodes, _h = self._search(
+            artists=[],
+            items=[{"Id": "ar9", "Name": "A", "Type": "MusicArtist"}])
+        self.assertIn("Artists", [n.get("text") for n in nodes])
+        self.assertIn("search-Artists-ar9", ids(nodes))
+
+    def test_a_stray_artist_item_is_never_filed_under_other(self):
+        """MusicArtist left SEARCH_TYPES when artists got their own request.
+        One arriving anyway must still read as an artist -- it landed in the
+        Other row the moment the type stopped being claimed."""
+        nodes, _h = self._search(
+            artists=[{"Id": "ar1", "Name": "A", "Type": "MusicArtist"}],
+            items=[{"Id": "ar9", "Name": "B", "Type": "MusicArtist"}])
+        self.assertNotIn("Other", [n.get("text") for n in nodes])
+
+    def test_a_source_without_the_method_still_renders(self):
+        """The offline catalog and any older source: getattr'd, not assumed."""
+        # A subclass without it, since the method is on the class: this is
+        # the offline catalog's shape, and any source written before it.
+        class Older(FakeSource):
+            search_artists = property(
+                lambda self: (_ for _ in ()).throw(AttributeError))
+
+        src = Older()
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertTrue(nodes)
+        self.assertNotIn("Artists", [n.get("text") for n in nodes])

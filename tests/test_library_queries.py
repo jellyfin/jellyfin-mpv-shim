@@ -21,7 +21,7 @@ sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
-    GRID_FIELDS, LIBRARY_ITEM_TYPES, LibrarySource)
+    GRID_FIELDS, LIBRARY_ITEM_TYPES, LIST_FIELDS, LibrarySource)
 
 from tests._shell_harness import (  # noqa: E402
     FakeController, FakeSource, _SyncPool)
@@ -78,6 +78,16 @@ class QueryShapeTest(unittest.TestCase):
         self.assertNotIn("Overview", GRID_FIELDS)
         self.assertIn("PrimaryImageAspectRatio", self._call("movies")["fields"])
 
+    def test_every_browse_query_asks_for_the_version_count(self):
+        """MediaSourceCount is not one of the unconditional properties: leave
+        it out of Fields and the DTO carries no count at all, so a film the
+        library holds twice draws exactly like one it holds once. Both field
+        sets, because a film reaches the screen through a row as often as
+        through a grid."""
+        self.assertIn("MediaSourceCount", self._call("movies")["fields"])
+        self.assertIn("MediaSourceCount", GRID_FIELDS)
+        self.assertIn("MediaSourceCount", LIST_FIELDS)
+
     def test_the_filter_pickers_are_scoped_to_the_type(self):
         api = FakeApi()
         self._source(api).get_filter_values("srv", "lib",
@@ -89,6 +99,37 @@ class QueryShapeTest(unittest.TestCase):
         vals = self._source(api).get_filter_values("srv", "lib")
         self.assertEqual(api.filter_calls, [("lib", None)])
         self.assertEqual(vals["genres"], ["Action"])
+
+
+class MusicOrderTest(unittest.TestCase):
+    """How a music library's tabs are ordered.
+
+    SortName is right for everything in this file except one tab. A track's
+    SortName is not its title: the server builds it from the disc and track
+    numbers with the title only as a tie-break, which is what makes an
+    album's own listing come out in play order. Ask a whole library for it
+    and you get every album's track 1, then every album's track 2.
+    """
+
+    def _call(self, method, **kw):
+        api = FakeApi()
+        src = LibrarySource.__new__(LibrarySource)
+        src._conn = lambda _uuid: type("C", (), {"api": api})()
+        getattr(src, method)("srv", "lib", **kw)
+        return api.calls[0]
+
+    def test_the_songs_tab_is_ordered_by_title(self):
+        self.assertEqual(self._call("get_songs")["sort_by"], "Name")
+
+    def test_the_albums_tab_keeps_sortname(self):
+        """An album's SortName IS its name, modulo the leading article --
+        this is only a track's problem."""
+        self.assertEqual(self._call("get_music_albums")["sort_by"], "SortName")
+
+    def test_an_explicit_sort_still_wins(self):
+        self.assertEqual(
+            self._call("get_songs", sort_by="DateCreated")["sort_by"],
+            "DateCreated")
 
 
 class FirstPaintTest(unittest.TestCase):

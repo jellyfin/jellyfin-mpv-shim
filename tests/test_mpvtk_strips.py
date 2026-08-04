@@ -246,6 +246,66 @@ class TestCoverCrop(unittest.TestCase):
             self.assertEqual(got, card)
 
 
+class TestVersionCountBadge(unittest.TestCase):
+    """The multi-version indicator -- jellyfin-web's `.mediaSourceIndicator`.
+
+    It shares the top-LEFT corner with the watched tick, which is the only
+    corner with room: the right-hand one already stacks a recording symbol,
+    a download arrow, a type marker and the unplayed count. So the two have
+    to sit beside each other rather than either winning the spot, which is
+    what the offset assertions here are about.
+    """
+
+    ACCENT = theme.rgb(theme.ACCENT, 255)[:3]
+
+    def _paint(self, **tile):
+        g = TileGeom().physical()
+        img = Image.new("RGBA", (g.tile_w, g.strip_h), (0, 0, 0, 0))
+        store = StripStore(cache_dir=None, mem_store=None)
+        store._paint_decorations(img, ImageDraw.Draw(img), 0,
+                                 Tile(key="k", **tile), g)
+        return img
+
+    @staticmethod
+    def _slot(img, n):
+        """A point on the disc in the n'th left-hand slot: near its top edge,
+        which is inside r=11 but clear of both the digit and the tick, so
+        neither their ink nor their antialiased fringe is what gets sampled.
+        """
+        return img.getpixel((17 + 26 * n, 17 - 9))
+
+    def test_two_versions_draw_a_badge_in_the_corner(self):
+        self.assertEqual(self._slot(self._paint(sources=2), 0)[:3], self.ACCENT)
+
+    def test_one_version_draws_nothing(self):
+        """The server omits MediaSourceCount entirely at 1, so 0 and 1 are
+        the same answer and neither is worth a chip on every tile."""
+        for n in (0, 1):
+            with self.subTest(n):
+                self.assertEqual(self._slot(self._paint(sources=n), 0)[3], 0)
+
+    def test_a_watched_multiversion_film_shows_both(self):
+        img = self._paint(sources=3, watched=True)
+        # The tick keeps the corner; the count is pitched one slot right.
+        self.assertEqual(self._slot(img, 0)[:3], self.ACCENT)
+        self.assertEqual(self._slot(img, 1)[:3], self.ACCENT)
+
+    def test_the_second_slot_is_empty_without_a_tick(self):
+        """Otherwise the count would be drawn to the right of a badge that
+        is not there, leaving a gap in the corner."""
+        self.assertEqual(self._slot(self._paint(sources=2), 1)[3], 0)
+
+    def test_the_count_is_part_of_the_cache_key(self):
+        """It is baked into the composited strip like every other decoration,
+        so an item that gains a version has to recomposite rather than serve
+        the old bitmap."""
+        s = StripStore(cache_dir=None, mem_store=MemoryStore())
+        base = dict(key="a", title="A", poster=_poster(), poster_tag="p1")
+        a = s.strip([Tile(**base)])
+        b = s.strip([Tile(**dict(base, sources=2))])
+        self.assertNotEqual(a["src"], b["src"])
+
+
 class TestBitmapConcurrentMiss(unittest.TestCase):
     """bitmap() drops its lock across _store(), so two callers can both miss
     and both allocate. cast.py's compositor runs on the browser's shared pool
@@ -327,3 +387,80 @@ def _live_buffers(mem):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMixedScriptCaptions(unittest.TestCase):
+    """A caption that mixes scripts is drawn with a face per run.
+
+    The end-to-end half of `test_mpvtk_pilfont`: this goes through the real
+    compositor, because the bug reached users as "the year under my Japanese
+    posters is a row of boxes" and the fix is only worth anything if
+    `_paint_caption` is the thing doing it.
+
+    Detection is by counting *distinct* glyph shapes. Tofu is one shape
+    repeated, so "(2013)" drawn by a face without Latin coverage has far
+    fewer distinct columns of ink than the six characters deserve — no
+    reference render and no font names needed.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="strips-i18n-")
+        self.store = StripStore(cache_dir=self.dir, geom=TileGeom())
+        from jellyfin_mpv_shim.mpvtk import pilfont
+        self.pilfont = pilfont
+
+    def caption_band(self, title):
+        """The strip below the artwork, where the caption is drawn."""
+        geom = TileGeom()
+        out = self.store.strip([Tile(key="k", title=title, poster=_poster())])
+        path = out["src"]
+        if not isinstance(path, str) or not os.path.isfile(path):
+            self.skipTest("this backend does not write a readable bitmap")
+        with open(path, "rb") as fh:
+            raw = fh.read()
+        w, h = out["iw"], out["ih"]
+        img = Image.frombytes("RGBA", (w, h), raw[-w * h * 4:], "raw", "BGRA")
+        return img.crop((0, geom.tile_h, min(w, geom.tile_w), h))
+
+    def test_a_mixed_caption_draws_its_latin_run(self):
+        """Two titles differing only in the digits must draw differently.
+
+        The sharpest available detector, and it needs no font names and no
+        reference render: tofu is one shape repeated, so if the Latin run is
+        being drawn by a face without Latin coverage, "(2013)" and "(2014)"
+        composite to *identical* bitmaps. A counting heuristic does not
+        catch this -- the CJK half supplies plenty of variety on its own,
+        which is exactly how the first version of this test passed with the
+        bug reintroduced.
+        """
+        a, b = "進撃の巨人 (2013)", "進撃の巨人 (2014)"
+        if self.pilfont.font_for(a, 20) is self.pilfont.font("latin", 20):
+            self.skipTest("no separate CJK face installed on this host")
+        # assertTrue on the comparison, not assertNotEqual on the bytes:
+        # these are ~50 KB bitmaps and unittest prints both operands.
+        self.assertTrue(
+            self.caption_band(a).tobytes() != self.caption_band(b).tobytes(),
+            "changing the digits changed nothing on screen, so they are "
+            "being drawn as identical .notdef boxes")
+
+    def test_the_control_case_differs_too(self):
+        """A guard on the detector: two plainly different Latin captions must
+        of course differ, or the assertion above proves nothing."""
+        self.assertTrue(self.caption_band("Blade 2013").tobytes()
+                        != self.caption_band("Blade 2014").tobytes())
+
+    def glyph_shapes(self, band):
+        """How many distinct non-blank pixel columns the band contains."""
+        grey = band.convert("L")
+        cols = []
+        for x in range(grey.width):
+            col = bytes(grey.getpixel((x, y)) > 60
+                        for y in range(grey.height))
+            if any(col):
+                cols.append(col)
+        return len(set(cols))
+
+    def test_a_latin_caption_still_draws(self):
+        # The control: whatever the host has, plain Latin must be fine.
+        self.assertGreater(self.glyph_shapes(self.caption_band("Blade 2049")),
+                           12)

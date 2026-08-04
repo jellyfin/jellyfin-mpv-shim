@@ -238,6 +238,13 @@ class TilesMixin:
             else:
                 out.append((_("Play"), "play_arrow", "play"))
             out.append((_("Add to Queue"), "playlist_add", "queue"))
+            # Only while something is playing: with an idle player both
+            # entries do the same thing (start these items), and offering
+            # the same action twice under two names is worse than offering
+            # it once. The gateway still handles the idle case, because a
+            # queue can empty between the menu being drawn and pressed.
+            if self._is_playing():
+                out.append((_("Play Next"), "queue_play_next", "queuenext"))
         if t in self.MENU_WATCHED:
             out.append((_("Mark Unwatched") if watched
                         else _("Mark Watched"), "check", "watched"))
@@ -260,6 +267,17 @@ class TilesMixin:
                 and self._edit_apis()):
             out.append((_("Remove from Collection"), "delete", "uncollect"))
         return out
+
+    def _is_playing(self):
+        """Whether there is a queue to insert into.
+
+        Read off the now-playing snapshot the shell already keeps rather
+        than asking the player: this runs while a menu is being built, on
+        the loop thread, and that snapshot is what the rest of the chrome
+        trusts. It is set while a queue is still starting, which is the
+        right answer -- there will be something to queue behind.
+        """
+        return bool(getattr(self, "_now_playing", None))
 
     def _edit_apis(self):
         return self._actions.can_edit()
@@ -288,6 +306,8 @@ class TilesMixin:
             self._menu_play(item, server, resume=False)
         elif action == "queue":
             self._menu_queue(item, server)
+        elif action == "queuenext":
+            self._menu_queue(item, server, next_up=True)
         elif action == "watched":
             self._act_watched(item, server)
         elif action == "favorite":
@@ -394,9 +414,10 @@ class TilesMixin:
             self.set_status(_("The change could not be applied."))
         self.run_async(work, done, ep, on_error=failed)
 
-    def _menu_queue(self, item, server):
-        """Append to the playing queue. A music container is resolved to its
-        tracks first — queueing the container id itself is meaningless."""
+    def _menu_queue(self, item, server, next_up=False):
+        """Add to the playing queue -- at the end, or (``next_up``) straight
+        after the current item. A music container is resolved to its tracks
+        first — queueing the container id itself is meaningless."""
         ep = self._epoch
         parent = self.route.get("parent_id")
 
@@ -405,7 +426,7 @@ class TilesMixin:
 
         def done(ids):
             if ids:
-                self._queue_items(ids, server)
+                self._queue_items(ids, server, next_up=next_up)
             else:
                 # A container that resolved to nothing: say so rather than
                 # having the menu entry appear to do nothing at all.

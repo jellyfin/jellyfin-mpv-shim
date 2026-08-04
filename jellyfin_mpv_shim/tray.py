@@ -29,6 +29,32 @@ from .utils import get_resource
 log = logging.getLogger("tray")
 
 
+def wants_x11_backend(env):
+    """Whether to force GTK onto X11 (XWayland) for the tray process.
+
+    GNOME's Wayland session only: pystray's GTK loop crashes there at
+    startup, and forcing the X11 backend dodges it (#506). Forcing it
+    *everywhere* is what #646 is -- on every other Wayland compositor the
+    indicator then reports ``visible = True``, raises nothing, and simply
+    never registers with the StatusNotifierWatcher, so the tray silently
+    does not appear. Wayfire + wf-panel-pi was the report; the same code
+    registers immediately with the backend left alone.
+
+    So both halves have to hold. GNOME on X11 needs nothing forced (it is
+    already there), and a non-GNOME Wayland session must be left to use its
+    own backend. ``XDG_CURRENT_DESKTOP`` is a colon-separated list and names
+    GNOME variously ("GNOME", "ubuntu:GNOME", "GNOME-Classic:GNOME"), hence
+    the substring test rather than an equality one.
+
+    Takes the environment as an argument so it is answerable without one.
+    """
+    desktop = env.get("XDG_CURRENT_DESKTOP") or ""
+    if "gnome" not in desktop.lower():
+        return False
+    return bool(env.get("WAYLAND_DISPLAY")) or (
+        (env.get("XDG_SESSION_TYPE") or "").lower() == "wayland")
+
+
 class TrayProcess(Process):
     """The pystray loop. Everything it can do is "put a command name on the
     queue" — it holds no references to the player or the browser, because
@@ -40,12 +66,12 @@ class TrayProcess(Process):
         Process.__init__(self, daemon=True, name="jellyfin-mpv-shim-tray")
 
     def run(self):
-        # Force the X11 GTK backend to dodge Wayland startup issues. These
-        # variables only mean anything to GTK on Linux/BSD; pystray uses
-        # native APIs on Windows and macOS, so leave the env alone there.
+        # These variables only mean anything to GTK on Linux/BSD; pystray
+        # uses native APIs on Windows and macOS, so leave the env alone.
         if sys.platform.startswith("linux") or sys.platform.startswith("freebsd"):
-            os.environ.pop("WAYLAND_DISPLAY", None)
-            os.environ["GDK_BACKEND"] = "x11"
+            if wants_x11_backend(os.environ):
+                os.environ.pop("WAYLAND_DISPLAY", None)
+                os.environ["GDK_BACKEND"] = "x11"
 
         # Spawned child: it never ran main(), so gettext is unconfigured and
         # the menu would come out untranslated.
