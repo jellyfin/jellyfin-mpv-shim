@@ -189,8 +189,11 @@ class UserInterface:
             self._quit()
             return
         if not self._can_run_windowless():
+            from ..tray import tray_unavailable_advice
+
             log.info("Window closed and no system tray is available; "
-                     "exiting rather than becoming unreachable.")
+                     "exiting rather than becoming unreachable. %s",
+                     tray_unavailable_advice())
             self._quit()
             return
         if self._browser is not None:
@@ -268,9 +271,10 @@ class UserInterface:
             browser.minimize()
         else:
             if settings.start_minimized:
+                from ..tray import tray_unavailable_advice
+
                 log.info("start_minimized ignored: no system tray to restore "
-                         "the window from. Set allow_background to run "
-                         "windowless anyway.")
+                         "the window from. %s", tray_unavailable_advice())
             browser.enter_browse()  # take the window + hide the OSC
         if browser.headless:
             # Cast-target UX: the backdrop wants the whole screen, and the

@@ -29,6 +29,157 @@ from .utils import get_resource
 log = logging.getLogger("tray")
 
 
+#: The bus name every StatusNotifierItem host registers, whoever wrote it.
+#: Ayatana kept KDE's spelling, and GNOME's "AppIndicator and
+#: KStatusNotifierItem Support" extension takes the same name -- which is
+#: precisely why its absence is a usable answer.
+SNI_WATCHER = "org.kde.StatusNotifierWatcher"
+
+#: pystray backends that talk to a native tray API which is always there.
+_NATIVE_BACKENDS = ("win32", "darwin")
+#: ...ones that publish a StatusNotifierItem over D-Bus.
+_SNI_BACKENDS = ("appindicator", "ayatana_appindicator")
+#: ...and ones that dock an XEmbed window into an X11 system tray.
+_XEMBED_BACKENDS = ("gtk", "xorg")
+
+
+def backend_name(icon_cls):
+    """The short name of the pystray backend behind ``Icon``.
+
+    pystray picks a backend at import time and exposes it only as the module
+    the ``Icon`` class came from (``pystray._appindicator``); there is no
+    public accessor. Returns "" if it cannot be read, which every caller
+    treats as "unknown backend, assume it works".
+    """
+    return getattr(icon_cls, "__module__", "").rsplit(".", 1)[-1].lstrip("_")
+
+
+def sni_watcher_present(timeout_ms=2000):
+    """Whether a StatusNotifierItem host is listening on the session bus.
+
+    ``None`` means the question could not be asked.
+
+    This is the check pystray cannot do for us. An AppIndicator is a D-Bus
+    object plus a registration call; with no watcher on the bus there is
+    nobody to register with, so libappindicator quietly does nothing, the
+    icon reports ``visible = True`` and no error is raised anywhere. That is
+    GNOME's default state -- the shell has drawn no tray since 3.26 and the
+    AppIndicator extension is what puts one back -- so on stock GNOME with
+    libayatana-appindicator installed, "the tray started fine" is a lie, and
+    the app would go on to hide itself behind an icon that does not exist.
+
+    Uses GDBus through PyGObject, which the backends this matters for
+    already require, rather than adding a D-Bus dependency of our own.
+    """
+    try:
+        import gi
+
+        gi.require_version("Gio", "2.0")
+        from gi.repository import Gio, GLib
+    except Exception:
+        log.debug("no PyGObject; cannot probe for a StatusNotifier host",
+                  exc_info=True)
+        return None
+    try:
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        owned = bus.call_sync(
+            "org.freedesktop.DBus", "/org/freedesktop/DBus",
+            "org.freedesktop.DBus", "NameHasOwner",
+            GLib.Variant("(s)", (SNI_WATCHER,)),
+            GLib.VariantType.new("(b)"), Gio.DBusCallFlags.NONE,
+            timeout_ms, None).unpack()[0]
+    except Exception:
+        log.debug("StatusNotifierWatcher probe failed", exc_info=True)
+        return None
+    if not owned:
+        return False
+    # A watcher with no host registered is a watcher nothing draws for. Rare,
+    # but it is the difference between "the extension is installed" and "the
+    # extension is enabled". Failing open here: the name IS owned, so someone
+    # is answering, and a property we could not read is not evidence against
+    # them.
+    try:
+        return bool(bus.call_sync(
+            SNI_WATCHER, "/StatusNotifierWatcher",
+            "org.freedesktop.DBus.Properties", "Get",
+            GLib.Variant("(ss)", (SNI_WATCHER,
+                                  "IsStatusNotifierHostRegistered")),
+            GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE,
+            timeout_ms, None).unpack()[0])
+    except Exception:
+        log.debug("IsStatusNotifierHostRegistered unreadable", exc_info=True)
+        return True
+
+
+def xembed_tray_present():
+    """Whether an X11 system tray owns the ``_NET_SYSTEM_TRAY_S<n>``
+    selection — the equivalent question for the GtkStatusIcon and Xorg
+    backends. ``None`` if it could not be asked.
+
+    Same shape of failure as the SNI one: docking an XEmbed window with no
+    tray to dock into is not an error, it is an icon nobody sees.
+    """
+    try:
+        from Xlib import X
+        from Xlib import display as xdisplay
+    except Exception:
+        return None
+    display = None
+    try:
+        display = xdisplay.Display()
+        atom = display.intern_atom(
+            "_NET_SYSTEM_TRAY_S%d" % display.get_default_screen())
+        return display.get_selection_owner(atom) != X.NONE
+    except Exception:
+        log.debug("XEmbed tray probe failed", exc_info=True)
+        return None
+    finally:
+        if display is not None:
+            try:
+                display.close()
+            except Exception:
+                pass
+
+
+def tray_will_render(backend, sni=None, xembed=None):
+    """Whether an icon on ``backend`` will actually reach a screen.
+
+    ``None`` means "could not tell", and every caller must read that as
+    *yes* — a probe that cannot run has no business taking a working tray
+    away from someone. Only a confident ``False`` changes behaviour.
+
+    The probes are injectable so this stays answerable without a desktop.
+    """
+    if backend in _NATIVE_BACKENDS:
+        return True
+    if backend == "dummy":
+        # pystray's own "there is no tray here" backend.
+        return False
+    if backend in _SNI_BACKENDS:
+        return (sni or sni_watcher_present)()
+    if backend in _XEMBED_BACKENDS:
+        return (xembed or xembed_tray_present)()
+    return None
+
+
+def tray_unavailable_advice(env=None):
+    """One line telling the user how to get the app back, tailored to the
+    desktop they are on. A tray that does not appear is only a problem
+    because of what the app does about it, so the message has to name the
+    way out, not just the diagnosis."""
+    desktop = ((env if env is not None else os.environ)
+               .get("XDG_CURRENT_DESKTOP") or "")
+    if "gnome" in desktop.lower():
+        return _(
+            "GNOME does not draw a system tray on its own. Install the "
+            "\"AppIndicator and KStatusNotifierItem Support\" extension to "
+            "get one, or turn on \"Allow Background\" in Settings to run "
+            "without a window anyway.")
+    return _(
+        "No system tray is running on this desktop. Turn on \"Allow "
+        "Background\" in Settings to run without a window anyway.")
+
+
 def wants_x11_backend(env):
     """Whether to force GTK onto X11 (XWayland) for the tray process.
 
@@ -63,6 +214,9 @@ class TrayProcess(Process):
     def __init__(self, r_queue: "Queue"):
         self.r_queue = r_queue
         self.icon_stop = None
+        # Gio.bus_watch_name id; held so the watch is not collected out from
+        # under the loop it was registered on. See _watch_for_tray.
+        self._name_watch = None
         Process.__init__(self, daemon=True, name="jellyfin-mpv-shim-tray")
 
     def run(self):
@@ -138,9 +292,29 @@ class TrayProcess(Process):
             log.debug("tray icon image missing", exc_info=True)
         self.icon_stop = icon.stop
 
+        backend = backend_name(Icon)
+
         def setup(tray_icon):
             tray_icon.visible = True
-            self.r_queue.put(("ready", None))
+            # `visible = True` is pystray telling us the icon object exists,
+            # not that anything drew it -- see sni_watcher_present. Ask the
+            # desktop directly before claiming a tray the user does not have.
+            # Done here rather than before run() so the answer is as late as
+            # it can be, which matters at login: we may well have started
+            # before the shell extension that owns the watcher.
+            renders = tray_will_render(backend)
+            if renders is False:
+                log.warning("The system tray icon will not be displayed. %s",
+                            tray_unavailable_advice())
+                self.r_queue.put(("tray_died", "not_rendered"))
+            else:
+                self.r_queue.put(("ready", None))
+            # ...and keep asking. An autostarted copy can lose the race with
+            # the extension that registers the watcher, and a shell restart
+            # takes the watcher away and brings it back; libappindicator
+            # (re-)registers on its own when it returns, so both transitions
+            # are ours to report rather than to have been wrong about once.
+            self._watch_for_tray(backend)
 
         try:
             icon.run(setup=setup)
@@ -150,6 +324,51 @@ class TrayProcess(Process):
             return
         # icon.run only returns on a clean stop (Quit on Windows/macOS).
         self.r_queue.put(("quit", None))
+
+    def _watch_for_tray(self, backend):
+        """Follow the StatusNotifier host coming and going, for as long as
+        the tray loop runs.
+
+        Only the SNI backends: this rides pystray's own GLib main loop, and
+        the XEmbed ones have no equally cheap way to be told. Failing to set
+        the watch up is not fatal -- the startup answer stands.
+        """
+        if backend not in _SNI_BACKENDS:
+            return
+        try:
+            import gi
+
+            gi.require_version("Gio", "2.0")
+            from gi.repository import Gio
+        except Exception:
+            return
+
+        def appeared(*_a):
+            # Re-run the full probe rather than trusting the name: the watch
+            # only reports ownership, while the probe also asks whether a
+            # host is registered behind it. Reporting "ready" straight off
+            # the name would overwrite the more careful startup answer with
+            # a less careful one.
+            if tray_will_render(backend) is False:
+                return
+            log.info("A StatusNotifier host appeared; the tray icon is live.")
+            self.r_queue.put(("ready", None))
+
+        def vanished(*_a):
+            log.warning("The StatusNotifier host went away; "
+                        "the tray icon is no longer displayed.")
+            self.r_queue.put(("tray_died", "watcher_gone"))
+
+        try:
+            # Held on self so it outlives this call: dropping the watcher id
+            # is how a Gio name watch gets garbage collected out from under
+            # the loop it was registered on.
+            self._name_watch = Gio.bus_watch_name(
+                Gio.BusType.SESSION, SNI_WATCHER,
+                Gio.BusNameWatcherFlags.NONE, appeared, vanished)
+        except Exception:
+            log.debug("could not watch for a StatusNotifier host",
+                      exc_info=True)
 
 
 class TrayManager:
@@ -166,6 +385,8 @@ class TrayManager:
         self.handlers = dict(handlers or {})
         self.ready = threading.Event()
         self.available = False
+        # None until the child has said either way; see dispatch.
+        self._reported = None
         self._queue = None
         self._process = None
         self._thread = None
@@ -188,24 +409,42 @@ class TrayManager:
     def _pump(self):
         while not self._halt.is_set():
             try:
-                command, _param = self._queue.get(timeout=0.5)
+                command, param = self._queue.get(timeout=0.5)
             except Exception:
                 continue  # Empty, or the queue died with the child
-            self.dispatch(command)
+            self.dispatch(command, param)
 
-    def dispatch(self, command):
+    #: Why the child says there is no tray -> what to tell the user. The
+    #: default ("pystray failed to import or start") was the only case there
+    #: used to be, and it is the wrong story for a desktop that simply draws
+    #: no tray: nothing is missing or broken there, and telling someone to
+    #: reinstall a package they already have sends them the wrong way.
+    _DEATH_REASONS = {
+        "not_rendered": "nothing on this desktop displays it",
+        "watcher_gone": "the desktop's tray host went away",
+    }
+
+    def dispatch(self, command, param=None):
         """Apply one command from the tray child. Never raises: a broken
         handler must not take the pump (and with it the whole tray) down."""
+        # Both states can now be reported repeatedly (the child follows the
+        # tray host coming and going), so log on the transitions only --
+        # otherwise a shell that restarts a few times fills the log.
         if command == "ready":
+            if self._reported is not True:
+                log.info("System tray is up.")
+            self._reported = True
             self.available = True
             self.ready.set()
-            log.info("System tray is up.")
             return
         if command == "tray_died":
+            if self._reported is not False:
+                log.warning("System tray is unavailable (%s).",
+                            self._DEATH_REASONS.get(
+                                param, "missing pystray/AppIndicator"))
+            self._reported = False
             self.available = False
             self.ready.set()   # unblock anyone waiting, don't hang
-            log.warning("System tray is unavailable "
-                        "(missing pystray/AppIndicator).")
             return
         handler = self.handlers.get(command)
         if handler is None:
