@@ -327,3 +327,80 @@ def _live_buffers(mem):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMixedScriptCaptions(unittest.TestCase):
+    """A caption that mixes scripts is drawn with a face per run.
+
+    The end-to-end half of `test_mpvtk_pilfont`: this goes through the real
+    compositor, because the bug reached users as "the year under my Japanese
+    posters is a row of boxes" and the fix is only worth anything if
+    `_paint_caption` is the thing doing it.
+
+    Detection is by counting *distinct* glyph shapes. Tofu is one shape
+    repeated, so "(2013)" drawn by a face without Latin coverage has far
+    fewer distinct columns of ink than the six characters deserve — no
+    reference render and no font names needed.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="strips-i18n-")
+        self.store = StripStore(cache_dir=self.dir, geom=TileGeom())
+        from jellyfin_mpv_shim.mpvtk import pilfont
+        self.pilfont = pilfont
+
+    def caption_band(self, title):
+        """The strip below the artwork, where the caption is drawn."""
+        geom = TileGeom()
+        out = self.store.strip([Tile(key="k", title=title, poster=_poster())])
+        path = out["src"]
+        if not isinstance(path, str) or not os.path.isfile(path):
+            self.skipTest("this backend does not write a readable bitmap")
+        with open(path, "rb") as fh:
+            raw = fh.read()
+        w, h = out["iw"], out["ih"]
+        img = Image.frombytes("RGBA", (w, h), raw[-w * h * 4:], "raw", "BGRA")
+        return img.crop((0, geom.tile_h, min(w, geom.tile_w), h))
+
+    def test_a_mixed_caption_draws_its_latin_run(self):
+        """Two titles differing only in the digits must draw differently.
+
+        The sharpest available detector, and it needs no font names and no
+        reference render: tofu is one shape repeated, so if the Latin run is
+        being drawn by a face without Latin coverage, "(2013)" and "(2014)"
+        composite to *identical* bitmaps. A counting heuristic does not
+        catch this -- the CJK half supplies plenty of variety on its own,
+        which is exactly how the first version of this test passed with the
+        bug reintroduced.
+        """
+        a, b = "進撃の巨人 (2013)", "進撃の巨人 (2014)"
+        if self.pilfont.font_for(a, 20) is self.pilfont.font("latin", 20):
+            self.skipTest("no separate CJK face installed on this host")
+        # assertTrue on the comparison, not assertNotEqual on the bytes:
+        # these are ~50 KB bitmaps and unittest prints both operands.
+        self.assertTrue(
+            self.caption_band(a).tobytes() != self.caption_band(b).tobytes(),
+            "changing the digits changed nothing on screen, so they are "
+            "being drawn as identical .notdef boxes")
+
+    def test_the_control_case_differs_too(self):
+        """A guard on the detector: two plainly different Latin captions must
+        of course differ, or the assertion above proves nothing."""
+        self.assertTrue(self.caption_band("Blade 2013").tobytes()
+                        != self.caption_band("Blade 2014").tobytes())
+
+    def glyph_shapes(self, band):
+        """How many distinct non-blank pixel columns the band contains."""
+        grey = band.convert("L")
+        cols = []
+        for x in range(grey.width):
+            col = bytes(grey.getpixel((x, y)) > 60
+                        for y in range(grey.height))
+            if any(col):
+                cols.append(col)
+        return len(set(cols))
+
+    def test_a_latin_caption_still_draws(self):
+        # The control: whatever the host has, plain Latin must be fine.
+        self.assertGreater(self.glyph_shapes(self.caption_band("Blade 2049")),
+                           12)

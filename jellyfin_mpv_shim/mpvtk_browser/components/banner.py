@@ -5,6 +5,7 @@ purely so it could reach ``cls._wrap_pil``; as module-level functions that
 indirection disappears.
 """
 
+from ...mpvtk import pilfont
 from ...mpvtk.scaling import px
 
 
@@ -12,12 +13,16 @@ def wrap_pil(draw, text, font, max_w, max_lines=2):
     """Word-wrap ``text`` to ``max_lines``, ellipsizing the last line.
     Falls back to breaking mid-word for a single word too long to fit.
 
+    Measured through ``pilfont.text_length`` so a heading that mixes scripts
+    is wrapped at the width it will be drawn at -- the two differ whenever a
+    run has to change face (see ``pilfont.runs``).
+
     Was ``TilesMixin._wrap_pil``.
     """
     words, lines, cur = text.split(), [], ""
     for word in words:
         trial = (cur + " " + word).strip()
-        if not cur or draw.textlength(trial, font=font) <= max_w:
+        if not cur or pilfont.text_length(draw, trial, font) <= max_w:
             cur = trial
             continue
         lines.append(cur)
@@ -30,12 +35,12 @@ def wrap_pil(draw, text, font, max_w, max_lines=2):
         return [text]
     # The last line absorbs whatever didn't fit, ellipsized.
     consumed = len(" ".join(lines).split())
-    if consumed < len(words) or draw.textlength(
-            lines[-1], font=font) > max_w:
+    if consumed < len(words) or pilfont.text_length(
+            draw, lines[-1], font) > max_w:
         last = lines[-1]
         if consumed < len(words):
             last = " ".join([last] + words[consumed:])
-        while last and draw.textlength(last + "…", font=font) > max_w:
+        while last and pilfont.text_length(draw, last + "…", font) > max_w:
             last = last[:-1]
         lines[-1] = last.rstrip() + "…"
     return lines
@@ -81,19 +86,19 @@ def compose_banner(image, box, title=None, meta=None, context=None):
         # backdrop. Nothing clips a baked bitmap back -- the text IS the
         # picture by the time the compositor sees it.
         line = wrap_pil(draw, meta, f, avail, max_lines=1)[0]
-        draw.text((margin, y - asc - desc), line, font=f,
-                  fill=(200, 200, 200, 255))
+        pilfont.draw_text(draw, (margin, y - asc - desc), line, f,
+                          fill=(200, 200, 200, 255))
         y -= asc + desc + px(6)
     f = pil_font(size, bold=True, text=title)
     asc, desc = f.getmetrics()
     for line in reversed(wrap_pil(draw, title, f, avail)):
-        draw.text((margin, y - asc - desc), line, font=f,
-                  fill=(255, 255, 255, 255))
+        pilfont.draw_text(draw, (margin, y - asc - desc), line, f,
+                          fill=(255, 255, 255, 255))
         y -= asc + desc + px(2)
     if context:
         f = pil_font(int(size * 0.62), text=context)
         asc, desc = f.getmetrics()
         line = wrap_pil(draw, context, f, avail, max_lines=1)[0]
-        draw.text((margin, y - asc - desc + px(2)), line, font=f,
-                  fill=(215, 215, 215, 255))
+        pilfont.draw_text(draw, (margin, y - asc - desc + px(2)), line, f,
+                          fill=(215, 215, 215, 255))
     return canvas

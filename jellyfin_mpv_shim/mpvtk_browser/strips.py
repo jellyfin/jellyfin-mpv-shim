@@ -851,21 +851,36 @@ class StripStore:
         # at the old offset instead would draw it a full line below the
         # artwork with a band of nothing between.
         y = g.tile_h + _px(6)
+        # pilfont.draw_text, not dr.text: a caption mixing scripts needs a
+        # face per run, or the Latin half of a Japanese title is tofu (see
+        # mpvtk.pilfont.runs). Single-script captions -- almost all of them
+        # -- take the same path they always did.
+        from ..mpvtk import pilfont
+
         if t.title:
             fnt = _font(g.title_size, text=t.title)
             title = self._ellipsize(dr, t.title, fnt, g.tile_w)
-            dr.text((x, y), title, font=fnt, fill=theme.rgb(theme.TEXT_FG))
+            pilfont.draw_text(dr, (x, y), title, fnt,
+                              fill=theme.rgb(theme.TEXT_FG))
             y += g.title_size + _px(7)
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
-            dr.text((x, y), sub, font=fnt, fill=theme.rgb(theme.SUBTLE_FG))
+            pilfont.draw_text(dr, (x, y), sub, fnt,
+                              fill=theme.rgb(theme.SUBTLE_FG))
 
     @staticmethod
     def _ellipsize(dr, text, font, max_w):
-        if dr.textlength(text, font=font) <= max_w:
+        # Measured the way it will be drawn. The two disagree by a lot when
+        # they disagree at all -- a face that cannot draw a run renders it as
+        # .notdef boxes, which are wider than the digits they stand in for,
+        # so measuring one way and drawing the other truncates a caption that
+        # would have fitted.
+        from ..mpvtk import pilfont
+
+        if pilfont.text_length(dr, text, font) <= max_w:
             return text
-        while text and dr.textlength(text + "…", font=font) > max_w:
+        while text and pilfont.text_length(dr, text + "…", font) > max_w:
             text = text[:-1]
         return text + "…"
 
