@@ -56,7 +56,9 @@ def _process_alive(pid):
 
     POSIX only. On Windows ``os.kill(pid, 0)`` is not a liveness probe --
     it calls TerminateProcess for any signal that is not a CTRL_ event --
-    so there the answer is always yes and dirs are reclaimed by age alone.
+    so there the answer is always yes -- which is why the app namespaces its
+    scratch caches instead (see set_instance_namespace), and why nothing was
+    ever reclaimed on Windows before it did.
     """
     if os.name == "nt":
         return True
@@ -73,6 +75,42 @@ def _process_alive(pid):
 #: long. A name claiming more than this is not a pid, it is garbage or bait.
 _MAX_PID = 2 ** 31 - 1
 
+#: Directories this process created, which nothing may sweep.
+_ours = set()
+
+#: Directory name this process's scratch caches live under, inside whichever
+#: base is chosen. None outside the app (tests, the demo, an embedder), which
+#: keeps the flat layout and the pid-liveness rules below.
+_namespace = None
+
+
+def set_instance_namespace(name):
+    """Put this process's scratch caches in their own directory, and claim
+    everything already in it.
+
+    ``name`` identifies the CONFIGURATION this process is running, and the
+    app calls this once it holds that configuration's single-instance lock.
+    Those two facts together are what make the claim sound: at most one live
+    process per configuration, so anything in the namespace that is not ours
+    was left by a copy that is gone.
+
+    Namespacing rather than tagging names, because the isolation should be
+    structural. The lock lives on a file inside the config directory while
+    scratch space is machine-wide -- two copies started with different
+    ``--config`` directories are perfectly legal and share a %TEMP% -- so
+    "I hold a lock, therefore every cache directory here is dead" is false
+    in general. Give each configuration its own directory and it is true
+    within it, with no liveness probe at all. That matters most on Windows,
+    where ``os.kill(pid, 0)`` terminates rather than probes and nothing
+    could ever be reclaimed.
+
+    It is also simply the right layout: scratch directories used to sit
+    loose at the top of ~/.cache under names that did not say whose they
+    were.
+    """
+    global _namespace
+    _namespace = name or None
+
 
 def _owner_pid(name, prefix):
     """The pid encoded in a cache dir name, or None if it carries none.
@@ -83,27 +121,77 @@ def _owner_pid(name, prefix):
     malformed one is not only a typo -- and an exception here is thrown
     from the browser's startup path.
     """
-    rest = name[len(prefix):]
-    head = rest.split("-", 1)[0]
+    head = name[len(prefix):].split("-", 1)[0]
     if not head.isdecimal():
         return None
     pid = int(head)
     return pid if 0 < pid <= _MAX_PID else None
 
 
-def sweep_stale(base, prefix, now=None):
-    """Remove ``prefix`` cache dirs under ``base`` left by dead processes.
+def _created_pid(name):
+    """The pid out of a name this module made, whatever prefix it carries.
 
-    Returns the number removed. This is the cleanup that actually happens:
-    the atexit hook below covers a clean shutdown, and a session that is
-    SIGKILLed, crashes, or is killed by the window manager -- which is most
-    of how a media player ends -- strands its whole cache. Several hundred
-    megabytes each, in a tmpfs, per run.
+    ``<prefix><pid>-<random>``, and the prefix has dashes of its own
+    ("mpvtk-thumbs-"), so the pid is the second-to-last dash-separated part
+    -- mkdtemp's suffix has no dashes. Inside a namespace this is the only
+    way to read it, because the prefixes in there are other stores'.
+    """
+    parts = name.rsplit("-", 2)
+    if len(parts) == 3 and parts[1].isdecimal():
+        pid = int(parts[1])
+        return pid if 0 < pid <= _MAX_PID else None
+    return None
+
+
+def _reclaimable(base, name, prefix, now):
+    """Whether ``base/name`` is an abandoned cache directory. Never raises
+    for a caller that has already checked it is a directory."""
+    if os.path.join(base, name) in _ours:
+        # Made by this process, this run. Belt and braces on top of the pid
+        # rules below: a directory we are actively writing to must never be
+        # reclaimable by any argument.
+        return False
+    if _namespace:
+        # Inside our own namespace, ownership is not a question -- the only
+        # live process that may write here is this one -- so the pid is only
+        # asked to tell our own directories from a dead run's.
+        return _created_pid(name) != os.getpid()
+    if not name.startswith(prefix):
+        return False
+    pid = _owner_pid(name, prefix)
+    if pid is not None:
+        return pid != os.getpid() and not _process_alive(pid)
+    if "-" in name[len(prefix):]:
+        # Not ours to age out. A name with further dashes after the prefix
+        # is another prefix's directory seen through a shorter one
+        # ("mpvtk-" sees "mpvtk-browser-1234-ab"), and its pid is not where
+        # we looked -- so treating it as pid-less and reclaiming it by age
+        # would delete a running session's cache. mkdtemp's own suffix has
+        # no dashes, so this cannot exclude a real pre-namespace leftover.
+        return False
+    try:
+        return now - os.stat(os.path.join(base, name)).st_mtime >= STALE_SECS
+    except OSError:
+        return False
+
+
+def sweep_stale(base, prefix="", now=None):
+    """Remove abandoned cache dirs under ``base``. Returns the number gone.
+
+    This is the cleanup that actually happens: the atexit hook below covers
+    a clean shutdown, and a session that is SIGKILLed, crashes, or is killed
+    by the window manager -- which is most of how a media player ends --
+    strands its whole cache. Several hundred megabytes each, per run.
 
     Sweeping on the way *in* rather than on the way out is what makes it
     reliable: the process that has to do the work is the one that is
-    definitely running. A dir is ours to take when its pid is gone; one with
-    no pid in the name is an older build's, and goes by age instead.
+    definitely running.
+
+    Inside a namespace (see set_instance_namespace) ``prefix`` is ignored
+    and every directory but this process's own is taken, which is both
+    stronger and simpler -- it needs no liveness probe, so it works on
+    Windows, and it reclaims every prefix at once rather than only the one
+    a given store happens to ask for.
     """
     now = now or time.time()
     removed = 0
@@ -112,28 +200,12 @@ def sweep_stale(base, prefix, now=None):
     except OSError:
         return 0
     for name in names:
-        if not name.startswith(prefix):
-            continue
         try:
             path = os.path.join(base, name)
             if not os.path.isdir(path) or os.path.islink(path):
                 continue
-            pid = _owner_pid(name, prefix)
-            if pid is not None:
-                if pid == os.getpid() or _process_alive(pid):
-                    continue
-            elif "-" in name[len(prefix):]:
-                # Not ours to age out. A name with further dashes after the
-                # prefix is another prefix's directory seen through a
-                # shorter one ("mpvtk-" sees "mpvtk-browser-1234-ab"), and
-                # its pid is not where we looked -- so treating it as
-                # pid-less and reclaiming it by age would delete a running
-                # session's cache. mkdtemp's own suffix has no dashes, so
-                # this cannot exclude a real pre-pid leftover.
+            if not _reclaimable(base, name, prefix, now):
                 continue
-            else:
-                if now - os.stat(path).st_mtime < STALE_SECS:
-                    continue
             shutil.rmtree(path, ignore_errors=True)
             removed += 1
         except Exception:
@@ -145,6 +217,19 @@ def sweep_stale(base, prefix, now=None):
         log.info("Reclaimed %d abandoned cache director%s under %s",
                  removed, "y" if removed == 1 else "ies", base)
     return removed
+
+
+def _namespaced(base):
+    """``base`` itself, or this instance's own directory inside it. None if
+    that directory cannot be made, which takes the base out of the running."""
+    if not _namespace:
+        return base
+    path = os.path.join(base, _namespace)
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError:
+        return None
+    return path
 
 
 def _bases():
@@ -199,22 +284,26 @@ def cache_dir(prefix="mpvtk-", min_free=MIN_FREE_BYTES):
     for cand in _bases() + [tempfile.gettempdir()]:
         if not (os.path.isdir(cand) and os.access(cand, os.W_OK)):
             continue
-        sweep_stale(cand, prefix)
+        home = _namespaced(cand)
+        if home is None:
+            continue
+        sweep_stale(home, prefix)
         if base is not None:
             continue        # already chosen; this pass is only the sweep
         try:
-            free = shutil.disk_usage(cand).free
+            free = shutil.disk_usage(home).free
         except OSError:
             continue
         if free < min_free:
             log.info("Not caching in %s: %d MiB free, %d MiB wanted",
-                     cand, free // (1024 * 1024), min_free // (1024 * 1024))
+                     home, free // (1024 * 1024), min_free // (1024 * 1024))
             continue
-        base = cand
-    # The pid is what makes the sweep above possible: it is the only thing
-    # in the name that says whether the session that owns this dir is still
-    # running. mkdtemp's own suffix keeps two runs of the same pid apart.
+        base = home
+    # The pid is what a later run has to go on -- whose directory this was,
+    # and (outside a namespace) whether that session is still running.
+    # mkdtemp's own suffix keeps two runs of the same pid apart.
     path = tempfile.mkdtemp(prefix="%s%d-" % (prefix, os.getpid()), dir=base)
+    _ours.add(path)
     import atexit
 
     atexit.register(shutil.rmtree, path, ignore_errors=True)

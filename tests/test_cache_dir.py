@@ -78,6 +78,91 @@ class SweepTest(unittest.TestCase):
         self.assertTrue(os.path.exists(path))
 
 
+class NamespacedSweepTest(unittest.TestCase):
+    """Scratch caches live in a directory of their own, per configuration.
+
+    Windows is what forces the question: ``os.kill(pid, 0)`` terminates
+    rather than probes, so every abandoned directory looked alive forever
+    and nothing was ever reclaimed there.
+
+    The single-instance lock is what licenses reclaiming -- but only at the
+    scope the lock has. It lives on a file inside the CONFIG directory while
+    scratch space is machine-wide, so two copies started with different
+    ``--config`` directories coexist quite legally and share a %TEMP%. Give
+    each configuration its own directory and the claim becomes structural:
+    the only live process that may write in there is this one.
+    """
+
+    def setUp(self):
+        self.base = tempfile.mkdtemp(prefix="jms-ns-")
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.addCleanup(rawimage.set_instance_namespace, None)
+        original = rawimage._bases
+        self.addCleanup(setattr, rawimage, "_bases", original)
+        rawimage._bases = lambda: [self.base]
+
+    def _make(self, prefix="jms-thumbs-"):
+        path = rawimage.cache_dir(prefix=prefix, min_free=0)
+        self.addCleanup(shutil.rmtree, path, ignore_errors=True)
+        return path
+
+    def _dir(self, *parts):
+        path = os.path.join(self.base, *parts)
+        os.makedirs(path)
+        return path
+
+    #: A pid that resolves to a live process and is not ours -- which is
+    #: what EVERY pid looks like on Windows.
+    LIVE_PID = 1
+
+    def test_the_cache_goes_in_the_configurations_own_directory(self):
+        rawimage.set_instance_namespace("app.cfg1")
+        path = self._make()
+        self.assertEqual(os.path.basename(os.path.dirname(path)), "app.cfg1")
+
+    def test_a_dead_copy_of_my_configuration_is_reclaimed(self):
+        # Even though the pid still resolves to a live process. No liveness
+        # probe is involved, which is the point: there is nothing to ask on
+        # Windows.
+        rawimage.set_instance_namespace("app.cfg1")
+        stale = self._dir("app.cfg1", "jms-thumbs-%d-abc" % self.LIVE_PID)
+        self._make()
+        self.assertFalse(os.path.exists(stale))
+
+    def test_another_configuration_is_not_mine_to_reclaim(self):
+        # The pair that makes "I hold the lock, so everything is dead" wrong.
+        rawimage.set_instance_namespace("app.cfg1")
+        theirs = self._dir("app.cfg2", "jms-thumbs-%d-abc" % self.LIVE_PID)
+        self._make()
+        self.assertTrue(os.path.exists(theirs),
+                        "deleted a live second instance's cache")
+
+    def test_every_prefix_goes_at_once(self):
+        # Not just the one the store asking happens to use. On libmpv the
+        # strip cache creates no directory at all, so a previous run's would
+        # otherwise never be swept by anybody.
+        rawimage.set_instance_namespace("app.cfg1")
+        strips = self._dir("app.cfg1", "jms-browser-%d-abc" % self.LIVE_PID)
+        self._make("jms-thumbs-")
+        self.assertFalse(os.path.exists(strips))
+
+    def test_my_own_directories_survive(self):
+        rawimage.set_instance_namespace("app.cfg1")
+        first = self._make("jms-thumbs-")
+        second = self._make("jms-browser-")
+        self.assertTrue(os.path.exists(first),
+                        "swept a directory this very process is using")
+        self.assertTrue(os.path.exists(second))
+
+    def test_without_a_namespace_nothing_is_claimed_by_ownership(self):
+        # Tests, the demo, an embedder: no lock, so the only evidence is the
+        # pid, exactly as before.
+        rawimage.set_instance_namespace(None)
+        other = self._dir("jms-thumbs-%d-abc" % self.LIVE_PID)
+        self._make()
+        self.assertTrue(os.path.exists(other))
+
+
 class BaseChoiceTest(unittest.TestCase):
     """``cache_dir`` picking between RAM and disk."""
 
@@ -220,3 +305,35 @@ class PlatformScratchTest(unittest.TestCase):
         bases = self._bases_on("linux")
         self.assertEqual(bases[0], "/run/user/1234")
         self.assertIn("/dev/shm", bases)
+
+
+class OwnDirectoriesAreNeverSweptTest(unittest.TestCase):
+    """Belt and braces over every ownership argument above.
+
+    The pid rules decide whose a directory is by parsing a NAME, and a name
+    is a weak thing to bet a `shutil.rmtree` on -- one prefix change away
+    from a process deleting the cache it is writing to. Whatever this run
+    actually created is off limits by identity, not by inference.
+    """
+
+    def setUp(self):
+        self.base = tempfile.mkdtemp(prefix="jms-own-")
+        self.addCleanup(shutil.rmtree, self.base, ignore_errors=True)
+        self.addCleanup(rawimage.set_instance_namespace, None)
+        original = rawimage._bases
+        self.addCleanup(setattr, rawimage, "_bases", original)
+        rawimage._bases = lambda: [self.base]
+
+    def test_a_directory_this_run_made_survives_an_unparsable_name(self):
+        rawimage.set_instance_namespace("app.cfg1")
+        path = rawimage.cache_dir(prefix="jms-x-", min_free=0)
+        self.addCleanup(shutil.rmtree, path, ignore_errors=True)
+        # Pretend the naming scheme changed under us: nothing about this
+        # name says it is ours any more.
+        moved = os.path.join(os.path.dirname(path), "unrecognisable")
+        os.rename(path, moved)
+        rawimage._ours.discard(path)
+        rawimage._ours.add(moved)
+        self.addCleanup(rawimage._ours.discard, moved)
+        rawimage.sweep_stale(os.path.dirname(moved))
+        self.assertTrue(os.path.exists(moved))

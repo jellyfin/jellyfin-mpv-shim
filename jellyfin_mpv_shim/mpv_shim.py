@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import hashlib
 import logging
+import os
 import sys
 import multiprocessing
 from threading import Event
@@ -130,6 +132,18 @@ def main():
     # startup is honoured rather than acknowledged and dropped.
     halt = Event()
     single.on_stop = halt.set
+
+    # Give this configuration's scratch caches their own directory, and with
+    # it the right to reclaim everything already in it. acquire() only
+    # returns here if it took the lock, so there is at most one live process
+    # per configuration -- which is exactly the scope the namespace has.
+    # Anything else in there was left behind by a copy that is gone, on any
+    # platform, with nothing to ask about a pid. See set_instance_namespace.
+    from .mpvtk.rawimage import set_instance_namespace
+
+    set_instance_namespace("%s.%s" % (APP_NAME, hashlib.sha1(
+        os.path.abspath(conffile.confdir(APP_NAME)).encode("utf-8", "replace")
+    ).hexdigest()[:8]))
 
     user_interface = None
     use_gui = False
