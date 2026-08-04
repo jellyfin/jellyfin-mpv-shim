@@ -419,6 +419,10 @@ class _FakeBrowser:
         self.app = "old-app"
         self.calls = []
         self.strips = self
+        self.thumbs = self
+
+    def trim_memory(self, max_bytes=None):     # thumbs.trim_memory()
+        self.calls.append("thumbs.trim(%r)" % max_bytes)
 
     def set_app(self, app):
         self.app = app
@@ -435,6 +439,11 @@ class _FakeBrowser:
 
     def build(self, size):                 # the render loop's callback
         return None
+
+
+class _RaisingStore:
+    def clear(self):
+        raise RuntimeError("nope")
 
 
 class TestMpvLifecycleHandlers(unittest.TestCase):
@@ -470,6 +479,25 @@ class TestMpvLifecycleHandlers(unittest.TestCase):
         ui = self._ui()
         ui.on_mpv_terminated()
         self.assertIn("strips.clear", ui._browser.calls)
+
+    def test_terminated_also_drops_the_decoded_images(self):
+        """The one moment everything can go. Every other release is a
+        partial -- the strips may only shed what the live scene is not
+        using, and decoded images go a screen at a time -- but with no mpv
+        there is no scene and nothing on screen. Keeping 96 MiB of posters
+        alive here defeats the point of quitting mpv while minimized, which
+        is that a windowless cast target should be small."""
+        ui = self._ui()
+        ui.on_mpv_terminated()
+        self.assertIn("thumbs.trim(0)", ui._browser.calls)
+
+    def test_terminated_still_drops_the_images_if_the_strips_throw(self):
+        # Two independent caches; one failing must not strand the other.
+        browser = _FakeBrowser()
+        browser.strips = _RaisingStore()
+        ui = self._ui(browser)
+        ui.on_mpv_terminated()
+        self.assertIn("thumbs.trim(0)", browser.calls)
 
     def test_terminated_survives_a_store_that_throws(self):
         browser = _FakeBrowser()

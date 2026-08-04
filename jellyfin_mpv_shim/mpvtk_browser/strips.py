@@ -228,6 +228,22 @@ class StripStore:
     # cannot drift back.
     MAX_ENTRIES = 80
 
+    #: ...and a bound on the BYTES, because the count says nothing about
+    #: them. A strip is a whole row, not a screenful of one: a 50-tile
+    #: carousel at 4K with a 2x scale composites to 15372x512x4 = **31 MiB
+    #: in one entry**, so eighty of those is not a cache, it is a leak with
+    #: a ceiling. Where those bytes land depends on the backend and both are
+    #: worth caring about -- ctypes buffers in this process on libmpv, BGRA
+    #: files in the session's tmpfs on jsonipc -- and the machines that
+    #: suffer are the ones with the least to spare.
+    #:
+    #: 128 MiB holds a 4K screenful several times over (one visible row is
+    #: ~31 MiB at worst, an ordinary 1080p row ~1.6 MiB) and costs 1.6% of
+    #: an 8 GiB laptop. A miss is a recomposite on the worker pool, not a
+    #: refetch: 20-140ms, off the loop thread, with the placeholder path
+    #: already built for exactly that wait.
+    MAX_BYTES = 128 * 1024 * 1024
+
     def __init__(self, cache_dir=None, mem_store=None, geom=None,
                  notify=None, workers=2):
         self.dir = cache_dir
@@ -250,6 +266,13 @@ class StripStore:
         # current build, hence most-recent — is never the one freed.
         self._lock = threading.Lock()
         self._counter = 0
+        #: Bytes of bitmap the cache is holding, and the keys the current and
+        #: previous frames asked for -- see begin_frame and _evict.
+        self._bytes = 0
+        self._live = set()
+        self._prev_live = set()
+        self._framed = False
+        self._trim_pending = False
         self.hits = 0
         self.misses = 0
         # Called (thread-safe, no args) when an async composite lands, so the
@@ -359,7 +382,7 @@ class StripStore:
         with self._lock:
             hit = self._cache.get(key)
             if hit is not None:
-                self._cache.move_to_end(key)
+                self._touch(key)
                 self.hits += 1
                 return hit
             self.misses += 1
@@ -377,6 +400,8 @@ class StripStore:
         entry = self._compose(tiles, g)
         with self._lock:
             self._cache[key] = entry
+            self._bytes += self._entry_bytes(entry)
+            self._touch(key)
             self._evict()
         return entry
 
@@ -397,7 +422,8 @@ class StripStore:
                 self._free(entry["src"])
                 return
             self._cache[key] = entry
-            self._cache.move_to_end(key)
+            self._bytes += self._entry_bytes(entry)
+            self._touch(key)
             self._evict()
         if self._notify is not None:
             try:
@@ -429,7 +455,7 @@ class StripStore:
         with self._lock:
             hit = self._cache.get(bkey)
             if hit is not None:
-                self._cache.move_to_end(bkey)
+                self._touch(bkey)
                 return hit
         entry = self._compose_blank(n, g)
         with self._lock:
@@ -437,9 +463,11 @@ class StripStore:
             hit = self._cache.get(bkey)
             if hit is not None:
                 self._free(entry["src"])
-                self._cache.move_to_end(bkey)
+                self._touch(bkey)
                 return hit
             self._cache[bkey] = entry
+            self._bytes += self._entry_bytes(entry)
+            self._touch(bkey)
             self._evict()
         return entry
 
@@ -468,7 +496,7 @@ class StripStore:
         with self._lock:
             hit = self._cache.get(ck)
             if hit is not None:
-                self._cache.move_to_end(ck)
+                self._touch(ck)
                 self.hits += 1
                 return hit
             self.misses += 1
@@ -489,9 +517,11 @@ class StripStore:
             hit = self._cache.get(ck)
             if hit is not None:
                 self._free(src)
-                self._cache.move_to_end(ck)
+                self._touch(ck)
                 return hit
             self._cache[ck] = entry
+            self._bytes += self._entry_bytes(entry)
+            self._touch(ck)
             self._evict()
         return entry
 
@@ -505,6 +535,9 @@ class StripStore:
         with self._lock:
             entries = list(self._cache.values())
             self._cache.clear()
+            self._bytes = 0
+            self._live = set()
+            self._prev_live = set()
         for entry in entries:
             self._free(entry["src"])
 
@@ -966,7 +999,111 @@ class StripStore:
             except OSError:
                 pass
 
+    @staticmethod
+    def _entry_bytes(entry):
+        """What one cached bitmap costs, wherever it is kept.
+
+        The same number either way: a ctypes buffer on libmpv and a
+        strip*.bgra on jsonipc are both iw*ih*4 bytes of premultiplied BGRA.
+        """
+        try:
+            return int(entry["iw"]) * int(entry["ih"]) * 4
+        except Exception:
+            return 0
+
+    def begin_frame(self):
+        """Mark a build boundary. Called by the browser at the top of every
+        ``build()``; everything asked for from here until the next call is
+        this frame's working set.
+
+        This is what makes a BYTE bound safe to have at all. The count bound
+        above is set where it is because a scene may reference 63 overlays
+        and the cache must be able to hold a whole one -- otherwise a dense
+        scene evicts, and on libmpv *frees*, buffers it is itself still
+        using. A byte bound has no such number to hide behind: three 4K rows
+        can exceed the budget on their own.
+
+        So the byte pass does not guess. It evicts from the LRU head and
+        stops dead at the first entry belonging to this frame or the one
+        before it -- the previous frame because the scene on screen is the
+        last one PUSHED, which during a build is still frame n-1's.
+
+        An owner that never calls it (a test double, an embedder) turns the
+        byte bound OFF rather than making it guess, leaving the count bound
+        as it was. Fail-safe in the conservative direction: not knowing what
+        is on screen is a reason to free less, not more.
+        """
+        with self._lock:
+            pending = self._trim_pending
+            self._trim_pending = False
+            self._framed = True
+            self._prev_live = self._live
+            self._live = set()
+            if pending:
+                # Armed a frame ago, on the first frame of the new screen.
+                # THIS frame is the first one where the old screen's strips
+                # are neither live nor previous -- so this is the first
+                # moment mpv can be known to have let go of them.
+                self._trim_to(0)
+
+    def trim_soon(self):
+        """Free everything the live scene is not using, at the first moment
+        that is safe -- which is not now.
+
+        For the small-machine path (see MpvtkBrowser._shed_caches_on_screen_
+        change): on a machine short of RAM, the rows of the screen you just
+        left are worth more as memory than as a fast trip back.
+
+        Deferred by exactly one frame, and the reason is the refcount. When
+        a screen changes, the scene mpv is compositing is still the old
+        one's -- the new scene has not been pushed yet -- so the old strips
+        are precisely the ones that must not be freed at that instant. One
+        frame later they are neither the live set nor the previous one, and
+        the ordinary gate lets them go on its own.
+        """
+        with self._lock:
+            self._trim_pending = True
+
+    def _touch(self, key):
+        """Move ``key`` to the LRU tail and mark it live for this frame.
+        Callers hold ``_lock``.
+
+        Only while somebody is marking frames: otherwise the live set would
+        grow without bound and pin the entire cache, which is the same leak
+        the byte bound exists to close, wearing a different hat.
+        """
+        self._cache.move_to_end(key)
+        if self._framed:
+            self._live.add(key)
+
     def _evict(self):
         while len(self._cache) > self.MAX_ENTRIES:
             _key, old = self._cache.popitem(last=False)
+            self._bytes -= self._entry_bytes(old)
+            self._free(old["src"])
+        if not self._framed:
+            return          # nothing says what is on screen; see begin_frame
+        self._trim_to(self.MAX_BYTES)
+
+    def _trim_to(self, target):
+        """Free from the LRU head until ``target`` bytes, stopping dead at
+        the first entry the live scene is using. Callers hold ``_lock``.
+
+        This is the refcount, such as it is: mpv holds overlay bindings to
+        the bitmaps in the scene it was last pushed, and freeing one of
+        those is a read of freed memory on the libmpv path rather than a
+        missing picture. Approximated by the current frame's working set
+        plus the previous frame's, which is the widest set mpv can have a
+        binding to (see begin_frame).
+        """
+        while self._bytes > target and self._cache:
+            key = next(iter(self._cache))
+            if key in self._live or key in self._prev_live:
+                # The head of the LRU is on screen, so everything behind it
+                # is too. Over budget with nothing droppable is a big window
+                # full of big rows: keep them and draw, rather than free a
+                # bitmap mpv is compositing.
+                break
+            old = self._cache.pop(key)
+            self._bytes -= self._entry_bytes(old)
             self._free(old["src"])

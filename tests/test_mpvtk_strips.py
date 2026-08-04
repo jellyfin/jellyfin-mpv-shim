@@ -90,6 +90,129 @@ class TestStripStore(unittest.TestCase):
         self.assertFalse(os.path.exists(srcs[1]))
         self.assertTrue(os.path.exists(srcs[-1]))
 
+    def _row(self, s, key, tiles=1):
+        return s.strip([Tile(key="%s%d" % (key, i), title=key,
+                             poster=_poster(), poster_tag="p%s%d" % (key, i))
+                        for i in range(tiles)])
+
+    def test_the_cache_is_bounded_in_bytes_and_not_only_in_entries(self):
+        """A strip is a whole ROW, so the entry count says nothing about the
+        memory. A 50-tile carousel at 4K is ~31 MiB in one entry, and 80 of
+        those is not a cache. Where it lands is the backend's business --
+        ctypes buffers here, tmpfs files on jsonipc -- and both are RAM on
+        the machines that can least afford it."""
+        s = self._store()
+        s.begin_frame()
+        one = self._row(s, "size")
+        entry_bytes = one["iw"] * one["ih"] * 4
+        s.MAX_BYTES = entry_bytes * 3
+        srcs = []
+        for i in range(8):
+            s.begin_frame()             # one row per frame, so each may age
+            srcs.append(self._row(s, "k%d" % i)["src"])
+        self.assertLessEqual(s._bytes, s.MAX_BYTES)
+        self.assertFalse(os.path.exists(srcs[0]), "the oldest row survived")
+        self.assertTrue(os.path.exists(srcs[-1]), "the newest row was freed")
+
+    def test_an_owner_that_marks_no_frames_keeps_the_old_bound(self):
+        # Not knowing what is on screen is a reason to free less, not more:
+        # the byte pass would otherwise evict below the entry count that
+        # exists to guarantee a whole scene fits.
+        s = self._store()
+        s.MAX_BYTES = 1
+        srcs = [self._row(s, "u%d" % i)["src"] for i in range(4)]
+        for src in srcs:
+            self.assertTrue(os.path.exists(src))
+
+    def test_this_frames_rows_are_never_freed_under_byte_pressure(self):
+        """The safety invariant the entry bound exists for. Freeing a bitmap
+        the live scene references is a read of freed memory by mpv on the
+        libmpv path -- not a missing picture. The byte pass stops at the
+        first entry belonging to this frame or the one before it, so a
+        window too full to fit the budget draws over budget rather than
+        composing over a freed buffer."""
+        s = self._store()
+        s.MAX_BYTES = 1          # nothing at all would fit
+        s.begin_frame()
+        srcs = [self._row(s, "row%d" % i)["src"] for i in range(6)]
+        for src in srcs:
+            self.assertTrue(os.path.exists(src),
+                            "freed a strip the frame being built is using")
+
+    def test_the_frame_before_is_protected_too(self):
+        # The scene on screen is the last one PUSHED, which while a build
+        # runs is still the previous frame's.
+        s = self._store()
+        s.begin_frame()
+        old = self._row(s, "onscreen")["src"]
+        s.begin_frame()          # a build starts; the old scene is still up
+        s.MAX_BYTES = 1
+        self._row(s, "new")
+        self.assertTrue(os.path.exists(old),
+                        "freed the strip the renderer is still compositing")
+        # ...and once a frame has gone by without asking for it, it may go.
+        s.begin_frame()
+        s.begin_frame()
+        self._row(s, "newer")
+        self.assertFalse(os.path.exists(old))
+
+    def test_eviction_keeps_the_byte_count_honest(self):
+        # Miscounting is silent: too high and the cache starves itself, too
+        # low and the bound stops meaning anything.
+        s = self._store()
+        rows = [self._row(s, "b%d" % i) for i in range(4)]
+        self.assertEqual(s._bytes,
+                         sum(r["iw"] * r["ih"] * 4 for r in rows))
+        s.MAX_ENTRIES = 2
+        self._row(s, "b9")
+        self.assertEqual(
+            s._bytes,
+            sum(r["iw"] * r["ih"] * 4
+                for r in list(s._cache.values())))
+
+    def test_clearing_resets_the_byte_count(self):
+        s = self._store()
+        self._row(s, "c")
+        s.clear()
+        self.assertEqual(s._bytes, 0)
+
+    def test_a_deferred_trim_frees_the_screen_you_left(self):
+        """The small-machine path: on a machine short of RAM the rows behind
+        you are worth more as memory than as a fast trip back.
+
+        The deferral is the whole design. When the screen changes, the scene
+        mpv is compositing is STILL the old one -- the new one has not been
+        pushed yet -- so the old strips are exactly the bitmaps that must
+        not be freed at that instant. One frame later they are neither the
+        live set nor the previous one and the ordinary gate lets them go.
+        """
+        s = self._store()
+        s.begin_frame()
+        old = self._row(s, "old")["src"]          # the screen being left
+        s.begin_frame()
+        new = self._row(s, "new")["src"]          # first frame of the next
+        s.trim_soon()
+        self.assertTrue(os.path.exists(old),
+                        "freed the scene mpv is still compositing")
+        s.begin_frame()                           # ...and the frame after
+        self.assertFalse(os.path.exists(old), "the old screen was not freed")
+        self.assertTrue(os.path.exists(new), "freed the screen now on show")
+
+    def test_a_trim_is_armed_once_not_forever(self):
+        # Otherwise every frame would free anything not drawn on the last
+        # two, and scrolling a row off screen would cost a recomposite.
+        s = self._store()
+        s.begin_frame()
+        self._row(s, "a")
+        s.trim_soon()
+        s.begin_frame()
+        s.begin_frame()
+        kept = self._row(s, "b")["src"]
+        s.begin_frame()
+        s.begin_frame()
+        self.assertTrue(os.path.exists(kept),
+                        "a one-off trim kept trimming")
+
     def test_file_backend_writes_valid_bgra(self):
         g = TileGeom()
         s = self._store()

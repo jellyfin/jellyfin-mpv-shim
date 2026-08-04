@@ -373,3 +373,116 @@ def get_resource(*path):
 def get_text(*path):
     with open(get_resource(*path)) as fh:
         return fh.read()
+
+
+# -- system memory ---------------------------------------------------------
+#
+# Read rather than depended on: psutil would answer all of this in one line,
+# and it is a compiled dependency to ask "how much RAM is there".
+
+#: A machine with less RAM than this is small, whatever it is doing.
+SMALL_MEMORY_BYTES = 8 * 1024 * 1024 * 1024
+#: ...and any machine with less than this actually free right now is under
+#: pressure, however much it started with.
+TIGHT_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
+
+_total_memory = None            # never changes; read once
+
+
+def _meminfo():
+    """Linux: (MemTotal, MemAvailable) in bytes, or (None, None).
+
+    MemAvailable rather than MemFree, and it is not a detail: MemFree
+    excludes reclaimable page cache, so a healthy Linux box that has simply
+    read some files looks nearly out of memory. MemAvailable is the kernel's
+    own estimate of what a new allocation could actually get.
+    """
+    total = avail = None
+    try:
+        with open("/proc/meminfo", "r") as fh:
+            for line in fh:
+                name, _sep, rest = line.partition(":")
+                if name == "MemTotal":
+                    total = int(rest.split()[0]) * 1024
+                elif name == "MemAvailable":
+                    avail = int(rest.split()[0]) * 1024
+                if total is not None and avail is not None:
+                    break
+    except (OSError, ValueError, IndexError):
+        return None, None
+    return total, avail
+
+
+def _win_memory():
+    """Windows: (total, available) in bytes via GlobalMemoryStatusEx."""
+    import ctypes
+
+    class _Status(ctypes.Structure):
+        _fields_ = [("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+    status = _Status()
+    status.dwLength = ctypes.sizeof(_Status)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+        return None, None
+    return status.ullTotalPhys, status.ullAvailPhys
+
+
+def system_memory():
+    """``(total_bytes, available_bytes)``, either of which may be None.
+
+    None means "could not tell", and every caller must read it as "assume
+    there is room": a probe that cannot answer has no business degrading the
+    app on a machine that may be perfectly comfortable.
+
+    Total is answerable almost everywhere (POSIX ``sysconf`` covers macOS and
+    the BSDs); *available* is the one that needs a per-platform source, and
+    there is no portable one. macOS would need ``vm_stat``'s page breakdown,
+    which is a subprocess per call, so it answers None and falls back to the
+    total alone.
+    """
+    global _total_memory
+
+    total = avail = None
+    if sys.platform.startswith("linux"):
+        total, avail = _meminfo()
+    elif sys.platform.startswith("win"):
+        try:
+            total, avail = _win_memory()
+        except Exception:
+            log.debug("GlobalMemoryStatusEx failed", exc_info=True)
+    if total is None:
+        if _total_memory is None:
+            try:
+                _total_memory = (os.sysconf("SC_PHYS_PAGES")
+                                 * os.sysconf("SC_PAGE_SIZE"))
+            except (ValueError, OSError, AttributeError):
+                _total_memory = False       # asked and answered: no
+        total = _total_memory or None
+    return total, avail
+
+
+def memory_is_tight(total=None, available=None):
+    """Whether this machine is one to trade speed for memory on.
+
+    True when the machine is small (under SMALL_MEMORY_BYTES of RAM at all)
+    or busy (under TIGHT_MEMORY_BYTES free right now). Unknown is False --
+    see system_memory.
+
+    The two are separate questions on purpose. A 4 GiB box with 3 GiB free
+    is not under pressure this second, but it has no headroom to be wrong
+    about; a 64 GiB workstation with 1 GiB free is not small, but something
+    else needs the room now.
+    """
+    if total is None and available is None:
+        total, available = system_memory()
+    if total is not None and total < SMALL_MEMORY_BYTES:
+        return True
+    return available is not None and available < TIGHT_MEMORY_BYTES

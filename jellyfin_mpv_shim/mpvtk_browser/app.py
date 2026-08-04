@@ -64,6 +64,7 @@ from types import SimpleNamespace
 from ..i18n import _
 from ..mpvtk.layout import natural_size
 from ..mpvtk.rawimage import cache_dir
+from ..utils import memory_is_tight
 from ..mpvtk.widgets import (
     Box,
     Busy,
@@ -280,6 +281,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # is not drawing one. Pushed by refresh_window_controls rather than
         # read per frame -- the answer is an mpv property, and on the jsonipc
         # backend a property read is an IPC round trip.
+        # The epoch the decoded-image cache was last trimmed at; see
+        # _shed_caches_on_screen_change.
+        self._thumb_epoch = None
         self._csd = False
         self._maximized = False
         # Modal dialog: a builder callable -> Dialog node, or None.
@@ -913,6 +917,53 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _bump_epoch(self):
         """Invalidate every in-flight async result. Returns the new epoch."""
         return self._async.bump()
+
+    def _shed_caches_on_screen_change(self):
+        """Drop the decoded artwork of the screen just left.
+
+        Decoded images are the most expensive thing this app holds per
+        picture -- a 4K backdrop is 33 MB decoded against ~400 KB on the
+        wire -- and they exist for one job: compositing tile strips. Once a
+        row has been composited they are not needed again, and once the
+        screen is behind you neither is the row. So the moment the screen
+        changes is the moment nearly all of that memory has nothing left to
+        do, and holding it to a 96 MiB ceiling means holding it until
+        something else needs the room.
+
+        **Off the epoch, not off navigate().** Not to be clever: navigate()
+        is reachable from mpv's event thread and from the websocket (a
+        remote's GoHome, a phone's DisplayContent), and this cache has no
+        lock -- every other access to it is on the loop thread, where
+        build() runs. The epoch is bumped by every screen change and read
+        here on the frame that follows, which turns a cross-thread call into
+        a loop-thread observation. It also costs nothing on the frames where
+        nothing happened, which is nearly all of them.
+
+        Live TV's own refreshes deliberately do not bump the epoch (they
+        re-read in place rather than cancelling what is in flight), so a
+        guide that repaints itself every few seconds does not keep throwing
+        its own artwork away.
+        """
+        epoch = self._epoch
+        if epoch == self._thumb_epoch:
+            return
+        self._thumb_epoch = epoch
+        self.thumbs.trim_memory()
+        # The composited rows are a different trade and normally not worth
+        # making: they are what makes going BACK instant, and back is the
+        # most common move there is. Recompositing a screenful is 20-140ms
+        # per row on a two-worker pool, behind placeholders, on a page whose
+        # scroll position was just restored -- paid to reclaim memory that a
+        # roomy machine was never short of. The 128 MiB LRU already sheds
+        # the screens you do not return to.
+        #
+        # It IS worth making on a machine that is short, which is the whole
+        # of the difference. Asked per screen change rather than once at
+        # startup because "busy" is a state, not a property: the answer on a
+        # laptop changes when something else wakes up. One small file read
+        # on Linux, one syscall on Windows, and only on a navigation.
+        if self.strips is not None and memory_is_tight():
+            self.strips.trim_soon()
 
     # -------------------------------------------------------- async model
 
@@ -2148,6 +2199,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def build(self, size):
         w, h = size
         self._size = size
+        # Frame boundary for the strip cache's byte bound: everything asked
+        # for from here is this frame's working set, and is what the byte
+        # eviction refuses to free. Unconditional, ahead of every early
+        # return below -- a frame that draws no strips (the video HUD) still
+        # has to *say* so, or the rows behind it stay pinned forever.
+        if self.strips is not None:
+            self.strips.begin_frame()
         # One synchronous read per frame: the renderer's live scroll offsets,
         # which virtualization windows against (see _offset). The route goes
         # with it for the offsets parked on it — on the frame a screen comes
@@ -2173,6 +2231,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Deliver any decoded posters before composing strips this frame.
         if self.thumbs is not None:
             self.thumbs.pump()
+            self._shed_caches_on_screen_change()
         route = self.route
         if route["kind"] in LIVE_KINDS:
             self._poll_live_tv(route)
