@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"PO-Revision-Date: 2026-08-04 16:10+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -341,7 +341,6 @@ msgstr "اختيار يدوي من طرف فهرس المقطع (أقل قتال
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "أبدًا"
 
@@ -459,23 +458,17 @@ msgid "Discord Rich Presence"
 msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "تم تخطي المقدمة"
+msgstr "تخطي المقدمات"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "تم تخطي الخاتمة"
+msgstr "تخطي الخاتمات"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Specials"
 msgid "Skip Commercials"
-msgstr "خاص"
+msgstr "تخطي الدعايات"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -920,10 +913,8 @@ msgid "Hide unless hovered"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "تخطى الخاتمة دائما"
+msgstr "اخف دائما"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
@@ -3216,7 +3207,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
 msgid "Remove %s and its saved login?"
-msgstr "حذف %S و ولوجه المحفوظ؟"
+msgstr "حذف %s و سجلّه المحفوظ؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -3356,7 +3347,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "عرض التنزيلات"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
