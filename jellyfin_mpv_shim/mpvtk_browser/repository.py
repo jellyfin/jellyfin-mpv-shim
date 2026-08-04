@@ -1726,9 +1726,22 @@ class LibrarySource:
         return self._music_items(server_uuid, "MusicAlbum", parent_id, sort_by,
                                  sort_order, start_index, limit, filters)
 
-    def get_songs(self, server_uuid, parent_id, sort_by="SortName",
+    def get_songs(self, server_uuid, parent_id, sort_by="Name",
                   sort_order="Ascending", start_index=0, limit=100,
                   filters=None):
+        """A music library's tracks, A-Z by title.
+
+        **Name, not SortName** -- the one place in this file where those two
+        differ. A track's SortName is not its name: the server builds it from
+        the disc and track numbers with the title only as a tie-break, which
+        is what makes an album's own listing come out in play order. Ask a
+        whole library for it and the ordering is by track number *across
+        albums* -- every album's track 1, then every album's track 2 -- with
+        the titles scattered through it. jellyfin-web's Songs tab has the same
+        two entries in its sort menu and spells its "Track Name" one `Name`
+        for this reason; the rest of its options end in SortName because they
+        are all album-grouped first.
+        """
         return self._music_items(server_uuid, "Audio", parent_id, sort_by,
                                  sort_order, start_index, limit, filters)
 

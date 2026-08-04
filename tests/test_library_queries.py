@@ -91,6 +91,37 @@ class QueryShapeTest(unittest.TestCase):
         self.assertEqual(vals["genres"], ["Action"])
 
 
+class MusicOrderTest(unittest.TestCase):
+    """How a music library's tabs are ordered.
+
+    SortName is right for everything in this file except one tab. A track's
+    SortName is not its title: the server builds it from the disc and track
+    numbers with the title only as a tie-break, which is what makes an
+    album's own listing come out in play order. Ask a whole library for it
+    and you get every album's track 1, then every album's track 2.
+    """
+
+    def _call(self, method, **kw):
+        api = FakeApi()
+        src = LibrarySource.__new__(LibrarySource)
+        src._conn = lambda _uuid: type("C", (), {"api": api})()
+        getattr(src, method)("srv", "lib", **kw)
+        return api.calls[0]
+
+    def test_the_songs_tab_is_ordered_by_title(self):
+        self.assertEqual(self._call("get_songs")["sort_by"], "Name")
+
+    def test_the_albums_tab_keeps_sortname(self):
+        """An album's SortName IS its name, modulo the leading article --
+        this is only a track's problem."""
+        self.assertEqual(self._call("get_music_albums")["sort_by"], "SortName")
+
+    def test_an_explicit_sort_still_wins(self):
+        self.assertEqual(
+            self._call("get_songs", sort_by="DateCreated")["sort_by"],
+            "DateCreated")
+
+
 class FirstPaintTest(unittest.TestCase):
     """The tiles must not wait on the pickers."""
 
