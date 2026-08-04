@@ -260,15 +260,21 @@ QUEUE_LIMIT = 300
 #: evenly -- it takes whole rows off the bottom.
 SEARCH_LIMIT = 800
 
-#: What search covers. `MusicArtist` is here rather than in a query of its
-#: own (web asks /Artists separately); everything else matches web's default
-#: list minus the types this client draws no row for.
-SEARCH_TYPES = "Movie,Series,Episode,Video,MusicArtist,MusicAlbum,Audio"
+#: What the item half of a search covers. Artists are NOT here: they have
+#: their own endpoint and their own request, exactly as in web, because
+#: /Items does not reliably answer with them. On the server this was
+#: developed against the item query returns fewer artists than /Artists (9
+#: against 13 for one term -- /Artists includes track-level and featured
+#: artists that are not library items), and on at least one real server it
+#: returns none at all, which is what "there is no Artists row" looked like
+#: from the outside.
+SEARCH_TYPES = "Movie,Series,Episode,Video,MusicAlbum,Audio"
 
-#: People are a separate endpoint with a separate budget, so this one is
-#: not shared with anything. 20 was low enough that a common first name
-#: could fill it with people the user did not mean; web asks for 100.
+#: People and artists are separate endpoints with separate budgets, so
+#: these are not shared with anything. 20 was low enough that a common first
+#: name could fill it with people the user did not mean; web asks for 100.
 PEOPLE_SEARCH_LIMIT = 100
+ARTIST_SEARCH_LIMIT = 100
 
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
@@ -1910,6 +1916,19 @@ class LibrarySource:
         result = api.get_persons(search_term=term, limit=limit) or {}
         return result.get("Items", [])
 
+    def search_artists(self, server_uuid, term, limit=ARTIST_SEARCH_LIMIT):
+        """Artists matching a search term.
+
+        /Artists rather than the item query, which is what web does and what
+        the item query cannot be relied on for: it answers with fewer
+        artists on the server this was written against, and with none at all
+        on at least one real one. This endpoint also covers track-level and
+        featured artists, who have no MusicArtist item to be found as.
+        """
+        api = self._conn(server_uuid).api
+        result = api.get_artists(search_term=term, limit=limit) or {}
+        return result.get("Items", [])
+
     def get_playlists(self, server_uuid, limit=300):
         """All playlists, for the add-to-playlist picker."""
         api = self._conn(server_uuid).api
@@ -2669,6 +2688,13 @@ class OfflineLibrarySource:
 
     def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
         return []  # people aren't cached offline
+
+    def search_artists(self, server_uuid, term, limit=ARTIST_SEARCH_LIMIT):
+        # Artists are entities the server derives from its library; the
+        # downloaded catalog holds items. Names could be scraped off the
+        # tracks, but a tile built from one has no id to open, and a row of
+        # dead tiles is worse than no row.
+        return []
 
     def get_playlists(self, server_uuid, limit=300):
         return list(self._snap.playlists)

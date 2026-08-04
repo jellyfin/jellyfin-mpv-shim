@@ -303,6 +303,11 @@ class FakeSource:
     def search_people(self, server_uuid, term, limit=60):
         return [{"Id": "p1", "Name": "Person", "Type": "Person"}]
 
+    def search_artists(self, server_uuid, term, limit=100):
+        # Its own request in the real source too: /Items does not answer
+        # with artists reliably, so the search page asks /Artists.
+        return [{"Id": "ar1", "Name": "Artist", "Type": "MusicArtist"}]
+
     def get_music_albums(self, server_uuid, parent_id, **kw):
         return ([{"Id": "al%d" % i, "Name": "Album %d" % i,
                   "Type": "MusicAlbum"} for i in range(4)], 4)

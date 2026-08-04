@@ -732,7 +732,6 @@ class TestSearchSectionOrder(unittest.TestCase):
             {"Id": "m1", "Name": "M", "Type": "Movie"},
             {"Id": "sr1", "Name": "S", "Type": "Series"},
             {"Id": "e1", "Name": "E", "Type": "Episode"},
-            {"Id": "ar1", "Name": "A", "Type": "MusicArtist"},
             {"Id": "al1", "Name": "L", "Type": "MusicAlbum"},
             {"Id": "so1", "Name": "G", "Type": "Audio",
              "RunTimeTicks": 1200000000},
@@ -740,6 +739,8 @@ class TestSearchSectionOrder(unittest.TestCase):
         ]
         src.search_people = lambda srv, term, limit=100: [
             {"Id": "p1", "Name": "P", "Type": "Person"}]
+        src.search_artists = lambda srv, term, limit=100: [
+            {"Id": "ar1", "Name": "A", "Type": "MusicArtist"}]
         b = MpvtkBrowser(app=None, source=src, controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
@@ -762,3 +763,70 @@ class TestSearchSectionOrder(unittest.TestCase):
         _headings, nodes = self._rows()
         focused = [n.get("id") for n in nodes if n.get("af")]
         self.assertEqual(focused, ["search-Movies-m1"])
+
+
+class TestSearchArtists(unittest.TestCase):
+    """Artists come from /Artists, not from the item search.
+
+    Reported as "I see albums and songs but no artists". The item query is
+    not a reliable source for them: against the development server it
+    returns fewer than /Artists (9 against 13 for one term, the difference
+    being track-level and featured artists that have no MusicArtist item at
+    all), and against at least one real server it returns none, which is
+    what an absent row looks like from the outside. jellyfin-web asks
+    /Artists separately for exactly this reason.
+    """
+
+    def _search(self, artists=None, items=None):
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: items if items is not None \
+            else [{"Id": "m1", "Name": "M", "Type": "Movie"}]
+        src.search_people = lambda srv, term, limit=100: []
+        if artists is not None:
+            src.search_artists = lambda srv, term, limit=100: artists
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        return build_scene(b, (1280, 720))
+
+    def test_the_dedicated_request_fills_the_row(self):
+        nodes, _h = self._search(
+            artists=[{"Id": "ar1", "Name": "A", "Type": "MusicArtist"}])
+        self.assertIn("Artists", [n.get("text") for n in nodes])
+        self.assertIn("search-Artists-ar1", ids(nodes))
+
+    def test_item_results_are_the_fallback(self):
+        """The other direction, which has also been seen: a server that
+        answers the item query with artists but has no usable /Artists."""
+        nodes, _h = self._search(
+            artists=[],
+            items=[{"Id": "ar9", "Name": "A", "Type": "MusicArtist"}])
+        self.assertIn("Artists", [n.get("text") for n in nodes])
+        self.assertIn("search-Artists-ar9", ids(nodes))
+
+    def test_a_stray_artist_item_is_never_filed_under_other(self):
+        """MusicArtist left SEARCH_TYPES when artists got their own request.
+        One arriving anyway must still read as an artist -- it landed in the
+        Other row the moment the type stopped being claimed."""
+        nodes, _h = self._search(
+            artists=[{"Id": "ar1", "Name": "A", "Type": "MusicArtist"}],
+            items=[{"Id": "ar9", "Name": "B", "Type": "MusicArtist"}])
+        self.assertNotIn("Other", [n.get("text") for n in nodes])
+
+    def test_a_source_without_the_method_still_renders(self):
+        """The offline catalog and any older source: getattr'd, not assumed."""
+        # A subclass without it, since the method is on the class: this is
+        # the offline catalog's shape, and any source written before it.
+        class Older(FakeSource):
+            search_artists = property(
+                lambda self: (_ for _ in ()).throw(AttributeError))
+
+        src = Older()
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertTrue(nodes)
+        self.assertNotIn("Artists", [n.get("text") for n in nodes])

@@ -13,11 +13,15 @@ step 6c's two prep commits gave every one of them a real home, and it now
 reaches the shell for nothing.
 """
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import Column, Text, VScroll
 from .. import theme
 from ..components import chrome
 from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.search")
 
 #: How many results any one row shows.
 #:
@@ -37,6 +41,7 @@ ROW_MAX = 60
 #: a table. Objects rather than strings so they cannot collide with a row
 #: label, which is translated and therefore not a constant.
 PEOPLE_ROW = object()
+ARTISTS_ROW = object()
 SONGS_ROW = object()
 
 
@@ -51,13 +56,25 @@ class SearchPage(Page):
 
         def work():
             if not term:
-                return {"items": [], "people": [], "live": {}}
+                return {"items": [], "people": [], "artists": [], "live": {}}
             items = source.search(srv, term)
             people = []
             try:
                 people = source.search_people(srv, term)
             except Exception:
                 pass
+            # Artists are their own request, like people and for the same
+            # reason: /Items does not answer with them reliably (it returns
+            # fewer than /Artists here and none at all on some servers), and
+            # a featured artist has no MusicArtist item to be found as.
+            # getattr'd because a source may predate the method.
+            artists = []
+            search_artists = getattr(source, "search_artists", None)
+            if search_artists is not None:
+                try:
+                    artists = search_artists(srv, term)
+                except Exception:
+                    log.debug("artist search failed", exc_info=True)
             # Live TV is searched separately — its items are not in the
             # /Search/Hints media types — and only where there is a tuner,
             # so the overwhelming majority of users pay nothing for it. Both
@@ -67,7 +84,8 @@ class SearchPage(Page):
                 search_live = getattr(source, "search_live_tv", None)
                 if search_live is not None:
                     live = search_live(srv, term) or {}
-            return {"items": items, "people": people, "live": live}
+            return {"items": items, "people": people, "artists": artists,
+                    "live": live}
 
         self.route_async(work, lambda d: route.__setitem__("_data", d), epoch)
 
@@ -83,6 +101,7 @@ class SearchPage(Page):
             return chrome.busy()
         items = data.get("items") or []
         people = data.get("people") or []
+        artists = data.get("artists") or []
         rows = [Text(_('Results for "%s"') % term, size=24, bold=True)]
         # Searching is a keyboard gesture even from a remote (the search
         # button puts the cursor in the box), so the results land focused
@@ -118,7 +137,7 @@ class SearchPage(Page):
             (_("Shows"), ("Series",), art.geom, "Primary", True),
             (_("Episodes"), ("Episode",), art.geom_wide, "Thumb", False),
             (PEOPLE_ROW, (), art.geom, "Primary", True),
-            (_("Artists"), ("MusicArtist",), art.geom_square, "Primary", True),
+            (ARTISTS_ROW, (), art.geom_square, "Primary", True),
             (_("Albums"), ("MusicAlbum",), art.geom_square, "Primary", True),
             (SONGS_ROW, (), None, None, None),
             (_("Videos"), ("Video", "MusicVideo"), art.geom_wide, "Primary",
@@ -131,6 +150,21 @@ class SearchPage(Page):
                     rows.append(tiles.tile_row(
                         _("People"), people[:ROW_MAX], "search-people",
                         geom=art.geom, autofocus_first=claim()))
+                continue
+            if label is ARTISTS_ROW:
+                # The dedicated request first, then any MusicArtist items the
+                # search happened to return. Both directions have been seen:
+                # here /Artists finds more than the item query, and on other
+                # servers the item query finds none. Marking the type used
+                # either way keeps a stray one out of the Other row, which is
+                # where it landed the moment artists left SEARCH_TYPES.
+                used.add("MusicArtist")
+                row = artists or [it for it in items
+                                  if it.get("Type") == "MusicArtist"]
+                if row:
+                    rows.append(tiles.tile_row(
+                        _("Artists"), row[:ROW_MAX], "search-Artists",
+                        geom=art.geom_square, autofocus_first=claim()))
                 continue
             if label is SONGS_ROW:
                 rows.extend(self._songs_row(items, route, tiles))
@@ -158,7 +192,7 @@ class SearchPage(Page):
                  and it.get("Type") != "Audio"][:ROW_MAX]
         if other:
             rows.append(tiles.tile_row(_("Other"), other, "search-other"))
-        if not items and not people and not any(live.values()):
+        if not items and not people and not artists and not any(live.values()):
             rows.append(Text(_("No results."), size=18, color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=12,
                               align="stretch"), id="search", flex=1,
