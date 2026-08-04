@@ -654,3 +654,60 @@ class TestTrackRowsHaveAContextMenu(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSearchRowCaps(unittest.TestCase):
+    """One budget per row, not one shared across the screen (#641).
+
+    The query asks for a lot so that every type is represented -- a term
+    matching a thousand songs used to spend the whole 60-item allowance
+    before the movies were reached, and the Movies row simply did not
+    appear. Measured against a real server: searching "a" at 60 returned no
+    Audio at all, and at 800 returns 719 of them.
+
+    But the answer cannot be drawn whole. A tile row composites every tile
+    it is given and the Songs table is deliberately not virtualized, so the
+    same widening that fixes the missing row would lay out thousands of
+    nodes and blow mpv's 63-overlay budget. Hence a cap per row.
+    """
+
+    def _search(self, per_type):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.search import ROW_MAX
+        self.ROW_MAX = ROW_MAX
+        src = FakeSource()
+        src.search = lambda srv, term, limit=800: (
+            [{"Id": "m%d" % i, "Name": "Movie %d" % i, "Type": "Movie"}
+             for i in range(per_type)]
+            + [{"Id": "s%d" % i, "Name": "Song %d" % i, "Type": "Audio",
+                "RunTimeTicks": 1200000000} for i in range(per_type)])
+        src.search_people = lambda srv, term, limit=100: [
+            {"Id": "p%d" % i, "Name": "Person %d" % i, "Type": "Person"}
+            for i in range(per_type)]
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "search", "server": "srv1", "term": "x"})
+        return build_scene(b, (1280, 720))
+
+    def test_the_songs_table_stops_at_the_cap(self):
+        found = 200
+        _nodes, handlers = self._search(found)
+        rows = [k for k in handlers if str(k).startswith("search-song-")]
+        self.assertEqual(len(rows), self.ROW_MAX,
+                         "the songs table drew %d rows for %d results"
+                         % (len(rows), found))
+
+    def test_every_type_still_gets_its_row(self):
+        """The point of widening the query. A row per type, none of them
+        starved by another's matches."""
+        nodes, _h = self._search(200)
+        texts = [n.get("text") or "" for n in nodes]
+        for heading in ("People", "Movies", "Songs"):
+            self.assertIn(heading, texts, "%s row is missing" % heading)
+
+    def test_a_small_result_is_untouched(self):
+        """The cap must not truncate ordinary searches -- it is a ceiling,
+        not a page size."""
+        nodes, handlers = self._search(3)
+        rows = [k for k in handlers if str(k).startswith("search-song-")]
+        self.assertEqual(len(rows), 3)

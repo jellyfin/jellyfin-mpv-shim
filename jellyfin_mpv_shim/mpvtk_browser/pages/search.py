@@ -19,6 +19,19 @@ from .. import theme
 from ..components import chrome
 from .base import Page
 
+#: How many results any one row shows.
+#:
+#: The query asks for a lot (repository.SEARCH_LIMIT) so that every type is
+#: represented -- that is the half of #641 about a movie never appearing
+#: because episodes ate a shared budget of 60. This is the other half, and
+#: the issue asks for it in as many words: "works best with low limit per
+#: type". A row is a horizontal carousel that composites every tile it is
+#: given, and the Songs table below is deliberately not virtualized, so
+#: without a per-row cap a term matching 700 songs lays out thousands of
+#: nodes and blows past mpv's 63-overlay budget. 60 is what the whole
+#: screen used to be capped at, now applied per row instead of across them.
+ROW_MAX = 60
+
 
 class SearchPage(Page):
     kind = "search"
@@ -76,7 +89,8 @@ class SearchPage(Page):
             return got
 
         if people:
-            rows.append(tiles.tile_row(_("People"), people, "search-people",
+            rows.append(tiles.tile_row(_("People"), people[:ROW_MAX],
+                                       "search-people",
                                        geom=art.geom,
                                        autofocus_first=claim()))
         # Group by type, each with its natural tile shape (like the Tk browser).
@@ -99,14 +113,14 @@ class SearchPage(Page):
         ]
         used = set()
         for label, types_, geom, itype, inherit in groups:
-            group = [it for it in items if it.get("Type") in types_]
+            group = [it for it in items if it.get("Type") in types_][:ROW_MAX]
             if group:
                 used.update(types_)
                 rows.append(tiles.tile_row(
                     label, group, "search-" + label, geom=geom,
                     image_type=itype, inherit=inherit,
                     autofocus_first=claim()))
-        songs = [it for it in items if it.get("Type") == "Audio"]
+        songs = [it for it in items if it.get("Type") == "Audio"][:ROW_MAX]
         if songs:
             server = route.get("server") or self.ctx.server
             ids = [s.get("Id") for s in songs]
@@ -118,17 +132,20 @@ class SearchPage(Page):
             # was out by roughly 10x, and the VScroll had no on_scroll at all,
             # so the window computed at offset 0 was the only one ever
             # materialized: every song past the first screenful drew blank,
-            # permanently. Search is capped at 60 results across all types and
-            # this table has no art cells, so there is nothing to virtualize
-            # away — no overlays, just text rows.
+            # permanently. The table is bounded by ROW_MAX instead (the
+            # whole-screen cap of 60 became a per-row one when the query was
+            # widened for #641 — widening it without that would have left
+            # this table drawing seven hundred rows), and it has no art
+            # cells, so there is nothing to virtualize away: no overlays,
+            # just text rows.
             #
             # **And art=True must stay off here**, tempting as it is: these
             # results span every album, which is exactly the mixed-album case
             # the art column is for, and jellyfin-web draws them as square
             # cards *with* covers. But an art cell is one mpv overlay per
             # visible row, the budget is 63 (renderer.lua MAX_OVERLAYS), and
-            # 60 songs plus the ten carousels above them is already past it —
-            # with no virtualization to trim the list, for the reason above.
+            # ROW_MAX songs plus the ten carousels above them is already past
+            # it — with no virtualization to trim the list, as above.
             # The failure would not be subtle or local: overlays simply stop
             # appearing, anywhere on the screen.
             rows.append(tiles.track_list(
@@ -146,7 +163,8 @@ class SearchPage(Page):
                                        "search-programs", geom=art.geom_wide,
                                        image_type="Thumb"))
         other = [it for it in items
-                 if it.get("Type") not in used and it.get("Type") != "Audio"]
+                 if it.get("Type") not in used
+                 and it.get("Type") != "Audio"][:ROW_MAX]
         if other:
             rows.append(tiles.tile_row(_("Other"), other, "search-other"))
         if not items and not people and not any(live.values()):

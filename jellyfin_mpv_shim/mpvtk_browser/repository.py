@@ -249,6 +249,27 @@ QUEUEABLE_MEDIA_PARAM = ",".join(sorted(QUEUEABLE_MEDIA))
 #: use the first few.
 QUEUE_LIMIT = 300
 
+#: What a search asks the server for, in total, across every type it draws
+#: a row for. jellyfin-web's number (its search asks the same endpoint for
+#: 800 and splits the answer client-side, as the search screen does).
+#:
+#: It is one budget for all the rows, so it has to be generous: at 60 a
+#: term that matched a lot of episodes spent the whole allowance on them
+#: and the Movies row never appeared at all (#641). Sorting is the server's,
+#: and it does not interleave by type, so the shortfall is not spread
+#: evenly -- it takes whole rows off the bottom.
+SEARCH_LIMIT = 800
+
+#: What search covers. `MusicArtist` is here rather than in a query of its
+#: own (web asks /Artists separately); everything else matches web's default
+#: list minus the types this client draws no row for.
+SEARCH_TYPES = "Movie,Series,Episode,Video,MusicArtist,MusicAlbum,Audio"
+
+#: People are a separate endpoint with a separate budget, so this one is
+#: not shared with anything. 20 was low enough that a common first name
+#: could fill it with people the user did not mean; web asks for 100.
+PEOPLE_SEARCH_LIMIT = 100
+
 #: Fields a list of guide entries needs on top of ``LIST_FIELDS``.
 #:
 #: **Two fields, not one.** ``ChannelInfo`` alone gets ``ChannelName`` and
@@ -1878,8 +1899,13 @@ class LibrarySource:
             return []
         return result.get("Items", []) if isinstance(result, dict) else result
 
-    def search_people(self, server_uuid, term, limit=20):
-        """People matching a search term."""
+    def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
+        """People matching a search term.
+
+        Its own query, and its own budget: /Persons is a different endpoint
+        from the item search, so people can never be crowded out by episodes
+        the way rows sharing SEARCH_LIMIT can.
+        """
         api = self._conn(server_uuid).api
         result = api.get_persons(search_term=term, limit=limit) or {}
         return result.get("Items", [])
@@ -2010,12 +2036,29 @@ class LibrarySource:
         items = result.get("Items", [])
         return items[0] if items else None
 
-    def search(self, server_uuid, term, limit=60):
+    def search(self, server_uuid, term, limit=SEARCH_LIMIT):
+        """Everything matching ``term``, for the search screen to group.
+
+        **The limit is shared across every type, which is why it is large.**
+        The screen splits the answer into a row per type, so a budget of 60
+        was not "60 of each" -- it was 60 between them, handed out in
+        whatever order the server sorted them. One series with a matching
+        name brings its episodes along, and a term that hits an episode
+        title spends the lot: the movie the user was looking for never
+        arrived, and the row for it simply did not appear (#641).
+
+        jellyfin-web asks the same endpoint for 800 and splits client-side
+        exactly as we do, so this is its number. It also turns the total
+        count off, which we now do too -- nothing here shows a total, and
+        counting matches is work the server can skip.
+        """
         api = self._conn(server_uuid).api
-        result = api.search_media_items(
-            term=term,
-            media="Movie,Series,Episode,Video,MusicArtist,MusicAlbum,Audio",
+        result = api.get_user_items(
+            search_term=term,
+            include_item_types=SEARCH_TYPES,
+            recursive=True,
             limit=limit,
+            enable_total_record_count=False,
         ) or {}
         return result.get("Items", [])
 
@@ -2624,7 +2667,7 @@ class OfflineLibrarySource:
     def get_trailers(self, server_uuid, item_id):
         return []  # trailers aren't downloaded
 
-    def search_people(self, server_uuid, term, limit=20):
+    def search_people(self, server_uuid, term, limit=PEOPLE_SEARCH_LIMIT):
         return []  # people aren't cached offline
 
     def get_playlists(self, server_uuid, limit=300):
@@ -2837,7 +2880,10 @@ class OfflineLibrarySource:
                 return ep
         return eps[0] if eps else None
 
-    def search(self, server_uuid, term, limit=60):
+    def search(self, server_uuid, term, limit=SEARCH_LIMIT):
+        # Same budget as online, and for the same reason -- the screen above
+        # splits one answer into a row per type. A downloaded library is
+        # small enough that this is the whole of it either way.
         needle = term.lower()
         return [i for i in self._snap.items
                 if needle in (i.get("Name") or "").lower()][:limit]
