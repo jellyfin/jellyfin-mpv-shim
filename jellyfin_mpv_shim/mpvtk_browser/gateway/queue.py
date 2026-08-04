@@ -52,6 +52,20 @@ class QueueMixin(GatewayCore):
 
     def queue_items(self, server_uuid, item_ids):
         """Append items to the playing queue; if nothing plays, start them."""
+        self._insert_items(server_uuid, item_ids, append=True)
+
+    def queue_next_items(self, server_uuid, item_ids):
+        """Queue items to play straight after the current one.
+
+        Web's ``queuenext`` beside its ``queue``. The player has always been
+        able to do this -- ``PlayNext`` from a remote lands in
+        ``event_handler`` and takes the same path -- so this is the same
+        insert with ``append=False``, which ``Media.insert_items`` splices in
+        at ``seq + 1``.
+        """
+        self._insert_items(server_uuid, item_ids, append=False)
+
+    def _insert_items(self, server_uuid, item_ids, append):
         from ...player import playerManager
         item_ids = list(item_ids)
         if not item_ids:
@@ -61,9 +75,11 @@ class QueueMixin(GatewayCore):
         # wrapped it in _client_call -> _safe, so a rejected queue-add was
         # doubly invisible. Same reasoning as download_enqueue below.
         if not playerManager.has_video():
+            # Nothing to queue behind or in front of: either way the user
+            # asked for these items, so play them.
             self.play_list(item_ids, server_uuid, 0)
             return
         video = playerManager.get_video()
         if video is not None:
-            video.parent.insert_items(item_ids, append=True)
+            video.parent.insert_items(item_ids, append=append)
             playerManager.upd_player_hide()

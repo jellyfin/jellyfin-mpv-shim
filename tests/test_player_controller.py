@@ -619,3 +619,95 @@ class TestMethodsThatDeliberatelyRaise(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestQueueInsertion(unittest.TestCase):
+    """"Add to Queue" appends; "Play Next" splices in after the current item.
+
+    Both reach `Media.insert_items`, whose ordering is pinned in
+    test_audit_fixes. What this covers is the wiring: the two gateway
+    methods differ by one boolean and nothing else would notice them
+    collapsing onto the same value.
+
+    The player module is stubbed in `sys.modules` rather than patched on the
+    real one -- the gateway imports it inside the method, so a stub is
+    enough, and importing the real `player` builds an mpv window this has no
+    use for.
+    """
+
+    class FakeMedia:
+        def __init__(self):
+            self.calls = []
+
+        def insert_items(self, ids, append=False):
+            self.calls.append((list(ids), append))
+
+    class FakeVideo:
+        def __init__(self, parent):
+            self.parent = parent
+
+    class FakePlayer:
+        def __init__(self, media, playing=True):
+            self.video = TestQueueInsertion.FakeVideo(media) if playing else None
+            self.hidden = 0
+
+        def has_video(self):
+            return self.video is not None
+
+        def get_video(self):
+            return self.video
+
+        def upd_player_hide(self):
+            self.hidden += 1
+
+    def gateway(self, playing=True):
+        media = self.FakeMedia()
+        player = self.FakePlayer(media, playing)
+        stub = types.ModuleType("jellyfin_mpv_shim.player")
+        stub.playerManager = player
+        saved = sys.modules.get("jellyfin_mpv_shim.player")
+        sys.modules["jellyfin_mpv_shim.player"] = stub
+
+        def restore():
+            if saved is not None:
+                sys.modules["jellyfin_mpv_shim.player"] = saved
+            else:
+                sys.modules.pop("jellyfin_mpv_shim.player", None)
+        self.addCleanup(restore)
+
+        gw = gw_mod.PlayerGateway.__new__(gw_mod.PlayerGateway)
+        played = []
+        gw.play_list = lambda ids, srv, index, **kw: played.append(
+            (list(ids), srv, index))
+        return gw, media, player, played
+
+    def test_add_to_queue_appends(self):
+        gw, media, player, _played = self.gateway()
+        gw.queue_items("srv1", ["a", "b"])
+        self.assertEqual(media.calls, [(["a", "b"], True)])
+        self.assertEqual(player.hidden, 1)
+
+    def test_play_next_inserts_after_the_current_item(self):
+        gw, media, _player, _played = self.gateway()
+        gw.queue_next_items("srv1", ["a"])
+        self.assertEqual(media.calls, [(["a"], False)])
+
+    def test_an_idle_player_just_plays_them(self):
+        """Nothing to queue behind or in front of, and either way the user
+        asked for these items. The browser hides the entry when nothing is
+        playing, but a queue can empty between the menu being drawn and
+        pressed."""
+        for method in ("queue_items", "queue_next_items"):
+            with self.subTest(method=method):
+                gw, media, _player, played = self.gateway(playing=False)
+                getattr(gw, method)("srv1", ["a"])
+                self.assertEqual(played, [(["a"], "srv1", 0)])
+                self.assertEqual(media.calls, [])
+
+    def test_an_empty_list_does_nothing(self):
+        for method in ("queue_items", "queue_next_items"):
+            with self.subTest(method=method):
+                gw, media, _player, played = self.gateway()
+                getattr(gw, method)("srv1", [])
+                self.assertEqual(media.calls, [])
+                self.assertEqual(played, [])

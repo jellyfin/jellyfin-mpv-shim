@@ -211,6 +211,12 @@ class ItemActions:
             lambda c: c.queue_items(server, [i for i in ids if i]),
             error=_("Those items could not be added to the queue."))
 
+    def queue_next_items(self, ids, server):
+        """Queue after the current item rather than at the end of the queue."""
+        self.edit(
+            lambda c: c.queue_next_items(server, [i for i in ids if i]),
+            error=_("Those items could not be added to the queue."))
+
     def instant_mix(self, seed_id, server):
         ep = self.run.epoch
         source = self.services.source

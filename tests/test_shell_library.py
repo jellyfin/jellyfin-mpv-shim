@@ -2316,3 +2316,73 @@ class TestSortModes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlayNext(unittest.TestCase):
+    """"Play Next" on a tile: queue it after the current item, not last.
+
+    The player has always been able to do this — `PlayNext` from a remote
+    lands in `event_handler` and goes through `Media.insert_items` with
+    `append=False` — so the gap was only the menu entry. jellyfin-web has
+    both (`queue` and `queuenext`); we had only the append one.
+    """
+
+    def setUp(self):
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=self.ctl)
+        self.b._pool = _SyncPool()
+        self.b.server = "srv1"
+        self.b.navigate({"kind": "grid", "server": "srv1",
+                         "parent_id": "lib1", "title": "Movies",
+                         "collection_type": "movies"})
+
+    def playing(self, yes=True):
+        self.b._now_playing = {"title": "Something"} if yes else None
+
+    def menu_labels(self, item=None):
+        item = item or {"Id": "g0", "Name": "Item 0", "Type": "Movie"}
+        return [label for label, _icon, _act
+                in self.b._tile_menu_entries(item)]
+
+    def choose(self, label, item=None):
+        """Open the tile menu and pick `label`, as a click would."""
+        item = item or {"Id": "g0", "Name": "Item 0", "Type": "Movie"}
+        entries = self.b._tile_menu_entries(item)
+        index = [l for l, _i, _a in entries].index(label)
+        self.b._menu = {"item": item, "server": "srv1", "x": 0, "y": 0}
+        self.b._menu_action(index, label)
+
+    def test_the_entry_is_offered_while_something_plays(self):
+        self.playing()
+        labels = self.menu_labels()
+        self.assertIn("Play Next", labels)
+        self.assertIn("Add to Queue", labels)
+        # Web's order, and the sensible one: the existing entry keeps its
+        # place and the new one follows it.
+        self.assertLess(labels.index("Add to Queue"), labels.index("Play Next"))
+
+    def test_it_is_hidden_when_nothing_is_playing(self):
+        """With an idle player both entries mean "start these items", and
+        offering one action twice under two names is worse than offering it
+        once."""
+        self.playing(False)
+        labels = self.menu_labels()
+        self.assertIn("Add to Queue", labels)
+        self.assertNotIn("Play Next", labels)
+
+    def test_choosing_it_queues_next_not_last(self):
+        self.playing()
+        self.choose("Play Next")
+        called = [name for name, _args in self.ctl.transport]
+        self.assertIn("queue_next_items", called)
+        self.assertNotIn("queue_items", called)
+
+    def test_add_to_queue_still_appends(self):
+        """The guard on the above: both entries must not collapse onto one
+        call, which is the way a copy-paste of this would fail."""
+        self.playing()
+        self.choose("Add to Queue")
+        called = [name for name, _args in self.ctl.transport]
+        self.assertIn("queue_items", called)
+        self.assertNotIn("queue_next_items", called)
