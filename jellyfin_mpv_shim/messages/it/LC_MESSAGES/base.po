@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"PO-Revision-Date: 2026-08-04 16:10+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -1288,30 +1288,42 @@ msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
+"Tavolozza, effetto bagliore, stile di copertina e dimensioni predefinite "
+"della copertina. I colori cambiano immediatamente; le dimensioni della "
+"copertina e dell'intestazione diventano effettive dopo un riavvio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Overrides the theme's cover size. Applies immediately, and is also on the "
 "View menu of any library."
 msgstr ""
+"Sovrascrive le dimensioni di copertina del tema. Si applica immediatamente "
+"ed è presente anche nel menu Visualizza di qualsiasi libreria."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "The controls have to stay legible over any frame. \"None\" gives the text a "
 "drop shadow instead of shading the picture behind it."
 msgstr ""
+"I comandi devono rimanere leggibili su qualsiasi riquadro. \"Nessuno\" "
+"applica un'ombra al testo invece di ombreggiare l'immagine sottostante."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "\"Hide unless hovered\" keeps them up only while the pointer is on them, "
 "paused or not."
 msgstr ""
+"L'opzione \"Nascondi a meno che non si passi sopra con il puntatore\" li "
+"mantiene visibili solo finché il puntatore si trova su di essi, in pausa o "
+"meno."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "0 hides them as soon as the pointer is not on them, and forces \"Hide unless "
 "hovered\"."
 msgstr ""
+"Il valore 0 li nasconde non appena il puntatore non si trova su di essi e "
+"forza l'opzione \"Nascondi a meno che non si sorvoli con il puntatore\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1332,6 +1344,9 @@ msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
+"L'opzione \"Predefinito\" non modifica nulla e lascia che sia MPV (e il tuo "
+"file mpv.conf) a decidere. Scegli una modalità solo se stai inviando l'audio "
+"a un ricevitore."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1339,6 +1354,10 @@ msgid ""
 "only way surround fits down an optical cable. Turn this off if the encoder "
 "causes audio delay — those tracks become stereo instead."
 msgstr ""
+"L'audio che il ricevitore non può inviare direttamente viene codificato in "
+"AC3, l'unico formato in cui l'audio surround può essere trasmesso tramite "
+"cavo ottico. Disattiva questa funzione se la codifica causa un ritardo "
+"audio: in tal caso, le tracce corrispondenti saranno convertite in stereo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1350,6 +1369,9 @@ msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Lascia l'impostazione su Automatico a meno che il video non si interrompa al "
+"caricamento di un profilo. Questa impostazione si applica solo quando un "
+"profilo è attivo e OpenGL può compromettere la qualità dell'uscita HDR."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1357,6 +1379,9 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Uniforma i suoni forti e i dialoghi deboli. Questa opzione disattiva il "
+"passthrough quando è attiva, poiché il volume deve essere regolato prima che "
+"il ricevitore riceva l'audio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -1433,7 +1458,7 @@ msgstr "%d già scaricati"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
-msgstr ""
+msgstr "%d visti"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1515,17 +1540,20 @@ msgstr "Elenco invece di una griglia"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "These are stored on your server and shared with Jellyfin Web."
 msgstr ""
+"Questi dati vengono memorizzati sul tuo server e condivisi con Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Paginato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
 "Show one page of tiles at a time instead of scrolling. Applies to every "
 "library on this device."
 msgstr ""
+"Mostra una pagina di riquadri alla volta anziché scorrere. Si applica a "
+"tutte le librerie su questo dispositivo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1840,15 +1868,12 @@ msgstr "Registrazione serie TV pianificata."
 
 # seeded from jellyfin-web: RecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording scheduled."
 msgstr "Registrazione pianificata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be scheduled."
-msgstr "La modifica non è stata applicata."
+msgstr "La registrazione non può essere pianificata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Cancel this recording?"
@@ -1856,14 +1881,12 @@ msgstr "Vuoi annullare la registrazione?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording cancelled."
 msgstr "Registrazione annullata."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Cancel Recording"
 msgstr "Annulla registrazione"
 
@@ -1879,16 +1902,12 @@ msgstr "Registrazione della serie annullata."
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancel Series"
-msgstr "Annulla"
+msgstr "Annulla serie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "The recording could not be cancelled."
-msgstr "La modifica non è stata applicata."
+msgstr "La registrazione non può essere annullata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording settings saved."
@@ -1931,35 +1950,26 @@ msgstr "La modifica non è stata applicata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Series"
 msgid "Series Options"
-msgstr "Serie"
+msgstr "Opzioni serie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Recording"
-msgstr "Transcodifica"
+msgstr "Registrazione"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Record"
 msgstr "Registra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Next episode is not downloaded."
 msgid "New episodes only"
-msgstr "L'episodio successivo non è stato scaricato."
+msgstr "Solo nuovi episodi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "All episodes"
-msgstr "Episodi"
+msgstr "Tutti gli episodi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Skip episodes already in my library"
@@ -1978,14 +1988,12 @@ msgstr "Un canale"
 
 # seeded from jellyfin-web: LabelChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Channels"
 msgstr "Canali"
 
 # seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All channels"
 msgstr "Tutti i canali"
 
@@ -2033,20 +2041,16 @@ msgid "As many as possible"
 msgstr "Tutto il possibile"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "1 episode"
-msgstr "Episodi"
+msgstr "1 episodio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy, python-format
-#| msgid "Episodes"
+#, python-format
 msgid "%d episodes"
-msgstr "Episodi"
+msgstr "%d episodi"
 
 # seeded from jellyfin-web: SortChannelsBy
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Sort channels by"
 msgstr "Ordina canali per"
 
@@ -2077,17 +2081,13 @@ msgid "Show indicators for"
 msgstr "Mostra indicatori per"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Series"
 msgid "Categories"
-msgstr "Serie"
+msgstr "Categorie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Settings"
 msgid "Guide Settings"
-msgstr "Impostazioni"
+msgstr "Impostazioni guida"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
