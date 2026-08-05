@@ -680,31 +680,48 @@ class DialogsMixin:
             else:
                 rows.append(Text(_("No active groups."), size=15,
                                  color=theme.SUBTLE_FG))
-            buttons = []
+            # Two rows, not one: what you can do to the GROUP, and then what
+            # you can do to the dialog. Five buttons on one line ran off the
+            # right edge the moment Resume appeared -- and this set is
+            # variable (Resume, Leave and New Group each come and go), so
+            # widening to fit the worst case would leave the common case
+            # mostly empty. Split by meaning and each row is short.
+            actions = []
             # SyncPlayAccess is three-valued: `JoinGroups` may join a group
             # somebody else made and may not make one. Treating it as a
             # boolean either hides a dialog that works or offers a button
             # that 403s. See user_policy.
             if self._may_create_sync_group(server):
-                buttons.append(Button(_("New Group"), id="sp-new",
+                actions.append(Button(_("New Group"), id="sp-new",
                                       on_click=lambda: self._sync_new(server)))
+            if (state or {}).get("can_resume"):
+                # Stopping playback halts the group instead of leaving it, so
+                # this is the way back into what the others are watching.
+                # jellyfin-web's LabelSyncPlayResumePlayback, same place in
+                # the same menu.
+                actions.append(Button(_("Resume local playback"), id="sp-resume",
+                                      on_click=lambda: self._sync_resume()))
             if joined is not None:
                 # Only when there is something to leave. It used to render
                 # unconditionally, so the one control that changes state was
                 # offered when it could do nothing.
-                buttons.append(Button(
+                actions.append(Button(
                     _("Leave"), id="sp-leave",
                     on_click=lambda srv=(state or {}).get("server_uuid"):
                         self._sync_leave(srv or server)))
-            buttons += [
+            if actions:
+                rows.append(Row(actions, gap=10, align="center"))
+            rows.append(self._dialog_buttons([
                 Button(_("Refresh"), id="sp-refresh",
                        on_click=lambda: self._open_syncplay()),
-                Spacer(),
                 Button(_("Close"), id="sp-close", on_click=self._close_dialog),
-            ]
-            rows.append(Row(buttons, gap=10, align="center"))
+            ]))
+            # Wider than the other dialogs (440-480) because it carries the
+            # most buttons, and with room to spare on purpose: every label
+            # here is translated, and the row is measured in English by the
+            # only test that can see it.
             return Dialog("syncplay", self._dialog_shell("syncplay", rows,
-                                                         w=480),
+                                                         w=560),
                           on_dismiss=self._close_dialog)
         self._show_dialog(build)
 
@@ -726,3 +743,8 @@ class DialogsMixin:
         self._close_dialog()
         self._edit_call(lambda c: c.sync_leave(server),
                         error=_("Could not leave the SyncPlay group."))
+
+    def _sync_resume(self):
+        self._close_dialog()
+        self._edit_call(lambda c: c.sync_resume(),
+                        error=_("Could not resume SyncPlay playback."))

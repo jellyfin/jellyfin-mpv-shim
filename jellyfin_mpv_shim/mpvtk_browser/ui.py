@@ -251,6 +251,11 @@ class UserInterface:
         playerManager.on_load_error = browser.load.on_load_error
         # Update notices surface in the browser banner (not the MPV OSD).
         playerManager.notify_update = browser.notify_update
+        # SyncPlay chatter surfaces on the status line, same reason.
+        playerManager.notify_syncplay = browser.notify_syncplay
+        # ...and stopping playback halts the group rather than leaving it,
+        # because this UI has a SyncPlay menu to leave it from later.
+        playerManager.syncplay_menu_reachable = browser.syncplay_menu_reachable
 
         playerManager.on_window_closed = self.on_window_closed
         # Client-side decorations. Pushed, not polled: on Wayland whether the

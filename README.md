@@ -55,8 +55,15 @@ bare IP addresses and not specifying the port by default. If you want to connect
 Please note the following issues with controlling SyncPlay:
 
 - If you attempt to join a SyncPlay group when casting to MPV Shim, it will play the media but it will not activate SyncPlay.
-  - You can, however, proceed to activate SyncPlay [using the menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
-- If you would like to create a group or join a group for currently playing media, [use menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
+  - You can, however, proceed to activate SyncPlay from the player UI's SyncPlay menu, or
+    [using the menu within MPV](https://github.com/jellyfin/jellyfin-mpv-shim#menu).
+- Stopping playback leaves the group's *content*, not the group — the same as the web client. From
+  there you have two options, and they are the web client's two: **Resume local playback** (in
+  **SyncPlay** in the library's top bar) rejoins what the group is watching, or simply **play
+  something else and the whole group follows you to it**. Use **SyncPlay → Leave** to actually
+  leave; watching something on your own is what leaving is for. (With no GUI, or when playback was
+  cast to a shim whose library was never opened, stopping does leave the group outright: there would
+  be no menu left to leave it from.)
 - SyncPlay can still be fragile. You may need to rejoin or even restart the client. Please report any issues you find.
 
 Music playback works, but gapless playback is not planned at this time.

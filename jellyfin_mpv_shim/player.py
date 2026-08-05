@@ -590,6 +590,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
         self.notify_update = None
+        # Optional callback (set by the UI) invoked with a SyncPlay message, so
+        # "N has joined" and friends land on the browser's status line instead
+        # of the MPV OSD. Unset -> SyncPlayManager.player_message falls back to
+        # the OSD (settings.sync_osd_message).
+        self.notify_syncplay = None
+        # Optional predicate (set by the UI) answering "if playback stops now,
+        # can the user still reach the SyncPlay menu?". Stopping halts group
+        # playback rather than leaving the group, which is only tolerable when
+        # there is a way back out; unset (CLI) or False -> stop() leaves.
+        # See _release_syncplay.
+        self.syncplay_menu_reachable = None
         # Repeat mode for the music bar: "none" | "all" | "one".
         self.repeat_mode = "none"
         # Set once the async session_playing has opened the server session;
@@ -1492,7 +1503,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         try:
             if (
                 conf.any_segment_wanted()
-                and not self.syncplay.is_enabled()
                 and self._video is not None
                 and self._player.playback_time is not None
             ):
@@ -1511,9 +1521,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
                 if intro is not None:
                     action = conf.segment_action(intro.type)
-                    should_prompt = action == "ask"
+                    # In a SyncPlay group "always" degrades to "ask" rather
+                    # than switching the feature off. Skipping is a seek, and
+                    # a seek is the *group's*: done automatically it yanks
+                    # everyone, and with several members set to always they
+                    # race to do it. Offering the button keeps the feature
+                    # and makes the seek one deliberate, attributable act --
+                    # which is what a group seek should be. The whole block
+                    # used to be gated off, so a group got no button either.
+                    in_group = self.syncplay.is_enabled()
                     should_skip = (not intro.has_triggered
-                                   and action == "always")
+                                   and action == "always"
+                                   and not in_group)
+                    should_prompt = (action == "ask"
+                                     or (action == "always" and in_group))
 
                     if should_skip and ready_to_skip:
                         intro.has_triggered = True
@@ -2007,6 +2028,38 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if settings.stop_cmd:
             os.system(settings.stop_cmd)
 
+    def _release_syncplay(self):
+        """Stopping playback while in a SyncPlay group: halt, or leave.
+
+        Halting is what jellyfin-web does — membership is not a property of
+        playback, and dropping the group every time somebody went back to the
+        library made SyncPlay unusable for anything but one film start to
+        finish. But halting only works if the group is still reachable
+        afterwards, and on two surfaces it is not: with no GUI at all, and
+        when playback was cast to a shim whose browser was never opened (the
+        window goes away with the video, and the SyncPlay menu lives in the
+        browser's chrome). Leaving is right there — the alternative is a group
+        the user is in, is not watching, and has no way to get out of.
+
+        Already halted is nothing to release: a halted member can go on to
+        play something of their own, and that video ending is not an event the
+        group has any business hearing about.
+        """
+        if not self.syncplay.is_enabled():
+            return
+        ask = self.syncplay_menu_reachable
+        reachable = False
+        if ask is not None:
+            try:
+                reachable = bool(ask())
+            except Exception:
+                log.debug("syncplay_menu_reachable failed", exc_info=True)
+        if reachable:
+            self.syncplay.halt_group_playback()
+        else:
+            log.info("Leaving the SyncPlay group: no menu to leave it from later.")
+            self.syncplay.disable_sync_play(False)
+
     @synchronous("_lock")
     def stop(self, leave_group: bool = True):
         """Stop playback.
@@ -2017,7 +2070,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         thinks we are in.
         """
         if leave_group and self.syncplay.is_enabled():
-            self.syncplay.disable_sync_play(False)
+            self._release_syncplay()
 
         if self.menu.is_menu_shown:
             self.menu.hide_menu()
@@ -2065,9 +2118,31 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
 
 
+    def stop_for_window_close(self):
+        """Stop because the window is going away.
+
+        Always LEAVES a SyncPlay group rather than halting it. Halting is for
+        a stop you can come back from -- back to the library, where the
+        SyncPlay menu is. A closing window has no library behind it: the app
+        is quitting or going to the tray, and either way a halted membership
+        is one nobody can see, leave or resume, while the group goes on
+        waiting for a member who is not there.
+
+        Explicit rather than left to `syncplay_menu_reachable`. That hook
+        does answer "no" here, but only because the browser happens to call
+        minimize() before it stops -- two lines apart, in the other module,
+        with nothing saying they must stay in that order. Deciding it here
+        makes every way of closing the window agree without depending on
+        that.
+        """
+        if self.syncplay.in_group():
+            log.info("Leaving the SyncPlay group: the window is closing.")
+            self.syncplay.disable_sync_play(False)
+        self.stop()
+
     def stop_and_close(self):
         log.info("stop_and_close: stopping playback")
-        self.stop()
+        self.stop_for_window_close()
         if not self._mpv_alive:
             return
         try:
@@ -2288,7 +2363,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 os.system(settings.media_ended_cmd)
 
             if self.syncplay.is_enabled():
-                self.syncplay.disable_sync_play(False)
+                self._release_syncplay()
 
             log.info("PlayerManager::finished_callback reached end")
             self.send_timeline_stopped(True)
@@ -2996,6 +3071,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         runtime, which is what ``reason`` distinguishes in the log."""
         if not self._mpv_alive or self._video is not None:
             return
+        # is_enabled, so a HALTED group does not hold the window: nothing it
+        # can send needs one (commands are recorded, not applied), and the
+        # next NewPlaylist re-creates mpv anyway. On in_group() a halted group
+        # would defeat idle_quit for as long as the user stayed a member.
         if self.menu.is_menu_shown or self.syncplay.is_enabled():
             return
         if self.mpvtk_active:
@@ -3085,6 +3164,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Before stop(): stopping can tear the window down, and the size has
         # to be read while it still exists.
         self._save_window_geometry()
+        # Explicitly, rather than leaving it to stop(): stop() now *halts*
+        # SyncPlay so the group survives going back to the library, and there
+        # is no coming back from a shutdown. The server would evict us when
+        # the websocket dies, but not before the group had waited on a client
+        # that is gone. in_group(), because a halted membership is exactly the
+        # one stop() would not have cleaned up.
+        if self.syncplay.in_group():
+            self.syncplay.disable_sync_play(False)
         self.stop()
         # After stop(), which is what queues the final report, and outside
         # _tl_lock (the worker takes it). The worker is a daemon, so without

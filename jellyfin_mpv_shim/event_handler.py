@@ -70,6 +70,34 @@ def start_playback(
     slideshow" (Play All / Shuffle), where pausing on frame one would be a
     queue that never starts.
     """
+    # In a group? Then "play this" means "play this for the group" --
+    # jellyfin-web's SyncPlay.Controller.play sends SetNewQueue and never
+    # starts anything itself. The server broadcasts the new queue back to
+    # everyone including us, and playback starts through upd_queue like any
+    # other group content.
+    #
+    # Playing locally instead does not merely leave the others behind, it
+    # fails outright: a locally built Media invents its own PlaylistItemIds
+    # ("playlistItem0"), every SyncPlay report carries one, and the server
+    # declares that field a Guid -- so the Ready that _play_media sends on
+    # load is rejected with a 400 before the group ever hears about it.
+    #
+    # **in_group, not is_enabled**, and that is not the intuitive answer. It
+    # is tempting to let a member who has stopped watching along put
+    # something on just for themselves -- but web does not, and the shape of
+    # its code says so rather than its docs: `isFollowingGroupPlayback` is
+    # read in exactly three places, all inside QueueCore, and none of them is
+    # the play path. Backing out of what the group is watching and then
+    # choosing something else is how you change what the group watches; the
+    # NewPlaylist that comes back re-attaches you (see upd_queue). Watching
+    # something alone is what leaving is for.
+    if sync_play_group is None and playerManager.syncplay.in_group():
+        log.info("Handing playback to the SyncPlay group instead of "
+                 "starting it locally.")
+        client.jellyfin.reset_queue_sync_play(
+            list(item_ids), start_index, offset_ticks or 0)
+        return True
+
     media = Media(
         client,
         item_ids,
