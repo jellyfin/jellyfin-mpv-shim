@@ -11,29 +11,43 @@ API calls with epoch-guarded staleness, and full-scene rebuilds driven by
 
 This module is the *core*: ``__init__``, the nav stack, the epoch and
 ``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome,
-the browse<->playback lifecycle and HUD glue, and ``shutdown``. Everything
-else is a mixin, one per feature area:
+the browse<->playback lifecycle and HUD glue, and ``shutdown``.
 
-    dialogs.py     modal shell, add-to picker, download + SyncPlay dialogs
-    auth.py        login / Quick Connect, lock screen, user switching
-    settings.py    the Settings route and the downloads panel
-    queue_edit.py  the play queue and the playlist editor
-    music.py       music browsing and the now-playing bar
-    views.py       home / grid / detail / series / season / search
-    tiles.py       tile art, rows and grids, the tile context menu
+Around it are two things, and the split is a **migration in progress**
+(``docs/ARCHITECTURE_TARGET.md`` §3.2), not a design:
+
+*Pages* (``pages/``) own a route each — a class with ``load`` and ``build``
+and its own state, registered in ``pages/PAGES``. This is where a route
+should go. Home, grid, detail, series, season, search, playlists, the queue
+editor, music browsing and Live TV are all Pages now.
+
+*Mixins* are what has not been converted, plus the app-wide surfaces that
+are not routes at all. The class is::
+
+    MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
+                 MusicMixin, ViewsMixin, TilesMixin, CastMixin)
+
+    dialogs.py        modal shell, add-to picker, download + SyncPlay dialogs
+    livetv_dialogs.py the guide/timer dialogs
+    auth.py           login / Quick Connect, lock screen, user switching
+    settings/         the Settings routes and the downloads panel (a package)
+    music.py          the now-playing bar and music playback glue
+    tiles.py          tile art, rows and grids, the tile context menu
+    cast.py           the cast screen route
+    views.py          forwarders left behind by the Page conversion; it
+                      shrinks to nothing as its callers move
 
 The mixins are a partition, not a layering: they all operate on the same
 ``self``, so the split makes the shared state visible rather than reducing
 it. No name may be defined by two of them — MRO would silently pick a
 winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
 
-**Adding a view** is one edit: declare the route kind in the owning mixin's
-``ROUTES`` table as ``kind: (loader, renderer)``, and write those two
-methods next to it. ``_routes()`` merges the tables across the MRO;
-``_load_route`` and ``_render_route`` here are lookups. ``ROUTES`` is the
-one name every mixin is meant to define — that merge is explicit, so the
-usual override hazard doesn't apply, but a kind claimed twice is still a
-test failure.
+**Adding a view** means adding a Page: subclass ``pages.base.Page``, give it
+a ``kind``, and register it in ``pages/PAGES``. A kind absent from that
+registry falls back to the mixins' merged ``ROUTES`` tables
+(``kind: (loader, renderer)``), which is what lets the conversion proceed one
+route at a time; ``tests/test_page_contract.py`` fails a kind claimed by
+both, because it would resolve by whichever the shell consulted first.
 
 Three invariants hold the whole thing together:
 
