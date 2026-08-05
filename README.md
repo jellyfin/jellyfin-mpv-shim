@@ -440,7 +440,10 @@ working on the client itself.
 These steps mirror `.github/workflows/main.yml`, which is what actually produces the releases.
 **If this section and the workflow ever disagree, the workflow is right** — check it first.
 
-Make sure Python and libmpv are both 64-bit or both 32-bit; mismatching them fails at runtime.
+Make sure Python and libmpv are the same architecture; mismatching them fails at runtime.
+On an Arm machine that takes care: Windows runs x64 binaries under emulation, so an x64 Python
+will install and build without complaining and only the finished client will be wrong. CI checks
+this with `tools/check_win_arch.py` rather than trusting it — do the same locally if unsure.
 
 1. Install Git for Windows. Open Git Bash and run `git clone https://github.com/jellyfin/jellyfin-mpv-shim; cd jellyfin-mpv-shim`.
     - You can update the project later with `git pull`.
@@ -453,6 +456,7 @@ Make sure Python and libmpv are both 64-bit or both 32-bit; mismatching them fai
     - 64-bit: `mpv-dev-x86_64-v3-*.7z`. The `v3` builds need a CPU supporting x86-64-v3; for older
       hardware use the plain `mpv-dev-x86_64-*-git-*.7z` (this is what the "legacy64" release is).
     - 32-bit: `mpv-dev-i686-*.7z`.
+    - ARM64: `mpv-dev-aarch64-*.7z`.
 6. Extract it and move `libmpv-2.dll` into the `jellyfin-mpv-shim` folder, **renaming it to
    `mpv-2.dll`**. The build scripts look for that name.
 7. In Git Bash, build the PyInstaller bootloader from source:
@@ -467,9 +471,17 @@ Make sure Python and libmpv are both 64-bit or both 32-bit; mismatching them fai
       antivirus products have a long history of flagging. Building it locally gives the
       installer a bootloader that isn't already on every heuristic blocklist, which is why CI
       does it this way.
+    - On ARM64, add `--target-arch=64bit-arm --check-c-compiler=msvc`. waf infers the target
+      from `PROCESSOR_ARCHITECTURE` and picks a compiler by search order; either one guessing
+      wrong builds an x64 bootloader and files it under the ARM64 name instead of erroring.
 8. In Git Bash, run `./gen_pkg.sh --skip-build`.
     - This builds the translation files and downloads the shader packs.
-9. Run `build-win.bat` from `cmd` (`build-win-32.bat` for 32-bit, `build-win-dbg.bat` for a
-   console-attached debug build).
-    - The 32-bit script reads the same `mpv-2.dll` in the same place — just extract the i686 one
-      instead. There is no separate `mpv32` folder.
+    - Compiling translations needs `msgfmt`, which Git Bash does not ship. Where it is absent
+      the script falls back to `tools/msgfmt.py`, which produces the same catalogs
+      (`tests/test_msgfmt.py` asserts that against GNU `msgfmt` on all 86 locales).
+9. Run `build-win.bat` from `cmd` (`build-win-32.bat` for 32-bit, `build-win-arm64.bat` for
+   ARM64, `build-win-dbg.bat` for a console-attached debug build).
+    - Every script reads the same `mpv-2.dll` in the same place — just extract the archive for
+      the architecture you want. There is no separate `mpv32` folder.
+    - The ARM64 script passes `/DArm64` to Inno Setup, which restricts the installer to Arm
+      machines and puts it in the 64-bit `Program Files` rather than the WOW64 one.

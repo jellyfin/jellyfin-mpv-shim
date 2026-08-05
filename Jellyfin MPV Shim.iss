@@ -19,6 +19,19 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
+; Defined by build-win-arm64.bat via ISCC /DArm64. The payload is then a
+; native ARM64 build, so it must not be offered to an x64 machine -- and
+; without the second directive Inno runs in 32-bit mode even on ARM64, which
+; puts a 64-bit application under "Program Files (x86)" and points its
+; registry writes at the WOW64 view.
+;
+; The installer executable itself stays 32-bit x86 whatever this says, since
+; that is the only thing ISCC emits; Windows on ARM emulates it to run the
+; install. Only the payload and the install locations are architecture-bound.
+#ifdef Arm64
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+#endif
 DisableProgramGroupPage=yes
 LicenseFile=LICENSE.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)

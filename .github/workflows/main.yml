@@ -99,6 +99,83 @@ jobs:
       with:
         name: windows-legacy64
         path: ${{ github.workspace }}/publish/Installer/*.exe
+  build-win-arm64:
+    # Native ARM64. Deliberately shaped differently from the x86 jobs above,
+    # because this image is not the same machine wearing a different CPU:
+    #  - No "Setup git SDK" step. That action's aarch64 support resolves to
+    #    artifacts git-sdk-arm64 does not publish, and its own docs say
+    #    aarch64 needs the "full" flavor, which is not published either. The
+    #    x86_64 SDK would run under emulation, but MSYS2's fork() emulation
+    #    is exactly the part that is unreliable there.
+    #  - So no msgfmt and no unzip. gen_pkg.sh falls back to tools/msgfmt.py
+    #    and to python -m zipfile; tests/test_msgfmt.py is what keeps the
+    #    former honest against GNU msgfmt.
+    #  - No winget step. Inno Setup is preinstalled on this image.
+    runs-on: windows-11-arm
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Setup Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: 3.14
+        architecture: arm64
+    - name: Download mpv
+      id: mpv
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: 'mpv-dev-aarch64-*.7z'
+    - name: Install dependencies
+      run: |
+        7z x "${{ fromJson(steps.mpv.outputs.downloaded_files)[0] }}"
+        mv libmpv-2.dll mpv-2.dll
+        pip install wheel
+        pip install .[all] pywin32
+        ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: Verify the inputs are ARM64
+      # Before anything is built, because nothing downstream can tell. Windows
+      # on Arm emulates x64, so an x64 interpreter here would build an x64
+      # installer and upload it under the ARM64 name without one step failing.
+      run: |
+        python tools/check_win_arch.py mpv-2.dll
+      shell: bash
+    - name: PyInstaller Bootloader
+      # Built from source for the same reason as the other jobs: the stock
+      # wheel's prebuilt bootloader is on every antivirus heuristic list. The
+      # two extra flags pin what the x86 jobs get for free -- waf would
+      # otherwise infer the target from PROCESSOR_ARCHITECTURE and pick a C
+      # compiler by search order, and either one guessing wrong produces an
+      # x64 bootloader filed under the ARM64 name rather than an error.
+      run: |
+        ./gen_pkg.sh --get-pyinstaller
+        cd pyinstaller/bootloader
+        python ./waf --target-arch=64bit-arm --check-c-compiler=msvc distclean all
+        cd ..
+        pip install .
+      shell: bash
+    - name: Main Build
+      run: |
+        .\build-win-arm64.bat
+      shell: cmd
+    - name: Verify the output is ARM64
+      # The bootloader is the one piece with its own architecture decision --
+      # waf's, not the interpreter's -- so it is checked on the built result
+      # rather than trusted from the flags that were passed in.
+      run: |
+        python tools/check_win_arch.py --skip-interpreter dist/run/run.exe
+      shell: bash
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh arm64
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: windows-arm64
+        path: ${{ github.workspace }}/publish/Installer/*.exe
   build-win32-legacy:
     runs-on: windows-latest
     steps:
