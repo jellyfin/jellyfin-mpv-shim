@@ -90,6 +90,19 @@ function compile_po {
     fi
 }
 
+# Say which one compiled the catalogs. The two are meant to be
+# indistinguishable in their output, which also makes it impossible to tell
+# from a build log which of them ran -- and "the fallback is exercised in CI"
+# is then a belief rather than an observation.
+function report_po_compiler {
+    if command -v msgfmt > /dev/null 2>&1
+    then
+        echo "Compiling translations with GNU msgfmt."
+    else
+        echo "Compiling translations with tools/msgfmt.py (no GNU msgfmt on PATH)."
+    fi
+}
+
 if [[ "$1" == "--get-pyinstaller" ]]
 then
     echo "Downloading pyinstaller..."
@@ -160,6 +173,7 @@ fi
 # that a failure here stops the build: the loop body of a pipeline runs in a
 # subshell, where "exit" ends only the subshell and the script goes on to
 # package an installer with no translations in it.
+report_po_compiler
 while read -r file
 do
     compile_po "$file" "${file%.*}.mo" || exit 1
