@@ -403,7 +403,13 @@ class SyncPlaySurvivesReopenTest(unittest.TestCase):
         pm = self._halted_member()
         sp = pm.syncplay
 
-        with mock.patch.object(player_module.settings, "mpv_idle_quit", True):
+        # mpv_ext_start True for the same reason _assert_gated_noop does it:
+        # on the jsonipc leg the harness leaves it False, which is realistic
+        # (never kill an mpv the user launched) and makes idle_quit a no-op —
+        # so without this the test asserts nothing on that backend, which is
+        # exactly what the matrix caught.
+        with mock.patch.object(player_module.settings, "mpv_idle_quit", True), \
+                mock.patch.object(player_module.settings, "mpv_ext_start", True):
             pm.idle_quit()
         self.assertFalse(pm._mpv_alive,
                          "a halted member should not hold mpv open")

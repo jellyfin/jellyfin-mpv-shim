@@ -473,6 +473,15 @@ class UserInterface:
             # The loop is already unwinding by the time it gets here (quit()
             # was enqueued above), and it cannot race itself, so treating this
             # as "gone" is both safe and what the caller means.
+            #
+            # "Above" means the two callers that quit first -- detach() and
+            # stop(). _attach's survivor check has no quit behind it and would
+            # not be safe here, but it cannot reach this branch: every path
+            # that kills mpv (idle_quit, _handle_mpv_disconnect) calls
+            # _notify_mpv_gone -> on_mpv_gone -> detach first, so _thread is
+            # already None and the check above returns. Stated because the
+            # premise is about the callers, not about this function, and
+            # nothing here says which.
             log.debug("detaching from inside the render loop; not joining self")
             self._thread = None
             return True
