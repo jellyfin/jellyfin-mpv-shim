@@ -27,18 +27,35 @@ GB = 1 << 30
 
 
 class FakeApi:
-    """Only the two calls the planner makes."""
+    """Only the calls the planner makes.
 
-    def __init__(self, next_up=(), episodes=()):
+    ``series`` models a real series listing — ``get_episodes`` slices it from
+    ``StartItemId``, which is what makes the lookahead *window* observable
+    rather than just its first request.
+    """
+
+    def __init__(self, next_up=(), episodes=(), series=None,
+                 watching=None):
         self._next_up = list(next_up)
         self._episodes = list(episodes)
+        #: {series_id: [episode DTO, ...]}, in broadcast order.
+        self._series = {k: list(v) for k, v in (series or {}).items()}
+        #: {series_id: id of the next episode to watch} — the server's answer
+        #: to /Shows/NextUp?seriesId=. Absent means "nothing next".
+        self.watching = dict(watching or {})
         self.calls = []
 
-    def get_next(self, limit=1, fields=None, enable_image_types=None):
-        # fields is load-bearing: without MediaSources every Next Up
-        # candidate is charged the unknown-size fallback.
+    def get_next(self, index=None, limit=1, series_id=None, fields=None,
+                 enable_image_types=None):
+        # fields is load-bearing on the library-wide call: without
+        # MediaSources every Next Up candidate is charged the unknown-size
+        # fallback.
         self.calls.append(("get_next", "/NextUp",
-                           {"Limit": limit, "Fields": fields}))
+                           {"Limit": limit, "Fields": fields,
+                            "SeriesId": series_id}))
+        if series_id is not None:
+            nxt = self.watching.get(series_id)
+            return {"Items": [{"Id": nxt, "Type": "Episode"}] if nxt else []}
         return {"Items": list(self._next_up)}
 
     def get_episodes(self, series_id, season_id=None, start_item_id=None,
@@ -46,7 +63,15 @@ class FakeApi:
         self.calls.append(("get_episodes", "/%s/Episodes" % series_id,
                            {"StartItemId": start_item_id, "Limit": limit,
                             "Fields": fields}))
-        return {"Items": list(self._episodes)}
+        items = self._series.get(series_id)
+        if items is None:
+            items = list(self._episodes)
+        elif start_item_id is not None:
+            ids = [i["Id"] for i in items]
+            # StartItemId is inclusive.
+            items = (items[ids.index(start_item_id):]
+                     if start_item_id in ids else [])
+        return {"Items": items[:limit] if limit else list(items)}
 
     def get_userdata_for_item(self, item_id):
         return None       # "server reachable but says nothing"
@@ -297,25 +322,68 @@ class FillTest(AutoTest):
         self.assertEqual(self.mgr.enqueued, [])
         self.assertEqual(api.calls, [], "it asked anyway")
 
-    def test_lookahead_starts_from_the_furthest_episode_held(self):
-        self.db.upsert(row("s1e1", season=1, ep=1))
-        self.db.upsert(row("s1e5", season=1, ep=5))
-        api = FakeApi(episodes=[{"Id": "s1e5", "Type": "Episode"},
-                                {"Id": "s1e6", "Type": "Episode"},
-                                {"Id": "s1e7", "Type": "Episode"}])
+    def _binge(self, watching, held=("s1e1",), count=6):
+        """A six-episode series, some of it held, the user part way through."""
+        series = {"s1": [{"Id": "s1e%d" % i, "Type": "Episode"}
+                         for i in range(1, count + 1)]}
+        for item_id in held:
+            self.db.upsert(row(item_id, season=1,
+                               ep=int(item_id.rsplit("e", 1)[-1])))
         settings.auto_download_next_up = False
-        auto = self._auto(clients={"srv": FakeClient(api)})
+        api = FakeApi(series=series, watching={"s1": watching})
+        return api, self._auto(clients={"srv": FakeClient(api)})
+
+    def test_lookahead_starts_from_the_episode_you_are_watching(self):
+        """Not from the furthest episode held — see the next test for why."""
+        api, auto = self._binge(watching="s1e2", held=("s1e1", "s1e5"))
         auto.fill(10 * GB)
         params = next(c[2] for c in api.calls if c[0] == "get_episodes")
-        self.assertEqual(params["StartItemId"], "s1e5")
-        # The first result is the episode we already hold.
-        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e6", "s1e7"])
+        self.assertEqual(params["StartItemId"], "s1e2")
+        # Window is [s1e2, s1e3]: the next one to watch, and one past it.
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e2", "s1e3"])
 
-    def test_the_frontier_ignores_other_servers(self):
-        self.db.upsert(row("other", server_uuid="elsewhere", ep=9))
-        self.db.upsert(row("mine", server_uuid="srv", ep=2))
+    def test_the_window_does_not_walk_the_series_on_its_own(self):
+        """The bug this anchoring exists to prevent: anchored on what is on
+        disk, every pass starts where the last one finished downloading, so
+        an unwatched series is eventually downloaded whole."""
+        api, auto = self._binge(watching="s1e1")
+        for _pass in range(4):
+            # What a pass queued is on disk by the time the next one runs.
+            for _srv, item_id, _type, _origin in self.mgr.enqueued:
+                self.db.upsert(row(item_id, season=1,
+                                   ep=int(item_id[-1])))
+            self.mgr.enqueued.clear()
+            auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], [],
+                         "the window advanced without anybody watching")
+        self.assertEqual(sorted(r["item_id"] for r in self.db.list()),
+                         ["s1e1", "s1e2"])
+
+    def test_the_window_advances_when_you_watch(self):
+        api, auto = self._binge(watching="s1e1")
+        auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e2"])
+        for _srv, item_id, _type, _origin in self.mgr.enqueued:
+            self.db.upsert(row(item_id, season=1, ep=int(item_id[-1])))
+        self.mgr.enqueued.clear()
+        api.watching["s1"] = "s1e2"     # finished s1e1
+        auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e3"])
+
+    def test_a_series_with_nothing_next_is_left_alone(self):
+        """Finished, or a server that will not say: either way, guessing is
+        how the window runs away."""
+        api, auto = self._binge(watching=None)
+        auto.fill(10 * GB)
+        self.assertEqual(self.mgr.enqueued, [])
+        self.assertEqual([c[0] for c in api.calls], ["get_next"],
+                         "it asked for episodes without an anchor")
+
+    def test_followed_series_ignores_other_servers(self):
+        self.db.upsert(row("other", server_uuid="elsewhere", series_id="s2"))
+        self.db.upsert(row("mine", server_uuid="srv", series_id="s1"))
         auto = self._auto()
-        self.assertEqual(auto._series_frontier("srv"), {"s1": "mine"})
+        self.assertEqual(auto._followed_series("srv"), {"s1"})
 
     def test_reaping_watched_frees_room_for_the_same_pass(self):
         """The reaper runs before the planner so a pass that starts over
