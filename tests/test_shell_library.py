@@ -121,7 +121,7 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
 
         r = self._r()
         r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
-        r._posters, r._requested, r._img_retry = {}, set(), {}
+        r._requested, r._img_retry = set(), {}
         box = TileRenderer.banner_box(r, width)
         TileRenderer.backdrop_node(r, {"Id": "m1"}, box, "detail-bd")
         return asked, box

@@ -316,9 +316,16 @@ class TileRenderer:
         self._hover = None
         self._hover_node = None
 
-        # Decoded posters and the dedup/backoff bookkeeping around fetching
-        # them. Private: nothing outside tile rendering reads these.
-        self._posters = {}
+        # Dedup/backoff bookkeeping around fetching decoded images. Private:
+        # nothing outside tile rendering reads these.
+        #
+        # The images themselves live in ThumbnailStore's LRU and nowhere else.
+        # There used to be a `_posters` dict here as well, and it was the real
+        # owner: every decoded poster and detail-page banner the browser had
+        # ever drawn stayed in it for the life of the process, so the 96 MiB
+        # budget, the LRU's eviction and the per-navigation trim_memory() were
+        # all releasing a reference that was not the last one. Two owners and
+        # one of them unbounded is the same as no budget at all.
         self._requested = set()
         self._img_retry = {}
 
@@ -441,9 +448,17 @@ class TileRenderer:
     def _request_image(self, key, url, box):
         """Return a cached decoded PIL image for ``key`` (poster/backdrop/…),
         or None while it loads — requesting it once from the thumbnail pool.
-        The next repaint (woken by the pool's notify) picks it up."""
-        img = self._posters.get(key)
-        if img is not None or self.art.thumbs is None or not url:
+        The next repaint (woken by the pool's notify) picks it up.
+
+        Read *through* the store's cache rather than keeping a copy: it is the
+        thing the memory budget is enforced on, and a second dict here made
+        that budget decorative. An eviction therefore costs a re-request —
+        which is the trade the budget exists to make, and lands on the disk
+        cache rather than the server."""
+        if self.art.thumbs is None or not url:
+            return None
+        img = self.art.thumbs.get_cached(key)
+        if img is not None:
             return img
         if key in self._requested:
             return None
@@ -464,7 +479,13 @@ class TileRenderer:
         permanent miss (the server says there's no such image) keeps the
         marker, so it isn't asked for again either."""
         if image is not None:
-            self._posters[key] = image
+            # The store has already put it in its LRU; releasing the dedup
+            # marker is what lets an evicted image be asked for again. Keeping
+            # it (as the old `_posters` dict allowed) would make the first
+            # eviction of a key permanent — a blank tile no navigation could
+            # repair. Re-entry is still impossible while the image is cached:
+            # _request_image finds it before it looks here.
+            self._requested.discard(key)
             self._img_retry.pop(key, None)
             return
         if self.art.thumbs is not None and self.art.thumbs.is_gone(key):

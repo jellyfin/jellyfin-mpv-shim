@@ -390,7 +390,6 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             on_launch=lambda audio, title: self._start(audio=audio,
                                                        title=title),
             on_downloads_changed=lambda: self._refresh_downloaded())
-        self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
         # keys whose fetch failed transiently; see _image_done.
@@ -543,14 +542,28 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         computed against the list length at submit time — replacing the list
         under it would duplicate or drop a page. Skipping costs at most one
         poll interval; the next tick picks it up.
+
+        **And it says so while it runs**, which is the other half of that and
+        was missing: a refresh took no guard of its own, so a scroll landing
+        *after* it was submitted paged in against a list this refresh was
+        about to replace wholesale. Whichever order the two answers arrived
+        in, the list was wrong — a page fetched twice and another never, or
+        (the likelier way round, since the refresh is the larger query) 100
+        rows dropping out from under a scroll already past them, which is
+        exactly what ``_load_channels`` re-reads every page to prevent.
+        ``_route_async`` clears it however that load ends.
         """
         route = self.route
         if route.get("kind") not in LIVE_KINDS or self.source is None:
             return
+        if self.server is None:
+            return          # _load_route would not dispatch, so nothing would
+            #                 clear the marker below
         if self._menu is not None or self._dialog is not None:
             return
-        if route.get("_loading"):
+        if route.get("_loading") or route.get("_refreshing"):
             return
+        route["_refreshing"] = True
         self._load_route(route)
 
     #: How long a UserDataChanged burst settles before Home re-reads. The
@@ -1200,7 +1213,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # never saw.
             if route is self.route:
                 self._offline_fallback(route)
-        self.run_async(work, on_done, ep, on_error=failed)
+
+        def settled():
+            # `always`, so a background refresh (refresh_live_tv) releases its
+            # marker however this ends — including the epoch-superseded case,
+            # which runs neither callback. A marker left set would stop the
+            # screen refreshing for the rest of its life.
+            route.pop("_refreshing", None)
+        self.run_async(work, on_done, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
     # thin forwarders while unconverted routes still call them as methods.

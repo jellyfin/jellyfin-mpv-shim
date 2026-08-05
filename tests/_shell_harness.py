@@ -489,13 +489,32 @@ class _RecordingPool(_SyncPool):
 class _DeferredPool:
     """Holds submitted work until drain(), so a test can move the epoch
     (navigate) while a call is "in flight" — the window _SyncPool closes by
-    running everything inline."""
+    running everything inline.
+
+    ``release`` completes *one* job by position, which is what makes an
+    interleaving expressible rather than just a delay: two jobs in flight and
+    the second answering first is the ordinary case for a small query racing a
+    large one, and it is the order that breaks a list. With _SyncPool (submit
+    == run) no browser suite had ever had two jobs in flight at once.
+    """
 
     def __init__(self):
         self.queued = []
 
     def submit(self, fn, *a, **k):
         self.queued.append((fn, a, k))
+
+    def release(self, index=0):
+        """Run one queued job. Returns False if there was nothing there, so a
+        test that expected work to be in flight can say so."""
+        if not self.queued or index >= len(self.queued):
+            return False
+        fn, a, k = self.queued.pop(index)
+        fn(*a, **k)
+        return True
+
+    def release_last(self):
+        return self.release(len(self.queued) - 1)
 
     def drain(self):
         while self.queued:
@@ -829,12 +848,18 @@ class FakeThumbs:
         self.gone = set()           # keys the "server" says don't exist
         self._cbs = {}              # key -> callback
         self._notify = None
+        #: Decoded images the store is holding. The real one keeps these in a
+        #: byte-bounded LRU and the renderer reads *through* it, so a
+        #: stand-in whose get_cached is a bare `return None` cannot show a
+        #: cached image being drawn — or an evicted one being re-fetched,
+        #: which is the failure mode that goes with it.
+        self.cached = {}
 
     def set_notify(self, notify):
         self._notify = notify
 
     def get_cached(self, key):
-        return None
+        return self.cached.get(key)
 
     def is_gone(self, key):
         return key in self.gone
@@ -844,8 +869,20 @@ class FakeThumbs:
         self._cbs[key] = callback
 
     def resolve(self, key, image):
-        """Deliver a result the way pump() does — including failures."""
+        """Deliver a result the way pump() does — including failures.
+
+        pump() files the image before calling back, and the order matters:
+        the callback releases the dedup marker, so an image that was not in
+        the cache by then would be requested again on the next frame.
+        """
+        if image is not None:
+            self.cached[key] = image
         self._cbs.pop(key)(image)
+
+    def evict(self, key):
+        """Drop a decoded image the way the LRU's byte budget does, without
+        touching what the renderer knows about it."""
+        self.cached.pop(key, None)
 
     def pump(self):
         return False
