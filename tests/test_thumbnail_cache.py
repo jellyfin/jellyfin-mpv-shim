@@ -8,9 +8,12 @@ real store sizes decoded images as width*height*4.
 removed. The eviction policy is the same and so are these tests.)
 """
 import os
+import sys
 import unittest
 
-from jellyfin_mpv_shim.mpvtk_browser.thumbnails import MemoryCache
+sys.argv = [sys.argv[0]]      # importing the shell reaches args.get_args()
+
+from jellyfin_mpv_shim.mpvtk_browser.thumbnails import MemoryCache  # noqa: E402
 
 
 def sizer(value):
@@ -457,3 +460,119 @@ class MemoryTrimTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NobodyElseHoldsTheDecodedImagesTest(unittest.TestCase):
+    """The budget only bounds anything if the LRU is the *only* owner.
+
+    ``TileRenderer`` kept its own ``_posters`` dict of every decoded poster
+    and detail-page banner it had ever drawn, for the life of the process. It
+    was populated with the same objects the LRU held, so the 96 MiB ceiling,
+    eviction on ``put`` and ``trim_memory()`` on every navigation were all
+    releasing a reference that was not the last one. The tests around it
+    could not tell: MemoryCacheTest exercises the cache in isolation (it does
+    prove the LRU drops *its* reference, which was never the question), and
+    RouteChangeTrimTest drives real navigations against a stand-in whose
+    whole trim_memory is ``self.trims += 1`` — it cannot show that nothing
+    was released, because it never held anything.
+    """
+
+    def _renderer(self, store):
+        from types import SimpleNamespace
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = TileRenderer.__new__(TileRenderer)
+        r.art = SimpleNamespace(server="srv1", thumbs=store)
+        r._requested = set()
+        r._img_retry = {}
+        return r
+
+    def _store(self, max_mem_mb):
+        """A real ThumbnailStore whose fetch is local: the decode is what we
+        are measuring, not the download."""
+        import shutil
+        import tempfile
+        from PIL import Image as PILImage
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
+
+        tmp = tempfile.mkdtemp(prefix="jms-ownership-")
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        store = ThumbnailStore(tmp, max_mem_mb=max_mem_mb)
+        self.addCleanup(store.shutdown)
+        self.fetched = []
+
+        def request(key, url, box, callback):
+            # Deliver synchronously, filing the image in the LRU exactly as
+            # pump() does — the path under test is who *keeps* it afterwards.
+            self.fetched.append(key)
+            cached = store.get_cached(key)
+            if cached is None:
+                cached = PILImage.new("RGB", (200, 300))
+                store._mem.put(key, cached)
+            callback(cached)
+
+        store.request = request
+        return store
+
+    def _draw(self, r, key):
+        """One frame. Returns None the first time a key is asked for — the
+        request is dispatched and the image lands for the *next* repaint,
+        which is how the real loop works."""
+        return r._request_image(key, "http://srv/%s.jpg" % key, (200, 300))
+
+    def _paint(self, r, key):
+        """Two frames: the one that asks and the one that draws."""
+        self._draw(r, key)
+        return self._draw(r, key)
+
+    def test_the_working_set_stays_inside_the_budget(self):
+        # 1 MiB holds ~5 of these 200x300 RGB images (180 KB each).
+        store = self._store(max_mem_mb=1)
+        r = self._renderer(store)
+        for i in range(60):
+            self.assertIsNotNone(self._paint(r, "k%d" % i))
+        self.assertLessEqual(store._mem.nbytes, 1024 * 1024,
+                             "the LRU is over its own budget")
+        self.assertLess(len(store._mem), 60,
+                        "nothing was evicted — the test proves nothing")
+
+    def test_an_image_the_screen_left_is_collectable(self):
+        """The assertion the counting stand-in cannot make: after the trim
+        that a navigation performs, is the image actually gone?"""
+        import gc
+        import weakref
+
+        store = self._store(max_mem_mb=8)
+        r = self._renderer(store)
+        ref = weakref.ref(self._paint(r, "screen1-poster"))
+        self.assertIsNotNone(ref())
+
+        store.trim_memory(0)          # what leaving a screen does
+        gc.collect()
+        self.assertIsNone(ref(),
+                          "the decoded image outlived the trim; something "
+                          "other than the LRU is still holding it")
+
+    def test_an_evicted_image_is_fetched_again_rather_than_lost(self):
+        """The other half of read-through, and the way a naive fix breaks:
+        the dedup marker has to be released when the image lands, or the
+        first eviction of a key is permanent and the tile stays blank for the
+        rest of the process."""
+        store = self._store(max_mem_mb=8)
+        r = self._renderer(store)
+        self._paint(r, "poster")
+        store.trim_memory(0)
+        self.fetched.clear()
+
+        self.assertIsNotNone(self._paint(r, "poster"), "the tile went blank")
+        self.assertEqual(self.fetched, ["poster"], "and only once")
+
+    def test_one_request_in_flight_per_key(self):
+        """Read-through must not turn every frame into a new fetch while the
+        first one is still running."""
+        store = self._store(max_mem_mb=8)
+        store.request = lambda key, url, box, callback: self.fetched.append(key)
+        r = self._renderer(store)
+        for _frame in range(5):
+            self.assertIsNone(self._draw(r, "slow"))
+        self.assertEqual(self.fetched, ["slow"])

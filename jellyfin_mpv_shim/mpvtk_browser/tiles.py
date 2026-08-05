@@ -3,7 +3,7 @@
 Poster fetch/decode plumbing, the tile / row / grid builders, the detail
 banner compositor, the track list, and the right-click menu on a tile.
 
-State on ``self``: ``_posters``, ``_requested`` and ``_img_retry`` (the
+State on ``self``: ``_requested`` and ``_img_retry`` (the
 image cache — ``_image_done`` runs on a pool thread and writes then
 ``invalidate()``s), the ``_downloaded*`` sets behind the tile badge, and
 ``_menu`` (the open context menu, loop thread only).

@@ -11,29 +11,43 @@ API calls with epoch-guarded staleness, and full-scene rebuilds driven by
 
 This module is the *core*: ``__init__``, the nav stack, the epoch and
 ``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome,
-the browse<->playback lifecycle and HUD glue, and ``shutdown``. Everything
-else is a mixin, one per feature area:
+the browse<->playback lifecycle and HUD glue, and ``shutdown``.
 
-    dialogs.py     modal shell, add-to picker, download + SyncPlay dialogs
-    auth.py        login / Quick Connect, lock screen, user switching
-    settings.py    the Settings route and the downloads panel
-    queue_edit.py  the play queue and the playlist editor
-    music.py       music browsing and the now-playing bar
-    views.py       home / grid / detail / series / season / search
-    tiles.py       tile art, rows and grids, the tile context menu
+Around it are two things, and the split is a **migration in progress**
+(``docs/ARCHITECTURE_TARGET.md`` §3.2), not a design:
+
+*Pages* (``pages/``) own a route each — a class with ``load`` and ``build``
+and its own state, registered in ``pages/PAGES``. This is where a route
+should go. Home, grid, detail, series, season, search, playlists, the queue
+editor, music browsing and Live TV are all Pages now.
+
+*Mixins* are what has not been converted, plus the app-wide surfaces that
+are not routes at all. The class is::
+
+    MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
+                 MusicMixin, ViewsMixin, TilesMixin, CastMixin)
+
+    dialogs.py        modal shell, add-to picker, download + SyncPlay dialogs
+    livetv_dialogs.py the guide/timer dialogs
+    auth.py           login / Quick Connect, lock screen, user switching
+    settings/         the Settings routes and the downloads panel (a package)
+    music.py          the now-playing bar and music playback glue
+    tiles.py          tile art, rows and grids, the tile context menu
+    cast.py           the cast screen route
+    views.py          forwarders left behind by the Page conversion; it
+                      shrinks to nothing as its callers move
 
 The mixins are a partition, not a layering: they all operate on the same
 ``self``, so the split makes the shared state visible rather than reducing
 it. No name may be defined by two of them — MRO would silently pick a
 winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
 
-**Adding a view** is one edit: declare the route kind in the owning mixin's
-``ROUTES`` table as ``kind: (loader, renderer)``, and write those two
-methods next to it. ``_routes()`` merges the tables across the MRO;
-``_load_route`` and ``_render_route`` here are lookups. ``ROUTES`` is the
-one name every mixin is meant to define — that merge is explicit, so the
-usual override hazard doesn't apply, but a kind claimed twice is still a
-test failure.
+**Adding a view** means adding a Page: subclass ``pages.base.Page``, give it
+a ``kind``, and register it in ``pages/PAGES``. A kind absent from that
+registry falls back to the mixins' merged ``ROUTES`` tables
+(``kind: (loader, renderer)``), which is what lets the conversion proceed one
+route at a time; ``tests/test_page_contract.py`` fails a kind claimed by
+both, because it would resolve by whichever the shell consulted first.
 
 Three invariants hold the whole thing together:
 
@@ -390,7 +404,6 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             on_launch=lambda audio, title: self._start(audio=audio,
                                                        title=title),
             on_downloads_changed=lambda: self._refresh_downloaded())
-        self._posters = {}        # thumb key -> PIL image
         self._requested = set()   # thumb keys already dispatched
         # thumb key -> (failed attempts, earliest retry time). Only holds
         # keys whose fetch failed transiently; see _image_done.
@@ -543,14 +556,28 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         computed against the list length at submit time — replacing the list
         under it would duplicate or drop a page. Skipping costs at most one
         poll interval; the next tick picks it up.
+
+        **And it says so while it runs**, which is the other half of that and
+        was missing: a refresh took no guard of its own, so a scroll landing
+        *after* it was submitted paged in against a list this refresh was
+        about to replace wholesale. Whichever order the two answers arrived
+        in, the list was wrong — a page fetched twice and another never, or
+        (the likelier way round, since the refresh is the larger query) 100
+        rows dropping out from under a scroll already past them, which is
+        exactly what ``_load_channels`` re-reads every page to prevent.
+        ``_route_async`` clears it however that load ends.
         """
         route = self.route
         if route.get("kind") not in LIVE_KINDS or self.source is None:
             return
+        if self.server is None:
+            return          # _load_route would not dispatch, so nothing would
+            #                 clear the marker below
         if self._menu is not None or self._dialog is not None:
             return
-        if route.get("_loading"):
+        if route.get("_loading") or route.get("_refreshing"):
             return
+        route["_refreshing"] = True
         self._load_route(route)
 
     #: How long a UserDataChanged burst settles before Home re-reads. The
@@ -1200,7 +1227,14 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # never saw.
             if route is self.route:
                 self._offline_fallback(route)
-        self.run_async(work, on_done, ep, on_error=failed)
+
+        def settled():
+            # `always`, so a background refresh (refresh_live_tv) releases its
+            # marker however this ends — including the epoch-superseded case,
+            # which runs neither callback. A marker left set would stop the
+            # screen refreshing for the rest of its life.
+            route.pop("_refreshing", None)
+        self.run_async(work, on_done, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
     # thin forwarders while unconverted routes still call them as methods.

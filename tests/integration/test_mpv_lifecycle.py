@@ -382,6 +382,71 @@ class MenuSurvivesReopenTest(unittest.TestCase):
         self.assertIs(pm.menu, first, "re-init rebuilt the OSDMenu")
 
 
+class SyncPlaySurvivesReopenTest(unittest.TestCase):
+    """The same invariant as the menu, for the other object that is not a
+    property of the mpv handle — and reached by an ordinary route, not a
+    crash: stop() *halts* a SyncPlay session rather than leaving it, and
+    idle_quit's gate is is_enabled(), which a halted member passes by design.
+    So "back out to the library, let mpv idle-quit, come back" was enough to
+    silently zero group membership while the server still held the seat.
+    """
+
+    def _halted_member(self):
+        pm = h.build_player(player_module)
+        pm.syncplay._enabled = True
+        pm.syncplay.halt_group_playback()   # what stop() does to a session
+        pm._video = None
+        pm.menu.is_menu_shown = False
+        return pm
+
+    def test_membership_survives_an_idle_quit_and_reopen(self):
+        pm = self._halted_member()
+        sp = pm.syncplay
+
+        # mpv_ext_start True for the same reason _assert_gated_noop does it:
+        # on the jsonipc leg the harness leaves it False, which is realistic
+        # (never kill an mpv the user launched) and makes idle_quit a no-op —
+        # so without this the test asserts nothing on that backend, which is
+        # exactly what the matrix caught.
+        with mock.patch.object(player_module.settings, "mpv_idle_quit", True), \
+                mock.patch.object(player_module.settings, "mpv_ext_start", True):
+            pm.idle_quit()
+        self.assertFalse(pm._mpv_alive,
+                         "a halted member should not hold mpv open")
+        pm._ensure_mpv()                    # tray Show / cast / a group update
+
+        self.assertIs(pm.syncplay, sp, "re-open replaced the syncplay manager")
+        self.assertTrue(pm.syncplay.in_group(),
+                        "re-open forgot the group; the server still has us in "
+                        "it and terminate() will never say we left")
+
+    def test_membership_survives_repeated_re_creations(self):
+        """One cycle is a leak, several are the shape it takes in practice —
+        minimize to the tray, come back, repeat. Each rebuild used to strand
+        one manager holding a timesync subscription and a ping."""
+        pm = self._halted_member()
+        sp = pm.syncplay
+        for _cycle in range(5):
+            pm._mpv_alive = False
+            pm._ensure_mpv()
+            self.assertIs(pm.syncplay, sp)
+        self.assertTrue(pm.syncplay.in_group())
+
+    def test_real_manager_created_once_then_reused(self):
+        from jellyfin_mpv_shim.syncplay import SyncPlayManager
+
+        pm = h.build_player(player_module)
+        pm.syncplay = None
+        pm._mpv_alive = False
+        pm._ensure_mpv()
+        first = pm.syncplay
+        self.assertIsInstance(first, SyncPlayManager)
+
+        pm._mpv_alive = False
+        pm._ensure_mpv()
+        self.assertIs(pm.syncplay, first, "re-init rebuilt the manager")
+
+
 if __name__ == "__main__":
     unittest.main()
 

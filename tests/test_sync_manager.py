@@ -16,7 +16,9 @@ import unittest
 
 from jellyfin_mpv_shim.sync import manager as manager_module
 from jellyfin_mpv_shim.sync.manager import SyncManager
-from jellyfin_mpv_shim.sync.db import (SyncDB, STATUS_PENDING, STATUS_COMPLETE)
+from jellyfin_mpv_shim.sync.db import (SyncDB, STATUS_PENDING, STATUS_COMPLETE,
+                                       STATUS_ERROR, ORIGIN_USER,
+                                       ORIGIN_AUTO_NEXT_UP)
 
 
 import contextlib
@@ -85,13 +87,19 @@ class FakeResp:
             yield self._body[i:i + size]
 
 
-def make_manager(root, cleanup=None):
+def make_manager(root, cleanup=None, clients=None):
+    """``clients`` maps server uuid -> client, so a test can make one server
+    unresolvable. Omitted, every uuid resolves — which is the shape that hid
+    the head-of-line block in the download queue for as long as it existed."""
     m = SyncManager()
     m.root = root
     m.db = SyncDB(os.path.join(root, "catalog.db"))
     if cleanup is not None:
         cleanup(lambda: m.db.close())
-    m.get_client = lambda uuid: FakeClient()
+    if clients is None:
+        m.get_client = lambda uuid: FakeClient()
+    else:
+        m.get_client = lambda uuid: clients.get(uuid)
     # Stub the side downloads / playback-info so _download stays offline.
     m._playback_source = lambda *a, **k: None
     m._download_artwork = lambda *a, **k: None
@@ -104,11 +112,12 @@ def make_manager(root, cleanup=None):
 
 
 def add_row(m, item_id, server_id="srv", status=STATUS_PENDING, size_bytes=0,
-            file_path=None):
+            file_path=None, server_uuid="uuid", origin=ORIGIN_USER):
     m.db.upsert({
         "item_id": item_id,
         "server_id": server_id,
-        "server_uuid": "uuid",
+        "server_uuid": server_uuid,
+        "origin": origin,
         "type": "Movie",
         "name": item_id,
         "series_id": None, "series_name": None, "season_id": None,
@@ -719,3 +728,167 @@ class DownloadSegmentsTest(unittest.TestCase):
 
     def test_a_server_without_the_plugin_is_not_an_error(self):
         self.assertIsNone(self._run(RuntimeError("404")))
+
+
+class QueueHeadOfLineTest(TmpTest):
+    """The worker must make progress on every row it *can* run.
+
+    The pending queue is drained in enqueue order so a not-yet-resolvable item
+    cannot float to the front on catalog sort (`db.list`'s own comment says
+    so). That ordering guarantee is worth nothing if the worker then takes the
+    head unconditionally: one row for a server that is gone parks itself there
+    and everything behind it waits forever, because nothing retires such a row
+    — it is left pending *on purpose* so it resumes when the server returns,
+    and removing a server does not purge its catalog rows.
+    """
+
+    def _worker(self, m, until, timeout=5.0):
+        """Run the real worker loop until `until()` or a timeout, then stop."""
+        m._stop = False
+        t = threading.Thread(target=m._run, daemon=True)
+        t.start()
+        deadline = time.monotonic() + timeout
+        while not until() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        m._stop = True
+        m._wake.set()
+        t.join(2)
+        self.assertFalse(t.is_alive(), "worker did not stop")
+
+    def test_an_unreachable_server_does_not_block_what_is_behind_it(self):
+        m = make_manager(self.tmp, self.addCleanup, clients={"here": FakeClient()})
+        add_row(m, "blocked", server_uuid="gone")     # added first: the head
+        add_row(m, "b", server_uuid="here")
+        add_row(m, "c", server_uuid="here")
+        done = []
+
+        def fake_download(row, stopping=None):
+            done.append(row["item_id"])
+            m.db.update(row["item_id"], status=STATUS_COMPLETE)
+
+        m._download = fake_download
+        self._worker(m, lambda: len(done) >= 2)
+        self.assertEqual(sorted(done), ["b", "c"])
+        # The unrunnable row is skipped, not retried in a spin and not retired.
+        self.assertNotIn("blocked", done)
+        self.assertEqual(m.db.get("blocked")["status"], STATUS_PENDING)
+
+    def test_auto_download_still_runs_while_the_queue_holds_only_dead_work(self):
+        """The damaging half. The auto pass is gated on there being no
+        download in flight — a pending row for a server we cannot reach is not
+        one, and treating it as one switched the reaper off (retention, the
+        cap, failed-row reclaim) for the life of the process."""
+        m = make_manager(self.tmp, self.addCleanup, clients={})
+        add_row(m, "blocked", server_uuid="gone")
+        ticks = []
+
+        class FakeAuto:
+            def tick(self):
+                ticks.append(1)
+
+        m.auto = FakeAuto()
+        m._download = lambda row, stopping=None: self.fail("nothing is runnable")
+        self._worker(m, lambda: len(ticks) >= 1)
+        self.assertTrue(ticks, "the auto pass never ran")
+
+    def test_a_runnable_row_still_defers_the_auto_pass(self):
+        """The gate's actual purpose survives: no auto pass while there is
+        real work, so the scheduler never competes with the user's download."""
+        m = make_manager(self.tmp, self.addCleanup, clients={"here": FakeClient()})
+        add_row(m, "b", server_uuid="here")
+        ticks, done = [], []
+
+        class FakeAuto:
+            def tick(self):
+                ticks.append(1)
+
+        def fake_download(row, stopping=None):
+            self.assertEqual(ticks, [], "auto ran with a download queued")
+            done.append(row["item_id"])
+            m.db.update(row["item_id"], status=STATUS_COMPLETE)
+
+        m.auto = FakeAuto()
+        m._download = fake_download
+        self._worker(m, lambda: len(done) >= 1)
+        self.assertEqual(done, ["b"])
+
+    def test_next_runnable_skips_to_the_first_resolvable_row(self):
+        m = make_manager(self.tmp, self.addCleanup, clients={"here": FakeClient()})
+        add_row(m, "x", server_uuid="gone")
+        add_row(m, "y", server_uuid="gone")
+        add_row(m, "z", server_uuid="here")
+        self.assertEqual(m._next_runnable()["item_id"], "z")
+        m.get_client = lambda uuid: None
+        self.assertIsNone(m._next_runnable())
+
+
+def _http_error(status):
+    err = manager_module.requests.HTTPError("HTTP %d" % status)
+    err.response = FakeResp(status=status)
+    return err
+
+
+class PermanentFailureTest(TmpTest):
+    """A failure the code has judged permanent has to outlive the row.
+
+    The reaper deletes auto rows in ERROR to reclaim their .part bytes, one
+    call before the planner runs in the same pass — so the row cannot be what
+    remembers the attempt. Without a tombstone the item is re-enqueued
+    immediately (still unwatched, still Next Up), re-downloaded, re-failed,
+    every pass, forever.
+    """
+
+    def _fail_with(self, exc, origin=ORIGIN_AUTO_NEXT_UP):
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", size_bytes=100, origin=origin)
+
+        def boom(*a, **k):
+            raise exc
+
+        m._stream = boom
+        return m
+
+    def test_a_4xx_is_remembered(self):
+        m = self._fail_with(_http_error(404))
+        m._download(m.db.get("a"))
+        self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
+        self.assertEqual(m.db.discarded_ids(), {"a"},
+                         "the scheduler will fetch this again next pass")
+
+    def test_a_5xx_is_not(self):
+        """Transient by construction — the row stays pending to resume, and a
+        tombstone would take an item out of auto-download for a server that
+        was merely busy."""
+        m = self._fail_with(_http_error(503))
+        with self.assertRaises(manager_module.requests.HTTPError):
+            m._download(m.db.get("a"))
+        self.assertEqual(m.db.get("a")["status"], STATUS_PENDING)
+        self.assertEqual(m.db.discarded_ids(), set())
+
+    def test_an_unexpected_exception_is_not(self):
+        """Disk full, a permissions problem, a bug in us: not the item's
+        fault, gone as soon as the environment is fixed. Blacklisting every
+        episode that met a full disk would quietly gut auto-download."""
+        m = self._fail_with(OSError("No space left on device"))
+        m._download(m.db.get("a"))
+        self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
+        self.assertEqual(m.db.discarded_ids(), set())
+
+    def test_a_users_own_download_is_never_tombstoned(self):
+        """The discard list records the scheduler's decisions. A download the
+        user asked for is theirs to see failed and retry."""
+        m = self._fail_with(_http_error(404), origin=ORIGIN_USER)
+        m._download(m.db.get("a"))
+        self.assertEqual(m.db.discarded_ids(), set())
+
+    def test_a_repeatedly_truncated_download_is_remembered(self):
+        """The other branch that gives up: a server that keeps ending the
+        response at the same offset. Three stalls and it is marked failed —
+        which the reaper then deletes."""
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", size_bytes=100, origin=ORIGIN_AUTO_NEXT_UP)
+        m._stream = lambda *a, **k: (50, 100)
+        for _attempt in range(4):
+            m._download(m.db.get("a"))
+        self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
+        self.assertEqual(m.db.discarded_ids(), {"a"})

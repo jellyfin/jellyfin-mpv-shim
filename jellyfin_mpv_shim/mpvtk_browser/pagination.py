@@ -183,8 +183,17 @@ class Paginator:
           event forever.
         * **Never page from an empty list** — that is start_index=0, i.e. the
           initial load, and the loader owns it.
+        * **Never page against a list that is being replaced.** Live TV is
+          the one screen that re-reads itself behind the user's back
+          (``refresh_live_tv``), and that refresh rewrites ``_data`` from
+          index 0. A page-in submitted alongside it computes ``start`` from a
+          length that is about to change, so the merge either duplicates a
+          page or skips one — permanently, since ``len >= total`` then ends
+          the list early. ``_refreshing`` is that refresh's own guard; the
+          deferral is symmetric, and either direction alone leaves the race.
         """
-        if not self._is_current(route) or route.get("_loading"):
+        if (not self._is_current(route) or route.get("_loading")
+                or route.get("_refreshing")):
             return
         items, total = get(route)
         if not items or len(items) >= total:

@@ -112,13 +112,18 @@ CREATE TABLE IF NOT EXISTS playlist_items (
     PRIMARY KEY (playlist_id, item_id)
 );
 CREATE INDEX IF NOT EXISTS idx_playlist_items_item ON playlist_items(item_id);
--- Auto-downloads the reaper deliberately threw away. Without this, dropping
--- an unwatched episode after `keep_days` accomplishes nothing: it is still
--- the server's Next Up (unwatched is exactly why it is there), so the very
--- next pass re-downloads it, and the cycle repeats forever. A tombstone is
--- the memory of "we fetched this and decided against it". Cleared when the
--- user asks for the item explicitly, which is the one signal that overrides
--- the decision.
+-- Auto-downloads the scheduler is done with. Without this, dropping an
+-- unwatched episode after `keep_days` accomplishes nothing: it is still the
+-- server's Next Up (unwatched is exactly why it is there), so the very next
+-- pass re-downloads it, and the cycle repeats forever. A tombstone is the
+-- memory of "we fetched this and decided against it". Cleared when the user
+-- asks for the item explicitly, which is the one signal that overrides the
+-- decision.
+--
+-- Two writers, for the same reason: the reaper's age rule, and a download
+-- that failed permanently (SyncManager._record_permanent_failure). Both are
+-- decisions about an item whose *row* is about to be deleted, so the row
+-- cannot be what remembers them.
 CREATE TABLE IF NOT EXISTS auto_discarded (
     item_id TEXT PRIMARY KEY,
     discarded_at INTEGER
@@ -549,8 +554,11 @@ class SyncDB:
 
     def list_auto_incomplete(self):
         """Auto rows stuck in ERROR. They keep their partial bytes (counted
-        by auto_size) and the planner never retries them, so nothing else
-        would ever reclaim them."""
+        by auto_size), so nothing else would ever reclaim them.
+
+        Deleting one also destroys the only record that we tried it, which is
+        what auto_discarded exists to survive — see
+        SyncManager._record_permanent_failure."""
         return self._query(
             "SELECT * FROM downloads WHERE origin GLOB ? AND status=?",
             (AUTO_PREFIX + "*", STATUS_ERROR))
@@ -566,8 +574,8 @@ class SyncDB:
             (AUTO_PREFIX + "*", status))
 
     def mark_discarded(self, item_id):
-        """Remember that the reaper threw this away, so the planner does not
-        immediately fetch it again. See the auto_discarded table."""
+        """Remember that the scheduler is done with this item, so the planner
+        does not immediately fetch it again. See the auto_discarded table."""
         with self._lock:
             if self._conn is None:
                 return

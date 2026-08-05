@@ -44,6 +44,7 @@ E1 and E2 exist so far:
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_syncplay_group` | E1 | **two real clients on one real group** — pause/seek propagation, the Waiting handshake, halt/resume; the check that `tests/_syncplay_server.py`'s port of the group state machine is telling the truth |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
+| `test_auto_download` | E1 | the two endpoints the lookahead window is built from — NextUp names the first episode of an *unstarted* series (or the window silently never extends), advances with what was watched, is empty for a finished one; `StartItemId` is inclusive and carries `MediaSources` |
 | `test_strm_source` | E1 | `.strm` shortcuts: where the source is, where the runtime is, what a refused one resolves to |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
 | `test_route_walk` | E1 | every screen loads and renders against the real library |

@@ -872,7 +872,24 @@ class Media(object):
         """Update queue for SyncPlay.
         Returns None if the video is the same or a new Media if not."""
         if self.queue[self.seq]["Id"] == sp_items[seq]["Id"]:
+            # has_next/has_prev are derived state and every other publisher
+            # re-derives them (insert_items above, _publish_queue in the
+            # player). Leaving them at whatever __init__ computed is not a
+            # stale display: the finished callback *decides* on has_next, so
+            # a group that queued a second item while we were on the last one
+            # dropped us out of the group at EOF, and a group that shortened
+            # the queue sent get_next() off the end of it.
+            new_next = seq < len(sp_items) - 1
+            new_prev = seq > 0
+            # Lower before the swap, raise after — same lock-free discipline
+            # as insert_items, in both directions because this one can also
+            # shrink: a reader must never see a flag that promises an entry
+            # the published queue does not have.
+            self.has_next = self.has_next and new_next
+            self.has_prev = self.has_prev and new_prev
             self.queue, self.seq = sp_items, seq
+            self.has_next = new_next
+            self.has_prev = new_prev
             return None
         else:
             return Media(self.client, sp_items, seq, self.user_id, queue_override=False)

@@ -301,6 +301,32 @@ class SyncPlayManager:
         self.following = True
         self.last_playqueue = None
 
+        # Per-session drift and buffer bookkeeping. None of it can clear
+        # itself once the session is over: on_buffer_done is only ever reached
+        # behind is_enabled(), and `attempts` is reset in exactly one place —
+        # the in-sync branch of sync_playback_time, which a session that gave
+        # up (sync_enabled False) can no longer reach at all.
+        #
+        # So a stall that outlived a session latched is_buffering, and the
+        # *next* group got no drift correction ("Not syncing due to no
+        # playback", forever) and never reported a stall to anyone, while a
+        # non-None last_playback_waiting made on_buffer a no-op. Carried-over
+        # attempts spent the next group's budget before it began: enable
+        # restores enable_speed_sync deliberately to give a session a fresh
+        # start, and that restore was defeated by the counter it depends on —
+        # the first correction hit the cap and reported "Sync Disabled (Too
+        # Many Attempts)" in a group this client had attempted nothing in.
+        #
+        # halt_group_playback calls itself "the same teardown as disable,
+        # minus the membership" and clears the buffer pair; this is the rest
+        # of that symmetry.
+        self.is_buffering = False
+        self.last_playback_waiting = None
+        self.attempts = 0
+        self.enable_speed_sync = True
+        self.playback_diff_ms = 0
+        self.method = None
+
         if self.timesync is not None:
             self.timesync.remove_subscriber(self.on_timesync_update)
             self.timesync.stop_ping()
@@ -431,8 +457,17 @@ class SyncPlayManager:
         if not self.last_playback_waiting:
             playback_waiting = datetime.utcnow()
             self.last_playback_waiting = playback_waiting
+            generation = self.sync_generation
 
             def handle_buffer():
+                # The one scheduled callback here that had no generation
+                # check: its own guard is the timestamp, which a *leave* used
+                # not to clear (halt did), so a debounce armed a second before
+                # leaving fired afterwards and set is_buffering on a manager
+                # in no group — which then suppressed drift correction for
+                # whatever session came next.
+                if not self._still_current(generation):
+                    return
                 if playback_waiting == self.last_playback_waiting:
                     self._buffer_req(True)
                     self.is_buffering = True

@@ -501,9 +501,24 @@ class _FakeMenu:
 
     def __init__(self):
         self.actions = []
+        # The drawing surface OSDMenu carries. The player reads these back
+        # (mouse_select resolves a click against menu_list, and the shader
+        # profile menu is reached through profile_manager), so a stand-in
+        # without them turns those paths into AttributeError rather than a
+        # test. tools/audit_fake_contracts.py keeps the set honest.
+        self.menu_list = []
+        self.menu_selection = 0
+        self.profile_manager = None
 
     def menu_action(self, action):
         self.actions.append(action)
+
+    def put_menu(self, title, entries=None, selected=0):
+        self.menu_list = entries if entries is not None else []
+        self.menu_selection = selected
+
+    def mouse_select(self, *_a, **_kw):
+        pass
 
     def show_menu(self):
         self.is_menu_shown = True
@@ -518,20 +533,83 @@ class _FakeMenu:
 
 
 class _FakeSyncplay:
+    """Membership and following are separate, as they are in the real one.
+
+    A halted member (in a group, not playing its content) is the state that
+    reaches mpv re-creation — stop() halts rather than leaves, and idle_quit
+    is gated on is_enabled, which a halted session passes. Collapsing both
+    onto one flag could not express it, so nothing could test what a re-create
+    does to a group.
+
+    Like _FakeMenu, this survives mpv re-creation: PlayerManager builds the
+    real manager once and keeps it, because group membership is not a
+    property of the mpv handle.
+    """
+
     def __init__(self):
         self._enabled = False
+        self._following = True
+        self.client = None
+        self.current_group = None
+        #: Everything the player asked this object to do, in order. The
+        #: player↔SyncPlay wiring is a sequence, and a stand-in that only
+        #: answers questions cannot show a command being sent twice, in the
+        #: wrong order, or to a session that has been left.
+        self.calls = []
 
     def is_enabled(self):
-        return self._enabled
+        return self._enabled and self._following
 
     def in_group(self):
         return self._enabled
 
+    def is_halted(self):
+        return self._enabled and not self._following
+
+    def halt_group_playback(self, *_a, **_kw):
+        self._following = False
+        self.calls.append(("halt_group_playback", ()))
+
+    def resume_group_playback(self, *_a, **_kw):
+        self._following = True
+        self.calls.append(("resume_group_playback", ()))
+
+    def join_group(self, *a, **_kw):
+        self._enabled = True
+        self._following = True
+        self.calls.append(("join_group", a))
+
     def disable_sync_play(self, *_a):
         self._enabled = False
+        self._following = True
+        self.calls.append(("disable_sync_play", ()))
 
     def sync_playback_time(self):
         pass
+
+    # The rest of the surface the player reaches for. Recorded rather than
+    # ignored: a no-op that swallows the call still leaves "did we forward
+    # this?" unanswerable, and these are the paths where the wiring bugs are
+    # (a pause broadcast to a group we had left, a buffer never reported).
+    # tools/audit_fake_contracts.py is what keeps this list complete.
+    def _record(name):
+        def call(self, *a, **_kw):
+            self.calls.append((name, a))
+        call.__name__ = name
+        return call
+
+    on_buffer = _record("on_buffer")
+    on_buffer_done = _record("on_buffer_done")
+    pause_request = _record("pause_request")
+    play_request = _record("play_request")
+    play_done = _record("play_done")
+    seek_request = _record("seek_request")
+    request_next = _record("request_next")
+    request_prev = _record("request_prev")
+    request_skip = _record("request_skip")
+    process_command = _record("process_command")
+    process_group_update = _record("process_group_update")
+    del _record
 
 
 class _FakeUpdateCheck:

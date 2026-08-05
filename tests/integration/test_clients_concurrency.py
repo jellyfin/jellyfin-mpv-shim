@@ -90,8 +90,17 @@ def make_manager(factory, *, sessions=None):
     return cm
 
 
-def server(uuid="s1"):
-    return {"uuid": uuid, "Id": uuid, "address": "http://x", "username": "u"}
+def server(uuid="s1", server_id=None, address="http://x"):
+    """A saved credential.
+
+    ``Id`` defaults to ``uuid``, which is what every existing test wants and
+    is also what hid a whole class of bug: the two are different things, and
+    one server routinely has several credentials — a LAN address and a
+    hostname, or two accounts — sharing an ``Id`` with distinct ``uuid``s.
+    A helper that cannot express that cannot fail a per-``Id`` property.
+    """
+    return {"uuid": uuid, "Id": server_id or uuid, "address": address,
+            "username": "u"}
 
 
 class ConnectRegistryTest(unittest.TestCase):
@@ -580,6 +589,89 @@ class WebSocketErrorBackoffTest(unittest.TestCase):
         for _ in range(10):
             client.callback("WebSocketError", "refused")
         self.assertEqual(max(recorder.waits), 60)
+
+
+class OneClientPerServerTest(unittest.TestCase):
+    """Several addresses for one server are one server.
+
+    `_connect_all` says so explicitly: it groups credentials by server `Id`
+    into serial fallback chains and stops at the first address that answers,
+    because racing them lets a worse route win. Everything that reconnects
+    afterwards is keyed by `uuid` — the registry, the in-flight reservation,
+    the removal tombstones — so the *other* address of a server that is
+    already up looks disconnected, and the health check's retry pass
+    connected it. Two clients, two websockets, one device_id: which one a
+    remote-control command reaches becomes whichever the server saw last,
+    and the box shows up twice in the switcher.
+
+    Not one existing test could see it: `server()` set `Id == uuid`, so two
+    credentials sharing a server never met a health tick anywhere in the
+    tree.
+    """
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+        self._off = mock.patch.object(clients_module.settings, "work_offline",
+                                      False)
+        self._off.start()
+        self.addCleanup(self._off.stop)
+
+    def _manager(self, up=None):
+        up = up if up is not None else {"val": True}
+
+        def sessions():
+            return [{"DeviceId": DEVICE_ID}] if up["val"] else []
+
+        cm = make_manager(lambda: _DynamicClient(up, sessions))
+        cm.credentials = [server("lan", server_id="srv", address="http://lan"),
+                          server("wan", server_id="srv", address="http://wan")]
+        return cm, up
+
+    def _assert_one(self, cm, why=""):
+        self.assertEqual(len(cm.clients), 1,
+                         "%d clients for one server%s" % (len(cm.clients), why))
+
+    def test_health_ticks_do_not_add_a_second_client_for_one_server(self):
+        cm, _up = self._manager()
+        cm._connect_all()
+        self._assert_one(cm, " after the initial connect")
+        for tick in range(3):
+            cm.check_all_clients()
+            self._assert_one(cm, " after tick %d" % tick)
+
+    def test_a_fallback_address_is_still_tried_when_the_server_is_down(self):
+        """The retry pass must keep doing its job: this is the #344/#410 hole
+        it was added for, and a fix that skips too much reopens it."""
+        cm, up = self._manager()
+        up["val"] = False
+        cm._connect_all()
+        self.assertEqual(cm.clients, {}, "connected to a server that is down")
+        up["val"] = True
+        cm.check_all_clients()
+        self._assert_one(cm, " after the server came back")
+
+    def test_a_second_real_server_is_untouched(self):
+        """Different Id, so a different server: still connected, still its
+        own client."""
+        cm, _up = self._manager()
+        cm.credentials.append(server("other", server_id="other-srv"))
+        cm._connect_all()
+        cm.check_all_clients()
+        self.assertEqual(len(cm.clients), 2)
+
+    def test_the_verify_loop_asks_the_same_question(self):
+        """_verify_connected retries one credential in the background for a
+        minute after a failed verify; it checked the uuid too."""
+        cm, _up = self._manager()
+        cm._connect_all()
+        live = dict(cm.clients)
+        # The address that did NOT win the chain, retried on its own.
+        pending = next(s for s in cm.credentials if s["uuid"] not in live)
+        self.assertTrue(cm._server_is_connected(pending),
+                        "the other route to a connected server reads as down")
 
 
 if __name__ == "__main__":

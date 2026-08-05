@@ -30,7 +30,7 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.repository import (  # noqa: E402
     CHANNEL_PAGE, LibrarySource)
 from tests._shell_harness import (  # noqa: E402
-    FakeController, FakeSource, _SyncPool, build_scene, ids)
+    FakeController, FakeSource, _DeferredPool, _SyncPool, build_scene, ids)
 
 UTC = datetime.timezone.utc
 
@@ -1948,6 +1948,215 @@ class LiveTvStaysFresh(unittest.TestCase):
 
         handler.live_tv_changed = boom
         handler.handle_event("client", "TimerCancelled", {})   # must not raise
+
+
+class ChannelListSurvivesAConcurrentRefresh(unittest.TestCase):
+    """A background refresh and a scroll page-in, both in flight.
+
+    Every browser suite runs on _SyncPool, which executes a job at submit
+    time, so no test in the tree had ever had two jobs in flight — and this
+    screen is the only one with a second writer for a list the user is also
+    paging. The properties are the list's, not the calls': every channel
+    exactly once, in server order, and never shorter than it was.
+    """
+
+    TOTAL = 400
+
+    def setUp(self):
+        self.b = browser()
+        self.asked = []
+        self.b.source.get_channels = self._channels
+
+    def _channels(self, server_uuid, start_index=0, limit=CHANNEL_PAGE, **kw):
+        # Honours start_index and limit against a fixed line-up. A fake that
+        # returns one canned page for every request cannot show a page merged
+        # twice, which is how this went unseen.
+        self.asked.append((start_index, limit))
+        end = min(start_index + limit, self.TOTAL)
+        return ([{"Id": "c%d" % i, "Name": "Ch %d" % i, "Type": "TvChannel"}
+                 for i in range(start_index, end)], self.TOTAL)
+
+    def _paged_in(self, page, count):
+        page.route["_data"] = [{"Id": "c%d" % i, "Name": "Ch %d" % i,
+                                "Type": "TvChannel"} for i in range(count)]
+        page.route["_total"] = self.TOTAL
+
+    def _assert_sane(self, route, why=""):
+        """Every property the list owes, checked at one instant: no channel
+        twice, no gap, and never shorter than the longest it has been. The
+        high-water mark is tracked here because a shrink is only visible
+        *between* two completions — comparing start to end hides it."""
+        data = route.get("_data") or []
+        ids = [i["Id"] for i in data]
+        self.assertEqual(len(ids), len(set(ids)), "a page was merged twice" + why)
+        self.assertEqual(ids, ["c%d" % i for i in range(len(ids))],
+                         "the list is no longer a prefix of server order" + why)
+        self.assertGreaterEqual(len(ids), self._longest,
+                                "the list shrank under a scroll past it" + why)
+        self._longest = max(self._longest, len(ids))
+
+    def _open(self, paged=250):
+        page = open_live_tv(self.b, "channels")
+        self._paged_in(page, paged)
+        pool = _DeferredPool()
+        self.b._pool = pool
+        self.asked.clear()
+        self._longest = paged
+        return page, pool
+
+    #: A scroll event near the bottom of the list. on_scroll's `then` fires on
+    #: every event of a drag, so several of these per gesture is the norm.
+    SCROLL = (9000, 9200)
+
+    def test_a_page_is_never_fetched_twice(self):
+        """The scroll that follows a refresh's completion computes its start
+        from a list that refresh just rewrote — while the page-in it already
+        submitted is still in flight against the same index."""
+        page, pool = self._open()
+        self.b.refresh_live_tv()                    # job A: re-read the 250
+        page._channels_scrolled(*self.SCROLL)       # job B: page in at 250
+        pool.release(0)                             # A answers, clears a guard
+        page._channels_scrolled(*self.SCROLL)       # same drag, next event
+        pool.drain()
+
+        # Page-ins only: a refresh always asks from 0, and legitimately so.
+        # `more` refuses to page an empty list, so its start is never 0.
+        starts = [s for s, _l in self.asked if s]
+        self.assertEqual(len(starts), len(set(starts)),
+                         "start_index %r — one page fetched twice, and the "
+                         "one after it never" % (starts,))
+        self._assert_sane(page.route)
+
+    def test_a_refresh_cannot_shorten_a_list_a_page_in_just_grew(self):
+        """The likelier order, since the refresh is the bigger query: the
+        page-in answers first and the refresh lands flat on top of it."""
+        page, pool = self._open()
+        self.b.refresh_live_tv()
+        page._channels_scrolled(*self.SCROLL)
+        pool.release_last()                         # page-in answers first
+        self._assert_sane(page.route, " (after the page-in)")
+        pool.drain()                                # then the refresh
+        self._assert_sane(page.route, " (after the refresh)")
+
+    def test_many_interleavings_keep_the_list_whole(self):
+        """The property, over an arbitrary sequence rather than one order —
+        the shape tests/test_syncplay_e2e.py uses for the same reason."""
+        page, pool = self._open(paged=CHANNEL_PAGE)
+        for step in range(20):
+            # Alternate which one is submitted first — whichever gets there
+            # first is the one that must make the other stand down, and only
+            # one of those two directions was guarded.
+            if step % 2:
+                self.b.refresh_live_tv()
+                page._channels_scrolled(*self.SCROLL)
+            else:
+                page._channels_scrolled(*self.SCROLL)
+                self.b.refresh_live_tv()
+            # ...and which of them answers first.
+            (pool.release_last if step % 3 == 0 else pool.release)()
+            self._assert_sane(page.route, " at step %d" % step)
+            # The drag continues while the other is still in flight — this is
+            # what turns one start computed against a replaced list into a
+            # page fetched twice.
+            page._channels_scrolled(*self.SCROLL)
+            pool.drain()
+            self._assert_sane(page.route, " at step %d" % step)
+            starts = [s for s, _l in self.asked if s]
+            self.assertEqual(len(starts), len(set(starts)),
+                             "start_index %r at step %d" % (starts, step))
+        self.assertGreater(self._longest, CHANNEL_PAGE,
+                           "nothing paged in at all — the test proves nothing")
+
+    def test_a_refresh_still_runs_after_the_last_one_finished(self):
+        """The marker is released however the load ends. If it ever leaked,
+        the screen would simply stop refreshing — silently, and only after
+        however long the user leaves it open."""
+        page, _pool = self._open()
+        self.b._pool = _SyncPool()
+        for _tick in range(5):
+            self.asked.clear()
+            self.b.refresh_live_tv()
+            self.assertTrue(self.asked, "the refresh marker leaked")
+
+    def test_a_superseded_refresh_still_releases_the_marker(self):
+        """The case that runs neither callback: the user navigates while the
+        refresh is in flight, so the epoch moves and on_done is dropped."""
+        page, pool = self._open()
+        self.b.refresh_live_tv()
+        self.b.navigate({"kind": "home", "server": "srv1"})
+        pool.drain()
+        self.assertNotIn("_refreshing", page.route)
+
+
+class GuideFollowsTheClock(unittest.TestCase):
+    """"On now" has to keep meaning now.
+
+    The Guide is the screen this app expects to be left open, and the poll's
+    own comment says the interval exists to keep "on now" meaning now — which
+    was true of every Live TV tab except this one, because the window was
+    seeded from the clock exactly once and every later refresh re-fetched the
+    same hours. No test in the tree moved the clock, so none of them could
+    tell.
+    """
+
+    def setUp(self):
+        self.b = browser()
+        self._real_now = live_tv.now
+        self.clock = [self._real_now()]
+        live_tv.now = lambda: self.clock[0]
+        self.addCleanup(lambda: setattr(live_tv, "now", self._real_now))
+
+    def _advance(self, **kw):
+        self.clock[0] = self.clock[0] + datetime.timedelta(**kw)
+
+    def _covers_now(self, page):
+        data = page.route["_data"]
+        return data["start"] <= live_tv.now() < data["end"]
+
+    def test_a_refresh_moves_the_window_with_the_clock(self):
+        page = open_live_tv(self.b, "guide")
+        self.assertTrue(self._covers_now(page))
+        for hours in (1, 3, 9, 30):
+            self._advance(hours=hours)
+            self.b.refresh_live_tv()
+            self.assertTrue(self._covers_now(page),
+                            "the guide is showing %d hours ago" % hours)
+            self.assertEqual(page.route["_start"],
+                             live_tv.floor_to_cell(live_tv.now()))
+
+    def test_a_window_the_user_paged_to_is_never_dragged_back(self):
+        """The half that makes the other half safe. Yanking someone out of
+        tomorrow evening because a timer event arrived is worse than a stale
+        grid, so this is a flag rather than a staleness test."""
+        page = open_live_tv(self.b, "guide")
+        page._move_window(datetime.timedelta(days=1), {})
+        parked = page.route["_start"]
+        for _refresh in range(5):
+            self._advance(hours=2)
+            self.b.refresh_live_tv()
+            self.assertEqual(page.route["_start"], parked,
+                             "a background refresh moved the user's window")
+
+    def test_the_now_button_hands_the_window_back(self):
+        page = open_live_tv(self.b, "guide")
+        page._move_window(datetime.timedelta(days=1), {})
+        self._advance(hours=1)
+        page._jump_to_now()
+        self.assertEqual(page.route["_start"],
+                         live_tv.floor_to_cell(live_tv.now()))
+        # ...and it follows the clock again afterwards.
+        self._advance(hours=5)
+        self.b.refresh_live_tv()
+        self.assertTrue(self._covers_now(page))
+
+    def test_a_cached_tab_return_re_seeds_too(self):
+        """The third trigger: the tab cache paints instantly, and then the
+        re-read lands. Both have to be about the right hours."""
+        page = open_live_tv(self.b, "guide")
+        page._set_tab("channels")
+        self._advance(hours=6)
+        page._set_tab("guide")
+        self.assertTrue(self._covers_now(page))
 
 
 class RefreshKeepsTheUsersPlace(unittest.TestCase):

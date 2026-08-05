@@ -10,7 +10,7 @@ Two sources, independently switchable:
   series you have started. Broad, and scales with how many shows you have
   going.
 * **Lookahead** — for series you already have downloads for, the next N
-  episodes after the furthest one you hold. Narrow, follows a binge.
+  episodes from where you are *watching*. Narrow, follows a binge.
 
 Everything it fetches is marked with an ``auto:`` origin naming the source
 that queued it (see db.ORIGIN_*), which is the whole safety story: the reaper
@@ -401,42 +401,68 @@ class AutoDownloader:
         return result.get("Items", []) or []
 
     def _lookahead(self, api, server_uuid):
-        """The next N episodes after the furthest one already downloaded, per
-        series we hold something for.
+        """The N episodes from where you are watching, per series we hold
+        something for.
 
-        Keyed off what is on disk rather than off server progress on purpose:
-        the point is to stay a few episodes ahead of where the download set
-        currently ends, so a binge never catches up with it.
+        **Anchored on watch progress, never on what is on disk.** Anchoring on
+        the furthest episode held is the obvious reading of "keep N ahead" and
+        is a ratchet: each pass starts where the last pass finished
+        downloading, so the window walks the whole series whether or not
+        anybody watches it, and only the size cap ever stops it — by which
+        point the disk is full of unwatched episodes the reaper may not evict.
+        Anchored on the server's Next Up for the series, the window only
+        advances when the user does, so a series that is not being watched
+        settles at N episodes and stays there.
+
+        The already-held episodes inside the window are skipped by ``fill``
+        (they are in the catalog), so in the steady state this queues nothing
+        until an episode is watched.
         """
         count = int(settings.auto_download_lookahead or 0)
         out = []
-        for series_id, last_id in self._series_frontier(server_uuid).items():
+        for series_id in self._followed_series(server_uuid):
+            anchor = self._watch_position(api, series_id)
+            if anchor is None:
+                # Nothing next: the series is finished, or the server will not
+                # say. Either way, extending the window is a guess, and the
+                # wrong guess here is the runaway this method exists to avoid.
+                continue
             try:
-                result = api.get_episodes(series_id, start_item_id=last_id,
-                                          limit=count + 1,
+                result = api.get_episodes(series_id, start_item_id=anchor,
+                                          limit=count,
                                           fields=_FIELDS) or {}
             except Exception:
                 log.debug("Lookahead fetch failed for %s", series_id,
                           exc_info=True)
                 continue
-            # StartItemId is inclusive, so the first entry is the episode we
-            # already have; the rest are what comes next.
-            out.extend((result.get("Items", []) or [])[1:count + 1])
+            # StartItemId is inclusive, so the first entry is the anchor —
+            # the next episode to watch, which is part of the window.
+            out.extend((result.get("Items", []) or [])[:count])
         return out
 
-    def _series_frontier(self, server_uuid):
-        """{series_id: id of the furthest episode we hold} for one server.
+    @staticmethod
+    def _watch_position(api, series_id):
+        """Id of the next episode to watch in one series, or None.
 
-        "Furthest" is by (season, episode) number, which is the order the
-        lookahead walks; a missing number sorts first so a special cannot
-        become the frontier and push the window past real episodes.
+        The server's own answer (/Shows/NextUp for that series), because it is
+        the only thing that knows what was watched on other clients. For a
+        series with nothing watched yet it names the first episode, so a show
+        we hold but have not started anchors at the beginning rather than
+        going unanchored.
         """
-        frontier = {}
-        for row in self.manager.db.list(status=STATUS_COMPLETE):
-            if row["server_uuid"] != server_uuid or not row["series_id"]:
-                continue
-            key = (row["parent_index"] or 0, row["index_number"] or 0)
-            best = frontier.get(row["series_id"])
-            if best is None or key > best[0]:
-                frontier[row["series_id"]] = (key, row["item_id"])
-        return {sid: item for sid, (_key, item) in frontier.items()}
+        try:
+            result = api.get_next(series_id=series_id, limit=1) or {}
+        except Exception:
+            log.debug("Next Up fetch failed for series %s", series_id,
+                      exc_info=True)
+            return None
+        items = result.get("Items") or []
+        return items[0].get("Id") if items else None
+
+    def _followed_series(self, server_uuid):
+        """Series ids we hold at least one completed download for, on one
+        server. This is the scope of the lookahead: the shows the user has
+        shown some interest in, as opposed to Next Up's whole library."""
+        return {row["series_id"]
+                for row in self.manager.db.list(status=STATUS_COMPLETE)
+                if row["server_uuid"] == server_uuid and row["series_id"]}

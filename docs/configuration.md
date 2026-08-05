@@ -383,6 +383,9 @@ nothing is playing.
     server returns it most-recent-first, so a small limit is the shows you are actually watching.
 - `auto_download_lookahead` - Episodes to keep ahead of the last one you watched, for the series
   you are working through. `0` disables it. Default: `2`
+  - The window is anchored on the next episode *to watch* (the server's Next Up for that series),
+    not on the last one downloaded, so a series you stop watching settles at this many episodes
+    instead of being fetched in its entirety.
 - `auto_download_max_gb` - Storage budget for automatic downloads. Default: `20`
   - Only applies to automatic downloads. Ones you asked for are never counted against it and are
     never deleted automatically.

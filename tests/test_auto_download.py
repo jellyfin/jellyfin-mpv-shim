@@ -19,26 +19,44 @@ sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.sync.auto import AutoDownloader  # noqa: E402
 from jellyfin_mpv_shim.sync.db import (  # noqa: E402
-    SyncDB, STATUS_COMPLETE, STATUS_PENDING, ORIGIN_USER,
+    SyncDB, STATUS_COMPLETE, STATUS_PENDING, STATUS_ERROR, ORIGIN_USER,
     ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD,
 )
+from jellyfin_mpv_shim.sync.manager import SyncManager  # noqa: E402
 
 GB = 1 << 30
 
 
 class FakeApi:
-    """Only the two calls the planner makes."""
+    """Only the calls the planner makes.
 
-    def __init__(self, next_up=(), episodes=()):
+    ``series`` models a real series listing — ``get_episodes`` slices it from
+    ``StartItemId``, which is what makes the lookahead *window* observable
+    rather than just its first request.
+    """
+
+    def __init__(self, next_up=(), episodes=(), series=None,
+                 watching=None):
         self._next_up = list(next_up)
         self._episodes = list(episodes)
+        #: {series_id: [episode DTO, ...]}, in broadcast order.
+        self._series = {k: list(v) for k, v in (series or {}).items()}
+        #: {series_id: id of the next episode to watch} — the server's answer
+        #: to /Shows/NextUp?seriesId=. Absent means "nothing next".
+        self.watching = dict(watching or {})
         self.calls = []
 
-    def get_next(self, limit=1, fields=None, enable_image_types=None):
-        # fields is load-bearing: without MediaSources every Next Up
-        # candidate is charged the unknown-size fallback.
+    def get_next(self, index=None, limit=1, series_id=None, fields=None,
+                 enable_image_types=None):
+        # fields is load-bearing on the library-wide call: without
+        # MediaSources every Next Up candidate is charged the unknown-size
+        # fallback.
         self.calls.append(("get_next", "/NextUp",
-                           {"Limit": limit, "Fields": fields}))
+                           {"Limit": limit, "Fields": fields,
+                            "SeriesId": series_id}))
+        if series_id is not None:
+            nxt = self.watching.get(series_id)
+            return {"Items": [{"Id": nxt, "Type": "Episode"}] if nxt else []}
         return {"Items": list(self._next_up)}
 
     def get_episodes(self, series_id, season_id=None, start_item_id=None,
@@ -46,7 +64,15 @@ class FakeApi:
         self.calls.append(("get_episodes", "/%s/Episodes" % series_id,
                            {"StartItemId": start_item_id, "Limit": limit,
                             "Fields": fields}))
-        return {"Items": list(self._episodes)}
+        items = self._series.get(series_id)
+        if items is None:
+            items = list(self._episodes)
+        elif start_item_id is not None:
+            ids = [i["Id"] for i in items]
+            # StartItemId is inclusive.
+            items = (items[ids.index(start_item_id):]
+                     if start_item_id in ids else [])
+        return {"Items": items[:limit] if limit else list(items)}
 
     def get_userdata_for_item(self, item_id):
         return None       # "server reachable but says nothing"
@@ -71,7 +97,29 @@ class FakeManager:
 
     def enqueue(self, server_uuid, item_id, item_type, origin=ORIGIN_USER):
         self.enqueued.append((server_uuid, item_id, item_type, origin))
+        # Write the row the real one would. Recording the call and nothing
+        # else made every pass see a virgin catalog, so no test could observe
+        # what a *second* pass does with what the first one queued — which is
+        # the only place several of these bugs live.
+        self.db.upsert(row(item_id, origin=origin, size=0,
+                           status=STATUS_PENDING, server_uuid=server_uuid))
         return 1
+
+    def fail_pending(self, permanent=True):
+        """What the download worker does to everything queued, when the
+        server refuses all of it.
+
+        ``permanent`` picks which branch: a 4xx or a repeatedly truncated
+        response (the code has judged the item itself unfetchable), versus the
+        catch-all — a full disk, a bug — which is not the item's fault. The
+        tombstone half calls the real `_record_permanent_failure` unbound on
+        this fake, so this cannot drift from the code it models.
+        """
+        for pending in self.db.list(status=STATUS_PENDING):
+            self.db.update(pending["item_id"], status=STATUS_ERROR)
+            if permanent:
+                SyncManager._record_permanent_failure(
+                    self, self.db.get(pending["item_id"]))
 
     def delete(self, item_id=None, **kw):
         self.deleted.append(item_id)
@@ -297,25 +345,68 @@ class FillTest(AutoTest):
         self.assertEqual(self.mgr.enqueued, [])
         self.assertEqual(api.calls, [], "it asked anyway")
 
-    def test_lookahead_starts_from_the_furthest_episode_held(self):
-        self.db.upsert(row("s1e1", season=1, ep=1))
-        self.db.upsert(row("s1e5", season=1, ep=5))
-        api = FakeApi(episodes=[{"Id": "s1e5", "Type": "Episode"},
-                                {"Id": "s1e6", "Type": "Episode"},
-                                {"Id": "s1e7", "Type": "Episode"}])
+    def _binge(self, watching, held=("s1e1",), count=6):
+        """A six-episode series, some of it held, the user part way through."""
+        series = {"s1": [{"Id": "s1e%d" % i, "Type": "Episode"}
+                         for i in range(1, count + 1)]}
+        for item_id in held:
+            self.db.upsert(row(item_id, season=1,
+                               ep=int(item_id.rsplit("e", 1)[-1])))
         settings.auto_download_next_up = False
-        auto = self._auto(clients={"srv": FakeClient(api)})
+        api = FakeApi(series=series, watching={"s1": watching})
+        return api, self._auto(clients={"srv": FakeClient(api)})
+
+    def test_lookahead_starts_from_the_episode_you_are_watching(self):
+        """Not from the furthest episode held — see the next test for why."""
+        api, auto = self._binge(watching="s1e2", held=("s1e1", "s1e5"))
         auto.fill(10 * GB)
         params = next(c[2] for c in api.calls if c[0] == "get_episodes")
-        self.assertEqual(params["StartItemId"], "s1e5")
-        # The first result is the episode we already hold.
-        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e6", "s1e7"])
+        self.assertEqual(params["StartItemId"], "s1e2")
+        # Window is [s1e2, s1e3]: the next one to watch, and one past it.
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e2", "s1e3"])
 
-    def test_the_frontier_ignores_other_servers(self):
-        self.db.upsert(row("other", server_uuid="elsewhere", ep=9))
-        self.db.upsert(row("mine", server_uuid="srv", ep=2))
+    def test_the_window_does_not_walk_the_series_on_its_own(self):
+        """The bug this anchoring exists to prevent: anchored on what is on
+        disk, every pass starts where the last one finished downloading, so
+        an unwatched series is eventually downloaded whole."""
+        api, auto = self._binge(watching="s1e1")
+        for _pass in range(4):
+            # What a pass queued is on disk by the time the next one runs.
+            for _srv, item_id, _type, _origin in self.mgr.enqueued:
+                self.db.upsert(row(item_id, season=1,
+                                   ep=int(item_id[-1])))
+            self.mgr.enqueued.clear()
+            auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], [],
+                         "the window advanced without anybody watching")
+        self.assertEqual(sorted(r["item_id"] for r in self.db.list()),
+                         ["s1e1", "s1e2"])
+
+    def test_the_window_advances_when_you_watch(self):
+        api, auto = self._binge(watching="s1e1")
+        auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e2"])
+        for _srv, item_id, _type, _origin in self.mgr.enqueued:
+            self.db.upsert(row(item_id, season=1, ep=int(item_id[-1])))
+        self.mgr.enqueued.clear()
+        api.watching["s1"] = "s1e2"     # finished s1e1
+        auto.fill(10 * GB)
+        self.assertEqual([e[1] for e in self.mgr.enqueued], ["s1e3"])
+
+    def test_a_series_with_nothing_next_is_left_alone(self):
+        """Finished, or a server that will not say: either way, guessing is
+        how the window runs away."""
+        api, auto = self._binge(watching=None)
+        auto.fill(10 * GB)
+        self.assertEqual(self.mgr.enqueued, [])
+        self.assertEqual([c[0] for c in api.calls], ["get_next"],
+                         "it asked for episodes without an anchor")
+
+    def test_followed_series_ignores_other_servers(self):
+        self.db.upsert(row("other", server_uuid="elsewhere", series_id="s2"))
+        self.db.upsert(row("mine", server_uuid="srv", series_id="s1"))
         auto = self._auto()
-        self.assertEqual(auto._series_frontier("srv"), {"s1": "mine"})
+        self.assertEqual(auto._followed_series("srv"), {"s1"})
 
     def test_reaping_watched_frees_room_for_the_same_pass(self):
         """The reaper runs before the planner so a pass that starts over
@@ -574,9 +665,43 @@ class NegativeCapTest(AutoTest):
 
 class FailedRowReclaimTest(AutoTest):
     def test_error_rows_are_reclaimed(self):
-        """They hold .part bytes, count against the cap, and the planner
-        never retries them, so nothing else would."""
-        from jellyfin_mpv_shim.sync.db import STATUS_ERROR
+        """They hold .part bytes and count against the cap, so nothing else
+        would."""
         self.db.upsert(row("bad", status=STATUS_ERROR))
         self.assertEqual(self._auto().reap(), 1)
         self.assertEqual(self.mgr.deleted, ["bad"])
+
+    def _five_passes(self, permanent):
+        settings.auto_download_lookahead = 0
+        api = FakeApi(next_up=[{"Id": "e1", "Type": "Episode"}])
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        for _pass in range(5):
+            auto.run()
+            self.mgr.fail_pending(permanent=permanent)
+        return [e[1] for e in self.mgr.enqueued]
+
+    def test_a_permanently_failed_item_is_not_fetched_every_pass(self):
+        """Reclaiming the row destroys the only record that we already tried
+        this — and reap runs one call before fill, in the same pass. The item
+        is still unwatched and still Next Up, so without a tombstone it comes
+        straight back: five passes, five attempts at a download that cannot
+        succeed, for as long as the app runs.
+        """
+        self.assertEqual(self._five_passes(permanent=True), ["e1"])
+
+    def test_a_failure_that_was_not_the_items_fault_is_retried(self):
+        """The deliberate asymmetry. A full disk or a bug in us ends the
+        moment the environment is fixed, and blacklisting every episode that
+        met a full disk would quietly gut auto-download with nothing to show
+        for it. Only the branches that judged the *item* unfetchable
+        tombstone; do not 'fix' this one by widening that.
+        """
+        self.assertEqual(self._five_passes(permanent=False), ["e1"] * 5)
+
+    def test_asking_for_it_by_hand_clears_the_failure(self):
+        """The one signal that outranks the scheduler's decision, and the
+        user's only way back from a wrong call."""
+        self._five_passes(permanent=True)
+        self.assertEqual(self.db.discarded_ids(), {"e1"})
+        self.db.clear_discarded("e1")
+        self.assertEqual(self.db.discarded_ids(), set())

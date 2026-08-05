@@ -272,9 +272,16 @@ class TrickPlay(threading.Thread):
                     )
 
                 if not self.player.has_video() or video != self.player.get_video():
-                    # Video changed while we were getting the thumbnails
+                    # Video changed while we were getting the thumbnails.
+                    # `continue`, like every sibling guard: this cancels the
+                    # fetch, not the worker. Breaking left the loop for good,
+                    # and nothing restarts it or even notices — the thread is
+                    # created once per mpv instance and fetch_thumbnails() is
+                    # a bare trigger.set() — so one skip during a chapter-image
+                    # download silently ended scrub previews until mpv was
+                    # re-created.
                     _unlink(path)
-                    break
+                    continue
 
                 self.player.script_message(
                     "shim-trickplay-chapters",
