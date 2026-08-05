@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import unittest
 import urllib.error
 import urllib.parse
@@ -357,7 +358,8 @@ class Session:
     Between them that is every way the app reaches a server.
     """
 
-    def __init__(self, account="qa-user", password=PASSWORD, device_id=None):
+    def __init__(self, account="qa-user", password=PASSWORD, device_id=None,
+                 websocket=False):
         from jellyfin_apiclient_python import JellyfinClient
         from jellyfin_mpv_shim.constants import (
             CLIENT_VERSION, USER_APP_NAME, USER_AGENT,
@@ -397,10 +399,58 @@ class Session:
 
         client.config.auth(SERVER, self.user_id, self.token, False)
         client.logged_in = True
-        client.start(websocket=False)
+
+        #: Every (event_name, data) the websocket delivered, when there is one.
+        self.events = []
+        #: Callables fed each event. SyncPlay is the reason this exists: it is
+        #: the one feature that is *entirely* server-pushed, so a session
+        #: without a socket cannot exercise any of it.
+        self.listeners = []
+        if websocket:
+            def _event(event_name, data):
+                self.events.append((event_name, data))
+                for listener in list(self.listeners):
+                    try:
+                        listener(event_name, data)
+                    except Exception:
+                        # A listener that throws must not kill the socket
+                        # thread; the test reads `events` and fails on its
+                        # own terms.
+                        traceback.print_exc()
+
+            client.callback = _event
+            client.callback_ws = _event
+        client.start(websocket=websocket)
 
         self.client = client
         self.api = client.jellyfin
+        if websocket:
+            self._post_capabilities()
+
+    def _post_capabilities(self):
+        """What ClientManager does on WebSocketConnect.
+
+        Retried, because the socket is up a moment before the server will
+        answer for it -- the app's own connect path loops here for the same
+        reason. Without it this session is not a controllable one, which is
+        what SyncPlay hands commands to.
+        """
+        from jellyfin_mpv_shim.clients import CAPABILITIES
+
+        for attempt in range(10):
+            try:
+                self.api.post_capabilities(CAPABILITIES)
+                return
+            except Exception:
+                if attempt == 9:
+                    raise
+                time.sleep(0.3)
+
+    def wait_for_event(self, name, timeout=10):
+        """Block until an event of `name` has arrived, and return it."""
+        return wait_for(
+            lambda: next((d for n, d in list(self.events) if n == name), None),
+            timeout=timeout)
 
     def stop(self):
         """Revoke the token, then close the HTTP session.

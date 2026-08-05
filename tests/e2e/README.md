@@ -42,6 +42,7 @@ E1 and E2 exist so far:
 | Module | Tier | Covers |
 | --- | --- | --- |
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
+| `test_syncplay_group` | E1 | **two real clients on one real group** — pause/seek propagation, the Waiting handshake, halt/resume; the check that `tests/_syncplay_server.py`'s port of the group state machine is telling the truth |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
 | `test_strm_source` | E1 | `.strm` shortcuts: where the source is, where the runtime is, what a refused one resolves to |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
@@ -50,6 +51,7 @@ E1 and E2 exist so far:
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
 | `test_connection_loss` | E1 | the server stops answering: gone, token revoked, or a page-in that fails after a screenful drew |
+| `test_syncplay_playback` | E2 | **the real player in a real group** — stop halts rather than leaves (and leaves when the UI says the SyncPlay menu is unreachable), a halted player is not driven, resume replays the group's content |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
 | `test_playback_failure` | E2 | truncated, zero-byte and single-frame media fail rather than hang |

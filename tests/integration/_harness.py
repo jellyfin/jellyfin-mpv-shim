@@ -474,6 +474,8 @@ def build_player(player_module, video=None):
     pm.on_hud_menu = None
     pm.on_playstate = None
     pm.notify_update = None
+    pm.notify_syncplay = None
+    pm.syncplay_menu_reachable = None
     pm.on_load_start = None
     pm.on_load_error = None
     pm.on_mpv_terminated = None
@@ -520,6 +522,9 @@ class _FakeSyncplay:
         self._enabled = False
 
     def is_enabled(self):
+        return self._enabled
+
+    def in_group(self):
         return self._enabled
 
     def disable_sync_play(self, *_a):

@@ -99,6 +99,25 @@ class FakePlayer:
         # tests stay deterministic.
         func(*args)
 
+    # The rest of the contract. Never reached by these tests, and present
+    # anyway: a stand-in missing a method the manager can call does not make
+    # that path untested, it makes it pass by raising somewhere nobody looks.
+    # Pinned by tests/test_syncplay_player_contract.py.
+    def play(self, video, offset=None, **kwargs):
+        self.video = video
+
+    def has_video(self):
+        return self.get_video() is not None
+
+    def send_timeline(self):
+        pass
+
+    def timeline_handle(self):
+        pass
+
+    def upd_player_hide(self):
+        pass
+
 
 class ProtocolCase(unittest.TestCase):
     def group_and_client(self, state=PLAYING, **kw):
@@ -344,6 +363,118 @@ class TestTheClientAcceptsTheServersResync(ProtocolCase):
         sp.process_command(dict(payload))       # byte-for-byte the same
         self.assertIsNone(sp.playerManager.paused,
                           "acted twice on one message")
+
+
+class TestHaltingIsNotLeaving(ProtocolCase):
+    """Stopping playback steps out of the group's *content*, not the group.
+
+    jellyfin-web's ``haltGroupPlayback``. Leaving on stop meant one person
+    going back to the library dissolved their own membership silently, and
+    there was no way to watch the next thing together without re-joining.
+    """
+
+    def _queue(self, reason, item_id="pl-2", start_ticks=0):
+        return {"Playlist": [{"PlaylistItemId": item_id, "ItemId": "item-2"}],
+                "PlayingItemIndex": 0, "StartPositionTicks": start_ticks,
+                "Reason": reason}
+
+    def _record_starts(self, sp):
+        """Stand in for the whole start-playing path. Building a real Media
+        fetches the item from the server, which is not what any of this is
+        about."""
+        started = []
+        sp._start_queue = lambda data, offset, **kw: started.append(offset)
+        # Nothing is playing after a halt, which is the branch upd_queue takes
+        # to _start_queue.
+        sp.playerManager.get_video = lambda: None
+        return started
+
+    def test_a_halt_keeps_the_membership_and_stops_the_group_waiting(self):
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+
+        self.assertNotIn("Leave", api.kinds(), "a halt left the group")
+        self.assertTrue(sp.in_group(), "a halt gave up the membership")
+        self.assertTrue(sp.is_halted())
+        self.assertFalse(sp.is_enabled(),
+                         "a halted session still reports SyncPlay as driving "
+                         "this player, which is what forwards the user's own "
+                         "pause to the group")
+        self.assertTrue(group.sessions["session-under-test"].ignore_wait,
+                        "the group was never told to stop waiting for us, so "
+                        "it stalls on a member who has stopped watching")
+
+    def test_a_halted_member_does_not_hold_the_group_in_waiting(self):
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        # Somebody else seeks: the group goes to Waiting and needs a Ready
+        # from every member it is still waiting on.
+        group.request("Seek", "other-session", position_ticks=10_000_000)
+        group.request("Ready", "other-session", position_ticks=10_000_000,
+                      is_playing=True, playlist_item_id=group.playing_item_id)
+        self.assertEqual(group.waiting_on(), [],
+                         "the group is still held up by a halted member")
+
+    def test_commands_are_recorded_but_not_applied_while_halted(self):
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        sp.playerManager.paused = None
+        sp.playerManager.seeks = []
+
+        for kind, targets, payload in group.request(
+                "Pause", "other-session", position_ticks=42 * 10_000_000):
+            if kind == "command" and "session-under-test" in targets:
+                sp.process_command(dict(payload))
+
+        self.assertIsNone(sp.playerManager.paused,
+                          "a halted client was driven by the group")
+        self.assertEqual(sp.playerManager.seeks, [])
+        self.assertIsNotNone(sp.last_command,
+                             "the command was not recorded, so a resume has "
+                             "no idea where the group is")
+
+    def test_a_new_playlist_pulls_a_halted_member_back_in(self):
+        """web's QueueCore: NewPlaylist calls followGroupPlayback, every other
+        reason returns early. Putting something new on is an invitation."""
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        started = self._record_starts(sp)
+
+        sp.upd_queue(self._queue("NextItem"))
+        self.assertTrue(sp.is_halted(), "a NextItem update re-attached us")
+        self.assertEqual(started, [])
+
+        sp.upd_queue(self._queue("NewPlaylist"))
+        self.assertTrue(sp.is_enabled())
+        self.assertEqual(len(started), 1)
+        self.assertFalse(group.sessions["session-under-test"].ignore_wait,
+                         "we are watching again and the group was not told")
+
+    def test_resume_starts_where_the_group_is_now(self):
+        group, sp, api = self.group_and_client(
+            state=PAUSED, position_ticks=600 * 10_000_000)
+        started = self._record_starts(sp)
+        sp.upd_queue(self._queue("NewPlaylist", item_id="pl-1"))
+        sp.halt_group_playback()
+        # The group carries on without us, ten minutes into the film.
+        for kind, targets, payload in group.request("Unpause", "other-session"):
+            if kind == "command" and "session-under-test" in targets:
+                sp.process_command(dict(payload))
+
+        self.assertTrue(sp.can_resume())
+        sp.resume_group_playback()
+
+        self.assertTrue(sp.is_enabled())
+        self.assertEqual(len(started), 2, "resume played nothing")
+        # 600s from the Unpause, not the queue update's 0 -- the group has
+        # been watching for ten minutes without us.
+        self.assertAlmostEqual(started[-1], 600, delta=5)
+
+    def test_resume_needs_something_to_resume_into(self):
+        group, sp, api = self.group_and_client()
+        sp.halt_group_playback()
+        self.assertFalse(sp.can_resume(),
+                         "offered a resume with no queue behind it")
 
 
 if __name__ == "__main__":

@@ -155,6 +155,14 @@ class TestTheDoorsAreShut(HeadlessBase):
         self.assertEqual(b.route["kind"], "locked")
 
 
+    def test_stopping_playback_leaves_a_syncplay_group(self):
+        """The cast screen is chrome-free, so the SyncPlay button in the top
+        bar does not exist here. Halting instead of leaving would strand the
+        box in a group with no way out (player._release_syncplay)."""
+        b = self._browser()
+        self.assertFalse(b.syncplay_menu_reachable())
+
+
 class TestWithoutTheFlagNothingChanges(HeadlessBase):
     HEADLESS = False
 
@@ -180,6 +188,17 @@ class TestWithoutTheFlagNothingChanges(HeadlessBase):
         b.display_item("srv1", "m1")
         self.assertEqual(b.route["kind"], "detail",
                          "DisplayContent no longer opens the item")
+
+    def test_stopping_may_halt_syncplay_rather_than_leave(self):
+        b = self._browser()
+        self.assertTrue(b.syncplay_menu_reachable())
+
+    def test_a_cast_that_never_opened_the_library_still_leaves(self):
+        """Stopping a cast minimizes to the tray, so there is no top bar to
+        open the SyncPlay menu from -- a halted group would be inescapable."""
+        b = self._browser()
+        b.minimize()
+        self.assertFalse(b.syncplay_menu_reachable())
 
 
 class TestThePathsThatBypassNavigate(HeadlessBase):

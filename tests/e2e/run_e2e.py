@@ -47,6 +47,10 @@ CONTRACT = [
     "tests.e2e.test_keyboard_nav",
     "tests.e2e.test_large_queue",
     "tests.e2e.test_connection_loss",
+    # Two real clients on one real group. No mpv: SyncPlay drives a player
+    # through a handful of calls and the harness implements those, so this is
+    # a contract question about the server and the protocol.
+    "tests.e2e.test_syncplay_group",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.
@@ -66,6 +70,11 @@ PER_BACKEND = [
     # backend because the property read and the repaint that follows
     # it are both places the two diverge.
     "tests.e2e.test_window_controls",
+    # Leaving/rejoining a SyncPlay group with the REAL player in the loop.
+    # The protocol suites all drive a stand-in; the liability here is the
+    # wiring between PlayerManager and SyncPlayManager, which a fake player
+    # is written to agree with and so cannot fail.
+    "tests.e2e.test_syncplay_playback",
 ]
 
 MODULES = CONTRACT + PER_BACKEND
