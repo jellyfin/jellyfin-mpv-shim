@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-06-14 06:33+0000\n"
+"PO-Revision-Date: 2026-08-05 14:32+0000\n"
 "Last-Translator: rimasx <riks_12@hot.ee>\n"
 "Language-Team: Estonian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/et/>\n"
@@ -55,15 +55,15 @@ msgstr "Praegune seadistus..."
 #: jellyfin_mpv_shim/clients.py
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
-msgstr ""
+msgstr "Ava Jellyfin, mine kasutajamenüüsse -> Kiirühendus ja sisesta see kood:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Kinnituse ootel..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Kõigi olemasolevate kontode eemaldamine."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -75,19 +75,15 @@ msgstr "Serveri lisamine nurjus."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Konto on juba olemas. Konto autentimisandmed värskendatakse."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Server edukalt lisatud."
+msgstr "Serveri autentimisandmed edukalt värskendatud."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Serveri lisamine nurjus."
+msgstr "Serveri autentimisandmete värskendamine nurjus."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -106,28 +102,20 @@ msgid "Add another server?"
 msgstr "Kas lisada teine server?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Serveri lisamine nurjus.\n"
-"Kontrolli ühenduse andmeid."
+msgstr "Serveriga ei saanud ühendust."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Kiirühendus pole sellel serveril lubatud."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Kiirühendust ei õnnestunud käivitada."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Jäta vahele"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -138,61 +126,44 @@ msgid "Seek to Skip Credits"
 msgstr "Otsi tiitrite vahelejätmist"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Eriepisoodid"
+msgstr "Jäta vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Reklaam jäeti vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Otsi tiitrite vahelejätmist"
+msgstr "Hüppa reklaamist üle"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Jäta vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Eelvaade jäeti vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Otsi tiitrite vahelejätmist"
+msgstr "Hüppa eelvaatest üle"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Jäta vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Tiitrid vahele jäetud"
+msgstr "Kokkuvõte jäeti vahele"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Otsi tiitrite vahelejätmist"
+msgstr "Hüppa kokkuvõttest üle"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Sissejuhatus vahele jäetud"
+msgstr "Jäta vahele"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -369,17 +340,16 @@ msgstr "Käsitsi raja indeksi järgi (vähem usaldusväärne)"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "Mitte kunagi"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Küsi"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Alati"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -718,9 +688,8 @@ msgstr ""
 
 # seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Quick Connect"
-msgstr "Kiirühendumine"
+msgstr "Kiirühendus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
@@ -752,9 +721,8 @@ msgstr "Parool:"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Use Quick Connect"
-msgstr "Kasuta kiirühendamist"
+msgstr "Kasuta Kiirühendust"
 
 # seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -782,7 +750,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Kiirühendust ei kinnitatud."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
