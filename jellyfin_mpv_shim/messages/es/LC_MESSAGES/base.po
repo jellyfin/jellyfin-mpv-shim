@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-03 17:24+0000\n"
-"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
+"PO-Revision-Date: 2026-08-05 22:40+0000\n"
+"Last-Translator: Luis Fernando Illapa <moxb@outlook.es>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -80,16 +80,12 @@ msgid "Account already exists. Updating credentials."
 msgstr "La cuenta ya existe. Actualizando credenciales."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Servidor añadido exitosamente."
+msgstr "Se actualizaron correctamente las credenciales del servidor."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "No se pudo añadir el servidor."
+msgstr "No se pudo actualizar las credenciales del servidor."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -108,14 +104,8 @@ msgid "Add another server?"
 msgstr "¿Añadir otro servidor?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo conectar con el servidor."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
@@ -126,10 +116,8 @@ msgid "Could not start Quick Connect."
 msgstr "No se pudo iniciar la Conexión Rápida."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Créditos omitidos"
+msgstr "Omitir Créditos"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
