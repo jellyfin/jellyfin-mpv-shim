@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-30 11:39+0000\n"
-"Last-Translator: felix-hedenstrom <felix.hedenstrom@gmail.com>\n"
+"PO-Revision-Date: 2026-08-05 14:32+0000\n"
+"Last-Translator: Maltavius <marten@voxberg.se>\n"
 "Language-Team: Swedish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sv/>\n"
 "Language: sv\n"
@@ -999,36 +999,32 @@ msgid "Hide unless hovered"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Hoppa alltid över eftertexter"
+msgstr "göm"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Göm aldrig när pausad"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Standardtema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra kompakt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Kompakt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Medium"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "Stor"
+msgstr "Extra Stor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
