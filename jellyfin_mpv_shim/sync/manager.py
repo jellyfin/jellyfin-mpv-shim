@@ -722,16 +722,19 @@ class SyncManager:
                 if now - self._last_playstate >= PLAYSTATE_INTERVAL:
                     self._last_playstate = now
                     self._sync_playstate()
+                row = self._next_runnable()
                 # Only between downloads: a pass here would otherwise
                 # enqueue work while the user's own download is streaming,
                 # and tick() is a no-op unless the interval has elapsed.
-                if self.auto is not None and not self.db.list(
-                        status=STATUS_PENDING):
+                # Gated on *runnable* work, not on the queue being empty: a
+                # pending row for a server we cannot reach is not a download
+                # in progress, and treating it as one used to mean one dead
+                # server switched auto-download's reaper off for the life of
+                # the process — retention and the cap silently stopped being
+                # enforced, with the queue's own log line the only clue.
+                if self.auto is not None and row is None:
                     self.auto.tick()
-                row = None
-                pending = self.db.list(status=STATUS_PENDING)
-                if pending:
-                    row = pending[0]
+                    row = self._next_runnable()
                 if row is None:
                     self._wake.wait(5)
                     continue
@@ -744,6 +747,32 @@ class SyncManager:
                 error_streak += 1
                 log.exception("Download worker iteration failed.")
                 self._wake.wait(min(60, 5 * error_streak))
+
+    def _next_runnable(self):
+        """The first pending row we can actually start now, or None.
+
+        Rows whose server does not resolve are *skipped*, not waited on. The
+        queue is drained in enqueue order (see db.list) and the worker used to
+        take the head unconditionally, so a single row for a server that is
+        gone — logged out, removed, a laptop whose second server is only on
+        the home LAN — parked itself at the front and every later download
+        queued behind it forever. Nothing retires such a row: it is left
+        pending on purpose so it resumes when the server comes back, and
+        removing a server does not purge its catalog rows, so "permanently
+        unresolvable" is a steady state rather than a blip.
+
+        _sync_playstate already iterates past unresolvable clients for exactly
+        this reason; this is the same rule for the download queue.
+        """
+        blocked = 0
+        for row in self.db.list(status=STATUS_PENDING):
+            if self.get_client(row["server_uuid"]) is not None:
+                if blocked:
+                    log.debug("Skipped %d pending download(s) whose server is "
+                              "unreachable.", blocked)
+                return row
+            blocked += 1
+        return None
 
     def _sync_playstate(self):
         """Replay offline playstate once a server is reachable — advancing only:
@@ -777,12 +806,46 @@ class SyncManager:
             log.info("Synced %d offline playstate change(s) to the server.",
                      len(done))
 
+    def _record_permanent_failure(self, row):
+        """Remember that an auto-download failed in a way that will not fix
+        itself, so the scheduler stops fetching it once an hour forever.
+
+        STATUS_ERROR alone cannot carry this. The planner's "already known"
+        check is db.get, and the reaper deletes exactly these rows to reclaim
+        their .part bytes — one call *before* fill() runs, in the same pass.
+        So the row that was supposed to be the memory of the attempt is gone
+        by the time anything consults it, and the item is still unwatched,
+        still Next Up, still the lookahead anchor: re-enqueued immediately,
+        re-downloaded, re-failed, every pass, for as long as the app runs.
+
+        Only the two branches that have *judged* the failure permanent call
+        this — a 4xx, and a server that keeps truncating at the same offset.
+        The catch-all Exception branch deliberately does not: disk full, a
+        permissions problem or a bug in us are not the item's fault, they end
+        as soon as the environment is fixed, and blacklisting every episode
+        that met a full disk would quietly gut auto-download with nothing to
+        show for it.
+
+        Auto rows only. The tombstone table records auto decisions, and a
+        user download's failure is theirs to look at and retry.
+        """
+        if not is_auto(row["origin"]):
+            return
+        try:
+            self.db.mark_discarded(row["item_id"])
+        except Exception:
+            log.debug("Could not record the failure of %s", row["item_id"],
+                      exc_info=True)
+
     def _download(self, row, stopping=None):
         item_id = row["item_id"]
         client = self.get_client(row["server_uuid"])
         if client is None:
+            # Now only reachable if the server went away between _run picking
+            # this row and getting here — _next_runnable does the skipping.
+            # No wait: returning drops straight back into the loop, which
+            # skips this row and idles on the queue as a whole.
             log.warning("No client for download %s; leaving pending.", item_id)
-            self._wake.wait(10)
             return
         with self._active_lock:
             if item_id in self._cancelled:
@@ -852,6 +915,7 @@ class SyncManager:
                     self._short_read_stalls.pop(item_id, None)
                     self.db.update(item_id, status=STATUS_ERROR,
                                    downloaded_bytes=size)
+                    self._record_permanent_failure(row)
                 else:
                     log.error("Download of %s ended short (%d of %d bytes); "
                               "leaving pending to resume.",
@@ -910,6 +974,7 @@ class SyncManager:
             log.error("Download of %s failed with HTTP %s.",
                       row.get("name") or item_id, status)
             self.db.update(item_id, status=STATUS_ERROR)
+            self._record_permanent_failure(row)
         except requests.RequestException as exc:
             # Transient: a dropped connection or read timeout. Keep the row
             # PENDING so the .part resumes (resume offset is read from the file

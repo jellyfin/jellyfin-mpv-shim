@@ -19,9 +19,10 @@ sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.sync.auto import AutoDownloader  # noqa: E402
 from jellyfin_mpv_shim.sync.db import (  # noqa: E402
-    SyncDB, STATUS_COMPLETE, STATUS_PENDING, ORIGIN_USER,
+    SyncDB, STATUS_COMPLETE, STATUS_PENDING, STATUS_ERROR, ORIGIN_USER,
     ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD,
 )
+from jellyfin_mpv_shim.sync.manager import SyncManager  # noqa: E402
 
 GB = 1 << 30
 
@@ -96,7 +97,29 @@ class FakeManager:
 
     def enqueue(self, server_uuid, item_id, item_type, origin=ORIGIN_USER):
         self.enqueued.append((server_uuid, item_id, item_type, origin))
+        # Write the row the real one would. Recording the call and nothing
+        # else made every pass see a virgin catalog, so no test could observe
+        # what a *second* pass does with what the first one queued — which is
+        # the only place several of these bugs live.
+        self.db.upsert(row(item_id, origin=origin, size=0,
+                           status=STATUS_PENDING, server_uuid=server_uuid))
         return 1
+
+    def fail_pending(self, permanent=True):
+        """What the download worker does to everything queued, when the
+        server refuses all of it.
+
+        ``permanent`` picks which branch: a 4xx or a repeatedly truncated
+        response (the code has judged the item itself unfetchable), versus the
+        catch-all — a full disk, a bug — which is not the item's fault. The
+        tombstone half calls the real `_record_permanent_failure` unbound on
+        this fake, so this cannot drift from the code it models.
+        """
+        for pending in self.db.list(status=STATUS_PENDING):
+            self.db.update(pending["item_id"], status=STATUS_ERROR)
+            if permanent:
+                SyncManager._record_permanent_failure(
+                    self, self.db.get(pending["item_id"]))
 
     def delete(self, item_id=None, **kw):
         self.deleted.append(item_id)
@@ -642,9 +665,43 @@ class NegativeCapTest(AutoTest):
 
 class FailedRowReclaimTest(AutoTest):
     def test_error_rows_are_reclaimed(self):
-        """They hold .part bytes, count against the cap, and the planner
-        never retries them, so nothing else would."""
-        from jellyfin_mpv_shim.sync.db import STATUS_ERROR
+        """They hold .part bytes and count against the cap, so nothing else
+        would."""
         self.db.upsert(row("bad", status=STATUS_ERROR))
         self.assertEqual(self._auto().reap(), 1)
         self.assertEqual(self.mgr.deleted, ["bad"])
+
+    def _five_passes(self, permanent):
+        settings.auto_download_lookahead = 0
+        api = FakeApi(next_up=[{"Id": "e1", "Type": "Episode"}])
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        for _pass in range(5):
+            auto.run()
+            self.mgr.fail_pending(permanent=permanent)
+        return [e[1] for e in self.mgr.enqueued]
+
+    def test_a_permanently_failed_item_is_not_fetched_every_pass(self):
+        """Reclaiming the row destroys the only record that we already tried
+        this — and reap runs one call before fill, in the same pass. The item
+        is still unwatched and still Next Up, so without a tombstone it comes
+        straight back: five passes, five attempts at a download that cannot
+        succeed, for as long as the app runs.
+        """
+        self.assertEqual(self._five_passes(permanent=True), ["e1"])
+
+    def test_a_failure_that_was_not_the_items_fault_is_retried(self):
+        """The deliberate asymmetry. A full disk or a bug in us ends the
+        moment the environment is fixed, and blacklisting every episode that
+        met a full disk would quietly gut auto-download with nothing to show
+        for it. Only the branches that judged the *item* unfetchable
+        tombstone; do not 'fix' this one by widening that.
+        """
+        self.assertEqual(self._five_passes(permanent=False), ["e1"] * 5)
+
+    def test_asking_for_it_by_hand_clears_the_failure(self):
+        """The one signal that outranks the scheduler's decision, and the
+        user's only way back from a wrong call."""
+        self._five_passes(permanent=True)
+        self.assertEqual(self.db.discarded_ids(), {"e1"})
+        self.db.clear_discarded("e1")
+        self.assertEqual(self.db.discarded_ids(), set())
