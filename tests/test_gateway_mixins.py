@@ -63,7 +63,7 @@ BEFORE_SPLIT = {
     "set_favorite", "set_last_server", "set_paused", "set_repeat",
     "set_speed", "set_user_pin", "set_volume", "set_watched", "skip_to",
     "stop", "stop_for_close", "switch_user", "sync_active", "sync_join",
-    "sync_leave", "sync_new", "sync_state", "toggle_favorite",
+    "sync_leave", "sync_new", "sync_resume", "sync_state", "toggle_favorite",
     "toggle_fullscreen", "toggle_mute", "toggle_night_mode", "toggle_pause",
     "toggle_stats", "unlock", "unlock_user", "use_hud",
     # private, but part of the contract other tests pin

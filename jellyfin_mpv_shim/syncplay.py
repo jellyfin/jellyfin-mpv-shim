@@ -30,6 +30,18 @@ def _parse_precise_time(time: str):
     return datetime.strptime(time[:-2], "%Y-%m-%dT%H:%M:%S.%f")
 
 
+def default_group_name(client):
+    """The name a group we create gets, matching jellyfin-web's
+    ``SyncPlayGroupDefaultTitle``.
+
+    One function because there are three "New Group" buttons (the OSD menu,
+    the playback HUD and the browser's SyncPlay dialog) and they must not
+    drift -- the browser's used to call the pre-10.7 ``new_sync_play()``,
+    which posts no body at all and which every current server answers with
+    a 400."""
+    return _("{0}'s Group").format(clientManager.get_username_from_client(client))
+
+
 class TimeoutThread(threading.Thread):
     def __init__(self, action, delay: float, args):
         self.action = action
@@ -102,6 +114,19 @@ class SyncPlayManager:
         self.client = None
         self.current_group = None
         self.playqueue_last_updated = None
+
+        # Whether we are playing the group's content, as opposed to merely
+        # being a member of it -- jellyfin-web's Manager.followingGroupPlayback.
+        # Stopping playback halts (SyncPlay/SetIgnoreWait), it does not leave:
+        # membership is a thing you exit from the SyncPlay menu, and tearing
+        # it down on stop meant every "back to the library" dropped the group
+        # out from under the rest of its members. See
+        # PlayerManager._release_syncplay for the one case that still leaves.
+        self.following = True
+        # The last PlayQueue update the group sent. Kept so a halted session
+        # has something to resume into (web's QueueCore.startPlayback reads
+        # the same stored queue).
+        self.last_playqueue = None
 
     # On playback time update (call from timeline push)
     def sync_playback_time(self):
@@ -221,6 +246,10 @@ class SyncPlayManager:
 
     def enable_sync_play(self, from_server: bool):
         self.sync_generation += 1
+        # A fresh join always follows: a halt belongs to the group it was
+        # made in, and joining is the user asking to watch along.
+        self.following = True
+        self.last_playqueue = None
         self.playback_rate = self.playerManager.get_speed()
         self.enabled_at = datetime.utcnow()
         self.enable_speed_sync = True
@@ -269,6 +298,8 @@ class SyncPlayManager:
         self.queued_command = None
         self.sync_enabled = False
         self.playqueue_last_updated = None
+        self.following = True
+        self.last_playqueue = None
 
         if self.timesync is not None:
             self.timesync.remove_subscriber(self.on_timesync_update)
@@ -284,6 +315,96 @@ class SyncPlayManager:
                 self.client.jellyfin.leave_sync_play()
             except:
                 log.warning("Failed to leave syncplay.", exc_info=True)
+
+    def halt_group_playback(self):
+        """Stop playing the group's content without leaving the group.
+
+        jellyfin-web's ``Manager.haltGroupPlayback``: ``SetIgnoreWait`` tells
+        the server to stop holding the group up for a member who is no longer
+        watching, and membership survives. This is what stopping playback does
+        now -- the alternative, leaving, meant the only way to pause your own
+        evening was to drop out of everyone else's.
+
+        The command stream keeps being *recorded* while halted (see
+        ``process_command``); it just stops being applied. That record is what
+        lets ``resume_group_playback`` land at the group's current position
+        rather than wherever the queue update left it."""
+        if not self.is_enabled():
+            return
+        self.following = False
+        # Same teardown as disable, minus the membership: nothing armed by the
+        # session we are stepping out of may fire at a player that is stopping.
+        self.clear_scheduled_command()
+        self.playerManager.set_speed(self.playback_rate)
+        self.is_buffering = False
+        self.last_playback_waiting = None
+        log.info("Syncplay playback halted (still in the group).")
+        self._set_ignore_wait(True)
+
+    def follow_group_playback(self):
+        """Start following the group's playback again (web:
+        ``followGroupPlayback``). Does not itself start anything playing --
+        ``resume_group_playback`` is that, and a ``NewPlaylist`` queue update
+        is the other way back in."""
+        if not self.is_halted():
+            return
+        self.following = True
+        log.info("Syncplay is following group playback again.")
+        self._set_ignore_wait(False)
+
+    def _set_ignore_wait(self, ignore: bool):
+        try:
+            self.client.jellyfin.ignore_sync_play(ignore)
+        except Exception:
+            # Advisory: it only decides whether the group waits for us. Losing
+            # it must not leave `following` disagreeing with what we are doing.
+            log.warning("Failed to set the SyncPlay ignore-wait flag.",
+                        exc_info=True)
+
+    def can_resume(self):
+        """Whether ``resume_group_playback`` has something to play."""
+        return (self.is_halted()
+                and bool((self.last_playqueue or {}).get("Playlist")))
+
+    def resume_group_playback(self):
+        """Rejoin the group's playback after a halt (web:
+        ``resumeGroupPlayback``)."""
+        if not self.in_group():
+            return
+        self.follow_group_playback()
+        data = self.last_playqueue
+        if not data or not data.get("Playlist"):
+            log.info("Syncplay resume: the group has nothing queued.")
+            return
+        self._start_queue(data, self._resume_position(data))
+
+    def _resume_position(self, data):
+        """Where the group is *now*, in seconds, or None.
+
+        The stored queue's StartPositionTicks is where the group was when the
+        queue last changed, which for anything but a just-started playlist is
+        minutes stale. web's ``estimateCurrentTicks`` prefers the last playback
+        command for the same reason; unlike web we only run the clock forward
+        for an Unpause, since advancing from a Pause is just wrong."""
+        cmd = self.last_command
+        try:
+            if cmd is not None and self._command_is_newer(cmd, data):
+                ticks = cmd["PositionTicks"]
+                if cmd["Command"] == "Unpause":
+                    now = self.timesync.local_date_to_server(datetime.utcnow())
+                    ticks += (now - cmd["When"]).total_seconds() * seconds_in_ticks
+                return max(0.0, ticks / seconds_in_ticks)
+        except Exception:
+            log.debug("Could not estimate the resume position.", exc_info=True)
+        offset = data.get("StartPositionTicks")
+        return None if offset is None else offset / seconds_in_ticks
+
+    @staticmethod
+    def _command_is_newer(cmd, data):
+        last_update = data.get("LastUpdate")
+        if last_update is None:
+            return True
+        return cmd["EmitttedAt"] >= _parse_precise_time(last_update)
 
     def _buffer_req(self, is_buffering):
         if self.timesync is None:
@@ -330,8 +451,38 @@ class SyncPlayManager:
         self.local_pause()
         self._buffer_req(False)
 
-    def is_enabled(self):
+    # Three states, and which name gets which is deliberate.
+    #
+    # Halting (stopping playback without leaving the group) split what used to
+    # be one question in two: "are we a member" and "are we playing the
+    # group's content". Almost every caller wants the second -- forwarding a
+    # pause, answering a buffer, suppressing skip-intro -- and a caller that
+    # asks the wrong one broadcasts a user's private pause to five friends.
+    #
+    # So ``is_enabled`` keeps its original meaning rather than being widened
+    # to cover membership. The habitual spelling stays the safe one, the new
+    # state has to be asked for by name, and the cost of forgetting
+    # ``in_group`` somewhere is a group missing from a dialog.
+
+    def in_group(self):
+        """A member of a group, whether or not we are watching along.
+
+        Rarely what you want: it is true of a halted session, which is one
+        that has stopped playing. Membership questions only -- leaving,
+        listing, reporting which group we are in."""
         return self.enabled_at is not None
+
+    def is_enabled(self):
+        """SyncPlay is driving, and being driven by, this player.
+
+        The default question, and the one to reach for when unsure."""
+        return self.in_group() and self.following
+
+    def is_halted(self):
+        """In a group, having stopped playing its content (web's
+        ``!isFollowingGroupPlayback``). Pairs with ``halt_group_playback``;
+        ``resume_group_playback`` is the way out of it."""
+        return self.in_group() and not self.following
 
     def process_group_update(self, command: dict):
         command_type = command["Type"]
@@ -370,7 +521,7 @@ class SyncPlayManager:
         if command is None:
             return
 
-        if not self.is_enabled():
+        if not self.in_group():
             log.debug(
                 "Ignoring command {0} due to SyncPlay being disabled.".format(command)
             )
@@ -416,6 +567,15 @@ class SyncPlayManager:
             "Syncplay will {0} at {1} position {2}".format(command_cmd, when, position)
         )
 
+        if not self.following:
+            # Recorded above, applied never. web gets the same effect by
+            # letting PlaybackCore schedule it and having every local_* call
+            # no-op with no active player; stopping here is the same answer
+            # without arming a timer that would seek an idle player. The
+            # record is what _resume_position reads.
+            log.debug("Not applying command while halted.")
+            return
+
         if command_cmd == "Unpause":
             self.schedule_play(when, position)
         elif command_cmd == "Pause":
@@ -428,7 +588,16 @@ class SyncPlayManager:
             log.error("Command {0} is unknown.".format(command_cmd))
 
     def prepare_session(self, group_id: str, session_data: dict):
-        # I think this might be a dead code path
+        # Dead, and now checked rather than suspected: `GroupUpdateType`
+        # (MediaBrowser.Model/SyncPlay) is UserJoined, UserLeft, GroupJoined,
+        # GroupLeft, StateUpdate, PlayQueue, NotInGroup, GroupDoesNotExist,
+        # LibraryAccessDenied -- there is no PrepareSession for a server to
+        # send. Kept for older servers; not removed blind.
+        #
+        # It could not work as written anyway: the payload carries ItemIds and
+        # no playlist ids, so the Media below invents them, and every SyncPlay
+        # report of an invented id is a 400 (the server's DTOs declare that
+        # field a Guid). Anything reviving this path has to solve that first.
         play_command = session_data.get("PlayCommand")
         if not self.playerManager.has_video():
             play_command = "PlayNow"
@@ -492,13 +661,27 @@ class SyncPlayManager:
 
     def player_message(self, message: str):
         # Messages overwrite menu, so they are ignored.
-        if not self.menu.is_menu_shown:
-            if settings.sync_osd_message:
-                self.playerManager.show_text(message, 2000)
-            else:
-                log.info("SyncPlay Message: {0}".format(message))
-        else:
+        if self.menu.is_menu_shown:
             log.info("Ignored SyncPlay Message (menu): {0}".format(message))
+            return
+
+        notify = getattr(self.playerManager, "notify_syncplay", None)
+        if notify is not None:
+            # The in-window UI has a surface of its own and mpv's OSD text
+            # draws *under* the mpvtk overlay bitmaps, so on the new UI these
+            # were a message either painted over or drawn on top of the
+            # browser's own status line. Same split as notify_update.
+            log.info("SyncPlay Message: {0}".format(message))
+            try:
+                notify(message)
+            except Exception:
+                log.debug("SyncPlay notify failed.", exc_info=True)
+            return
+
+        if settings.sync_osd_message:
+            self.playerManager.show_text(message, 2000)
+        else:
+            log.info("SyncPlay Message: {0}".format(message))
 
     def schedule_play(self, when: datetime, position: int):
         self.clear_scheduled_command()
@@ -579,6 +762,18 @@ class SyncPlayManager:
         else:
             log.error("No video from queue update.")
 
+    def _start_queue(self, data, offset, sp_items=None):
+        """Start playing a group play queue from scratch."""
+        if sp_items is None:
+            sp_items = [
+                {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
+                for x in data["Playlist"]
+            ]
+        media = Media(
+            self.client, sp_items, data["PlayingItemIndex"], queue_override=False
+        )
+        self._play_video(media.video, offset)
+
     def upd_queue(self, data):
         # It can't hurt to update the queue lol.
         # last_upd = _parse_precise_time(data["LastUpdate"])
@@ -591,20 +786,30 @@ class SyncPlayManager:
         #
         # self.playqueue_last_updated = last_upd
 
+        self.last_playqueue = data
+        if not self.following:
+            # Halted. A brand-new playlist pulls us back in -- the group put
+            # something on and that is an invitation -- but its progress
+            # through content we are not watching is not. This is web's
+            # QueueCore: NewPlaylist calls followGroupPlayback, and every
+            # other reason returns early on isFollowingGroupPlayback.
+            if data.get("Reason") != "NewPlaylist":
+                log.debug("Ignoring %s queue update while halted.",
+                          data.get("Reason"))
+                return
+            self.follow_group_playback()
+
         sp_items = [
             {"Id": x["ItemId"], "PlaylistItemId": x["PlaylistItemId"]}
             for x in data["Playlist"]
         ]
         if self.playerManager.get_video() is None:
-            media = Media(
-                self.client, sp_items, data["PlayingItemIndex"], queue_override=False
-            )
             log.info("The queue update changed the video. (New)")
             offset = data.get("StartPositionTicks")
             if offset is not None:
                 offset /= 10000000
 
-            self._play_video(media.video, offset)
+            self._start_queue(data, offset, sp_items=sp_items)
         else:
             media = self.playerManager.get_video().parent
             new_media = media.replace_queue(sp_items, data["PlayingItemIndex"])
@@ -648,8 +853,10 @@ class SyncPlayManager:
     def _still_current(self, generation):
         """Whether a callback armed under `generation` may still act. False
         once the session was disabled OR the command it belongs to was
-        superseded (every clear_scheduled_command bumps the generation)."""
-        return self.is_enabled() and self.sync_generation == generation
+        superseded (every clear_scheduled_command bumps the generation, and
+        halting is one of those -- which is why this asks in_group rather than
+        is_enabled and does not need to test both)."""
+        return self.in_group() and self.sync_generation == generation
 
     def _rearm_sync(self, generation):
         """Deferred re-enable of drift correction after a scheduled play/skip,
@@ -717,9 +924,7 @@ class SyncPlayManager:
 
     def menu_create_group(self):
         self.menu.hide_menu()
-        self.client.jellyfin.new_sync_play_v2(
-            _("{0}'s Group").format(clientManager.get_username_from_client(self.client))
-        )
+        self.client.jellyfin.new_sync_play_v2(default_group_name(self.client))
 
     def menu_action(self):
         self.client = self.playerManager.get_current_client()
@@ -729,7 +934,7 @@ class SyncPlayManager:
         group_option_list = [
             (_("None (Disabled)"), self.menu_disable, None),
         ]
-        if not self.is_enabled():
+        if not self.in_group():
             offset = 2
             group_option_list.append((_("New Group"), self.menu_create_group, None))
         groups = self.client.jellyfin.get_sync_play()

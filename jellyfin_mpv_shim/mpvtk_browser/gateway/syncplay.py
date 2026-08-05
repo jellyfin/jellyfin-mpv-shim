@@ -47,15 +47,20 @@ class SyncPlayMixin(GatewayCore):
         return out
 
     def sync_state(self):
-        """The joined group as ``{"group_id", "server_uuid"}``, or None.
+        """The joined group as ``{"group_id", "server_uuid", "can_resume"}``,
+        or None.
 
         The dialog had no idea which group you were in: every group looked
         joinable and Leave was always offered, including when there was
-        nothing to leave."""
+        nothing to leave. ``can_resume`` is the halted case -- stopping
+        playback steps out of the group's content without leaving the group,
+        so there has to be a way back in."""
         from ...player import playerManager
         try:
             sp = playerManager.syncplay
-            if not sp.is_enabled():
+            # in_group: a halted session is exactly the one this dialog most
+            # needs to describe -- it is where Leave and Resume live.
+            if not sp.in_group():
                 return None
             client = sp.client
             uuid = next((u for u, c in deps.clientManager.clients.items()
@@ -70,7 +75,8 @@ class SyncPlayMixin(GatewayCore):
                 log.debug("syncplay client is not a known server; "
                           "reporting no group")
                 return None
-            return {"group_id": sp.current_group, "server_uuid": uuid}
+            return {"group_id": sp.current_group, "server_uuid": uuid,
+                    "following": sp.following, "can_resume": sp.can_resume()}
         except Exception:
             log.debug("sync_state failed", exc_info=True)
             return None
@@ -89,15 +95,35 @@ class SyncPlayMixin(GatewayCore):
         self._sync(server_uuid, lambda jf: jf.join_sync_play(group_id))
 
     def sync_new(self, server_uuid):
-        self._sync(server_uuid, lambda jf: jf.new_sync_play())
+        """Create a group.
+
+        ``new_sync_play_v2``, never ``new_sync_play``: the latter is the
+        pre-10.7 call and posts no body, and ``NewGroupRequestDto.GroupName``
+        is required -- so every "New Group" from this dialog came back 400
+        while the identical button on the OSD menu (which has always used v2)
+        worked. Nothing to do with there being no playback session."""
+        from ...syncplay import default_group_name
+
+        client = deps.clientManager.clients.get(server_uuid)
+        if client is None:
+            return
+        name = default_group_name(client)
+        self._sync(server_uuid, lambda jf: jf.new_sync_play_v2(name))
 
     def sync_leave(self, server_uuid):
         self._sync(server_uuid, lambda jf: jf.leave_sync_play())
 
+    def sync_resume(self):
+        """Play the group's content again after stopping (web's
+        ``resumeGroupPlayback``). Through run_action like every other playback
+        start -- it loads media, and the player's lock is held for all of it."""
+        self._act(lambda pm: pm.syncplay.resume_group_playback())
+
     def sync_active(self):
-        """True when a SyncPlay group is currently joined."""
+        """True when a SyncPlay group is currently joined -- membership, not
+        playback, which is what the chrome's SyncPlay button reflects."""
         from ...player import playerManager
         try:
-            return bool(playerManager.syncplay.is_enabled())
+            return bool(playerManager.syncplay.in_group())
         except Exception:
             return False

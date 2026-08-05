@@ -69,6 +69,9 @@ class FakeSyncplay:
     def is_enabled(self):
         return False
 
+    def in_group(self):
+        return False
+
 
 class FakePlayerManager:
     def __init__(self, video=None):

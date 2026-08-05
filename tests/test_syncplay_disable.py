@@ -18,6 +18,8 @@ class FakePlayer:
         self.speed = 1.0
         self.paused = None
         self.seeks = []
+        self.video = None
+        self.stopped = []
 
     def get_speed(self):
         return self.speed
@@ -32,6 +34,44 @@ class FakePlayer:
         self.seeks.append((args, kwargs))
 
     def show_text(self, *args, **kwargs):
+        pass
+
+    # The rest of the contract SyncPlayManager may call. Present even though
+    # these tests never reach them: a stand-in that is a subset of the real
+    # player turns "this path is untested" into "this path raises
+    # AttributeError and the suite calls it a pass".
+    # tests/test_syncplay_player_contract.py is what keeps this honest.
+    def get_time(self):
+        return 0.0
+
+    def get_video(self):
+        return self.video
+
+    def has_video(self):
+        return self.video is not None
+
+    def is_not_paused(self):
+        return not self.paused
+
+    def get_current_client(self):
+        return None
+
+    def play(self, video, offset=None, **kwargs):
+        self.video = video
+
+    def stop(self, leave_group=True):
+        self.stopped.append(leave_group)
+
+    def put_task(self, func, *args):
+        func(*args)
+
+    def send_timeline(self):
+        pass
+
+    def timeline_handle(self):
+        pass
+
+    def upd_player_hide(self):
         pass
 
 

@@ -28,6 +28,9 @@ class _Player:
     fullscreen = False
     demuxer_cache_state = None
 
+    def show_text(self, *a, **kw):
+        """An automatic skip announces itself on the OSD."""
+
 
 class _EmptyQueue:
     """update() drains its task queue first; there is nothing to drain."""
@@ -278,7 +281,7 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         type = "Intro"
         has_triggered = False
 
-    def _pm(self):
+    def _pm(self, in_group=False, ready=False):
         pm = PlayerManager.__new__(PlayerManager)
         pm.evt_queue = _EmptyQueue()
         pm._pump_trickplay = lambda: None
@@ -288,11 +291,13 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         pm._last_intro_msg_time = 0
         pm.mpvtk_active = True
         pm._osc_style_resolved = "mpvtk"
+        pm.skips = []
+        pm.skip_intro = lambda: pm.skips.append(1)
         pm.syncplay = type("S", (), {"is_enabled": staticmethod(
-            lambda: False)})()
+            lambda: in_group)})()
         pm._player = _Player()
         pm._video = _Video(EPISODE)
-        pm._video.get_current_intro = lambda _t: (False, self._Intro())
+        pm._video.get_current_intro = lambda _t: (ready, self._Intro())
         # The tail of update() polls for a lost EOF; give it the state that
         # makes it a no-op, so this test is about the branch above it and
         # update() still runs to the end unguarded.
@@ -302,8 +307,9 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
         pm.should_send_timeline = False
         return pm
 
-    def _hud_skip_after_update(self, **flags):
-        pm = self._pm()
+    def _hud_skip_after_update(self, in_group=False, ready=False, **flags):
+        pm = self._pm(in_group=in_group, ready=ready)
+        self._last_pm = pm
         patches = [mock.patch.object(settings, k, v)
                    for k, v in flags.items()]
         for p in patches:
@@ -311,6 +317,42 @@ class TestTheButtonSurvivesSeekToSkipBeingOff(unittest.TestCase):
             self.addCleanup(p.stop)
         PlayerManager.update(pm)
         return pm._hud_skip
+
+    def test_a_group_is_offered_the_button_instead_of_being_skipped(self):
+        """SyncPlay used to turn segment handling off entirely -- no auto
+        skip, and no button either, so watching a series together meant
+        sitting through every intro with the feature apparently broken.
+
+        Automatic is the part that cannot survive a group: a skip is a seek
+        and a seek is everyone's, so an automatic one yanks the room and
+        several members set to `always` race to do it. The button is offered
+        instead, which makes the seek one deliberate act.
+        """
+        self.assertIsNotNone(
+            self._hud_skip_after_update(in_group=True, ready=True,
+                                        segment_intro="always"),
+            "a group got no Skip button at all")
+        self.assertEqual(
+            self._last_pm.skips, [],
+            "the intro was skipped automatically, which seeks the whole group")
+
+    def test_asking_still_asks_in_a_group(self):
+        self.assertIsNotNone(
+            self._hud_skip_after_update(in_group=True, segment_intro="ask"))
+        self.assertEqual(self._last_pm.skips, [])
+
+    def test_alone_always_still_skips_by_itself(self):
+        """The control: nothing about the solo behaviour moved."""
+        self.assertIsNone(
+            self._hud_skip_after_update(in_group=False, ready=True,
+                                        segment_intro="always"),
+            "a solo viewer was shown a button instead of being skipped")
+        self.assertEqual(self._last_pm.skips, [1])
+
+    def test_off_stays_off_in_a_group(self):
+        self.assertIsNone(
+            self._hud_skip_after_update(in_group=True, segment_intro="off"))
+        self.assertEqual(self._last_pm.skips, [])
 
     def test_the_button_is_offered_with_seek_to_skip_turned_off(self):
         self.assertIsNotNone(

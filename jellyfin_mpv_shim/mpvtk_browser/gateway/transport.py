@@ -69,10 +69,13 @@ class TransportMixin(GatewayCore):
         self._act(lambda pm: pm.stop_to_browser())
 
     def stop_for_close(self):
-        """Stop playback on the way out of the window — plain stop(), NOT
-        stop_to_browser(), which re-asserts the browse window we are in the
-        middle of releasing."""
-        self._act(lambda pm: pm.stop())
+        """Stop playback on the way out of the window — NOT stop_to_browser(),
+        which re-asserts the browse window we are in the middle of releasing.
+
+        stop_for_window_close rather than stop(): closing the window leaves a
+        SyncPlay group outright, because there is no library left to reach the
+        SyncPlay menu from."""
+        self._act(lambda pm: pm.stop_for_window_close())
 
     def next(self):
         self._act(lambda pm: pm.play_next())

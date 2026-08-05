@@ -67,9 +67,16 @@ class Session:
         self.id = session_id
         #: Sessions start buffering; the server waits for a Ready from each.
         self.buffering = True
+        #: ``Group.SetIgnoreGroupWait``. A member who has stopped watching but
+        #: not left: still in the group, no longer held for. This is what a
+        #: halt (SyncPlay/SetIgnoreWait) sets, and it is the whole reason a
+        #: halt is not just "stop sending Ready" -- without it the group waits
+        #: on us forever.
+        self.ignore_wait = False
 
     def __repr__(self):
-        return "<Session %s buffering=%s>" % (self.id, self.buffering)
+        return "<Session %s buffering=%s ignore_wait=%s>" % (
+            self.id, self.buffering, self.ignore_wait)
 
 
 class SyncPlayGroup:
@@ -108,11 +115,17 @@ class SyncPlayGroup:
             s.buffering = value
 
     def is_buffering(self):
-        """True while any session has not reported Ready."""
-        return any(s.buffering for s in self.sessions.values())
+        """True while any session that is still being waited for has not
+        reported Ready (``Group.IsBuffering``: ignore-wait members excluded)."""
+        return any(s.buffering and not s.ignore_wait
+                   for s in self.sessions.values())
 
     def waiting_on(self):
-        return sorted(s.id for s in self.sessions.values() if s.buffering)
+        return sorted(s.id for s in self.sessions.values()
+                      if s.buffering and not s.ignore_wait)
+
+    def set_ignore_wait(self, session_id, value):
+        self.sessions[session_id].ignore_wait = value
 
     # -- emitting ----------------------------------------------------------
 
@@ -175,6 +188,23 @@ class SyncPlayGroup:
         self.received.append((kind, session_id, kw))
         mark = len(self.outbox)
         prev = self.state
+        if kind == "IgnoreWait":
+            # Every state handles this one the same way
+            # (AbstractGroupState.HandleRequest(IgnoreWaitGroupRequest)): set
+            # the flag, and if that was the last session the group was held
+            # up by, stop waiting.
+            self.set_ignore_wait(session_id, kw.get("ignore_wait", True))
+            if self.state == WAITING and not self.is_buffering():
+                # "Client, that was buffering, stopped following playback."
+                # Resuming broadcasts an Unpause; returning to Paused just
+                # changes state, and sends nothing.
+                if self.resume_playing:
+                    self.state = PLAYING
+                    self.last_activity = datetime.datetime.utcnow()
+                    self.send_command(session_id, "AllGroup", "Unpause")
+                else:
+                    self.state = PAUSED
+            return self.outbox[mark:]
         handler = getattr(self, "_%s_%s" % (self.state.lower(), kind.lower()), None)
         if handler is None:
             handler = getattr(self, "_%s_default" % self.state.lower())
@@ -315,7 +345,34 @@ class SyncPlayGroup:
         self._state_update(session_id, "Seek")
 
     def _waiting_buffer(self, session_id, prev, **kw):
+        """``WaitingGroupState.HandleRequest(BufferGroupRequest)``.
+
+        This used to set the flag and send nothing, which quietly left the
+        headline behaviour of the whole feature -- *the group pauses for a
+        member who has stalled* -- unmodelled, and so untested on the client
+        side. The Pause below is what the other members actually receive.
+        """
         self.set_buffering(session_id, True)
+        if prev == PLAYING:
+            self.resume_playing = True
+            # Credit the group with the time it really did play, exactly as
+            # the pause path does.
+            now = datetime.datetime.utcnow()
+            elapsed = (now - self.last_activity).total_seconds()
+            self.last_activity = now
+            self.position_ticks += max(int(elapsed * TICKS_PER_SECOND), 0)
+            # "Send pause command to all non-buffering sessions" -- AllReady
+            # is every member that is not itself buffering, and the line above
+            # has already excluded this one.
+            self.send_command(session_id, "AllReady", "Pause")
+        elif prev == PAUSED:
+            self.resume_playing = False
+            self.send_command(session_id, "CurrentSession", "Pause")
+        elif not self.resume_playing:
+            # Already Waiting, and for a group that was paused: force this
+            # session, which should be paused, back into line.
+            self.send_command(session_id, "CurrentSession", "Pause")
+        self._state_update(session_id, "Buffer")
 
     def _waiting_stop(self, session_id, prev, **kw):
         self.state = IDLE
@@ -375,15 +432,26 @@ class SyncPlayGroup:
 # --------------------------------------------------------------------------
 
 class FakeTimesync:
-    """Zero offset, so server time and local time are the same clock."""
+    """Zero offset, so server time and local time are the same clock.
 
-    def __init__(self):
+    ``skew_seconds`` back-dates every server time into the local past, which
+    is what makes a scheduled play/pause run inline instead of arming a
+    thread. Ten seconds is plenty for that and harmless when the only thing
+    under test is what the client *sends*.
+
+    It is not harmless when the test compares the client's position against
+    the group's: ``schedule_play``'s "playing now" branch adds however long
+    ago the command was supposed to happen, so a ten-second skew puts every
+    client ten seconds past the group. Pass 0 there -- a ``When`` stamped a
+    moment ago is already in the past, so callbacks still run inline.
+    """
+
+    def __init__(self, skew_seconds=10):
         self.subscribers = []
+        self.skew = datetime.timedelta(seconds=skew_seconds)
 
     def server_date_to_local(self, when):
-        # In the past, so scheduled callbacks run inline and tests stay
-        # deterministic.
-        return datetime.datetime.utcnow() - datetime.timedelta(seconds=10)
+        return when - self.skew
 
     def local_date_to_server(self, when):
         return when
@@ -454,6 +522,9 @@ class FakeJellyfinApi:
     def set_item_sync_play(self, playlist_item_id):
         self._req("SetPlaylistItem", playlist_item_id=playlist_item_id)
 
+    def ignore_sync_play(self, should_ignore):
+        self._req("IgnoreWait", ignore_wait=should_ignore)
+
     # -- group lifecycle
     def join_sync_play(self, group_id):
         self.calls.append(("Join", {"group_id": group_id}))
@@ -506,7 +577,14 @@ def bind(manager, group, session_id="session-under-test"):
             if kind == "command":
                 manager.process_command(dict(payload))
             else:
-                manager.process_group_update(payload["Type"], payload["Data"])
+                # One dict, as the websocket delivers it (event_handler passes
+                # the whole GroupUpdate through). Splitting it into two
+                # positional args raised TypeError on every group update a
+                # client's own request produced -- which is every Pause and
+                # every Seek, since those broadcast a StateUpdate back to the
+                # sender. No test had driven a request that far, so the crash
+                # sat in the harness rather than in anything it measured.
+                manager.process_group_update(dict(payload))
 
     api = FakeJellyfinApi(group, session_id, deliver)
     manager.client = FakeClient(api, timesync)

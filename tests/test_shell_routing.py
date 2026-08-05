@@ -751,7 +751,12 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
         class Client:
             jellyfin = type("J", (), {
                 "join_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
-                "new_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
+                # v2, not new_sync_play: the pre-10.7 call posts no body and
+                # GroupName is required, so it is a flat 400 on any current
+                # server, and the dialog's New Group button never worked
+                # while the identical OSD-menu button did.
+                "new_sync_play_v2": staticmethod(
+                    TestTheControllerDoesNotSwallow._boom),
                 "leave_sync_play": staticmethod(TestTheControllerDoesNotSwallow._boom),
             })()
 

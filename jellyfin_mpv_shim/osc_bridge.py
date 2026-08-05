@@ -262,7 +262,9 @@ class OscBridge:
         # fail, with a message indistinguishable from a network problem.
         if not self._may_syncplay():
             return None
-        enabled = syncplay.is_enabled()
+        # in_group: the HUD's accent means "you are in a group", and a
+        # halted member still is -- the entry below it is how they leave.
+        enabled = syncplay.in_group()
         groups = []
         for group in self._syncplay_groups:
             groups.append({
@@ -443,14 +445,10 @@ class OscBridge:
         client.jellyfin.join_sync_play(group_id)
 
     def _syncplay_new(self):
-        from .clients import clientManager
+        from .syncplay import default_group_name
 
         client = self._syncplay_client()
-        client.jellyfin.new_sync_play_v2(
-            _("{0}'s Group").format(
-                clientManager.get_username_from_client(client)
-            )
-        )
+        client.jellyfin.new_sync_play_v2(default_group_name(client))
 
     def _syncplay_disable(self):
         client = self._syncplay_client()

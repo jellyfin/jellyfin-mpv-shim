@@ -2443,6 +2443,30 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._update = {"version": version, "url": url}
         self.invalidate()
 
+    def notify_syncplay(self, message):
+        """Registered as playerManager.notify_syncplay: SyncPlay's messages
+        on the status line rather than the MPV OSD.
+
+        Dropped while video owns the window: the browser is yielded, so there
+        is nothing on screen to draw a status line on, and a toast queued now
+        would appear minutes later when the library came back. The log has
+        them either way."""
+        if not self._browsing:
+            return
+        self.set_status(message)
+
+    def syncplay_menu_reachable(self):
+        """Registered as playerManager.syncplay_menu_reachable: whether
+        stopping playback lands somewhere the SyncPlay menu can be opened,
+        which is what decides between halting the group and leaving it.
+
+        Headless has one page and it is chrome-free; ``_minimized`` is the
+        cast that never opened the library, and stopping it puts the window
+        away rather than showing the browser. In both the SyncPlay button in
+        the top bar is unreachable, so a halted group would be one nobody
+        could get out of."""
+        return not self.headless and not self._minimized
+
     # -- client-side decorations -------------------------------------------
 
     @property

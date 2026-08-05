@@ -130,6 +130,78 @@ class TestDialogs(unittest.TestCase):
                       [c[0] for c in getattr(self.ctl, "transport", [])])
         self.assertIsNone(self.b._dialog)   # closes on join
 
+    def test_the_syncplay_buttons_fit_inside_the_dialog(self):
+        """Every button row has to fit the shell it is drawn in.
+
+        They did not: adding Resume put five buttons on one line and Close
+        ran off the right edge, off-screen and unclickable. The button set is
+        variable -- New Group, Resume and Leave each come and go -- so this
+        measures the worst case, which is the one nobody has on screen while
+        they are editing the layout.
+        """
+        self.ctl.sync_state = lambda: {
+            "group_id": "g1", "server_uuid": "srv1",
+            "following": False, "can_resume": True}    # every button at once
+        self.b._open_syncplay()
+        nodes, _h = self._dialog_nodes()
+        for button in ("sp-new", "sp-resume", "sp-leave", "sp-refresh",
+                       "sp-close"):
+            self.assertIn(button, ids(nodes))
+
+        # `_dialog` is the builder itself; calling it gives the tree.
+        self._assert_rows_fit(self.b._dialog())
+
+    def _assert_rows_fit(self, node, shell_w=None):
+        """Walk the tree; no Row may measure wider than the space it has.
+
+        Follows `.child` as well as `.children` -- a Dialog holds a single
+        `.child`, so a walk that only knew about `.children` stopped at the
+        very first node and this check passed by visiting nothing. It was
+        written that way and had to be caught by deliberately restoring the
+        broken layout, which is the only reason it is not still silent.
+        """
+        from jellyfin_mpv_shim.mpvtk.layout import measure
+        from jellyfin_mpv_shim.mpvtk.widgets import Button, Column, Row
+
+        if isinstance(node, Column) and getattr(node, "w", None):
+            shell_w = node.w - 2 * (getattr(node, "pad", 0) or 0)
+        # Button is a Box too, and its inner Row is its own business.
+        if isinstance(node, Row) and shell_w and not isinstance(node, Button):
+            width = measure(node)[0]
+            self.assertLessEqual(
+                width, shell_w,
+                "a row measures %dpx inside %dpx of usable dialog width -- "
+                "whatever is past the edge is invisible and unclickable"
+                % (width, shell_w))
+        children = list(getattr(node, "children", None) or [])
+        child = getattr(node, "child", None)
+        if child is not None:
+            children.append(child)
+        for each in children:
+            self._assert_rows_fit(each, shell_w)
+
+    def test_syncplay_offers_resume_only_when_halted(self):
+        """Stopping playback halts the group instead of leaving it, so this
+        dialog is where you get back into what everyone else is watching."""
+        self.ctl.sync_state = lambda: {
+            "group_id": "g1", "server_uuid": "srv1",
+            "following": True, "can_resume": False}
+        self.b._open_syncplay()
+        nodes, _h = self._dialog_nodes()
+        self.assertNotIn("sp-resume", ids(nodes),
+                         "offered a resume while we are already watching")
+
+        self.ctl.sync_state = lambda: {
+            "group_id": "g1", "server_uuid": "srv1",
+            "following": False, "can_resume": True}
+        self.b._open_syncplay()
+        nodes, handlers = self._dialog_nodes()
+        self.assertIn("sp-resume", ids(nodes))
+        handlers["sp-resume"]["click"]()
+        self.assertIn("sync_resume",
+                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertIsNone(self.b._dialog)
+
 class TestBanners(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
