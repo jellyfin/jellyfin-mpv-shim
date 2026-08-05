@@ -884,6 +884,19 @@ class FakeThumbs:
         touching what the renderer knows about it."""
         self.cached.pop(key, None)
 
+    def trim_memory(self, max_bytes=None):
+        """What a screen change does. Modelled rather than counted: a
+        stand-in that increments `self.trims += 1` proves the call happened
+        and nothing about whether anything was released — which is exactly
+        how an unbounded second owner of every decoded image went unnoticed.
+        """
+        self.trims = getattr(self, "trims", 0) + 1
+        if not max_bytes:
+            self.cached.clear()
+
+    def set_auth(self, *_a, **_kw):
+        pass
+
     def pump(self):
         return False
 
