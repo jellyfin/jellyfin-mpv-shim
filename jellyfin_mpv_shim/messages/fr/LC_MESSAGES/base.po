@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-01 22:09+0000\n"
-"Last-Translator: django-scorgister <malaska@mailo.com>\n"
+"PO-Revision-Date: 2026-08-05 22:40+0000\n"
+"Last-Translator: Lionel Morin <aidensingh2@gmail.com>\n"
 "Language-Team: French <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/fr/>\n"
 "Language: fr\n"
@@ -83,13 +83,13 @@ msgstr "Le compte existe déjà. Mise à jour des identifiants."
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Serveur ajouté avec succès."
+msgstr "Serveur mis à jour avec succès."
 
 #: jellyfin_mpv_shim/clients.py
 #, fuzzy
 #| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Échec d'ajout du serveur."
+msgstr "Échec de modification des informations d'identification du serveur."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -120,10 +120,8 @@ msgid "Could not start Quick Connect."
 msgstr "Impossible de démarrer la Connexion Rapide."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Crédits ignorés"
+msgstr "Passer le générique"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -137,59 +135,59 @@ msgstr "Avancer pour passer les crédits"
 #, fuzzy
 #| msgid "Specials"
 msgid "Skip Commercial"
-msgstr "Spéciaux"
+msgstr "Passer la publicité"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Crédits ignorés"
+msgstr "Publicité passée"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Avancer pour passer les crédits"
+msgstr "Avancer pour passer la publicité"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Crédits ignorés"
+msgstr "Passer l'aperçu"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Crédits ignorés"
+msgstr "Aperçu ignoré"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Avancer pour passer les crédits"
+msgstr "Avancer pour passer l'aperçu"
 
 #: jellyfin_mpv_shim/media.py
+#, fuzzy
 msgid "Skip Recap"
-msgstr ""
+msgstr "Passer le résumé"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Crédits ignorés"
+msgstr "Résumé ignoré"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Avancer pour passer les crédits"
+msgstr "Avancer pour passer le résumé"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Introduction ignorée"
+msgstr "Passer l'introduction"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -366,17 +364,16 @@ msgstr "Index manuel par piste (moins fiable)"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "Jamais"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Demander"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Toujours"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -485,9 +482,8 @@ msgstr "Discord Rich Presence"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "Introduction ignorée"
+msgstr "Passer les introductions"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
