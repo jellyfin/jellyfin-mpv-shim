@@ -847,7 +847,7 @@ class ClientManager(object):
             with self._client_lock:
                 if server["uuid"] in self._removed_uuids:
                     return  # the user removed this server; stop retrying it
-            if server["uuid"] in self.clients:
+            if self._server_is_connected(server):
                 return  # a health tick or ws redial reconnected it already
             if self.connect_client(server, False):
                 # Browsable again (the token works). Confirm the cast session
@@ -1027,6 +1027,39 @@ class ClientManager(object):
         for client in clients.values():
             client.stop()
 
+    def _server_is_connected(self, server):
+        """Whether this *server* already has a live client — not whether this
+        particular credential does.
+
+        ``_connect_all`` groups credentials by server ``Id`` into serial
+        fallback chains and stops at the first address that answers,
+        deliberately: several addresses for one server (a LAN IP and a
+        hostname, say) are alternative routes to it rather than several
+        servers, and racing them lets a worse route win. Everything that
+        reconnects afterwards has to ask that same question or it quietly
+        undoes it — the registry, the in-flight reservation and the removal
+        tombstones are all keyed by ``uuid``, so the *other* address of a
+        server that is already up looks disconnected and gets connected too.
+
+        The result is two clients and two websockets on one ``device_id``
+        under a single server session, so which socket a remote-control
+        command reaches becomes whichever the server saw last; and
+        ``_collect_servers`` is uuid-keyed too, so the same box appears twice
+        in the switcher and on the home screen. Nothing ever collapses the
+        pair: ``remove_client`` takes one uuid.
+
+        This does mean two accounts on one server share one client, which is
+        already true of startup — the chain covers them both. Consistent and
+        limited beats inconsistent.
+        """
+        if server["uuid"] in self.clients:
+            return True
+        server_id = server.get("Id")
+        if not server_id:
+            return False
+        return any(other.get("Id") == server_id and other["uuid"] in self.clients
+                   for other in list(self.credentials))
+
     def check_all_clients(self):
         if settings.work_offline:
             return  # don't touch the network in offline mode
@@ -1053,7 +1086,7 @@ class ClientManager(object):
         # (even SYN-blackholed) server costs this loop ~5s per tick.
         reconnected = False
         for server in list(self.credentials):
-            if server["uuid"] not in self.clients and not self.is_stopping:
+            if not self._server_is_connected(server) and not self.is_stopping:
                 log.info(
                     "Health check: retrying disconnected server %s",
                     server.get("address"),
