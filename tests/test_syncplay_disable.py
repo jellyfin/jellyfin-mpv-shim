@@ -152,5 +152,95 @@ class DisableSyncPlayTests(unittest.TestCase):
         self.assertEqual(len(sp.playerManager.seeks), 1)
 
 
+class LeavingReturnsToAFreshState(unittest.TestCase):
+    """Whatever a session did to this object, leaving must undo it.
+
+    Every suite in the tree seats a manager in one group and never takes it
+    out again, so nothing could see state crossing that boundary — and three
+    fields did. The generic test is the one that keeps paying: enumerating
+    fields by hand is how the list got out of date in the first place.
+    """
+
+    #: Fields that legitimately outlive a session, and why.
+    CARRIED = {
+        "playerManager", "menu",        # collaborators, not state
+        "client",                       # the server we left; enable reuses it
+        "min_buffer_thresh_ms",         # a constant
+        "sync_generation",              # must only ever go up
+        "last_sync_time",               # a throttle stamp, re-read on use
+        "playback_rate",                # the speed to restore, read by disable
+        "read_callback",                # replaced wholesale by the next enable
+        "notify_sync_ready",            # ditto
+        "time_offset", "round_trip_duration",   # timesync's, not the group's
+    }
+
+    def _session(self):
+        """A manager that has been through a group and left it, having done
+        the things a session does — including stalling, which is the case that
+        cannot clean up after itself (on_buffer_done sits behind is_enabled)."""
+        sp = SyncPlayManager(FakePlayer())
+        sp.enabled_at = datetime.utcnow()
+        sp.playback_rate = 1.0
+        sp.current_group = "g1"
+        sp.sync_enabled = True
+        sp.last_command = {"Command": "Unpause", "When": datetime.utcnow(),
+                           "PositionTicks": 0}
+        sp.attempts = 7                    # a bad evening for the network
+        sp.enable_speed_sync = False       # gave up on speed corrections
+        sp.playback_diff_ms = 4200
+        sp.method = "Speed"
+        sp.on_buffer()                     # mpv stalled...
+        sp.is_buffering = True             # ...and the debounce fired
+        sp.disable_sync_play(True)         # user backs out / GroupLeft
+        return sp
+
+    def test_leaving_restores_every_field_it_should(self):
+        fresh = vars(SyncPlayManager(FakePlayer()))
+        left = vars(self._session())
+        differing = {k for k in fresh
+                     if k not in self.CARRIED and left[k] != fresh[k]}
+        self.assertEqual(differing, set(),
+                         "state survived leaving the group; it will be "
+                         "inherited by whatever group is joined next")
+
+    def test_the_next_group_gets_drift_correction(self):
+        """The consequence, stated in the terms the user would notice: a
+        latched is_buffering makes sync_playback_time return at its first
+        guard forever, so nobody in the next group is ever pulled back into
+        line."""
+        sp = self._session()
+        self.assertFalse(sp.is_buffering)
+        self.assertIsNone(sp.last_playback_waiting)
+
+    def test_the_next_group_gets_a_full_attempt_budget(self):
+        """attempts is reset in exactly one place — the in-sync branch — which
+        a session that already gave up (sync_enabled False) cannot reach. It
+        arrived at the next group already over the cap."""
+        self.assertEqual(self._session().attempts, 0)
+        self.assertTrue(self._session().enable_speed_sync)
+
+    def test_a_buffer_debounce_cannot_fire_into_the_next_session(self):
+        """on_buffer's callback guards on a timestamp, and leaving did not
+        clear it (halting did). Armed a second before GroupLeft, it landed
+        afterwards and set is_buffering on a manager in no group."""
+        armed = []
+        import jellyfin_mpv_shim.syncplay as syncplay_module
+        real = syncplay_module.set_timeout
+        syncplay_module.set_timeout = (
+            lambda delay, action, *args: armed.append((action, args)) or None)
+        self.addCleanup(lambda: setattr(syncplay_module, "set_timeout", real))
+
+        sp = SyncPlayManager(FakePlayer())
+        sp.enabled_at = datetime.utcnow()
+        sp.playback_rate = 1.0
+        sp.on_buffer()
+        sp.disable_sync_play(True)
+
+        for action, args in armed:
+            action(*args)
+        self.assertFalse(sp.is_buffering,
+                         "a callback from the group we left is still running")
+
+
 if __name__ == "__main__":
     unittest.main()

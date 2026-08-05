@@ -435,7 +435,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # _sync_window_geometry) and a redundant write is not free.
         self._geometry_armed = None
         self.update_check = UpdateChecker(self)
+        # Both built by the first _init_mpv and kept across every later one.
         self.menu = None
+        self.syncplay = None
         self.osc_bridge = OscBridge(self)
         self.is_in_intro = False
         self.playback_time_before_seek = None
@@ -733,13 +735,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.menu = OSDMenu(self, self._player)
         else:
             self.menu.update_player(self._player)
-        self.syncplay = SyncPlayManager(self)
 
-        if discord_presence:
-            try:
-                register_join_event(self.syncplay.discord_join_group)
-            except Exception:
-                log.error("Could not register Discord join callback.", exc_info=True)
+        # Group membership is not a property of the mpv handle either, and
+        # gets there by a route the menu does not: stop() *halts* rather than
+        # leaves, and idle_quit's gate (is_enabled) lets a halted member
+        # through by design — so backing out to the library and letting mpv
+        # quit is enough. A fresh manager here forgot we were in a group
+        # while the server still held the seat: terminate() then never told
+        # it we left, each cycle leaked the old manager's timesync
+        # subscription and ping, and — since process_group_update is not
+        # gated on membership — the group's next PlayQueue still reached the
+        # new manager and drove playback, with no Ready ever sent, leaving
+        # the whole group waiting on us. It talks to mpv only through this
+        # PlayerManager, so unlike the menu it needs no re-pointing.
+        if self.syncplay is None:
+            self.syncplay = SyncPlayManager(self)
+
+            if discord_presence:
+                try:
+                    register_join_event(self.syncplay.discord_join_group)
+                except Exception:
+                    log.error("Could not register Discord join callback.",
+                              exc_info=True)
 
         if hasattr(self._player, "osc"):
             # Ensure the built-in OSC stays disabled when a shim OSC script

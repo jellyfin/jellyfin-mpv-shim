@@ -52,6 +52,62 @@ class InsertItemsOrderingTest(unittest.TestCase):
         self.assertTrue(media.has_next)
 
 
+class ReplaceQueueTest(unittest.TestCase):
+    """SyncPlay's publisher, which has the same obligation.
+
+    A group's PlayQueue update arrives on the websocket thread and lands in
+    Media.replace_queue. When it does not change the playing item — the
+    ordinary case for a queue edit — it used to swap queue and seq and leave
+    has_next/has_prev at whatever __init__ computed, which is not a display
+    bug: the finished callback *decides* on has_next.
+    """
+
+    @staticmethod
+    def _items(ids):
+        return [{"PlaylistItemId": "pl%d" % i, "Id": i_d}
+                for i, i_d in enumerate(ids)]
+
+    def test_a_group_that_queued_another_item_gives_us_a_next(self):
+        """Playing the only item; someone else adds a second. At EOF the
+        finished callback reads has_next — False here meant leaving the group
+        and going back to the library while everyone else played on."""
+        media = make_media(["a"], seq=0)
+        self.assertIsNone(media.replace_queue(self._items(["a", "b"]), 0))
+        self.assertTrue(media.has_next)
+
+    def test_a_group_that_shortened_the_queue_takes_it_away(self):
+        """The other direction, which is worse than a wrong button: get_next()
+        indexes the queue, so a stale True walked off the end of it and killed
+        auto-advance with a swallowed IndexError."""
+        media = make_media(["a", "b", "c"], seq=0)
+        self.assertTrue(media.has_next)
+        media.replace_queue(self._items(["a"]), 0)
+        self.assertFalse(media.has_next)
+        self.assertIsNone(media.get_next())
+
+    def test_an_insert_before_the_current_item_gives_us_a_prev(self):
+        media = make_media(["a"], seq=0)
+        media.replace_queue(self._items(["x", "a"]), 1)
+        self.assertTrue(media.has_prev)
+        self.assertEqual(media.seq, 1)
+
+    def test_the_flags_track_the_queue_through_any_sequence(self):
+        """The property, over many updates rather than one: after every
+        publish, both flags agree with what was published — and the playing
+        item never moved, which is what makes this the same-item branch."""
+        media = make_media(["a", "b", "c"], seq=1)
+        # Grow, shrink, insert before, insert after, restate, drain to one.
+        for ids, seq in ((["a", "b", "c", "d"], 1), (["a", "b"], 1),
+                         (["z", "a", "b"], 2), (["z", "b"], 1),
+                         (["z", "b", "c", "d"], 1), (["b"], 0),
+                         (["b", "e"], 0), (["a", "b"], 1)):
+            self.assertIsNone(media.replace_queue(self._items(ids), seq))
+            self.assertEqual(media.queue[media.seq]["Id"], "b")
+            self.assertEqual(media.has_next,
+                             media.seq < len(media.queue) - 1, ids)
+            self.assertEqual(media.has_prev, media.seq > 0, ids)
+
+
 class FakeVideo:
     def __init__(self, aid, sid, streams):
         self.aid = aid

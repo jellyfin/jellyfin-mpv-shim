@@ -518,17 +518,38 @@ class _FakeMenu:
 
 
 class _FakeSyncplay:
+    """Membership and following are separate, as they are in the real one.
+
+    A halted member (in a group, not playing its content) is the state that
+    reaches mpv re-creation — stop() halts rather than leaves, and idle_quit
+    is gated on is_enabled, which a halted session passes. Collapsing both
+    onto one flag could not express it, so nothing could test what a re-create
+    does to a group.
+
+    Like _FakeMenu, this survives mpv re-creation: PlayerManager builds the
+    real manager once and keeps it, because group membership is not a
+    property of the mpv handle.
+    """
+
     def __init__(self):
         self._enabled = False
+        self._following = True
 
     def is_enabled(self):
-        return self._enabled
+        return self._enabled and self._following
 
     def in_group(self):
         return self._enabled
 
+    def is_halted(self):
+        return self._enabled and not self._following
+
+    def halt_group_playback(self, *_a, **_kw):
+        self._following = False
+
     def disable_sync_play(self, *_a):
         self._enabled = False
+        self._following = True
 
     def sync_playback_time(self):
         pass

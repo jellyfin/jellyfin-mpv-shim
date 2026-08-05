@@ -136,6 +136,7 @@ class LiveTvPage(Page):
         # inside the worker they would resolve against whatever window the
         # user had paged to by the time it landed.
         page = int(self.route.get("_chan_page") or 0)
+        self._reseed_window()
         start = self._window_start()
         # Always fetch the WIDEST window the grid can draw, whatever is on
         # screen right now. The visible width decides how many columns are
@@ -327,15 +328,39 @@ class LiveTvPage(Page):
         """Where the visible window begins.
 
         Seeded from the clock (rounded down to the half hour, so what is on
-        *now* is in the first column) and then moved only by the arrows —
-        never re-seeded, or paging forward would snap back to now on the
-        next repaint.
+        *now* is in the first column) and thereafter whatever the arrows and
+        _reseed_window left. Never re-seeded from *here*: this is read while
+        building the header too, and moving the window during a render would
+        label the grid with a range its data does not cover.
         """
         start = self.route.get("_start")
         if start is None:
             start = live_tv.floor_to_cell(live_tv.now())
             self.route["_start"] = start
         return start
+
+    def _reseed_window(self):
+        """Follow the clock, unless the user has paged away from it.
+
+        The Guide is the screen this app expects to be left open, and it
+        re-reads itself from three triggers (returning to the cached tab, the
+        two-minute poll, the timer websocket events). Every one of them
+        re-fetched the *same* window, so "on now" stopped being now as soon as
+        the clock left the first column — within the hour on a narrow window —
+        and after four hours the grid was entirely aired data. The poll's own
+        justification for its interval is "keeps 'on now' meaning now", which
+        was true of every Live TV tab except this one. jellyfin-web clears its
+        currentDate before an auto-reload for exactly this reason.
+
+        The converse is the half that makes it safe, and it is why this is a
+        flag rather than a staleness test: once the arrows have moved the
+        window it is the user's, and a background refresh that yanks them back
+        to now while they are reading tomorrow evening is worse than a stale
+        grid. The Now button hands it back.
+        """
+        if self.route.get("_start_pinned"):
+            return
+        self.route["_start"] = live_tv.floor_to_cell(live_tv.now())
 
     def _categories(self):
         """The guide's category filter. Session state, like jellyfin-web's
@@ -435,10 +460,14 @@ class LiveTvPage(Page):
         if target == self.route.get("_start"):
             return          # already against the end of the guide data
         self.route["_start"] = target
+        # The window is the user's from here on: no background refresh may
+        # move it again until they ask to come back.
+        self.route["_start_pinned"] = True
         self._reload_tab()
 
     def _jump_to_now(self):
         self.route["_start"] = live_tv.floor_to_cell(live_tv.now())
+        self.route["_start_pinned"] = False     # following the clock again
         self._reload_tab()
 
     def _channel_page(self, page, last):

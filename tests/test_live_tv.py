@@ -1950,6 +1950,77 @@ class LiveTvStaysFresh(unittest.TestCase):
         handler.handle_event("client", "TimerCancelled", {})   # must not raise
 
 
+class GuideFollowsTheClock(unittest.TestCase):
+    """"On now" has to keep meaning now.
+
+    The Guide is the screen this app expects to be left open, and the poll's
+    own comment says the interval exists to keep "on now" meaning now — which
+    was true of every Live TV tab except this one, because the window was
+    seeded from the clock exactly once and every later refresh re-fetched the
+    same hours. No test in the tree moved the clock, so none of them could
+    tell.
+    """
+
+    def setUp(self):
+        self.b = browser()
+        self._real_now = live_tv.now
+        self.clock = [self._real_now()]
+        live_tv.now = lambda: self.clock[0]
+        self.addCleanup(lambda: setattr(live_tv, "now", self._real_now))
+
+    def _advance(self, **kw):
+        self.clock[0] = self.clock[0] + datetime.timedelta(**kw)
+
+    def _covers_now(self, page):
+        data = page.route["_data"]
+        return data["start"] <= live_tv.now() < data["end"]
+
+    def test_a_refresh_moves_the_window_with_the_clock(self):
+        page = open_live_tv(self.b, "guide")
+        self.assertTrue(self._covers_now(page))
+        for hours in (1, 3, 9, 30):
+            self._advance(hours=hours)
+            self.b.refresh_live_tv()
+            self.assertTrue(self._covers_now(page),
+                            "the guide is showing %d hours ago" % hours)
+            self.assertEqual(page.route["_start"],
+                             live_tv.floor_to_cell(live_tv.now()))
+
+    def test_a_window_the_user_paged_to_is_never_dragged_back(self):
+        """The half that makes the other half safe. Yanking someone out of
+        tomorrow evening because a timer event arrived is worse than a stale
+        grid, so this is a flag rather than a staleness test."""
+        page = open_live_tv(self.b, "guide")
+        page._move_window(datetime.timedelta(days=1), {})
+        parked = page.route["_start"]
+        for _refresh in range(5):
+            self._advance(hours=2)
+            self.b.refresh_live_tv()
+            self.assertEqual(page.route["_start"], parked,
+                             "a background refresh moved the user's window")
+
+    def test_the_now_button_hands_the_window_back(self):
+        page = open_live_tv(self.b, "guide")
+        page._move_window(datetime.timedelta(days=1), {})
+        self._advance(hours=1)
+        page._jump_to_now()
+        self.assertEqual(page.route["_start"],
+                         live_tv.floor_to_cell(live_tv.now()))
+        # ...and it follows the clock again afterwards.
+        self._advance(hours=5)
+        self.b.refresh_live_tv()
+        self.assertTrue(self._covers_now(page))
+
+    def test_a_cached_tab_return_re_seeds_too(self):
+        """The third trigger: the tab cache paints instantly, and then the
+        re-read lands. Both have to be about the right hours."""
+        page = open_live_tv(self.b, "guide")
+        page._set_tab("channels")
+        self._advance(hours=6)
+        page._set_tab("guide")
+        self.assertTrue(self._covers_now(page))
+
+
 class RefreshKeepsTheUsersPlace(unittest.TestCase):
     """An auto-refresh is the one screen update nobody asked for, so it has
     to be invisible: same scroll, same open menu, same dialog, same list."""

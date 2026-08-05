@@ -56,10 +56,18 @@ class FakeQueue:
     def __init__(self, playlist_item_id):
         self.seq = 0
         self.queue = [{"PlaylistItemId": playlist_item_id, "ItemId": "item-1"}]
+        # Derived, and carried here because a stand-in that omits the field an
+        # invariant is about cannot fail that invariant: the real Media once
+        # left these frozen across a group queue update, and no suite that
+        # drives upd_queue could see it.
+        self.has_next = False
+        self.has_prev = False
 
     def replace_queue(self, items, index):
         self.queue = list(items) or self.queue
         self.seq = index if index is not None and index >= 0 else 0
+        self.has_next = self.seq < len(self.queue) - 1
+        self.has_prev = self.seq > 0
         return None
 
 

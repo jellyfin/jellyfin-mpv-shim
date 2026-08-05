@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 import threading
+import time
 import unittest
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
@@ -253,6 +254,113 @@ class StripCounterRaceTest(unittest.TestCase):
                          "two strips share one content version — on the "
                          "libmpv path (recycled addresses) that makes them "
                          "indistinguishable to the renderer's overlay cache")
+
+
+class _WorkerVideo:
+    """A video with no server-side trickplay, so the worker takes the chapter
+    path — the one with the guard that used to kill the thread."""
+
+    def __init__(self, name, on_images=None):
+        self.name = name
+        self._on_images = on_images
+
+    def get_bif(self, *_a, **_kw):
+        return None
+
+    def get_chapters(self):
+        return [{"start": 0}, {"start": 10}]
+
+    def get_chapter_images(self, *_a, **_kw):
+        # A generator in the real one, so the window this guard covers spans
+        # the whole download — which is why a skip lands here so easily.
+        if self._on_images is not None:
+            self._on_images()
+        return iter(())
+
+
+class _WorkerPlayer:
+    def __init__(self, video):
+        self.video = video
+        self.messages = []
+        self.lock = threading.Lock()
+
+    def has_video(self):
+        return self.video is not None
+
+    def get_video(self):
+        return self.video
+
+    def script_message(self, *args):
+        with self.lock:
+            self.messages.append(args)
+
+
+class WorkerSurvivesAVideoChangeTest(unittest.TestCase):
+    """`run()` leaves its loop only when `halt` is set.
+
+    Every guard in it cancels *this fetch* — the video moved on, the frames
+    are for the wrong item. One of them used to `break`, which ends the
+    worker: the thread is created once per mpv instance, nothing checks
+    is_alive() or restarts it, and fetch_thumbnails() is a bare trigger.set(),
+    so scrub previews stopped for the life of that mpv with no log line.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        orig = trickplay._img_path
+        trickplay._img_path = lambda seq: os.path.join(
+            self.dir.name, "raw_images.%d.bin" % seq)
+        self.addCleanup(lambda: setattr(trickplay, "_img_path", orig))
+        orig_decompress = trickplay.bifdecode.decompress_bif
+        trickplay.bifdecode.decompress_bif = lambda images, fh: (
+            list(images), fh.write(b"x" * 8), {"width": 8, "height": 8})[-1]
+        self.addCleanup(lambda: setattr(trickplay.bifdecode, "decompress_bif",
+                                        orig_decompress))
+
+    def _worker(self, player):
+        tp = trickplay.TrickPlay(player)
+        self.addCleanup(lambda: tp.stop(join=False))
+        tp.start()
+        return tp
+
+    def _fetch(self, tp, player, timeout=5.0):
+        """Trigger one pass and wait for its message, if any."""
+        before = len(player.messages)
+        tp.fetch_thumbnails()
+        deadline = time.monotonic() + timeout
+        while len(player.messages) == before and time.monotonic() < deadline:
+            time.sleep(0.005)
+        return len(player.messages) > before
+
+    def test_a_video_change_mid_fetch_cancels_the_fetch_not_the_worker(self):
+        player = _WorkerPlayer(None)
+        # The swap happens *inside* the fetch, which is the whole point: a
+        # stand-in that answers the same video throughout cannot fail this.
+        first = _WorkerVideo("first",
+                             on_images=lambda: setattr(player, "video",
+                                                       _WorkerVideo("second")))
+        player.video = first
+        tp = self._worker(player)
+
+        self.assertFalse(self._fetch(tp, player, timeout=1.0),
+                         "the skipped fetch published anyway")
+        self.assertTrue(tp.is_alive(), "the worker died on a video change")
+
+        # And it still works afterwards — three more times, because the
+        # failure this pins is permanent, not a one-off stumble.
+        player.video = _WorkerVideo("stable")
+        for attempt in range(3):
+            self.assertTrue(self._fetch(tp, player),
+                            "no thumbnails after skip #%d" % attempt)
+            self.assertEqual(player.messages[-1][0], "shim-trickplay-chapters")
+
+    def test_halt_is_still_the_way_out(self):
+        player = _WorkerPlayer(_WorkerVideo("only"))
+        tp = self._worker(player)
+        self.assertTrue(self._fetch(tp, player))
+        tp.stop()
+        self.assertFalse(tp.is_alive(), "stop() no longer stops the worker")
 
 
 if __name__ == "__main__":
