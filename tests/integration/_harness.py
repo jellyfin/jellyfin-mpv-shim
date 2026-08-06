@@ -674,44 +674,57 @@ def spin_barrier(n):
 # ffmpeg sample media (Tier 2)
 # --------------------------------------------------------------------------
 
+_WINDOWS_FONTS = (r"C:\Windows\Fonts", ("arial.ttf", "segoeui.ttf"))
+
+
 def _drawtext(label):
-    """A drawtext filter for ``label``, or None if this machine cannot draw one.
+    """``(filter, cwd)`` drawing ``label``, or ``(None, None)`` if this machine
+    cannot draw one.
 
     drawtext resolves its default font through fontconfig, which Windows does
     not have: ffmpeg exits ENOENT there rather than falling back to a font,
     which took out every test whose clip carried a label while the identical
     unlabelled clips built fine. The label is a debugging affordance -- it is
     what tells two clips apart when you watch the window go by -- so name a
-    font explicitly where one is findable, and go without where it is not."""
+    font explicitly where one is findable, and go without where it is not.
+
+    The font is named *relatively*, from ffmpeg's working directory, because a
+    Windows path cannot be spelled inside a filter graph without guessing how
+    many times its drive colon will be unescaped on the way in. It is a
+    separator there, and one backslash is consumed by the graph parser before
+    the option parser ever sees it -- so ``fontfile=C\\:/...`` arrives as the
+    option ``fontfile=C`` followed by the junk option ``/Windows/...``. A bare
+    filename has no colon to argue about."""
     spec = "drawtext=text='%s':fontcolor=white:x=10:y=10" % label
     if os.name != "nt":
-        return spec
-    for font in (r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\segoeui.ttf"):
-        if os.path.isfile(font):
-            # Inside a filter graph the drive colon is a separator, so it has
-            # to arrive escaped.
-            return spec + ":fontfile=" + font.replace("\\", "/").replace(":", r"\:")
-    return None
+        return spec, None
+    fontdir, names = _WINDOWS_FONTS
+    for name in names:
+        if os.path.isfile(os.path.join(fontdir, name)):
+            return spec + ":fontfile=" + name, fontdir
+    return None, None
 
 
 def make_test_clip(path, duration=2, size="160x120", label=None):
     """Generate a tiny, deterministic H.264 clip with ffmpeg. Cheap enough to
     regenerate per test; no network, no external assets."""
     src = "testsrc=duration=%d:size=%s:rate=10" % (duration, size)
+    cwd = None
     if label:
-        drawtext = _drawtext(label)
+        drawtext, cwd = _drawtext(label)
         if drawtext:
             src += "," + drawtext
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-f", "lavfi", "-i", src,
         "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast",
-        path,
+        # Absolute, so the working directory above cannot move the output.
+        os.path.abspath(path),
     ]
     # Not check=True: CalledProcessError prints the command and swallows the
     # captured stderr, so a filter ffmpeg refused and a filter it could not
     # find a font for are the same opaque exit status.
-    proc = subprocess.run(cmd, stdout=subprocess.DEVNULL,
+    proc = subprocess.run(cmd, cwd=cwd, stdout=subprocess.DEVNULL,
                           stderr=subprocess.PIPE, text=True)
     if proc.returncode != 0:
         raise RuntimeError("ffmpeg exited %d building %s: %s" % (

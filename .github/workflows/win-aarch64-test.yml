@@ -151,6 +151,25 @@ jobs:
       timeout-minutes: 45
       run: python tests/integration/run_integration.py --backend libmpv --strict
       shell: bash
+    - name: PyInstaller Bootloader
+      # Built from source, as the real jobs do: the stock wheel's prebuilt
+      # bootloader is on every antivirus heuristic list. The ARM64 flags pin
+      # what the x86 path gets for free -- waf would otherwise infer the
+      # target from PROCESSOR_ARCHITECTURE and pick a compiler by search
+      # order, and either one guessing wrong yields an x64 bootloader under
+      # the ARM64 name rather than an error.
+      if: '!cancelled()'
+      run: |
+        ./gen_pkg.sh --get-pyinstaller
+        cd pyinstaller/bootloader
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          python ./waf --target-arch=64bit-arm --check-c-compiler=msvc distclean all
+        else
+          python ./waf distclean all
+        fi
+        cd ..
+        pip install .
+      shell: bash
     - name: Main Build
       # Runs even when the suite above went red: a first pass at a suite that
       # has never run on this OS will find things about the tests, and the
