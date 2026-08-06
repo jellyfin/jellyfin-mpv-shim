@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-04 16:10+0000\n"
+"PO-Revision-Date: 2026-08-06 13:33+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -3266,10 +3266,8 @@ msgid "Mark Watched"
 msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from Playlist"
-msgstr "حذف الخادم"
+msgstr "حذف من لائحة التشغيل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
@@ -3338,12 +3336,12 @@ msgstr "إعدادات الخوادم"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "تحميل%(اسم)اء — %(n)d الباقي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "تحميل— %(n)d الباقي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
