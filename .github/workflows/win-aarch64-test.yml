@@ -152,15 +152,22 @@ jobs:
       run: python tests/integration/run_integration.py --backend libmpv --strict
       shell: bash
     - name: Main Build
+      # Runs even when the suite above went red: a first pass at a suite that
+      # has never run on this OS will find things about the tests, and the
+      # launch check below is the one that is actually about the build. The
+      # job still reports the failure.
+      if: '!cancelled()'
       run: |
         .\${{ matrix.build }}
       shell: cmd
     - name: Verify the built exe is ${{ matrix.expect }}
+      if: '!cancelled()'
       run: |
         python tools/check_win_arch.py --skip-interpreter \
           --expect ${{ matrix.expect }} dist/run/run.exe
       shell: bash
     - name: Install silently
+      if: '!cancelled()'
       shell: pwsh
       run: |
         $installer = Get-ChildItem dist\*installer*.exe | Select-Object -First 1
@@ -179,6 +186,7 @@ jobs:
         Write-Host "installed at $wanted"
         "APP=$wanted" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     - name: Launch the installed app and wait for the browser
+      if: '!cancelled()'
       # The whole point of the workflow. The app is launched the way a user
       # launches it -- the installed binary, out of Program Files -- against a
       # scratch config directory with no credentials in it, so it has to reach

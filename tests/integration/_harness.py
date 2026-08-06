@@ -674,20 +674,48 @@ def spin_barrier(n):
 # ffmpeg sample media (Tier 2)
 # --------------------------------------------------------------------------
 
+def _drawtext(label):
+    """A drawtext filter for ``label``, or None if this machine cannot draw one.
+
+    drawtext resolves its default font through fontconfig, which Windows does
+    not have: ffmpeg exits ENOENT there rather than falling back to a font,
+    which took out every test whose clip carried a label while the identical
+    unlabelled clips built fine. The label is a debugging affordance -- it is
+    what tells two clips apart when you watch the window go by -- so name a
+    font explicitly where one is findable, and go without where it is not."""
+    spec = "drawtext=text='%s':fontcolor=white:x=10:y=10" % label
+    if os.name != "nt":
+        return spec
+    for font in (r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\segoeui.ttf"):
+        if os.path.isfile(font):
+            # Inside a filter graph the drive colon is a separator, so it has
+            # to arrive escaped.
+            return spec + ":fontfile=" + font.replace("\\", "/").replace(":", r"\:")
+    return None
+
+
 def make_test_clip(path, duration=2, size="160x120", label=None):
     """Generate a tiny, deterministic H.264 clip with ffmpeg. Cheap enough to
     regenerate per test; no network, no external assets."""
     src = "testsrc=duration=%d:size=%s:rate=10" % (duration, size)
     if label:
-        src += ",drawtext=text='%s':fontcolor=white:x=10:y=10" % label
+        drawtext = _drawtext(label)
+        if drawtext:
+            src += "," + drawtext
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-f", "lavfi", "-i", src,
         "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast",
         path,
     ]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL,
-                   stderr=subprocess.PIPE)
+    # Not check=True: CalledProcessError prints the command and swallows the
+    # captured stderr, so a filter ffmpeg refused and a filter it could not
+    # find a font for are the same opaque exit status.
+    proc = subprocess.run(cmd, stdout=subprocess.DEVNULL,
+                          stderr=subprocess.PIPE, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError("ffmpeg exited %d building %s: %s" % (
+            proc.returncode, path, (proc.stderr or "").strip()))
     return path
 
 
@@ -714,6 +742,13 @@ def start_live_stream(path, size="160x120"):
     on the FIFO until a reader opens it, so it exits on its own only once mpv
     has gone away).
     """
+    if not hasattr(os, "mkfifo"):
+        # Windows. A named pipe there is a \\.\pipe\ object created through
+        # the Win32 API, not a filesystem node os.mkfifo can make, so this
+        # leg needs a different writer rather than a different path. Skipped
+        # rather than quietly swapped for a regular file: a file has a
+        # duration, which is the one thing this test is about not having.
+        raise unittest.SkipTest("no os.mkfifo on this platform")
     os.mkfifo(path)
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error",
