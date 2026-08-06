@@ -33,6 +33,12 @@ def _prep_config_dir(base):
 def _spawn(config_dir, hold=0.0, wedge=False, new_session=False):
     env = dict(os.environ)
     env["XDG_CONFIG_HOME"] = config_dir
+    # conffile.win32 reads APPDATA and knows nothing about XDG_CONFIG_HOME, so
+    # on Windows the line above isolates nothing: every child lands in the real
+    # %APPDATA% and shares one lock. That reads as "different config dirs did
+    # not both win" -- a product failure -- when the two children were never
+    # given different config dirs in the first place.
+    env["APPDATA"] = config_dir
     env["SI_HOLD"] = str(hold)
     env["SI_WEDGE"] = "1" if wedge else "0"
     # start_new_session makes the child a session/process-group leader, so its
