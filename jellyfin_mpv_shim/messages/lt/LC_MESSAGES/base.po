@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-06 19:10+0000\n"
+"PO-Revision-Date: 2026-08-07 07:14+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -179,7 +179,7 @@ msgstr "Klausti, ar praleisti įžangą"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
-msgstr " (transkoduota)"
+msgstr " (transkoduoti)"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "White"
@@ -316,11 +316,11 @@ msgstr "Nėra"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Transcode Quality"
-msgstr "Pasirinkti perkodavimo kokybę"
+msgstr "Pasirinkti transkodavimo kokybę"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "No Transcode"
-msgstr "Jokio perkodavimo"
+msgstr "Jokio transkodavimo"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Maximum"
@@ -356,7 +356,7 @@ msgstr "Visada"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
-msgstr "Pasirinkti numatytajį perkodavimo profilį"
+msgstr "Pasirinkite numatytąjį transkodavimo profilį"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Color"
@@ -389,7 +389,7 @@ msgstr "Viduryje"
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
 msgid "Remote Transcode Quality: {0:0.1f} Mbps"
-msgstr "Nuotolinio perkodavimo kokybė: {0:0.1f} Mbps"
+msgstr "Nuotolinio transkodavimo kokybė: {0:0.1f} Mbps"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -408,11 +408,11 @@ msgstr "Subtitrų spalva: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode Hi10p to 8bit"
-msgstr "Perkoduoti iš Hi10p į 8 bitus"
+msgstr "Transkoduoti iš Hi10p į 8 bitus"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode HDR"
-msgstr "Perkoduoti HDR"
+msgstr "Transkoduoti HDR"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Direct Paths"
@@ -813,7 +813,7 @@ msgstr "Subtitrai ir kalbos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Transcoding"
-msgstr "Perkodavimas"
+msgstr "Transkodavimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -1610,7 +1610,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Watching"
-msgstr ""
+msgstr "Žiūrėti toliau"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -2015,7 +2015,7 @@ msgstr "Nepavyko paleisti šio elemento"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Retry with Transcode"
-msgstr "Bandykite dar kartą naudodami Perkodavimą"
+msgstr "Bandykite dar kartą naudodami Transkodavimą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Repeat All"
@@ -2736,7 +2736,7 @@ msgstr "žiūrėtas"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Ištrinti žiūrėtus atsisiuntimus %s aplanke?"
+msgstr "Ištrinti žiūrėtus atsisiuntimus iš %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Show advanced settings"
@@ -3094,7 +3094,7 @@ msgstr "nežinoma"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
-msgstr "Perkoduoti"
+msgstr "Transkoduoti"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "External"
@@ -3118,7 +3118,7 @@ msgid ""
 "Your remote video is transcoding!\n"
 "Press c to adjust bandwidth settings if this is not needed."
 msgstr ""
-"Jūsų nuotolinis vaizdo įrašas perkoduojamas!\n"
+"Jūsų nuotolinis vaizdo įrašas transkoduojamas!\n"
 "Paspauskite c pakeisti duomenų srauto nustatymus, jei tai nereikalinga."
 
 #: jellyfin_mpv_shim/player.py
