@@ -1,0 +1,257 @@
+# Throwaway. Runtime verification of the native ARM64 Windows build, which the
+# main workflow already *builds* green -- what nobody has been able to check is
+# whether the thing it produces actually starts, because emulating Windows on
+# Arm locally bootloops and no user has tested an artifact yet.
+#
+# It runs on this branch and nowhere else. Delete the branch and it is gone;
+# nothing here needs to reach master.
+#
+# The x64 leg is a CONTROL, not a second product check. Every step below runs
+# identically on windows-latest, so a red ARM64 leg means something only when
+# the x64 leg beside it is green -- these runners have no GPU, and "mpv could
+# not open a window in CI" would otherwise read exactly like "the ARM64 build
+# is broken".
+name: win-aarch64-test
+
+on:
+  push:
+    branches: [win-aarch64-test]
+
+jobs:
+  smoke:
+    name: smoke (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: arm64
+          runner: windows-11-arm
+          python_arch: arm64
+          expect: ARM64
+          libmpv: 'mpv-dev-aarch64-*.7z'
+          mpv: 'mpv-aarch64-*.7z'
+          ffmpeg: 'ffmpeg-aarch64-*.7z'
+          build: build-win-arm64.bat
+          # /DArm64 sets ArchitecturesInstallIn64BitMode, so Inno installs in
+          # 64-bit mode and {autopf} is the real Program Files.
+          program_files: ProgramFiles
+          other_program_files: ProgramFiles(x86)
+        - arch: x64
+          runner: windows-latest
+          python_arch: x64
+          expect: x64
+          libmpv: 'mpv-dev-x86_64-v3*.7z'
+          mpv: 'mpv-x86_64-v3-*.7z'
+          ffmpeg: 'ffmpeg-x86_64-v3-*.7z'
+          build: build-win.bat
+          # No ArchitecturesInstallIn64BitMode on this path: ISCC emits a
+          # 32-bit installer, so {autopf} resolves under WOW64. That is what
+          # ships today; asserted here so the ARM64 leg's opposite answer is a
+          # measured difference rather than a hope.
+          program_files: ProgramFiles(x86)
+          other_program_files: ProgramFiles
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v7
+    - name: Setup Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.14'
+        architecture: ${{ matrix.python_arch }}
+    - name: Download libmpv
+      id: libmpv
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: ${{ matrix.libmpv }}
+    # mpv.exe and ffmpeg.exe are what the integration harness gates its
+    # real-player legs on, and neither is on either image. Taken from the same
+    # release as libmpv above, which publishes native aarch64 builds of both --
+    # so the ARM64 leg tests an ARM64 player, with nothing under emulation.
+    - name: Download mpv.exe
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: ${{ matrix.mpv }}
+        out-file-path: 'testtools'
+    - name: Download ffmpeg.exe
+      uses: robinraju/release-downloader@v1
+      with:
+        repository: 'shinchiro/mpv-winbuild-cmake'
+        latest: true
+        fileName: ${{ matrix.ffmpeg }}
+        out-file-path: 'testtools'
+    - name: Install Inno Setup
+      # Preinstalled on windows-11-arm (build-win-arm64.bat locates it); the
+      # x86 image needs it, at the path build-win.bat hardcodes.
+      if: matrix.arch == 'x64'
+      run: winget install --id JRSoftware.InnoSetup -e -s winget || true
+      shell: bash
+    - name: Install dependencies
+      run: |
+        7z x "${{ fromJson(steps.libmpv.outputs.downloaded_files)[0] }}"
+        mv libmpv-2.dll mpv-2.dll
+        for archive in testtools/*.7z; do 7z x -y -otesttools "$archive"; done
+        # The player and ffmpeg archives are not required to agree on their
+        # internal layout, and a missing binary would come back as a silently
+        # skipped test leg rather than as an error.
+        for exe in mpv.exe ffmpeg.exe; do
+          found="$(find testtools -name "$exe" | head -1)"
+          if [ -z "$found" ]; then echo "no $exe in the downloaded archives"; exit 1; fi
+          if [ "$found" != "testtools/$exe" ]; then cp "$found" testtools/; fi
+        done
+        pip install wheel
+        pip install .[all] pywin32
+        # No git SDK on either leg, so this takes the ARM64 job's fallbacks
+        # (tools/msgfmt.py, python -m zipfile) on both.
+        ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: Put mpv-2.dll, mpv.exe and ffmpeg.exe on PATH
+      # python-mpv finds the DLL through ctypes.util.find_library, which on
+      # Windows means %PATH%. build-win*.bat sets that itself; the test steps
+      # below run outside it.
+      run: |
+        echo "${{ github.workspace }}" >> $GITHUB_PATH
+        echo "${{ github.workspace }}\testtools" >> $GITHUB_PATH
+      shell: bash
+    - name: Verify the inputs are ${{ matrix.expect }}
+      run: |
+        python tools/check_win_arch.py --expect ${{ matrix.expect }} \
+          mpv-2.dll testtools/mpv.exe testtools/ffmpeg.exe
+      shell: bash
+    - name: libmpv loads and answers
+      # Cheap and early: a wrong-architecture or unloadable DLL is otherwise
+      # first reported by a test leg, mixed in with everything else that can
+      # go wrong there.
+      run: |
+        python - <<'EOF'
+        import mpv
+        handle = mpv.MPV(vo="null", config="no")
+        print("libmpv loaded; mpv version:", handle.mpv_version)
+        handle.terminate()
+        EOF
+      shell: bash
+    - name: Fast unit suite
+      # Informational. This suite has never run on Windows in CI and has
+      # POSIX-isms in a few modules; a failure here says something about the
+      # tests, not about the ARM64 build.
+      continue-on-error: true
+      timeout-minutes: 15
+      run: python -m unittest discover tests
+      shell: bash
+    - name: Integration suite (libmpv backend)
+      # libmpv is what the installer bundles and what the shipped client
+      # loads. --strict is load-bearing: a leg that skipped every test is not
+      # a pass, and on a machine missing a capability that is exactly what the
+      # matrix would otherwise print.
+      timeout-minutes: 45
+      run: python tests/integration/run_integration.py --backend libmpv --strict
+      shell: bash
+    - name: Main Build
+      run: |
+        .\${{ matrix.build }}
+      shell: cmd
+    - name: Verify the built exe is ${{ matrix.expect }}
+      run: |
+        python tools/check_win_arch.py --skip-interpreter \
+          --expect ${{ matrix.expect }} dist/run/run.exe
+      shell: bash
+    - name: Install silently
+      shell: pwsh
+      run: |
+        $installer = Get-ChildItem dist\*installer*.exe | Select-Object -First 1
+        if (-not $installer) { throw "ISCC produced no installer in dist\" }
+        Write-Host "installing $($installer.Name)"
+        # [Run] carries skipifsilent, so this does not leave a copy running to
+        # collide with the launch check below (single-instance would make the
+        # second launch a no-op).
+        $run = Start-Process -FilePath $installer.FullName -Wait -PassThru `
+          -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/NOCANCEL'
+        if ($run.ExitCode -ne 0) { throw "installer exited $($run.ExitCode)" }
+        $wanted = Join-Path ([Environment]::GetEnvironmentVariable('${{ matrix.program_files }}')) 'Jellyfin MPV Shim\run.exe'
+        $wrong  = Join-Path ([Environment]::GetEnvironmentVariable('${{ matrix.other_program_files }}')) 'Jellyfin MPV Shim\run.exe'
+        if (Test-Path $wrong) { throw "installed to the wrong Program Files: $wrong" }
+        if (-not (Test-Path $wanted)) { throw "not installed at $wanted" }
+        Write-Host "installed at $wanted"
+        "APP=$wanted" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+    - name: Launch the installed app and wait for the browser
+      # The whole point of the workflow. The app is launched the way a user
+      # launches it -- the installed binary, out of Program Files -- against a
+      # scratch config directory with no credentials in it, so it has to reach
+      # the login screen: mpv opened a window, the Lua renderer answered, and
+      # the browser drew.
+      shell: pwsh
+      timeout-minutes: 10
+      run: |
+        $cfg = Join-Path $env:GITHUB_WORKSPACE 'smoke-config'
+        New-Item -ItemType Directory -Force -Path $cfg | Out-Null
+        # write_logs is off by default and the build is windowed (-w), so
+        # without this there is no log anywhere to read.
+        @'
+        {
+            "write_logs": true,
+            "enable_gui": true,
+            "check_updates": false,
+            "mpv_log_level": "debug"
+        }
+        '@ | Set-Content -Path (Join-Path $cfg 'conf.json') -Encoding utf8
+        $out = Join-Path $env:GITHUB_WORKSPACE 'launch-stdout.txt'
+        $err = Join-Path $env:GITHUB_WORKSPACE 'launch-stderr.txt'
+        # Redirected in case it dies before logging is configured at all: a
+        # bootloader or interpreter failure has nowhere else to go.
+        $proc = Start-Process -FilePath $env:APP -ArgumentList '--config', $cfg `
+          -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+        $log = Join-Path $cfg 'log.txt'
+        # ui.py, with no credentials and nothing downloaded: the browser is
+        # running and has drawn the login form.
+        $marker = 'showing login'
+        $found = $false
+        $deadline = (Get-Date).AddSeconds(180)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-Path $log) {
+                $text = Get-Content $log -Raw -ErrorAction SilentlyContinue
+                if ($text -and $text.Contains($marker)) { $found = $true; break }
+            }
+            if ($proc.HasExited) { break }
+            Start-Sleep -Seconds 2
+        }
+        Write-Host "---------------- log.txt ----------------"
+        if (Test-Path $log) { Get-Content $log } else { Write-Host "(no log.txt was written)" }
+        Write-Host "---------------- stdout / stderr ----------------"
+        foreach ($f in @($out, $err)) {
+            if ((Test-Path $f) -and (Get-Item $f).Length -gt 0) { Write-Host "== $f"; Get-Content $f }
+        }
+        Write-Host "---------------- shutdown ----------------"
+        # Reported, not asserted: stop goes through the single-instance
+        # socket, so a clean exit says the main loop was still answering, but a
+        # hung shutdown is a different bug from the one under test.
+        if ($proc.HasExited) {
+            Write-Host "::warning::the app exited on its own (exit $($proc.ExitCode))"
+        } else {
+            $stop = Start-Process -FilePath $env:APP -ArgumentList '--config', $cfg, 'stop' -Wait -PassThru
+            Write-Host "stop requested (exit $($stop.ExitCode))"
+            if ($proc.WaitForExit(30000)) {
+                Write-Host "the app exited on request"
+            } else {
+                Write-Host "::warning::the app did not exit within 30s of the stop request; killing it"
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            }
+        }
+        if (-not $found) {
+            throw "the browser never reached the login screen within 180s (see log.txt above)"
+        }
+        Write-Host "the browser came up and drew the login screen"
+    - name: Archive logs and installer
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: smoke-${{ matrix.arch }}
+        path: |
+          ${{ github.workspace }}/smoke-config/log.txt
+          ${{ github.workspace }}/launch-std*.txt
+          ${{ github.workspace }}/dist/*installer*.exe
+        if-no-files-found: warn
