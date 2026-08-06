@@ -125,3 +125,29 @@ def may_download(client):
     if "EnableContentDownloading" not in policy:
         return True
     return bool(policy.get("EnableContentDownloading"))
+
+
+def may_manage_collections(client):
+    """`EnableCollectionManagement` — may this user write to a collection?
+
+    A *fifth* independently-granted permission, and the whole of
+    `CollectionController` sits behind it: `[Authorize(Policy =
+    Policies.CollectionManagement)]` is on the controller, not on individual
+    routes, so creating a collection, adding to one and removing from one are
+    one permission and one 403.
+
+    **There is no administrator bypass.** `UserPermissionHandler` asks
+    `HasPermission` and stops, exactly as it does for Live TV management — so
+    an admin without the flag is refused like anyone else. jellyfin-web reads
+    it as `IsAdministrator || EnableCollectionManagement`
+    (`itemContextMenu.js:143`), which offers the button to an admin the API
+    will refuse; that spelling is right for `BoxSet.IsAuthorizedToDelete`,
+    which really does bypass, and wrong for the endpoint the button calls.
+    We ask what the endpoint asks.
+
+    Absent means an answer we did not get, so: permitted.
+    """
+    policy = policy_for(client) or {}
+    if "EnableCollectionManagement" not in policy:
+        return True
+    return bool(policy.get("EnableCollectionManagement"))

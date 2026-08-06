@@ -428,6 +428,35 @@ class ItemActions:
         except Exception:
             return True
 
+    def can_manage_collections(self, server=None):
+        """Whether the *collection* edit affordances should be offered.
+
+        `can_edit` is the apiclient question and answers for playlists and
+        collections together; this adds the half that is only about
+        collections. `EnableCollectionManagement` gates the whole of
+        `CollectionController` — create, add and remove are one permission —
+        and a new account does not have it, so without this the Collections…
+        button and Remove from Collection are offered to most users on a
+        modern server and answer 403.
+
+        Playlists are deliberately NOT gated with it: `PlaylistController`
+        has no such policy, so a user who cannot touch a collection can still
+        make a playlist, and hiding both would take away something that works.
+
+        Fails OPEN in both halves, as `can_record` does: only a probe that
+        positively answers False hides anything.
+        """
+        if not self.can_edit():
+            return False
+        source = getattr(self.services, "source", None)
+        ask = getattr(source, "can_manage_collections", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return bool(ask(server))
+        except Exception:
+            return True
+
     def can_edit(self):
         """Whether the apiclient can edit playlists/collections.
 

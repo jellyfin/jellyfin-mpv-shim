@@ -24,14 +24,16 @@ a film from Movies. So the listing must go out **untyped and non-recursive**
 vanishes; the test below asserts both halves so the untyped query is not
 "simplified" into the typed one.
 
-**Creating a collection needs a permission a new account does not have.**
-`POST /Collections` is 403 without `EnableCollectionManagement`, which is off
-for every non-admin account on a fresh server — the same shape as
-`EnableLiveTvManagement` (see stdjflib's `docs/PERMISSION_GAPS.md`). The shim
-offers the affordance regardless and reports the failure as a toast, which is
-what `_edit`'s "RAISES on failure" contract buys; the test here is that it
-does raise, because an edit path that swallowed would leave the user looking
-at a dialog that closed and a collection that was never made.
+**Editing a collection needs a permission a new account does not have.**
+The whole of `CollectionController` is behind
+`EnableCollectionManagement` — the `[Authorize]` is on the controller, not
+its routes — and it is off for a newly created account with no administrator
+bypass, the same shape as `EnableLiveTvManagement` (see
+`docs/PERMISSION_GAPS.md` §5). So the shim hides the affordances for an
+account that lacks it, and this is where the *field name* is checked: a unit
+test builds the policy dict it then reads and would pass against a misspelt
+key. The refusal itself is asserted too, because hiding a button is only
+right for as long as pressing it would have failed.
 
 And the three edit endpoints — `new_collection`, `add_collection_items`,
 `remove_collection_items` — are exercised end to end through the real
@@ -345,9 +347,13 @@ class CollectionRouteTest(_CollectionCase):
 class CollectionEditTest(unittest.TestCase):
     """Create, add, remove — through the gateway, against the real server.
 
-    Runs as **qa-admin**, because `POST /Collections` needs
-    `EnableCollectionManagement` and no other account here has it (see
-    `CollectionPermissionTest`).
+    Runs as **qa-user**, an ordinary non-admin, because that is the account
+    the affordance is for and because `EnableCollectionManagement` has no
+    administrator bypass: asking qa-admin would prove the endpoints work for
+    somebody nobody is worried about. A second, admin session exists only to
+    **delete** the fixture — `EnableContentDeletion` is a different
+    permission that qa-user does not have and the shim never asks for, since
+    deleting a collection is not something the browser offers.
 
     This class owns its fixture: it makes its own collection and deletes it,
     in `setUp` as well as on cleanup, so a run that died halfway cannot leave
@@ -360,16 +366,21 @@ class CollectionEditTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.session = _e2e.Session("qa-admin")
-        policy = cls.session.policy() or {}
-        if not policy.get("EnableCollectionManagement"):
+        cls.session = _e2e.Session("qa-user")
+        if not (cls.session.policy() or {}).get(
+                "EnableCollectionManagement"):
             cls.session.stop()
             raise unittest.SkipTest(
-                "qa-admin cannot manage collections on this server")
+                "qa-user cannot manage collections on this server — this "
+                "library predates stdjflib granting it; reprovision")
+        cls.admin = _e2e.Session("qa-admin")
 
     @classmethod
     def tearDownClass(cls):
-        cls.session.stop()
+        try:
+            cls.admin.stop()
+        finally:
+            cls.session.stop()
 
     def setUp(self):
         from types import SimpleNamespace
@@ -398,9 +409,12 @@ class CollectionEditTest(unittest.TestCase):
         deps.clientManager = self._real_manager
 
     def _delete_fixture(self):
+        # As admin: DELETE /Items is EnableContentDeletion, a different
+        # permission from the one under test, and qa-user has neither it nor
+        # any need for it.
         for found in self._find_all():
             try:
-                self.session.api.delete_item(found["Id"])
+                self.admin.api.delete_item(found["Id"])
             except Exception:
                 pass
 
@@ -473,42 +487,100 @@ class CollectionEditTest(unittest.TestCase):
 
 @_e2e.require_server
 class CollectionPermissionTest(unittest.TestCase):
-    """Creating a collection is a permission an ordinary account lacks.
+    """An account that may not manage collections is not offered the controls.
 
     `EnableCollectionManagement` is off for a newly created Jellyfin user and
-    there is no administrator bypass, so `POST /Collections` is 403 — the
-    same gap as `EnableLiveTvManagement`, which this suite already documents
-    for timers.
+    there is no administrator bypass — `UserPermissionHandler` asks
+    `HasPermission` and stops — so the whole of `CollectionController` is 403
+    for most accounts on a modern server. The `[Authorize]` is on the
+    controller rather than its routes, so create, add and remove are one
+    permission and one refusal.
 
-    The shim offers "Collections… / Create" to everyone (`edit_apis` asks the
-    *apiclient* what it can do, not the account), so the failure has to be
-    visible. It is: `EditingMixin._edit` raises, `_edit_call` catches and
-    sets the status line. What this test refuses is the other outcome — an
-    edit path that swallows, closes the dialog, and leaves the user believing
-    a collection was made.
+    Two halves, and the second is why this is an e2e test rather than a unit
+    one: **the shim hides the affordance**, and **the server would really
+    have refused it**. `tests/test_user_policy.py` pins the branch against a
+    hand-written policy dict, which proves the logic and not the spelling of
+    the field — that answer belongs to a server.
 
-    Nothing here is a defect in the shim. If gating the affordance on the
-    policy is wanted (jellyfin-web hides it), that is a change to make on
-    purpose, and this test is where it would be re-stated.
+    `qa-restricted` rather than `qa-user`: stdjflib grants collection
+    management to qa-user (it is the account whose description claims
+    everything a non-admin can have), so the refusal has to be observed on
+    one of the ten that still lack it. qa-restricted can see Movies, which is
+    all this needs.
     """
 
-    ACCOUNT = "qa-user"
+    ACCOUNT = "qa-restricted"
 
     @classmethod
     def setUpClass(cls):
         cls.session = _e2e.Session(cls.ACCOUNT)
-        policy = cls.session.policy() or {}
-        if policy.get("EnableCollectionManagement"):
+        if (cls.session.policy() or {}).get("EnableCollectionManagement"):
             cls.session.stop()
             raise unittest.SkipTest(
                 "%s has been granted EnableCollectionManagement, so there is "
                 "no refusal to observe" % cls.ACCOUNT)
+        cls.source = cls.session.library_source()
+        cls.source.get_libraries(_e2e.SOURCE_UUID)
 
     @classmethod
     def tearDownClass(cls):
-        cls.session.stop()
+        try:
+            cls.source.stop()
+        finally:
+            cls.session.stop()
 
-    def test_the_edit_path_raises_rather_than_swallowing_a_refusal(self):
+    def test_the_source_reports_the_refusal(self):
+        """The field name itself, read off a real policy.
+
+        A unit test builds the dict it then reads, so it cannot catch a
+        misspelt key or a field the server renamed — it would pass against
+        `EnableCollectionMangement` all day.
+        """
+        self.assertFalse(
+            self.source.can_manage_collections(_e2e.SOURCE_UUID),
+            "%s may not manage collections, and the source says it may"
+            % self.ACCOUNT)
+
+    def test_the_affordances_are_not_offered(self):
+        """Both of them, from the real source: the tile entry inside a
+        collection and the door to the collections picker."""
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        browser = MpvtkBrowser(app=None, source=self.source,
+                               server_uuid=_e2e.SOURCE_UUID)
+        browser._async._pool.shutdown(wait=True, cancel_futures=True)
+        browser._pool = _SyncPool()
+        self.addCleanup(browser.shutdown)
+
+        self.assertFalse(
+            browser._actions.can_manage_collections(_e2e.SOURCE_UUID),
+            "the edit affordances would be drawn for an account the server "
+            "refuses")
+
+        browser.nav_stack = [{"kind": "grid", "server": _e2e.SOURCE_UUID,
+                              "parent_id": "whatever",
+                              "parent_type": "BoxSet"}]
+        film = self.session.find_all(item_type="Movie", Limit=1)
+        if not film:
+            self.skipTest("%s can see no films" % self.ACCOUNT)
+        actions = [a for _label, _icon, a
+                   in browser._tile_menu_entries(film[0])]
+        self.assertNotIn(
+            "uncollect", actions,
+            "Remove from Collection is offered to an account that cannot "
+            "remove anything (offered: %s)" % actions)
+        self.assertIn(
+            "addto", actions,
+            "Add to Playlist went with it — PlaylistController has no such "
+            "policy, so that is a second bug wearing the first one's fix")
+
+    def test_the_server_really_would_have_refused(self):
+        """The premise. Without it, hiding the button is a guess.
+
+        Also what keeps the gate honest if Jellyfin ever relaxes this: the
+        day `POST /Collections` starts answering for an ordinary account,
+        this fails and the hiding becomes the thing to reconsider.
+        """
         from types import SimpleNamespace
         from jellyfin_mpv_shim.mpvtk_browser.gateway import deps, PlayerGateway
 
@@ -519,11 +591,16 @@ class CollectionPermissionTest(unittest.TestCase):
         self.addCleanup(lambda: setattr(deps, "clientManager", real))
         gateway = PlayerGateway.__new__(PlayerGateway)
 
-        film = self.session.find_all(
-            library="Movies", item_type="Movie", Limit=1)[0]
+        film = self.session.find_all(item_type="Movie", Limit=1)
+        if not film:
+            self.skipTest("%s can see no films" % self.ACCOUNT)
+        # RAISES, deliberately: `_edit` used to log and return, which made a
+        # refused edit look exactly like an applied one. The status line the
+        # user sees hangs off this exception.
         with self.assertRaises(Exception):
             gateway.collection_new(_e2e.SOURCE_UUID,
-                                   "JMS E2E Refused Collection", [film["Id"]])
+                                   "JMS E2E Refused Collection",
+                                   [film[0]["Id"]])
 
         self.assertEqual(
             [i for i in (self.session.api.get_collections(limit=300) or {}

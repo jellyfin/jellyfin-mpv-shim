@@ -277,10 +277,14 @@ typed+recursive query a library grid makes returns neither — it recurses past
 the collection — so `_open_item` passes the BoxSet's own collection type,
 which is none. Test both halves or the untyped query reads as an oversight.
 
-**Creating a collection needs `EnableCollectionManagement`**, which is off for
-every non-admin account on a fresh server and has no administrator bypass —
-the same shape as `EnableLiveTvManagement`. So the edit tests run as
-`qa-admin`, and the refusal an ordinary account gets is asserted on its own.
+**Editing a collection needs `EnableCollectionManagement`**, which is off for
+a newly created account and has no administrator bypass — the whole of
+`CollectionController` is behind it, so create, add and remove are one
+permission and one 403. stdjflib grants it to `qa-user` (and `qa-admin`), so
+the edit tests run as the **ordinary** account; the refusal is asserted
+against `qa-restricted`, one of the ten that still lack it. Deleting the
+fixture afterwards is a *different* permission (`EnableContentDeletion`),
+which is the only thing the admin session in that class is for.
 
 **Bulk items all share a creation time.** They are built by one scan, so
 `DateCreated` ties and the server falls back to name order — "Date Added" and

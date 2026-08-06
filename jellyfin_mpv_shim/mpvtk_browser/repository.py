@@ -486,6 +486,14 @@ class LibrarySource:
         except Exception:
             return True                 # fails open; see user_policy
 
+    def can_manage_collections(self, server_uuid):
+        from ..user_policy import may_manage_collections
+
+        try:
+            return may_manage_collections(self._conn(server_uuid).client)
+        except Exception:
+            return True                 # fails open; see user_policy
+
     # -- home screen layout (shared with jellyfin-web) ---------------------
 
     def _display_prefs_dto(self, api):
@@ -2687,6 +2695,11 @@ class OfflineLibrarySource:
         return NO_SYNCPLAY
 
     def can_manage_live_tv(self, server_uuid):
+        return False
+
+    def can_manage_collections(self, server_uuid):
+        """No server to write to. Declared for the same reason the others
+        are: the offline source is what the online one falls back TO."""
         return False
 
     def get_genres(self, server_uuid, parent_id=None):
