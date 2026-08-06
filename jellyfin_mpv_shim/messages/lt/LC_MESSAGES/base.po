@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-06 09:42+0000\n"
+"PO-Revision-Date: 2026-08-06 11:36+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1315,7 +1315,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Collections…"
-msgstr "Kolekcijos…"
+msgstr "Rinkiniai…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1324,15 +1324,15 @@ msgstr "Uždaryti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Add to Collection"
-msgstr "Pridėti prie kolekcijos"
+msgstr "Pridėti į Rinkinį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No collections yet."
-msgstr "Kolekcijų dar nėra."
+msgstr "Rinkinių dar nėra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New collection name…"
-msgstr "Naujas kolekcijos pavadinimas…"
+msgstr "Naujas rinkinio pavadinimas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2208,7 +2208,7 @@ msgstr "Mėgstami"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Collections"
-msgstr "Kolekcijos"
+msgstr "Rinkiniai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -3013,7 +3013,7 @@ msgstr "Pašalinti iš grojaraščio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Remove from Collection"
-msgstr "Pašalinti iš kolekcijos"
+msgstr "Pašalinti iš Rinkinio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, python-format
@@ -3023,7 +3023,7 @@ msgstr "Pašalinti %s iš šio grojaraščio?"
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, python-format
 msgid "Remove %s from this collection?"
-msgstr "Pašalinti %s iš šios kolekcijos?"
+msgstr "Pašalinti %s iš šio rinkinio?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
