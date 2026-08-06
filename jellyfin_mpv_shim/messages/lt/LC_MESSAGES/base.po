@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-06 11:36+0000\n"
+"PO-Revision-Date: 2026-08-06 19:10+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -127,7 +127,7 @@ msgstr "Praleisti titrai"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "Klausti, ar praleisti pabaigos titrus"
+msgstr "Klausti, ar praleisti titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
@@ -167,15 +167,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Intro"
-msgstr "Praleisti įvadą"
+msgstr "Praleisti įžangą"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
-msgstr "Praleistas intro"
+msgstr "Praleista įžanga"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Intro"
-msgstr "Klausti, ar praleisti pradžios titrus"
+msgstr "Klausti, ar praleisti įžangą"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
@@ -658,7 +658,7 @@ msgstr "Anksčiau pridėti serveriai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Naudoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
@@ -710,7 +710,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Jungiamasi…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Could not connect. Please check your details."
@@ -718,7 +718,7 @@ msgstr "Nepavyko prisijungti. Patikrinkite savo duomenis."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
-msgstr ""
+msgstr "Užrakinta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
@@ -821,7 +821,7 @@ msgstr "Vaizdo įrašų patobulinimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Skip Intro / Credits"
-msgstr "Praleisti įžangą / titrus"
+msgstr "Praleisti Įžangą / Titrus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
@@ -1295,7 +1295,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to Playlist"
-msgstr "Pridėti prie grojaraščio"
+msgstr "Pridėti į Grojaraštį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
@@ -1307,7 +1307,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Create"
-msgstr ""
+msgstr "Sukurti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
@@ -1324,7 +1324,7 @@ msgstr "Uždaryti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Add to Collection"
-msgstr "Pridėti į Rinkinį"
+msgstr "Pridėti prie Kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No collections yet."
@@ -1337,8 +1337,9 @@ msgstr "Naujas rinkinio pavadinimas…"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
 msgid "Back"
-msgstr ""
+msgstr "Atgal"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not check what needs downloading."
@@ -1453,11 +1454,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Pranešimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
 msgid "OK"
-msgstr ""
+msgstr "Gerai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1480,7 +1482,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "Iškarpinė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1508,8 +1510,9 @@ msgstr "Palikti"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
 msgid "Refresh"
-msgstr ""
+msgstr "Atnaujinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not join the SyncPlay group."
@@ -1545,7 +1548,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Specials"
-msgstr ""
+msgstr "Specialūs"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
@@ -1572,7 +1575,7 @@ msgstr "Nepavyko"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlist"
-msgstr ""
+msgstr "Grojaraštis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
@@ -1623,7 +1626,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "Recently Added"
-msgstr ""
+msgstr "Neseniai pridėta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2045,13 +2048,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Remove from Favorites"
-msgstr "Pašalinti iš mėgstamų"
+msgstr "Pašalinti iš Mėgstamų"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to Favorites"
-msgstr ""
+msgstr "Pridėti prie mėgstamų"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
@@ -2131,7 +2134,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Added"
-msgstr ""
+msgstr "Pridėjimo data"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Release Date"
@@ -2208,7 +2211,7 @@ msgstr "Mėgstami"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Collections"
-msgstr "Rinkiniai"
+msgstr "Kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -3271,7 +3274,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
-msgstr "Nežinoma"
+msgstr "Nežin"
 
 #: jellyfin_mpv_shim/utils.py
 msgid " Forced"
