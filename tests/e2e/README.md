@@ -52,6 +52,7 @@ E1 and E2 exist so far:
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
 | `test_connection_loss` | E1 | the server stops answering: gone, token revoked, or a page-in that fails after a screenful drew |
+| `test_collections` | E1 | box sets: the toggle's unscoped query, a `collection.xml`'s members against its `ChildCount` of 0, a Series member surviving an untyped listing, and create/add/remove through the gateway |
 | `test_syncplay_playback` | E2 | **the real player in a real group** — stop halts rather than leaves (and leaves when the UI says the SyncPlay menu is unreachable), a halted player is not driven, resume replays the group's content |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |
 | `test_playback_eof` | E2 | last-in-queue watched-marking, seek-to-end (#541), replaying a finished episode (#157/#323) |
@@ -260,6 +261,26 @@ runner then called failed. `_terminate_player` does it explicitly.
 exists because a use-after-free on the mpv handle is a SIGSEGV, and a segfault
 in-process loses the whole run instead of failing one test. Same reasoning as
 `tests/integration/_idle_reopen_child.py`.
+
+**A collection's `ChildCount` is 0 and its members are still there.**
+A `collection.xml` is parsed into the in-memory item and its linked children
+are never written to the table the count is read from, so every collection
+stdjflib builds from a file reports 0 for ever while `GET /Items?parentId=`
+returns all of them. Measuring a collection by `ChildCount` is what makes a
+working collection look broken; stdjflib's `docs/COLLECTION_XML_BUGS.md` has
+the reproduction. The API-made ones (`Api Made Collection` and friends) count
+correctly, which is what makes the pair a control.
+
+**A collection holds any item type, from any library, and must be listed
+untyped.** `Two Libraries, One Collection` is a Series and a Movie. The
+typed+recursive query a library grid makes returns neither — it recurses past
+the collection — so `_open_item` passes the BoxSet's own collection type,
+which is none. Test both halves or the untyped query reads as an oversight.
+
+**Creating a collection needs `EnableCollectionManagement`**, which is off for
+every non-admin account on a fresh server and has no administrator bypass —
+the same shape as `EnableLiveTvManagement`. So the edit tests run as
+`qa-admin`, and the refusal an ordinary account gets is asserted on its own.
 
 **Bulk items all share a creation time.** They are built by one scan, so
 `DateCreated` ties and the server falls back to name order — "Date Added" and
