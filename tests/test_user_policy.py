@@ -19,9 +19,15 @@ hiding is:
   Group button is not. Treating it as a boolean gets one of those wrong.
 """
 
+import sys
 import unittest
 
-from jellyfin_mpv_shim import user_policy
+# The app parses argv the first time anything resolves the config directory,
+# which importing the shell harness does. Under `discover` some earlier
+# module has already neutralised it; running this one alone, nothing has.
+sys.argv = [sys.argv[0]]
+
+from jellyfin_mpv_shim import user_policy  # noqa: E402
 
 
 class _Client:
@@ -141,6 +147,41 @@ class ContentDownloading(unittest.TestCase):
         self.assertTrue(user_policy.may_download(None))
 
 
+class CollectionManagement(unittest.TestCase):
+    """`EnableCollectionManagement` gates the whole of `CollectionController`
+    — the `[Authorize]` is on the controller, not on its routes — so create,
+    add and remove are one permission and one 403."""
+
+    def test_the_flag_is_read(self):
+        self.assertFalse(user_policy.may_manage_collections(
+            _Client({"EnableCollectionManagement": False})))
+        self.assertTrue(user_policy.may_manage_collections(
+            _Client({"EnableCollectionManagement": True})))
+
+    def test_an_absent_flag_is_permitted(self):
+        self.assertTrue(user_policy.may_manage_collections(
+            _Client({"EnableLiveTvAccess": True})))
+
+    def test_a_fetch_that_failed_is_permitted(self):
+        self.assertTrue(user_policy.may_manage_collections(
+            _Client(raises=True)))
+
+    def test_no_client_is_permitted(self):
+        self.assertTrue(user_policy.may_manage_collections(None))
+
+    def test_being_an_administrator_is_not_the_question(self):
+        """jellyfin-web reads this as `IsAdministrator ||
+        EnableCollectionManagement`. The API does not: `UserPermissionHandler`
+        asks `HasPermission` and stops, so an admin without the flag is
+        refused like anybody else and offering the button lies to them. That
+        spelling is right for `BoxSet.IsAuthorizedToDelete`, which really
+        does bypass, and wrong for the endpoint this button calls.
+        """
+        self.assertFalse(user_policy.may_manage_collections(
+            _Client({"IsAdministrator": True,
+                     "EnableCollectionManagement": False})))
+
+
 class TheOfflineSourceAnswers(unittest.TestCase):
     """The offline source is what the online one falls back TO, so a missing
     method turns a degraded screen into an AttributeError on the fallback
@@ -149,7 +190,8 @@ class TheOfflineSourceAnswers(unittest.TestCase):
     def test_it_declares_both(self):
         from jellyfin_mpv_shim.mpvtk_browser.repository import OfflineLibrarySource
 
-        for name in ("syncplay_access", "can_manage_live_tv", "has_live_tv"):
+        for name in ("syncplay_access", "can_manage_live_tv",
+                     "can_manage_collections", "has_live_tv"):
             with self.subTest(name=name):
                 self.assertTrue(callable(getattr(OfflineLibrarySource, name, None)))
 
@@ -160,6 +202,7 @@ class TheOfflineSourceAnswers(unittest.TestCase):
         self.assertEqual(source.syncplay_access("srv1"),
                          user_policy.NO_SYNCPLAY)
         self.assertFalse(source.can_manage_live_tv("srv1"))
+        self.assertFalse(source.can_manage_collections("srv1"))
 
 
 class TheTopBarButton(unittest.TestCase):
@@ -448,6 +491,112 @@ class TheRecordButtons(unittest.TestCase):
         b = browser()
         b.source.can_manage_live_tv = lambda _srv: False
         self.assertTrue(b._actions.can_record())
+
+
+class TheCollectionAffordances(unittest.TestCase):
+    """Add to Collection and Remove from Collection, against the permission.
+
+    Both call `CollectionController`, which is gated in one piece, so both
+    answer to one question. What must NOT move with them is **Add to
+    Playlist**: `PlaylistController` carries no such policy, so a user who
+    cannot touch a collection can still make a playlist, and taking that
+    away would be a second bug wearing the first one's fix.
+    """
+
+    def _browser(self, may_manage=None, edit_apis=True):
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import FakeController, FakeSource, _SyncPool
+
+        controller = FakeController()
+        controller.edit_apis = lambda: edit_apis
+        source = FakeSource()
+        source.get_collections = lambda srv: [{"Id": "c1", "Name": "Set"}]
+        source.get_playlists = lambda srv: [{"Id": "p1", "Name": "List"}]
+        if may_manage is not None:
+            source.can_manage_collections = lambda _srv: may_manage
+        browser = MpvtkBrowser(app=None, source=source, controller=controller)
+        browser._pool = _SyncPool()
+        browser.server = "srv1"
+        return browser
+
+    def _tile_actions(self, browser):
+        browser.nav_stack = [{"kind": "grid", "server": "srv1",
+                              "parent_id": "c1", "parent_type": "BoxSet"}]
+        return [entry[2] for entry in browser._tile_menu_entries(
+            {"Id": "m1", "Type": "Movie"})]
+
+    def _add_to_handlers(self, browser):
+        from tests._shell_harness import build_scene
+
+        browser._open_add_to({"Id": "m1", "Type": "Movie"})
+        _nodes, handlers = build_scene(browser)
+        return handlers
+
+    # -- the gate ----------------------------------------------------------
+
+    def test_a_refusal_takes_remove_from_collection_away(self):
+        self.assertNotIn("uncollect", self._tile_actions(
+            self._browser(may_manage=False)))
+
+    def test_a_refusal_takes_the_collections_button_away(self):
+        self.assertNotIn("add-collections",
+                         self._add_to_handlers(self._browser(may_manage=False)))
+
+    def test_permission_keeps_both(self):
+        self.assertIn("uncollect", self._tile_actions(
+            self._browser(may_manage=True)))
+        self.assertIn("add-collections",
+                      self._add_to_handlers(self._browser(may_manage=True)))
+
+    # -- fail open ---------------------------------------------------------
+
+    def test_a_source_that_cannot_answer_keeps_both(self):
+        """A test double or an older source without the method leaves the
+        affordances exactly where they were."""
+        self.assertIn("uncollect", self._tile_actions(self._browser()))
+        self.assertIn("add-collections",
+                      self._add_to_handlers(self._browser()))
+
+    def test_a_source_that_raises_keeps_both(self):
+        browser = self._browser()
+
+        def boom(_srv):
+            raise RuntimeError("server said no")
+
+        browser.source.can_manage_collections = boom
+        self.assertIn("uncollect", self._tile_actions(browser))
+        self.assertIn("add-collections", self._add_to_handlers(browser))
+
+    def test_no_server_in_hand_fails_open(self):
+        browser = self._browser(may_manage=False)
+        self.assertTrue(browser._actions.can_manage_collections())
+
+    # -- what must not move with it ---------------------------------------
+
+    def test_the_playlist_half_survives_a_refusal(self):
+        """The whole dialog is Add to Playlist; the collections picker is a
+        door out of it. Gating the door must not shut the room."""
+        from tests._shell_harness import build_scene, ids
+
+        browser = self._browser(may_manage=False)
+        browser._open_add_to({"Id": "m1", "Type": "Movie"})
+        nodes, handlers = build_scene(browser)
+        self.assertIn("add-newname", ids(nodes), "the playlist name box went")
+        self.assertIn("add-create", handlers, "the playlist Create went")
+        self.assertIn("add-pl-0", handlers, "the playlist picker went")
+
+    def test_add_to_playlist_is_still_offered_on_the_tile(self):
+        self.assertIn("addto", self._tile_actions(
+            self._browser(may_manage=False)))
+
+    # -- the older gate ----------------------------------------------------
+
+    def test_an_apiclient_that_cannot_edit_still_closes_it(self):
+        """`can_edit` is the other half and has to keep working: every
+        permission on an apiclient too old to call these is still nothing."""
+        browser = self._browser(may_manage=True, edit_apis=False)
+        self.assertNotIn("uncollect", self._tile_actions(browser))
+        self.assertFalse(browser._actions.can_manage_collections("srv1"))
 
 
 if __name__ == "__main__":

@@ -161,6 +161,7 @@ Green on both backends. See `tests/e2e/README.md` to run it.
 | `test_keyboard_nav` | contract | 20 | keyboard reach/activation of real screens; duplicate node ids |
 | `test_large_queue` | contract | — | 400-id queue metadata; the 414 request-line limit |
 | `test_connection_loss` | contract | — | server gone / token revoked / a page-in that fails after a screenful drew |
+| `test_collections` | contract | — | box sets: an unscoped toggle query, `ChildCount` 0 against a full listing, an untyped listing keeping a Series member, create/add/remove, and the permission an ordinary account lacks |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |

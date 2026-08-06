@@ -262,9 +262,13 @@ class TilesMixin:
                 and item.get("PlaylistItemId") and not self._offline
                 and self._edit_apis()):
             out.append((_("Remove from Playlist"), "delete", "unplaylist"))
+        # can_manage_collections, not _edit_apis: the apiclient having the
+        # method is not the same question as the user being allowed to call
+        # it, and EnableCollectionManagement is off for a new account.
         if (self.route.get("parent_type") == "BoxSet"
                 and item.get("Id") and not self._offline
-                and self._edit_apis()):
+                and self._actions.can_manage_collections(
+                    self.route.get("server") or self.server)):
             out.append((_("Remove from Collection"), "delete", "uncollect"))
         return out
 

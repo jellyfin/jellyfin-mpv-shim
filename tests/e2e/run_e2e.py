@@ -47,6 +47,14 @@ CONTRACT = [
     "tests.e2e.test_keyboard_nav",
     "tests.e2e.test_large_queue",
     "tests.e2e.test_connection_loss",
+    # Landed after the runner's list was last touched and never added to it,
+    # so it ran only when somebody named it by hand. The README has always
+    # listed it as part of the suite.
+    "tests.e2e.test_auto_download",
+    # Collections: the one container whose DTO the server fills in wrongly
+    # (ChildCount is 0 for a collection read off disk while the listing has
+    # every member), plus the three edit endpoints nothing else calls.
+    "tests.e2e.test_collections",
     # Two real clients on one real group. No mpv: SyncPlay drives a player
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.

@@ -8,7 +8,7 @@ will refuse creates confusion and issue reports.** A user with SyncPlay
 revoked who is offered a SyncPlay button does not conclude they lack
 permission; they conclude the client is broken, and they are half right.
 
-**Items 1, 3 and 4 are now fixed** (`jellyfin_mpv_shim/user_policy.py`);
+**Items 1, 3, 4 and 5 are now fixed** (`jellyfin_mpv_shim/user_policy.py`);
 their sections below are kept as the record of what was wrong and why, with
 what shipped noted at the end of each. Item 2 is still open.
 
@@ -236,3 +236,66 @@ is where the field spelling is checked, and where the *premise* is: that the
 server really answers 401/403 on the download for `qa-nodownload` and really
 serves 200 on the image endpoint. If it ever stops refusing, that test is
 what will say the fallback is unnecessary.
+
+## 5. Collections are offered to users who cannot edit them  — FIXED
+
+Found while writing `tests/e2e/test_collections.py` against stdjflib's new
+collection fixtures: `POST /Collections` answered **403 for every non-admin
+account on the server**, and the shim had offered the button to all of them.
+
+`EnableCollectionManagement` is a **fifth** independently-granted permission,
+off by default for any account created on a modern server
+(`UserEntityExtensions.cs:193` adds it as `false`). What it gates is not one
+route but the whole of `CollectionController`: the `[Authorize(Policy =
+Policies.CollectionManagement)]` is on the **controller**, so creating a
+collection, adding an item to one and removing an item from one are one
+permission and one refusal. Three entry points in the shim, all of them
+unconditional:
+
+| Entry point | Where |
+| --- | --- |
+| "Collections…" in the Add To dialog | `mpvtk_browser/dialogs.py` (`add-collections`) |
+| The picker and its Create box behind it | `dialogs._show_add_to_collection` |
+| "Remove from Collection" in the tile menu | `mpvtk_browser/tiles.py` (`uncollect`) |
+
+All three were gated on `edit_apis()`, which asks whether the *apiclient* has
+the methods — a real question, and a different one from whether this user may
+call them. So the answer was yes for everybody, and pressing any of them
+produced "The change could not be applied.", indistinguishable from a
+network problem.
+
+**There is no administrator bypass**, and this is the one place to be careful
+copying jellyfin-web. `UserPermissionHandler` asks `HasPermission` and stops,
+exactly as it does for Live TV management. jellyfin-web reads the flag as
+`user.Policy.IsAdministrator || user.Policy.EnableCollectionManagement`
+(`itemContextMenu.js:143`, `multiSelect.js:198`, `LibraryToolbar.tsx:69`),
+which offers the button to an admin the API will refuse. That spelling is
+right for `BoxSet.IsAuthorizedToDelete`, which really does check both — and
+wrong for the endpoint the button calls. We ask what the endpoint asks.
+
+**What shipped.** `user_policy.may_manage_collections`, same module and the
+same fail-open rule, reached through `LibrarySource.can_manage_collections`
+and `ItemActions.can_manage_collections` — the latter answering the two
+questions together, as `can_record` does: can the apiclient, and may this
+user, both have to say yes.
+
+**Playlists deliberately do not move with it.** `PlaylistController` carries
+no such policy, so a user who cannot touch a collection can still make a
+playlist; gating both would have taken away something that works, which is
+the shape of half the bugs in this document. The Add To dialog therefore
+keeps its playlist half in full and loses only the door to the collections
+picker. `tests/test_user_policy.py:TheCollectionAffordances` asserts that as
+hard as it asserts the hiding.
+
+**The stdjflib half.** `qa-user`'s description already claimed "everything a
+non-admin can have" and this was missing from its policy, so no account on
+the QA server except the administrator could reach the feature at all — the
+same omission, and the same fix, as `EnableLiveTvManagement` in item 3.
+Granted there now; the other ten accounts still lack it, which is the state
+this gap is about and is what makes it testable.
+
+Pinned by `tests/test_user_policy.py` (the accessor, the two affordances, and
+that playlists survive) and `tests/e2e/test_collections.py:CollectionPermissionTest`,
+which is where the field *spelling* is checked and where the premise lives:
+that the server really would have refused. If Jellyfin ever relaxes this, that
+test fails and hiding the button becomes the thing to reconsider.

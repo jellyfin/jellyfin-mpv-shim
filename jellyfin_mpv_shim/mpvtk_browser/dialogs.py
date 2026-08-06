@@ -116,7 +116,15 @@ class DialogsMixin:
             # Gated on whether the SOURCE does collections, not on whether
             # any exist — gating on the latter meant you could never create
             # your first one. The offline catalog has none either way.
-            if hasattr(self.source, "get_collections") and not self._offline:
+            #
+            # And on the permission, which is a different question from the
+            # apiclient capability `can_edit` answers: the whole of
+            # CollectionController is behind EnableCollectionManagement, and
+            # a newly created account does not have it. Without this the
+            # button opened a picker whose every row 403s. Playlists stay,
+            # because PlaylistController has no such policy.
+            if (hasattr(self.source, "get_collections") and not self._offline
+                    and self._actions.can_manage_collections(server)):
                 buttons.append(Button(
                     _("Collections…"), id="add-collections",
                     on_click=lambda: self._show_add_to_collection(
