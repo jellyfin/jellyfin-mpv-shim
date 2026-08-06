@@ -107,7 +107,12 @@ BACKENDS = ("libmpv", "jsonipc")
 
 
 def _have_display():
-    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    # os.name: Windows has a desktop and no DISPLAY. Kept in step with
+    # _harness.HAVE_DISPLAY, which is where the same answer decides whether
+    # the real-player legs run at all.
+    return bool(
+        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+    ) or os.name == "nt"
 
 
 def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,

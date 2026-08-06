@@ -53,7 +53,15 @@ assert BACKEND in ("libmpv", "jsonipc"), "unknown JMS_TEST_BACKEND %r" % BACKEND
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
 HAVE_MPV_BIN = shutil.which("mpv") is not None
 HAVE_XVFB = shutil.which("Xvfb") is not None or shutil.which("xvfb-run") is not None
-HAVE_DISPLAY = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+# Windows has no DISPLAY variable and no Xvfb -- the session's desktop is
+# simply there -- so the X-shaped probe answers "headless" on a machine that
+# can open a window fine. That answer is worse than useless here: every
+# @require_real_mpv class self-skips, and run_integration counts a skip as a
+# pass, so a Windows leg reports green having started no real player at all.
+# (--strict is the other half of that guard.)
+HAVE_DISPLAY = bool(
+    os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+) or os.name == "nt"
 # A real mpv smoke test needs a working X display: either an inherited one, or
 # xvfb to conjure one. The runner (run_integration.py) re-execs itself under
 # xvfb-run when no display is present, so by the time a test runs we only need
