@@ -9,10 +9,10 @@ path above it.
 **Two of the gaps these tests turned up are now closed** (`user_policy.py`)
 and asserted below: SyncPlay is not offered to a user the server refuses it
 to, and the Record affordances are not offered without
-`EnableLiveTvManagement`. `EnableContentDownloading` is still unread, and
-Live TV *browsing* was already gated by whether the server put a Live TV
-view in `/Views` (`repository.get_libraries`). See
-`docs/PERMISSION_GAPS.md`.
+`EnableLiveTvManagement`. `EnableContentDownloading` is now read too -- a photo falls
+back to the image endpoint rather than failing to open -- and Live TV
+*browsing* was already gated by whether the server put a Live TV view in
+`/Views` (`repository.get_libraries`). See `docs/PERMISSION_GAPS.md`.
 
 Two things that are *not* tested here, because measurement said they are not
 true (both in `docs/E2E_PLAN.md`):
@@ -294,3 +294,108 @@ class LiveTvManagementPermissionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@_e2e.require_server
+class ContentDownloadingPermissionTest(unittest.TestCase):
+    """`qa-nodownload` — a photo must still open.
+
+    `/Items/{id}/Download` is the shim's ordinary path to a photo's bytes and
+    it is permission-gated, so without `EnableContentDownloading` every
+    picture in the library failed to open. The fallback is the image
+    endpoint, which needs no permission.
+
+    End to end because a unit test cannot check the *spelling*: the branch is
+    provable with a hand-written dict, but that the server really returns
+    `EnableContentDownloading` on `/Users/Me`, and really refuses the
+    download for this account, are answers only the server has.
+    """
+
+    def _session(self, account):
+        session = _e2e.Session(account)
+        self.addCleanup(session.stop)
+        return session
+
+    def test_the_policy_field_is_spelled_the_way_the_client_reads_it(self):
+        from jellyfin_mpv_shim import user_policy
+
+        session = self._session("qa-nodownload")
+        self.assertFalse(
+            user_policy.may_download(session.client),
+            "qa-nodownload came back as permitted — either the account no "
+            "longer has downloading revoked, or the field is not where the "
+            "client looks for it")
+
+    def test_an_ordinary_account_still_may(self):
+        """The control. Without it the test above passes just as well if the
+        client answers "no" to everybody, which would send every photo
+        through the resizer."""
+        from jellyfin_mpv_shim import user_policy
+
+        self.assertTrue(user_policy.may_download(
+            self._session("qa-user").client))
+
+    def test_the_server_really_does_refuse_the_download(self):
+        """The premise. If this ever starts answering 200 the fallback is
+        unnecessary, and this test is what will say so."""
+        session = self._session("qa-nodownload")
+        item_id = _photo_id(session)
+        response = _raw_get(
+            session, "/Items/%s/Download" % item_id)
+        self.assertIn(response, (401, 403),
+                      "expected the download to be refused, got %s"
+                      % response)
+
+    def test_and_really_does_serve_the_same_photo_as_an_image(self):
+        """The fallback has to actually work for this account, not merely be
+        a different url."""
+        session = self._session("qa-nodownload")
+        item_id = _photo_id(session)
+        response = _raw_get(
+            session, "/Items/%s/Images/Primary" % item_id,
+            params={"MaxWidth": 3840, "format": "jpg"})
+        self.assertEqual(response, 200)
+
+    def test_the_url_the_client_builds_is_the_image_one(self):
+        """The whole path, not just the accessor: what `get_playback_url`
+        actually hands mpv for this account."""
+        from jellyfin_mpv_shim.media import Video
+
+        session = self._session("qa-nodownload")
+        item_id = _photo_id(session)
+
+        class _Parent:
+            is_local = True
+            client = session.client
+
+        url = Video(item_id, _Parent()).get_playback_url()
+        self.assertIn("/Images/Primary", url)
+        self.assertNotIn("/Download", url)
+
+
+def _photo_id(session):
+    """Any Photo on the server. stdjflib's Photos library is the source."""
+    result = session.client.jellyfin.user_items(params={
+        "IncludeItemTypes": "Photo",
+        "Recursive": True,
+        "Limit": 1,
+    }) or {}
+    items = result.get("Items") or []
+    if not items:
+        raise unittest.SkipTest(
+            "no Photo on the server — build stdjflib's Photos library")
+    return items[0]["Id"]
+
+
+def _raw_get(session, path, params=None):
+    """Status code only, with this session's token. The apiclient raises or
+    swallows depending on the failure, and the status is the whole point."""
+    import requests
+
+    return requests.get(
+        _e2e.SERVER + path,
+        params=params or {},
+        headers={"Authorization": 'MediaBrowser Token="%s"' % session.token},
+        timeout=30,
+        allow_redirects=False,
+    ).status_code

@@ -8,9 +8,9 @@ will refuse creates confusion and issue reports.** A user with SyncPlay
 revoked who is offered a SyncPlay button does not conclude they lack
 permission; they conclude the client is broken, and they are half right.
 
-**Items 1 and 3 are now fixed** (`jellyfin_mpv_shim/user_policy.py`); their
-sections below are kept as the record of what was wrong and why, with what
-shipped noted at the end of each. Item 2 is still open.
+**Items 1, 3 and 4 are now fixed** (`jellyfin_mpv_shim/user_policy.py`);
+their sections below are kept as the record of what was wrong and why, with
+what shipped noted at the end of each. Item 2 is still open.
 
 ## 1. SyncPlay is offered to users who do not have it  — FIXED
 
@@ -192,3 +192,47 @@ because `provision` skipped the account it authenticates as — and `qa-user`
 gets `EnableLiveTvManagement` as well, since its description already claimed
 everything a non-admin can have. The other ten accounts still lack it, which
 is the state this gap is about and is what makes it testable.
+
+## 4. A photo will not open for a user who may not download  — FIXED
+
+Found while researching what Jellyfin actually offers for books, which share
+the same endpoint. `qa-nodownload` is the account.
+
+`EnableContentDownloading` gates `GET /Items/{itemId}/Download`
+(`[Authorize(Policy = Policies.Download)]`, `LibraryController.cs:669`), and
+that endpoint is not only how a download is taken — it was the shim's
+ordinary path to a **photo's** bytes (`media.py:get_playback_url`, the
+`is_photo` branch). So for this account every picture in the library failed
+to open. Same family as the gaps above, but worse in one way: SyncPlay
+without permission gives a button that fails, which at least suggests
+something was refused. A photo that will not open looks like a broken client.
+
+It is also the only path to a **book's** bytes at all, since `Book` is not
+`IHasMediaSources` and so has no stream endpoint — worth knowing before book
+support is written, because there the permission is unavoidable and the
+answer has to be a clear message rather than a fallback.
+
+**What shipped.** `user_policy.may_download`, same module and the same
+fail-open rule: only an answer the server actually gave closes the gate,
+because closing it on a failed fetch would send every photo through the
+resizer for no reason. The photo branch already had an image-endpoint path
+for HEIC and raw — mpv's ffmpeg often cannot decode those, so the server
+converts them — and the permission now routes into the same place. One
+condition, one fallback, and the two roads are independent: a HEIC is
+unaffected either way.
+
+This is **parity, not a divergence**. jellyfin-web draws the same line in
+`src/components/slideshow/slideshow.js:getImgUrl`, which reaches for
+`getDownloadUrl` only when `user.Policy.EnableContentDownloading` is set and
+otherwise serves the same picture from the image endpoint. The download url
+is the original-quality *upgrade*, never the load-bearing path — which is
+why the fix is a fallback rather than dropping the download url for
+everybody.
+
+Pinned by `tests/test_user_policy.py` (the accessor), `tests/test_photos.py`
+(`PhotoDownloadPermissionTest`, the branch and the token rule) and
+`tests/e2e/test_account_policy.py:ContentDownloadingPermissionTest` — which
+is where the field spelling is checked, and where the *premise* is: that the
+server really answers 401/403 on the download for `qa-nodownload` and really
+serves 200 on the image endpoint. If it ever stops refusing, that test is
+what will say the fallback is unnecessary.

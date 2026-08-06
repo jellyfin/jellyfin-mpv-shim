@@ -101,3 +101,27 @@ def may_manage_live_tv(client):
     if "EnableLiveTvManagement" not in policy:
         return True
     return bool(policy.get("EnableLiveTvManagement"))
+
+
+def may_download(client):
+    """`EnableContentDownloading` — may this user use `/Items/{id}/Download`?
+
+    A *fourth* independently-granted permission, and the one with the widest
+    blast radius, because that endpoint is not only how a download is taken:
+    it is the only path to a Photo's original bytes, and the only path to a
+    Book's bytes at all. So a user without it does not merely lose the
+    Download button — a picture fails to open, with no hint as to why.
+
+    jellyfin-web takes exactly this line for photos: `slideshow.js:getImgUrl`
+    reaches for the download URL only when the policy allows, and otherwise
+    serves the same picture from the image endpoint, which needs no
+    permission. The download URL is the original-quality *upgrade*, never the
+    load-bearing path.
+
+    Absent means an answer we did not get, so: permitted. Closing this gate
+    on a failed fetch would send every photo through the resizer.
+    """
+    policy = policy_for(client) or {}
+    if "EnableContentDownloading" not in policy:
+        return True
+    return bool(policy.get("EnableContentDownloading"))

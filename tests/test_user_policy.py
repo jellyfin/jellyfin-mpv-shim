@@ -117,6 +117,30 @@ class LiveTvManagement(unittest.TestCase):
             _Client({"EnableLiveTvAccess": True})))
 
 
+class ContentDownloading(unittest.TestCase):
+    """`EnableContentDownloading` gates `/Items/{id}/Download`, which is not
+    only the Download button: it is the only path to a Photo's original
+    bytes and the only path to a Book's bytes at all."""
+
+    def test_the_flag_is_read(self):
+        self.assertFalse(user_policy.may_download(
+            _Client({"EnableContentDownloading": False})))
+        self.assertTrue(user_policy.may_download(
+            _Client({"EnableContentDownloading": True})))
+
+    def test_an_absent_flag_is_permitted(self):
+        """Fail open. Closing this one on a policy we could not read would
+        send every photo through the resizer."""
+        self.assertTrue(user_policy.may_download(
+            _Client({"EnableLiveTvAccess": True})))
+
+    def test_a_fetch_that_failed_is_permitted(self):
+        self.assertTrue(user_policy.may_download(_Client(raises=True)))
+
+    def test_no_client_is_permitted(self):
+        self.assertTrue(user_policy.may_download(None))
+
+
 class TheOfflineSourceAnswers(unittest.TestCase):
     """The offline source is what the online one falls back TO, so a missing
     method turns a degraded screen into an AttributeError on the fallback
