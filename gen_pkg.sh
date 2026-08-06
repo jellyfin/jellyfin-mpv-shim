@@ -42,6 +42,67 @@ function get_resource_version {
         grep -i '^location: ' | sed 's/.*tag\///g' | tr -d '\r'
 }
 
+# Both of these have a Python fallback because the Windows ARM64 CI runner has
+# no MSYS2 userland. The other Windows jobs get unzip and msgfmt from the Git
+# for Windows SDK, which has no usable aarch64 flavor -- so on that runner the
+# GNU tools are simply absent. Neither loop below stops on a missing command,
+# so without a fallback the ARM64 build would produce an installer with every
+# locale empty rather than fail.
+
+# Resolved on first use rather than up front, so that the paths not needing it
+# still run on a machine without Python. "python3" is not on PATH under a stock
+# Windows Python install; "python" and "py" are.
+PYTHON=""
+function find_python {
+    if [[ "$PYTHON" != "" ]]
+    then
+        return 0
+    fi
+    for candidate in python3 python py
+    do
+        if command -v "$candidate" > /dev/null 2>&1
+        then
+            PYTHON="$candidate"
+            return 0
+        fi
+    done
+    echo "Error: no Python interpreter found on PATH." >&2
+    return 1
+}
+
+function extract_zip {
+    # $1: archive, $2: destination directory (must exist)
+    if command -v unzip > /dev/null 2>&1
+    then
+        unzip "$1" -d "$2" > /dev/null
+    else
+        find_python && "$PYTHON" -m zipfile -e "$1" "$2"
+    fi
+}
+
+function compile_po {
+    # $1: .po file, $2: .mo file to write
+    if command -v msgfmt > /dev/null 2>&1
+    then
+        msgfmt "$1" -o "$2"
+    else
+        find_python && "$PYTHON" "$(dirname "$0")/tools/msgfmt.py" "$1" -o "$2"
+    fi
+}
+
+# Say which one compiled the catalogs. The two are meant to be
+# indistinguishable in their output, which also makes it impossible to tell
+# from a build log which of them ran -- and "the fallback is exercised in CI"
+# is then a belief rather than an observation.
+function report_po_compiler {
+    if command -v msgfmt > /dev/null 2>&1
+    then
+        echo "Compiling translations with GNU msgfmt."
+    else
+        echo "Compiling translations with tools/msgfmt.py (no GNU msgfmt on PATH)."
+    fi
+}
+
 if [[ "$1" == "--get-pyinstaller" ]]
 then
     echo "Downloading pyinstaller..."
@@ -50,7 +111,7 @@ then
     (
         mkdir pyinstaller
         cd pyinstaller
-        unzip ../release.zip > /dev/null && rm ../release.zip
+        extract_zip ../release.zip . && rm ../release.zip
         mv pyinstaller-*/* ./
         rm -r pyinstaller-*
     )
@@ -108,11 +169,15 @@ then
     echo "Constants: $constants_version, Flatpak: $appdata_version"
 fi
 
-# Generate translations
-find -iname '*.po' | while read -r file
+# Generate translations. Read from a process substitution rather than a pipe so
+# that a failure here stops the build: the loop body of a pipeline runs in a
+# subshell, where "exit" ends only the subshell and the script goes on to
+# package an installer with no translations in it.
+report_po_compiler
+while read -r file
 do
-    msgfmt "$file" -o "${file%.*}.mo"
-done
+    compile_po "$file" "${file%.*}.mo" || exit 1
+done < <(find -iname '*.po')
 
 # Download default-shader-pack
 update_shader_pack="no"

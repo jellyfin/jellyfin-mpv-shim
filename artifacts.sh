@@ -11,6 +11,9 @@ then
 elif [[ "$1" == "legacy64" ]]
 then
     cp dist/jellyfin-mpv-shim_version_installer.exe publish/Installer/jellyfin-mpv-shim_${version}_LEGACY64_installer.exe || exit 1
+elif [[ "$1" == "arm64" ]]
+then
+    cp dist/jellyfin-mpv-shim_version_installer.exe publish/Installer/jellyfin-mpv-shim_${version}_ARM64_installer.exe || exit 1
 elif [[ "$1" == "flatpak" ]]
 then
     # $2 is the architecture label (amd64/arm64). The bundle is exported from

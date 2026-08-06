@@ -53,7 +53,15 @@ assert BACKEND in ("libmpv", "jsonipc"), "unknown JMS_TEST_BACKEND %r" % BACKEND
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
 HAVE_MPV_BIN = shutil.which("mpv") is not None
 HAVE_XVFB = shutil.which("Xvfb") is not None or shutil.which("xvfb-run") is not None
-HAVE_DISPLAY = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+# Windows has no DISPLAY variable and no Xvfb -- the session's desktop is
+# simply there -- so the X-shaped probe answers "headless" on a machine that
+# can open a window fine. That answer is worse than useless here: every
+# @require_real_mpv class self-skips, and run_integration counts a skip as a
+# pass, so a Windows CI leg reports green having started no real player at
+# all. (--strict is the other half of that guard.)
+HAVE_DISPLAY = bool(
+    os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+) or os.name == "nt"
 # A real mpv smoke test needs a working X display: either an inherited one, or
 # xvfb to conjure one. The runner (run_integration.py) re-execs itself under
 # xvfb-run when no display is present, so by the time a test runs we only need
@@ -666,20 +674,61 @@ def spin_barrier(n):
 # ffmpeg sample media (Tier 2)
 # --------------------------------------------------------------------------
 
+_WINDOWS_FONTS = (r"C:\Windows\Fonts", ("arial.ttf", "segoeui.ttf"))
+
+
+def _drawtext(label):
+    """``(filter, cwd)`` drawing ``label``, or ``(None, None)`` if this machine
+    cannot draw one.
+
+    drawtext resolves its default font through fontconfig, which Windows does
+    not have: ffmpeg exits ENOENT there rather than falling back to a font,
+    which took out every test whose clip carried a label while the identical
+    unlabelled clips built fine. The label is a debugging affordance -- it is
+    what tells two clips apart when you watch the window go by -- so name a
+    font explicitly where one is findable, and go without where it is not.
+
+    The font is named *relatively*, from ffmpeg's working directory, because a
+    Windows path cannot be spelled inside a filter graph without guessing how
+    many times its drive colon will be unescaped on the way in. It is a
+    separator there, and one backslash is consumed by the graph parser before
+    the option parser ever sees it -- so ``fontfile=C\\:/...`` arrives as the
+    option ``fontfile=C`` followed by the junk option ``/Windows/...``. A bare
+    filename has no colon to argue about."""
+    spec = "drawtext=text='%s':fontcolor=white:x=10:y=10" % label
+    if os.name != "nt":
+        return spec, None
+    fontdir, names = _WINDOWS_FONTS
+    for name in names:
+        if os.path.isfile(os.path.join(fontdir, name)):
+            return spec + ":fontfile=" + name, fontdir
+    return None, None
+
+
 def make_test_clip(path, duration=2, size="160x120", label=None):
     """Generate a tiny, deterministic H.264 clip with ffmpeg. Cheap enough to
     regenerate per test; no network, no external assets."""
     src = "testsrc=duration=%d:size=%s:rate=10" % (duration, size)
+    cwd = None
     if label:
-        src += ",drawtext=text='%s':fontcolor=white:x=10:y=10" % label
+        drawtext, cwd = _drawtext(label)
+        if drawtext:
+            src += "," + drawtext
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-f", "lavfi", "-i", src,
         "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "ultrafast",
-        path,
+        # Absolute, so the working directory above cannot move the output.
+        os.path.abspath(path),
     ]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL,
-                   stderr=subprocess.PIPE)
+    # Not check=True: CalledProcessError prints the command and swallows the
+    # captured stderr, so a filter ffmpeg refused and a filter it could not
+    # find a font for are the same opaque exit status.
+    proc = subprocess.run(cmd, cwd=cwd, stdout=subprocess.DEVNULL,
+                          stderr=subprocess.PIPE, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError("ffmpeg exited %d building %s: %s" % (
+            proc.returncode, path, (proc.stderr or "").strip()))
     return path
 
 
@@ -706,6 +755,13 @@ def start_live_stream(path, size="160x120"):
     on the FIFO until a reader opens it, so it exits on its own only once mpv
     has gone away).
     """
+    if not hasattr(os, "mkfifo"):
+        # Windows. A named pipe there is a \\.\pipe\ object created through
+        # the Win32 API, not a filesystem node os.mkfifo can make, so this
+        # leg needs a different writer rather than a different path. Skipped
+        # rather than quietly swapped for a regular file: a file has a
+        # duration, which is the one thing this test is about not having.
+        raise unittest.SkipTest("no os.mkfifo on this platform")
     os.mkfifo(path)
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error",
