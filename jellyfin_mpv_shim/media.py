@@ -10,6 +10,7 @@ from . import conf
 from .conf import settings
 from .language_config import apply as apply_language_config
 from .utils import is_local_domain, get_profile, get_seq
+from .user_policy import may_download
 from .i18n import _
 
 log = logging.getLogger("media")
@@ -646,12 +647,23 @@ class Video(object):
             # drops the token, so leaving them at the apiclient's default
             # sent both, and a photo was the one thing still putting a token
             # in a query string after all of the above.
+            #
+            # The image endpoint is also the fallback for a user who may not
+            # download. /Items/{id}/Download is permission-gated, so without
+            # EnableContentDownloading the original bytes are simply not
+            # reachable -- and a picture that will not open reads as a broken
+            # client, not as a permission. The same picture comes back from
+            # the image endpoint, which needs no permission, so the download
+            # url is the original-quality *upgrade* rather than the only way
+            # in. jellyfin-web draws exactly this line (slideshow.js:
+            # getImgUrl). Fails open: see user_policy.may_download.
             keep_token = not self.auth_via_header
             container = (self.item.get("Container") or "").lower()
             path = (self.item.get("Path") or "").lower()
-            if container in _SERVER_CONVERTED_IMAGES or any(
+            if (container in _SERVER_CONVERTED_IMAGES or any(
                     path.endswith("." + ext)
-                    for ext in _SERVER_CONVERTED_IMAGES):
+                    for ext in _SERVER_CONVERTED_IMAGES)
+                    or not may_download(self.client)):
                 return self.client.jellyfin.artwork(
                     self.item_id, "Primary", _PHOTO_MAX_WIDTH,
                     include_apikey=keep_token)

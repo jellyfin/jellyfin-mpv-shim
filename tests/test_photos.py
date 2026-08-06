@@ -25,13 +25,23 @@ from tests._shell_harness import (  # noqa: E402
 
 
 class _Jellyfin:
-    def __init__(self, item):
+    def __init__(self, item, policy=None):
         self._item = item
+        self._policy = policy
         self.calls = []
         self.apikeys = []
+        self.user_calls = 0
 
     def get_item(self, item_id):
         return dict(self._item, Id=item_id)
+
+    # Modelled because `may_download` reads it. A fake without it would send
+    # every photo down the fail-open path, so the permission branch would be
+    # unreachable while the suite reported a pass -- which is the exact
+    # failure `tools/audit_fake_contracts.py` exists to catch.
+    def get_user(self):
+        self.user_calls += 1
+        return {"Policy": self._policy} if self._policy is not None else {}
 
     # Both mirror the apiclient's own signature, ApiKey spelling and
     # include_apikey default. The default is the point: it is what made a
@@ -55,15 +65,15 @@ class _Jellyfin:
 
 
 class _Client:
-    def __init__(self, item):
-        self.jellyfin = _Jellyfin(item)
+    def __init__(self, item, policy=None):
+        self.jellyfin = _Jellyfin(item, policy)
 
 
 class _Parent:
     is_local = True
 
-    def __init__(self, item):
-        self.client = _Client(item)
+    def __init__(self, item, policy=None):
+        self.client = _Client(item, policy)
 
 
 class PhotoUrlTest(unittest.TestCase):
@@ -74,9 +84,9 @@ class PhotoUrlTest(unittest.TestCase):
     Confirmed against a live server: web fetches the file itself.
     """
 
-    def _video(self, **item):
+    def _video(self, policy=None, **item):
         item.setdefault("Type", PHOTO_TYPE)
-        parent = _Parent(item)
+        parent = _Parent(item, policy)
         v = Video("ph1", parent)
         return v, parent.client.jellyfin
 
@@ -115,6 +125,84 @@ class PhotoUrlTest(unittest.TestCase):
 
     def test_heic_is_in_the_converted_set(self):
         self.assertIn("heic", _SERVER_CONVERTED_IMAGES)
+
+
+class PhotoDownloadPermissionTest(unittest.TestCase):
+    """A photo must open for a user who may not download.
+
+    `/Items/{id}/Download` is `[Authorize(Policy = Policies.Download)]`, and
+    it is the shim's ordinary path to a photo's bytes -- so without
+    `EnableContentDownloading` every picture in the library failed to open,
+    which reads as a broken client rather than as a permission. The image
+    endpoint serves the same picture and needs no permission.
+
+    jellyfin-web draws the line in the same place (`slideshow.js:getImgUrl`),
+    so this is parity, not a divergence.
+    """
+
+    def _video(self, policy=None, **item):
+        item.setdefault("Type", PHOTO_TYPE)
+        item.setdefault("Container", "jpg")
+        item.setdefault("Path", "/pics/a.jpg")
+        parent = _Parent(item, policy)
+        return Video("ph1", parent), parent.client.jellyfin
+
+    def test_a_user_who_may_not_download_still_sees_the_photo(self):
+        v, jf = self._video({"EnableContentDownloading": False})
+        url = v.get_playback_url()
+        self.assertIn("/Images/Primary", url)
+        self.assertEqual(jf.calls[-1],
+                         ("artwork", "ph1", "Primary", _PHOTO_MAX_WIDTH))
+
+    def test_a_user_who_may_download_still_gets_the_original(self):
+        """The download url is the quality upgrade. Taking it away from
+        everyone would be a regression dressed as a fix."""
+        v, jf = self._video({"EnableContentDownloading": True})
+        self.assertIn("/Download", v.get_playback_url())
+        self.assertEqual(jf.calls[-1][0], "download")
+
+    def test_an_older_server_that_never_says_keeps_the_original(self):
+        """Fail open: a policy without the field is an answer we did not
+        get, and closing the gate on it sends every photo through the
+        resizer for no reason."""
+        v, jf = self._video({"SyncPlayAccess": "CreateAndJoinGroups"})
+        self.assertIn("/Download", v.get_playback_url())
+
+    def test_a_policy_that_could_not_be_fetched_keeps_the_original(self):
+        v, jf = self._video(None)
+        self.assertIn("/Download", v.get_playback_url())
+
+    def test_heic_ignores_the_permission_entirely(self):
+        """It was already going to the image endpoint, and for an unrelated
+        reason. Both roads lead there; neither shadows the other."""
+        for allowed in (True, False):
+            with self.subTest(allowed=allowed):
+                v, jf = self._video({"EnableContentDownloading": allowed},
+                                    Container="heic", Path="/pics/a.HEIC")
+                self.assertIn("/Images/Primary", v.get_playback_url())
+
+    def test_the_policy_is_read_once_not_per_photo(self):
+        """A slideshow calls this per slide. An uncached read would be a
+        request per picture."""
+        item = {"Type": PHOTO_TYPE, "Container": "jpg", "Path": "/p/a.jpg"}
+        parent = _Parent(item, {"EnableContentDownloading": False})
+        for _ in range(5):
+            Video("ph1", parent).get_playback_url()
+        self.assertEqual(parent.client.jellyfin.user_calls, 1)
+
+    def test_the_fallback_still_drops_the_token_when_the_header_is_set(self):
+        """The permission branch returns from inside the photo block, which
+        is the one that predates the header work -- so it has to obey the
+        same rule as the two beside it."""
+        v, jf = self._video({"EnableContentDownloading": False})
+        v.auth_via_header = True
+        url = v.get_playback_url()
+        # The endpoint assertion is what makes this about the fallback: the
+        # download url drops the token too, so a token-only check passes
+        # whether or not the permission is ever consulted.
+        self.assertIn("/Images/Primary", url)
+        self.assertNotIn("ApiKey", url)
+        self.assertIs(jf.apikeys[-1], False)
 
 
 class PhotoUrlAuthTest(unittest.TestCase):
