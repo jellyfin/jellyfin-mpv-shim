@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-06-18 18:32+0000\n"
+"PO-Revision-Date: 2026-08-08 00:11+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/tr/>\n"
@@ -1007,14 +1007,12 @@ msgid "Hide unless hovered"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Always Skip Credits"
 msgid "Always hide"
-msgstr "Jeneriği Her Zaman Atla"
+msgstr "Her zaman gizle"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Duraklatıldığında asla gizleme"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -2851,19 +2849,12 @@ msgid "Songs"
 msgstr "Şarkılar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"Sunucu eklenemedi.\n"
-"Lütfen bağlantınızı kontrol ediniz."
+msgstr "Oynatma başlatılamadı."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Edit"
 msgstr "Düzenle"
 
