@@ -795,6 +795,13 @@ class TileRenderer:
         from . import live_tv
 
         progress = (pos / rt) if (pos and rt) else 0.0
+        if not progress and item.get("IsFolder"):
+            # A container has no position of its own and no runtime, so the
+            # ratio above is always zero for one. The server computes
+            # PlayedPercentage across its children instead -- which for an
+            # audiobook folder is exactly "how far through the book am I",
+            # the number that makes a shelf of part-read books readable.
+            progress = float(ud.get("PlayedPercentage") or 0.0) / 100.0
         recording = live_tv.is_recording_now(item)
         record = live_tv.timer_state(item) or ""
         if item.get("_recording") and not record:
@@ -1296,7 +1303,8 @@ class TileRenderer:
 
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
-                    art=False, scroll_id=None, head_h=0, menu=False):
+                    art=False, scroll_id=None, head_h=0, menu=False,
+                    watched=False):
         """Tabular track list (album, playlist, queue, search songs).
 
         Uses the toolkit's Table so header and cells come from one column
@@ -1308,9 +1316,19 @@ class TileRenderer:
         one-click way to jump to a track. Without it, clicking the row plays.
 
         ``art=True`` adds a leading album-art thumbnail column — useful in
-        mixed-album lists (playlists); redundant on an album page."""
+        mixed-album lists (playlists); redundant on an album page.
+
+        ``watched=True`` adds a leading tick column for entries that have
+        been played. Off by default because it is dead weight on a music
+        playlist, where nobody tracks which songs they have heard — but on
+        an audiobook it is the whole state of the thing: which chapters are
+        behind you is what Resume is computed from, and without it marking
+        one had no visible effect at all.
+        """
         selected = selected or set()
         columns = []
+        if watched:
+            columns.append({"label": "", "w": 26})
         if art:
             columns.append({"label": "", "w": 32})
         columns += [{"label": "#", "w": 46, "align": "right"},
@@ -1358,7 +1376,8 @@ class TileRenderer:
                 # the track's position -- and does nothing: no handlers, no
                 # art cell to composite, the same treatment image_map and
                 # item_list give a hole.
-                cells = ([self._art_placeholder()] if art else []) + \
+                cells = ([""] if watched else []) + \
+                    ([self._art_placeholder()] if art else []) + \
                     ["", "", ""] + ([""] if album else []) + [""]
                 rows.append({"id": "%s-%d" % (prefix, i), "cells": cells})
                 continue
@@ -1368,6 +1387,12 @@ class TileRenderer:
                 cells.insert(0, self.art_cell(tr)
                              if art_first <= i < art_last
                              else self._art_placeholder())
+            if watched:
+                # An Icon, not a "✓" glyph: this is a Table cell drawn by
+                # the renderer rather than baked into a strip bitmap, so it
+                # gets the same check every other control in the app uses.
+                cells.insert(0, Icon("check", 15, color=theme.ACCENT)
+                             if components.is_watched(tr) else "")
             if album:
                 cells.append(tr.get("Album", "") or "")
             cells.append(components.track_duration(tr))

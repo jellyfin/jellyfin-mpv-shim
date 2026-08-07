@@ -214,9 +214,18 @@ audiobook is drawn as an album would be: a cover, **Play** / **Resume** /
 at the first chapter you have not finished, at the point you left it.
 
 A single-file audiobook (`.m4b`) is one long item with chapters inside it, so
-the audio bar grows **chapter controls** for one: previous, a chapter list,
-and next. They appear only when the file actually has chapters, so music is
-unaffected.
+the audio bar grows controls for one: **chapter back/forward** around the play
+button, **back 10s / forward 30s** either side of it, **chapter ticks on the
+scrubber** so you can see where you are in the book rather than in the file,
+and a **chapter list**. They appear only for an audiobook that actually has
+chapters, so music is unaffected — and the bar drops them again on a narrow
+window, keeping whichever matter most for what is playing.
+
+Books you have finished get a tick on the shelf and part-read ones a progress
+bar, and right-clicking a book's folder can mark it finished or unfinished.
+Once you have started a book there is no bare "Play" button: the page offers
+**Resume** and, separately, **Play from Beginning** — starting a ten-hour book
+over by accident overwrites hours of position as it plays.
 
 **Books are download-and-open.** There is no reader in the player, and there
 will not be one: Jellyfin stores books but does not *serve* them — there is

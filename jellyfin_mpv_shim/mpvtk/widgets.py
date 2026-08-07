@@ -871,6 +871,15 @@ class Dropdown(Element):
         on_select=None,
         force=False,
         trigger_icon=None,
+        # Draw the icon trigger as a filled, rounded BUTTON rather than the
+        # chromeless glyph the playback HUD uses. The HUD's controls float
+        # over video, where a bare glyph with a hover wash is right; the
+        # now-playing bar's sit on panel chrome next to a row of square
+        # buttons, and a chromeless one there reads as a different kind of
+        # thing from its neighbours. Colours come from the caller because
+        # they are the app theme's button colours, which the renderer has no
+        # token for -- it only knows its own control tokens.
+        trigger_chip=None,      # (bg, hover, fg) hex strings, or None
         popup_w=None,
         **kw,
     ):
@@ -885,6 +894,7 @@ class Dropdown(Element):
         self.on_select = on_select
         self.force = force
         self.trigger_icon = trigger_icon
+        self.trigger_chip = trigger_chip
         self.popup_w = popup_w
 
 

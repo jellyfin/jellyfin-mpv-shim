@@ -870,6 +870,9 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
             from .vector import icon_ass
 
             node["ticon"] = icon_ass(el.trigger_icon)
+            chip = getattr(el, "trigger_chip", None)
+            if chip:
+                node["tchip"] = list(chip)
         else:
             # A ceiling, not a width: a short list stays tidy, and the popup
             # is never narrower than the control it drops out of.

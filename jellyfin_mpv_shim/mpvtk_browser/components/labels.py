@@ -86,7 +86,13 @@ def is_watched(item):
     ud = item.get("UserData") or {}
     if ud.get("Played"):
         return True
-    if item.get("Type") in ("Series", "Season"):
+    # Folder is here for audiobooks: a book read from a folder of chapter
+    # files is finished when its chapters are, and nothing sets Played on
+    # the folder itself when you simply listen through it -- only marking it
+    # by hand does. Without this a book you had actually finished showed no
+    # tick, which is the one thing a shelf of them needs to say. It is right
+    # for a Home Videos folder for the same reason.
+    if item.get("Type") in ("Series", "Season", "Folder"):
         # `or 0` would read a MISSING count as zero-unplayed, i.e.
         # fully watched — so a Series DTO without UserData (search
         # results, the synthesized season fallback) showed a watched
@@ -155,8 +161,14 @@ _TYPE_GLYPHS = {
     "Audio": "♪",
     "MusicAlbum": "♪",
     "MusicArtist": "♪",
-    "Folder": "▸",
-    "CollectionFolder": "▸",
+    # NOT a triangle. "▸" is the play shape, and drawn large and centred on
+    # an artless tile that is exactly what it reads as -- a grid of folders
+    # came out looking like a grid of play buttons, which was reported as
+    # "floating play buttons on folders". The tile already carries a small
+    # folder icon in its corner (TYPE_INDICATOR_ICONS), so this only has to
+    # be a mark that is not something else's.
+    "Folder": "▤",
+    "CollectionFolder": "▤",
     "PhotoAlbum": "▣",
     "Photo": "▣",
 }

@@ -282,6 +282,47 @@ class TestAudiobookFolder(BooksHarness):
         b = self.open_folder([audiobook(i) for i in (1, 2)])
         nodes, _h = build_scene(b)
         self.assertNotIn("bk-resume", ids(nodes))
+        self.assertIn("bk-play", ids(nodes))
+
+    def test_a_started_book_has_no_plain_play_button(self):
+        """On a film "Play" beside "Resume" is harmless. On a book it is a
+        trap: the position is hours of listening spread over weeks, and
+        starting from chapter one overwrites it as it goes. So the second
+        button says out loud that it goes back to the beginning."""
+        chapters = [
+            dict(audiobook(1), UserData={"PlaybackPositionTicks": 5000000}),
+            audiobook(2),
+        ]
+        b = self.open_folder(chapters)
+        nodes, _h = build_scene(b)
+        labels = [str(n.get("text", "")) for n in nodes]
+        self.assertIn("bk-resume", ids(nodes))
+        self.assertNotIn("Play", labels,
+                         "a bare Play button is still offered on a book "
+                         "that has been started")
+        self.assertIn("Play from Beginning", labels)
+
+    def test_play_from_beginning_really_does_start_at_zero(self):
+        chapters = [
+            dict(audiobook(1), UserData={"PlaybackPositionTicks": 5000000}),
+            audiobook(2),
+        ]
+        b = self.open_folder(chapters)
+        _n, handlers = build_scene(b)
+        handlers["bk-play"]["click"]()
+        _queued, _srv, start = b.controller.played[-1]
+        self.assertEqual(start, 0)
+        self.assertIsNone(b.controller.play_offsets[-1])
+
+    def test_a_finished_book_offers_play_rather_than_resume(self):
+        # Every chapter played: there is nothing to resume, and starting
+        # over is the only sensible offer.
+        chapters = [dict(audiobook(i), UserData={"Played": True})
+                    for i in (1, 2)]
+        b = self.open_folder(chapters)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("bk-resume", ids(nodes))
+        self.assertIn("bk-play", ids(nodes))
 
     def test_the_folders_own_item_heads_the_page(self):
         b = self.open_folder(
@@ -292,6 +333,324 @@ class TestAudiobookFolder(BooksHarness):
         text = " ".join(str(n.get("text", "")) for n in nodes)
         self.assertIn("The Divided Account", text)
         self.assertIn("Gus Gupta", text)
+
+
+class TestFolderProgress(BooksHarness):
+    """A shelf of audiobooks has to say which ones you have finished.
+
+    Everything here rides on a Folder's own UserData, which the server
+    maintains across its children: `Played` when it is marked, and
+    `PlayedPercentage` / `UnplayedItemCount` as the chapters are listened
+    to. Verified against a live server — marking a folder played cascades
+    to its six chapters and back again.
+    """
+
+    @staticmethod
+    def _folder(**data):
+        return {"Id": "folder1", "Name": "The Divided Account",
+                "Type": "Folder", "IsFolder": True, "UserData": data}
+
+    def _tile(self, item):
+        b = self.open_folder([])
+        return b.tiles._tile(item, b.tiles.art.geom, "Primary")
+
+    def test_a_finished_book_gets_a_tick(self):
+        self.assertTrue(self._tile(
+            self._folder(Played=True, UnplayedItemCount=0)).watched)
+
+    def test_listening_through_every_chapter_counts_as_finished(self):
+        """Nothing sets Played on the folder when you simply listen through
+        it — only marking it by hand does — so a book you had actually
+        finished showed no tick at all, which is the one thing a shelf of
+        them needs to say."""
+        self.assertTrue(self._tile(
+            self._folder(Played=False, UnplayedItemCount=0)).watched)
+
+    def test_an_unstarted_book_gets_no_tick(self):
+        self.assertFalse(self._tile(
+            self._folder(Played=False, UnplayedItemCount=6)).watched)
+
+    def test_a_part_read_book_gets_a_progress_bar(self):
+        """A container has no position and no runtime, so the usual
+        position/runtime ratio is always zero for one. PlayedPercentage is
+        the server's own answer across the children — which for an
+        audiobook folder is exactly how far through the book you are."""
+        tile = self._tile(self._folder(PlayedPercentage=40,
+                                       UnplayedItemCount=4))
+        self.assertAlmostEqual(tile.progress, 0.4)
+
+    def test_an_unstarted_book_has_no_bar(self):
+        self.assertEqual(
+            self._tile(self._folder(PlayedPercentage=0,
+                                    UnplayedItemCount=6)).progress, 0.0)
+
+    def test_the_context_menu_can_mark_a_book_finished(self):
+        b = self.open_folder([])
+        actions = {key for _l, _i, key in b._tile_menu_entries(
+            self._folder(UnplayedItemCount=6))}
+        self.assertIn("watched", actions)
+
+    def test_marking_a_folder_flips_the_tick_without_a_reload(self):
+        """The optimistic flip has to move the COUNT too. is_watched reads
+        it for a container, so setting Played alone leaves the tick
+        recomputed from a stale count that still says unfinished."""
+        b = self.open_folder([])
+        folder = self._folder(Played=False, UnplayedItemCount=6)
+        b._actions.toggle_watched(folder, "srv1")
+        from jellyfin_mpv_shim.mpvtk_browser import components
+        self.assertTrue(components.is_watched(folder))
+        self.assertEqual(folder["UserData"]["UnplayedItemCount"], 0)
+
+    def test_un_marking_a_folder_restores_it(self):
+        b = self.open_folder([])
+        folder = self._folder(Played=True, UnplayedItemCount=0)
+        b._actions.toggle_watched(folder, "srv1")
+        from jellyfin_mpv_shim.mpvtk_browser import components
+        self.assertFalse(components.is_watched(folder))
+
+    def test_marking_survives_several_round_trips(self):
+        """On/off/on: the rollback path restores three fields, and a
+        partial restore leaves the tile disagreeing with the server in a
+        way one toggle cannot show."""
+        b = self.open_folder([])
+        folder = self._folder(Played=False, UnplayedItemCount=6,
+                              PlayedPercentage=0)
+        from jellyfin_mpv_shim.mpvtk_browser import components
+        for expected in (True, False, True, False):
+            b._actions.toggle_watched(folder, "srv1")
+            self.assertIs(components.is_watched(folder), expected)
+
+
+class TestLibraryWidePlayButtons(BooksHarness):
+    """A books library gets neither Play All nor Shuffle.
+
+    Half of one cannot be played at all (a Book is dropped from the queue
+    silently), and the other half is audiobooks — where a library-wide
+    queue is every chapter of every book from the beginning, which
+    overwrites hours of position as it plays.
+    """
+
+    def _bar(self, collection_type):
+        b = self.browser([])
+        b.navigate({"kind": "books" if collection_type == "books" else "grid",
+                    "server": "srv1", "parent_id": "p",
+                    "collection_type": collection_type, "title": "L"})
+        nodes, _h = build_scene(b)
+        return ids(nodes)
+
+    def test_a_books_library_offers_neither(self):
+        drawn = self._bar("books")
+        self.assertNotIn("grid-playall", drawn)
+        self.assertNotIn("grid-shuffle", drawn)
+
+    def test_a_movies_library_still_offers_both(self):
+        drawn = self._bar("movies")
+        self.assertIn("grid-playall", drawn)
+        self.assertIn("grid-shuffle", drawn)
+
+    def test_a_tv_library_still_offers_shuffle_only(self):
+        # The pre-existing rule, which this must not have widened: a random
+        # episode is a reasonable ask, "every episode in name order" is not.
+        drawn = self._bar("tvshows")
+        self.assertNotIn("grid-playall", drawn)
+        self.assertIn("grid-shuffle", drawn)
+
+
+class TestOneBookOrSeveral(BooksHarness):
+    """`Books/Kai Kowalski/The Slow Crossing/` holding three parts of one
+    book is a chapter list; `Books/Elena Farrow/` holding four different
+    novels as one file each is a gallery of four books.
+
+    Both are "a folder of AudioBooks" and nothing about the folder tells
+    them apart — `Album` is the only field that ever joins a rip.
+    """
+
+    def _page(self, b):
+        return b._page_for(b.route)
+
+    def test_one_album_is_one_book(self):
+        b = self.open_folder([audiobook(i, album="A Book") for i in (1, 2)])
+        self.assertIsNotNone(self._page(b)._tracks())
+
+    def test_several_albums_are_several_books(self):
+        b = self.open_folder([audiobook(1, album="Book One"),
+                              audiobook(2, album="Book Two")])
+        self.assertIsNone(self._page(b)._tracks(),
+                          "two different books were drawn as one chapter "
+                          "list, so one of them is unreachable")
+
+    def test_an_untagged_folder_is_still_one_book(self):
+        """No album at all is the case the folder was *made* the unit for:
+        there is genuinely nothing else joining the files, so reading it as
+        N separate books would make an untagged rip unplayable as a book."""
+        b = self.open_folder([dict(audiobook(i), Album=None)
+                              for i in (1, 2, 3)])
+        tracks = self._page(b)._tracks()
+        self.assertIsNotNone(tracks)
+        self.assertEqual(len(tracks), 3)
+
+    def test_a_half_tagged_folder_is_several(self):
+        # The tagged one names a book the untagged one is not claiming to
+        # be part of, so they are not chapters of the same thing.
+        b = self.open_folder([audiobook(1, album="A Book"),
+                              dict(audiobook(2), Album=None)])
+        self.assertIsNone(self._page(b)._tracks())
+
+    def test_a_lone_audiobook_is_a_book(self):
+        b = self.open_folder([audiobook(1, album="A Book")])
+        self.assertIsNotNone(self._page(b)._tracks())
+
+    def test_the_rule_is_pure(self):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import one_book
+
+        self.assertTrue(one_book([{"Album": "X"}, {"Album": "X"}]))
+        self.assertFalse(one_book([{"Album": "X"}, {"Album": "Y"}]))
+        self.assertTrue(one_book([{}, {}]))
+        self.assertTrue(one_book([{"Album": "  X  "}, {"Album": "X"}]),
+                        "whitespace made two books out of one")
+
+
+class TestChapterListMarks(BooksHarness):
+    """Which chapters are behind you is the whole state of a book — it is
+    what Resume is computed from — and marking one had no visible effect
+    anywhere before this."""
+
+    #: The tick's size, which is what tells it from the chrome's icons --
+    #: the icon PATH is stubbed in the test renderer, so the drawn shape is
+    #: not something a scene assertion can read.
+    TICK_H = 15
+
+    def _ticks(self, played):
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+
+        chapters = []
+        for i in (1, 2, 3):
+            track = audiobook(i, album="A Book")
+            if i in played:
+                track["UserData"] = {"Played": True}
+            chapters.append(track)
+        b = self.open_folder(chapters)
+        nodes, _h = build_scene(b)
+        return [n for n in nodes
+                if n.get("t") == "icon" and n.get("c") == theme.ACCENT
+                and n.get("h") == self.TICK_H]
+
+    def test_a_tick_appears_for_each_played_chapter(self):
+        """Counted rather than merely present: "some accent icon is on the
+        screen" would pass on the chrome, and one tick for three played
+        chapters is the bug this is really guarding."""
+        self.assertEqual(len(self._ticks(played=())), 0)
+        self.assertEqual(len(self._ticks(played=(1,))), 1)
+        self.assertEqual(len(self._ticks(played=(1, 2))), 2)
+        self.assertEqual(len(self._ticks(played=(1, 2, 3))), 3)
+
+    def test_a_music_playlist_gets_no_tick_column(self):
+        """Off by default: nobody tracks which songs they have heard, and a
+        dead column on every playlist is worse than the information is
+        worth."""
+        import inspect
+        from jellyfin_mpv_shim.mpvtk_browser import tile_renderer
+
+        sig = inspect.signature(tile_renderer.TileRenderer.track_list)
+        self.assertIs(sig.parameters["watched"].default, False)
+
+
+class TestResumeLabel(BooksHarness):
+    """A chapter name is whatever the ripper typed and can be a sentence.
+    The action row is a fixed row of buttons, so one long label pushes
+    Download off the right edge of the window."""
+
+    def _label(self, tracks, index):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        return BooksPage._resume_label(tracks, index)
+
+    def test_a_long_chapter_name_is_cut(self):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        tracks = [{"Name": "The Slow Crossing Part 01 And Then Some More"},
+                  {"Name": "b"}]
+        label = self._label(tracks, 0)
+        self.assertTrue(label.endswith("…"))
+        self.assertLess(len(label), 12 + BooksPage.RESUME_LABEL_MAX)
+
+    def test_a_short_name_is_kept_whole(self):
+        tracks = [{"Name": "Chapter 4"}, {"Name": "Chapter 5"}]
+        self.assertIn("Chapter 4", self._label(tracks, 0))
+
+    def test_a_single_file_book_names_no_chapter(self):
+        # There is one thing to resume, and repeating the page's own title
+        # on the button that resumes it is noise.
+        self.assertEqual(self._label([{"Name": "The Whole Book"}], 0),
+                         "Resume")
+
+    def test_an_unnamed_chapter_says_where_it_is(self):
+        tracks = [{"Name": ""}, {"Name": ""}, {"Name": ""}]
+        self.assertIn("2/3", self._label(tracks, 1))
+
+    def test_the_action_row_still_fits_a_long_name(self):
+        """The point of the cap, asserted against the laid-out scene rather
+        than the string."""
+        long_name = "The Slow Crossing Part 01 And Then Some More Words"
+        b = self.open_folder([
+            dict(audiobook(1, album="A"), Name=long_name,
+                 UserData={"PlaybackPositionTicks": 5000000}),
+            audiobook(2, album="A"),
+        ])
+        nodes, _h = build_scene(b, size=(1280, 720))
+        drawn = [n for n in nodes if n.get("x") is not None and n.get("w")]
+        right = max(n["x"] + n["w"] for n in drawn)
+        self.assertLessEqual(right, 1281,
+                             "the action row overflows by %dpx"
+                             % (right - 1280))
+
+
+class TestAudiobookOverview(BooksHarness):
+
+    def test_the_folders_own_description_wins(self):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        folder = {"Overview": "A folder note."}
+        tracks = [{"Overview": "A chapter note."}]
+        self.assertEqual(BooksPage._overview(folder, tracks),
+                         "A folder note.")
+
+    def test_a_books_description_comes_off_its_files(self):
+        """An audiobook's description is written into the FILE's tags, so
+        it is on the chapter items and on nothing else — the directory does
+        not have it unless someone wrote an .nfo."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        self.assertEqual(
+            BooksPage._overview({}, [{"Overview": "A chapter note."}]),
+            "A chapter note.")
+
+    def test_no_description_anywhere_is_empty(self):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        self.assertEqual(BooksPage._overview({}, [{}]), "")
+        self.assertEqual(BooksPage._overview({}, []), "")
+
+    def test_it_is_drawn_on_the_page(self):
+        # The folder itself carries none, which is the normal case: an
+        # audiobook's description is in the file's tags.
+        b = self.open_folder(
+            [dict(audiobook(1, album="A"), Overview="Read by the author.")],
+            folder={"Id": "folder1", "Name": "A Book", "Type": "Folder"})
+        nodes, _h = build_scene(b)
+        text = " ".join(str(n.get("text", "")) for n in nodes)
+        self.assertIn("Read by the author.", text)
+
+    def test_a_books_grid_asks_the_server_for_it(self):
+        """GRID_FIELDS drops Overview because a hundred-item grid does not
+        draw it. A books folder is a book, and its description is drawn on
+        that very screen."""
+        self.open_folder([])
+        query = self.src.queries[-1]
+        self.assertEqual(query["collection_type"], "books")
+        from jellyfin_mpv_shim.mpvtk_browser import repository
+        self.assertIn("Overview", repository.BOOKS_GRID_FIELDS)
+        self.assertNotIn("Overview", repository.GRID_FIELDS)
 
 
 class TestDownloadingAnAudiobook(BooksHarness):
@@ -342,6 +701,354 @@ class TestDownloadingAnAudiobook(BooksHarness):
         _n2, h2 = build_scene(b)
         h2["dlg-ok"]["click"]()
         self.assertEqual(b.controller.deleted_downloads, [["ab1", "ab2"]])
+
+
+class TestAudiobookBar(BooksHarness):
+    """What the now-playing bar grows for an audiobook.
+
+    A song is three minutes and the scrubber covers it. A book is hours,
+    listened to over weeks and in a single item — a .m4b is ONE file with
+    the whole book in it — so the bar needs to say where you are in the
+    *book* and to move you around inside it. None of this appears for
+    music, which is asserted as hard as its presence is.
+    """
+
+    CHAPTERS = [{"title": "One", "time": 0.0},
+                {"title": "Two", "time": 300.0},
+                {"title": "Three", "time": 600.0}]
+
+    def _playing(self, **extra):
+        b = self.browser([])
+        state = {"stopped": False, "is_audio": True, "title": "The Book",
+                 "position": 310, "duration": 900, "volume": 50,
+                 # A rip by default: several entries, so prev/next mean
+                 # something. The solo .m4b case sets queue_len=1.
+                 "queue_len": 6}
+        state.update(extra)
+        b.on_playstate(state)
+        return b
+
+    # -- skip buttons ------------------------------------------------------
+
+    def test_an_audiobook_gets_skip_buttons(self):
+        b = self._playing(is_audiobook=True)
+        nodes, _h = build_scene(b)
+        self.assertIn("np-back", ids(nodes))
+        self.assertIn("np-forward", ids(nodes))
+
+    def test_a_song_gets_none(self):
+        b = self._playing()
+        nodes, _h = build_scene(b)
+        self.assertNotIn("np-back", ids(nodes))
+        self.assertNotIn("np-forward", ids(nodes))
+
+    def test_the_skips_are_relative_and_asymmetric(self):
+        """Back 10 and forward 30, which every audiobook player uses and
+        for a reason: "say that again" and "skip the recap" are different
+        sized problems. Relative through the player so it goes round
+        SyncPlay, rather than an absolute seek worked out here."""
+        b = self._playing(is_audiobook=True)
+        _n, handlers = build_scene(b)
+        handlers["np-back"]["click"]()
+        handlers["np-forward"]["click"]()
+        seeks = [(name, args) for name, args in b.controller.transport
+                 if name == "seek_relative"]
+        self.assertEqual([a[0] for _n, a in seeks], [-10, 30])
+
+    # -- chapter ticks -----------------------------------------------------
+
+    def test_the_scrubber_carries_chapter_ticks(self):
+        """On a ten-hour .m4b the bar is the only thing that says where you
+        are in the book rather than in the file; without them a scrub is a
+        blind drag."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b)
+        seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+        self.assertEqual([round(m, 4) for m in seek.get("marks") or []],
+                         [round(300 / 900, 4), round(600 / 900, 4)])
+
+    def test_a_mark_at_zero_is_not_drawn(self):
+        # The first chapter starts at the left edge, where a tick is a
+        # smudge on the track rather than information.
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b)
+        seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+        self.assertNotIn(0.0, seek.get("marks") or [])
+
+    def test_a_song_has_no_ticks(self):
+        b = self._playing()
+        nodes, _h = build_scene(b)
+        seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+        self.assertFalse(seek.get("marks"))
+
+    # -- layout ------------------------------------------------------------
+
+    #: The transport, in the order it must appear. Stop is NOT here: it
+    #: ends playback rather than stepping through it, so it lives with the
+    #: right-hand cluster (see test_stop_is_not_in_the_transport).
+    TRANSPORT = ["np-prev", "np-chprev", "np-back", "np-pp", "np-forward",
+                 "np-chnext", "np-next"]
+
+    def _order(self, b, wanted, size=(1600, 720)):
+        nodes, _h = build_scene(b, size=size)
+        seen = [n["id"] for n in nodes
+                if n.get("id") in wanted and n.get("t") == "rect"]
+        # Nodes come out in build order; de-duplicate keeping first sight.
+        return list(dict.fromkeys(seen))
+
+    def test_the_transport_nests_around_play_pause(self):
+        """The playback HUD's order, matched exactly: the further from the
+        centre a button is, the bigger the jump it makes. Anyone who has
+        used the video HUD already knows where to press."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        self.assertEqual(self._order(b, self.TRANSPORT), self.TRANSPORT)
+
+    def test_stop_is_not_in_the_transport(self):
+        """It ends playback rather than stepping through it, and sitting
+        immediately after Next it was one slip from a skip. The playback
+        HUD carries no stop button at all for the same reason."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        order = self._order(b, self.TRANSPORT + ["np-stop", "np-fav"])
+        self.assertLess(order.index("np-next"), order.index("np-stop"))
+        self.assertLess(order.index("np-stop"), order.index("np-fav"),
+                        "stop is not with the right-hand cluster")
+
+    def test_the_transport_is_centred_in_the_bar(self):
+        """Equal flex on the two outer groups is what centres it. A single
+        trailing spacer only left-packs it, and flexing the gaps either
+        side of a fixed title and a variable right-hand cluster centres it
+        between those two rather than in the bar — so it drifts as controls
+        are shed."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        for width in (1600, 1280, 1100):
+            nodes, _h = build_scene(b, size=(width, 720))
+            pp = [n for n in nodes if n.get("id") == "np-pp"][0]
+            middle = pp["x"] + pp["w"] / 2
+            self.assertAlmostEqual(
+                middle, width / 2, delta=24,
+                msg="play/pause sits %.0fpx from the centre of a %dpx bar"
+                    % (abs(middle - width / 2), width))
+
+    def test_the_chapter_steps_use_the_huds_glyphs(self):
+        """undo/redo, not fast_rewind/fast_forward. The HUD gives chapter
+        navigation those two, and the scanning arrows read as scanning —
+        which is not what these do."""
+        import inspect
+        from jellyfin_mpv_shim.mpvtk_browser import music
+        src = inspect.getsource(music.MusicMixin._transport)
+        self.assertIn('"undo", "np-chprev"', src)
+        self.assertIn('"redo", "np-chnext"', src)
+
+    def test_the_chapter_list_sits_with_the_other_pickers(self):
+        """Not among the transport buttons. It is a place to choose from,
+        like the queue button beside it — and wedged between the scrubber
+        and the volume it stranded the two chapter arrows away from the
+        play button they step around."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b)
+        order = list(dict.fromkeys(
+            n["id"] for n in nodes
+            if n.get("id") in ("np-seek", "np-chapters", "np-queue")))
+        self.assertEqual(order, ["np-seek", "np-chapters", "np-queue"])
+
+    def _bar_ids(self, width, **state):
+        b = self._playing(**state)
+        nodes, _h = build_scene(b, size=(width, 720))
+        return ids(nodes)
+
+    def test_the_bar_sheds_controls_as_it_narrows(self):
+        """Thirteen controls in a fixed row squeezed the seek slider — the
+        one thing on the bar that has to be draggable — down to nothing.
+        So it sheds, as the playback HUD does."""
+        wide = self._bar_ids(1280, is_audiobook=True, chapters=self.CHAPTERS)
+        for nid in ("np-chapters", "np-chprev", "np-back", "np-vol",
+                    "np-repeat", "np-fav", "np-stop"):
+            self.assertIn(nid, wide)
+
+        narrow = self._bar_ids(500, is_audiobook=True,
+                               chapters=self.CHAPTERS)
+        for nid in ("np-chapters", "np-vol", "np-queue", "np-stop",
+                    "np-repeat", "np-fav"):
+            self.assertNotIn(nid, narrow, "%s survived a 500px bar" % nid)
+
+    def test_a_book_gives_up_the_heart_before_its_chapters(self):
+        """What is worth dropping depends on what is playing, which is why
+        this is a priority list and not a table of per-control widths.
+        Chapter navigation is the reason the bar is any use on a ten-hour
+        item; the favourite heart is not."""
+        drawn = self._bar_ids(600, is_audiobook=True,
+                              chapters=self.CHAPTERS)
+        self.assertIn("np-chprev", drawn)
+        self.assertIn("np-back", drawn)
+        self.assertNotIn("np-fav", drawn)
+        self.assertNotIn("np-repeat", drawn)
+
+    def test_a_song_gives_up_its_transport_last(self):
+        # The same shape from the other side: a song has no chapter or skip
+        # controls to spend the room on, so what survives at a width that
+        # strips a book down to its chapter arrows is the ordinary set.
+        drawn = self._bar_ids(600)
+        self.assertIn("np-vol", drawn)
+        self.assertNotIn("np-chprev", drawn)
+        self.assertNotIn("np-back", drawn)
+
+    def test_shedding_is_monotone_in_width(self):
+        """The longest PREFIX that fits, not a greedy best fit: narrowing
+        must only ever take controls away and widening only ever bring them
+        back, or a cheap control pops in and out as an expensive one comes
+        and goes.
+
+        This has to hold *across* the two-row boundary too, which is what
+        killed the stepped title column: shrinking the title freed more
+        room than the cheapest control cost, so dragging the window edge
+        inwards past one of its steps made a button appear.
+        """
+        optional = ("np-chapters", "np-chprev", "np-back", "np-vol",
+                    "np-queue", "np-stop", "np-repeat", "np-fav")
+        for state in ({"is_audiobook": True, "chapters": self.CHAPTERS},
+                      {}):
+            seen = None
+            for width in range(1600, 399, -20):
+                drawn = self._bar_ids(width, **state)
+                now = {nid for nid in optional if nid in drawn}
+                if seen is not None:
+                    self.assertTrue(
+                        now <= seen,
+                        "%dpx brought back %s that a wider bar had dropped"
+                        % (width, sorted(now - seen)))
+                seen = now
+
+    def test_the_scrubber_gets_its_own_row_on_a_book(self):
+        """A book is one long item and the scrubber is how you move around
+        inside it, so it earns the full width rather than whatever is left
+        after eleven buttons."""
+        from jellyfin_mpv_shim.mpvtk_browser.music import MusicMixin
+
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b, size=(1600, 720))
+        seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+        self.assertGreater(seek["w"], 1000,
+                           "the scrubber is still sharing a row")
+        self.assertTrue(MusicMixin.np_two_row(b._now_playing, 1600))
+
+    def test_a_song_keeps_one_row_while_there_is_room(self):
+        from jellyfin_mpv_shim.mpvtk_browser.music import MusicMixin
+
+        b = self._playing()
+        self.assertFalse(MusicMixin.np_two_row(b._now_playing, 1600))
+        self.assertTrue(MusicMixin.np_two_row(b._now_playing, 800),
+                        "a narrow music bar still crams one row")
+
+    def test_the_page_is_laid_out_against_the_height_that_is_drawn(self):
+        """The bar is two rows for a book, so the content height has to
+        follow it — subtracting a constant lays the page out against the
+        wrong remainder and the bottom of it goes behind the bar."""
+        from jellyfin_mpv_shim.mpvtk_browser import music
+
+        one = music.now_playing_bar_h({"is_audio": True}, 1600)
+        two = music.now_playing_bar_h({"is_audio": True,
+                                       "is_audiobook": True}, 1600)
+        self.assertEqual(one, music.NOW_PLAYING_BAR_H)
+        self.assertEqual(two, music.NOW_PLAYING_BAR_H2)
+        self.assertGreater(two, one)
+
+    # -- prev/next on a solo book -----------------------------------------
+
+    def test_a_solo_chaptered_book_has_no_track_buttons(self):
+        """A single .m4b IS the book, so previous/next track have nowhere
+        to go — pressing either can only end playback. They also sit
+        immediately outside the chapter arrows, so the two pairs read as a
+        set and half of them are traps."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS,
+                          queue_len=1)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("np-prev", ids(nodes))
+        self.assertNotIn("np-next", ids(nodes))
+        self.assertIn("np-chprev", ids(nodes))
+
+    def test_a_rip_keeps_them(self):
+        # There a chapter IS a queue entry, so prev/next are exactly right.
+        b = self._playing(is_audiobook=True, queue_len=6)
+        nodes, _h = build_scene(b)
+        self.assertIn("np-prev", ids(nodes))
+        self.assertIn("np-next", ids(nodes))
+
+    def test_a_lone_song_keeps_them(self):
+        # No chapters, so nothing has replaced them — and this is what the
+        # bar has always done for music.
+        b = self._playing(queue_len=1)
+        nodes, _h = build_scene(b)
+        self.assertIn("np-prev", ids(nodes))
+        self.assertIn("np-next", ids(nodes))
+
+    def test_a_chaptered_book_in_a_queue_keeps_them(self):
+        # Both conditions are required: several .m4b files queued together
+        # still need prev/next to move between the books.
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS,
+                          queue_len=3)
+        nodes, _h = build_scene(b)
+        self.assertIn("np-prev", ids(nodes))
+
+    def test_what_the_bar_never_gives_up(self):
+        """Play/pause, the scrubber and prev/next. Those ARE the bar; a
+        window too narrow for them is one the bar should not be in."""
+        for width in (1280, 900, 700, 520, 400):
+            drawn = self._bar_ids(width, is_audiobook=True,
+                                  chapters=self.CHAPTERS)
+            for nid in ("np-pp", "np-seek", "np-prev", "np-next"):
+                self.assertIn(nid, drawn, "%s went at %dpx" % (nid, width))
+
+    def test_the_bar_fits_the_window_at_every_width(self):
+        """The actual complaint, asserted against the laid-out scene rather
+        than against the tier table: nothing may run off the right edge,
+        and the scrubber must keep a draggable width."""
+        for width in (1280, 1024, 940, 860, 760, 700, 620, 560, 470, 420):
+            b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+            nodes, _h = build_scene(b, size=(width, 720))
+            drawn = [n for n in nodes
+                     if n.get("x") is not None and n.get("w")]
+            right = max(n["x"] + n["w"] for n in drawn)
+            self.assertLessEqual(
+                right, width + 1,
+                "the bar overflows a %dpx window by %dpx"
+                % (width, right - width))
+            seek = [n for n in nodes if n.get("id") == "np-seek"][0]
+            self.assertGreaterEqual(
+                seek["w"], 80,
+                "the scrubber is only %dpx wide at %dpx"
+                % (seek["w"], width))
+
+    # -- the chapter picker ------------------------------------------------
+
+    def test_the_chapter_picker_is_a_button_not_a_hud_glyph(self):
+        """It sits in a row of filled square buttons on panel chrome. The
+        chromeless treatment is right for the playback HUD, which floats
+        over video; among these it reads as a different kind of control."""
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b)
+        picker = [n for n in nodes if n.get("id") == "np-chapters"][0]
+        self.assertTrue(picker.get("tchip"),
+                        "the chapter picker is still drawn HUD-style")
+        self.assertEqual(len(picker["tchip"]), 3)
+
+    def test_the_picker_selects_the_chapter_being_played(self):
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        nodes, _h = build_scene(b)
+        picker = [n for n in nodes if n.get("id") == "np-chapters"][0]
+        self.assertEqual(picker.get("sel"), 1, "position 310 is chapter two")
+
+    def test_picking_a_chapter_seeks_to_its_start(self):
+        b = self._playing(is_audiobook=True, chapters=self.CHAPTERS)
+        _n, handlers = build_scene(b)
+        handlers["np-chapters"]["select"](2, "Three")
+        seeks = [args for name, args in b.controller.transport
+                 if name == "seek"]
+        self.assertEqual(seeks[-1][0], 600.0)
+
+    def test_no_chapters_means_no_picker(self):
+        b = self._playing(is_audiobook=True)
+        nodes, _h = build_scene(b)
+        self.assertNotIn("np-chapters", ids(nodes))
 
 
 class BookPageHarness(BooksHarness):

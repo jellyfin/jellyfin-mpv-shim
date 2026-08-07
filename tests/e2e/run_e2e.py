@@ -65,6 +65,11 @@ CONTRACT = [
     # cannot disagree with, because a fake is written from the same reading
     # of the API the code is.
     "tests.e2e.test_books",
+    # The audiobook resume rule, which is a different rule from the video
+    # one and is stated in MINUTES -- so a book under ten minutes can hold
+    # no position at all. Pinned because reading it wrong looks exactly
+    # like a client bug.
+    "tests.e2e.test_audiobooks",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.
@@ -89,6 +94,10 @@ PER_BACKEND = [
     # wiring between PlayerManager and SyncPlayManager, which a fake player
     # is written to agree with and so cannot fail.
     "tests.e2e.test_syncplay_playback",
+    # A real audiobook, a real stream, a real seek: the half of the resume
+    # loop the contract tier cannot see, because it drives the server
+    # directly rather than through the player.
+    "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

@@ -1354,10 +1354,25 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local d = dd_state(node)
     local open = state.dd_open == node.id
     if node.ticon then
+        local hovered = open or state.hover_id == node.id
+        local isz = math.floor(node.size * 1.2)
+        if node.tchip then
+            -- Button trigger (the now-playing bar's chapter picker): a
+            -- filled rounded square, matching the transport buttons it
+            -- sits among. Colours come from the app theme, which the
+            -- renderer has no token for -- see Dropdown.trigger_chip.
+            draw_rect(ass, ex, ey, node.w, node.h, {
+                fill = hovered and node.tchip[2] or node.tchip[1],
+                radius = 6, clip = clip,
+            })
+            draw_icon_path(ass, node.ticon,
+                ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
+                node.tchip[3], clip)
+            return
+        end
         -- chromeless icon trigger (playback HUD track pickers):
         -- round translucent accent wash when hovered/open, accent
         -- icon tint — same treatment as the HUD's flat buttons
-        local hovered = open or state.hover_id == node.id
         if hovered then
             local r = math.min(node.w, node.h) / 2
             draw_rect(ass, ex + node.w / 2 - r, ey + node.h / 2 - r,
@@ -1366,7 +1381,6 @@ local function draw_dropdown(ass, node, ex, ey, clip)
                     clip = clip,
                 })
         end
-        local isz = math.floor(node.size * 1.2)
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
             hovered and state.accent or state.tok.on_surface_muted, clip)

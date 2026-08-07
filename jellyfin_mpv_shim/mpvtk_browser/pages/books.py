@@ -40,6 +40,34 @@ log = logging.getLogger("mpvtk_browser.pages.books")
 BOOK_ART = 220
 
 
+def one_book(tracks):
+    """Whether these audiobook files are chapters of ONE book.
+
+    The distinction the browser has to make and the DTO almost does not
+    support: `Books/Kai Kowalski/The Slow Crossing/` holding three parts of
+    one book must be a chapter list, and `Books/Elena Farrow/` holding four
+    different novels as one file each must be a gallery of four books. Both
+    are "a folder of AudioBooks" and nothing about the folder tells them
+    apart.
+
+    **`Album` is the only field that ever joins a rip.** `SeriesName` is
+    null on an audiobook (only `BookResolver` populates it, and that runs
+    for `Book`), there is no album *entity* to point at, and the parts are
+    N unrelated items that survive the scanner by falling through its
+    stacking resolver one at a time. So: one distinct album is one book,
+    several albums are several books.
+
+    An untagged rip has no album at all, and there the folder is genuinely
+    the only thing joining the files — which is the *reason* the folder is
+    the unit everywhere else here — so "nobody has one" reads as one book
+    rather than as N. A folder where only some are tagged is several: the
+    tagged ones name a book the untagged ones are not claiming to be part
+    of.
+    """
+    albums = {(t.get("Album") or "").strip() for t in tracks}
+    return len(albums) == 1
+
+
 def _track_order(track):
     """Sort key for the chapters of an audiobook.
 
@@ -106,7 +134,8 @@ class BooksPage(GridPage):
            back to the grid rather than growing a paged track list;
         3. every item is an `AudioBook`. A folder mixing a book with an
            audiobook is a folder, and drawing it as an album would hide the
-           book — there is no row in a track list that could open one.
+           book — there is no row in a track list that could open one;
+        4. they are all the *same* book. See :func:`one_book`.
         """
         items = self.route.get("_items")
         if not items:
@@ -116,6 +145,8 @@ class BooksPage(GridPage):
         if not loaded or len(loaded) < total:
             return None
         if not all(is_audiobook(i) for i in loaded):
+            return None
+        if not one_book(loaded):
             return None
         return sorted(loaded, key=_track_order)
 
@@ -153,6 +184,10 @@ class BooksPage(GridPage):
             # the header above already says. Dropping it gives the chapter
             # names the width they need.
             album=False,
+            # Which chapters are behind you is the whole state of a book --
+            # it is what Resume is computed from -- and without the column
+            # marking one played had no visible effect anywhere.
+            watched=True,
             scroll_id="books", head_h=110, menu=True)
         return VScroll(Column([header, body], pad=chrome.CONTENT_PAD, gap=12,
                               align="stretch"),
@@ -179,7 +214,7 @@ class BooksPage(GridPage):
         if meta:
             out.append(Text("   ·   ".join(meta), size=15,
                             color=theme.SUBTLE_FG))
-        overview = (folder.get("Overview") or "").strip()
+        overview = self._overview(folder, tracks)
         if overview:
             out.append(chrome.paragraph(
                 overview, 15,
@@ -187,7 +222,28 @@ class BooksPage(GridPage):
                     - HEADER_ART - HEADER_GAP)))
         return out
 
-    def _resume_at(self, tracks):
+    @staticmethod
+    def _overview(folder, tracks):
+        """The book's description.
+
+        The folder's own if it has one — a book folder scanned with an
+        `.nfo` does. Otherwise the first chapter's: an audiobook's
+        description is written into the FILE's tags, so for a rip it is on
+        the parts and for a single `.m4b` it is on the one item, and in
+        neither case is it on the directory. Taking the folder's first
+        keeps a real folder-level description winning over a per-file one.
+
+        The *first* track's rather than any: they are chapters of one book
+        (see :func:`one_book`), so they either carry the same description
+        or the first is the one that opens it.
+        """
+        overview = (folder.get("Overview") or "").strip()
+        if overview:
+            return overview
+        return (tracks[0].get("Overview") or "").strip() if tracks else ""
+
+    @staticmethod
+    def _resume_at(tracks):
         """``(index, offset_ticks)`` for where listening left off, or None.
 
         The first chapter that is not finished, resumed at its own stored
@@ -195,6 +251,9 @@ class BooksPage(GridPage):
         "where was I" is the primary gesture here in a way it never is on
         an album — and the answer is *two* numbers, because a rip's
         position lives on whichever chapter was playing, not on the book.
+
+        ``None`` means finished: every chapter played, so there is nothing
+        to resume and Play from the top is the only sensible offer.
         """
         for i, track in enumerate(tracks):
             data = track.get("UserData") or {}
@@ -203,29 +262,63 @@ class BooksPage(GridPage):
             return i, (data.get("PlaybackPositionTicks") or 0) or None
         return None
 
+    #: How much of a chapter's name the Resume button will carry.
+    #:
+    #: A chapter name is whatever the ripper typed and can be a sentence.
+    #: The action row is a fixed row of buttons, so one long label pushes
+    #: Download off the right edge of the window -- and the name is the
+    #: least important part of the button anyway: what it has to say is
+    #: *Resume*, and roughly where.
+    RESUME_LABEL_MAX = 22
+
+    @classmethod
+    def _resume_label(cls, tracks, index):
+        """"Resume", plus enough of the chapter to say which one.
+
+        Nothing at all for a single-file book: there is only one thing to
+        resume, and repeating the title of the page on the button that
+        resumes it is noise.
+        """
+        if len(tracks) < 2:
+            return _("Resume")
+        name = (tracks[index].get("Name") or "").strip()
+        if not name:
+            # No name to show, so say the position instead -- which is the
+            # thing the user actually wants to know and is always available.
+            return "%s  %d/%d" % (_("Resume"), index + 1, len(tracks))
+        if len(name) > cls.RESUME_LABEL_MAX:
+            name = name[:cls.RESUME_LABEL_MAX - 1].rstrip() + "…"
+        return "%s  %s" % (_("Resume"), name)
+
     def _actions(self, folder, tracks, ids, server):
         actions = self.ctx.actions
         tiles = self.ctx.art.tiles
         btns = []
         resume = self._resume_at(tracks)
-        # Resume leads when there is something to resume, exactly as the
-        # detail page does. It is only ever *offered* — Play from the top is
-        # always available beside it.
-        if resume is not None and (resume[0] or resume[1]):
+        started = resume is not None and (resume[0] or resume[1])
+        if started:
+            # There IS no plain "Play" once a book has been started. On a
+            # film that pairing is harmless; on a book it is a trap — the
+            # position is hours of listening, spread over weeks, and
+            # starting from chapter one overwrites it as it goes. So the
+            # primary action resumes and the other one says out loud that
+            # it goes back to the beginning, which is the same shape the
+            # tile menu already uses for a part-watched item.
             index, offset = resume
-            label = _("Resume")
-            if len(tracks) > 1:
-                label += "  " + (tracks[index].get("Name") or "")
+            label = self._resume_label(tracks, index)
             btns.append(controls.action_btn(
                 "play_arrow", label, "bk-resume",
                 lambda: actions.play_list(ids, server, index, audio=True,
                                           items=tracks),
                 primary=True, autofocus=True))
-        btns.append(controls.action_btn(
-            "play_arrow", _("Play"), "bk-play",
-            lambda: actions.play_list(ids, server, 0, audio=True),
-            primary=(resume is None or not (resume[0] or resume[1])),
-            autofocus=(resume is None or not (resume[0] or resume[1]))))
+            btns.append(controls.action_btn(
+                "first_page", _("Play from Beginning"), "bk-play",
+                lambda: actions.play_list(ids, server, 0, audio=True)))
+        else:
+            btns.append(controls.action_btn(
+                "play_arrow", _("Play"), "bk-play",
+                lambda: actions.play_list(ids, server, 0, audio=True),
+                primary=True, autofocus=True))
         btns.append(controls.action_btn(
             "playlist_add", _("Add to Queue"), "bk-queue",
             lambda: actions.queue_items(ids, server)))
@@ -234,7 +327,9 @@ class BooksPage(GridPage):
         # random order is not a feature anyone has ever wanted, and offering
         # it beside Resume invites exactly one misclick.
         btns.append(controls.action_btn(
-            "check", _("Watched"), "bk-watched",
+            # "Watched" is what every other container says and is simply
+            # wrong for something you listen to.
+            "check", _("Finished"), "bk-watched",
             lambda: actions.toggle_watched(folder, server),
             on=is_watched(folder)))
         btns.append(controls.action_btn(
@@ -422,7 +517,12 @@ class BookPage(Page):
                 lambda: self.ctx.dialogs.open_book_progress(item, server),
                 size=18))
         btns.append(controls.action_btn(
-            "check", _p("mark a book finished", "Read"), "bk-watched",
+            # "Finished", not "Read". The verb and the state are the same
+            # word in English, so with `Read` on both this page showed two
+            # adjacent buttons with identical labels -- the _p contexts
+            # tell translators them apart and give an English reader
+            # nothing at all.
+            "check", _("Finished"), "bk-watched",
             lambda: actions.toggle_watched(item, server),
             on=is_watched(item), size=18))
         btns.append(controls.action_btn(

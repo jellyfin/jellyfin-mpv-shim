@@ -94,7 +94,14 @@ class TilesMixin:
                                       "MusicArtist", "MusicGenre", "Series",
                                       "Season", "Playlist"}
 
-    MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
+    # Folder and AudioBook are here for books. A folder of chapter files is
+    # how a multi-file audiobook exists, and marking one finished (or
+    # un-finishing it to listen again) is the only way to correct where the
+    # book thinks you are -- the resume point is computed from which
+    # chapters are played. The server takes the mark on a folder and
+    # cascades it to the children, which is what makes the entry honest.
+    MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season", "Folder",
+                                     "AudioBook"}
 
     # MENU_PLAYABLE minus MusicGenre: a genre is not a library item, so
     # favoriting one posts a non-favoritable id and the server rejects it.

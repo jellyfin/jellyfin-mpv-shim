@@ -83,7 +83,23 @@ GENRE_LIBRARIES = frozenset({"movies", "tvshows"})
 STUDIO_LIBRARIES = frozenset({"tvshows"})
 
 #: Collection types with no Play All button -- see GridPage._play_all_capable.
-NO_PLAY_ALL = frozenset({"tvshows"})
+NO_PLAY_ALL = frozenset({"tvshows", "books"})
+
+#: Collection types with no library-wide play buttons AT ALL (neither Play
+#: All nor Shuffle).
+#:
+#: Books, and only books. Half a books library cannot be played at all -- a
+#: `Book` has no media source, so it is silently dropped from the queue --
+#: and the other half is *audiobooks*, where a library-wide queue is every
+#: chapter of every book in name order, started from the beginning. That
+#: last part is what makes it worse than useless rather than merely odd:
+#: playing a book from chapter one overwrites hours of position as it goes.
+#: The audiobook's own folder has a real, resume-aware Play one click in.
+#:
+#: Shuffle is separately absurd here in a way it is not on a TV library --
+#: a random episode is a reasonable ask, a random chapter of a random book
+#: is not.
+NO_LIBRARY_PLAY = frozenset({"books"})
 
 #: What a by-name screen lists, per collection type. Mirrors
 #: LibrarySource.GENRE_ITEM_TYPES; kept here too because the button
@@ -412,9 +428,9 @@ class GridPage(Page):
             # the whole of "play this library", which on a Home Videos folder
             # of holiday clips in date order is the one thing you do not want.
             Button(_("Play All"), id="grid-playall", on_click=self._play_all),
-        ] if self._play_all_capable() else []) + [
+        ] if self._play_all_capable() else []) + ([
             Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
-        ], gap=10, align="center")
+        ] if self._shuffle_capable() else []), gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
         cur_letter = filters.get("letter")
         cells = [
@@ -919,7 +935,12 @@ class GridPage(Page):
         rather than series. We have no such tab, so the button would mean
         something different from the one it is copying.)
         """
-        return self.route.get("collection_type") not in NO_PLAY_ALL
+        return (self.route.get("collection_type")
+                not in (NO_PLAY_ALL | NO_LIBRARY_PLAY))
+
+    def _shuffle_capable(self):
+        """Whether this library gets a Shuffle button. See NO_LIBRARY_PLAY."""
+        return self.route.get("collection_type") not in NO_LIBRARY_PLAY
 
     def _shuffle(self):
         self._queue_library(lambda source, srv, parent, _bound:

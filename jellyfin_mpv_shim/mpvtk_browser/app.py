@@ -1265,8 +1265,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         h -= self.PAGINATION_BAR_H
         if (self._now_playing is not None
                 and route.get("kind") not in NO_NOW_PLAYING):
-            from .music import NOW_PLAYING_BAR_H
-            h -= NOW_PLAYING_BAR_H
+            from .music import now_playing_bar_h
+            # The bar is two rows for an audiobook and on a narrow window,
+            # so its height is a function of what is playing -- subtracting
+            # a constant lays the page out against the wrong remainder and
+            # the bottom of it disappears behind the bar.
+            h -= now_playing_bar_h(self._now_playing, size[0])
         return max(1, h)
 
     def _page_count(self, route, ps):

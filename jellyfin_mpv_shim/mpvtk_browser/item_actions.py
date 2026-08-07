@@ -278,10 +278,15 @@ class ItemActions:
 
         ud = item.setdefault("UserData", {})
         was_played, was_count = ud.get("Played"), ud.get("UnplayedItemCount")
+        was_pct = ud.get("PlayedPercentage")
         new = not components.is_watched(item)
         ud["Played"] = new
-        if item.get("Type") in ("Series", "Season"):
+        if item.get("Type") in ("Series", "Season", "Folder"):
+            # Kept in step with is_watched, which reads this for a container
+            # -- otherwise the optimistic flip sets Played and the tick is
+            # then recomputed from a stale count that still says unwatched.
             ud["UnplayedItemCount"] = 0 if new else 1
+            ud["PlayedPercentage"] = 100 if new else 0
 
         def work(ctl):
             # Roll the optimistic flip back if nothing recorded it (offline
@@ -294,6 +299,10 @@ class ItemActions:
                     ud.pop("UnplayedItemCount", None)
                 else:
                     ud["UnplayedItemCount"] = was_count
+                if was_pct is None:
+                    ud.pop("PlayedPercentage", None)
+                else:
+                    ud["PlayedPercentage"] = was_pct
                 self.services.invalidate()
 
         self._fire(work)

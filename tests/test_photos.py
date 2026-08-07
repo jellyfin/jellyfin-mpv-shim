@@ -277,7 +277,14 @@ class PhotoGlyphTest(unittest.TestCase):
 
     def test_a_folder_says_folder(self):
         self.assertEqual(placeholder_glyph({"Type": "Folder",
-                                            "Name": "2019"}), "▸")
+                                            "Name": "2019"}), "▤")
+
+    def test_a_folder_does_not_look_like_a_play_button(self):
+        """It was "▸", which drawn large and centred on an artless tile is
+        the play shape -- a books library came out as a grid of folders
+        wearing play buttons, and was reported as such."""
+        self.assertNotIn(placeholder_glyph({"Type": "Folder", "Name": "x"}),
+                         ("▸", "▶", "►"))
 
     def test_a_photo_album_says_album(self):
         self.assertEqual(placeholder_glyph({"Type": "PhotoAlbum",

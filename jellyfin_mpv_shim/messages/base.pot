@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 21:17-0400\n"
+"POT-Creation-Date: 2026-08-06 22:59-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -797,7 +797,6 @@ msgid "Remove Download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Watched"
 msgstr ""
 
@@ -2234,6 +2233,11 @@ msgid "Repeat Off"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Back %d seconds"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -2243,6 +2247,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Pause"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Forward %d seconds"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2277,9 +2286,18 @@ msgid "Resume"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Play from Beginning"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to Queue"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Finished"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -2303,11 +2321,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Progress…"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-msgctxt "mark a book finished"
-msgid "Read"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
@@ -3221,10 +3234,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Album"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Play from Beginning"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py

@@ -79,6 +79,18 @@ _LANDSCAPE_ART = 0.8
 # MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
 GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount"
 
+#: ...and what a BOOKS grid asks for on top.
+#:
+#: Overview is back, for the one library where the argument above does not
+#: apply: a books folder is a book -- three parts, or eight chapters -- not
+#: a hundred series, and its description is drawn *on that screen* rather
+#: than on a page you click through to. An audiobook's description lives in
+#: the file's tags, so it is on the chapter items and on nothing else; the
+#: folder does not have it unless someone wrote an .nfo. Without this the
+#: only place a book's description could come from is a second request per
+#: folder open.
+BOOKS_GRID_FIELDS = GRID_FIELDS + ",Overview"
+
 # What a library's grid lists, by collection type -- jellyfin-web's default
 # tab for that view (LibraryTab.Movies -> Movie, and so on).
 #
@@ -1716,6 +1728,8 @@ class LibrarySource:
         """
         api = self._conn(server_uuid).api
         include = LIBRARY_ITEM_TYPES.get(collection_type or "")
+        fields = (BOOKS_GRID_FIELDS if collection_type == BOOKS_COLLECTION
+                  else GRID_FIELDS)
         # Built conditionally rather than passed as None: a folder listing
         # must send neither, and "the grid's own query" is a claim other code
         # relies on literally (get_play_all_ids, and the test that pins it).
@@ -1730,7 +1744,7 @@ class LibrarySource:
             sort_order=sort_order,
             start_index=start_index,
             limit=limit,
-            fields=GRID_FIELDS,
+            fields=fields,
             image_type_limit=1,
             enable_image_types=browse_image_types(image_type),
             **self._filter_kwargs(filters)) or {}

@@ -52,6 +52,7 @@ E1 and E2 exist so far:
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
 | `test_connection_loss` | E1 | the server stops answering: gone, token revoked, or a page-in that fails after a screenful drew |
+| `test_audiobooks` | E1+E2 | the server's **audiobook** resume rule (minutes, not percentages — a book under 10 min can hold no position), chapters on a single `.m4b`, folder-level resume across a rip, and a real seek/stop round trip through mpv |
 | `test_books` | E1 | books: no media source / container / size on the DTO, `Path` reaching a non-admin, the three `RunTimeTicks` progress encodings round-tripped, the two audiobook shapes, and a real book downloaded end to end |
 | `test_collections` | E1 | box sets: the toggle's unscoped query, a `collection.xml`'s members against its `ChildCount` of 0, a Series member surviving an untyped listing, and create/add/remove through the gateway |
 | `test_syncplay_playback` | E2 | **the real player in a real group** — stop halts rather than leaves (and leaves when the UI says the SyncPlay menu is unreachable), a halted player is not driven, resume replays the group's content |
@@ -73,6 +74,15 @@ can answer its question without a player — it is thirty times cheaper.
 
 The plan doc has the ordered list of what comes next and which past bug each
 line would have caught, plus the two defects this suite has already found.
+
+**A test that reports playback must close its session before clearing.**
+Server-side user data is rewritten from a live playback session, so
+clearing an item's state while one is open for it is undone a moment later
+— and the *next* test reads back the position the previous one reported.
+`test_audiobooks` posts `Sessions/Playing/Stopped` before its reset and
+then waits for the cleared state to be readable. Without both halves the
+test after a "finished" one fails deterministically and looks exactly like
+a resume bug.
 
 **Test classes own disjoint fixtures.** One series each (`The Standard Show`,
 `Absolute Numbering Show`, `Flat Show No Season Folders`, `Show With Missing
