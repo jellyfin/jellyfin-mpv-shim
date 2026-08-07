@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 23:26-0400\n"
+"POT-Creation-Date: 2026-08-07 00:20-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1807,6 +1807,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
@@ -1814,6 +1815,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
 msgstr ""
 
@@ -2306,6 +2308,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
+msgid "%s in"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Title"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Start"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
 msgid "%d pages"
 msgstr ""
 
@@ -2767,11 +2784,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
 msgid "Delete the playlist %s?"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Title"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py

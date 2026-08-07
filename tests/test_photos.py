@@ -294,6 +294,19 @@ class PhotoGlyphTest(unittest.TestCase):
         self.assertEqual(placeholder_glyph({"Type": "Movie",
                                             "Name": "Arrival"}), "A")
 
+    def test_an_audiobook_gets_the_audio_note(self):
+        """It IS an audio item, and it hits the case this table is for: an
+        author folder of three books called "The ..." drew three tiles all
+        reading "T"."""
+        self.assertEqual(placeholder_glyph({"Type": "AudioBook",
+                                            "Name": "The Copper Bell"}), "♪")
+
+    def test_a_book_keeps_its_initial(self):
+        # Deliberate: a title is what tells one book from another, and a
+        # shelf of identical marks says less than a shelf of letters.
+        self.assertEqual(placeholder_glyph({"Type": "Book",
+                                            "Name": "Ascent"}), "A")
+
     def test_music_keeps_its_note(self):
         self.assertEqual(placeholder_glyph({"Type": "MusicAlbum",
                                             "Name": "Kid A"}), "♪")

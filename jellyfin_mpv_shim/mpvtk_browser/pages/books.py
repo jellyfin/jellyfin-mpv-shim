@@ -24,7 +24,7 @@ import logging
 from ...books import (book_format, format_label, is_audiobook, page_count,
                       progress_label, progress_settable)
 from ...i18n import _, _p
-from ...mpvtk.widgets import Column, Row, Text, VScroll
+from ...mpvtk.widgets import Column, Row, Table, Text, VScroll
 from .. import theme
 from ..components import chrome, controls, detail as detail_components
 from ..components.labels import is_watched
@@ -363,6 +363,158 @@ class BooksPage(GridPage):
                 "file_download", _("Download"), "bk-download",
                 lambda: actions.open_download(folder)))
         return Row(btns, gap=8, align="center")
+
+
+class AudiobookPage(Page):
+    """One audiobook, as a place rather than as a thing that starts playing.
+
+    A loose single-file audiobook had no destination at all: it is an
+    ordinary `Audio` item, so a tile click started it exactly as a song
+    does — which meant its **description, its length and its chapters were
+    unreachable**, and there was nowhere to resume it from. That is right
+    for a song, whose whole content is the sound, and wrong for a book.
+
+    So an `AudioBook` tile now opens this, and the hover play chip starts
+    it — the same split every other playable type already makes. The rows
+    inside a *chapter list* are unaffected: there the entries are chapters
+    of one book and clicking one is meant to play it.
+    """
+
+    kind = "audiobook"
+
+    def load(self, epoch):
+        route = self.route
+        source = self.ctx.source
+        srv = route.get("server") or self.ctx.server
+
+        def work():
+            return source.get_item(srv, route["item_id"])
+
+        self.route_async(work, lambda it: route.__setitem__("_data", it),
+                         epoch)
+
+    def render(self, size):
+        route = self.route
+        item = route.get("_data")
+        if item is None:
+            return chrome.busy()
+        if not item:
+            return chrome.error(_("Item not available."))
+        art = self.ctx.art
+        server = route.get("server") or self.ctx.server
+        text = [Text(item.get("Name") or route.get("title", ""), size=28,
+                     bold=True)]
+        meta = self._meta(item)
+        if meta:
+            text.append(Text(meta, size=15, color=theme.SUBTLE_FG))
+        text.append(self._actions(item, server))
+        blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
+                       Column(text, gap=8, flex=1, align="stretch")],
+                      gap=16, align="start")]
+        if item.get("Overview"):
+            blocks.append(chrome.paragraph(item["Overview"], 17,
+                                           art.tiles.body_w(size[0])))
+        chapters = self._chapter_rows(item, server)
+        if chapters is not None:
+            blocks.append(chapters)
+        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=16),
+                       id="audiobook", flex=1,
+                       offset=self.parked_scroll("audiobook"))
+
+    @staticmethod
+    def _meta(item):
+        parts = []
+        author = (item.get("AlbumArtist")
+                  or ", ".join(item.get("Artists") or []))
+        if author:
+            parts.append(author)
+        if item.get("ProductionYear"):
+            parts.append(str(item["ProductionYear"]))
+        runtime = item.get("RunTimeTicks")
+        if runtime:
+            parts.append(detail_components.fmt_ticks(runtime))
+        chapters = item.get("Chapters") or []
+        if len(chapters) > 1:
+            parts.append(_("%d chapters") % len(chapters))
+        position = (item.get("UserData") or {}).get("PlaybackPositionTicks")
+        if position:
+            parts.append(_("%s in")
+                         % detail_components.fmt_ticks(position))
+        return "   ·   ".join(parts)
+
+    def _actions(self, item, server):
+        actions = self.ctx.actions
+        tiles = self.ctx.art.tiles
+        position = (item.get("UserData") or {}).get(
+            "PlaybackPositionTicks") or 0
+        btns = []
+        if position:
+            # Same rule as a folder of chapters, and for the same reason: a
+            # book is hours, and starting one over by accident overwrites
+            # the position as it plays. So there is no bare Play once it
+            # has been started.
+            btns.append(controls.action_btn(
+                "play_arrow",
+                _("Resume") + "  " + detail_components.fmt_ticks(position),
+                "ab-resume",
+                lambda: actions.play(item, server, offset_ticks=position),
+                primary=True, size=18, autofocus=True))
+            btns.append(controls.action_btn(
+                "first_page", _("Restart"), "ab-play",
+                lambda: actions.play(item, server), size=18))
+        else:
+            btns.append(controls.action_btn(
+                "play_arrow", _("Play"), "ab-play",
+                lambda: actions.play(item, server),
+                primary=True, size=18, autofocus=True))
+        btns.append(controls.action_btn(
+            "playlist_add", _("Add to Queue"), "ab-queue",
+            lambda: actions.queue_items([item.get("Id")], server), size=18))
+        btns.append(controls.action_btn(
+            "check", _("Finished"), "ab-watched",
+            lambda: actions.toggle_watched(item, server),
+            on=is_watched(item), size=18))
+        btns.append(controls.action_btn(
+            "favorite", _("Favorite"), "ab-fav",
+            lambda: actions.toggle_favorite(item, server),
+            on=bool((item.get("UserData") or {}).get("IsFavorite")),
+            size=18))
+        download = detail_components.download_button(
+            actions, tiles, item, server, "ab")
+        if download is not None:
+            btns.append(download)
+        return Row(btns, gap=8, align="center")
+
+    def _chapter_rows(self, item, server):
+        """The book's own chapters, each starting playback at its mark.
+
+        These are markers inside ONE file, not queue entries — so a row
+        plays the book from that offset rather than playing anything of its
+        own. That is the whole difference between this page and the folder
+        of a rip, where the same gesture starts a different item.
+        """
+        chapters = item.get("Chapters") or []
+        if len(chapters) < 2:
+            return None
+        rows = []
+        for i, chapter in enumerate(chapters):
+            start = chapter.get("StartPositionTicks") or 0
+            rows.append({
+                "id": "ab-ch-%d" % i,
+                "cells": [str(i + 1),
+                          chapter.get("Name") or _("Chapter %d") % (i + 1),
+                          detail_components.fmt_ticks(start)],
+                "on_click": (lambda offset=start:
+                             self.ctx.actions.play(item, server,
+                                                   offset_ticks=offset)),
+            })
+        return Column([
+            Text(_("Chapters"), size=22, bold=True),
+            Table([{"label": "#", "w": 46, "align": "right"},
+                   {"label": _("Title"), "flex": 1},
+                   {"label": _("Start"), "w": 90, "align": "right"}],
+                  rows, size=17, hover_bg=theme.BUTTON_BG),
+        ], gap=8, align="stretch")
 
 
 class BookPage(Page):

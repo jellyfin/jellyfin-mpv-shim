@@ -395,6 +395,12 @@ class RouteWalkTest(unittest.TestCase):
         self._walk("book", dict(self._base(book), kind="book"))
         self._interact("book")
 
+        # A loose single-file audiobook: a book rather than a track, so it
+        # has a page of its own. Chapters included, which is the half a
+        # rip's folder cannot show.
+        self._walk("audiobook", dict(self._base(audiobook), kind="audiobook"))
+        self._interact("audiobook")
+
     def test_person(self):
         movie = self._item("Movies", "Movie", fields="People")
         people = (self.source.get_item(_e2e.SOURCE_UUID, movie["Id"])
@@ -465,7 +471,7 @@ class RouteWalkTest(unittest.TestCase):
             "home", "grid", "music", "series", "season", "detail", "album",
             "artist", "music_genre", "person", "search", "favorites",
             "genres", "playlist", "playlist_edit", "queue", "livetv",
-            "channel", "program", "books", "book",
+            "channel", "program", "books", "book", "audiobook",
         }
         # Reached by a Studio or Genre tile rather than by a library, and
         # covered by `list` below; kept out of the walk because building one

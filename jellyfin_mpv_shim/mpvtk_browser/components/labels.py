@@ -159,6 +159,11 @@ def type_indicator_icon(item):
 #: text, not icon fonts.
 _TYPE_GLYPHS = {
     "Audio": "♪",
+    # An AudioBook is an Audio item, and it hits the case this table is FOR:
+    # an author folder of three books called "The ..." drew three tiles all
+    # reading "T". Books deliberately keep their initial -- a title is what
+    # tells one from another, and a shelf of identical marks would be worse.
+    "AudioBook": "♪",
     "MusicAlbum": "♪",
     "MusicArtist": "♪",
     # NOT a triangle. "▸" is the play shape, and drawn large and centred on

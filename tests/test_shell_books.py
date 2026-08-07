@@ -104,14 +104,31 @@ class TestLibraryIsReachable(BooksHarness):
         b._open_item(book())
         self.assertEqual(b.route["kind"], "book")
 
-    def test_an_audiobook_plays_rather_than_opening_a_page(self):
-        # It is an ordinary Audio item; a detail page for one would be a
-        # heading and no reason to be there.
+    def test_an_audiobook_opens_a_page_rather_than_playing(self):
+        """It plays like a track and it is a *book*.
+
+        A tile that started it left its description, its length, its
+        chapters and the place you got to all unreachable — there was
+        nowhere in the app they could be seen. A song has none of those,
+        which is why a song still plays on click.
+        """
+        b = self.browser([])
+        b._open_item(audiobook(1))
+        self.assertEqual(b.route["kind"], "audiobook")
+        self.assertFalse(b.controller.played, "it started playing as well")
+
+    def test_a_song_still_plays_on_click(self):
         b = self.browser([])
         was = b.route["kind"]
-        b._open_item(audiobook(1))
-        self.assertEqual(b.route["kind"], was, "it navigated somewhere")
+        b._open_item({"Id": "s1", "Name": "A Song", "Type": "Audio"})
+        self.assertEqual(b.route["kind"], was, "a song opened a page")
         self.assertTrue(b.controller.played)
+
+    def test_the_play_chip_still_starts_an_audiobook(self):
+        # The same split every other playable type makes: the tile is a
+        # door, the chip is the shortcut.
+        b = self.browser([])
+        self.assertTrue(b._tile_playable(audiobook(1)))
 
     def test_headless_refuses_both_book_routes(self):
         # The whitelist is what makes this true by default, and this is the
@@ -119,6 +136,101 @@ class TestLibraryIsReachable(BooksHarness):
         from jellyfin_mpv_shim.mpvtk_browser.navigator import HEADLESS_ROUTES
         self.assertNotIn("book", HEADLESS_ROUTES)
         self.assertNotIn("books", HEADLESS_ROUTES)
+
+
+class TestAudiobookPage(BooksHarness):
+    """The destination a loose single-file audiobook needed."""
+
+    def open_audiobook(self, item=None):
+        b = self.browser([])
+        item = item or dict(audiobook(1, album="The Copper Bell"),
+                            Id="ab1", Name="The Copper Bell",
+                            Overview="Read by the author.",
+                            RunTimeTicks=24 * 60 * 10000000)
+        self.src.items["ab1"] = item
+        b.navigate({"kind": "audiobook", "server": "srv1", "item_id": "ab1",
+                    "title": item["Name"]})
+        return b
+
+    def test_the_description_is_reachable(self):
+        """The reason the page exists: there was nowhere in the app a loose
+        audiobook's description could be read."""
+        b = self.open_audiobook()
+        nodes, _h = build_scene(b)
+        text = " ".join(str(n.get("text", "")) for n in nodes)
+        self.assertIn("Read by the author.", text)
+
+    def test_it_says_how_long_the_book_is(self):
+        b = self.open_audiobook()
+        nodes, _h = build_scene(b)
+        text = " ".join(str(n.get("text", "")) for n in nodes)
+        self.assertIn("24:00", text)
+
+    def test_an_untouched_book_offers_play(self):
+        b = self.open_audiobook()
+        nodes, _h = build_scene(b)
+        self.assertIn("ab-play", ids(nodes))
+        self.assertNotIn("ab-resume", ids(nodes))
+
+    def test_a_started_book_offers_resume_and_restart(self):
+        b = self.open_audiobook(dict(
+            audiobook(1), Id="ab1", Name="The Copper Bell",
+            RunTimeTicks=24 * 60 * 10000000,
+            UserData={"PlaybackPositionTicks": 8 * 60 * 10000000}))
+        nodes, handlers = build_scene(b)
+        self.assertIn("ab-resume", ids(nodes))
+        self.assertIn("Restart", [str(n.get("text", "")) for n in nodes])
+        handlers["ab-resume"]["click"]()
+        _iid, _srv, offset = b.controller.played[-1]
+        self.assertEqual(offset, 8 * 60 * 10000000)
+
+    def test_restart_starts_at_the_beginning(self):
+        b = self.open_audiobook(dict(
+            audiobook(1), Id="ab1", Name="The Copper Bell",
+            RunTimeTicks=24 * 60 * 10000000,
+            UserData={"PlaybackPositionTicks": 8 * 60 * 10000000}))
+        _n, handlers = build_scene(b)
+        handlers["ab-play"]["click"]()
+        _iid, _srv, offset = b.controller.played[-1]
+        self.assertIsNone(offset)
+
+    def test_its_chapters_are_listed(self):
+        b = self.open_audiobook(dict(
+            audiobook(1), Id="ab1", Name="The Copper Bell",
+            RunTimeTicks=24 * 60 * 10000000,
+            Chapters=[{"Name": "One", "StartPositionTicks": 0},
+                      {"Name": "Two", "StartPositionTicks": 2400000000}]))
+        nodes, _h = build_scene(b)
+        text = " ".join(str(n.get("text", "")) for n in nodes)
+        self.assertIn("One", text)
+        self.assertIn("Two", text)
+
+    def test_a_chapter_plays_the_book_from_its_mark(self):
+        """These are markers inside ONE file, not queue entries — so a row
+        plays the book from that offset rather than playing anything of its
+        own. That is the whole difference from a rip's folder."""
+        b = self.open_audiobook(dict(
+            audiobook(1), Id="ab1", Name="The Copper Bell",
+            RunTimeTicks=24 * 60 * 10000000,
+            Chapters=[{"Name": "One", "StartPositionTicks": 0},
+                      {"Name": "Two", "StartPositionTicks": 2400000000}]))
+        _n, handlers = build_scene(b)
+        handlers["ab-ch-1"]["click"]()
+        iid, _srv, offset = b.controller.played[-1]
+        self.assertEqual(iid, "ab1")
+        self.assertEqual(offset, 2400000000)
+
+    def test_a_book_with_one_chapter_gets_no_list(self):
+        # A single marker is just the start.
+        b = self.open_audiobook(dict(
+            audiobook(1), Id="ab1", Name="The Copper Bell",
+            Chapters=[{"Name": "One", "StartPositionTicks": 0}]))
+        nodes, _h = build_scene(b)
+        self.assertNotIn("ab-ch-0", ids(nodes))
+
+    def test_headless_refuses_it(self):
+        from jellyfin_mpv_shim.mpvtk_browser.navigator import HEADLESS_ROUTES
+        self.assertNotIn("audiobook", HEADLESS_ROUTES)
 
 
 class TestPlayChips(BooksHarness):

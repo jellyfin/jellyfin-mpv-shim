@@ -1595,13 +1595,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                                parent_id=self.route.get("parent_id")))
         elif t == "Playlist":
             self.navigate(dict(base, kind="playlist"))
-        elif t in ("Audio", AUDIOBOOK_TYPE):
-            # An AudioBook is an ordinary audio item -- a normal MediaSource,
-            # a real duration, the whole ffmpeg pipeline behind it -- so it
-            # plays like a track. A lone one opens as a queue of one; the
-            # chapters of a rip are reached through their folder, which
-            # BooksPage draws as an album (pages/books.py).
+        elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == AUDIOBOOK_TYPE:
+            # A page, NOT immediate playback -- unlike the Audio above it.
+            # An AudioBook plays like a track, but it is a *book*: it has a
+            # description, a length, chapters and a place you got to, and a
+            # tile that started it left every one of those unreachable.
+            # A song has none of them, which is why the split is here and
+            # not one line up. The hover play chip still starts it, exactly
+            # as it does for a film.
+            self.navigate(dict(base, kind="audiobook"))
         elif t == BOOK_TYPE:
             self.navigate(dict(base, kind="book"))
         elif t == "Studio":

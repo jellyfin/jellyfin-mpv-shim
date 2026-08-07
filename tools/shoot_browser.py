@@ -132,6 +132,29 @@ def routes(source, which):
                     {"kind": "books", "server": UUID,
                      "parent_id": author["Id"], "item_id": author["Id"],
                      "collection_type": "books", "title": author["Name"]}))
+        # An author folder holding three DIFFERENT audiobooks: the case the
+        # one-book-or-several rule exists for, which must draw as a gallery
+        # rather than as one book with three chapters.
+        several = find(source, name="The Copper Bell",
+                       IncludeItemTypes="AudioBook")
+        out.append(("several-books",
+                    {"kind": "books", "server": UUID,
+                     "parent_id": several["ParentId"],
+                     "item_id": several["ParentId"],
+                     "collection_type": "books", "title": "Lior Levy"}))
+        # ...and the rip whose folder carries its own description.
+        # A loose single-file audiobook's own page: the destination it had
+        # none of, and the only place its description can be read.
+        out.append(("audiobook-page",
+                    {"kind": "audiobook", "server": UUID,
+                     "item_id": several["Id"], "title": several["Name"]}))
+        rip = find(source, name="The Slow Crossing Part 01",
+                   IncludeItemTypes="AudioBook")
+        out.append(("rip-with-description",
+                    {"kind": "books", "server": UUID,
+                     "parent_id": rip["ParentId"], "item_id": rip["ParentId"],
+                     "collection_type": "books",
+                     "title": "The Slow Crossing"}))
         book = find(source, name="The Standard Manual",
                     IncludeItemTypes="Book")
         out.append(("book-page",
