@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-31 22:01+0000\n"
+"PO-Revision-Date: 2026-08-07 18:19+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -397,7 +397,7 @@ msgstr "دیاریکردنی شوێنی ژێرنووس"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Bottom"
-msgstr "خوارەوە"
+msgstr "ژێرەوە"
 
 #: jellyfin_mpv_shim/menu.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
