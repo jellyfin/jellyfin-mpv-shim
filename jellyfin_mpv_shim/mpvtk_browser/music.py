@@ -198,20 +198,28 @@ class MusicMixin:
         book = bool(np.get("is_audiobook"))
         chapters = bool(np.get("chapters"))
         btn = self.NP_BTN_W
-        # Most valuable first. Everything not listed is unconditional.
+        # Most valuable first, so the LAST entries are the first to go.
+        #
+        # The tail is the reported order: repeat goes first, then the
+        # heart, then the chapter step buttons. Repeat and favourite are
+        # both one-press state you can set once and forget, and neither is
+        # anything to do with getting through what is playing; the chapter
+        # arrows are, which is why they outlive both. They go before the
+        # chapter LIST because the list can still reach every chapter on
+        # its own -- losing the arrows costs a shortcut, losing the list
+        # costs the only way to jump.
         order = [("clock", self.NP_CLOCK_W)]
-        if book and chapters:
-            # For a book these ARE the controls: a .m4b is one ten-hour
-            # item, and without them the only way through it is a blind
-            # drag of the scrubber.
-            order.append(("ch_btns", 2 * btn))
         if book:
+            # ±10/30s outlive everything else on a book: they are the two
+            # gestures people actually make while listening to one.
             order.append(("skip_btns", 2 * btn))
         order.append(("volbar", self.NP_VOL_W))
         if chapters:
             order.append(("chapters", self.NP_PICKER_W))
-        order += [("queue", btn), ("stop", btn), ("repeat", btn),
-                  ("favorite", btn)]
+        order += [("queue", btn), ("stop", btn)]
+        if book and chapters:
+            order.append(("ch_btns", 2 * btn))
+        order += [("favorite", btn), ("repeat", btn)]
 
         # Everything the controls row always draws: its padding, the title
         # column and play/pause. On one row the scrubber and the two clocks

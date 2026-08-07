@@ -878,10 +878,41 @@ class TestAudiobookBar(BooksHarness):
         item; the favourite heart is not."""
         drawn = self._bar_ids(600, is_audiobook=True,
                               chapters=self.CHAPTERS)
-        self.assertIn("np-chprev", drawn)
         self.assertIn("np-back", drawn)
         self.assertNotIn("np-fav", drawn)
         self.assertNotIn("np-repeat", drawn)
+
+    def test_the_order_things_are_given_up_in(self):
+        """Repeat, then the heart, then the chapter step buttons.
+
+        Repeat and favourite are one-press state you set once and forget,
+        and neither has anything to do with getting through what is
+        playing. The chapter arrows do, which is why they outlive both —
+        and they go before the chapter LIST, because the list can still
+        reach every chapter on its own while losing it costs the only way
+        to jump.
+        """
+        first_gone = []
+        seen = None
+        watch = ("np-repeat", "np-fav", "np-chprev", "np-chapters",
+                 "np-stop", "np-queue", "np-vol", "np-back")
+        for width in range(1300, 399, -20):
+            drawn = self._bar_ids(width, is_audiobook=True,
+                                  chapters=self.CHAPTERS)
+            now = {nid for nid in watch if nid in drawn}
+            if seen is not None:
+                first_gone += sorted(seen - now)
+            seen = now
+        self.assertEqual(first_gone[:3],
+                         ["np-repeat", "np-fav", "np-chprev"],
+                         "the bar sheds in the wrong order: %s" % first_gone)
+        self.assertLess(first_gone.index("np-chprev"),
+                        first_gone.index("np-chapters"),
+                        "the chapter LIST went before the arrows, which "
+                        "leaves no way to jump to a chapter at all")
+        self.assertEqual(first_gone[-1], "np-back",
+                         "the skip buttons should outlive everything else "
+                         "on a book")
 
     def test_a_song_gives_up_its_transport_last(self):
         # The same shape from the other side: a song has no chapter or skip

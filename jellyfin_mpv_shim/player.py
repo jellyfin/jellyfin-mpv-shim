@@ -3421,7 +3421,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _nav_back(self):
         handler = self.on_nav_back
-        if handler is None or not self.mpvtk_active or self._video is not None:
+        # `_library_showing()`, NOT `_video is None`. Audio keeps `_video`
+        # set and keeps the browser on screen -- that is what the
+        # now-playing bar is for -- so the old test refused BACK for the
+        # whole of music and audiobook playback, while the user was looking
+        # straight at the library. The mouse's back button rides this (the
+        # renderer routes it as a synthetic ESC), so it stopped working the
+        # moment anything played; and because you could never go back,
+        # FORWARD had nothing to return to and looked broken with it.
+        #
+        # Its sibling `_nav_command` two functions up already asks this way,
+        # as do `_stats_key` and `_play_media`. See `_library_showing`.
+        if handler is None or not self.mpvtk_active \
+                or not self._library_showing():
             return False
         try:
             return bool(handler())
