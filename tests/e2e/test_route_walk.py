@@ -52,6 +52,12 @@ if REPO_ROOT not in sys.path:
 
 SIZE = (1280, 720)
 
+#: stdjflib's books library. Named rather than found by collection type: the
+#: bulk one has the same type and is a worse fixture (its folders hold books
+#: rather than the chapters of an audiobook, so it never reaches the track
+#: list this walk is here to render).
+BOOKS_LIBRARY = "Books"
+
 #: Window chrome, excluded from the interaction sweep — see `_interact`.
 CHROME_PREFIXES = ("nav-", "chrome-", "topbar-", "bar-")
 
@@ -320,7 +326,9 @@ class RouteWalkTest(unittest.TestCase):
             if lib.get("CollectionType") == "livetv":
                 continue                      # its own page kind, below
             with self.subTest(library=lib["Name"]):
-                kind = "music" if lib.get("CollectionType") == "music" else "grid"
+                kind = {"music": "music",
+                        "books": "books"}.get(lib.get("CollectionType"),
+                                              "grid")
                 self._walk("grid:%s" % lib["Name"],
                            {"kind": kind, "server": _e2e.SOURCE_UUID,
                             "parent_id": lib["Id"], "title": lib["Name"],
@@ -363,6 +371,29 @@ class RouteWalkTest(unittest.TestCase):
             self._walk("music_genre",
                        dict(self._base(genres[0]), kind="music_genre",
                             parent_id=music["Id"]))
+
+    def test_book_screens(self):
+        """The two shapes a books library takes, on real data.
+
+        `books` is one page that renders two entirely different screens — a
+        tile grid, or an album-style track list when the folder holds the
+        chapters of an audiobook — so walking the library root exercises
+        exactly one of them. Both are walked here, plus a book's own page,
+        which is the only screen in the app with no Play button.
+        """
+        audiobook = self._item(BOOKS_LIBRARY, "AudioBook",
+                               fields="ParentId,Album")
+        self._walk("books:audiobook-folder",
+                   {"kind": "books", "server": _e2e.SOURCE_UUID,
+                    "parent_id": audiobook["ParentId"],
+                    "item_id": audiobook["ParentId"],
+                    "collection_type": "books",
+                    "title": audiobook.get("Album") or "Audiobook"})
+        self._interact("books:audiobook-folder")
+
+        book = self._item(BOOKS_LIBRARY, "Book", fields="Path")
+        self._walk("book", dict(self._base(book), kind="book"))
+        self._interact("book")
 
     def test_person(self):
         movie = self._item("Movies", "Movie", fields="People")
@@ -434,7 +465,7 @@ class RouteWalkTest(unittest.TestCase):
             "home", "grid", "music", "series", "season", "detail", "album",
             "artist", "music_genre", "person", "search", "favorites",
             "genres", "playlist", "playlist_edit", "queue", "livetv",
-            "channel", "program",
+            "channel", "program", "books", "book",
         }
         # Reached by a Studio or Genre tile rather than by a library, and
         # covered by `list` below; kept out of the walk because building one

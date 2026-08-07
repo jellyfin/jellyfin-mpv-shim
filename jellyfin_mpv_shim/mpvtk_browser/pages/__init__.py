@@ -12,6 +12,7 @@ consulted first, which is exactly the silent-winner hazard
 """
 
 from .base import Page, PageContext
+from .books import BookPage, BooksPage
 from .byname import ByNamePage
 from .detail import DetailPage
 from .favorites import FavoritesPage
@@ -29,6 +30,8 @@ from .series import SeriesPage
 
 #: kind -> Page subclass.
 PAGES = {
+    BookPage.kind: BookPage,
+    BooksPage.kind: BooksPage,
     ByNamePage.kind: ByNamePage,
     DetailPage.kind: DetailPage,
     FavoritesPage.kind: FavoritesPage,

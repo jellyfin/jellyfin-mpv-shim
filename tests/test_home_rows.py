@@ -100,16 +100,18 @@ class FanOutTest(HomeRowsHarness):
         server call happens to answer first.
 
         The order is the default section layout's: Continue Watching,
-        Continue Listening, Next Up, then the per-library Latest rows.
+        Continue Listening, Continue Reading, Next Up, then the per-library
+        Latest rows.
         """
         api = FakeApi()
         rows = self._source(api).get_home_rows("srv", libraries=LIBS)
         titles = [r["title"] for r in rows]
         self.assertEqual(titles[0], "Continue Watching")
         self.assertEqual(titles[1], "Continue Listening")
-        self.assertEqual(titles[2], "Next Up")
-        self.assertIn("Movies", titles[3])
-        self.assertIn("Shows", titles[4])
+        self.assertEqual(titles[2], "Continue Reading")
+        self.assertEqual(titles[3], "Next Up")
+        self.assertIn("Movies", titles[4])
+        self.assertIn("Shows", titles[5])
 
     def test_one_failing_row_does_not_lose_the_others(self):
         api = FakeApi()
@@ -127,8 +129,8 @@ class FanOutTest(HomeRowsHarness):
         titles = [r["title"] for r in rows]
         self.assertIn("Continue Watching", titles)
         self.assertIn("Next Up", titles)
-        # 3 primary rows + 2 library Latest rows, one of which died.
-        self.assertEqual(len(titles), 4, "a dead row cost the whole screen")
+        # 4 primary rows + 2 library Latest rows, one of which died.
+        self.assertEqual(len(titles), 5, "a dead row cost the whole screen")
 
     def test_playlist_libraries_get_no_latest_row(self):
         api = FakeApi()
@@ -181,12 +183,18 @@ class LayoutTest(HomeRowsHarness):
         self.assertNotIn("get_recently_added", api.calls)
 
     def test_unsupported_sections_fetch_nothing(self):
-        """Live TV and books are recognised but undrawable; they must not
-        turn into requests or empty rows."""
+        """A recognised but undrawable section must not turn into a request
+        or an empty row.
+
+        Live TV and Active Recordings are here because this FakeApi has no
+        tuner, which is the gate they are behind; LIBRARY_BUTTONS is the one
+        type the shim recognises and will not draw. (Books used to be in
+        this list and are now a real row -- see test_home_sections for why
+        the example keeps moving.)"""
         api = FakeApi()
         rows = self._source(api).get_home_rows(
             "srv", libraries=LIBS,
-            layout=[hs.LIVE_TV, hs.RESUME_BOOK, hs.ACTIVE_RECORDINGS]
+            layout=[hs.LIVE_TV, hs.LIBRARY_BUTTONS, hs.ACTIVE_RECORDINGS]
                    + [hs.NONE] * 7)
         self.assertEqual(rows, [])
         self.assertEqual(api.calls, [])
@@ -329,7 +337,7 @@ class SectionsTest(HomeRowsHarness):
                                                sections=("primary",))
         self.assertEqual([r["title"] for r in rows],
                          ["Continue Watching", "Continue Listening",
-                          "Next Up"])
+                          "Continue Reading", "Next Up"])
         self.assertNotIn("get_recently_added", api.calls,
                          "the first batch waited on the Latest fan-out")
 

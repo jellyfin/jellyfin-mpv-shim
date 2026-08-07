@@ -59,6 +59,12 @@ CONTRACT = [
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.
     "tests.e2e.test_syncplay_group",
+    # Books: the DTO with the widest gap between what it looks like and what
+    # it is (no media source, no container, no size), and a progress unit
+    # the server's own comments call a placeholder. Both are things a fake
+    # cannot disagree with, because a fake is written from the same reading
+    # of the API the code is.
+    "tests.e2e.test_books",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.

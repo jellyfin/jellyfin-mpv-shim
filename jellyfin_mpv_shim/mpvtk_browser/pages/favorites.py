@@ -39,6 +39,12 @@ class FavoritesPage(Page):
         "artists": ("geom_square", "Primary", True),
         "albums": ("geom_square", "Primary", True),
         "songs": ("geom_square", "Primary", True),
+        # Books get the portrait shape web gives them wherever it draws one
+        # explicitly (its Continue Reading row is the only place, and it is
+        # getPortraitShape). Audiobooks square, like the albums they are
+        # tagged as -- their artwork comes off the audio file.
+        "books": ("geom", "Primary", True),
+        "audiobooks": ("geom_square", "Primary", True),
     }
 
     def load(self, epoch):

@@ -39,6 +39,10 @@ class ByNamePage(Page):
         "trailers": ("geom", "Primary", True),
         "albums": ("geom_square", "Primary", True),
         "songs": ("geom_square", "Primary", True),
+        # Same pair, same shapes, as the Favorites screen -- see its
+        # ROW_SHAPES for why books are portrait and audiobooks square.
+        "books": ("geom", "Primary", True),
+        "audiobooks": ("geom_square", "Primary", True),
     }
 
     def load(self, epoch):

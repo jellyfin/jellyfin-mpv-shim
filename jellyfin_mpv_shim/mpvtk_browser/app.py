@@ -110,8 +110,9 @@ from .pagination import Paginator
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
-from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
-                         PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
+from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
+from .repository import (BOOKS_COLLECTION, FOLDER_TYPES, LIVE_TV_COLLECTION,
+                         LIVE_TYPES, PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
 from .strips import (BANNER_GEOM, LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM,
                      StripStore, TileGeom)
 from .dialogs import DialogsMixin
@@ -397,7 +398,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             guide_settings=lambda server, prefs, categories, on_save=None:
                 self._open_guide_settings(server, prefs, categories, on_save),
             view_settings=lambda current, on_set, paginated=None:
-                self.view_settings(current, on_set, paginated))
+                self.view_settings(current, on_set, paginated),
+            open_book_progress=lambda item, server=None:
+                self._open_book_progress(item, server))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,
@@ -416,6 +419,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # ids the add-to dialog will post (a container resolves to many)
         self._addto_ids = None
         self._addto_explicit_ids = None
+        # Book reading-position dialog state + its rebuilder (see dialogs).
+        self._bkprog = None
+        self._bkprog_build = None
         # transient status message + when it was set (see _toast_node)
         self._status_at = 0.0
         self._toast_timer = None
@@ -1585,8 +1591,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                                parent_id=self.route.get("parent_id")))
         elif t == "Playlist":
             self.navigate(dict(base, kind="playlist"))
-        elif t == "Audio":
+        elif t in ("Audio", AUDIOBOOK_TYPE):
+            # An AudioBook is an ordinary audio item -- a normal MediaSource,
+            # a real duration, the whole ffmpeg pipeline behind it -- so it
+            # plays like a track. A lone one opens as a queue of one; the
+            # chapters of a rip are reached through their folder, which
+            # BooksPage draws as an album (pages/books.py).
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == BOOK_TYPE:
+            self.navigate(dict(base, kind="book"))
         elif t == "Studio":
             # A studio spans films and shows, so it opens as a row per kind
             # rather than one grid of everything sorted by name.
@@ -1657,9 +1670,26 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # the Collections toggle (movies libraries only).
             # parent_type as well as collection_type: inside a BoxSet the
             # tile menu can offer "Remove from Collection".
-            self.navigate(dict(base, kind="grid", parent_id=item.get("Id"),
+            #
+            # Books are the one library whose collection type is INHERITED
+            # down the tree. A folder's own DTO does not say which library it
+            # is in, and for books that answer changes the screen: a folder
+            # of audiobook chapters is drawn as an album, not a grid. So it
+            # is carried on the route. Only for books -- propagating any
+            # other type would make a folder inside a movies library run the
+            # library's typed, recursive query and list the whole library
+            # again (LIBRARY_ITEM_TYPES); "books" has no entry there, so
+            # carrying it changes nothing about the request.
+            ctype = item.get("CollectionType")
+            if ctype is None and self.route.get(
+                    "collection_type") == BOOKS_COLLECTION:
+                ctype = BOOKS_COLLECTION
+            self.navigate(dict(base,
+                               kind=("books" if ctype == BOOKS_COLLECTION
+                                     else "grid"),
+                               parent_id=item.get("Id"),
                                parent_type=t,
-                               collection_type=item.get("CollectionType")))
+                               collection_type=ctype))
         else:
             self.set_status(_("Selected: %s") % item.get("Name", ""))
             self.invalidate()
@@ -2252,7 +2282,36 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 # leave the badges alone rather than raise on a pool thread.
                 self.tiles.set_downloaded(*self.controller.downloaded_ids())
             except Exception:
-                return
+                # Guarded, NOT returned from. This used to bail out of the
+                # whole function, so a badge read that failed silently
+                # skipped everything below it -- the pending book opens and
+                # the page's own state re-read, neither of which has
+                # anything to do with the badge sets. Three independent
+                # consumers of one notification; one failing must not take
+                # the others with it.
+                log.debug("downloaded-id refresh failed", exc_info=True)
+            # A book download is the one whose *completion* something is
+            # waiting on: Read starts the fetch and opens the file when it
+            # lands (ItemActions.read_book). This is where the catalog says
+            # it landed, so this is where that wait is resolved -- rather
+            # than in a poller per press, which would outlive the press.
+            try:
+                self._actions.flush_pending_reads()
+            except Exception:
+                log.debug("pending book reads failed", exc_info=True)
+            # And the screen showing that download has to be told. The
+            # badge sets above cover every TILE, but a page that resolved
+            # something richer than "is it downloaded" at load time -- the
+            # book page, which distinguishes queued from in-flight from on
+            # disk -- has to re-read it. Asked for generically so the shell
+            # does not have to know which kinds care.
+            try:
+                page = self._page_for(self.route)
+                refresh = getattr(page, "refresh_download_state", None)
+                if refresh is not None:
+                    refresh()
+            except Exception:
+                log.debug("page download-state refresh failed", exc_info=True)
             self.invalidate()
         self._pool.submit(work)
 

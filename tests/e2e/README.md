@@ -52,6 +52,7 @@ E1 and E2 exist so far:
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
 | `test_connection_loss` | E1 | the server stops answering: gone, token revoked, or a page-in that fails after a screenful drew |
+| `test_books` | E1 | books: no media source / container / size on the DTO, `Path` reaching a non-admin, the three `RunTimeTicks` progress encodings round-tripped, the two audiobook shapes, and a real book downloaded end to end |
 | `test_collections` | E1 | box sets: the toggle's unscoped query, a `collection.xml`'s members against its `ChildCount` of 0, a Series member surviving an untyped listing, and create/add/remove through the gateway |
 | `test_syncplay_playback` | E2 | **the real player in a real group** — stop halts rather than leaves (and leaves when the UI says the SyncPlay menu is unreachable), a halted player is not driven, resume replays the group's content |
 | `test_playback_advance` | E2 | an episode finishes and the next starts; the server agrees; resume position |

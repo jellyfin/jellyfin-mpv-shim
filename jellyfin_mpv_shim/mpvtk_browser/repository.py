@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from jellyfin_apiclient_python import JellyfinClient
 
+from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
 from ..sync.db import SyncDB, STATUS_COMPLETE
@@ -187,7 +188,15 @@ DETAIL_FIELDS = (
 # special-cased in two places — it never gets a "Latest" row (a tuner has no
 # recently-added anything) and clicking it routes to the Live TV page rather
 # than to a grid of its children.
-EXCLUDED_COLLECTION_TYPES = {"books"}
+# "books" is no longer excluded: an AudioBook is an ordinary audio item and
+# plays like any other, and a Book is reachable as a download-and-open target
+# (see ``books.py`` for why that is as far as it can go).
+EXCLUDED_COLLECTION_TYPES: set = set()
+
+#: CollectionType of a books library. Holds two unrelated entity types --
+#: ``Book`` and ``AudioBook`` -- which is why so much book handling asks
+#: about the *item* type rather than the library's.
+BOOKS_COLLECTION = "books"
 
 #: CollectionType of the Live TV view. Its own constant because three modules
 #: test for it and a bare string in each is how one of them ends up spelled
@@ -221,7 +230,11 @@ FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView",
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
 # only these are surfaced (and downloaded). Audio is included so music
 # playlists play, queue, and download (the now-playing bar drives them).
-PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio"}
+# AudioBook alongside Audio: the tile menu offers "Add to Playlist" on one
+# now, and a playlist that accepted an entry it would then refuse to SHOW
+# is worse than not offering it -- the track would vanish from the playlist
+# on the next visit with nothing to say why.
+PLAYLIST_SUPPORTED_TYPES = {"Movie", "Episode", "Video", "Audio", "AudioBook"}
 
 #: What Play All and Shuffle will put in a queue.
 #:
@@ -277,7 +290,8 @@ SEARCH_LIMIT = 800
 #: artists that are not library items), and on at least one real server it
 #: returns none at all, which is what "there is no Artists row" looked like
 #: from the outside.
-SEARCH_TYPES = "Movie,Series,Episode,Video,MusicAlbum,Audio"
+SEARCH_TYPES = ("Movie,Series,Episode,Video,MusicAlbum,Audio,"
+                "AudioBook,Book")
 
 #: People and artists are separate endpoints with separate budgets, so
 #: these are not shared with anything. 20 was low enough that a common first
@@ -491,6 +505,24 @@ class LibrarySource:
 
         try:
             return may_manage_collections(self._conn(server_uuid).client)
+        except Exception:
+            return True                 # fails open; see user_policy
+
+    def can_download(self, server_uuid):
+        """`EnableContentDownloading`.
+
+        Read here for books in particular. Every other download is an
+        offline convenience -- without the permission you simply watch the
+        thing online -- but ``/Items/{id}/Download`` is the *only* path to a
+        book's bytes, so a user without it cannot open a book at all. That
+        deserves to be said, rather than surfacing as a download that always
+        fails. Fails open like its siblings: only an answer the server gave
+        closes the gate.
+        """
+        from ..user_policy import may_download
+
+        try:
+            return may_download(self._conn(server_uuid).client)
         except Exception:
             return True                 # fails open; see user_policy
 
@@ -772,6 +804,21 @@ class LibrarySource:
             return resume_row(_("Continue Listening"), collection_type="music",
                               media_types="Audio")()
 
+        def book_resume_row():
+            # media_types="Book", which is what jellyfin-web's Continue
+            # Reading section asks for -- and the only thing that works:
+            # the two book entity types are unrelated (an AudioBook is an
+            # Audio and would land in Continue Listening), so a type filter
+            # would have to name them and get the split wrong.
+            #
+            # Portrait art, which is the ONE resume row web does not shape
+            # 16:9 (homesections/sections/resume.ts: `mediaType === 'Book'`
+            # takes getPortraitShape). A cover is a cover. The books
+            # collection_type is what carries that through to the tiles.
+            return resume_row(_("Continue Reading"),
+                              collection_type=BOOKS_COLLECTION,
+                              media_types="Book")()
+
         def next_up_row():
             nextup = api.get_next(
                 limit=20, fields=LIST_FIELDS,
@@ -846,6 +893,7 @@ class LibrarySource:
         builders = {
             home_sections.RESUME: video_resume_row,
             home_sections.RESUME_AUDIO: audio_resume_row,
+            home_sections.RESUME_BOOK: book_resume_row,
             home_sections.NEXT_UP: next_up_row,
             home_sections.LIVE_TV: live_tv_row,
             home_sections.ACTIVE_RECORDINGS: active_recordings_row,
@@ -860,8 +908,8 @@ class LibrarySource:
 
         # (slot, kind, callable). The slot travels with the row so the caller
         # can restore the user's order after merging the two fetch batches.
-        # Sections we cannot draw (Live TV, recordings, books) simply have no
-        # entry in STAGE and contribute no work.
+        # Sections we cannot draw simply have no entry in STAGE and
+        # contribute no work.
         tasks = []
         for slot, kind in enumerate(layout):
             stage = home_sections.STAGE.get(kind)
@@ -1390,6 +1438,12 @@ class LibrarySource:
         ("trailers", lambda: _("Trailers"), "Trailer"),
         ("albums", lambda: _("Albums"), "MusicAlbum"),
         ("songs", lambda: _("Songs"), "Audio"),
+        # Books are genre-tagged like everything else (a books library has
+        # its own Genres tab in jellyfin-web), so a genre that turns up
+        # novels as well as films should say so. Last, as the search order
+        # puts them.
+        ("audiobooks", lambda: _("Audiobooks"), AUDIOBOOK_TYPE),
+        ("books", lambda: _("Books"), BOOK_TYPE),
     )
 
     def get_by_name_sections(self, server_uuid, spec, limit=20):
@@ -1501,6 +1555,14 @@ class LibrarySource:
         ("artists", lambda: _("Artists"), "MusicArtist"),
         ("albums", lambda: _("Albums"), "MusicAlbum"),
         ("songs", lambda: _("Songs"), "Audio"),
+        # jellyfin-web's global Favorites screen has no book rows -- it
+        # reaches a favourited book through the books LIBRARY's Favorites
+        # tab (constants/views/books.ts, slot 6), which is a per-library
+        # tab strip this browser does not have. Without these two, marking
+        # a book as a favourite would be an action with nowhere to see the
+        # result. Same predicate, same shape rules; only the door differs.
+        ("audiobooks", lambda: _("Audiobooks"), AUDIOBOOK_TYPE),
+        ("books", lambda: _("Books"), BOOK_TYPE),
     )
 
     def get_favorite_sections(self, server_uuid, limit=24):
@@ -2700,6 +2762,12 @@ class OfflineLibrarySource:
     def can_manage_collections(self, server_uuid):
         """No server to write to. Declared for the same reason the others
         are: the offline source is what the online one falls back TO."""
+        return False
+
+    def can_download(self, server_uuid):
+        """Nothing to download FROM. The book screens read this to decide
+        whether to offer a fetch, and offline the answer is no -- what is
+        already on disk is still readable, and that path does not ask."""
         return False
 
     def get_genres(self, server_uuid, parent_id=None):

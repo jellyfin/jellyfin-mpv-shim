@@ -39,15 +39,18 @@ class TestResolveLayout(unittest.TestCase):
         self.assertEqual(hs.DEFAULT_LAYOUT[5], hs.NEXT_UP)   # guards the point
 
     def test_unsupported_values_survive_resolution(self):
-        """We cannot draw books, but we must not lose them: the same layout
-        is read by jellyfin-web.
+        """A section we cannot draw must not be lost: the same layout is
+        read by jellyfin-web, and rewriting one to "none" would degrade the
+        home screen of a user who only ever opened the shim.
 
-        (This used to use activerecordings, which the Live TV screens can
-        draw now — RESUME_BOOK is the remaining type the shim recognises and
-        renders nothing for.)"""
-        layout = hs.resolve_layout({"homesection0": hs.RESUME_BOOK})
-        self.assertEqual(layout[0], hs.RESUME_BOOK)
-        self.assertNotIn(hs.RESUME_BOOK, hs.SUPPORTED)
+        The example has had to move twice, which is the point of writing it
+        down: activerecordings became drawable with the Live TV screens, and
+        resumebook with book support. LIBRARY_BUTTONS is what is left -- and
+        unlike those two it is not a gap, it is a second styling of the
+        Libraries row we deliberately do not offer."""
+        layout = hs.resolve_layout({"homesection0": hs.LIBRARY_BUTTONS})
+        self.assertEqual(layout[0], hs.LIBRARY_BUTTONS)
+        self.assertNotIn(hs.LIBRARY_BUTTONS, hs.SUPPORTED)
 
     def test_values_are_stringified_and_stripped(self):
         layout = hs.resolve_layout({"homesection0": "  resume  "})
@@ -99,8 +102,14 @@ class TestStages(unittest.TestCase):
         self.assertEqual(hs.stages_for([hs.LATEST]), {"latest"})
 
     def test_unsupported_sections_contribute_no_work(self):
-        self.assertEqual(hs.stages_for([hs.RESUME_BOOK, "librarybuttons"]),
+        self.assertEqual(hs.stages_for([hs.LIBRARY_BUTTONS, "notasection"]),
                          set())
+
+    def test_continue_reading_is_an_above_the_fold_fetch(self):
+        """One request, like the other two resume rows, and in the stock
+        layout -- so it has to be in the first batch or the home screen
+        would draw with a gap where it goes and fill it a beat later."""
+        self.assertEqual(hs.stages_for([hs.RESUME_BOOK]), {"primary"})
 
     def test_active_recordings_is_an_above_the_fold_fetch(self):
         # It became drawable with the Live TV screens; it is one request and

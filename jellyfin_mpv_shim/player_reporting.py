@@ -143,6 +143,25 @@ class ReportingMixin:
                     ]
             except Exception:
                 ranges = None
+            # Chapters ride the snapshot rather than being read per frame.
+            # The video HUD asks the player for them while it draws, which
+            # is fine because it is only up during playback; the audio bar
+            # is on screen for as long as the browser is, and on the jsonipc
+            # backend every property read is an IPC round trip. They cannot
+            # change within one item anyway, so pushing them with the rest
+            # costs one extra read per state change and makes the bar free.
+            #
+            # This is what makes an audiobook navigable: a single .m4b is one
+            # item whose chapters live in the file, so mpv is the only thing
+            # that knows them -- the item's own Chapters array is the
+            # server's scene index and is empty for one.
+            chapters = []
+            try:
+                for chapter in (self._player.chapter_list or []):
+                    chapters.append({"title": chapter.get("title") or "",
+                                     "time": float(chapter.get("time") or 0.0)})
+            except Exception:
+                chapters = []
             skip = self._hud_skip
             cb({
                 "stopped": False,
@@ -196,6 +215,8 @@ class ReportingMixin:
                 # buffered/seekable ranges in seconds, for the HUD's
                 # seek-bar shading (None when the demuxer has none)
                 "ranges": ranges,
+                # [{"title", "time"}], empty when the file has none.
+                "chapters": chapters,
             })
         except Exception:
             log.debug("push_playstate failed", exc_info=True)

@@ -10,7 +10,7 @@ state lives in the route dict.
 """
 
 from ..i18n import _
-from ..mpvtk.widgets import Box, Column, Icon, Row, Slider, Text
+from ..mpvtk.widgets import Box, Column, Dropdown, Icon, Row, Slider, Text
 from . import components, theme
 
 
@@ -93,6 +93,64 @@ class MusicMixin:
         self._np_scrub = None
         self.invalidate()
 
+    @staticmethod
+    def _chapter_index(chapters, pos):
+        """Which chapter ``pos`` falls in. The last one that has started —
+        the same rule the video HUD's picker uses."""
+        current = 0
+        for i, chapter in enumerate(chapters):
+            if chapter["time"] <= pos:
+                current = i
+        return current
+
+    def _chapter_controls(self, np, pos, w):
+        """Previous / chapter list / next, for a file that has chapters.
+
+        This is what an audiobook needs and a song does not. A single-file
+        audiobook is ONE item — the whole book — so without this the only
+        way through it is the scrub bar, and "start of chapter 14" is not
+        something anyone can find by dragging. A multi-file rip needs none
+        of it: there the chapters are queue entries and the existing
+        next/previous buttons already walk them.
+
+        Hidden entirely when the file has no chapters, so a music bar is
+        unchanged. The width gate mirrors the video HUD's: these are the
+        first controls to go when there is no room, because everything else
+        on this bar is needed for any audio at all.
+        """
+        chapters = np.get("chapters") or []
+        if not chapters or w < 900:
+            return []
+        current = self._chapter_index(chapters, pos)
+        labels = ["%s  %s" % (self._fmt(ch["time"]),
+                              ch["title"] or _("Chapter %d") % (i + 1))
+                  for i, ch in enumerate(chapters)]
+
+        def tbtn(icon, node_id, cb, tip):
+            return Box([Icon(icon, 20, color=theme.TEXT_FG)], id=node_id,
+                       pad=7, bg=theme.BUTTON_BG,
+                       hover={"fill": theme.BUTTON_ACTIVE}, radius=6,
+                       align="center", direction="row", on_click=cb, tip=tip)
+
+        return [
+            # Through the player's own chapter_seek, not a seek computed
+            # here: "previous chapter" means re-start the current one unless
+            # you press it in its first couple of seconds, and that rule
+            # already lives in PlayerManager.chapter_target -- where the
+            # HUD and the mouse buttons also read it. A second copy would
+            # drift, and would go round SyncPlay.
+            tbtn("fast_rewind", "np-chprev",
+                 lambda: self._ctl(lambda c: c.chapter_seek(-1)),
+                 _("Previous Chapter")),
+            Dropdown("np-chapters", labels, selected=current, force=True,
+                     trigger_icon="bookmark", tip=_("Chapters"),
+                     on_select=lambda i, v, chs=chapters: self._ctl(
+                         lambda c: c.seek(chs[i]["time"]))),
+            tbtn("fast_forward", "np-chnext",
+                 lambda: self._ctl(lambda c: c.chapter_seek(1)),
+                 _("Next Chapter")),
+        ]
+
     def _now_playing_bar(self, w):
         np = self._now_playing
         pos = np.get("position", 0) or 0
@@ -141,6 +199,7 @@ class MusicMixin:
                      color=theme.SUBTLE_FG),
                 seek,
                 Text(self._fmt(dur), size=14, w=48, color=theme.SUBTLE_FG),
+            ] + self._chapter_controls(np, shown, w) + [
                 tbtn("favorite" if np.get("favorite") else "favorite_border",
                      "np-fav", lambda: self._toggle_np_favorite(),
                      color=(theme.FAV_RED if np.get("favorite")

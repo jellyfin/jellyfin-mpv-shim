@@ -133,6 +133,12 @@ class FakeSource:
         # get_library_items — a fake that swallows its arguments turns every
         # test above it into a proxy assertion.
         self.queries = []
+        #: EnableContentDownloading, as can_download answers it.
+        self.download_allowed = True
+        #: item id -> DTO, consulted by get_item before its default. The
+        #: book screens are the first to care what get_item returns for
+        #: something that is not a movie.
+        self.items = {}
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -249,6 +255,8 @@ class FakeSource:
         return None
 
     def get_item(self, server_uuid, item_id):
+        if item_id in self.items:
+            return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
                 "RunTimeTicks": 90 * 600000000,
@@ -263,6 +271,13 @@ class FakeSource:
                          "DisplayTitle": "English 5.1"},
                         {"Type": "Subtitle", "Index": 2,
                          "DisplayTitle": "English"}]}]}
+
+    def can_download(self, server_uuid):
+        """`EnableContentDownloading`. Real, not a stub returning True: for a
+        book this is the difference between a Read button and an explanation,
+        and a fake that could only say yes would leave the refusal path with
+        nowhere to be observed."""
+        return self.download_allowed
 
     def get_similar(self, server_uuid, item_id, limit=12):
         return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
@@ -565,6 +580,20 @@ class FakeController:
         self.minimized = 0
         self.played = []
         self.transport = []
+        #: item_id -> (status, absolute path or None), as the real gateway
+        #: answers. Tests set entries to put a book on disk.
+        self.book_downloads = {}
+        self.opened = []
+        self.open_result = (True, "fake")
+        self.deleted_downloads = []
+        self.enqueued = []
+        #: item_id -> UserData dict, the server's side of the progress
+        #: push/pull. Writable, so a push really does change what a pull
+        #: reads back -- a fake that recorded the write without applying it
+        #: could not show the dialog re-reading after a save.
+        self.positions = {}
+        self.positions_written = []
+        self.set_position_ok = True
 
     def on_browse_enter(self):
         self.entered += 1
@@ -584,6 +613,12 @@ class FakeController:
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
                   srcid=None, aid=None, sid=None, pause_stills=True):
         self.played.append((list(item_ids), server_uuid, start_index))
+        # In a parallel list, not appended to the tuple above: a lot of
+        # tests assert on `played` by equality. Recorded at all because it
+        # is load-bearing on its own -- resuming an audiobook is an index
+        # AND an offset, and a fake that dropped the second would let a
+        # resume that restarts the chapter pass a test named for it.
+        self.__dict__.setdefault("play_offsets", []).append(offset_ticks)
         self.__dict__.setdefault("pause_stills", []).append(pause_stills)
         self.__dict__.setdefault("tracks", []).append(
             {"srcid": srcid, "aid": aid, "sid": sid})
@@ -619,6 +654,68 @@ class FakeController:
 
     def connect_and_rebuild(self):
         return FakeSource()
+
+    # -- books -------------------------------------------------------------
+    #
+    # Declared rather than left to __getattr__, which returns None for
+    # everything. These four are *read*, not just called: the book page
+    # unpacks a (status, path) pair and the progress dialog reads a UserData
+    # blob out of one. A recorder returning None makes both raise inside a
+    # try/except and leaves the screen looking exactly as it does when
+    # nothing is downloaded -- so a test named "the button says Remove
+    # Download" could never fail. That is the stand-in failure mode
+    # tools/audit_fake_contracts.py exists for.
+
+    def download_enqueue(self, server_uuid, item_id, item_type,
+                         include_watched=False):
+        """Queue a download AND write the row.
+
+        Recording the call without writing a row is the `FakeManager.enqueue`
+        failure this project has already had once: every later read sees a
+        virgin catalog, so nothing that depends on the enqueue having
+        happened -- a button changing, a pending open surviving -- can be
+        observed at all.
+        """
+        self.enqueued.append((server_uuid, item_id, item_type,
+                              include_watched))
+        status, path = self.book_downloads.get(item_id, (None, None))
+        if status is None and path is None:
+            # No row yet -- which is what an entry of (None, None) means,
+            # not merely a missing key. Seeding one is the whole point:
+            # `is_complete` short-circuits a real enqueue, everything else
+            # gets a PENDING row.
+            self.book_downloads[item_id] = ("pending", None)
+
+    def downloaded_ids(self):
+        """(items, series, seasons, playlists), as the real gateway answers.
+
+        Real rather than left to __getattr__, which returns None: the
+        browser unpacks this into four arguments, so a recorder makes the
+        refresh raise -- and everything else driven by the same
+        notification (pending book opens, a page re-reading its own state)
+        silently stopped happening behind it.
+        """
+        return (set(self.book_downloads), set(), set(), set())
+
+    def book_download_state(self, item_id):
+        return self.book_downloads.get(item_id, (None, None))
+
+    def open_downloaded_file(self, item_id):
+        self.opened.append(item_id)
+        return self.open_result
+
+    def delete_downloads(self, item_ids):
+        self.deleted_downloads.append(list(item_ids))
+
+    def get_position(self, server_uuid, item_id):
+        return self.positions.get(item_id)
+
+    def set_position(self, server_uuid, item_id, ticks):
+        if self.set_position_ok:
+            self.positions.setdefault(item_id, {})["PlaybackPositionTicks"] \
+                = int(ticks)
+        self.positions_written.append((item_id, int(ticks)))
+        return self.set_position_ok
 
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without

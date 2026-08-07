@@ -34,8 +34,10 @@ class TestDownloadDialog(unittest.TestCase):
         self.assertIn("dl-ok", ids(nodes))
         self.assertEqual(self.b._dl["est"]["count"], 3)   # estimate fetched
         handlers["dl-ok"]["click"]()
-        self.assertIn("download_enqueue",
-                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        # `enqueued`, not the catch-all recorder: download_enqueue is a
+        # declared method on the fake now, because it has to WRITE a row
+        # (books read the catalog back to decide what their buttons say).
+        self.assertTrue(self.ctl.enqueued)
         self.assertIsNone(self.b._dl)
 
     def test_a_single_item_never_filters_out_watched(self):

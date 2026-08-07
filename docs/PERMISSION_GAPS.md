@@ -237,6 +237,43 @@ server really answers 401/403 on the download for `qa-nodownload` and really
 serves 200 on the image endpoint. If it ever stops refusing, that test is
 what will say the fallback is unnecessary.
 
+## 4b. Books, where that same permission is not optional  — ADDRESSED
+
+The consequence of §4 that could not be fixed with a fallback, now that book
+support exists. For a photo, `EnableContentDownloading` is an
+original-quality *upgrade* and the image endpoint is an unconditional
+fallback. For a **book** there is no second road: `Book` is not
+`IHasMediaSources`, so it has no stream endpoint, no PlaybackInfo and no
+image of its contents — `GET /Items/{id}/Download` is the entire API for its
+bytes. A user without the permission cannot read a book at all.
+
+So the answer here is the one §4 predicted: **say so**. `books.py` documents
+the model, `LibrarySource.can_download` reads the same fail-open accessor as
+every other gate in this file, and `ItemActions.read_book` refuses with a
+message that names the reason —
+
+> Your account is not allowed to download from this server, and a book can
+> only be read by downloading it.
+
+— rather than enqueuing a fetch that 403s and leaving a Read button that
+appears to do nothing. That distinction is the whole point of the file: a
+refusal that explains itself is a different experience from a broken client.
+
+Note this is *not* a gap in the sense the others are. Nothing is offered that
+cannot work; what is offered is an explanation. The button stays visible on
+purpose — an administrator can grant the permission, and a Read button that
+had silently vanished would leave nothing to ask about.
+
+**Not** the same as a download of a film: that one is a convenience, and a
+user without it still watches the film online. This is the only case in the
+app where the permission decides whether the content is reachable at all.
+
+Pinned by `tests/test_shell_books.py`
+(`test_without_the_permission_reading_says_why`, which asserts both halves —
+nothing is enqueued, and the reason is said) on top of the existing
+`tests/e2e/test_account_policy.py:ContentDownloadingPermissionTest`, which is
+where the premise lives: that `qa-nodownload` really is refused.
+
 ## 5. Collections are offered to users who cannot edit them  — FIXED
 
 Found while writing `tests/e2e/test_collections.py` against stdjflib's new

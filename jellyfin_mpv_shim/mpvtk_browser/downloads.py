@@ -12,6 +12,7 @@ calls these; ``SettingsMixin`` renders what comes back.
 import json
 from typing import Any
 
+from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ..i18n import _
 from ..sync.db import (ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD, is_auto)
 
@@ -35,6 +36,25 @@ AUTO_OTHER_TITLE = _("Automatic")
 # or unrecognized type must stay collapsed rather than risk unfolding a
 # few-hundred-track music playlist.
 VIDEO_TYPES = ("Movie", "Episode", "Video")
+
+# Books and audiobooks get their own sections rather than falling into the
+# flat "Movies & Videos" bucket, for the same reason the automatic groups
+# do: they are a different kind of thing, kept for a different reason, and
+# a library of either fills that bucket until nothing else can be found in
+# it. They are also the two groups a user is most likely to be managing
+# deliberately -- a book is downloaded in order to be read at all.
+#
+# Audiobooks nest one level (book -> its chapter files) because a rip is N
+# rows the server does not join: no series id, no season, no album entity.
+# Books stay flat: one file is one book.
+AUDIOBOOK_TITLE = _("Audiobooks")
+BOOK_TITLE = _("Books")
+
+#: What an audiobook's chapters are grouped under when the tags say nothing.
+#: `Album` is the only field that ever joins a rip and it is tag-derived, so
+#: an untagged one has nothing at all -- and the shim's own download of one
+#: came from a *folder*, which is the honest fallback.
+UNGROUPED_BOOK_TITLE = _("Ungrouped")
 
 
 def season_title(row):
@@ -73,6 +93,26 @@ def row_watched(row):
         return bool(json.loads(row.get("userdata_json") or "{}").get("Played"))
     except (ValueError, TypeError):
         return False
+
+
+def audiobook_group(row):
+    """Which book an audiobook chapter belongs to.
+
+    ``Album`` first: it is what actually joined a rip when this was measured
+    against a real server, and it is what the metadata is *for*. Then the
+    item's own name, which for a single-file audiobook is the book. Nothing
+    else is available -- ``SeriesName`` is null on audiobooks (only
+    `BookResolver` populates it, and that runs for `Book`) and there is no
+    album entity to point at.
+    """
+    try:
+        item = json.loads(row.get("item_json") or "{}")
+    except (ValueError, TypeError):
+        item = {}
+    album = (item.get("Album") or "").strip()
+    if album:
+        return album
+    return (row.get("name") or "").strip() or UNGROUPED_BOOK_TITLE
 
 
 def qualified_title(row):
@@ -198,12 +238,21 @@ def group_downloads(rows, playlists, playlist_items, owned):
     # is why the group value type cannot be narrower than Any.
     auto: dict[Any, list[Any]] = {}
     series: dict[Any, dict[str, Any]] = {}
+    audiobooks: dict[Any, list[Any]] = {}
+    books: list[Any] = []
     loose: list[dict[str, Any]] = []
     for r in rows:
         if owned.get(r.get("item_id")) in live:
             continue                 # counted under its playlist
         if is_auto(r.get("origin")):
             auto.setdefault(r.get("origin"), []).append(r)
+            continue
+        rtype = r.get("type") or ""
+        if rtype == AUDIOBOOK_TYPE:
+            audiobooks.setdefault(audiobook_group(r), []).append(r)
+            continue
+        if rtype == BOOK_TYPE:
+            books.append(r)
             continue
         sid = r.get("series_id")
         if not sid:
@@ -258,6 +307,8 @@ def group_downloads(rows, playlists, playlist_items, owned):
             "children": [_entry(r, qualified=True) for r in items],
         })
 
+    out += _book_sections(audiobooks, books)
+
     shows = []
     for show in series.values():
         seasons = sorted(show["children"].values(),
@@ -277,6 +328,50 @@ def group_downloads(rows, playlists, playlist_items, owned):
                     "count": len(loose),
                     "watched_count": sum(1 for e in loose if e["watched"]),
                     "children": loose})
+    return out
+
+
+def _book_sections(audiobooks, books):
+    """The Audiobooks and Books groups, in that order.
+
+    Audiobooks lead because they are the larger of the two by orders of
+    magnitude -- an audiobook is hours of audio and a book is a few hundred
+    kilobytes -- so it is the section anyone opening this screen to reclaim
+    space came for.
+    """
+    out = []
+    if audiobooks:
+        children = []
+        size = count = watched = 0
+        for title in sorted(audiobooks, key=str):
+            entries = sorted(audiobooks[title], key=lambda r: (
+                r.get("parent_index") or 0, r.get("index_number") or 0,
+                str(r.get("name") or "")))
+            children.append({
+                "kind": "audiobook", "id": None, "title": title,
+                "size": sum(row_size(r) for r in entries),
+                "count": len(entries),
+                "watched_count": sum(1 for r in entries if row_watched(r)),
+                "children": [_entry(r) for r in entries],
+            })
+            size += children[-1]["size"]
+            count += children[-1]["count"]
+            watched += children[-1]["watched_count"]
+        out.append({"kind": "audiobooks", "id": None,
+                    "title": AUDIOBOOK_TITLE, "size": size, "count": count,
+                    "watched_count": watched, "children": children})
+    if books:
+        entries = sorted(books, key=lambda r: str(r.get("name") or ""))
+        out.append({"kind": "books", "id": None, "title": BOOK_TITLE,
+                    "size": sum(row_size(r) for r in entries),
+                    "count": len(entries),
+                    "watched_count": sum(1 for r in entries
+                                         if row_watched(r)),
+                    # Not qualified: a book's name is the book, and the
+                    # series it belongs to is often just its author's
+                    # folder -- prefixing every row with that says less
+                    # than the bare title does.
+                    "children": [_entry(r) for r in entries]})
     return out
 
 

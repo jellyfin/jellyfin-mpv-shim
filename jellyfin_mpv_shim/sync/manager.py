@@ -16,6 +16,7 @@ import time
 
 import requests
 
+from ..books import AUDIOBOOK_TYPE, BOOK_TYPE, book_format, is_book
 from ..conf import settings
 from ..conffile import confdir
 from ..constants import APP_NAME
@@ -26,6 +27,19 @@ from .db import (SyncDB, STATUS_PENDING, STATUS_DOWNLOADING, STATUS_COMPLETE,
                  STATUS_ERROR, ORIGIN_USER, is_auto)
 
 log = logging.getLogger("sync.manager")
+
+#: Item types this manager knows how to fetch. Books and audiobooks are in
+#: for opposite reasons: an AudioBook is an ordinary audio file and needs
+#: nothing special, and a Book has no media source at all -- its bytes come
+#: from the same /Items/{id}/Download endpoint everything else uses, which
+#: is the *only* endpoint that serves it (see ``books.py``).
+DOWNLOADABLE = frozenset({"Movie", "Episode", "Video", "Audio",
+                          BOOK_TYPE, AUDIOBOOK_TYPE})
+
+#: Containers expanded by listing their children. Only books libraries
+#: produce these -- everything else has a typed container (Series, Season,
+#: Playlist) with an endpoint of its own.
+FOLDER_ITEM_TYPES = frozenset({"Folder", "CollectionFolder", "UserView"})
 
 CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
@@ -54,6 +68,36 @@ def _same_origin(url, server):
         return False
     return bool(a.hostname) and (a.scheme, a.hostname, a.port) == (
         b.scheme, b.hostname, b.port)
+
+
+def _disposition_ext(headers):
+    """Extension from a response's ``Content-Disposition`` filename, or None.
+
+    Jellyfin sends both spellings -- ``filename="A Book.epub"`` and the
+    RFC 5987 ``filename*=UTF-8\'\'A%20Book.epub`` -- and the plain one is
+    read here because the *extension* is all that is wanted and it is ASCII
+    in every format that exists. Parsed with the stdlib's own message
+    machinery rather than by splitting on semicolons: a filename may contain
+    one, quoted.
+
+    Returns a bare lowercase extension (``"epub"``), never a leading dot,
+    and never a path: a header is server-controlled input, and a filename
+    like ``"../../x.epub"`` must not be able to steer where anything is
+    written. Only the last suffix survives, which cannot contain a
+    separator.
+    """
+    from email.message import Message
+
+    raw = (headers or {}).get("Content-Disposition") or ""
+    if not raw:
+        return None
+    msg = Message()
+    msg["Content-Disposition"] = raw
+    name = msg.get_filename() or ""
+    ext = os.path.splitext(name)[1].lstrip(".").lower()
+    # Belt and braces on top of splitext: an extension is alphanumeric in
+    # every format the resolver accepts, so anything else is not one.
+    return ext if ext and ext.isalnum() else None
 
 
 def _sub_format(codec):
@@ -384,9 +428,17 @@ class SyncManager:
         already = sum(1 for i in items if self.db.is_complete(i.get("Id")))
         # Flag a music (audio-only) collection so the dialog can default to
         # including "watched" (played) items — you don't skip played songs.
-        audio_only = bool(items) and all(i.get("Type") == "Audio" for i in items)
+        audio_only = bool(items) and all(
+            i.get("Type") in ("Audio", AUDIOBOOK_TYPE) for i in items)
+        # Books have no size on the wire under any Fields value, so the
+        # estimate for one is honestly unknown rather than zero. Counted, not
+        # flagged: a folder can hold both, and "3 of 8 unknown" is the true
+        # statement -- a bare flag would make a folder with one book in it
+        # report the whole thing as unmeasurable.
+        unsized = sum(1 for i in items if not self._source_size(i))
         return {"count": len(items), "total_bytes": total,
                 "watched_count": watched, "already_count": already,
+                "unsized_count": unsized,
                 "audio_only": audio_only}
 
     def enqueue(self, server_uuid, item_id, item_type, include_watched=False,
@@ -590,9 +642,25 @@ class SyncManager:
                 # Playlists can mix in other entries; only download the types
                 # the browser surfaces (mirrors PLAYLIST_SUPPORTED_TYPES).
                 # Audio is included so music playlists download as one unit.
-                supported = {"Movie", "Episode", "Video", "Audio"}
-                return [i for i in items if i.get("Type") in supported]
-            item = api.get_item(item_id)
+                return [i for i in items if i.get("Type") in DOWNLOADABLE]
+            if item_type in FOLDER_ITEM_TYPES:
+                # A books library is a folder tree, and a multi-file
+                # audiobook is a *folder* -- nothing else joins its chapters
+                # (SeriesName is null on audiobooks and Album is tag-derived,
+                # so an untagged rip has no metadata linking its files at
+                # all). So the folder is the download unit, and it is the
+                # only container that has to be expanded by listing.
+                #
+                # Not recursive: "download this folder" means this folder,
+                # and an author directory holding forty books should not
+                # quietly become forty downloads. Path is asked for because
+                # it is the only statement of a Book's format (books.py).
+                res = api.get_user_items(parent_id=item_id,
+                                         fields="MediaSources,Path",
+                                         sort_by="SortName", limit=500)
+                items = (res or {}).get("Items", [])
+                return [i for i in items if i.get("Type") in DOWNLOADABLE]
+            item = api.get_item(item_id, fields="MediaSources,Path")
             return [item] if item else []
         except Exception:
             log.error("Failed to expand %s (%s)", item_id, item_type, exc_info=True)
@@ -603,9 +671,32 @@ class SyncManager:
         sources = item.get("MediaSources") or []
         return (sources[0].get("Size") or 0) if sources else 0
 
+    @staticmethod
+    def _ext_for(item):
+        """Filename extension to store this item's media under.
+
+        Everything with a media source states its container, and that is the
+        answer. A `Book` has no media source and no `Container` field at all
+        (measured: `Fields=Size`, `Fields=MediaSources` and `Fields=Container`
+        all come back empty on one), so its format is read from `Path` --
+        which is what jellyfin-web does too, and is the only place it is
+        stated. For a book the extension is not cosmetic: it is what tells
+        the desktop which application opens the file.
+        """
+        source = (item.get("MediaSources") or [{}])[0]
+        container = (source.get("Container") or "").split(",")[0]
+        if container:
+            return container
+        if is_book(item):
+            # "bin" rather than "mkv" when even Path says nothing: an
+            # unopenable file named honestly beats one claiming to be a
+            # video. _download corrects it from Content-Disposition.
+            return book_format(item) or "bin"
+        return "mkv"
+
     def _add_row(self, server_uuid, server_id, item, origin=ORIGIN_USER):
         source = (item.get("MediaSources") or [{}])[0]
-        ext = (source.get("Container") or "mkv").split(",")[0]
+        ext = self._ext_for(item)
         self.db.upsert({
             "item_id": item["Id"],
             "server_id": server_id,
@@ -870,11 +961,16 @@ class SyncManager:
         try:
             item = json.loads(row["item_json"] or "{}")
             source = json.loads(row["source_json"] or "{}")
-            # Prefer the PlaybackInfo MediaSource: it has DeliveryMethod /
-            # DeliveryUrl and full stream details the plain item manifest omits.
-            pb_source = self._playback_source(client, item_id, row)
-            if pb_source:
-                source = pb_source
+            book = is_book(item)
+            if not book:
+                # Prefer the PlaybackInfo MediaSource: it has DeliveryMethod /
+                # DeliveryUrl and full stream details the plain item manifest
+                # omits. A Book is not IHasMediaSources, so PlaybackInfo has
+                # nothing to say about one -- asking would spend a round trip
+                # to be told so, and log a server-side error on the way.
+                pb_source = self._playback_source(client, item_id, row)
+                if pb_source:
+                    source = pb_source
             item_dir = self._item_dir(row)
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "item.json"), "w") as fh:
@@ -882,9 +978,13 @@ class SyncManager:
             with open(os.path.join(item_dir, "source.json"), "w") as fh:
                 json.dump(source, fh)
             self._download_artwork(client, item, item_dir)
-            self._download_subs(client, item_id, source, item_dir)
-            self._download_trickplay(client, item_id, source, item_dir)
-            self._download_segments(client, source, item_dir)
+            if not book:
+                # Subtitles, trickplay tiles and media segments are all
+                # properties of a media source. A book has none, so each of
+                # these would be a request that can only come back empty.
+                self._download_subs(client, item_id, source, item_dir)
+                self._download_trickplay(client, item_id, source, item_dir)
+                self._download_segments(client, source, item_dir)
             if item.get("Type") == "Episode" and item.get("SeriesId"):
                 self._download_series_art(client, row.get("server_id"),
                                           item["SeriesId"])
@@ -896,9 +996,27 @@ class SyncManager:
             tmp = media_path + ".part"
             url = client.jellyfin.download_url(item_id, include_apikey=False)
             expected = row.get("size_bytes") or 0
+            served = {}
             size, total = self._stream(url, media_path, item_id, row.get("name"),
                                        expected, stopping=stopping,
-                                       headers=self._headers_for(client, url))
+                                       headers=self._headers_for(client, url),
+                                       on_headers=served.update)
+            ext = row["ext"]
+            if book:
+                # The response says what the file actually is, and it is the
+                # only statement of it we did not have to infer. `Path` is
+                # normally right and normally present, but it is metadata and
+                # this is the file: a server that serves a converted or
+                # renamed copy would otherwise hand the desktop an epub called
+                # .pdf, which every reader refuses with a corruption error.
+                # Only the *name* changes -- the bytes already on disk are
+                # promoted as they are.
+                served_ext = _disposition_ext(served)
+                if served_ext and served_ext != ext:
+                    log.info("Book %s is served as .%s (metadata said %r).",
+                             row.get("name") or item_id, served_ext, ext)
+                    ext = served_ext
+                    media_path = os.path.join(item_dir, "media." + ext)
 
             # Never record a short/truncated response as complete: keep the
             # .part and leave the row pending so a later pass resumes it. Don't
@@ -941,6 +1059,7 @@ class SyncManager:
                 self.db.update(item_id, status=STATUS_COMPLETE, file_path=rel,
                                downloaded_bytes=size,
                                size_bytes=size or expected,
+                               ext=ext,
                                media_source_id=source.get("Id") or row.get("media_source_id"),
                                source_json=json.dumps(source),
                                # Completion time, not enqueue time: the reaper
@@ -1029,7 +1148,7 @@ class SyncManager:
             return {}
 
     def _stream(self, url, dest, item_id, name, expected,
-                stopping=None, headers=None):
+                stopping=None, headers=None, on_headers=None):
         """Download `url` to `dest`.part, resuming a partial file where possible.
 
         Returns ``(downloaded, total)``. The caller promotes the .part to `dest`
@@ -1047,7 +1166,7 @@ class SyncManager:
             return expected, expected
         try:
             return self._stream_request(url, tmp, item_id, name, expected,
-                                        resume, stopping, headers)
+                                        resume, stopping, headers, on_headers)
         except requests.HTTPError as exc:
             resp = getattr(exc, "response", None)
             if resp is None or resp.status_code != 416:
@@ -1064,10 +1183,10 @@ class SyncManager:
             except OSError:
                 pass
             return self._stream_request(url, tmp, item_id, name, expected,
-                                        0, stopping, headers)
+                                        0, stopping, headers, on_headers)
 
     def _stream_request(self, url, tmp, item_id, name, expected,
-                        resume, stopping=None, headers=None):
+                        resume, stopping=None, headers=None, on_headers=None):
         verify = not settings.ignore_ssl_cert
         # Range and Authorization both, not one or the other: this used to
         # build the dict from scratch here, which is why the resume header
@@ -1080,6 +1199,8 @@ class SyncManager:
             if resume and resp.status_code == 200:
                 resume = 0  # server ignored Range; restart cleanly
             resp.raise_for_status()
+            if on_headers is not None:
+                on_headers(resp.headers)
             total = expected or (int(resp.headers.get("Content-Length", 0)) + resume)
             downloaded = resume
             last_push = downloaded

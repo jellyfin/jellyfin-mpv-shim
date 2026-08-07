@@ -7,7 +7,8 @@ and the SyncPlay group dialog.
 State on ``self``: ``_dialog`` — a builder callable or None — is the single
 modal slot, rendered by core's ``build()``. Also ``_addto_build``,
 ``_addto_ids``, ``_addto_explicit_ids`` and ``_addcol_name`` (add-to
-dialog), and ``_dl`` (download dialog). All are loop-thread only.
+dialog), ``_dl`` (download dialog) and ``_bkprog``/``_bkprog_build`` (the
+book reading-position dialog). All are loop-thread only.
 """
 
 from ..i18n import _, _p
@@ -248,9 +249,14 @@ class DialogsMixin:
         # The include-watched filter is only meaningful for a container.
         # For a single item it must be True, or Download on something you
         # have already watched enqueues nothing at all, silently.
+        # "Folder" is here for books: a multi-file audiobook is a folder of
+        # chapter files and nothing else joins them, so the folder is the
+        # download unit (see sync.manager._expand). Without it the dialog
+        # treated one as a single item, forced Include Watched on, and
+        # offered no way to skip the chapters already listened to.
         container = item.get("Type") in ("Series", "Season", "Playlist",
                                          "MusicAlbum", "MusicArtist",
-                                         "BoxSet")
+                                         "BoxSet", "Folder", "CollectionFolder")
         self._dl = {"server": server, "item": item, "est": None,
                     "container": container, "watched": not container}
         ep = self._epoch
@@ -301,6 +307,14 @@ class DialogsMixin:
                                  % est["already_count"])
                 if est.get("watched_count"):
                     extra.append(_("%d watched") % est["watched_count"])
+                # A book states its size nowhere on the wire, so its share
+                # of the total is genuinely unknown. Said out loud: a size
+                # that silently undercounts is worse than one that admits
+                # what it left out, and for a books-only download the whole
+                # figure would otherwise read as 0 B.
+                if est.get("unsized_count"):
+                    extra.append(_("%d of unknown size")
+                                 % est["unsized_count"])
                 if extra:
                     line += "   (" + ", ".join(extra) + ")"
                 info = Text(line, size=15, color=theme.SUBTLE_FG)
@@ -563,13 +577,25 @@ class DialogsMixin:
         """Dialog action row: always trailing-aligned."""
         return Row(children, gap=10, justify="end")
 
+    #: Text width inside a dialog shell: its width less the padding on both
+    #: sides. Used to wrap a message rather than let it ellipsize.
+    MESSAGE_W = 440 - 2 * 24
+
     def _message(self, text, title=None):
         title = title or _("Notice")
 
         def build():
+            from .components import chrome
+
             return Dialog("msg", self._dialog_shell("msg", [
                 Text(title, size=22, bold=True),
-                Text(text, size=16, color=theme.SUBTLE_FG),
+                # Wrapped, not a bare Text. A plain one ellipsizes at the
+                # shell's width, which is fine for "Recording scheduled."
+                # and self-defeating for a dialog whose entire content is
+                # an explanation -- the reason a control is missing was
+                # being cut off mid-sentence.
+                chrome.paragraph(text, 16, self.MESSAGE_W,
+                                 color=theme.SUBTLE_FG),
                 self._dialog_buttons([
                     Button(_("OK"), id="dlg-ok",
                            on_click=self._close_dialog)]),
@@ -613,6 +639,228 @@ class DialogsMixin:
                                              on_yes()))]),
             ]), on_dismiss=self._close_dialog)
         self._show_dialog(build)
+
+    # -- book reading progress --------------------------------------------
+
+    def _open_book_progress(self, item, server=None):
+        """Pull a book's reading position from the server, and let the user
+        push a corrected one back.
+
+        This exists because the shim hands a book to an external reader and
+        never hears from it again. Everything else in the library reports
+        its own progress — the player is watching. A book has no player, so
+        the round trip is manual: pull to see where another device left off
+        before opening the file, push to record where you actually got to
+        after closing it.
+
+        It is a *pull*, not a read of the DTO on screen. The position moving
+        on some other client is the entire situation this dialog is for, so
+        showing the number the page happened to load would answer the one
+        question it was opened to ask, wrongly.
+        """
+        from ..books import (PROGRESS_NONE, PROGRESS_PAGES, PROGRESS_PERCENT,
+                             progress_of, progress_settable)
+
+        server = server or self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        mode, value, total = progress_of(item)
+        if not progress_settable(item):
+            # Two different refusals, because they have different answers.
+            if mode == PROGRESS_PERCENT:
+                # An epub's stored number is an index into epub.js's
+                # locations array over ~1024-character runs, not a
+                # percentage of anything a reader displays. There is no
+                # number for the user to read off their reader and type
+                # here, and the scale is not the one the word "percent"
+                # implies -- so a box that accepted one would record a
+                # confident wrong place. Shown read-only instead.
+                text = _("%s records your place as an ebook reader "
+                         "position, which no application shows you a "
+                         "number for — so there is nothing meaningful to "
+                         "set by hand. It is still read from the server "
+                         "and shown above.") % (item.get("Name") or "")
+            else:
+                # mobi and azw resolve as books but carry no runtime at
+                # all, so there is no unit to show a position in.
+                text = (_("%s stores no reading position.")
+                        % (item.get("Name") or ""))
+            self._message(text, title=_("Reading Progress"))
+            return
+        self._bkprog = {
+            "item": item, "server": server, "mode": mode,
+            "value": value, "total": total, "typed": str(value),
+            "busy": True, "note": "",
+        }
+        self._pull_book_progress()
+
+        def build():
+            state = self._bkprog
+            if state is None:
+                return None
+            # Only the paged formats reach here (progress_settable), so
+            # this reads as pages throughout rather than branching on a
+            # mode that can only have one value.
+            if state["busy"]:
+                current = Text(_("Reading the position…"), size=15,
+                               color=theme.SUBTLE_FG)
+            else:
+                total_now = state["total"]
+                current = Text(
+                    (_("Page %(page)d of %(total)d") % {
+                        "page": state["value"], "total": total_now}
+                     if total_now else _("Page %d") % state["value"]),
+                    size=17)
+            rows = [
+                Text(_("Reading Progress"), size=22, bold=True),
+                Text(item.get("Name", ""), size=17),
+                current,
+            ]
+            if state["note"]:
+                rows.append(Text(state["note"], size=15,
+                                 color=theme.SUBTLE_FG))
+            rows.append(Row([
+                Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+                # force=True: a Pull has to be able to move this box. The
+                # renderer keeps its own edit state otherwise, which is
+                # right for a field the user is typing in and wrong for one
+                # whose whole purpose is to show what the server just said.
+                # Safe because on_change writes `typed` on every keystroke,
+                # so the forced value IS what was typed.
+                TextBox("bkprog-value", text=state["typed"], w=120,
+                        force=True,
+                        on_change=lambda v: state.__setitem__("typed", v),
+                        on_submit=lambda v: self._save_book_progress()),
+                Text(_("of %d") % state["total"] if state["total"] else "",
+                     size=15, color=theme.SUBTLE_FG),
+            ], gap=10, align="center"))
+            rows.append(self._dialog_buttons([
+                Button(_("Close"), id="bkprog-close",
+                       on_click=self._close_book_progress),
+                # Named for what it does, not "Refresh": the pair of verbs
+                # is the whole model this dialog is asking the user to hold.
+                Button(_("Pull"), id="bkprog-pull", icon="cloud_download",
+                       on_click=self._pull_book_progress),
+                Button(_("Push"), id="bkprog-push", icon="cloud_upload",
+                       on_click=self._save_book_progress),
+            ]))
+            return Dialog("bkprog", self._dialog_shell("bkprog", rows),
+                          on_dismiss=self._close_book_progress)
+        self._bkprog_build = build
+        self._show_dialog(build)
+
+    def _close_book_progress(self):
+        self._bkprog = None
+        self._bkprog_build = None
+        self._close_dialog()
+
+    def _pull_book_progress(self):
+        """Re-read the position from the server and redraw.
+
+        Redraw explicitly: the dialog is a builder closure over ``_bkprog``,
+        and the values it shows are read when it BUILDS. Writing new numbers
+        into the dict changes nothing on screen until something asks for a
+        frame — the same rule the Checkbox bug was about (see the browser's
+        docs on state that changes between draws).
+        """
+        from ..books import progress_of
+
+        state = self._bkprog
+        if state is None:
+            return
+        state["busy"] = True
+        state["note"] = ""
+        self._redraw_book_progress()
+        ep = self._epoch
+        item, server = state["item"], state["server"]
+
+        def work():
+            return self.controller.get_position(server, item.get("Id"))
+
+        def done(userdata):
+            if self._bkprog is not state:
+                return              # dialog closed, or opened on another book
+            state["busy"] = False
+            if userdata is None:
+                state["note"] = _("The position could not be read.")
+            else:
+                # Read through the same helper the page uses, against a copy
+                # carrying the fresh UserData — so the tick-to-page rules
+                # live in exactly one place.
+                fresh = dict(item, UserData=userdata)
+                _mode, value, total = progress_of(fresh)
+                state["value"], state["total"] = value, total
+                state["typed"] = str(value)
+                # The item the page is drawing shares this dict, so the
+                # screen behind the dialog is now right too.
+                item["UserData"] = userdata
+            self._redraw_book_progress()
+
+        def failed(_exc):
+            if self._bkprog is not state:
+                return
+            state["busy"] = False
+            state["note"] = _("The position could not be read.")
+            self._redraw_book_progress()
+
+        self.run_async(work, done, ep, on_error=failed)
+
+    def _save_book_progress(self):
+        """Push a page number. Pages are the only unit this accepts — see
+        ``books.progress_settable`` for why an epub has none to offer."""
+        from ..books import ticks_for_page
+
+        state = self._bkprog
+        if state is None or state["busy"]:
+            return
+        try:
+            typed = float((state["typed"] or "").strip())
+        except ValueError:
+            state["note"] = _("Enter a number.")
+            self._redraw_book_progress()
+            return
+        page = int(typed)
+        if page < 1 or (state["total"] and page > state["total"]):
+            state["note"] = (_("Enter a page between 1 and %d.")
+                             % state["total"] if state["total"]
+                             else _("Enter a page of 1 or more."))
+            self._redraw_book_progress()
+            return
+        ticks = ticks_for_page(page)
+        state["busy"] = True
+        self._redraw_book_progress()
+        ep = self._epoch
+        item, server = state["item"], state["server"]
+
+        def work():
+            return self.controller.set_position(server, item.get("Id"), ticks)
+
+        def done(ok):
+            if self._bkprog is not state:
+                return
+            state["busy"] = False
+            if ok:
+                # Not a local guess at the new value: the pull is what makes
+                # the dialog agree with the server, and a push the server
+                # quietly clamped would otherwise be shown as accepted.
+                self._pull_book_progress()
+                self.set_status(_("Reading position saved."))
+            else:
+                state["note"] = _("The position could not be saved.")
+                self._redraw_book_progress()
+
+        def failed(_exc):
+            if self._bkprog is not state:
+                return
+            state["busy"] = False
+            state["note"] = _("The position could not be saved.")
+            self._redraw_book_progress()
+
+        self.run_async(work, done, ep, on_error=failed)
+
+    def _redraw_book_progress(self):
+        if self._bkprog_build is not None:
+            self._show_dialog(self._bkprog_build)
 
     # -- SyncPlay ---------------------------------------------------------
 

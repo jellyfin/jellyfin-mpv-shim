@@ -320,6 +320,14 @@ class HomePage(Page):
                                        default_type="Thumb")
         if ctype in ("movies", "tvshows", "boxsets"):
             return art.geom, "Primary"
+        if ctype == "books":
+            # Poster. The Continue Reading row is the one resume row
+            # jellyfin-web does not shape 16:9, and a Latest row from a
+            # books library is covers either way. A books library also holds
+            # AUDIOBOOKS, whose art is often square -- but a row is one
+            # shape, and cropping a square cover into a 2:3 frame loses less
+            # than letterboxing a portrait one into 16:9.
+            return art.geom, "Primary"
         if ctype in ("music", "playlists"):
             return art.geom_square, "Primary"
         # An untyped row of playlists/music (offline, the mixed rows) still

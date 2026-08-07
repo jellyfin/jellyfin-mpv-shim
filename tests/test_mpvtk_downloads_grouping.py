@@ -13,9 +13,11 @@ import unittest
 
 sys.argv = ["test"]      # the app parses argv on first config-dir resolution
 
+import json  # noqa: E402
+
 from jellyfin_mpv_shim.mpvtk_browser.downloads import (  # noqa: E402
-    group_downloads, progress_summary, qualified_title, row_size,
-    season_title, status_text)
+    audiobook_group, group_downloads, progress_summary, qualified_title,
+    row_size, season_title, status_text)
 from jellyfin_mpv_shim.sync.db import (  # noqa: E402
     ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD, ORIGIN_USER)
 
@@ -415,3 +417,117 @@ class EntryNumberingTest(unittest.TestCase):
         self.assertFalse(entry["qualified"])
         self.assertIsNotNone(entry["index"],
                              "the season view still numbers its episodes")
+
+
+class TestBookSections(unittest.TestCase):
+    """Books and audiobooks are their own two sections.
+
+    Both used to fall into the flat "Movies & Videos" bucket, which is a
+    problem of kind rather than of tidiness: a books library is hundreds of
+    tiny rows, and once they are mixed in there is no way to find the film
+    you were looking for, or to reclaim the space either one is using.
+    """
+
+    def test_a_book_does_not_land_with_the_films(self):
+        tree = group_downloads(
+            [row("m", "A Film", type="Movie"),
+             row("b", "A Novel", type="Book")],
+            [], lambda pid: [], {})
+        self.assertEqual(kinds(tree), ["books", "movies"])
+        self.assertEqual([c["title"] for c in tree[0]["children"]],
+                         ["A Novel"])
+        self.assertEqual([c["title"] for c in tree[1]["children"]],
+                         ["A Film"])
+
+    def test_audiobook_chapters_nest_under_their_book(self):
+        rows = [
+            row("c2", "Chapter 02", type="AudioBook", index_number=2,
+                size_bytes=2, item_json=json.dumps({"Album": "The Account"})),
+            row("c1", "Chapter 01", type="AudioBook", index_number=1,
+                size_bytes=3, item_json=json.dumps({"Album": "The Account"})),
+        ]
+        tree = group_downloads(rows, [], lambda pid: [], {})
+        self.assertEqual(kinds(tree), ["audiobooks"])
+        section = tree[0]
+        self.assertEqual(section["count"], 2)
+        self.assertEqual(section["size"], 5)
+        self.assertEqual([b["title"] for b in section["children"]],
+                         ["The Account"])
+        # In listening order, not the order the catalog happened to hold
+        # them: a rip is downloaded in whatever order the worker got to it.
+        self.assertEqual([e["title"] for e in section["children"][0]["children"]],
+                         ["Chapter 01", "Chapter 02"])
+
+    def test_two_books_are_two_subgroups(self):
+        rows = [
+            row("a", "Chapter 01", type="AudioBook",
+                item_json=json.dumps({"Album": "Book A"})),
+            row("b", "Chapter 01", type="AudioBook",
+                item_json=json.dumps({"Album": "Book B"})),
+        ]
+        tree = group_downloads(rows, [], lambda pid: [], {})
+        self.assertEqual([b["title"] for b in tree[0]["children"]],
+                         ["Book A", "Book B"])
+
+    def test_a_single_file_audiobook_is_grouped_under_its_own_name(self):
+        # An .m4b is one item and one book. Album is often absent on one,
+        # and grouping every untagged single-file audiobook together under
+        # a shared "Ungrouped" heading would be worse than useless.
+        tree = group_downloads(
+            [row("x", "The Lantern Keeper", type="AudioBook")],
+            [], lambda pid: [], {})
+        self.assertEqual([b["title"] for b in tree[0]["children"]],
+                         ["The Lantern Keeper"])
+
+    def test_books_lead_nothing_and_audiobooks_lead_books(self):
+        # Audiobooks first: hours of audio against a few hundred kilobytes,
+        # so it is the section anyone reclaiming space came for.
+        tree = group_downloads(
+            [row("b", "A Novel", type="Book"),
+             row("a", "Ch 1", type="AudioBook")],
+            [], lambda pid: [], {})
+        self.assertEqual(kinds(tree), ["audiobooks", "books"])
+
+    def test_an_automatic_book_still_belongs_to_the_scheduler(self):
+        # The auto groups are lifted out FIRST, and must stay that way: what
+        # the reaper may delete is the question that section answers, and a
+        # book filed by type would be invisible to it.
+        tree = group_downloads(
+            [row("b", "A Novel", type="Book", origin=ORIGIN_AUTO_NEXT_UP)],
+            [], lambda pid: [], {})
+        self.assertEqual(kinds(tree), ["auto"])
+
+    def test_watched_counts_reach_the_section(self):
+        rows = [
+            row("a", "Ch 1", type="AudioBook",
+                item_json=json.dumps({"Album": "B"}),
+                userdata_json=json.dumps({"Played": True})),
+            row("b", "Ch 2", type="AudioBook",
+                item_json=json.dumps({"Album": "B"})),
+        ]
+        tree = group_downloads(rows, [], lambda pid: [], {})
+        self.assertEqual(tree[0]["watched_count"], 1)
+        self.assertEqual(tree[0]["children"][0]["watched_count"], 1)
+
+
+class TestAudiobookGroup(unittest.TestCase):
+
+    def test_album_is_what_joins_a_rip(self):
+        self.assertEqual(
+            audiobook_group(row("x", "Ch 1",
+                                item_json=json.dumps({"Album": "The Book"}))),
+            "The Book")
+
+    def test_an_unreadable_item_blob_falls_back_to_the_name(self):
+        self.assertEqual(audiobook_group(row("x", "Ch 1", item_json="{oops")),
+                         "Ch 1")
+
+    def test_a_row_with_nothing_at_all_still_gets_a_heading(self):
+        # It has to appear somewhere or it is disk used with no way to
+        # reclaim it from this screen -- the same rule AUTO_OTHER_TITLE is
+        # there for.
+        self.assertTrue(audiobook_group({"item_id": "x"}))
+
+
+if __name__ == "__main__":
+    unittest.main()
