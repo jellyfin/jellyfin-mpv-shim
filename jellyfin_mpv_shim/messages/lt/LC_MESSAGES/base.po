@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-07 18:19+0000\n"
+"PO-Revision-Date: 2026-08-07 19:25+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1721,7 +1721,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Mute"
-msgstr ""
+msgstr "Nutildyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -1806,7 +1806,7 @@ msgstr "Ištrinti atsisiuntimą"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Delete"
-msgstr ""
+msgstr "Ištrinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -2035,11 +2035,11 @@ msgstr "Leisti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Pause"
-msgstr ""
+msgstr "Pauzė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Stop"
-msgstr ""
+msgstr "Sustabdyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
