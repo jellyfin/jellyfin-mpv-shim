@@ -173,7 +173,7 @@ class BooksPage(GridPage):
         header = Row([
             art.tiles.art_cell(folder, size=HEADER_ART),
             Column(self._header_text(folder, tracks, size[0]) + [
-                self._actions(folder, tracks, ids, server),
+                self._actions(folder, tracks, ids, server, size[0]),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")
         body = art.tiles.track_list(
@@ -271,15 +271,28 @@ class BooksPage(GridPage):
     #: *Resume*, and roughly where.
     RESUME_LABEL_MAX = 22
 
+    #: Below this the Resume button is the bare word.
+    #:
+    #: Measured, not chosen: the action row is Resume, Restart, Add to
+    #: Queue, Finished, Favorite and Download, and at about this width the
+    #: chapter name is what tips Download off the right edge. Capping the
+    #: name (RESUME_LABEL_MAX) bounds how bad it gets; dropping it is what
+    #: makes the row fit, and "Resume" alone still says what the button
+    #: does -- which is the part that has to survive.
+    RESUME_NAME_MIN_W = 1060
+
     @classmethod
-    def _resume_label(cls, tracks, index):
+    def _resume_label(cls, tracks, index, width=None):
         """"Resume", plus enough of the chapter to say which one.
 
         Nothing at all for a single-file book: there is only one thing to
         resume, and repeating the title of the page on the button that
-        resumes it is noise.
+        resumes it is noise. Nothing on a narrow window either -- see
+        RESUME_NAME_MIN_W.
         """
         if len(tracks) < 2:
+            return _("Resume")
+        if width is not None and width < cls.RESUME_NAME_MIN_W:
             return _("Resume")
         name = (tracks[index].get("Name") or "").strip()
         if not name:
@@ -290,7 +303,7 @@ class BooksPage(GridPage):
             name = name[:cls.RESUME_LABEL_MAX - 1].rstrip() + "…"
         return "%s  %s" % (_("Resume"), name)
 
-    def _actions(self, folder, tracks, ids, server):
+    def _actions(self, folder, tracks, ids, server, width=None):
         actions = self.ctx.actions
         tiles = self.ctx.art.tiles
         btns = []
@@ -305,14 +318,14 @@ class BooksPage(GridPage):
             # it goes back to the beginning, which is the same shape the
             # tile menu already uses for a part-watched item.
             index, offset = resume
-            label = self._resume_label(tracks, index)
+            label = self._resume_label(tracks, index, width)
             btns.append(controls.action_btn(
                 "play_arrow", label, "bk-resume",
                 lambda: actions.play_list(ids, server, index, audio=True,
                                           items=tracks),
                 primary=True, autofocus=True))
             btns.append(controls.action_btn(
-                "first_page", _("Play from Beginning"), "bk-play",
+                "first_page", _("Restart"), "bk-play",
                 lambda: actions.play_list(ids, server, 0, audio=True)))
         else:
             btns.append(controls.action_btn(

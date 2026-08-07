@@ -284,6 +284,58 @@ class TestAudiobookFolder(BooksHarness):
         self.assertNotIn("bk-resume", ids(nodes))
         self.assertIn("bk-play", ids(nodes))
 
+    def test_the_second_button_says_restart(self):
+        """"Play from Beginning" is what the tile menu calls it, where it
+        sits under a Resume in a vertical list with room to spare. On an
+        action row it is the longest label on screen and says the same
+        thing as the shorter word."""
+        chapters = [
+            dict(audiobook(1), UserData={"PlaybackPositionTicks": 5000000}),
+            audiobook(2),
+        ]
+        b = self.open_folder(chapters)
+        nodes, _h = build_scene(b)
+        labels = [str(n.get("text", "")) for n in nodes]
+        self.assertIn("Restart", labels)
+        self.assertNotIn("Play from Beginning", labels)
+
+    def test_the_resume_label_drops_its_chapter_when_narrow(self):
+        """Capping the name bounds how bad it gets; dropping it is what
+        makes the row fit. "Resume" alone still says what the button does,
+        which is the part that has to survive."""
+        from jellyfin_mpv_shim.mpvtk_browser.pages.books import BooksPage
+
+        tracks = [{"Name": "The Slow Crossing Part 01"}, {"Name": "b"}]
+        wide = BooksPage._resume_label(tracks, 0,
+                                       BooksPage.RESUME_NAME_MIN_W)
+        narrow = BooksPage._resume_label(tracks, 0,
+                                         BooksPage.RESUME_NAME_MIN_W - 1)
+        self.assertIn("Slow", wide)
+        self.assertEqual(narrow, "Resume")
+
+    def test_the_action_row_fits_down_to_the_threshold(self):
+        """The point of the drop, against the laid-out scene. Below ~860px
+        the bare six-button row is itself wider than the window — that is a
+        property of every action row in the app, not of this one, and is
+        not what this test is about."""
+        chapters = [
+            dict(audiobook(i, album="A"),
+                 Name="The Slow Crossing Part %02d" % i,
+                 **({"UserData": {"PlaybackPositionTicks": 5000000}}
+                    if i == 1 else {}))
+            for i in (1, 2, 3)
+        ]
+        b = self.open_folder(chapters)
+        for width in (1600, 1280, 1100, 1060, 1000, 950, 900, 870):
+            nodes, _h = build_scene(b, size=(width, 720))
+            drawn = [n for n in nodes
+                     if n.get("x") is not None and n.get("w")]
+            right = max(n["x"] + n["w"] for n in drawn)
+            self.assertLessEqual(
+                right, width + 1,
+                "the action row overflows a %dpx window by %dpx"
+                % (width, right - width))
+
     def test_a_started_book_has_no_plain_play_button(self):
         """On a film "Play" beside "Resume" is harmless. On a book it is a
         trap: the position is hours of listening spread over weeks, and
@@ -300,7 +352,7 @@ class TestAudiobookFolder(BooksHarness):
         self.assertNotIn("Play", labels,
                          "a bare Play button is still offered on a book "
                          "that has been started")
-        self.assertIn("Play from Beginning", labels)
+        self.assertIn("Restart", labels)
 
     def test_play_from_beginning_really_does_start_at_zero(self):
         chapters = [
