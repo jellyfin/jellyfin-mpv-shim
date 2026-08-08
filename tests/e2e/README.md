@@ -41,6 +41,7 @@ E1 and E2 exist so far:
 
 | Module | Tier | Covers |
 | --- | --- | --- |
+| `test_batch4_contracts` | E1 | the server behaviours batch 4 relies on: `CanDelete` absent unless asked, `MediaSourceCount` omitted at 1, `TranscodeReasons` living in the TranscodingUrl rather than the DTO, a remux naming the *source* codec, `StartItemId` being inclusive |
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_syncplay_group` | E1 | **two real clients on one real group** — pause/seek propagation, the Waiting handshake, halt/resume; the check that `tests/_syncplay_server.py`'s port of the group state machine is telling the truth |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
