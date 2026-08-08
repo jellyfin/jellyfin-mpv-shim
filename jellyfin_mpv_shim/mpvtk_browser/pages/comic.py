@@ -308,7 +308,20 @@ class ComicPage(Page):
     # -- placement ---------------------------------------------------------
 
     def mode(self):
-        return self.route.get("_mode") or FIT_WIDTH
+        """The reading mode, from the route or from the setting behind it.
+
+        Read here rather than captured when the page opened, for the same
+        reason the reader reads its type size per frame: Settings is
+        reachable from the tray while a comic is up. The route still holds
+        it so that a mode is not written to disk before it is asked for.
+        """
+        mode = self.route.get("_mode")
+        if mode in (FIT_WIDTH, FIT_PAGE):
+            return mode
+        from ...conf import settings
+
+        stored = getattr(settings, "comic_fit", FIT_WIDTH)
+        return stored if stored in (FIT_WIDTH, FIT_PAGE) else FIT_WIDTH
 
     def zoom(self):
         try:
@@ -376,6 +389,16 @@ class ComicPage(Page):
     def _set_mode(self, mode):
         self.route["_mode"] = mode
         self.route["_zoom"] = 1.0
+        # Sticky: through config.set_setting rather than by assigning to
+        # settings, so it is coerced and written the same way the Settings
+        # form writes it. The next comic opens the way this one is being
+        # read.
+        from .. import config
+
+        try:
+            config.set_setting("comic_fit", mode)
+        except Exception:
+            log.warning("could not save the comic reading mode", exc_info=True)
         self._place()
         self.ctx.invalidate()
 

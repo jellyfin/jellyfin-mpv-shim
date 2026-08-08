@@ -47,9 +47,25 @@ def comic(item_id="cb1", path="/library/A Comic.cbz", **extra):
 
 class ComicHarness(unittest.TestCase):
     def setUp(self):
+        # The reading mode is a real, persisted setting: picking Fit Page
+        # here would otherwise rewrite the developer's own conf.json and
+        # leave every later test opening in whatever this one chose. Same
+        # guard, for the same reason, as ReaderHarness.READER_KEYS.
+        from jellyfin_mpv_shim.conf import settings
+
+        self._saved_fit = settings.comic_fit
+        self._saved_save = settings.save
+        settings.save = lambda *a, **k: None
+        self.addCleanup(self._restore_settings)
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.cbz = build_cbz(os.path.join(self._tmp.name, "a.cbz"))
+
+    def _restore_settings(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = self._saved_fit
+        settings.save = self._saved_save
 
     def open_comic(self, state=None, **kw):
         source = FakeSource()
@@ -216,6 +232,33 @@ class TestPlacement(ComicHarness):
         page._set_mode("page")
         whole = browser.controller.picture_views[-1]["zoom"]
         self.assertLess(whole, wide)
+
+    def test_the_reading_mode_is_sticky(self):
+        """A preference about how somebody reads comics, not about one
+        comic — so the next one opens the way the last was being read."""
+        from jellyfin_mpv_shim.conf import settings
+
+        browser = self.open_comic()
+        build_scene(browser)
+        self.page(browser)._set_mode("page")
+        self.assertEqual(settings.comic_fit, "page")
+
+        again = self.open_comic()
+        build_scene(again)
+        page = self.page(again)
+        self.assertEqual(page.mode(), "page")
+        self.assertEqual(browser.controller.picture_views[-1]["zoom"],
+                         again.controller.picture_views[-1]["zoom"])
+
+    def test_a_hand_edited_mode_falls_back_rather_than_reaching_mpv(self):
+        """The setting is a plain string in a JSON file somebody can type
+        into, and an unknown one would go straight to fit_zoom."""
+        from jellyfin_mpv_shim.conf import settings
+
+        settings.comic_fit = "enormous"
+        browser = self.open_comic()
+        build_scene(browser)
+        self.assertEqual(self.page(browser).mode(), "width")
 
     def test_zooming_walks_the_steps_and_stops(self):
         browser = self.open_comic()

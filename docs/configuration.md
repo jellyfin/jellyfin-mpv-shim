@@ -233,6 +233,8 @@ You can use the config file to enable and disable features.
   - Dark to match the rest of the app, not because it is better to read: the other two are there for that. The button at the bottom right of the reader cycles them.
 - `reader_justify` - Justify the text, as a printed book does. Default: `true`
   - Off gives a ragged right edge. Worth trying in a narrow window, where justification has fewer places to put the extra space and can open up rivers.
+- `comic_fit` - How a comic page is fitted when you open one. One of `width` (the page as wide as the window, scrolled down) or `page` (a whole page at once). Default: `width`
+  - The **Fit Width** / **Fit Page** buttons on the comic reader's own bar write this setting, so the next comic opens the way you were reading the last one.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
   - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
     X11 and the compositor's factor on Wayland/macOS.

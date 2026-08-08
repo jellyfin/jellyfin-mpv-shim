@@ -505,6 +505,12 @@ class Settings(SettingsBase):
     # typeset expecting. Off gives a ragged right edge, which some people
     # find easier and which avoids the rivers a narrow window can open up.
     reader_justify: bool = True
+    # The comic reader's reading mode: "width" (the page as wide as the
+    # window, scrolled down) or "page" (a whole page at once). Sticky
+    # because it is a preference about how somebody reads comics, not
+    # about one comic -- a reader who wants whole pages wants them for
+    # every book, and picking it again per volume is the annoyance.
+    comic_fit: str = "width"
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.

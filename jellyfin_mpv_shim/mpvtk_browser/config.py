@@ -119,7 +119,7 @@ TAB_SECTIONS = {
         # is not played -- and next to the browser's look because that is
         # what these are: how a page is set, in a window the same size.
         (_("Reading"), ["reader_font_size", "reader_theme",
-                        "reader_justify"]),
+                        "reader_justify", "comic_fit"]),
         # Downloading is acquiring library content for later, which is a
         # browsing activity rather than a watching one. NOT on the Downloads
         # tab, the obvious-looking home: that tab is the *manager* -- what is
@@ -244,6 +244,12 @@ LABELED_ENUMS = {
         (_("Sepia"), "sepia"),
         (_("Light"), "light"),
     ],
+    # The same two the comic reader's own bar offers, and the same value:
+    # picking one there writes this.
+    "comic_fit": [
+        (_("Fit Width"), "width"),
+        (_("Fit Page"), "page"),
+    ],
     "hud_scrim": [
         (_("Default"), "default"),
         (_("Panel behind the controls"), "panel"),
@@ -316,6 +322,7 @@ LABEL_OVERRIDES = {
     "reader_font_size": _("Type Size"),
     "reader_theme": _("Page Colour"),
     "reader_justify": _("Justify Text"),
+    "comic_fit": _("Comic Reading Mode"),
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
@@ -492,6 +499,8 @@ NOTES = {
                              "output."),
     "reader_font_size": _("In pixels, before interface scaling. The A- and "
                           "A+ buttons in the reader change this too."),
+    "comic_fit": _("How a comic page is fitted to the window when you open "
+                   "it. The reader's own buttons change this too."),
     "audio_night_mode": _("Evens out loud effects and quiet dialogue. This "
                           "turns passthrough off while it is enabled, because "
                           "the volume has to be adjusted before your receiver "
