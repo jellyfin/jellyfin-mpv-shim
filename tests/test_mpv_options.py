@@ -403,3 +403,67 @@ class SourceHeightTest(unittest.TestCase):
         for source in ({}, None, {"MediaStreams": []},
                        {"MediaStreams": [{"Type": "Video"}]}):
             self.assertIsNone(self._height(source), repr(source))
+
+
+class HwdecConfigPinTest(SettingsCase):
+    """The user's own mpv.conf outranks everything here.
+
+    Silently overriding an option somebody wrote into mpv.conf is the
+    failure this whole feature is downstream of, so where the file speaks
+    the app writes nothing at all — `hwdec_for` answers None and both
+    callers treat that as "leave it alone", which keeps mpv's own config
+    precedence intact instead of modelling it here.
+    """
+
+    def _with_conf(self, text):
+        import tempfile
+        import os
+        d = tempfile.mkdtemp()
+        path = os.path.join(d, "mpv.conf")
+        with open(path, "w") as fh:
+            fh.write(text)
+        return mock.patch("jellyfin_mpv_shim.conffile.get",
+                          return_value=path)
+
+    def test_no_pin_when_the_file_says_nothing(self):
+        with self._with_conf("# nothing here\nvolume=80\n"):
+            self.assertIsNone(mpv_options.hwdec_pinned_by_config())
+
+    def test_a_plain_setting_pins(self):
+        with self._with_conf("hwdec=vaapi\n"):
+            self.assertEqual(mpv_options.hwdec_pinned_by_config(), "vaapi")
+
+    def test_spacing_dashes_and_quotes(self):
+        for line in ('hwdec = vaapi', '--hwdec=vaapi', 'hwdec="vaapi"',
+                     "hwdec='vaapi'", 'hwdec=vaapi   # why not'):
+            with self._with_conf(line + "\n"):
+                self.assertEqual(mpv_options.hwdec_pinned_by_config(),
+                                 "vaapi", line)
+
+    def test_a_commented_out_line_is_not_a_pin(self):
+        with self._with_conf("#hwdec=vaapi\n"):
+            self.assertIsNone(mpv_options.hwdec_pinned_by_config())
+
+    def test_a_profile_section_is_not_a_pin(self):
+        """mpv profile sections are conditional. Reading one as
+        unconditional would pin on a value that may never apply, and the
+        safe direction is to leave the setting working — mpv's own
+        precedence still applies the profile where it fires."""
+        with self._with_conf("volume=80\n\n[hq]\nhwdec=vaapi\n"):
+            self.assertIsNone(mpv_options.hwdec_pinned_by_config())
+
+    def test_a_pin_stops_us_writing_the_option_at_all(self):
+        self.set(hwdec="auto")
+        with self._with_conf("hwdec=vaapi\n"):
+            self.assertIsNone(mpv_options.hwdec_for(2160))
+            self.assertNotIn("hwdec", self.build())
+
+    def test_a_pin_outranks_the_copy_upgrade_too(self):
+        self.set(hwdec="auto")
+        with self._with_conf("hwdec=nvdec\n"):
+            self.assertIsNone(mpv_options.hwdec_for(2160, needs_copy=True))
+
+    def test_an_unreadable_config_is_not_a_pin(self):
+        with mock.patch("jellyfin_mpv_shim.conffile.get",
+                        side_effect=OSError("gone")):
+            self.assertIsNone(mpv_options.hwdec_pinned_by_config())

@@ -33,11 +33,25 @@ You can adjust the basic transcoder settings via the menu.
       GPU. `auto-copy` is the same but copies frames back to system RAM: slower,
       and it avoids the hardware/renderer interop paths entirely, so it is worth
       trying if `auto` misbehaves.
+  - `auto-copy` is also the mode that works with **video filters**, which the
+      direct modes do not. If your `mpv.conf` runs SVP or another VapourSynth
+      filter, that is the one to pick. (The shader pack is not a video filter —
+      it runs inside the GPU renderer and is unaffected either way.)
   - It is off by default because some graphics drivers handle hardware decoding
       badly, and mpv's own maintainers decline to enable it by default for that
       reason. If turning it on stops video working — or stops the window opening
       at all — start the app once with `--disable-hwdec`, which forces software
       decoding for that run without changing the setting, and then change it back.
+  - **Your own `mpv.conf` outranks this.** If it sets `hwdec` at the top level,
+      the app writes the option nowhere at all — not from this setting, not from
+      a shader profile — and the Settings page says "Pinned by config". A
+      `hwdec` inside an mpv profile section (`[name]`) is *not* treated as a
+      pin, because those are conditional.
+  - A shader profile that states a **requirement** has it applied: a named
+      decoder (the shipped `rtx-vsr` needs `d3d11va` for its Direct3D filter),
+      or `no` if a profile ever needs software frames. Choosing that profile is
+      opting in. The blanket `auto-copy` every profile carries is ignored —
+      that is a policy about the machine, not a requirement of the profile.
   - The playback HUD's *Playback Info* panel reports what is actually in use.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.

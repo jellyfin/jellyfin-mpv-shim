@@ -221,6 +221,19 @@ class GeneralTabMixin:
             return _("Not active: the \"pypresence\" package is missing or "
                      "failed to load. Install it and restart. (Details in "
                      "the Logs tab.)")
+        if key == "hwdec":
+            # A pin, not a preference: where mpv.conf sets hwdec, nothing
+            # here writes the option at all, so the control above is inert
+            # and has to say so. Silently ignoring a setting the user is
+            # looking straight at is the failure this whole feature is
+            # downstream of.
+            from ...mpv_options import hwdec_pinned_by_config
+
+            pinned = hwdec_pinned_by_config()
+            if pinned is None:
+                return None
+            return _("Pinned by config: your mpv.conf sets hwdec=%s, which "
+                     "overrides this.") % pinned
         if key != "auto_download_enable":
             return None
         name = self._auto_dl_scope_name()

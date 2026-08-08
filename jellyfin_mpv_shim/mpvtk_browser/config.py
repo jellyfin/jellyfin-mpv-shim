@@ -205,7 +205,7 @@ LABELED_ENUMS = {
         (_("Off (software decoding)"), "no"),
         (_("Only above 1080p"), "over-1080p"),
         (_("On"), "auto"),
-        (_("On (copy back)"), "auto-copy"),
+        (_("Copy (advanced)"), "auto-copy"),
     ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
@@ -387,8 +387,10 @@ NOTES = {
     "hwdec": _("Off by default because some graphics drivers handle it "
                "badly. \"Only above 1080p\" is the cautious way to turn "
                "it on: most hardware decodes 1080p in software without "
-               "help. If video stops working, start with --disable-hwdec "
-               "and change this back."),
+               "help. \"Copy (advanced)\" is slower, but it is the mode "
+               "that works with video filters, so it is the one to pick if "
+               "you run SVP or another VapourSynth filter. If video stops "
+               "working, start with --disable-hwdec and change this back."),
     "close_to_tray": CAST_TARGET_NOTE,
     "allow_background": CAST_TARGET_NOTE,
     # Advanced-only (see SECTIONS), and the note is why: it reads like "turn

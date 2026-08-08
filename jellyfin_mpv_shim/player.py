@@ -1777,6 +1777,63 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         return True
 
     @synchronous("_lock")
+    def _forced_hwdec(self):
+        """Whether a shader profile has named the decoder it requires.
+
+        A profile naming a *specific* decoder (``d3d11va``, ``vaapi``, …)
+        is stating a hardware requirement of the thing the user just chose
+        -- the shipped ``rtx-vsr`` needs d3d11va because its d3d11vpp
+        filter operates on d3d11 surfaces. That is different in kind from
+        the blanket ``auto-copy`` every profile used to carry, which was an
+        opinion about the machine. The specific one is applied by the
+        profile itself; this just stops the per-item write from undoing it
+        on the next file.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            return bool(profiles is not None
+                        and getattr(profiles, "forced_hwdec", None))
+        except Exception:
+            log.debug("could not read the shader profile", exc_info=True)
+            return False
+
+    def _needs_copy_hwdec(self):
+        """Whether anything downstream needs frames in system RAM.
+
+        The direct hardware-decoding modes hand mpv frames that live on the
+        GPU, which a video filter cannot read -- so where there is a filter,
+        hardware decoding has to be the copy-back kind or it silently does
+        not apply. Three sources, and none of them is a guess:
+
+        * the active shader profile said so (``wants_copy_hwdec`` -- the
+          pack names a ``-copy`` mode because it knows what it will do with
+          the frames);
+        * SVP is enabled, which means a VapourSynth filter in the user's
+          own mpv.conf;
+        * mpv reports a filter chain. This is the general case and catches
+          the other two as well once playback is running, but it is asked
+          separately because it is the only one that sees a filter the app
+          knows nothing about.
+
+        Never raises: an unanswerable question here means "no filter", and
+        the cost of being wrong is a filter that does not apply -- not a
+        player that fails to start.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None and getattr(profiles, "wants_copy_hwdec",
+                                                False):
+                return True
+        except Exception:
+            log.debug("could not read the shader profile", exc_info=True)
+        if settings.svp_enable:
+            return True
+        try:
+            return bool(self._player.vf)
+        except Exception:
+            log.debug("could not read the filter chain", exc_info=True)
+        return False
+
     def _play_media(
         self,
         video: "Video_type",
@@ -1826,6 +1883,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
+        # A shader pack is for moving pictures. It is applied once and
+        # left on the mpv instance, so without this an anime-upscaling
+        # chain runs over a photograph -- and over a comic page, which is
+        # 1600x2400 or larger, where it is expensive as well as wrong. The
+        # name is kept while suspended, so the menu still shows the profile
+        # the user chose and nothing rewrites the remembered setting.
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None:
+                if getattr(video, "is_photo", False):
+                    profiles.suspend_for_still()
+                else:
+                    profiles.resume_after_still()
+        except Exception:
+            log.debug("could not adjust the shader profile for this item",
+                      exc_info=True)
         # Hardware decoding, BEFORE play() for the same reason as the two
         # above: hwdec is read when the decoder is initialised, and the
         # failures this setting is cautious about (a driver that resets the
@@ -1839,7 +1912,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         try:
             from .mpv_options import hwdec_for
 
-            self._player.hwdec = hwdec_for(_source_height(video))
+            # None means somebody more specific has already spoken -- the
+            # user's own mpv.conf, or a shader profile naming the decoder
+            # its filter requires. Both outrank the setting, and both are
+            # already applied, so the right move is not to write at all.
+            forced = self._forced_hwdec()
+            want = None if forced else hwdec_for(_source_height(video),
+                                                 self._needs_copy_hwdec())
+            if want is not None:
+                self._player.hwdec = want
         except Exception:
             # Never let a decode *preference* stop playback: mpv keeps
             # whatever it had, which is at worst the previous item's.

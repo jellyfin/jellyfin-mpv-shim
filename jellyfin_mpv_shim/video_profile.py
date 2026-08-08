@@ -1,4 +1,5 @@
 from .conf import settings
+from .mpv_options import NAIVE_HWDEC, hwdec_pinned_by_config
 from . import conffile
 from .utils import get_resource
 from .constants import APP_NAME
@@ -86,6 +87,21 @@ class VideoProfileManager:
         self.menu = menu
         self.playerManager = player_manager
         self.used_settings = set()
+        #: True while the loaded profile needs frames in system RAM. Not
+        #: "hardware decoding is on" -- it is "if it is on, it has to be the
+        #: copy kind". Derived, not read: see _wants_copy.
+        self.wants_copy_hwdec = False
+        #: Working state for that derivation, per load.
+        self._sets_vf = False
+        self._names_direct_hwdec = False
+        #: A specific decoder the loaded profile requires, or None.
+        #: Not the naive auto/auto-copy every profile carries -- see
+        #: process_setting_group.
+        self.forced_hwdec = None
+        #: Profile name parked by suspend_for_still, or None. Distinct from
+        #: current_profile, which stays set while suspended so the menu and
+        #: the remembered setting still say what the user chose.
+        self._suspended = None
         self.current_profile = None
         self.player = player
         self.profile_subtypes = []
@@ -201,6 +217,51 @@ class VideoProfileManager:
     ):
         group = self.groups[group_name]
         for key, value in group.get("settings", []):
+            if key == "hwdec":
+                # **A naive value is the pack's opinion about the machine;
+                # a named decoder is a requirement of the profile.**
+                #
+                # Every profile pulls in a "hwdec-default" group setting
+                # hwdec to auto-copy -- [iw]: "this was just me being
+                # risk-averse in the past". That is a policy ("use hardware
+                # decoding if you can"), and it is not the pack's to have:
+                # hwdec is a user-facing setting that defaults OFF because
+                # a long tail of graphics drivers handle it badly, up to
+                # mpv hanging before the window opens (mpv#12948). Picking
+                # a shader profile must not switch it back on, or the
+                # breakage gets attributed to the profile -- the last place
+                # anyone would look. Dropped.
+                #
+                # A *specific* decoder is different in kind. The shipped
+                # rtx-vsr names d3d11va because its d3d11vpp filter
+                # operates on Direct3D surfaces: the profile does not work
+                # without it, and choosing that profile IS opting in.
+                # Applied, and remembered, so the per-item write in
+                # _play_media does not undo it on the next file.
+                # The user's own mpv.conf outranks a pack as well as the
+                # setting: where it pins hwdec, nothing writes the option.
+                # Checked here rather than left to _play_media, because a
+                # profile applies its settings directly and would otherwise
+                # slip past the pin between one file and the next.
+                if hwdec_pinned_by_config() is not None:
+                    log.info("Not applying the shader pack's hwdec=%s; "
+                             "mpv.conf pins it.", value)
+                    continue
+                if str(value).strip().lower() in NAIVE_HWDEC:
+                    log.info("Not applying the shader pack's hwdec=%s; "
+                             "hardware decoding follows the Hardware "
+                             "Decoding setting.", value)
+                    if not str(value).endswith("-copy"):
+                        self._names_direct_hwdec = True
+                    continue
+                log.info("Shader profile requires hwdec=%s; applying it.",
+                         value)
+                self.forced_hwdec = value
+                self._names_direct_hwdec = not str(value).endswith("-copy")
+            if key == "vf":
+                # A real video filter, which is the one thing here that
+                # genuinely cannot read GPU frames -- unlike a glsl shader.
+                self._sets_vf = True
             if key in ("gpu_api", "fbo_format"):
                 value = self.api_setting_override(key, value)
                 if value is None:
@@ -239,6 +300,14 @@ class VideoProfileManager:
 
         settings_to_apply = []
         shaders_to_apply = []
+        # Recomputed from the groups below rather than left standing: a
+        # load with reset=False (the still-image resume, the startup
+        # restore) does not go through unload_profile, so a stale True
+        # would outlive the profile that set it.
+        self.wants_copy_hwdec = False
+        self._sets_vf = False
+        self._names_direct_hwdec = False
+        self.forced_hwdec = None
         try:
             # Read Settings & Shaders
             for group in self.default_groups:
@@ -274,6 +343,8 @@ class VideoProfileManager:
                     setattr(self.player, key, value)
                 already_set.add((key, value))
 
+            self.wants_copy_hwdec = self._wants_copy()
+
             # Apply Shaders
             log.info("Set shaders: {0}".format(shaders_to_apply))
             self.player.glsl_shaders = shaders_to_apply
@@ -283,8 +354,75 @@ class VideoProfileManager:
             log.error("Could not apply shader profile.", exc_info=True)
             return False
 
+    def suspend_for_still(self):
+        """Take the shader profile off while a still image is on screen.
+
+        A shader pack is applied once -- from the menu, or restored at
+        startup from ``shader_pack_profile`` -- and then left on the mpv
+        instance. Nothing on the play path touched it, so an anime-upscaling
+        chain ran over a photograph, and over a comic page at 1600x2400 or
+        larger, where it is both wrong and expensive: these packs are built
+        for moving pictures at broadcast resolutions and a scanned page is
+        neither.
+
+        **Not ``unload_profile``**, which is the whole reason this exists:
+        that clears ``current_profile``, and the menu's selection and
+        ``menu_handle``'s persistence both read it -- so opening a photo
+        would have silently reset the user's chosen profile. This is a
+        suspension: mpv is put back to defaults, the *name* is kept, and
+        :meth:`resume_after_still` puts it back.
+
+        Idempotent. Photos arrive in queues, and every one of them runs the
+        play path.
+        """
+        if self._suspended is not None or self.current_profile is None:
+            return
+        self._suspended = self.current_profile
+        log.info("Suspending shader profile %s for a still image.",
+                 self._suspended)
+        name = self.current_profile
+        self.unload_profile()
+        self.current_profile = name
+
+    def resume_after_still(self):
+        """Put back a profile :meth:`suspend_for_still` took off.
+
+        A no-op when nothing was suspended, which is the ordinary case: this
+        runs on every playback start, and almost none of them follow a
+        still.
+        """
+        name, self._suspended = self._suspended, None
+        if name is None:
+            return
+        log.info("Restoring shader profile %s.", name)
+        # reset=False: unload already ran, and unloading again would write
+        # every default a second time for nothing.
+        self.load_profile(name, reset=False)
+
+    def _wants_copy(self):
+        """Does this profile need frames in system RAM?
+
+        Only a real ``vf`` does -- a glsl shader runs inside the GPU
+        renderer, on frames that are already on the GPU. So the pack's
+        blanket ``hwdec: auto-copy`` is not the question; whether the
+        profile installs a filter is.
+
+        And a profile that names a **direct** hwdec mode alongside its
+        filter is saying the opposite: its filter wants GPU frames. In the
+        shipped pack that is exactly ``rtx-vsr``, whose
+        ``format=nv12,d3d11vpp=scale=2:scaling-mode=nvidia`` is a Direct3D
+        video-processor filter that operates on d3d11 surfaces --
+        copying back would break the only profile in the pack that has a
+        filter at all.
+        """
+        return self._sets_vf and not self._names_direct_hwdec
+
     def unload_profile(self):
         log.info("Unloading shader profile.")
+        self.wants_copy_hwdec = False
+        self._sets_vf = False
+        self._names_direct_hwdec = False
+        self.forced_hwdec = None
         self.player.glsl_shaders = []
         for setting in self.used_settings:
             value = self.defaults[setting]

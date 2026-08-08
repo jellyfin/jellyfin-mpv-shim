@@ -40,8 +40,79 @@ _HWDEC_STATIC = {"no": "no", "auto": "auto", "auto-copy": "auto-copy"}
 HWDEC_THRESHOLD_H = 1080
 
 
-def hwdec_for(height=None):
+#: hwdec values that are a *policy* rather than a requirement: "use
+#: hardware decoding if you can, whatever that turns out to be here". A
+#: shader pack naming one of these is expressing an opinion about the
+#: machine, which is not its to have.
+#:
+#: Every other value is a requirement of the profile and survives -- a
+#: named decoder (``d3d11va``, which the shipped rtx-vsr needs for its
+#: Direct3D filter) **and ``no``**, which is a profile saying its shaders
+#: need software frames. Nothing in the current pack sets ``no``; it is
+#: listed as a requirement rather than a policy because that is what it
+#: would mean if one did [iw].
+NAIVE_HWDEC = frozenset({
+    "yes", "auto", "auto-safe", "auto-unsafe",
+    "auto-copy", "auto-copy-safe", "auto-copy-unsafe",
+})
+
+
+def hwdec_pinned_by_config():
+    """The ``hwdec`` the user's own ``mpv.conf`` sets, or None.
+
+    **A pin, not a default: where this answers, nothing else writes hwdec
+    at all** -- not the setting, not the copy upgrade, not a shader
+    profile. Somebody who has written the option into mpv.conf has said
+    something more specific than any of them, and silently overriding it
+    was the complaint that the whole of this feature is downstream of.
+
+    Deliberately a plain scan of the top level of the file rather than an
+    mpv-accurate parse: profile sections (``[name]``) are conditional and
+    reading them as unconditional would pin on a value that may never
+    apply. A `hwdec` reachable only inside a profile is therefore *not*
+    treated as a pin, which is the safe direction -- the setting keeps
+    working and mpv's own precedence still applies it where it fires.
+    """
+    from . import conffile
+    from .constants import APP_NAME
+
+    try:
+        path = conffile.get(APP_NAME, "mpv.conf", True)
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.split("#", 1)[0].strip()
+                if line.startswith("["):
+                    break            # a profile section; see the docstring
+                if not line:
+                    continue
+                key, sep, value = line.partition("=")
+                if sep and key.strip().lstrip("-") == "hwdec":
+                    return value.strip().strip("\"'") or None
+    except Exception:
+        log.debug("could not read mpv.conf for an hwdec pin", exc_info=True)
+    return None
+
+
+#: Direct mode -> the copy-back variant of the same thing. Used when
+#: something in the pipeline needs frames in system RAM; see hwdec_for.
+_COPY_OF = {"auto": "auto-copy"}
+
+
+def hwdec_for(height=None, needs_copy=False):
     """mpv's ``hwdec`` for the configured mode and this file's height.
+
+    ``needs_copy`` says something downstream needs frames in system RAM --
+    a video filter, which the direct modes cannot feed. It **upgrades**, it
+    never enables: off stays off, because the user turning hardware
+    decoding off is not a preference about *which* hardware decoding. A
+    mode that is already copy-back is unchanged.
+
+    That asymmetry is the whole design. The shader pack asks for
+    ``hwdec: auto-copy`` in every profile, which conflates two things --
+    "turn hardware decoding on" (not the pack's call, and the reason the
+    setting defaults off is a long tail of broken drivers) and "if it is
+    on, I need the copy kind" (entirely the pack's call, since it knows
+    what it is going to do with the frames). Only the second survives.
 
     ``height`` is the source's video height, or None when nothing is loaded
     (mpv's construction, and any item whose height we could not read). None
@@ -65,14 +136,25 @@ def hwdec_for(height=None):
         # module (tests import it bare). A missing override is "no
         # override", never a crash on the playback path.
         log.debug("could not read the hwdec override", exc_info=True)
+    pinned = hwdec_pinned_by_config()
+    if pinned is not None:
+        # Not "use their value" -- *do not write the option at all*, so
+        # mpv's own config precedence stands and nothing here has to model
+        # it. Callers treat None as "leave it alone".
+        return None
+
+    def resolved(value):
+        return _COPY_OF.get(value, value) if needs_copy else value
+
     mode = (settings.hwdec or "no").strip().lower()
     if mode in _HWDEC_STATIC:
-        return _HWDEC_STATIC[mode]
+        return resolved(_HWDEC_STATIC[mode])
     if mode == "over-1080p":
         try:
-            return "auto" if int(height or 0) > HWDEC_THRESHOLD_H else "no"
+            on = int(height or 0) > HWDEC_THRESHOLD_H
         except (TypeError, ValueError):
-            return "no"
+            on = False
+        return resolved("auto") if on else "no"
     # A value hand-edited into the JSON. Software decoding is the answer
     # that cannot make things worse, and handing an unknown string to mpv
     # would fail the option at construction and take the player with it.
@@ -184,7 +266,9 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     # per file in PlayerManager._play_media -- which is also where the
     # static modes are re-applied, so that changing this setting takes
     # effect on the next item rather than the next launch.
-    mpv_options["hwdec"] = hwdec_for()
+    hwdec = hwdec_for()
+    if hwdec is not None:
+        mpv_options["hwdec"] = hwdec
 
     if osc_style in _REPLACES_OSC:
         # "mpv" loads the patched stock OSC as a script; "mpvtk" has the

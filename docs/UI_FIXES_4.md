@@ -20,7 +20,8 @@ formatter landing as its own commit before the two items that need it.
 | [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | todo |
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
 | [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
-| [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | todo |
+| [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | done |
+| [15](#15--per-library--per-series-shader-profiles) | Per-library / per-series shader profiles | todo |
 | [14](#14--search-asks-for-no-fields) | Search asks for no fields | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
@@ -955,12 +956,28 @@ config write like `--reset-shaders`: it exists for hardware decoding stopping
 the window opening at all, and once it has opened the setting is reachable in
 the ordinary way.
 
-### Open
+### The default
 
-**The default is Off, and that was the investigation's call rather than
-[iw]'s** — no option was picked. The argument for it: shipping a new default
-in the same release as the feature gives no signal about which of the two
-broke someone. It is one line in `conf.py` plus the doc entry to change.
+**Off. [iw]'s choice**, with the same argument the investigation reached:
+shipping a new default in the same release as the feature gives no signal
+about which of the two broke someone.
+
+(Recorded because it briefly looked otherwise: the question tool returned only
+the free-text notes attached to the answer and not the option chosen with them,
+so this file said for one commit that nobody had picked. Worth knowing for the
+next time an option is picked *and* annotated.)
+
+### Naming
+
+**[iw]** "Probably worth renaming 'On (copy back)' into 'Copy (advanced)' with
+a note that SVP/VapourSynth might need it."
+
+Which is the one real use we have for it: the direct modes do not work with
+video filters and the copy modes do, and a user running SVP has a VapourSynth
+`vf` in their own `mpv.conf`. (The shim only drives SVP's HTTP API to pick
+profiles — the filter itself is the user's.) The shader pack is *not* a video
+filter and is unaffected either way, which the note in `config.NOTES` says so
+that the two are not confused.
 
 ## 13 — Shader packs must not reach stills
 
@@ -978,6 +995,116 @@ the menu's selection and the remembered setting both read, so a still would
 silently reset the user's chosen profile. It needs a suspend/resume pair that
 keeps the remembered name — suspend on a photo (`_play_media`, `is_photo`) and
 on a comic page (`show_picture`), resume for video and on `clear_picture`.
+
+## 13b — …and the pack must not decide hardware decoding either
+
+Found by **[iw]** grepping the pack, one commit after #12 shipped:
+
+```
+pack.json:      "hwdec-default": { ... ["hwdec", "auto-copy"] },
+pack-next.json: ["hwdec", "auto-copy"], ["hwdec", "d3d11va"],
+                "default-setting-groups": [ ..., "hwdec-default" ]
+```
+
+Every profile pulls that group in, so picking any shader profile silently
+turned hardware decoding on — one commit after it became a user-facing
+setting that defaults **off**, and defaults off because a long tail of
+drivers handle it badly. The breakage would have been attributed to the
+shader profile, which is the last place anyone would look.
+
+**[iw]** "I don't want to override the user's setting. We should set
+auto-copy transparently based on shader pack settings, SVP integration
+enabled, or mpv config when a vf is detected. Default shader pack should
+otherwise NOT touch hwdec. If the user has it set to off, nothing happens.
+If the user has it set to auto, we force it to auto-copy when it's actually
+needed."
+
+So the pack's value is split, and the on/off half is simply dropped: the
+pack does not get to turn hardware decoding on.
+
+**The blanket `auto-copy` is not evidence of anything.** It is in *every*
+profile — **[iw]**: "yeah, this was just me being risk-averse in the past" —
+and a glsl shader runs inside the GPU renderer, on frames that are already
+there. So a shader profile on gpu-next needs nothing copied back, and the
+`auto-copy` in `hwdec-default` is ignored outright.
+
+**What does need system RAM is a real `vf`.** Grepping the shipped pack, there
+is exactly one, and it is instructive:
+
+```json
+"hw-d3d11va-rtxvsr": { "settings": [
+    ["hwdec", "d3d11va"], ["gpu_api", "d3d11"],
+    ["vf", "format=nv12,d3d11vpp=scale=2:scaling-mode=nvidia"] ] }
+```
+
+`d3d11vpp` is a Direct3D **video-processor** filter operating on d3d11
+surfaces, and the profile names a *direct* hwdec mode beside it for exactly
+that reason. So a filter is not automatically a reason to copy back — a
+profile naming a direct mode is saying its filter wants GPU frames, and
+copying back would break the only profile in the pack that has a filter at
+all.
+
+The rule is therefore `sets a vf AND does not name a direct hwdec mode`,
+which for the shipped pack means **no profile asks for copy-back** — which is
+the right answer, and the one that lets the user opt in from the menu instead
+**[iw]**.
+
+`hwdec_for(height, needs_copy)` then **upgrades, never enables**: `no` stays
+`no`, `auto` becomes `auto-copy`, an explicit `auto-copy` is unchanged, and
+the threshold mode upgrades only where it was already on.
+
+The other two sources of `needs_copy` are unchanged and are the ones that
+still fire in practice: `svp_enable` (a VapourSynth filter in the user's own
+mpv.conf), and **mpv's own `vf` property being non-empty** — the general
+case, and the only one that sees a filter the app knows nothing about.
+Measured: `vf` reads `[]` on a fresh handle before any file is loaded, so it
+is answerable at exactly the moment hwdec has to be decided.
+
+### Two escape hatches, both **[iw]**
+
+**A pack may state a requirement.** The first cut dropped every `hwdec` a
+profile set, which left `rtx-vsr` unable to work at all — it needs `d3d11va`
+for its Direct3D filter. **[iw]**: "maybe we should whitelist non-naive hwdec
+settings in packs, like d3d11va". So the line is *policy vs requirement*:
+
+* `auto`, `auto-copy`, `auto-safe`, `yes`, … are opinions about the machine
+  ("use hardware decoding if you can, whatever that is here") and stay
+  dropped;
+* a **named decoder** is a requirement of the profile — applied, and
+  remembered as `forced_hwdec` so the per-item write does not undo it on the
+  next file. Choosing that profile is opting in;
+* **and so is `no`** **[iw]** — "nothing sets it currently", but a profile
+  setting it would be saying its shaders need software frames, which is a
+  statement about the profile and not about the machine. Listed as a
+  requirement for what it *would* mean rather than for what any pack does
+  today.
+
+**And the user's own mpv.conf pins it.** **[iw]**: "if the user's mpv config
+sets the value, we pin it and never touch it, and show 'Pinned by config' on
+the settings page". `hwdec_for` returns **None** there and both callers treat
+that as *do not write the option at all* — which keeps mpv's own config
+precedence intact rather than modelling it here. The Settings page says so,
+because a control that is silently inert is the failure this whole feature is
+downstream of.
+
+The scan is deliberately of the **top level only**: an `hwdec` inside a
+profile section (`[name]`) is conditional, and reading it as a pin would
+disable the setting on a value that may never apply. Not pinning is the safe
+direction — the setting keeps working and mpv still applies the profile where
+it fires.
+
+### Precedence, in order
+
+1. `--disable-hwdec` — per-run recovery, wins everything.
+2. **The user's mpv.conf** — we write nothing.
+3. **A profile stating a requirement** — a named decoder, or `no`.
+
+   Enforced in `process_setting_group`, not only in `_play_media`: a profile
+   applies its settings *directly*, so the pin has to be checked where the
+   pack is read or it slips past between one file and the next. The per-item
+   write is not the only writer.
+4. The Hardware Decoding setting, plus the copy upgrade where a real filter
+   needs system RAM.
 
 ## 14 — Search asks for no fields
 
@@ -998,3 +1125,66 @@ the measurement. Note that `MediaSourceCount` is **absent rather than 1** for
 a single-version item — the server omits the property at 1, which
 `tile_renderer` already documents — so the chip correctly stays off for most
 of a library either way.
+
+---
+
+## 15 — Per-library / per-series shader profiles
+
+**[iw]** "It's probably honestly worth adding options to make the user's
+shader selection library or series specific too. Anime4K shaders are usually
+specific to the media type and specific quality defects — e.g. a poorly
+compressed anime gets a different setting than a crisp video, which gets a
+different setting from a live action movie."
+
+Which is the real shape of the problem: there is no one right Anime4K
+profile, there is a right one *per kind of source*, and the current single
+global choice makes the user re-pick it by hand or accept the wrong one.
+
+### Storage — its own file **[iw]**
+
+`settings_base.object_types` has no `dict`, so a mapping cannot be a config
+key without being encoded as a list of pairs. **[iw]** chose a separate JSON
+file, which is also the right answer for a second reason: these overrides are
+**device-local**, not account-level. Which profile runs well depends on this
+machine's GPU, so unlike `home_sections` (DisplayPreferences, server-side)
+this must not follow the user to another device.
+
+Beside `cred.json` in the config directory, keyed by item id, with the server
+uuid in the key — ids are only unique per server, and a multi-server setup is
+the norm here.
+
+### UI **[iw]**
+
+> "Maybe a Default, Library Specific, Series Specific options from the menu
+> before we show the options, and also show which of those is currently in
+> effect in the menu?"
+
+So the profile menu grows a scope step in front of it, and the scope step
+reports the answer as well as asking the question — the second half is the
+part that makes it usable, because otherwise "why is this film sharpened
+differently" has no visible cause. Something like:
+
+```
+Video Playback Profile
+  Scope:  This Series  (Anime4K: Mode B)     >
+  Default (all media)  ·  Anime4K: Mode A
+  This Library         ·  not set
+  This Series          ·  Anime4K: Mode B    <- in effect
+```
+
+### Decided
+
+* Resolution order: **series → library → default** **[iw]**.
+
+### Open questions for the design pass
+
+* **What "this library" means for an item reached by search or by a
+  by-name screen**, where there is no library in the route.
+* The menu is `menu.py` (OSD, for the lua OSCs) *and* the mpvtk HUD's gear.
+  Both need it, or the setting is unreachable in one of the two UIs — the
+  same split #12's setting avoided by living in Settings.
+* Whether an override should also pin `shader_pack_gpu_api`, which is
+  currently global and is the other half of "will this profile run here".
+
+Not started. Listed here so it is covered by the QA and code-review pass at
+the end of the batch **[iw]**.

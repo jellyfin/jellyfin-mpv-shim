@@ -404,6 +404,29 @@ class WindowMixin:
 
     # ---------------------------------------------------- still pictures
 
+    def _suspend_shaders_for_still(self):
+        """Take the shader profile off for a picture. Best effort.
+
+        Shared by the comic reader and by photo playback (which reaches it
+        through _play_media, not here) so the two cannot drift about what
+        counts as a still.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None:
+                profiles.suspend_for_still()
+        except Exception:
+            wlog.debug("could not suspend the shader profile", exc_info=True)
+
+    def _resume_shaders_after_still(self):
+        """Put back whatever :meth:`_suspend_shaders_for_still` took off."""
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None:
+                profiles.resume_after_still()
+        except Exception:
+            wlog.debug("could not restore the shader profile", exc_info=True)
+
     def show_picture(self, path):
         """Display a local image file in the browse window.
 
@@ -436,6 +459,13 @@ class WindowMixin:
             # and video-zoom had no visible effect at all, because a
             # stretched picture already fills the window at every zoom.
             self._player.keepaspect = True
+            # A shader pack is for moving pictures. It sits on the mpv
+            # instance until something takes it off, so an anime-upscaling
+            # chain would run over every comic page -- at 1600x2400 or
+            # larger, which is where it is expensive as well as wrong.
+            # Suspended, not unloaded: the name is kept, so the menu still
+            # shows the profile the user chose. clear_picture puts it back.
+            self._suspend_shaders_for_still()
             # An image has no duration, so mpv shows it for
             # image_display_duration (1s) and then idles.
             self._player.image_display_duration = "inf"
@@ -507,6 +537,12 @@ class WindowMixin:
         reproducing half of it here is how the two drift.
         """
         self.reset_picture_view()
+        # Before the guard, like reset_picture_view above and for the same
+        # reason: playback starting is one of the ways a comic stops being
+        # on screen, and the profile is a global mpv setting -- a film that
+        # inherited the suspension would play unshaded. _play_media resumes
+        # too, so this is belt and braces on the path that has no video.
+        self._resume_shaders_after_still()
         if not self._mpv_alive or self._video is not None:
             return
         if self.mpvtk_active:
