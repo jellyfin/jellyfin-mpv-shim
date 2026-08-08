@@ -393,6 +393,49 @@ fake.subprocess = nil
 -- case. Default (continuous) scrolling moves the stored offset by a flat
 -- pixel step and lets the DISPLAY snap; snapped_scrolling steps whole detents.
 
+-- ------------------------------------------------- a page claiming the wheel
+
+-- The epub reader has no scroll container -- its whole content is one
+-- bitmap -- so a notch there means "turn the page", which it asks for by
+-- claiming WHEEL_UP/WHEEL_DOWN like any other key. Two things to pin: that
+-- the claim is answered at all (nothing else would deliver it), and that a
+-- hi-res device does not fly through the book, since a trackpad sends
+-- fractions of a notch several times per gesture.
+
+local function key_events()
+    local out = {}
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and e.t == "key" then out[#out + 1] = e end
+    end
+    return out
+end
+
+scene({})
+fake.mouse(400, 300)
+fake.send("mpvtk-keys", fake.token({ keys = { "WHEEL_UP", "WHEEL_DOWN" } }))
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#key_events(), 1, "a claimed wheel notch was not delivered")
+eq((key_events()[1] or {}).key, "WHEEL_DOWN", "the wrong key was sent")
+
+fake.reset_events()
+fake.key("wheel_down", { scale = 0.3 })
+fake.key("wheel_down", { scale = 0.3 })
+eq(#key_events(), 0, "a fraction of a notch turned a page")
+fake.key("wheel_down", { scale = 0.5 })
+eq(#key_events(), 1, "accumulated fractions never made a notch")
+
+fake.reset_events()
+fake.key("wheel_up", { scale = 1 })
+eq((key_events()[1] or {}).key, "WHEEL_UP", "scrolling up did not go back")
+
+-- With no claim it must fall through to the ordinary scroll path, or every
+-- other screen loses its wheel.
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#key_events(), 0, "the wheel was still claimed after the claim was dropped")
+
 local function wheel(id, steps, dir)
     fake.send("mpvtk-debug", fake.token({
         cmd = "wheel", id = id, dir = dir or 1, steps = steps or 1,

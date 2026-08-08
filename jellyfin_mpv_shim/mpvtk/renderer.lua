@@ -3510,6 +3510,12 @@ local function on_mouse_up()
     end
 end
 
+-- Declared here rather than beside its methods below, because `on_wheel`
+-- calls one of them and a Lua local is invisible above its declaration.
+-- The table is filled in further down (search `keyclaim.take`); by the
+-- time anything runs, the chunk has executed in full.
+local keyclaim = {}
+
 -- e.scale carries hi-res wheel deltas (trackpads, libinput
 -- button-scrolling trackballs) — honor it instead of stepping whole
 -- notches. state.wheel_count feeds the debug HUD: if the counter stops
@@ -3539,6 +3545,11 @@ local function on_wheel(dir, axis, e)
     -- A displayed picture takes the wheel next. It is not a container, so
     -- scroll_at below finds nothing over it -- which would leave the wheel
     -- dead on the one screen whose entire content is scrollable.
+    -- A page that claimed the wheel takes it before any container does:
+    -- the epub reader's whole content is one bitmap, so there is nothing
+    -- for scroll_at to find, and a notch there means "turn the page" the
+    -- way it does in every other reader.
+    if axis == 'y' and keyclaim.take_wheel(dir, scale) then return end
     if state.vpan and state.vpan.on and axis == 'y' then
         -- `scale` carries the hi-res delta a trackpad or a button-scrolling
         -- trackball sends; ignoring it makes one flick of such a device a
@@ -4413,8 +4424,6 @@ end
 -- key_scroll and nav_move already apply, and stating it once here is what
 -- keeps a page that claims LEFT from breaking the search box on the same
 -- screen.
-local keyclaim = {}
-
 -- ONE file-scope local for all of this, not three. renderer.lua's main
 -- chunk sits at Lua's 200-local ceiling (tests/test_renderer_lua.py), so a
 -- family of related helpers goes in a table rather than costing a slot
@@ -4468,6 +4477,42 @@ local NAV_KEYS = {
 keyclaim.nav_names = {}
 for _, k in ipairs(NAV_KEYS) do keyclaim.nav_names[k[1]] = true end
 
+-- The wheel is delivered by the `mpvtk_wheel` section, not by a per-key
+-- binding, so a claim on it must NOT add one -- two bindings for one
+-- physical notch is two events. Same exclusion as the nav keys, for the
+-- same reason, and `take_wheel` below is where a claimed notch is
+-- answered.
+keyclaim.wheel_names = { WHEEL_UP = true, WHEEL_DOWN = true }
+
+--: Accumulated wheel delta, so hi-res devices do not fly through a book.
+keyclaim.wheel_accum = 0
+
+-- A wheel notch a page has claimed. Returns true if it was consumed.
+function keyclaim.take_wheel(dir, scale)
+    local name = dir > 0 and 'WHEEL_DOWN' or 'WHEEL_UP'
+    if not state.keys[name] then return false end
+    -- The popup/menu/modal half of `take`'s precedence, but NOT its focus
+    -- ring: a ring is about where the arrows go, and scrolling is not an
+    -- arrow. Someone with the chapter picker focused still expects the
+    -- wheel to move the book.
+    if state.dd_open or active_menu() or modal_active() or state.focus then
+        return false
+    end
+    -- A trackpad sends fractions of a notch, several per gesture, so one
+    -- flick would otherwise be a dozen page turns. Accumulate until a
+    -- whole notch has arrived; a reversal starts again from zero, or the
+    -- tail of a fling would cancel the flick that followed it.
+    if (keyclaim.wheel_accum > 0) ~= (dir > 0) then
+        keyclaim.wheel_accum = 0
+    end
+    keyclaim.wheel_accum = keyclaim.wheel_accum + dir * math.abs(scale or 1)
+    if math.abs(keyclaim.wheel_accum) < 1 then return true end
+    keyclaim.wheel_accum = 0
+    send({ t = 'key', key = name })
+    request_render()
+    return true
+end
+
 function keyclaim.set(list)
     local want = {}
     for _, key in ipairs(list or {}) do want[key] = true end
@@ -4478,7 +4523,8 @@ function keyclaim.set(list)
         end
     end
     for key in pairs(want) do
-        if not keyclaim.nav_names[key] and not state.keys_bound[key] then
+        if not keyclaim.nav_names[key] and not keyclaim.wheel_names[key]
+            and not state.keys_bound[key] then
             mp.add_forced_key_binding(key, 'mpvtk_key_' .. key,
                 function() keyclaim.take(key) end, { repeatable = true })
             state.keys_bound[key] = true

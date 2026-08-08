@@ -142,7 +142,8 @@ class TestRendererLua(unittest.TestCase):
         scrolling did nothing while everything around it behaved. Nothing
         failed, in Lua or in Python; the function was simply unreachable.
 
-        Scoped to `state.` helpers because those are the ones that exist to
+        Scoped to the `state.`/`keyclaim.` helpers because those are the
+        ones that exist to
         dodge the local ceiling: a file-scope `local function` that nobody
         calls is at least visible as an unused name, while a table field
         assigned in one place and read in none looks exactly like a field
@@ -150,14 +151,15 @@ class TestRendererLua(unittest.TestCase):
         """
         with open(RENDERER, encoding="utf-8") as fh:
             source = fh.read()
-        defined = set(re.findall(r"^function state\.(\w+)\s*\(", source,
-                                 re.M))
+        defined = set(re.findall(
+            r"^function (?:state|keyclaim)\.(\w+)\s*\(", source, re.M))
         self.assertTrue(defined, "no state helpers found — has the "
                                  "convention changed?")
         dead = []
         for name in sorted(defined):
             # Every mention that is not the definition line.
-            uses = re.findall(r"state\.%s\b" % name, source)
+            uses = re.findall(r"(?:state|keyclaim)\.%s\b" % name,
+                              source)
             if len(uses) < 2:
                 dead.append(name)
         self.assertEqual(

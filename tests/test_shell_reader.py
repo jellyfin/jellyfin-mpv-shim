@@ -167,6 +167,31 @@ class TestReading(ReaderHarness):
         build_scene(browser)
         self.assertEqual(browser.app.claims[-1], ())
 
+    def test_a_wheel_notch_turns_the_page(self):
+        """As it does in Calibre and every other reader. There is nothing
+        here to scroll — the page is one bitmap and the next page is a
+        different bitmap — so a notch can only mean "turn"."""
+        browser = self.open_reader()
+        build_scene(browser)
+        before = self.doc(browser).char_offset
+        browser._on_claimed_key("WHEEL_DOWN")
+        self.assertGreater(self.doc(browser).char_offset, before)
+        browser._on_claimed_key("WHEEL_UP")
+        self.assertEqual(self.doc(browser).char_offset, before)
+
+    def test_the_reader_claims_the_wheel_while_it_is_up(self):
+        """The claim is what routes it: the wheel is delivered by the
+        renderer's own section, and without the page asking for it a notch
+        finds no scroll container and does nothing at all."""
+        browser = self.open_reader()
+        build_scene(browser)
+        claimed = browser.app.claims[-1]
+        self.assertIn("WHEEL_DOWN", claimed)
+        self.assertIn("WHEEL_UP", claimed)
+        browser.go_back()
+        build_scene(browser)
+        self.assertEqual(browser.app.claims[-1], ())
+
     def test_a_turn_key_turns_the_page(self):
         browser = self.open_reader()
         build_scene(browser)

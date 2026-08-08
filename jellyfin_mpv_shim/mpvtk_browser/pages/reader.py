@@ -75,7 +75,14 @@ class ReaderPage(Page):
     #: ``MpvtkApp.claim_keys``). The page turn is the reason the mechanism
     #: exists: LEFT/RIGHT on a page whose content is a single bitmap mean
     #: "turn", and spatial navigation has nothing to move between.
-    claimed_keys = ("LEFT", "RIGHT", "PGUP", "PGDWN", "SPACE", "HOME", "END")
+    #: ...and the wheel, which is a claim like any other: WHEEL_UP and
+    #: WHEEL_DOWN are mpv key names, so this needed no new protocol. A
+    #: notch turns a page, as it does in every other reader — there is
+    #: nothing here to scroll, the page is one bitmap and the next one is
+    #: a different bitmap. The renderer accumulates hi-res deltas so a
+    #: trackpad flick is a page rather than a chapter.
+    claimed_keys = ("LEFT", "RIGHT", "PGUP", "PGDWN", "SPACE", "HOME", "END",
+                    "WHEEL_UP", "WHEEL_DOWN")
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -269,9 +276,9 @@ class ReaderPage(Page):
 
     def on_key(self, key):
         """A claimed key. Loop thread; see ``claimed_keys``."""
-        if key in ("RIGHT", "PGDWN", "SPACE"):
+        if key in ("RIGHT", "PGDWN", "SPACE", "WHEEL_DOWN"):
             self._turn(1)
-        elif key in ("LEFT", "PGUP"):
+        elif key in ("LEFT", "PGUP", "WHEEL_UP"):
             self._turn(-1)
         elif key == "HOME":
             self._jump_section(-1)
