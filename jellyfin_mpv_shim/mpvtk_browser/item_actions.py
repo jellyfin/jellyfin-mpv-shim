@@ -753,7 +753,8 @@ class ItemActions:
             else:
                 if then_open:
                     self._pending_reads[iid] = name
-                self.services.set_status(_("Downloading %s…") % name)
+                self.services.set_status(
+                    self.downloading_message(name))
             # However it ended, the catalog may now say something different
             # from what the screen is drawing: a row was just queued, or an
             # already-complete one was found. Re-reading here rather than
@@ -767,6 +768,28 @@ class ItemActions:
             self._on_downloads_changed()
 
         self.run.run(work, done, ep, on_error=failed)
+
+    @staticmethod
+    def downloading_message(name):
+        """The toast a queued book raises.
+
+        One function rather than the format string in two places, because
+        the *reader* clears it by comparing against it (#2) and a second
+        spelling would silently never match.
+        """
+        return _("Downloading %s…") % (name or "")
+
+    def clear_downloading_toast(self, item):
+        """Take that toast down, now the thing it was about is on screen.
+
+        ``TOAST_SECS`` is six, so on a local server the message outlives
+        the download and sits over the first page of the book. Conditional
+        on the text still being ours -- see ``clear_status_if``.
+        """
+        clear = getattr(self.services, "clear_status_if", None)
+        if clear is not None:
+            clear(self.downloading_message(item.get("Name")
+                                           if item else ""))
 
     def flush_pending_reads(self):
         """Open any book whose download has finished since the last call.

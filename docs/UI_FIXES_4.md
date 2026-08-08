@@ -18,12 +18,12 @@ formatter landing as its own commit before the two items that need it.
 |---|---|---|
 | — | [Groundwork: a shared media-info formatter](#groundwork-a-shared-media-info-formatter) | done `ac2cea8e` |
 | [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | done, needs hand-testing |
-| [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
+| [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | done |
 | [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
 | [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | done |
 | [15](#15--per-library--per-series-shader-profiles) | Per-library / per-series shader profiles | todo |
 | [16](#16--how-many-key-bindings-do-we-still-need) | How many key bindings do we still need? | investigation, not started |
-| [14](#14--search-asks-for-no-fields) | Search asks for no fields | todo |
+| [14](#14--search-asks-for-no-fields) | Search asks for no fields | done |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
 | [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | done |
@@ -194,6 +194,18 @@ and neither says anything.
 On a book already on disk, or on a fast local server, the download finishes
 inside those six seconds, so the toast outlives the thing it is reporting and
 sits over the first page.
+
+### What it came to
+
+`clear_status_if(text)` on the shell, called from both readers the moment a
+document or a page is on screen. Conditional on the text still being ours,
+because six seconds is long enough for something else to have replaced it and
+clearing an *error* would be worse than the stale toast.
+
+The message has one spelling (`ItemActions.downloading_message`) because the
+raiser and the clearer compare against each other — two format strings would
+silently never match, and the symptom would be "the fix does nothing" rather
+than an error.
 
 ### Shape
 
@@ -1338,8 +1350,10 @@ search:
 * `CanDelete` is absent, so #4's Delete from Disk cannot appear on a search
   result, unlike everywhere else.
 
-Adding `GRID_FIELDS` costs +47 KB on a 1.28 MB response and was not slower in
-the measurement. Note that `MediaSourceCount` is **absent rather than 1** for
+`GRID_FIELDS`, not `LIST_FIELDS`: search asks for **800** items, five times a
+grid page, so the one field the grid already drops for being a third of the
+body is the one this must not add back. It costs +47 KB on a 1.28 MB response
+and was not slower in the measurement. Note that `MediaSourceCount` is **absent rather than 1** for
 a single-version item — the server omits the property at 1, which
 `tile_renderer` already documents — so the chip correctly stays off for most
 of a library either way.

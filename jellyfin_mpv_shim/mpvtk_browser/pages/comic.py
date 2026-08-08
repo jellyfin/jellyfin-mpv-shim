@@ -213,6 +213,12 @@ class ComicPage(Page):
             route.pop("_error", None)
             self.ctx.player.show_picture(path)
             route["_showing"] = True
+            # A page is up, so the "Downloading…" toast is reporting
+            # something that has finished (#2). Same call as the epub
+            # reader makes, and harmless on every page after the first --
+            # it only clears a toast that is still that message.
+            self.ctx.actions.clear_downloading_toast(
+                (route.get("_data") or {}).get("item") or {})
             self._place(to_bottom=to_bottom)
             self.ctx.invalidate()
 

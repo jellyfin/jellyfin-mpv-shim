@@ -2597,6 +2597,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._status_at = time.time()
         self.invalidate()
 
+    def clear_status_if(self, text):
+        """Take the toast down early, but only if it is still ours.
+
+        For a message that *reports something in progress*: TOAST_SECS is
+        six, and on a local server "Downloading X…" outlives the download
+        it is about and sits over the first page of the book (#2).
+
+        Conditional on the text, because six seconds is long enough for
+        something else to have replaced it -- an error, a finished
+        download, a queued item -- and a reader clearing that would be
+        worse than the stale toast it was fixing.
+        """
+        # `text and` only avoids a needless repaint when both are empty;
+        # what makes this safe is the equality, not the guard.
+        if text and self.status == text:
+            self.set_status("")
+
     # Minimum room the page title keeps in the top bar before the
     # buttons drop their labels (~a "Continue Watching" at 22px bold).
     TITLE_MIN_W = 260

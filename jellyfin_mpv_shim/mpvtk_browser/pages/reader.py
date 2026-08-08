@@ -166,6 +166,11 @@ class ReaderPage(Page):
         def done(doc):
             route["_doc"] = doc
             route["_opening"] = False
+            # The book is on screen, so the "Downloading…" toast has
+            # nothing left to report (#2). This page is the one that waited
+            # for it, so it is the one that takes it down.
+            self.ctx.actions.clear_downloading_toast(
+                (route.get("_data") or {}).get("item") or {})
             self.ctx.invalidate()
 
         def failed(exc):
