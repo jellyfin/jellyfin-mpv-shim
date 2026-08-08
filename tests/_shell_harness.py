@@ -594,6 +594,19 @@ class FakeController:
         self.positions = {}
         self.positions_written = []
         self.set_position_ok = True
+        #: Everything handed to the clipboard, in order. Recorded rather
+        #: than dropped: what the reader copied is the only observable the
+        #: copy menu has, and a fake that returned success without keeping
+        #: the text would pass a test that copied the wrong paragraph.
+        self.copied = []
+        #: What ``copy_text`` answers: ``(ok, method, path)``. Settable, so
+        #: a test can drive the "no clipboard on this box, saved to a file"
+        #: message as well as the happy one.
+        self.copy_result = (True, "fake", None)
+
+    def copy_text(self, text):
+        self.copied.append(text)
+        return self.copy_result
 
     def on_browse_enter(self):
         self.entered += 1

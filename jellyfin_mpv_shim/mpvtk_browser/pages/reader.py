@@ -32,8 +32,8 @@ import logging
 
 from ...books import fraction_of, ticks_for_fraction
 from ...i18n import _
-from ...mpvtk.widgets import (Button, Column, Dropdown, ImageMap, Row,
-                              Spacer, Text)
+from ...mpvtk.widgets import (Button, Column, Dropdown, ImageMap, Menu,
+                              Row, Spacer, Text)
 from .. import theme
 from ..components import chrome
 from .base import Page
@@ -49,10 +49,21 @@ PAGE_PAD = 8
 
 #: Font sizes the +/- buttons step through, in logical pixels. A list rather
 #: than an increment so every step is one somebody chose to read at.
+#:
+#: The stored setting is a plain number, not an index into this: somebody
+#: who types 22 into Settings gets 22, and A+ takes them to the next step
+#: above it. An index would silently rewrite their number to the nearest
+#: entry, and would mean something different if this list ever changed.
 FONT_STEPS = (15, 17, 19, 21, 24, 27, 31, 36)
 
-#: Palettes the theme button cycles, in the order it cycles them.
-PALETTE_ORDER = ("light", "sepia", "dark")
+#: What a type size is allowed to be, however it was set. The floor is
+#: "still text"; the ceiling is a page that can hold a line of it.
+MIN_FONT, MAX_FONT = 10, 72
+
+#: Palettes the page-colour button cycles, in the order it cycles them.
+#: Dark first because that is the default (see ``conf.reader_theme``) and
+#: the first press should move somewhere, not confirm where you are.
+PALETTE_ORDER = ("dark", "sepia", "light")
 
 
 class ReaderPage(Page):
@@ -161,17 +172,43 @@ class ReaderPage(Page):
         from ...epub.layout import ReaderStyle
         from ...mpvtk.scaling import px
 
-        route = self.route
-        size = FONT_STEPS[self._font_step()]
         # Physical pixels: the bitmap is drawn at real device resolution and
         # never resampled, so every number the layout engine sees has to be
         # through px() — the same boundary strips and the cast screen cross.
-        return ReaderStyle(font_px=px(size), margin_x=px(28), margin_y=px(20),
-                           justify=bool(route.get("_justify", True)))
+        return ReaderStyle(font_px=px(self.font_size()),
+                           margin_x=px(28), margin_y=px(20),
+                           justify=self._setting("reader_justify", True))
 
-    def _font_step(self):
-        return max(0, min(int(self.route.get("_font", 3)),
-                          len(FONT_STEPS) - 1))
+    @staticmethod
+    def _setting(key, fallback):
+        """One config read, tolerant of a hand-edited value.
+
+        Read at the moment it is used rather than captured when the page
+        was built: Settings is reachable while the reader is open (the tray
+        gets there), and a page that cached these would keep drawing at the
+        old size until it was navigated away from and back.
+        """
+        from ...conf import settings
+
+        value = getattr(settings, key, None)
+        return fallback if value is None else value
+
+    def font_size(self):
+        """Type size in logical pixels, clamped to something readable."""
+        try:
+            size = int(self._setting("reader_font_size", FONT_STEPS[3]))
+        except (TypeError, ValueError):
+            size = FONT_STEPS[3]
+        return max(MIN_FONT, min(size, MAX_FONT))
+
+    def palette_name(self):
+        """The page colour, falling back rather than trusting the string.
+
+        A value that is not a palette must not reach ``paint.palette`` —
+        the setting is a plain string in a JSON file somebody can type into.
+        """
+        name = self._setting("reader_theme", PALETTE_ORDER[0])
+        return name if name in PALETTE_ORDER else PALETTE_ORDER[0]
 
     # -- position ----------------------------------------------------------
 
@@ -248,8 +285,22 @@ class ReaderPage(Page):
         self.ctx.invalidate()
 
     def _step_font(self, delta):
-        self.route["_font"] = max(0, min(self._font_step() + delta,
-                                         len(FONT_STEPS) - 1))
+        """Move to the next size in ``FONT_STEPS`` past the current one.
+
+        Past, not "index + delta": the stored value is a number and may be
+        one nobody stepped to. Stepping up from a typed 22 has to land on
+        24, and stepping down on 21 — which is what searching the list for
+        the neighbours of the current size does, and what an index into it
+        cannot do without first rewriting the user's number.
+        """
+        current = self.font_size()
+        if delta > 0:
+            larger = [s for s in FONT_STEPS if s > current]
+            size = larger[0] if larger else min(current + 2, MAX_FONT)
+        else:
+            smaller = [s for s in FONT_STEPS if s < current]
+            size = smaller[-1] if smaller else max(current - 2, MIN_FONT)
+        self._write("reader_font_size", max(MIN_FONT, min(size, MAX_FONT)))
         doc = self.route.get("_doc")
         if doc is not None:
             # set_style re-paginates, and the document finds the page
@@ -259,11 +310,143 @@ class ReaderPage(Page):
         self.ctx.invalidate()
 
     def _cycle_palette(self):
-        current = self.route.get("_palette") or PALETTE_ORDER[0]
-        index = (PALETTE_ORDER.index(current) + 1
-                 if current in PALETTE_ORDER else 0) % len(PALETTE_ORDER)
-        self.route["_palette"] = PALETTE_ORDER[index]
+        current = self.palette_name()
+        index = (PALETTE_ORDER.index(current) + 1) % len(PALETTE_ORDER)
+        self._write("reader_theme", PALETTE_ORDER[index])
         self.ctx.invalidate()
+
+    def _write(self, key, value):
+        """Persist a reader preference.
+
+        Through ``config.set_setting`` rather than by assigning to
+        ``settings``, so the value is coerced and written to disk the same
+        way the Settings form writes it — the two controls are the same
+        setting, and a size set here that did not survive a restart would be
+        a worse answer than not offering the buttons.
+        """
+        from .. import config
+
+        try:
+            config.set_setting(key, value)
+        except Exception:
+            log.warning("could not save %s", key, exc_info=True)
+
+    # -- copying -----------------------------------------------------------
+
+    def _open_menu(self, x, y):
+        """Right-click on the page: offer to copy what is under it.
+
+        **This is what stands in for selecting text.** The page is a single
+        bitmap (see ``epub/paint.py`` for why), so there is nothing to drag
+        a selection across and nothing to hit-test a character with. What a
+        pointer *can* name is the paragraph it landed in, and what a reader
+        wants from a book is almost always exactly one of two things: the
+        sentence they are looking at, or the page.
+
+        The paragraph is resolved **here, at the click**, not when the menu
+        is drawn: the point is the only thing that knows which paragraph is
+        meant, and by the time an entry is chosen the pointer has moved to
+        the menu.
+        """
+        doc = self.route.get("_doc")
+        if doc is None:
+            return
+        text = None
+        try:
+            top = self._column_y(y)
+            if top is not None:
+                text = doc.paragraph_at(top)
+        except Exception:
+            log.debug("could not locate the paragraph", exc_info=True)
+        self.route["_menu"] = {"x": x, "y": y, "para": text}
+        self.ctx.invalidate()
+
+    def _column_y(self, y):
+        """Window y -> physical pixels from the top of the text column.
+
+        Three coordinate spaces meet here and getting any of them wrong
+        picks a paragraph a few lines off. The event is in **logical**
+        window pixels; the bitmap's rect (from the last drawn frame) is in
+        the same space; layout happened in **physical** pixels, inside a
+        column inset by the style's margins. So: subtract the bitmap's
+        origin, scale, then subtract the top margin.
+        """
+        from ...mpvtk.scaling import px
+
+        rect = self.ctx.art.node_rect(self.PAGE_ID)
+        if not rect:
+            return None
+        doc = self.route.get("_doc")
+        style = doc.style if doc is not None else None
+        if style is None:
+            return None
+        return px(y - rect["y"]) - style.margin_y
+
+    def _menu_node(self):
+        menu = self.route.get("_menu")
+        if not menu:
+            return None
+        labels, actions = [], []
+        if menu.get("para"):
+            labels.append(_("Copy Paragraph"))
+            actions.append("para")
+        labels.append(_("Copy Page"))
+        actions.append("page")
+        return Menu("rd-menu", labels, menu["x"], menu["y"], size=17,
+                    icons=["content_copy"] * len(labels),
+                    on_select=lambda i, _v=None: self._menu_pick(actions, i),
+                    on_dismiss=self._close_menu)
+
+    def _close_menu(self):
+        self.route.pop("_menu", None)
+        self.ctx.invalidate()
+
+    def _menu_pick(self, actions, index):
+        menu = self.route.get("_menu") or {}
+        action = actions[index] if 0 <= index < len(actions) else None
+        self._close_menu()
+        doc = self.route.get("_doc")
+        if doc is None or action is None:
+            return
+        if action == "para":
+            self._copy(menu.get("para"), _("Copied the paragraph."))
+        else:
+            self._copy(doc.page_text(), _("Copied the page."))
+
+    def _copy(self, text, done_message):
+        """Put ``text`` on the clipboard, off the loop thread.
+
+        A clipboard helper is a subprocess (``jellyfin_mpv_shim.clipboard``)
+        and on a wedged one the timeout would freeze the window mid-page.
+        The file fallback is reported rather than hidden, because a box with
+        no clipboard at all should still hand the user something they can
+        send on — the same bargain the log copier makes.
+        """
+        if not text:
+            self.ctx.status(_("There is nothing to copy."))
+            return
+        copier = getattr(self.ctx.player, "copy_text", None)
+        if copier is None:
+            self.ctx.status(_("Copying is not available."))
+            return
+
+        def work():
+            return copier(text)
+
+        def done(result):
+            ok, _method, path = result
+            if not ok:
+                self.ctx.status(_("Could not copy the text."))
+            elif path:
+                self.ctx.status(_("No clipboard available — saved to %s")
+                                % path)
+            else:
+                self.ctx.status(done_message)
+
+        def failed(_exc):
+            self.ctx.status(_("Could not copy the text."))
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
 
     def _chapter_picker(self, doc):
         """The table of contents, as the bar's one wide control.
@@ -286,7 +469,20 @@ class ReaderPage(Page):
             if target <= doc.spine_index:
                 selected = i
         return Dropdown("rd-toc", labels, selected=selected, size=14,
-                        force=True, popup_w=420, trigger_icon="menu_book",
+                        force=True, trigger_icon="menu_book",
+                        tip=_("Contents"),
+                        # trigger_chip, not the HUD's chromeless glyph: this
+                        # sits in the bar's row of filled square buttons, and
+                        # a bare icon among them reads as a different kind of
+                        # control. Same call the now-playing bar's chapter
+                        # picker makes, for the same reason.
+                        trigger_chip=(theme.BUTTON_BG, theme.BUTTON_ACTIVE,
+                                      theme.TEXT_FG),
+                        w=34, h=34,
+                        # The list is chapter TITLES, as long as the author
+                        # made them; the trigger is one icon wide and cannot
+                        # size it.
+                        popup_w=420,
                         on_select=lambda i, _v=None:
                             self._goto_chapter(targets[i]))
 
@@ -312,13 +508,24 @@ class ReaderPage(Page):
         # same problem and solves it by subtracting a height it knows; this
         # one measures instead, because it also has to *rasterize* to the
         # answer.
-        return Column([self._top_bar(item, doc), body,
-                       self._bottom_bar(doc, width)],
-                      flex=1, align="stretch")
+        children = [self._top_bar(item, doc), body,
+                    self._bottom_bar(doc, width)]
+        # Out of flow (it measures 0x0 and carries its own position), so it
+        # sits in this page's own tree rather than in the shell's menu slot
+        # — which is what makes it die with the route instead of outliving
+        # it, and is why the reader's menu and a tile's cannot collide.
+        menu = self._menu_node()
+        if menu is not None:
+            children.append(menu)
+        return Column(children, flex=1, align="stretch")
 
     #: The id whose laid-out rect tells the next frame how tall the page
     #: bitmap may be.
     AREA_ID = "rd-area"
+
+    #: The bitmap itself. Its rect is what turns a pointer position into a
+    #: position in the book — see ``_open_menu``.
+    PAGE_ID = "rd-page"
 
     def _area_height(self, window_height):
         """How tall to rasterize, from the last frame's measured hole.
@@ -350,33 +557,58 @@ class ReaderPage(Page):
                                       color=theme.SUBTLE_FG, align="center"),
                        Spacer()], id=self.AREA_ID, flex=1, align="center")
 
+    def _sync_style(self, doc):
+        """Adopt the settings if they have moved since the last frame.
+
+        The A−/A+ buttons already re-style the document themselves, so this
+        is for the other way in: Settings is reachable from the tray while
+        a book is open, and the reader is a *route*, so it can also be sat
+        in the history with a document already built at the old size. Asked
+        every frame and answered by comparing keys, which is a tuple
+        compare; ``set_style`` is what costs, and it only runs when the
+        answer changed.
+        """
+        style = self._reader_style()
+        if doc.style.key() != style.key():
+            doc.set_style(style)
+            self.route.pop("_entry", None)
+
     def _page_node(self, doc, width, height):
         """The page bitmap, with the two halves that turn it."""
         from ...mpvtk.scaling import raster
 
+        self._sync_style(doc)
+
         page_h = max(80, height)
         page_w = max(80, width - 2 * PAGE_PAD)
         entry = self._bitmap(doc, raster(page_w, page_h), (page_w, page_h),
-                             self.route.get("_palette") or PALETTE_ORDER[0])
+                             self.palette_name())
         if entry is None:
             return Column([Spacer(), chrome.busy(), Spacer()],
                           id=self.AREA_ID, flex=1)
         # An ImageMap rather than an Image under transparent boxes: regions
         # are the toolkit's answer for "this bitmap is clickable in places"
-        # and they lay out as hit-rects whose hover ring draws outside the
-        # bitmap, which is the only place a ring on an image can go
         # (GUIDE §6). A click on the right-hand side turns forward, on the
         # left back — the gesture every reader has.
+        #
+        # ``zone`` because these are the exception the flag exists for. A
+        # region's hover ring says "this tile is what you are pointing at",
+        # which is worth having when the bitmap holds twelve of them; here
+        # the bitmap holds a page of prose and the ring is an accent box
+        # over the sentence being read. Nothing is gained by pointing at
+        # half a page — the reader can see where the pointer is.
         lw, lh = entry["lw"], entry["lh"]
         half = lw // 2
         regions = [
             {"id": "rd-back-half", "x": 0, "y": 0, "w": half, "h": lh,
-             "on_click": lambda: self._turn(-1)},
+             "zone": True, "on_click": lambda: self._turn(-1),
+             "on_context": self._open_menu},
             {"id": "rd-fwd-half", "x": half, "y": 0, "w": lw - half,
-             "h": lh, "on_click": lambda: self._turn(1)},
+             "h": lh, "zone": True, "on_click": lambda: self._turn(1),
+             "on_context": self._open_menu},
         ]
         return Row([ImageMap(entry["src"], entry["iw"], entry["ih"],
-                             regions=regions, w=lw, h=lh,
+                             id=self.PAGE_ID, regions=regions, w=lw, h=lh,
                              v=entry.get("v", 0))],
                    id=self.AREA_ID, flex=1, justify="center", align="center")
 
@@ -398,9 +630,8 @@ class ReaderPage(Page):
         # bars left. set_viewport re-paginates when it changes and finds the
         # page holding the current offset.
         style = doc.style
-        column = (physical[0] - 2 * style.margin_x,
-                  physical[1] - 2 * style.margin_y)
-        if doc.set_viewport(*column):
+        col_w, col_x = style.column(physical[0])
+        if doc.set_viewport(col_w, physical[1] - 2 * style.margin_y):
             route.pop("_entry", None)
         key = self._page_key(doc, physical, palette_name)
         entry = route.get("_entry")
@@ -419,7 +650,7 @@ class ReaderPage(Page):
         colors = paint.palette(palette_name)
 
         def work():
-            image = doc.render(physical, colors)
+            image = doc.render(physical, colors, (col_x, style.margin_y))
             return store.bitmap(key, image, lsize=logical)
 
         def done(result):
@@ -506,6 +737,6 @@ class ReaderPage(Page):
                    align="center", bg=theme.PANEL_BG)
 
     def _palette_label(self):
-        name = self.route.get("_palette") or PALETTE_ORDER[0]
+        name = self.palette_name()
         return {"light": _("Light"), "sepia": _("Sepia"),
                 "dark": _("Dark")}.get(name, name)

@@ -72,16 +72,40 @@ _INVISIBLE = frozenset({"script", "style", "head", "title", "meta", "link"})
 #: body text. Ems rather than pixels so it tracks the reader's font size.
 INDENT_EM = 1.6
 
+#: How much larger than the body a paragraph's first character has to be
+#: before it is read as a drop capital. Two ems is already twice the height
+#: of the line it would otherwise sit on; books typically set three or four.
+DROPCAP_SCALE = 2.0
+
+#: ``list-style-type`` values this reader can draw, mapped to how a marker
+#: is made. Anything else in a stylesheet falls back to the tag's default,
+#: which is what a browser does with a keyword it does not know.
+_BULLETS = {"disc": "\u2022", "circle": "\u25e6", "square": "\u25aa",
+            "none": ""}
+
+#: Bullets a nested ``<ul>`` cycles through, as every browser does. The
+#: depth matters in a book: a list of exceptions under a list of rules is
+#: unreadable when both levels wear the same dot.
+_UL_DEPTH = ("\u2022", "\u25e6", "\u25aa")
+
+#: ``<ol type=...>`` and the equivalent ``list-style-type`` keywords.
+_NUMBERING = {
+    "1": "decimal", "a": "lower-alpha", "A": "upper-alpha",
+    "i": "lower-roman", "I": "upper-roman",
+}
+
 _WS = re.compile(r"\s+")
 
 
 class Style:
     """The style flags a run of text carries. Immutable; ``with_`` copies."""
 
-    __slots__ = ("bold", "italic", "underline", "strike", "mono", "scale")
+    __slots__ = ("bold", "italic", "underline", "strike", "mono", "scale",
+                 "rise", "smallcaps")
 
     def __init__(self, bold=False, italic=False, underline=False,
-                 strike=False, mono=False, scale=1.0):
+                 strike=False, mono=False, scale=1.0, rise=0.0,
+                 smallcaps=False):
         self.bold = bold
         self.italic = italic
         self.underline = underline
@@ -91,17 +115,27 @@ class Style:
         #: ``<small>``/``<sup>``; it is a float rather than a font size so a
         #: reader-set body size scales the whole document.
         self.scale = scale
+        #: Baseline shift in ems of the body size, positive = up. What makes
+        #: a footnote marker a superscript rather than a stray digit; the
+        #: layer that turns it into pixels is ``layout._place_line``, so
+        #: nothing here has to know the font size.
+        self.rise = rise
+        #: Small capitals. Not a face — Pillow has no small-caps variant and
+        #: no way to synthesise one — so it is carried here and *acted on*
+        #: in the walk below, which is the only place that still has the
+        #: text to split into "already capital" and "made capital".
+        self.smallcaps = smallcaps
 
     def with_(self, **kw):
         out = Style(self.bold, self.italic, self.underline, self.strike,
-                    self.mono, self.scale)
+                    self.mono, self.scale, self.rise, self.smallcaps)
         for key, value in kw.items():
             setattr(out, key, value)
         return out
 
     def key(self):
         return (self.bold, self.italic, self.underline, self.strike,
-                self.mono, round(self.scale, 3))
+                self.mono, round(self.scale, 3), round(self.rise, 3))
 
     def __eq__(self, other):
         return isinstance(other, Style) and self.key() == other.key()
@@ -110,8 +144,8 @@ class Style:
         return hash(self.key())
 
     def __repr__(self):
-        on = [n for n in ("bold", "italic", "underline", "strike", "mono")
-              if getattr(self, n)]
+        on = [n for n in ("bold", "italic", "underline", "strike", "mono",
+                          "smallcaps") if getattr(self, n)]
         return "<Style %s x%.2f>" % ("+".join(on) or "plain", self.scale)
 
 
@@ -136,14 +170,16 @@ class Span:
 class Block:
     """A paragraph, heading, image or rule."""
 
-    __slots__ = ("kind", "spans", "level", "align", "indent", "marker",
-                 "src", "alt", "char_offset", "pre", "anchors",
-                 "space_before", "space_after", "first_indent", "page_break")
+    __slots__ = ("kind", "spans", "level", "align", "indent", "indent_right",
+                 "marker", "src", "alt", "char_offset", "pre", "anchors",
+                 "space_before", "space_after", "first_indent", "page_break",
+                 "dropcap", "box")
 
-    def __init__(self, kind, spans=None, level=0, align="", indent=0,
-                 marker="", src=None, alt="", char_offset=0, pre=False,
-                 space_before=None, space_after=None, first_indent=None,
-                 page_break=False):
+    def __init__(self, kind, spans=None, level=0, align="", indent=0.0,
+                 indent_right=0.0, marker="", src=None, alt="",
+                 char_offset=0, pre=False, space_before=None,
+                 space_after=None, first_indent=None, page_break=False,
+                 box=None):
         self.kind = kind
         self.spans = spans or []
         self.level = level
@@ -151,10 +187,33 @@ class Block:
         #: default, which is not the same as "left" — a reader set to
         #: justify should justify a paragraph that said nothing.
         self.align = align
+        #: Inset from the left, in **ems of the body size** — not a nesting
+        #: level. Ems because the two things that produce it are measured
+        #: that way: one step of ``blockquote``/list nesting is INDENT_EM,
+        #: and a stylesheet's ``margin-left`` is whatever it says. A level
+        #: count cannot express the second, and a verse set at 2em would
+        #: have to be rounded to a level or dropped.
         self.indent = indent
+        #: Inset from the right. Almost always 0 — but a block quote is
+        #: inset on *both* sides in every book ever printed, and one that
+        #: is only moved in from the left reads as a paragraph that lost
+        #: its indent rather than as a quotation.
+        self.indent_right = indent_right
+        #: Whether this paragraph opens with a drop capital. Decided in
+        #: :meth:`_Walker._flush` from what the first span turned out to
+        #: be; the letter itself stays in the spans, because it is text
+        #: the reader is counting.
+        self.dropcap = False
         self.marker = marker
         self.src = src
         self.alt = alt
+        #: For an IMAGE, the size the AUTHOR asked for — see
+        #: :func:`_image_box`. Empty when the book said nothing, which
+        #: means "whatever the file happens to be". A browser does that
+        #: too, but only in the same case: a book that draws a 256 px arrow
+        #: at 1em has said something, and drawing the file's own size there
+        #: puts a quarter of a page of arrow in the middle of a recipe.
+        self.box = box or {}
         self.char_offset = char_offset
         #: Preformatted: whitespace is significant and lines do not reflow.
         self.pre = pre
@@ -174,10 +233,28 @@ class Block:
         self.page_break = page_break
 
     def text(self):
+        """What is drawn, run by run — including any synthetic transform."""
         return "".join(s.text for s in self.spans)
+
+    def plain_text(self):
+        """What the author wrote, for copying out of the reader.
+
+        Small capitals are the one place the two differ: Pillow has no
+        small-caps face, so the walk uppercases what was lowercase and sets
+        it smaller. Copied verbatim that comes out SHOUTING, and books use
+        small caps for proper nouns and chapter openings — exactly the
+        sentences someone quotes. The reduced runs still carry the flag, so
+        undoing it is exact rather than a guess.
+        """
+        return "".join(s.text.lower() if s.style.smallcaps else s.text
+                       for s in self.spans)
 
     def is_empty(self):
         return self.kind in (PARA, HEADING) and not self.text().strip()
+
+    def dropcap_span(self):
+        """The drop capital's span, or None. Always ``spans[0]``."""
+        return self.spans[0] if self.dropcap and self.spans else None
 
     def __repr__(self):
         if self.kind == IMAGE:
@@ -217,7 +294,32 @@ class _Walker:
                 block.spans[-1].text = block.spans[-1].text.rstrip()
             if not any(s.text for s in block.spans) and not block.marker:
                 return
+            self._mark_dropcap(block)
         self.blocks.append(block)
+
+    @staticmethod
+    def _mark_dropcap(block):
+        """Is this paragraph's first letter a drop capital?
+
+        Decided by what it *is* rather than by ``float: left``, which is how
+        a book says so in CSS. Two reasons. A drop cap is one or two
+        characters set several times the body size at the start of a
+        paragraph — nothing else in a novel looks like that, so the shape is
+        diagnostic on its own. And the alternative reading, if this is not
+        recognised, is not "no drop cap": it is a 3.4em letter left inline,
+        which inflates the first line to three times its height and leaves a
+        band of white across the top of the chapter. Guessing wrong here
+        costs a slightly odd capital; not guessing costs every chapter
+        opening in the book.
+        """
+        if block.kind != PARA or block.marker or not block.spans:
+            return
+        first = block.spans[0]
+        text = first.text.strip()
+        # Two characters, because an opening quotation mark is routinely set
+        # with the capital it belongs to.
+        if 1 <= len(text) <= 2 and first.style.scale >= DROPCAP_SCALE:
+            block.dropcap = True
 
     def _open(self, kind, **kw):
         self._flush()
@@ -239,7 +341,8 @@ class _Walker:
 
     # -- the walk ---------------------------------------------------------
 
-    def walk(self, node, style, align, indent, pre, drawn=True):
+    def walk(self, node, style, align, indent, pre, drawn=True,
+             right=0.0):
         from .xmlish import Node
 
         for child in node.children:
@@ -248,7 +351,7 @@ class _Walker:
                 continue
             if not isinstance(child, Node):
                 continue
-            self._element(child, style, align, indent, pre, drawn)
+            self._element(child, style, align, indent, pre, drawn, right)
 
     def _text(self, text, style, align, indent, pre, drawn):
         # THE counting rule, and it is epub.js's, verbatim: a node that is
@@ -270,6 +373,9 @@ class _Walker:
                 return
         if self._block is None:
             self._open(PARA, align=align, indent=indent, pre=pre)
+        if style.smallcaps:
+            self._block.spans += _smallcaps_spans(text, style, offset)
+            return
         self._block.spans.append(Span(text, style, offset))
 
     def _decls_for(self, node):
@@ -286,7 +392,8 @@ class _Walker:
         decls.update(_decls(node.get("style")))
         return decls
 
-    def _element(self, node, style, align, indent, pre, drawn):
+    def _element(self, node, style, align, indent, pre, drawn,
+                 right=0.0):
         tag = node.tag
         if tag in _INVISIBLE:
             # Counted, never drawn — see the module docstring.
@@ -333,7 +440,18 @@ class _Walker:
         if flag:
             inner_style = inner_style.with_(**{flag: True})
         if tag in ("small", "sub", "sup"):
-            inner_style = inner_style.with_(scale=inner_style.scale * 0.8)
+            inner_style = inner_style.with_(
+                scale=inner_style.scale * (0.8 if tag == "small"
+                                           else _SMALL_SCALE))
+        if tag == "sup":
+            inner_style = inner_style.with_(rise=SUPERSCRIPT_RISE)
+        elif tag == "sub":
+            inner_style = inner_style.with_(rise=SUBSCRIPT_RISE)
+        elif tag == "dt":
+            # A definition list's term is bold in every browser and in
+            # every book that sets one; without it a glossary is two
+            # indistinguishable paragraphs per entry.
+            inner_style = inner_style.with_(bold=True)
         inner_style = _apply_decls(inner_style, decls)
 
         inner_align = align
@@ -346,10 +464,22 @@ class _Walker:
             inner_align = declared_align
 
         inner_indent = indent
-        if tag in ("blockquote", "dd"):
-            inner_indent += 1
+        inner_right = right
+        if tag == "blockquote":
+            # Both sides. A quotation moved in from the left only is a
+            # paragraph that has lost its first-line indent; what makes it
+            # read as quoted matter is the narrower measure.
+            inner_indent += INDENT_EM
+            inner_right += INDENT_EM
+        elif tag == "dd":
+            inner_indent += INDENT_EM
         elif tag in ("ul", "ol", "dl") and self._list_depth(node) > 0:
-            inner_indent += 1
+            inner_indent += INDENT_EM
+        # The stylesheet's own inset, on top of the structural one. This is
+        # what sets verse in from the prose around it, and what a book uses
+        # for a letter or a newspaper clipping quoted mid-chapter.
+        inner_indent += _margin_em(decls, "margin-left")
+        inner_right += _margin_em(decls, "margin-right")
 
         box = _box(decls)
         if tag in _HEADINGS:
@@ -361,24 +491,28 @@ class _Walker:
             scale = inner_style.scale
             if "font-size" not in decls:
                 scale = _heading_scale(level)
-            self._open(HEADING, level=level,
-                       align=inner_align or "", indent=inner_indent, **box)
+            self._open(HEADING, level=level, align=inner_align or "",
+                       indent=inner_indent, indent_right=inner_right, **box)
             self.walk(node, inner_style.with_(bold=True, scale=scale),
-                      inner_align, inner_indent, pre, drawn)
+                      inner_align, inner_indent, pre, drawn, inner_right)
             self._flush()
             return
         if tag == "li":
-            self._open(PARA, align=inner_align, indent=max(1, inner_indent),
-                       marker=self._marker(node), **box)
-            self.walk(node, inner_style, inner_align, max(1, inner_indent),
-                      pre, drawn)
+            # At least one step in, whatever the CSS said: the marker hangs
+            # in that gutter, and at zero it would be set over the text.
+            item_indent = max(INDENT_EM, inner_indent)
+            self._open(PARA, align=inner_align, indent=item_indent,
+                       indent_right=inner_right, marker=self._marker(node),
+                       **box)
+            self.walk(node, inner_style, inner_align, item_indent,
+                      pre, drawn, inner_right)
             self._flush()
             return
         if tag == "pre":
-            self._open(PARA, align=inner_align, indent=inner_indent, pre=True,
-                       **box)
+            self._open(PARA, align=inner_align, indent=inner_indent,
+                       indent_right=inner_right, pre=True, **box)
             self.walk(node, inner_style.with_(mono=True), inner_align,
-                      inner_indent, True, drawn)
+                      inner_indent, True, drawn, inner_right)
             self._flush()
             return
         if tag in _BLOCK_TAGS:
@@ -388,13 +522,14 @@ class _Walker:
             # element with no text of its own opens a block that its first
             # block-level child immediately flushes away empty, which is
             # what `_flush` drops.
-            self._open(PARA, align=inner_align, indent=inner_indent, pre=pre,
-                       **box)
+            self._open(PARA, align=inner_align, indent=inner_indent,
+                       indent_right=inner_right, pre=pre, **box)
             self.walk(node, inner_style, inner_align, inner_indent, pre,
-                      drawn)
+                      drawn, inner_right)
             self._flush()
             return
-        self.walk(node, inner_style, inner_align, inner_indent, pre, drawn)
+        self.walk(node, inner_style, inner_align, inner_indent, pre, drawn,
+                  inner_right)
 
     # -- pieces -----------------------------------------------------------
 
@@ -406,7 +541,8 @@ class _Walker:
         if not resolved:
             return
         self._emit(node, IMAGE, src=resolved, alt=node.get("alt") or "",
-                   align=align or "center", indent=indent)
+                   align=align or "center", indent=indent,
+                   box=_image_box(node, self._decls_for(node)))
 
     @staticmethod
     def _list_depth(node):
@@ -418,29 +554,233 @@ class _Walker:
             parent = parent.parent
         return depth
 
-    @staticmethod
-    def _marker(node):
+    def _marker(self, node):
         """The bullet or number in front of a list item.
 
         Numbers are counted from the item's position among its siblings
         rather than tracked through the walk: a nested list restarts, which
         is what an author means by nesting one, and an `<ol start="3">`
         keeps its offset.
+
+        **The style is asked of three places in the order CSS resolves
+        them**: the item itself, its list, and then the tag's own default.
+        Books really do use all three — a cast of characters set as a
+        ``<ul>`` with ``list-style-type: none``, an appendix numbered
+        ``<ol type="i">``, a nested list left to the defaults — and reading
+        only the last one puts dots down the side of a page the author
+        deliberately left clean.
         """
         parent = node.parent
-        if parent is None or parent.tag != "ol":
-            return "•"
+        kind = self._list_style(node, parent)
+        if kind == "none":
+            return ""
+        ordered = parent is not None and parent.tag == "ol"
+        if kind in _BULLETS:
+            return _BULLETS[kind]
+        if not ordered and kind not in _NUMBERING.values():
+            # An unordered list, and nothing said otherwise: cycle the
+            # bullet by depth the way every browser does. Minus one because
+            # `_list_depth` counts from the item, whose own list is the
+            # first ancestor it finds — a top-level list is depth 1 there
+            # and wants the first bullet, not the second.
+            return _UL_DEPTH[min(max(0, self._list_depth(node) - 1),
+                                 len(_UL_DEPTH) - 1)]
         try:
-            start = int(parent.get("start") or 1)
-        except ValueError:
+            start = int((parent.get("start") if parent else None) or 1)
+        except (TypeError, ValueError):
             start = 1
-        index = 0
-        for child in parent.children:
-            if getattr(child, "tag", None) == "li":
-                if child is node:
-                    return "%d." % (start + index)
-                index += 1
-        return "%d." % start
+        number = start
+        if parent is not None:
+            index = 0
+            for child in parent.children:
+                if getattr(child, "tag", None) == "li":
+                    if child is node:
+                        break
+                    index += 1
+            number = start + index
+        return _ordinal(number, kind) + "."
+
+    def _list_style(self, node, parent):
+        """The resolved ``list-style-type``, or "" for the tag default."""
+        own = self._decls_for(node).get("list-style-type")
+        if own:
+            return own
+        if parent is None:
+            return ""
+        declared = self._decls_for(parent).get("list-style-type")
+        if declared:
+            return declared
+        if parent.tag == "ol":
+            return _NUMBERING.get(parent.get("type") or "", "decimal")
+        return ""
+
+
+#: Baseline shifts for ``<sup>`` and ``<sub>``, in ems of the body size.
+#: A third of an em up is what a text face's own superscript sits at; a
+#: sixth down is the matching subscript, which is shallower because it has
+#: descenders to clear rather than ascenders.
+SUPERSCRIPT_RISE = 0.34
+SUBSCRIPT_RISE = -0.16
+
+#: How much smaller a raised or lowered run is set.
+_SMALL_SCALE = 0.72
+
+#: How much smaller a "capital" that was lowercase is set, in small caps.
+#: Real small caps are a separate cut of the face with its own weight; this
+#: is the synthetic approximation every renderer without one falls back to.
+SMALLCAPS_SCALE = 0.78
+
+_ROMAN = ((1000, "m"), (900, "cm"), (500, "d"), (400, "cd"), (100, "c"),
+          (90, "xc"), (50, "l"), (40, "xl"), (10, "x"), (9, "ix"),
+          (5, "v"), (4, "iv"), (1, "i"))
+
+
+def _ordinal(number, kind):
+    """``(3, "lower-alpha")`` -> ``"c"``. Decimal for anything unknown."""
+    if kind in ("lower-alpha", "upper-alpha", "lower-latin", "upper-latin"):
+        text = _alpha(number)
+    elif kind in ("lower-roman", "upper-roman"):
+        text = _roman(number)
+    else:
+        return "%d" % number
+    return text.upper() if kind.startswith("upper") else text
+
+
+def _alpha(number):
+    """1 -> a, 26 -> z, 27 -> aa, as CSS counts."""
+    out = ""
+    number = max(1, number)
+    while number > 0:
+        number, rest = divmod(number - 1, 26)
+        out = chr(ord("a") + rest) + out
+    return out
+
+
+def _roman(number):
+    if not 1 <= number < 4000:
+        return "%d" % number
+    out = []
+    for value, glyph in _ROMAN:
+        while number >= value:
+            out.append(glyph)
+            number -= value
+    return "".join(out)
+
+
+def _smallcaps_spans(text, style, offset):
+    """Split ``text`` into the runs small caps needs.
+
+    Pillow has no small-caps variant and no way to synthesise one, so the
+    approximation is the classic one: uppercase everything, and set what
+    *was* lowercase smaller. That has to happen here rather than at paint
+    time because it changes where the runs begin and end, and the layer
+    below deals in runs.
+
+    Every run keeps the *same* character offset. They came out of one text
+    node, and the offset is a count of characters before that node — see
+    the module docstring. Splitting a node does not create new positions in
+    epub.js's index, and inventing some here would report a position no
+    other client can resolve.
+    """
+    out = []
+    # The reduced run KEEPS the flag, which is what lets `plain_text` undo
+    # this exactly: those are precisely the characters that were lowercase,
+    # so lowercasing them again restores the author's text. Nothing keys a
+    # font off the flag (it is not in `Style.key`), so carrying it costs
+    # nothing.
+    small = style.with_(scale=style.scale * SMALLCAPS_SCALE)
+    plain = style.with_(smallcaps=False)
+    run = []
+    run_small = None
+    for char in text:
+        is_small = char.islower()
+        if run_small is not None and is_small != run_small:
+            out.append(Span("".join(run).upper() if run_small
+                            else "".join(run),
+                            small if run_small else plain, offset))
+            run = []
+        run_small = is_small
+        run.append(char)
+    if run:
+        out.append(Span("".join(run).upper() if run_small else "".join(run),
+                        small if run_small else plain, offset))
+    return out
+
+
+def _margin_em(decls, prop):
+    """A horizontal margin in ems, or 0. Negative margins are dropped —
+    pulling a block out past the reader's own margin puts it off the page,
+    and the books that do it are compensating for a box model this reader
+    does not have."""
+    from .css import length_em
+
+    value = decls.get(prop)
+    if not value or value in ("auto", "0"):
+        return 0.0
+    em = length_em(value)
+    if em is None:
+        return 0.0
+    return max(0.0, min(em, 8.0))
+
+
+#: An HTML presentation attribute (``width="16"``) is a bare number of
+#: pixels. A CSS value never is, so the two cannot be read the same way.
+_BARE_NUMBER = re.compile(r"^[+-]?[\d.]+$")
+
+
+def _declared_size(node, decls, prop):
+    """One declared length -> ``(value, is_fraction)``, or None.
+
+    The value is in ems of the body size; ``is_fraction`` marks a
+    percentage, which is of the measure and so cannot be folded into it.
+
+    Both spellings are read, because the attribute is what an old book
+    carries and the stylesheet what a new one does, and the cascade puts
+    CSS above the attribute. Ems rather than pixels for the same reason the
+    measure is capped in them: the reader's body size is a setting, and an
+    icon the author sized against the text should stay sized against the
+    text. Absolute units go through css.py's nominal 16px body, which is
+    what every epub was styled against.
+    """
+    from .css import length_em
+
+    value = decls.get(prop)
+    if not value and prop in ("width", "height"):
+        # A presentation attribute (`width="16"`) is a bare number of
+        # pixels. A CSS value never is, so the two cannot be read alike.
+        value = node.get(prop)
+        if value and _BARE_NUMBER.match(value.strip()):
+            value = value.strip() + "px"
+    if not value:
+        return None
+    value = value.strip().lower()
+    if value in ("auto", "inherit", "initial", "unset", "none", "0"):
+        return None
+    em = length_em(value)
+    if em is None or em <= 0:
+        return None
+    return (em, value.endswith("%"))
+
+
+def _image_box(node, decls):
+    """What the book says about how big an image should be drawn.
+
+    **Books say something more often than they look like they do**, and the
+    natural pixel size of the file is a poor stand-in when they do — the
+    case that prompted this was a cookbook whose step arrows are 256 px
+    PNGs set to about a line tall, drawn at their own size and swallowing
+    the page. ``max-width``/``max-height`` are read as well as the plain
+    ones, and are the commoner spelling for exactly these little marks.
+
+    Empty when nothing was said, which is what makes "use the file's size"
+    still the default.
+    """
+    box = {}
+    for prop in ("width", "height", "max-width", "max-height"):
+        declared = _declared_size(node, decls, prop)
+        if declared is not None:
+            box[prop] = declared
+    return box
 
 
 def _heading_scale(level):
@@ -493,6 +833,23 @@ def _apply_decls(style, decls):
     family = decls.get("font-family") or ""
     if "monospace" in family or "courier" in family or "consolas" in family:
         style = style.with_(mono=True)
+    variant = (decls.get("font-variant-caps")
+               or decls.get("font-variant") or "")
+    if "small-caps" in variant:
+        style = style.with_(smallcaps=True)
+    elif variant in ("normal", "none"):
+        style = style.with_(smallcaps=False)
+    align = decls.get("vertical-align")
+    if align in ("super", "sub"):
+        # Scale it too, unless the sheet also said a size — a superscript
+        # set at the body size is a footnote marker that looks like a typo,
+        # and every face's own superscript glyphs are around 0.7em.
+        style = style.with_(rise=SUPERSCRIPT_RISE if align == "super"
+                            else SUBSCRIPT_RISE)
+        if "font-size" not in decls:
+            style = style.with_(scale=style.scale * _SMALL_SCALE)
+    elif align in ("baseline", "initial"):
+        style = style.with_(rise=0.0)
     size = decls.get("font-size")
     if size:
         from .css import font_scale

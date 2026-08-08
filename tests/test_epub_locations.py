@@ -85,7 +85,6 @@ class TestIndex(unittest.TestCase):
         path = os.path.join(self.dir, "book.epub")
         build_epub(path, chapters, linear=linear)
         package = open_epub(path)
-        self.addCleanup(package.close)
         return package, locations.build(package)
 
     def setUp(self):

@@ -292,6 +292,13 @@ class ImageMap(Element):
 
     Regions become transparent hit-rects whose hover ring draws OUTSIDE
     their bounds (the bitmap would cover an inline ring).
+
+    ``"zone": True`` is the opt-out, for a region that is a *place on the
+    bitmap* rather than a thing in it — the reader's page-turn halves. It
+    takes no hover ring and leaves the spatial-nav order, because both
+    rings exist to say "this one", and half a page of prose is not a
+    "this". Use it only where the bitmap has no cells; a strip of tiles
+    needs both rings and always will.
     """
 
     def __init__(self, src, iw, ih, regions=None, v=0, **kw):

@@ -203,7 +203,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 
 | t | extra fields |
 |---|---|
-| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring, wdrag (title bar: press drags the window, dbl toggles maximized — renderer-side, no event) |
+| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring, nnav (clickable but outside the focus order — an ImageMap `zone`), wdrag (title bar: press drags the window, dbl toggles maximized — renderer-side, no event) |
 | text | text, size, c, bold, align, click, hover (one node per wrapped line: `id`, `id.l1`, …) |
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |

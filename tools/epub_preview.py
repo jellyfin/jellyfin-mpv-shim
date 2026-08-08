@@ -67,8 +67,11 @@ def main():
                               justify=not args.no_justify)
     started = time.time()
     doc = EpubDocument(args.book, style)
-    column = (width - 2 * style.margin_x, height - 2 * style.margin_y)
-    doc.set_viewport(*column)
+    # Same two calls the reader makes: the measure is capped and centred,
+    # so a preview at a wide size shows what the app would show rather than
+    # a line of prose across the whole bitmap.
+    col_w, col_x = style.column(width)
+    doc.set_viewport(col_w, height - 2 * style.margin_y)
     print("%s — %s (%d spine documents), opened in %.0f ms"
           % (doc.title or "(untitled)", doc.author or "(unknown author)",
              doc.spine_count, (time.time() - started) * 1000))
@@ -121,7 +124,7 @@ def main():
         if offset not in wanted:
             continue
         started = time.time()
-        image = doc.render((width, height), colors)
+        image = doc.render((width, height), colors, (col_x, style.margin_y))
         path = os.path.join(args.out, "page%02d.png" % (offset + 1))
         image.save(path)
         written.append(path)

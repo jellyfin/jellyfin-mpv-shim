@@ -3708,9 +3708,13 @@ local function nav_candidates()
     local modal = modal_active()
     local out = {}
     for _, node in ipairs(state.nodes) do
+        -- nnav: a clickable node that is not a control -- the reader's
+        -- page-turn halves. It has no visual identity, so the focus ring
+        -- would be a blue box round half a page of text, pointing at
+        -- nothing. Still clickable, just not walkable.
         if node.t ~= 'scroll' and node.t ~= 'layer' and
             node.t ~= 'menu' and node.t ~= 'occ' and
-            (not modal or node.mod) and not node.dis and
+            (not modal or node.mod) and not node.dis and not node.nnav and
             (node.click or node.dbl or node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider') and
             visible(node) then

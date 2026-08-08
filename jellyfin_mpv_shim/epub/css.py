@@ -37,6 +37,29 @@ USED_PROPERTIES = frozenset({
     "font-size", "font-weight", "font-style", "font-family",
     "text-align", "text-decoration", "display", "visibility",
     "text-indent", "margin-top", "margin-bottom", "page-break-before",
+    # The block's own inset. A verse, an epigraph and a letter quoted in a
+    # novel are all "the same paragraphs, moved in from the margin", and
+    # margin-left is how every one of them says so — without it they set
+    # flush with the prose and the distinction the author drew disappears.
+    "margin-left", "margin-right",
+    # Which bullet or number a list item gets, including `none`, which is
+    # how a book sets a list of dates or a cast of characters as a list
+    # without wanting dots down the side of the page.
+    "list-style-type",
+    # Small capitals, which published fiction uses for the opening words of
+    # a chapter and for the odd proper noun. Both spellings, because the
+    # shorthand is what old books carry and the longhand what new ones do.
+    "font-variant", "font-variant-caps",
+    # Superscript and subscript by style rather than by tag. A footnote
+    # reference is as often `<a class="noteref">` with this on it as it is
+    # a `<sup>`, and set on the baseline it reads as a stray digit in the
+    # middle of a sentence.
+    "vertical-align",
+    # How big an image is drawn. Read for images only, and the one property
+    # here that is about a box rather than about type — but without it the
+    # only size available is the file's own, and an icon shipped at 256 px
+    # and styled down to 1em is drawn a quarter of a page tall.
+    "width", "height", "max-width", "max-height",
 })
 
 #: Cap on how much stylesheet is read per book. Reached only by generated

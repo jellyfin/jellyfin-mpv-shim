@@ -100,13 +100,17 @@ def render_page(page, size, style, measurer, colors, load_image=None,
 
 
 def _draw_line(draw, line, ox, oy, measurer, colors):
-    baseline = oy + line.y + line.ascent
+    base = oy + line.y + line.ascent
     for piece in line.pieces:
         font = measurer.font(piece.style)
         x = ox + piece.x
         # "ls" is left/baseline: pieces of different sizes on one line share
-        # the line's baseline, which is what keeps a superscript or a larger
-        # drop capital sitting on the same line rather than floating.
+        # the line's baseline, which is what keeps a run set larger or
+        # smaller sitting on the same line rather than floating. ``dy`` is
+        # the deliberate exception — a superscript, or a drop capital
+        # reaching down past the line it is drawn on — and it is a number
+        # layout worked out, not a decision taken here.
+        baseline = base + piece.dy
         draw.text((x, baseline), piece.text, font=font, fill=colors.fg,
                   anchor="ls")
         if piece.style.underline or piece.style.strike:

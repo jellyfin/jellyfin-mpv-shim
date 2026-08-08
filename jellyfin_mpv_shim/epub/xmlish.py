@@ -178,6 +178,14 @@ def parse(data):
     """
     if isinstance(data, (bytes, bytearray)):
         data = decode(data)
+    # XML line-end normalization (XML 1.0 §2.11), which a conforming parser
+    # is *required* to do and `html.parser` does not. It is not cosmetic
+    # here: a CR left in a `<pre>` code listing has no glyph in any face, so
+    # it draws as a tofu box at the end of every line — and books converted
+    # on Windows are full of them. It also keeps the character count right,
+    # because the DOM epub.js counts never contained the CR either.
+    if "\r" in data:
+        data = data.replace("\r\n", "\n").replace("\r", "\n")
     builder = _Builder()
     builder.feed(data)
     builder.close()

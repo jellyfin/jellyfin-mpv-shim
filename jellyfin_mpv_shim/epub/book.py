@@ -112,11 +112,20 @@ class EpubDocument:
         return title
 
     def close(self):
+        """Drop the parsed book, keeping the object usable.
+
+        There is no handle to release — the archive holds none (see
+        ``archive.EpubArchive``) — so this is only about memory: the parsed
+        sections, their pagination and the decoded images, which for an
+        illustrated book is the largest thing the reader owns. Everything
+        it drops is rebuilt on demand, so calling it early costs a re-parse
+        and nothing else. That is what makes it safe for the shell to call
+        without knowing whether the page is coming back.
+        """
         with self._lock:
             self._sections.clear()
             self._paginated.clear()
             self._images.clear()
-            self.package.close()
 
     def _first_readable_spine(self):
         return 0 if self.package.spine else 0
@@ -351,6 +360,81 @@ class EpubDocument:
             self.goto(self._spine - 1, 0)
             return True
 
+    # -- text ---------------------------------------------------------------
+
+    def page_text(self):
+        """The paragraphs on the visible page, as text.
+
+        **The paragraphs on it, each whole** — not the exact characters
+        drawn. A paragraph the page ends in the middle of is copied
+        entire, which is the same answer :meth:`paragraph_at` gives and
+        for the same reason: half a paragraph is a fragment starting
+        mid-sentence, and nobody pastes one on purpose.
+
+        It also happens to be the only version that can be *right*.
+        Rebuilding the visible text from the laid-out lines cannot put the
+        spaces back: a space is not a run — the breaker drops space tokens
+        and justification turns them into a gap between two pieces' x — so
+        the lines yield their words joined together. Going back to the
+        blocks asks the layer that still has the author's text.
+        """
+        with self._lock:
+            return "\n\n".join(
+                part for part in (_block_text(b)
+                                  for b in self._blocks_on_page())
+                if part.strip())
+
+    def _blocks_on_page(self):
+        """The distinct blocks the visible page draws, in order."""
+        out = []
+        for item in self.current_page().items:
+            if type(item).__name__ != "Line" or item.block is None:
+                continue
+            if not out or out[-1] is not item.block:
+                out.append(item.block)
+        return out
+
+    def paragraph_at(self, y):
+        """The whole paragraph at a height on the page, as text, or None.
+
+        ``y`` is in physical pixels from the top of the **text column** —
+        the same space :meth:`render` lays out in, so a caller converts
+        from the window by subtracting the bitmap's origin and the column's
+        own top. There is no text selection in this reader (the page is one
+        bitmap), so a pointer can ask for a paragraph and nothing finer;
+        this is the whole of what it can ask.
+
+        A height, not a point: every line spans the whole measure, so the
+        horizontal position says nothing a paragraph could be picked by.
+        Taking an x as well would be a parameter that is quietly ignored,
+        and the first caller to compute it wrongly would never find out.
+
+        The paragraph, not the line: a line is an artefact of this window
+        at this type size, and pasting one would produce a fragment that
+        means nothing on its own.
+        """
+        with self._lock:
+            block = self._block_at(y)
+            return _block_text(block) if block is not None else None
+
+    def _block_at(self, y):
+        page = self.current_page()
+        for item in page.items:
+            if type(item).__name__ != "Line" or item.block is None:
+                continue
+            if item.y <= y < item.y + item.height:
+                return item.block
+        # Nothing directly at that height — a point in the gutter between
+        # paragraphs, or below the last line. Fall back to the nearest line
+        # above, which is the paragraph the eye is on.
+        best = None
+        for item in page.items:
+            if type(item).__name__ != "Line" or item.block is None:
+                continue
+            if item.y <= y:
+                best = item.block
+        return best
+
     # -- drawing ----------------------------------------------------------
 
     def render(self, size, colors, origin=None):
@@ -369,3 +453,20 @@ class EpubDocument:
         """
         with self._lock:
             return (self.path, self._spine, self._page, self._layout_key())
+
+
+
+def _block_text(block):
+    """A whole paragraph, including the part of it on the next page.
+
+    From the block rather than from the page's lines: a paragraph broken
+    across a page break is still one paragraph, and copying the visible
+    half of it would silently truncate a quotation.
+    """
+    text = (block.plain_text() if hasattr(block, "plain_text")
+            else block.text())
+    if getattr(block, "pre", False):
+        return text
+    text = " ".join(text.split())
+    marker = getattr(block, "marker", "")
+    return ("%s %s" % (marker, text)).strip() if marker else text
