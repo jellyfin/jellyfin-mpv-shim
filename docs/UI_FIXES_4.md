@@ -20,14 +20,14 @@ formatter landing as its own commit before the two items that need it.
 | [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | todo |
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
-| [4](#4--delete-from-disk) | Delete from Disk | todo |
+| [4](#4--delete-from-disk) | Delete from Disk | done |
 | [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | todo |
 | [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | todo |
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | todo |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
 | [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | **answered — work needed** |
-| [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | done |
-| [11](#11--media-info-in-the-context-menu) | Media info in the context menu | todo |
+| [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | done `faf129fd` |
+| [11](#11--media-info-in-the-context-menu) | Media info in the context menu | done `a6d5c7b4` |
 
 ---
 

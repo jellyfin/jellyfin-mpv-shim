@@ -60,7 +60,7 @@ log = logging.getLogger("mpvtk_browser.repository")
 # to answer (it is the length of the item's own alternate-version lists, not a
 # media-source resolution -- that is MediaSources, which DETAIL_FIELDS pays
 # for and a browse query must not).
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount"
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount,CanDelete"
 
 #: An item's own artwork counts as landscape at or above this, which is what
 #: lets `backdrop_spec` use a home video's extracted still for its header and
@@ -77,7 +77,18 @@ _LANDSCAPE_ART = 0.8
 # a clicked one seeds a page that shows the text while the real DTO loads.
 # jellyfin-web's grid asks for the aspect ratio only when the view is Primary;
 # MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
-GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount"
+GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount,CanDelete"
+
+#: CanDelete is in all three sets, and it has to be ASKED FOR: a list query
+#: omits it entirely (measured -- the key is absent, not False), so a Delete
+#: from Disk entry keyed off it would simply never appear. A single-item
+#: fetch returns it whatever Fields says, but relying on that would make the
+#: detail page's button depend on an undocumented default.
+#:
+#: It costs nothing measurable: +1.8 KB on a 165 KB hundred-item grid, and
+#: no change in query time -- which is worth having measured, because the
+#: per-item permission fields on this API are exactly the ones that have
+#: been expensive before (see the note on Items/Filters).
 
 #: ...and what a BOOKS grid asks for on top.
 #:
@@ -179,7 +190,7 @@ MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts"
 DETAIL_FIELDS = (
     "Path,Overview,Genres,Studios,People,Taglines,SortName,"
     "MediaSources,MediaStreams,Chapters,ProviderIds,"
-    "PrimaryImageAspectRatio,DateCreated"
+    "PrimaryImageAspectRatio,DateCreated,CanDelete"
 )
 
 # CollectionTypes we do not surface (video-only browser, phase 1). Playlists

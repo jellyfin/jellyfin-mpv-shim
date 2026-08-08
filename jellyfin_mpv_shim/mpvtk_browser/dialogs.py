@@ -742,14 +742,33 @@ class DialogsMixin:
             text += " " + _("Use MPV 0.41 or newer.")
         self._message(text, title=_("Clipboard"))
 
-    def _confirm(self, text, on_yes, title=None, yes=None):
+    def _confirm(self, text, on_yes, title=None, yes=None, detail=None):
+        """Ask before doing something. ``detail`` is a second, emphasised
+        line for a confirmation whose *consequence* is the point.
+
+        The message wraps. It used to be a bare Text, which ellipsizes at
+        the shell's width -- so "Remove <a long film name> from this
+        playlist?" was already being cut off, and a confirmation that
+        explains what it is about to destroy would have had the explanation
+        truncated. `_message` had worked this out and used
+        `chrome.paragraph`; this one had not.
+        """
         title = title or _("Confirm")
         yes = yes or _("OK")
 
         def build():
-            return Dialog("confirm", self._dialog_shell("confirm", [
+            from .components import chrome
+
+            rows = [
                 Text(title, size=22, bold=True),
-                Text(text, size=16, color=theme.SUBTLE_FG),
+                chrome.paragraph(text, 16, self.MESSAGE_W,
+                                 color=theme.SUBTLE_FG),
+            ]
+            if detail:
+                # Not SUBTLE_FG: this is the sentence the dialog exists to
+                # make sure was read.
+                rows.append(chrome.paragraph(detail, 16, self.MESSAGE_W))
+            return Dialog("confirm", self._dialog_shell("confirm", rows + [
                 self._dialog_buttons([
                     Button(_("Cancel"), id="dlg-cancel",
                            on_click=self._close_dialog),

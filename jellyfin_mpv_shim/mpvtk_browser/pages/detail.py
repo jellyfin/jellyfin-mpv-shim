@@ -131,6 +131,13 @@ class DetailPage(Page):
             btns.append(controls.action_btn(
                 "info", _("Media Info"), "act-minfo",
                 lambda: self.ctx.dialogs.media_info(item, server)))
+        if self.ctx.actions.can_delete(item):
+            # Last in the row, like the tile menu, and for the same reason:
+            # it is the only control here that destroys anything.
+            btns.append(controls.action_btn(
+                "delete", _("Delete from Disk"), "act-delete",
+                lambda: self.ctx.actions.confirm_delete_item(
+                    item, server, on_done=self._left_after_delete)))
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             btns.append(controls.action_btn(
                 "movie", _("Go to Series"), "act-series",
@@ -139,6 +146,16 @@ class DetailPage(Page):
                     "item_id": item["SeriesId"],
                     "title": item.get("SeriesName", "")})))
         return Row(btns, gap=8, align="center")
+
+    def _left_after_delete(self):
+        """Leave the page once its item is gone.
+
+        Unlike a grid, this screen *is* the deleted item: re-reading it
+        would fetch a 404 and show an error where a film used to be. Back,
+        which lands on the list it was opened from -- and that list re-reads
+        itself on the way in, so the tile goes too.
+        """
+        self.ctx.nav.go_back()
 
     def _start(self, item, server, offset_ticks=None):
         """Play `item` with the version and tracks selected **now**.
