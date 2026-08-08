@@ -135,6 +135,25 @@ class Page:
         """Build the content-area widget tree. Loop thread."""
         raise NotImplementedError
 
+    def close(self) -> None:
+        """This page has stopped being the screen. Loop thread.
+
+        Called once, when the shell renders a *different* page — not on
+        navigation, because navigation happens on threads the render loop
+        does not own (a websocket, mpv's event thread) and this may touch
+        the player.
+
+        Almost no page needs it. It exists for the two that take something
+        the window can only hold one of: the comic reader hands mpv a
+        picture, which nothing else would take down, and it extracts pages
+        to files, which nothing else would delete. A page that only holds
+        memory should let the caches do their job instead.
+
+        It may be followed by another ``load()`` — going back returns to a
+        route whose dict is still here — so it must leave the page usable
+        rather than spent.
+        """
+
     # -- convenience -------------------------------------------------------
 
     def parked_scroll(self, scroll_id):

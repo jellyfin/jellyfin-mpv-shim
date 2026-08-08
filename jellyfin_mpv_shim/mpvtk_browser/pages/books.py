@@ -22,6 +22,7 @@ parent. That is why the *folder* is the unit here and not a metadata field.
 import logging
 
 from ...books import (book_format, format_label, is_audiobook, page_count,
+                      reader_route,
                       progress_label, progress_settable)
 from ...i18n import _, _p
 from ...mpvtk.widgets import Column, Row, Table, Text, VScroll
@@ -642,21 +643,24 @@ class BookPage(Page):
         return "   ·   ".join(p for p in parts if p)
 
     def _read_here(self, item, server):
-        """Open the built-in reader on this book."""
-        self.ctx.nav.navigate({"kind": "reader", "server": server,
+        """Open this book in whichever built-in reader draws its format."""
+        self.ctx.nav.navigate({"kind": reader_route(item), "server": server,
                                "item_id": item.get("Id"),
                                "title": item.get("Name", "")})
 
     def _buttons(self, item, server, state):
         actions = self.ctx.actions
         status, path = state or (None, None)
-        # **Only epub reads in this window**, and the button row says so by
-        # what it offers rather than by refusing afterwards. A PDF or a
-        # comic needs a page rasterizer we do not have and will not grow
-        # (see ``epub/paint.py`` on scope); a mobi is a format nothing in
+        # **Epub and the two comic formats Python can unpack read in this
+        # window**, and the button row says so by what it offers rather
+        # than by refusing afterwards. A PDF needs a page rasterizer that
+        # costs a heavy dependency; cbr and cb7 are RAR and 7-Zip, which
+        # Python does not ship a reader for; a mobi is a format nothing in
         # the Jellyfin ecosystem opens at all. For those, Read still means
-        # what it always meant -- hand the file to the desktop.
-        readable = book_format(item) == "epub"
+        # what it always meant -- hand the file to the desktop. The list
+        # itself is books.IN_WINDOW_FORMATS, so this row and the tile menu
+        # cannot disagree about it.
+        readable = reader_route(item) is not None
         btns = [controls.action_btn(
             # Two senses of one English word on one screen, which is exactly
             # what _p exists for: this one is the verb ("open this book"),

@@ -413,10 +413,11 @@ class TilesMixin:
         here would be a second place to keep in step with what the reader
         can actually draw.
         """
-        from ..books import book_format
+        from ..books import reader_route
 
-        if book_format(item) == "epub":
-            self.navigate({"kind": "reader", "server": server,
+        kind = reader_route(item)
+        if kind:
+            self.navigate({"kind": kind, "server": server,
                            "item_id": item.get("Id"),
                            "title": item.get("Name", "")})
             return

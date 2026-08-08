@@ -222,6 +222,26 @@ def ticks_for_fraction(fraction):
     return int(round(value * EPUB_FULL_TICKS))
 
 
+#: Formats that open in the window, and the route kind each one opens.
+#: The single place that answers "can we draw this ourselves", so the
+#: book's own page and the tile menu cannot drift apart about it.
+IN_WINDOW_FORMATS = {"epub": "reader", "cbz": "comic", "cbt": "comic"}
+
+
+def reader_route(item):
+    """The route kind that reads this book here, or None for the desktop.
+
+    ``None`` is the answer for pdf, mobi, azw, cbr and cb7, and the
+    reasons differ: a PDF needs a page rasterizer that costs a heavy
+    dependency until the server grows one (Jellyfin 12's PDFtoImage probe
+    is for page *counts*); mobi and azw are formats nothing in the
+    Jellyfin ecosystem opens; and cbr and cb7 are RAR and 7-Zip, which
+    Python does not ship a reader for. All of them still Read — the button
+    means "open this book", and off the machine is where it opens.
+    """
+    return IN_WINDOW_FORMATS.get(book_format(item))
+
+
 def progress_settable(item):
     """Whether the user can meaningfully *state* where they are in this book.
 

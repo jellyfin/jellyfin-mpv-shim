@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 11:28-0400\n"
+"POT-Creation-Date: 2026-08-07 12:27-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -513,6 +513,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
 msgstr ""
@@ -522,11 +523,13 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Previous page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
 msgstr ""
@@ -1446,6 +1449,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Back"
@@ -2390,6 +2394,39 @@ msgstr ""
 msgid "Nothing here yet."
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This comic could not be opened."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This page could not be read."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "The download failed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Getting the comic…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Width"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Page"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom out"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom in"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
@@ -2899,10 +2936,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Getting the book…"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-msgid "The download failed."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py

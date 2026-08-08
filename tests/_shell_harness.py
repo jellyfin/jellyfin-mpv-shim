@@ -603,6 +603,25 @@ class FakeController:
         #: a test can drive the "no clipboard on this box, saved to a file"
         #: message as well as the happy one.
         self.copy_result = (True, "fake", None)
+        #: The comic reader's side of the window: what was handed to mpv to
+        #: display, and every view change asked for. Recorded rather than
+        #: dropped -- "which page is on screen" and "where is it" have no
+        #: other observable, because the picture is mpv's and not a node in
+        #: any scene this suite can read.
+        self.pictures = []
+        self.picture_views = []
+        self.pictures_cleared = 0
+
+    def show_picture(self, path):
+        self.pictures.append(path)
+        return True
+
+    def clear_picture(self):
+        self.pictures_cleared += 1
+
+    def set_picture_view(self, zoom=None, pan_x=None, pan_y=None):
+        self.picture_views.append({"zoom": zoom, "pan_x": pan_x,
+                                   "pan_y": pan_y})
 
     def copy_text(self, text):
         self.copied.append(text)

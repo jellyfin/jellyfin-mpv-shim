@@ -228,6 +228,19 @@ local state = {
     dd_geo = nil,           -- open popup geometry
     sl = {},                -- slider id -> {value}
     slider_drag = nil,      -- slider id being dragged
+    -- Picture panning (the comic reader). While `on`, a drag over the
+    -- window and the wheel move mpv's video-pan-x/y directly, which is the
+    -- whole point: a page turn is a Python round trip but a *scroll* is
+    -- sixty of them a second, and the app has nothing to add to one. The
+    -- app pushes the clamp and the pixel size of the displayed picture
+    -- (mpvtk-vpan); everything per-frame is arithmetic here.
+    --
+    -- A field on `state` rather than a file-scope local because
+    -- renderer.lua's main chunk is AT Lua's 200-local ceiling -- see
+    -- tests/test_renderer_lua.py, and state.builtin_drag above for the
+    -- same dodge.
+    vpan = nil,             -- {on, unitx, unity, minx, maxx, miny, maxy, step}
+    vpan_drag = nil,        -- {x, y} pointer position at the last pan
     tb_drag = nil,          -- {id, anchor} during click-drag selection
     tb_menu = nil,          -- {id, x, y} textbox context menu
     scale = 1,              -- UI scale (mpvtk-scale); see ui_px()
@@ -3002,11 +3015,49 @@ local function tb_menu_action(node, label)
     end
 end
 
+-- Move the displayed picture by (dx, dy) PHYSICAL pixels, clamped to what
+-- the app said is reachable. mpv's pan unit is the scaled picture, not the
+-- window (measured -- see mpvtk_browser/gateway/picture.py), which is why
+-- the divisor is unitx/unity and not the window size.
+function state.vpan_by(dx, dy)
+    local v = state.vpan
+    if not v or not v.on then return false end
+    local px = mp.get_property_number('video-pan-x', 0) + dx / (v.unitx or 1)
+    local py = mp.get_property_number('video-pan-y', 0) + dy / (v.unity or 1)
+    px = math.max(v.minx or 0, math.min(px, v.maxx or 0))
+    py = math.max(v.miny or 0, math.min(py, v.maxy or 0))
+    mp.set_property_number('video-pan-x', px)
+    mp.set_property_number('video-pan-y', py)
+    return true
+end
+
+-- One wheel notch down the page. Returns false when the page will not move
+-- any further, which is what turns the page instead: a comic reader that
+-- stops dead at the bottom of a page makes the wheel useless for the one
+-- gesture it is there for.
+function state.vpan_wheel(dir)
+    local v = state.vpan
+    if not v or not v.on then return false end
+    local before = mp.get_property_number('video-pan-y', 0)
+    -- dir > 0 is "scroll down", which moves the picture UP, which is a
+    -- SMALLER pan (a positive pan pushes the picture down the window).
+    state.vpan_by(0, -dir * (v.step or 60))
+    local after = mp.get_property_number('video-pan-y', 0)
+    if math.abs(after - before) > 1e-6 then return true end
+    send({ t = 'vpan', edge = dir > 0 and 'bottom' or 'top' })
+    return true
+end
+
 local function on_mouse_move(x, y)
     phud_touch()
     -- The observer only fires on a change, so reaching here IS movement.
     state.phud.moved = true
     state.mouse.x, state.mouse.y = x, y
+    if state.vpan_drag then
+        state.vpan_by(x - state.vpan_drag.x, y - state.vpan_drag.y)
+        state.vpan_drag.x, state.vpan_drag.y = x, y
+        return
+    end
     if state.tb_drag then
         local node = state.byid[state.tb_drag.id]
         if node and node.t == 'textbox' then
@@ -3292,6 +3343,13 @@ local function on_mouse_down()
     if state.focus and (not node or node.id ~= state.focus) then
         blur()
     end
+    -- Nothing under the pointer and a picture on screen: the press grabs
+    -- the picture. Below the node test on purpose -- a press on one of the
+    -- reader's own bar buttons is a press on the button, and only the part
+    -- of the window that IS the page drags.
+    if not node and not modal_active() and state.vpan_grab(x, y) then
+        return
+    end
     if not node then
         -- click-away from an open modal dialog dismisses it
         if modal_active() then
@@ -3383,7 +3441,22 @@ local function on_mouse_down()
     end
 end
 
+-- Grab the picture. Called from on_mouse_down's no-node path (below), so a
+-- press on a bar button is a press on the button and only the empty middle
+-- of the comic reader drags -- which is exactly the part that IS the page.
+function state.vpan_grab(x, y)
+    if state.vpan and state.vpan.on then
+        state.vpan_drag = { x = x, y = y }
+        return true
+    end
+    return false
+end
+
 local function on_mouse_up()
+    if state.vpan_drag then
+        state.vpan_drag = nil
+        return       -- a drag is not a click, however short it was
+    end
     if state.dd_bar_drag then
         state.dd_bar_drag = nil
         request_render()
@@ -3452,6 +3525,12 @@ local function on_wheel(dir, axis, e)
     if state.dd_open and axis == 'y' then
         popup_scroll(dir > 0 and 3 or -3)
         return
+    end
+    -- A displayed picture takes the wheel next. It is not a container, so
+    -- scroll_at below finds nothing over it -- which would leave the wheel
+    -- dead on the one screen whose entire content is scrollable.
+    if state.vpan and state.vpan.on and axis == 'y' then
+        if state.vpan_wheel(dir) then return end
     end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
     local locked = false
@@ -4443,6 +4522,16 @@ mp.set_key_bindings({
     { 'wheel_right', function(e) on_wheel(1, 'x', e) end },
     { 'shift+wheel_up', function(e) on_wheel(-1, 'x', e) end },
     { 'shift+wheel_down', function(e) on_wheel(1, 'x', e) end },
+    -- ctrl+wheel is zoom wherever a picture is being panned, and nothing
+    -- anywhere else. Sent to the app rather than applied here: a zoom
+    -- changes the clamp, and the clamp comes from the page's size and the
+    -- bars' heights, neither of which the renderer knows.
+    { 'ctrl+wheel_up', function()
+        if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = 1 }) end
+    end },
+    { 'ctrl+wheel_down', function()
+        if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = -1 }) end
+    end },
 }, 'mpvtk_wheel', 'force')
 -- Whether these sections may be enabled with `allow-vo-dragging`, and what
 -- the user's own `input-builtin-dragging` was before we touched it. Kept on
@@ -4856,6 +4945,20 @@ end)
 mp.register_script_message('mpvtk-keys', function(json)
     local t = json and utils.parse_json(json) or nil
     keyclaim.set(t and t.keys or {})
+end)
+
+-- Picture panning: the comic reader hands over the clamp and the displayed
+-- size of the page, and the gestures stop being its problem. Everything
+-- per-frame -- a drag, a wheel notch -- is then arithmetic in here against
+-- mpv's own video-pan-x/y, with no round trip at all.
+mp.register_script_message('mpvtk-vpan', function(json)
+    local t = json and utils.parse_json(json) or nil
+    if not t or not t.on then
+        state.vpan = nil
+        state.vpan_drag = nil
+        return
+    end
+    state.vpan = t
 end)
 
 mp.register_script_message('mpvtk-focus', function(json)

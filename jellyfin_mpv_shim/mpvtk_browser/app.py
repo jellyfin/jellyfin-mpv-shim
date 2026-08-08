@@ -139,7 +139,7 @@ def now_id_of(state):
 # The reader is here for the same reason the cast screen is: it is a
 # full-bleed page with its own bar, and the library chrome above it would be
 # a second back button and a search box over a book.
-CHROME_FREE = {"login", "locked", "connecting", "cast", "reader"}
+CHROME_FREE = {"login", "locked", "connecting", "cast", "reader", "comic"}
 
 # Where the now-playing bar must NOT appear. Deliberately not CHROME_FREE:
 # the cast screen is chrome-free but IS where audio playback lives in
@@ -304,6 +304,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # see _shed_caches_on_screen_change.
         self._screen_seq = 0
         self._shed_seq = 0
+        #: The Page currently on screen, so the one before it can be told
+        #: it is not. See _retire_page.
+        self._live_page = None
         self._csd = False
         self._maximized = False
         # Modal dialog: a builder callable -> Dialog node, or None.
@@ -1441,6 +1444,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # are — it answers a question about what the renderer drew — and
             # it is not a field of its own because the contract test caps
             # those, correctly.
+            # How the renderer should drive a picture mpv is displaying:
+            # the clamp and the pan unit for a comic page. Here rather
+            # than as a PageContext field for the same reason node_rect
+            # is -- it is a fact about what the renderer is drawing, and
+            # the context is capped.
+            set_picture_pan=(lambda cfg=None:
+                             self._set_picture_pan(cfg)),
             node_rect=(lambda node_id: self.app.node_rect(node_id)
                        if self.app is not None else None))
 
@@ -1496,6 +1506,35 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: was the whole browser silently freezing, with no error anywhere.
     PAGE_OBJ_KEY = "_page_obj"
 
+    def _retire_page(self, route):
+        """Tell the page we just stopped drawing that it is off screen.
+
+        On the loop thread, from build(), rather than in navigate(): that
+        is reachable from mpv's event thread and from the websocket (a
+        remote's GoHome, a phone's DisplayContent), and what a page does
+        here may touch the player. Observed rather than pushed, the same
+        way _shed_caches_on_screen_change is, and for the same reason.
+
+        The comparison is by page *object*, so a route re-entered later
+        gets its close() and its next load() in the right order.
+        """
+        page = self._page_for(route)
+        previous = getattr(self, "_live_page", None)
+        if previous is page:
+            return
+        self._live_page = page
+        if getattr(page, "kind", None) != "comic":
+            # Dropped by whoever is NOT the picture page, the same way a
+            # key claim is: a gesture model that outlives its page pans a
+            # picture nobody can see.
+            self._set_picture_pan(None)
+        if previous is None:
+            return
+        try:
+            previous.close()
+        except Exception:
+            log.warning("page close failed", exc_info=True)
+
     def _claim_page_keys(self, route):
         """Push this route's key claim to the renderer (see
         ``MpvtkApp.claim_keys``).
@@ -1514,6 +1553,33 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             claim(getattr(page, "claimed_keys", ()) or ())
         except Exception:
             log.debug("key claim failed", exc_info=True)
+
+    def _set_picture_pan(self, config=None):
+        """Push (or drop) the renderer's gesture model for a picture."""
+        setter = getattr(self.app, "set_picture_pan", None)
+        if setter is None:
+            return
+        try:
+            setter(config)
+        except Exception:
+            log.debug("could not set the pan model", exc_info=True)
+
+    def _on_picture_gesture(self, kind, evt):
+        """A wheel or drag gesture over a displayed picture. Loop thread.
+
+        Node-less, so it cannot go through the handler registry: the
+        picture is mpv's video, not something in the scene. Handed to
+        whichever page put it there, which is the only thing that knows
+        what "past the bottom" means.
+        """
+        page = self._page_for(self.route)
+        handler = getattr(page, "on_picture_gesture", None)
+        if handler is None:
+            return
+        try:
+            handler(kind, evt)
+        except Exception:
+            log.warning("page picture gesture failed", exc_info=True)
 
     def _on_claimed_key(self, key):
         """A key this route claimed. Handed to the page, on the loop thread."""
@@ -1778,6 +1844,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_forward = self._on_mouse_forward
         if hasattr(app, "on_key"):
             app.on_key = self._on_claimed_key
+        app.on_picture_gesture = self._on_picture_gesture
         if hasattr(app, "on_scene_pushed"):
             # The strip cache's clock. Not build(): see StripStore.
             app.on_scene_pushed = self._on_scene_pushed
@@ -2408,6 +2475,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # After render, so a page can decide what it claims from what it
         # drew, and unconditional so that leaving the page drops the claim.
         self._claim_page_keys(route)
+        self._retire_page(route)
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(window_chrome.chrome(self, w))

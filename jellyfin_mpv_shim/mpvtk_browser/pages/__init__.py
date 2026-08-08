@@ -14,6 +14,7 @@ consulted first, which is exactly the silent-winner hazard
 from .base import Page, PageContext
 from .books import AudiobookPage, BookPage, BooksPage
 from .byname import ByNamePage
+from .comic import ComicPage
 from .detail import DetailPage
 from .favorites import FavoritesPage
 from .genres import GenresPage
@@ -35,6 +36,7 @@ PAGES = {
     BookPage.kind: BookPage,
     BooksPage.kind: BooksPage,
     ByNamePage.kind: ByNamePage,
+    ComicPage.kind: ComicPage,
     DetailPage.kind: DetailPage,
     FavoritesPage.kind: FavoritesPage,
     GenresPage.kind: GenresPage,

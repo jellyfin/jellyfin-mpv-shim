@@ -283,6 +283,13 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        # called as ("vpan", evt) when a wheel notch ran off the end of a
+        # panned picture, and as ("vzoom", evt) on ctrl+wheel over one.
+        # Node-less for the same reason the picture is: it is mpv's video,
+        # not something in the scene. See set_picture_pan.
+        self.on_picture_gesture = None
+        #: Last pan model pushed, so an unchanged one costs no message.
+        self._picture_pan = None
         # called when the mouse's forward button is pressed while the UI
         # owns the pointer. No node and no argument: it means "go forward
         # in whatever history you keep", which the app owns -- the
@@ -692,6 +699,18 @@ class MpvtkApp:
             v = evt.get("value")
             if isinstance(v, str):
                 self._extend_metrics([v])
+        if t in ("vpan", "vzoom"):
+            # Picture gestures carry no node: the picture is mpv's, not a
+            # node in any scene, so there is nothing for the handler
+            # registry to key on. Delivered to the app the way `key` and
+            # `forward` are.
+            hook = self.on_picture_gesture
+            if hook is not None:
+                try:
+                    hook(t, evt)
+                except Exception:
+                    log.exception("mpvtk picture gesture failed")
+            return
         h = self._handlers.get(evt.get("id"), {})
         fn = h.get(t)
         if fn is None:
@@ -900,6 +919,32 @@ class MpvtkApp:
         self._claimed_keys = keys
         self.backend.command(
             "script-message", "mpvtk-keys", json.dumps({"keys": list(keys)}),
+        )
+
+    def set_picture_pan(self, config=None):
+        """Hand the renderer the gesture model for a displayed picture.
+
+        ``config`` is ``{"unitx", "unity", "minx", "maxx", "miny", "maxy",
+        "step"}`` or None to stop. While it is set, a drag over the empty
+        part of the window and the wheel move mpv's ``video-pan-x/y``
+        **in the renderer**, with no round trip: a page turn is one
+        message, but a scroll is sixty a second and the app has nothing to
+        add to one.
+
+        The units are the *displayed picture's* pixel size, because that is
+        what mpv's pan is measured in — see
+        ``mpvtk_browser/gateway/picture.py``, where the measurement is. The
+        clamp comes from the app because it depends on the page's size and
+        the reader's own chrome, neither of which the renderer knows; the
+        app re-sends it whenever either moves.
+        """
+        payload = dict(config or {})
+        payload["on"] = bool(config)
+        if payload == self._picture_pan:
+            return
+        self._picture_pan = payload
+        self.backend.command(
+            "script-message", "mpvtk-vpan", json.dumps(payload),
         )
 
     def summon_hud(self):
