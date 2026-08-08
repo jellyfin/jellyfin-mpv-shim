@@ -22,10 +22,11 @@ from .labels import (
     track_duration,
     type_indicator_icon,
 )
-from .banner import compose_banner, wrap_pil
+from .banner import compose_banner, poster_box, wrap_pil
 
 __all__ = [
     "compose_banner",
+    "poster_box",
     "episode_subtitle",
     "heading_for",
     "human_size",

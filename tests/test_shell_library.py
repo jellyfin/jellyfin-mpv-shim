@@ -119,6 +119,20 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
                 asked.update(width=width, height=height, fill=fill)
                 return "http://srv/bd.jpg"
 
+            @staticmethod
+            def image_spec(_item, _type="Primary", _w=280, inherit=True):
+                # The header's inset poster (#7). Modelled with a REAL
+                # spec, not None: a fake that answers None here leaves the
+                # poster path unexercised while every banner test still
+                # passes, which is the exact trap this file's siblings
+                # document.
+                return ("m1", "Primary", "ptag")
+
+            @staticmethod
+            def image_url(_server, _id, _type, _tag, w=None, h=None,
+                          fill=False, index=None):
+                return "http://srv/poster.jpg"
+
         r = self._r()
         r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
         r._requested, r._img_retry = set(), {}

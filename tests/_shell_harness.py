@@ -148,6 +148,10 @@ class FakeSource:
         #: drawn below it). `tools/audit_fake_contracts.py` cannot see
         #: this: `backdrop_spec` is provided, just never honestly.
         self.has_backdrop = False
+        #: Whether items resolve to a Primary image. See image_spec: off by
+        #: default so tiles stay placeholders, on for the tests that need
+        #: the header's inset poster to exist at all.
+        self.has_poster = False
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -252,10 +256,25 @@ class FakeSource:
 
     def image_spec(self, item, image_type="Primary", width=280,
                    inherit=True):
-        return None  # no artwork in tests -> placeholder tiles, no network
+        """Which image an item resolves to, or None.
+
+        Off by default so tiles stay placeholders and nothing reaches the
+        network -- but *switchable*, because answering None unconditionally
+        is how a path goes untested while every test still passes. That is
+        what `has_backdrop` was added for next door, after no shell test had
+        ever rendered a header with artwork; the header's inset poster (#7)
+        reads this one and would have had the same hole.
+        """
+        if not self.has_poster:
+            return None
+        return (item.get("Id") or "x", image_type, "ptag0")
 
     def image_url(self, *a, **k):
-        return None
+        # A url only when there is artwork to fetch, for the same reason
+        # backdrop_url below has that rule: _request_image bails on a falsy
+        # url before recording anything, so always answering None leaves
+        # the request path unreachable.
+        return "http://fake/img.jpg" if self.has_poster else None
 
     def backdrop_spec(self, item):
         if not self.has_backdrop:

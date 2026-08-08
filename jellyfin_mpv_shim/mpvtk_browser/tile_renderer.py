@@ -761,6 +761,45 @@ class TileRenderer:
             return False
         return self.art.source.backdrop_spec(item) is not None
 
+    def _banner_poster(self, item, box, backdrop_spec):
+        """``(image or None, cache tag)`` for the poster inset into a header.
+
+        The item's **own** Primary, with no inheritance: on an episode that
+        is the still, which is what belongs beside a series backdrop, and
+        borrowing the series poster there would draw the same series twice.
+
+        Returns nothing when the poster would *be* the backdrop -- a home
+        video whose landscape Primary is already the banner (see
+        ``backdrop_spec``'s Primary step). Drawing it inset over itself is
+        the one case that looks like a rendering fault rather than a
+        feature.
+        """
+        from ..conf import settings
+
+        # Two settings, chosen by what the artwork *is*. An episode's is a
+        # still -- a frame of something the user may not have watched --
+        # and somebody avoiding spoilers wants that off with the poster
+        # left alone, which one combined setting cannot express.
+        if (item or {}).get("Type") == "Episode":
+            wanted = settings.detail_episode_image
+        else:
+            wanted = settings.detail_poster
+        if self.art.server is None or not wanted:
+            return None, ""
+        slot = components.poster_box(box)
+        if slot is None:
+            return None, ""
+        spec = self.art.source.image_spec(item, "Primary", slot[2],
+                                          inherit=False)
+        if not spec or spec == backdrop_spec:
+            return None, ""
+        item_id, itype, itag = spec
+        pw, ph = raster(slot[2], slot[3])
+        key = make_key(item_id, itype, itag, pw, ph, fit="fit")
+        url = self.art.source.image_url(self.art.server, item_id, itype,
+                                        itag, pw, ph, fill=False)
+        return self._request_image(key, url, (pw, ph)), key
+
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
         """A backdrop banner for detail/series headers.
@@ -822,9 +861,22 @@ class TileRenderer:
                                                width=fetch_w, height=fetch_h,
                                                fill=True)
             img = self._request_image(fetch_key, url, (fetch_w, fetch_h))
+            # The poster is a SECOND fetch with its own arrival time, so it
+            # goes in the key: without it the first composition -- backdrop
+            # here, poster still loading -- is what the cache serves for
+            # ever, and the poster never appears. Its absence is keyed too
+            # ("nopo"), or the waiting state and the finished one collide.
+            poster, poster_key = self._banner_poster(item, pbox, spec)
+            # Keyed on whether the poster IS THERE, not on which poster it
+            # would be. _banner_poster answers a key as soon as it knows the
+            # spec -- before the bytes arrive -- so keying on that alone
+            # gives the waiting composition and the finished one the same
+            # key, and the cache serves the poster-less one for ever.
+            key += "|" + (poster_key if poster is not None else "nopo")
             if img is not None:
                 b = self.art.strips.bitmap(key, components.compose_banner(
-                    img, pbox, title, meta, context), lsize=box)
+                    img, pbox, title, meta, context, poster=poster),
+                    lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
             if title:
@@ -841,7 +893,7 @@ class TileRenderer:
                     pending,
                     lambda: components.compose_banner(
                         _flat_image(pbox, theme.PLACEHOLDER_BG),
-                        pbox, title, meta, context),
+                        pbox, title, meta, context, poster=poster),
                     lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])

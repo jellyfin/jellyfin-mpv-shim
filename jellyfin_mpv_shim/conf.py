@@ -138,6 +138,18 @@ class Settings(SettingsBase):
     #: so decoding can be software where software is fine and hardware only
     #: where it is not. Most hardware of the last decade decodes 1080p
     #: without help, and often looks better doing it.
+    #: Draw the item's own poster inset into a detail page's header (#7).
+    #: A film's or series' key art, beside the backdrop it is normally
+    #: shown against everywhere else.
+    detail_poster: bool = True
+    #: The same slot on an *episode*, where the artwork is a still.
+    #:
+    #: Split from the poster deliberately, because the two objections are
+    #: unrelated and only one is about taste [iw]: a still is a frame of an
+    #: episode you have **not watched**, on the page you opened to decide
+    #: whether to watch it. Somebody avoiding spoilers wants this off and
+    #: the poster left alone.
+    detail_episode_image: bool = True
     hwdec: str = "no"
     always_transcode: bool = False
     transcode_hi10p: bool = False

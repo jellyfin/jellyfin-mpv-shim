@@ -22,12 +22,13 @@ formatter landing as its own commit before the two items that need it.
 | [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
 | [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | done |
 | [15](#15--per-library--per-series-shader-profiles) | Per-library / per-series shader profiles | todo |
+| [16](#16--how-many-key-bindings-do-we-still-need) | How many key bindings do we still need? | investigation, not started |
 | [14](#14--search-asks-for-no-fields) | Search asks for no fields | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
 | [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | todo |
 | [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | done |
-| [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | todo |
+| [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | done |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
 | [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | **answered — work needed** |
 | [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | done `faf129fd` |
@@ -303,6 +304,15 @@ that catches that.
   page, and refresh the list if it is not.
 - `docs/PERMISSION_GAPS.md` gets §6.
 
+### Left for the QA pass: an e2e test that actually deletes
+
+The most destructive thing in the batch is unit-tested only. The QA server is
+regenerable, but **[iw]**: "deletes have a real cost to regenerate from" — so
+the test has to create what it destroys, and **[iw]** named the way to do it:
+**record something off Live TV, then delete the recording**. It is ours, it
+costs nothing to remake, and it goes through the same `/Items/{id}` DELETE as
+any other item. See the `stdjflib-qa-server` note.
+
 ### Not in scope
 
 Metadata editing, identify/refresh, and anything under server management. #11
@@ -534,6 +544,51 @@ So the poster goes into **both** paths or the header jumps. And the poster is a
 not built for — one bitmap, two independent images. The cheap answer is to
 reserve the poster's box in the composition from the first paint and paint it
 when it lands; the expensive answer is to wait for both. Reserve.
+
+### What it came to
+
+Baked into the banner bitmap, as the trap above requires. Three things the
+build settled:
+
+**The cache key is on the poster's *presence*, not its identity.** It is a
+second fetch with its own arrival time, and `_banner_poster` can answer a key
+as soon as it knows the spec — before the bytes land. Keying on that gives the
+waiting composition and the finished one the same key, so the cache serves the
+poster-less banner for ever and the poster never appears. Its absence is keyed
+too (`nopo`), or the two states collide the other way.
+
+**`inherit=False`.** An episode's banner is already the *series* backdrop, so
+an inheriting poster would draw the same series twice and the episode not at
+all. Off is what makes the slot the episode still — the thing actually asked
+for.
+
+**No plate, no rounded corners** **[iw]**: "thumbnails are drawing inside a
+poster with rounded corners and black letterboxing… just compose what we have
+over the backdrop, and use a drop shadow". The first cut made the slot a fixed
+2:3 box, so a 16:9 still arrived letterboxed — which reads as a poster *of* a
+photograph rather than as the frame it is. Now the slot is a **bounding** box
+and each shape is drawn at its own aspect inside it, bottom-aligned so its
+baseline agrees with the heading, separated by a drop shadow painted onto the
+canvas. Not `imageutil.with_shadow`, which keeps the shadow inside the image's
+own bounds — right for a logo with margins, invisible on a full-bleed
+rectangle where every edge is ink.
+
+### And a setting **[iw]**
+
+"Might also be worth adding a browser setting for 'show posters/thumbnails on
+detail pages' because some may want the old behaviour back or don't like
+spoilers in thumbnails."
+
+`detail_artwork`, default on, gated at `_banner_poster` — the single choke
+point, so it cannot be honoured in one path and not another. Nothing has to be
+invalidated when it changes: the key gains `nopo` and the banner recomposes on
+the next paint.
+
+Worth recording that the two reasons are unrelated, since only one is about
+taste: an episode still is a frame of an episode you have **not watched**,
+sitting on the page you opened to decide whether to watch it. jellyfin-web has
+no equivalent — its `UseEpisodeImagesInNextUp` is about the Next Up rows,
+which we already honour through `image_spec`'s `inherit`.
 
 ### Shape
 
@@ -1298,3 +1353,80 @@ Video Playback Profile
 
 Not started. Listed here so it is covered by the QA and code-review pass at
 the end of the batch **[iw]**.
+
+---
+
+## 16 — How many key bindings do we still need?
+
+An investigation, not a change, and not started. Listed here rather than
+raised separately because this batch already moves input handling (#1's mouse
+modality), so the same ground gets reviewed either way **[iw]**. Related:
+PR #547, "Get original keybindings for arrow keys from conf", which is long
+since outdated.
+
+### The observation
+
+**[iw]**: "Makes me wonder how many of our keybinds could be turned into ones
+which don't even need to be overridden on the python side at all anymore,
+except when lua scripts are detected as not being available (which at this
+point we need to treat no lua as a full commandline mode fallback because it
+means there is no UI!)"
+
+#1 is a worked example of the pattern paying off. `mbtn_left_dbl` and
+`mbtn_right` needed **no** Python-side binding: mpv's own defaults did the
+right thing, and the only reason they misbehaved was our `mpvtk_mouse` section
+swallowing them once the HUD was up. The fix was to fall *through* to mpv
+rather than to reimplement — and that is available for keys too, because
+`MpvtkApp.claim_keys` already exists to take a key only while something on
+screen wants it.
+
+### Why the arrow keys and space were taken in the first place **[iw]**
+
+Two reasons, and both look weaker than they did:
+
+1. **The OSD menu.** Arrows and ENTER drive `menu.py`, so they had to be
+   Python-side. Better served by an mpv **input section** enabled while the
+   menu is up and disabled when it is not — which is exactly what the
+   renderer already does for `mpvtk_mouse` / `mpvtk_thumb`. Python bindings
+   torn down afterwards remain the fallback for the no-lua case.
+2. **SyncPlay needs to schedule player events.** There are already *two*
+   paths, and only one of them is the binding:
+
+   * the **direct** one — `_on_pause_key` -> `toggle_pause` -> `set_paused`,
+     which is SyncPlay-aware at the top (`if self.syncplay.is_enabled() and
+     not force: pause_request()/play_request()`) and never touches mpv's
+     `pause` at all in a group;
+   * the **defensive** one — `_observe("pause", self._on_pause_change)`,
+     which exists precisely for the pauses we did not initiate: a user's own
+     mpv binding, the classic OSD, an external mpv, a script.
+     `pause_ignore` is what keeps the two from double-reporting.
+
+   So dropping the binding would not lose SyncPlay support — the observer
+   catches it. **But the two are not equivalent, and the difference is
+   visible.** In a group, the direct path never lets mpv unpause; the
+   observer path lets it unpause and then calls `set_paused(True, True)` to
+   force it back while the group is asked. That is a brief local
+   unpause-then-repause flicker on every play in a SyncPlay session.
+
+   Which makes this the concrete question for the audit, not a hunch: is
+   that flicker acceptable, or does `space` need to stay claimed **while a
+   group is active** and be mpv's the rest of the time?
+
+### The shape of the audit
+
+For each of the seventeen `kb_*` settings, decide which of three it is:
+
+* **mpv's already** — drop the binding and let the default fire (`f`, and
+  arguably `space` once the point above is confirmed);
+* **claimed while a UI owns the screen** — an input section or
+  `claim_keys`, released otherwise (the menu's arrows/ENTER/ESC);
+* **genuinely ours** — a shim concept mpv has no opinion about (`w`/`u`
+  watched, `<`/`>` queue, `q` stop-to-library).
+
+The regression surface is real and spread across three input owners (mpv
+defaults, `menu.py`, the renderer), which is why the first deliverable is
+that list rather than a diff. Two things to be careful of: `kb_*` are
+user-editable settings, so "drop the binding" has to keep honouring a value
+somebody has already customised; and the no-lua path is not hypothetical —
+it is what CLI mode *is*, so every key that moves to a section needs its
+Python fallback kept and tested, not assumed dead.

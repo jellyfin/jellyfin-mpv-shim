@@ -113,6 +113,8 @@ TAB_SECTIONS = {
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
+                                "detail_poster",
+                                "detail_episode_image",
                                 "logo_legibility_live_tv",
                                 "logo_legibility_library"]),
         # The epub reader. On this tab rather than Playback because a book
@@ -304,6 +306,8 @@ LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "mouse_click_pauses": _("Left Click Pauses Playback"),
+    "detail_poster": _("Show Posters on Detail Pages"),
+    "detail_episode_image": _("Show Episode Thumbnails on Detail Pages"),
     "hwdec": _("Hardware Decoding"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
@@ -381,6 +385,12 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # Both reasons someone turns this off, because they are unrelated and
+    # only one of them is about taste.
+    # Only the second one carries the spoiler argument, which is why they
+    # are two settings and not one.
+    "detail_episode_image": _("An episode's thumbnail is a frame of an "
+                              "episode you may not have watched yet."),
     # What turning it OFF buys, since that is the non-obvious half: the
     # left button is what the VO drags the window with, so pausing with it
     # and dragging with it are mutually exclusive.

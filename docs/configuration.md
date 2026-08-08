@@ -22,6 +22,14 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `detail_poster` - Show a film's or series' own poster in a detail page's
+      header, inset over the backdrop. Default: `true`
+- `detail_episode_image` - The same slot on an episode, where the artwork is a
+      still from the episode. Default: `true`
+  - Separate from `detail_poster` on purpose: an episode's thumbnail is a frame
+      of an episode you may not have watched yet, on the page you opened to
+      decide whether to watch it. Somebody avoiding spoilers wants this off and
+      the posters left alone.
 - `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
   - This is what this client has always done (the same "click anywhere" the MPV
       OSC has). Turning it off gives MPV's own mouse behaviour back: nothing
