@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 13:52-0400\n"
+"POT-Creation-Date: 2026-08-07 15:00-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -937,6 +937,16 @@ msgid "Light"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Width"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Page"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default"
 msgstr ""
 
@@ -1127,6 +1137,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Comic Reading Mode"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1390,6 +1404,12 @@ msgstr ""
 msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How a comic page is fitted to the window when you open it. The reader's own "
+"buttons change this too."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2412,14 +2432,6 @@ msgid "Getting the comic…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-msgid "Fit Width"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-msgid "Fit Page"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
 msgstr ""
 
@@ -3060,6 +3072,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Downloaded Books"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py

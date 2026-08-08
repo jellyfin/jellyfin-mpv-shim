@@ -2477,7 +2477,8 @@ class _OfflineSnapshot:
 
     def __init__(self, rows=None, items=None, series_server=None,
                  season_server=None, season_series=None, playlists=None,
-                 playlist_items=None, playlist_server=None):
+                 playlist_items=None, playlist_server=None,
+                 books=None, book_items=None):
         self.rows = rows or {}
         self.items = items or []
         self.series_server = series_server or {}
@@ -2486,6 +2487,11 @@ class _OfflineSnapshot:
         self.playlists = playlists or []
         self.playlist_items = playlist_items or {}
         self.playlist_server = playlist_server or {}
+        #: The top level of the offline books library: every downloaded
+        #: `Book`, plus one synthesized container per multi-file audiobook.
+        self.books = books or []
+        #: container id -> its AudioBook chapters, in reading order.
+        self.book_items = book_items or {}
         self.art_cache = {}
 
 
@@ -2560,11 +2566,13 @@ class OfflineLibrarySource:
                                   "Type": "Playlist", "ImageTags": {}})
             playlist_items[pid] = pl_items
             playlist_server[pid] = pl.get("server_id")
+        books, book_items = self._book_shelf(items)
         self._snap = _OfflineSnapshot(
             rows=by_id, items=items, series_server=series_server,
             season_server=season_server, season_series=season_series,
             playlists=playlist_dtos, playlist_items=playlist_items,
-            playlist_server=playlist_server)
+            playlist_server=playlist_server,
+            books=books, book_items=book_items)
 
     def stop(self):
         pass
@@ -2601,6 +2609,17 @@ class OfflineLibrarySource:
             libs.append({"Id": "offline:tv", "Name": _("TV Shows"),
                          "Type": "CollectionFolder", "CollectionType": "tvshows",
                          "ImageTags": {}})
+        if snap.books:
+            # CollectionType matters here rather than being decoration: the
+            # shell reads it to route a books library to BooksPage, and
+            # BooksPage is what draws a folder of chapters as an album and
+            # what withholds Play All from a shelf. It is also INHERITED
+            # down the tree (app._open_item), which is what carries a
+            # synthesized container to the same page.
+            libs.append({"Id": "offline:books", "Name": _("Books"),
+                         "Type": "CollectionFolder",
+                         "CollectionType": BOOKS_COLLECTION,
+                         "ImageTags": {}})
         if snap.playlists:
             libs.append({"Id": "offline:playlists", "Name": _("Playlists"),
                          "Type": "CollectionFolder", "CollectionType": "playlists",
@@ -2636,6 +2655,84 @@ class OfflineLibrarySource:
                  "PrimaryImageAspectRatio": 2 / 3,
                  "UserData": self._aggregate_userdata(episodes_by_series[sid])}
                 for sid in order]
+
+    @staticmethod
+    def _book_shelf(items):
+        """The top level of the offline books library, and its containers.
+
+        **A books library browses by folder, and offline there are no
+        folders** — ``sync.manager._expand`` lists one and downloads its
+        children, so the catalog holds leaves. Nothing else in the DTO puts
+        them back together either, and the two halves of a books library
+        disagree about which field would: measured against a real server, a
+        ``Book`` carries ``SeriesName`` (the folder, or a real series when
+        the file is tagged) and no ``Album``; an ``AudioBook`` carries
+        ``Album`` and ``AlbumArtist`` and no ``SeriesName``; and neither
+        carries ``ParentId`` under the ``Fields`` the downloader asks for.
+
+        So the shelf is rebuilt from what is actually there, and only where
+        it changes what can be done:
+
+        * A **``Book``** is one file and one thing to read. It stands on its
+          own, exactly as it does in a folder online.
+        * **``AudioBook``s that share an album** are the chapters of one
+          book, which is the case that needs a container: without one, a
+          twelve-part recording is twelve tiles and playing "from chapter
+          four" is the only way to start it. They get a synthesized
+          ``Folder``, which is what ``BooksPage`` already draws as an album.
+        * A **lone ``AudioBook``** is left alone, because a container around
+          one chapter is a click that leads to the same thing — the same
+          reason the online screens give a loose audiobook a page of its own.
+
+        Grouping on ``AlbumId`` where the server gave one and on the album
+        name otherwise: the id is stable across a retag, and the name is all
+        an untagged rip has. A recording with neither is treated as loose,
+        which is the honest answer — nothing joins those files.
+        """
+        loose, groups, order = [], {}, []
+        for item in items:
+            kind = item.get("Type")
+            if kind == BOOK_TYPE:
+                loose.append(item)
+                continue
+            if kind != AUDIOBOOK_TYPE:
+                continue
+            key = item.get("AlbumId") or (item.get("Album") or "").strip()
+            if not key:
+                loose.append(item)
+                continue
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append(item)
+        shelf, contents = list(loose), {}
+        for key in order:
+            members = groups[key]
+            if len(members) == 1:
+                shelf.append(members[0])
+                continue
+            first = members[0]
+            # IndexNumber first, because that is the chapter order and the
+            # names of a rip are frequently "Track 01" ... "Track 10", which
+            # sort wrong as text. Falls back to the name, which is what an
+            # untagged set has.
+            members = sorted(members, key=lambda i: (i.get("IndexNumber") or 0,
+                                                     (i.get("Name") or "").lower()))
+            cid = "offline:book:%s" % key
+            contents[cid] = members
+            shelf.append({
+                "Id": cid, "Name": first.get("Album") or first.get("Name") or "",
+                "Type": "Folder", "ImageTags": {},
+                # An audiobook's cover is square, and a container with no
+                # opinion is drawn as a poster -- which letterboxes every
+                # one of them. Same reasoning as the synthesized Series
+                # above, with the other answer.
+                "PrimaryImageAspectRatio": 1.0,
+                "AlbumArtist": first.get("AlbumArtist"),
+                "ChildCount": len(members),
+                "UserData": OfflineLibrarySource._aggregate_userdata(members),
+            })
+        return shelf, contents
 
     def get_home_prefs(self, server_uuid, refresh=False):
         """Signature parity with LibrarySource — see get_home_rows below for
@@ -2683,6 +2780,9 @@ class OfflineLibrarySource:
         if series:
             rows.append({"title": _("Downloaded Shows"), "items": series,
                          "collection_type": "tvshows"})
+        if snap.books:
+            rows.append({"title": _("Downloaded Books"), "items": snap.books,
+                         "collection_type": BOOKS_COLLECTION})
         for slot, row in enumerate(rows):
             row["slot"] = slot
             # Not a home_sections type: these are "what you downloaded", not
@@ -2737,6 +2837,14 @@ class OfflineLibrarySource:
             items = [i for i in snap.items if i.get("Type") == "Video"]
         elif parent_id == "offline:tv":
             items = self._series_list(snap)
+        elif parent_id == "offline:books":
+            items = list(snap.books)
+        elif parent_id in snap.book_items:
+            # The chapters of one audiobook, in reading order. Returned
+            # whole and NOT re-sorted below: BooksPage plays them as a
+            # queue, and SortName would put chapter 10 after chapter 1.
+            items = snap.book_items[parent_id]
+            return items[start_index:start_index + limit], len(items)
         elif parent_id == "offline:playlists":
             # Playlist tiles, name-sorted; contents keep playlist order via
             # get_playlist_items and must NOT be re-sorted here.
@@ -2966,6 +3074,11 @@ class OfflineLibrarySource:
             return {"Id": item_id, "Name": name, "Type": "Series",
                     "ImageTags": {},
                     "UserData": self._aggregate_userdata(eps)}
+        # A synthesized audiobook container. BooksPage asks for the folder's
+        # own DTO to draw the album header, so this is not optional -- the
+        # album renders with no title and no action bar without it.
+        if item_id in snap.book_items:
+            return next((b for b in snap.books if b.get("Id") == item_id), None)
         return None
 
     def get_series_queue(self, server_uuid, series_id, start_item_id=None, limit=100):
@@ -3117,6 +3230,19 @@ class OfflineLibrarySource:
                 if path:
                     return path
             return None
+        # A synthesized audiobook container has no download of its own, so
+        # it borrows its chapters' cover -- which is the same file for all
+        # of them, this being one recording.
+        members = snap.book_items.get(item_id)
+        if members:
+            for member in members:
+                path = self._art_path(member.get("Id"), image_type, snap)
+                if path:
+                    return path
+            return None
+        if item_id == "offline:books":
+            return self._representative((BOOK_TYPE, AUDIOBOOK_TYPE), snap,
+                                        self.root)
         return None
 
     def _representative(self, types, snap, root: str):
