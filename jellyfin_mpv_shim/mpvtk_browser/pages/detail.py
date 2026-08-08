@@ -14,7 +14,7 @@ import logging
 
 from ...i18n import _
 from ...mpvtk.scaling import px
-from ...mpvtk.widgets import Box, Column, Dropdown, Row, Text, VScroll
+from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from .. import components, theme
 from ..components import chrome, controls, detail as detail_components
 from .base import Page
@@ -70,9 +70,14 @@ class DetailPage(Page):
         banner = tiles.backdrop_node(item, (bw, bh), "detail-bd",
                                      title=title, meta=meta, context=context)
         blocks = [banner]
-        if isinstance(banner, Box):
-            # No artwork (or still loading): draw the heading normally, with
-            # the same title/context split the baked one uses.
+        if not tiles.has_backdrop(item):
+            # No artwork *at all* — asked of the DTO, not of the node that
+            # came back. The node cannot answer it: a placeholder means
+            # either "none" or "not yet", and drawing the heading below the
+            # banner in the second case moved everything under it (these
+            # blocks' whole height, play buttons included) the moment the
+            # image landed. A header that will get artwork bakes its heading
+            # into the banner in both states; see `backdrop_node`.
             if context:
                 blocks.append(Text(context, size=17, color=theme.SUBTLE_FG))
             blocks.append(Text(title, size=26, bold=True, wrap=True,

@@ -6,7 +6,7 @@ playlist, so it lives in ``components/detail.py``.
 """
 
 from ...i18n import _
-from ...mpvtk.widgets import Box, Column, Row, Text, VScroll
+from ...mpvtk.widgets import Column, Row, Text, VScroll
 from .. import theme
 from ..components import chrome, controls, detail as detail_components
 from .base import Page
@@ -54,7 +54,11 @@ class SeriesPage(Page):
         banner = tiles.backdrop_node(item, (bw, bh), "series-bd",
                                      title=item.get("Name", ""), meta=meta)
         blocks = [banner]
-        if isinstance(banner, Box):
+        if not tiles.has_backdrop(item):
+            # Asked of the DTO, not of the node — see DetailPage.render and
+            # `backdrop_node`: a placeholder means "none" or "not yet", and
+            # drawing the heading here in the second case shifted the
+            # actions row down until the image arrived.
             blocks.append(Text(item.get("Name", ""), size=30, bold=True))
             if meta:
                 blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))

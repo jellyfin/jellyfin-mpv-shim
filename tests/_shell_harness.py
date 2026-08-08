@@ -139,6 +139,15 @@ class FakeSource:
         #: book screens are the first to care what get_item returns for
         #: something that is not a movie.
         self.items = {}
+        #: Whether an item is treated as HAVING backdrop artwork. This
+        #: answered None unconditionally, which did not leave the
+        #: has-artwork header untested -- it made it *unreachable* while
+        #: every header test reported a pass, because a header that will
+        #: get a banner lays out differently from one that never will
+        #: (the heading is baked into the bitmap, so it must not also be
+        #: drawn below it). `tools/audit_fake_contracts.py` cannot see
+        #: this: `backdrop_spec` is provided, just never honestly.
+        self.has_backdrop = False
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -249,10 +258,15 @@ class FakeSource:
         return None
 
     def backdrop_spec(self, item):
-        return None
+        if not self.has_backdrop:
+            return None
+        return (item.get("Id") or "x", "Backdrop", "tag0")
 
     def backdrop_url(self, *a, **k):
-        return None
+        # A URL only when there is artwork to fetch: `_request_image` bails
+        # on a falsy url before it records anything, so a fake that always
+        # answered None left the request path unreachable too.
+        return "http://s/backdrop" if self.has_backdrop else None
 
     def get_item(self, server_uuid, item_id):
         if item_id in self.items:

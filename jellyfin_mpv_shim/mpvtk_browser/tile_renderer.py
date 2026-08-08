@@ -192,6 +192,21 @@ CHIP_HOT_SCALE = 1.18
 CHIP_HOT_ALPHA = 70
 
 
+def _flat_image(box, colour):
+    """A solid ``colour`` panel at physical ``box``, as a PIL image.
+
+    Only for the banner's waiting state, which is composed through the same
+    ``compose_banner`` as the real thing so the heading lands in the same
+    place. Made at full size rather than 1x1-and-scaled because
+    ``scale_to_cover`` would resample it, and a resample of one pixel is
+    both wasteful and (with some filters) not the colour asked for.
+    """
+    from PIL import Image as PILImage
+
+    return PILImage.new("RGBA", (max(1, box[0]), max(1, box[1])),
+                        theme.rgb(colour, 255))
+
+
 def _play_chip_bitmap(size, hot=False):
     """The round play button that appears on a hovered tile, at physical size.
 
@@ -733,6 +748,19 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
+    def has_backdrop(self, item):
+        """Whether this item will ever have a banner — answerable *now*.
+
+        The whole point is that it needs no image: ``backdrop_spec`` is a
+        pure function of the DTO the page already has, so a header can
+        reserve the right space on its very first paint instead of finding
+        out when the bitmap lands. See :meth:`backdrop_node` for what that
+        prevents.
+        """
+        if self.art.server is None:
+            return False
+        return self.art.source.backdrop_spec(item) is not None
+
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
         """A backdrop banner for detail/series headers.
@@ -741,8 +769,27 @@ class TileRenderer:
         gradient, like the Tk browser did — text drawn as ASS would sit
         under the image (bitmaps composite above all script ASS), and the
         occlude punch would show the window background rather than the
-        artwork. Returns a placeholder Box while the art loads or if the
-        item has none, in which case the caller still draws its own heading."""
+        artwork.
+
+        **The waiting state bakes the same heading over a flat panel**, and
+        that is not cosmetic. Baking the heading into the artwork means the
+        heading is *inside* the banner's fixed box when the art is there and
+        has to be drawn somewhere else when it is not — so a header that drew
+        it below the banner while waiting moved everything under it (play
+        buttons included) the moment the image arrived, by the height of up
+        to three text blocks. Composing the placeholder through the same
+        function fixes the geometry at the first paint, keeps the text in
+        the same place within the banner rather than merely reserving blank
+        space, and leaves the title readable if the fetch never succeeds —
+        `_request_image` gives up after ``IMG_MAX_ATTEMPTS``, and a permanent
+        failure would otherwise be an anonymous grey panel forever.
+
+        A plain placeholder Box is still returned when the item genuinely has
+        no artwork, because then there is no baked heading to match and the
+        caller draws its own. :meth:`has_backdrop` is how a caller tells the
+        two apart — *not* the returned node's type, which cannot distinguish
+        "none" from "not yet".
+        """
         spec = None
         if self.art.server is not None:
             spec = self.art.source.backdrop_spec(item)
@@ -778,6 +825,24 @@ class TileRenderer:
             if img is not None:
                 b = self.art.strips.bitmap(key, components.compose_banner(
                     img, pbox, title, meta, context), lsize=box)
+                return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                             v=b.get("v", 0), w=b["lw"], h=b["lh"])
+            if title:
+                # Waiting on the artwork: the same heading over a flat
+                # panel, so the box the page lays out now is the box it
+                # keeps. Keyed apart from the loaded banner ("pending"), or
+                # the placeholder would be served from the cache once the
+                # real one had been composed and the header would never
+                # update. The callable form defers the compose to a cache
+                # miss -- this is asked for on most frames of a header that
+                # is waiting, and drawn on the first one only.
+                pending = "pending|" + key
+                b = self.art.strips.bitmap(
+                    pending,
+                    lambda: components.compose_banner(
+                        _flat_image(pbox, theme.PLACEHOLDER_BG),
+                        pbox, title, meta, context),
+                    lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,

@@ -22,7 +22,7 @@ import datetime
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Box, Button, Column, Icon, Row, Spacer, Text, VScroll)
+    Button, Column, Icon, Row, Spacer, Text, VScroll)
 from .. import components, guide_view, live_tv, theme
 from ..components import chrome, controls
 from ..repository import CHANNEL_PAGE
@@ -801,9 +801,11 @@ class ProgramPage(Page):
                                      title=title, meta=meta,
                                      context=item.get("ChannelName") or "")
         blocks = [banner]
-        if isinstance(banner, Box):
-            # No artwork (or still loading): the heading is not baked into
-            # the bitmap, so draw it as text — same split as DetailPage.
+        if not tiles.has_backdrop(item):
+            # No artwork *at all*, asked of the DTO — same split as
+            # DetailPage, and the same reason it is not `isinstance`: a
+            # placeholder node means "none" or "not yet", and the second
+            # case shifted the Record buttons when the image landed.
             if item.get("ChannelName"):
                 blocks.append(Text(item["ChannelName"], size=17,
                                    color=theme.SUBTLE_FG))
