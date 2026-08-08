@@ -30,7 +30,7 @@ formatter landing as its own commit before the two items that need it.
 | [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | done |
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | done |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
-| [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | **answered — work needed** |
+| [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | done |
 | [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | done `faf129fd` |
 | [11](#11--media-info-in-the-context-menu) | Media info in the context menu | done `a6d5c7b4` |
 
@@ -715,6 +715,31 @@ with `set_reading_position` at 452 spells out why). So an online *rewind* will
 not propagate to the local copy. That is almost certainly right — the local
 copy is a floor, not a mirror — but it should be a stated decision rather than
 an accident of which method was reused.
+
+### What it came to
+
+Both halves, as planned.
+
+**Anything played through the shim writes locally too.** `_mirror_locally`
+runs before the online/offline branch in both `record_offline_progress` and
+`set_played`, so the catalog is written whichever way the network is going.
+The **replay queue** stays offline-only, because that is what it is for: a
+list of changes the server has not been told about, and queueing while online
+would queue a write that already happened.
+
+**And a pull for what was watched elsewhere.** `SyncManager._refresh_userdata`,
+beside `_sync_playstate` in the worker loop and its mirror image — batched
+(`USERDATA_BATCH = 60`, because ids travel in the query string and proxies cap
+it), every five minutes rather than thirty seconds (someone finishing an
+episode on a phone does not need noticing within the minute), and it only
+notifies the browser when something actually moved. `db.update_userdata` now
+returns whether it changed anything, which is what makes that last part
+possible.
+
+**Advance-only, still.** The local copy is a floor, not a mirror: an item
+un-watched on another device stays watched here. That is the existing rule
+rather than a decision taken here, and it is the one thing about this worth
+revisiting — flagged in the method's docstring.
 
 ### Test
 
@@ -1408,9 +1433,89 @@ Two reasons, and both look weaker than they did:
    force it back while the group is asked. That is a brief local
    unpause-then-repause flicker on every play in a SyncPlay session.
 
-   Which makes this the concrete question for the audit, not a hunch: is
-   that flicker acceptable, or does `space` need to stay claimed **while a
-   group is active** and be mpv's the rest of the time?
+   **[iw]**: "it's not ideal, worth capturing when using syncplay." So that
+   is the answer rather than a question: `space` stays claimed **while a
+   group is active** and is mpv's the rest of the time. Which is the same
+   shape as everything else here — claim a key while something needs it,
+   release it otherwise — and makes SyncPlay one more claimant rather than
+   a reason to hold the key permanently.
+
+### The three options — and a fourth
+
+**[iw]** framed it as:
+
+1. keep our bindings and let the user change them (today);
+2. drop them and behave differently when SyncPlay is on — *"confusing for
+   user"*, and rightly: a key that means one thing alone and another in a
+   group is worse than either;
+3. read the user's config and make decisions about it — which is where
+   PR #547 was heading, and **[iw]** pushed back at the time because it was
+   "a lot of surface to cover for what was then a codebase that didn't have
+   any help from AI to maintain".
+
+The objection to (3) is still the right one, and AI help does not answer it:
+the cost was never *writing* an input.conf parser, it is **being right about
+someone else's runtime semantics forever** — sections, profiles, modifiers,
+`ignore`, script bindings, and mpv's own precedence between them, which mpv
+may change. That is the same argument as the notes on `tools/msgfmt.py`
+matching gettext and on the SyncPlay port ("a port is a belief about someone
+else's code that has already been wrong twice here").
+
+**But there is a fourth option that gets (3)'s answer without its surface:
+don't read the config — ask mpv.** The `input-bindings` property is the
+*resolved* set, and it is already exactly what is needed. Measured, with a
+custom `input.conf` containing `SPACE cycle mute`, `p cycle pause`,
+`LEFT ignore`:
+
+```
+SPACE  [('cycle pause', 'default', 0), ('cycle mute', 'default', 7)]
+p      [('cycle pause', 'default', 0), ('cycle pause', 'default', 7)]
+LEFT   [('seek -5',     'default', 0), ('ignore',     'default', 7)]
+f      [('cycle fullscreen', 'default', 0)]
+```
+
+192 entries, each with `key`, `cmd`, `section` and `priority` — the default
+*and* the user's override, with the priority that decides between them. So
+"has the user rebound space?" and "does anything still reach `cycle pause`?"
+are lookups, not a parser. No precedence model of our own, nothing to drift
+from mpv, and it costs one property read at startup.
+
+That is what makes the audit worth doing now rather than in 2021.
+
+### The design that falls out **[iw]**
+
+With `input-bindings` available, the three-way choice resolves into one
+shape:
+
+**1. Intercept semantically, and only where SyncPlay needs it.** "We could
+semantically intercept stuff *only when we need it for syncplay*" — so the
+claim is scoped to the state that needs it rather than held for the life of
+the process, and `input-bindings` is how we know what we would be taking
+over.
+
+**2. Drop our default bindings; migrate the ones the user changed.** "We
+could just drop default bindings unless the user touched those config
+options, at which point it probably makes sense to do a one-time migration
+of those configs to input.conf." `SettingsBase.__fields_set__` already
+records which keys came from the file rather than the class default, so
+"did the user touch this?" is answerable exactly, and `CONFIG_VERSION`
+(currently 2) is the existing one-time-migration mechanism.
+
+**Only mpv's own keys are in scope** **[iw]**: "keys that name a shim action
+can just stay as-is, only interested in dropping the needless interception
+of MPV's default bindings." So `kb_watched`, `kb_next`, `kb_stop` and the
+rest of the shim's own verbs keep their Python bindings and are not part of
+this at all — which removes the `script-message` migration the previous
+draft proposed, and most of the surface with it. What migrates is the small
+set that only ever duplicated something mpv already does: `kb_pause`,
+`kb_fullscreen`, and the seek/menu arrows.
+
+**3. The legacy menu keeps its bindings, and only while it exists.** "The
+old menu can just become temp bindings only used when the legacy osd menu
+is enabled and ripped out when not." That is the cleanest part: the arrows,
+ENTER and ESC stop being global and become the menu's own, installed on
+show and removed on hide — which is what makes them available to mpv the
+rest of the time without any conditional behaviour for the user to notice.
 
 ### The shape of the audit
 
@@ -1425,7 +1530,32 @@ For each of the seventeen `kb_*` settings, decide which of three it is:
 
 The regression surface is real and spread across three input owners (mpv
 defaults, `menu.py`, the renderer), which is why the first deliverable is
-that list rather than a diff. Two things to be careful of: `kb_*` are
+that list rather than a diff.
+
+### The footgun to design around **[iw]**
+
+"We need to make sure we don't break an already existing input.conf that
+contains sections."
+
+Which is a real hazard and not an obvious one. mpv's `input.conf` sections
+are `[name]` headers, and **everything after one belongs to it until the
+next** — so appending migrated bindings to the end of a file that has any
+section puts them *inside* that section, where they apply conditionally or
+never. The bindings would be written, the file would look right, and the
+keys would silently not work.
+
+So a migration writes **before the first `[`**, never at the end, and says
+so where it writes. Note this is the shim's *own* config directory —
+`mpv_options` sets `config_dir` to `conffile.confdir(APP_NAME)` and
+`_init_mpv` seeds `input.conf` there — so it is a file the app already
+owns, which makes writing to it reasonable and makes not corrupting
+somebody's hand-edited sections the whole of the obligation.
+
+The same trap is already handled once in this batch, in
+`mpv_options.hwdec_pinned_by_config` (#12): it stops scanning at the first
+section header, because a `hwdec` inside a conditional profile is not a
+pin. Worth reusing that reading rather than writing a second, differently
+wrong parser. Two things to be careful of: `kb_*` are
 user-editable settings, so "drop the binding" has to keep honouring a value
 somebody has already customised; and the no-lua path is not hypothetical —
 it is what CLI mode *is*, so every key that moves to a section needs its

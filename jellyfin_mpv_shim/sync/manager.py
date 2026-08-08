@@ -44,6 +44,17 @@ FOLDER_ITEM_TYPES = frozenset({"Folder", "CollectionFolder", "UserView"})
 CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
 PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
+
+#: ...and pull the server's answer back down this often. Slower than the
+#: replay: what it catches is somebody watching an episode on another
+#: device, which is not a thing that needs noticing within the minute, and
+#: it costs a request per batch against every reachable server.
+USERDATA_REFRESH_INTERVAL = 300
+
+#: Ids per request. They travel in the query string, which servers and
+#: proxies cap (the apiclient's own note on get_items says so), and a
+#: catalog of a few hundred downloads would otherwise be one 414.
+USERDATA_BATCH = 60
 STOP_JOIN_TIMEOUT = 10     # how long stop() waits for the worker to unwind (s)
 
 
@@ -145,6 +156,8 @@ class SyncManager:
         # that is mid-move.
         self._relocating = False
         self._last_playstate = 0.0
+        #: Same shape as _last_playstate, for the pull direction.
+        self._last_userdata = 0.0
         # item_id -> (last downloaded size, consecutive no-progress short reads).
         # A short read normally leaves the row pending to resume; but a server
         # that cleanly truncates at the same offset every time would resume
@@ -813,6 +826,9 @@ class SyncManager:
                 if now - self._last_playstate >= PLAYSTATE_INTERVAL:
                     self._last_playstate = now
                     self._sync_playstate()
+                if now - self._last_userdata >= USERDATA_REFRESH_INTERVAL:
+                    self._last_userdata = now
+                    self._refresh_userdata()
                 row = self._next_runnable()
                 # Only between downloads: a pass here would otherwise
                 # enqueue work while the user's own download is streaming,
@@ -896,6 +912,74 @@ class SyncManager:
             self.db.clear_playstate(done)
             log.info("Synced %d offline playstate change(s) to the server.",
                      len(done))
+
+    def _refresh_userdata(self):
+        """Pull the server's watched state for what we hold, and store it.
+
+        The other direction from :meth:`_sync_playstate`, and the half that
+        needs the server *asked*: an episode watched on a phone changes
+        nothing here until somebody tells us. Without it the catalog is a
+        download-time snapshot, so offline browsing shows a series you have
+        since finished as untouched -- and "delete watched downloads", which
+        reads ``userdata_json`` with no server fallback, quietly skips
+        everything watched elsewhere.
+
+        Batched: one request per ``USERDATA_BATCH`` ids per server, rather
+        than the per-item call the auto-download reaper makes. That reaper
+        is the reason this is worth having at all -- it already pays a round
+        trip per row to work around the stale snapshot, and it is the only
+        consumer that could.
+
+        **Advance-only**, because it goes through ``db.update_userdata``:
+        the local copy is a floor, not a mirror. An item un-watched on
+        another device therefore stays watched here. That is the existing
+        rule rather than a decision taken here, and it is the one thing
+        about this worth revisiting.
+        """
+        try:
+            rows = self.db.list(status=STATUS_COMPLETE)
+        except Exception:
+            log.debug("Could not list the catalog for a userdata refresh",
+                      exc_info=True)
+            return
+        by_server = {}
+        for row in rows:
+            if row.get("item_id"):
+                by_server.setdefault(row.get("server_uuid"), []).append(
+                    row["item_id"])
+        updated = 0
+        for server_uuid, ids in by_server.items():
+            client = self.get_client(server_uuid)
+            if client is None:
+                continue        # still offline for this server
+            for start in range(0, len(ids), USERDATA_BATCH):
+                if self._stop:
+                    return      # shutdown: the catalog closes behind us
+                batch = ids[start:start + USERDATA_BATCH]
+                try:
+                    result = client.jellyfin.get_items(batch) or {}
+                except Exception:
+                    log.debug("Userdata refresh failed for %s", server_uuid,
+                              exc_info=True)
+                    break
+                for item in result.get("Items") or []:
+                    data = item.get("UserData") or {}
+                    if not item.get("Id") or not data:
+                        continue
+                    try:
+                        if self.db.update_userdata(
+                                item["Id"],
+                                played=data.get("Played") or None,
+                                position_ticks=data.get(
+                                    "PlaybackPositionTicks")):
+                            updated += 1
+                    except Exception:
+                        log.debug("Could not store userdata for %s",
+                                  item.get("Id"), exc_info=True)
+        if updated:
+            log.info("Refreshed watched state for %d downloaded item(s).",
+                     updated)
+            self._notify_change()
 
     def _record_permanent_failure(self, row):
         """Remember that an auto-download failed in a way that will not fix

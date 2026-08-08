@@ -176,6 +176,8 @@ class OfflineVideo(Video):
             self.sid = user_sid
 
     def set_played(self, watched=True):
+        # The local catalog gets it either way -- see _mirror_locally.
+        self._mirror_locally(played=watched or None)
         if self.client is not None:
             try:
                 self.client.jellyfin.item_played(self.item_id, watched)
@@ -188,30 +190,62 @@ class OfflineVideo(Video):
             try:
                 syncManager.db.upsert_playstate(self._server_uuid, self.item_id,
                                                 played=True)
-                # Keep the stored userdata in sync so watched-based delete
-                # reflects offline playback (it reads userdata_json, not the
-                # pending queue).
-                syncManager.db.update_userdata(self.item_id, played=True)
+                # The stored userdata was already updated above, online or
+                # off -- this branch is only the replay queue.
             except Exception:
                 log.debug("Failed to queue offline playstate", exc_info=True)
 
     def record_offline_progress(self, position_ticks, finished=False):
-        """Queue resume position (and watched, if finished) made while offline."""
+        """Record playback progress on a downloaded item.
+
+        Two halves, and only the second is conditional.
+
+        **The local catalog is written whichever way the network is going.**
+        It used to be written only offline, on the reasoning that the
+        timeline reports progress when there is a server -- which is true
+        and beside the point: the timeline reports to the *server*, and the
+        catalog is what the app reads when the server is not there. So
+        watching a downloaded episode online left the catalog saying
+        unwatched at position 0, and that is what you were shown the next
+        time you opened it on a train. It also silently broke "delete
+        watched downloads", which reads `userdata_json` with no server
+        fallback (unlike the auto-download reaper, which has one).
+
+        **The replay queue is still offline-only**, because that is what it
+        is for: a list of changes the server has not been told about. Adding
+        to it while online would queue a write that has already happened.
+        """
+        self._mirror_locally(position_ticks=position_ticks,
+                             played=True if finished else None)
         if self.client is not None:
-            return  # online: the timeline already reports progress
+            return  # online: the timeline has already told the server
         try:
             syncManager.db.upsert_playstate(
                 self._server_uuid, self.item_id,
                 position_ticks=position_ticks,
                 played=True if finished else None)
-            # Mirror into the stored userdata so resume position and (on
-            # finish) watched state survive without a server round-trip and
-            # feed watched-based delete correctly.
-            syncManager.db.update_userdata(
-                self.item_id, played=finished,
-                position_ticks=position_ticks)
+            # As above: the stored userdata is _mirror_locally's job now,
+            # and it has already run.
         except Exception:
             log.debug("Failed to queue offline progress", exc_info=True)
+
+    def _mirror_locally(self, played=None, position_ticks=None):
+        """Merge progress into the catalog's stored userdata. Never raises.
+
+        Advance-only, which is `db.update_userdata`'s rule and the right one
+        here: the local copy is a floor, not a mirror. A client that has
+        been offline cannot rewind where another device reached, and an
+        online rewind does not propagate -- deliberate, and the reason this
+        is not simply "keep the two in step".
+        """
+        if played is None and position_ticks is None:
+            return
+        try:
+            syncManager.db.update_userdata(self.item_id, played=played,
+                                           position_ticks=position_ticks)
+        except Exception:
+            log.debug("Failed to mirror playstate into the catalog",
+                      exc_info=True)
 
     def terminate_transcode(self):
         pass  # nothing to tear down for a local file

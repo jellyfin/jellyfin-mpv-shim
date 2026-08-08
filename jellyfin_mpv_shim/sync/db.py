@@ -393,16 +393,20 @@ class SyncDB:
         sync with local playback is what makes watched-based delete correct
         without a server round-trip. Advancing only: played sticks True, the
         position only moves forward — except that a finish clears the resume
-        point (server-matching semantics)."""
+        point (server-matching semantics).
+
+        Returns whether anything actually moved, which the userdata refresh
+        in ``manager`` counts: a pull that changed nothing must not tell the
+        browser to redraw."""
         with self._lock:
             if self._conn is None:
-                return
+                return False
             row = self._conn.execute(
                 "SELECT userdata_json, runtime_ticks FROM downloads "
                 "WHERE item_id=?",
                 (item_id,)).fetchone()
             if row is None:
-                return
+                return False
             try:
                 userdata = json.loads(row["userdata_json"] or "{}")
             except ValueError:
@@ -448,6 +452,7 @@ class SyncDB:
                 except sqlite3.Error:
                     self._conn.rollback()
                     raise
+            return changed
 
     def set_reading_position(self, item_id, position_ticks):
         """Store a reader's cursor **verbatim**, not advance-only.
