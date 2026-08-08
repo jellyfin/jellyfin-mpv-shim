@@ -226,5 +226,74 @@ class WindowMixinIsWiredInTest(unittest.TestCase):
                          "player_window captured the backend at import time")
 
 
+class PictureViewHandoffTest(unittest.TestCase):
+    """``keepaspect`` belongs to the window, not to the comic page.
+
+    ``_release_page_grabs`` calls ``reset_picture_view`` on *every* browse ->
+    video handoff, through ``run_action`` — which defers to the action thread
+    whenever the player lock is busy, and it is busy for the whole of a
+    playback start. ``browse_yield`` is a direct call. So the two arrive in
+    whichever order the lock decides, and when the reset landed second every
+    film played stretched to the window, with no comic anywhere in the
+    session.
+
+    Asserted as the two interleavings rather than as "the guard is there":
+    the bug was never in one of the calls, it was in them disagreeing.
+    """
+
+    def _pm(self, video=None, loading=False):
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = _Player()
+        pm._mpv_alive = True
+        pm._video = video
+        pm._loading = loading
+        pm.mpvtk_active = True
+        pm._showing_browse_bg = False
+        pm.fullscreen_disable = False
+        pm._player.keepaspect = False      # the browse window's state
+        return pm
+
+    def test_a_reset_that_lands_after_the_yield_leaves_video_unstretched(self):
+        pm = self._pm(video=object())
+        pm.browse_yield()
+        pm.reset_picture_view()            # the deferred one, arriving late
+        self.assertTrue(pm._player.keepaspect)
+
+    def test_a_reset_that_lands_before_the_yield_leaves_video_unstretched(self):
+        pm = self._pm(video=object())
+        pm.reset_picture_view()
+        pm.browse_yield()
+        self.assertTrue(pm._player.keepaspect)
+
+    def test_a_reset_during_a_start_does_not_touch_the_window(self):
+        """_video is not assigned until the open succeeds, so the obvious
+        test says "nothing is playing" through the whole of a load."""
+        pm = self._pm(video=None, loading=True)
+        pm.browse_yield()
+        pm.reset_picture_view()
+        self.assertTrue(pm._player.keepaspect)
+
+    def test_the_zoom_and_the_pan_are_reset_whatever_is_playing(self):
+        """The reason this is not simply guarded like clear_picture: the
+        film that follows a comic inherits its zoom."""
+        pm = self._pm(video=object())
+        pm._player.video_zoom = 2.67
+        pm._player.video_pan_x = 0.3
+        pm._player.video_pan_y = -0.4
+        pm.reset_picture_view()
+        self.assertEqual(pm._player.video_zoom, 0.0)
+        self.assertEqual(pm._player.video_pan_x, 0.0)
+        self.assertEqual(pm._player.video_pan_y, 0.0)
+
+    def test_with_nothing_playing_the_library_window_resizes_freely(self):
+        """A comic that closes with nothing playing must put the free-
+        resizing browse window back, or the next resize snaps to the shape
+        of the page that just left."""
+        pm = self._pm(video=None)
+        pm._player.keepaspect = True       # show_picture borrowed it
+        pm.reset_picture_view()
+        self.assertFalse(pm._player.keepaspect)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -64,6 +64,17 @@ class PictureMixin(GatewayCore):
         """Take the picture down and put the browse window back."""
         self._act(lambda pm: pm.clear_picture())
 
+    def reset_picture_view(self):
+        """Undo a comic's zoom and pan, whatever is playing now.
+
+        Separate from :meth:`clear_picture` because it has to run in the
+        case that one refuses: playback starting is how a comic stops being
+        on screen, and these are global mpv options, so a film that
+        inherited the page's 2.67x zoom would keep it — and so would every
+        film after it.
+        """
+        self._act(lambda pm: pm.reset_picture_view())
+
     def set_picture_view(self, zoom=None, pan_x=None, pan_y=None):
         """Set any of mpv's three view properties.
 

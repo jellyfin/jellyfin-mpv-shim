@@ -511,16 +511,23 @@ class TestPosition(ReaderHarness):
             previous = ticks
 
     def test_the_same_position_is_not_written_twice(self):
-        """Paging into a chapter and back out lands on the same offset, and
-        a write per frame would be a request per frame."""
+        """Paging forward and back lands on the offset already reported, so
+        the second arrival must write nothing.
+
+        ``<= count + 2`` was what a *completely undeduplicated*
+        implementation produces — three presses, three writes — so the
+        assertion passed with the guard removed. Measured under this
+        harness: guard on, one write; guard off, three.
+        """
         browser = self.open_reader()
         build_scene(browser)
         browser._on_claimed_key("RIGHT")
-        count = len(browser.controller.positions_written)
+        after_first = list(browser.controller.positions_written)
         browser._on_claimed_key("LEFT")
         browser._on_claimed_key("RIGHT")
-        self.assertLessEqual(len(browser.controller.positions_written),
-                             count + 2)
+        self.assertEqual(browser.controller.positions_written, after_first,
+                         "returning to a reported position reported it "
+                         "again")
 
     def test_a_stored_position_is_resumed_before_the_first_paint(self):
         """Otherwise the book shows page one of chapter one and then jumps,

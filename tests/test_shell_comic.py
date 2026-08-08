@@ -20,8 +20,8 @@ import zipfile
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
-from tests._shell_harness import (FakeController, FakeSource, _SyncPool,
-                                  build_scene, ids)
+from tests._shell_harness import (FakeController, FakeSource, _DeferredPool,
+                                  _SyncPool, build_scene, ids)
 
 
 def build_cbz(path, pages=4, size=(1400, 2100), names=None):
@@ -109,19 +109,39 @@ class TestOpening(ComicHarness):
 
 class TestPaging(ComicHarness):
     def test_turning_pages_hands_over_each_one_in_order(self):
-        """Over the whole comic, not one turn: the reading order is a
-        natural sort of the filenames, and a test that turns once agrees
-        with a reader that pages backwards."""
+        """Over the whole comic, and against the ARCHIVE's order.
+
+        The extracted filename is built from the index, so asserting
+        ``page00000.jpg, page00001.jpg…`` says only that the index counted
+        up — it holds whatever order the archive was read in. The reading
+        order *is* the natural sort, so the fixture is named to make a
+        lexicographic sort visibly wrong (1, 10, 11, 2 instead of
+        1, 2, 10, 11) and the assertion follows the bytes.
+        """
+        names = ["c/p1.jpg", "c/p2.jpg", "c/p10.jpg", "c/p11.jpg"]
+        self.cbz = build_cbz(os.path.join(self._tmp.name, "order.cbz"),
+                             names=names)
         browser = self.open_comic()
         build_scene(browser)
         page = self.page(browser)
+        self.assertEqual(page.archive.pages, names,
+                         "the archive is not in reading order")
+        seen = [self._page_bytes(browser)]
         for _i in range(3):
             page._turn(1)
+            seen.append(self._page_bytes(browser))
         self.assertEqual(page.page_index(), 3)
-        handed = browser.controller.pictures
-        self.assertEqual([os.path.basename(p) for p in handed[-4:]],
-                         ["page00000.jpg", "page00001.jpg",
-                          "page00002.jpg", "page00003.jpg"])
+        expected = [self._entry_bytes(name) for name in names]
+        self.assertEqual(seen, expected,
+                         "the pages were handed over in the wrong order")
+
+    def _page_bytes(self, browser):
+        with open(browser.controller.pictures[-1], "rb") as handle:
+            return handle.read()
+
+    def _entry_bytes(self, name):
+        with zipfile.ZipFile(self.cbz) as archive:
+            return archive.read(name)
 
     def test_paging_stops_at_both_ends(self):
         browser = self.open_comic()
@@ -326,6 +346,138 @@ class TestGestures(ComicHarness):
         browser.go_back()
         build_scene(browser)
         self.assertIsNone(browser.app.models[-1])
+
+
+class TestYieldingTheWindow(ComicHarness):
+    """What a page took hold of has to be given back when the browser hands
+    the window to playback.
+
+    ``build()`` returns before ``_retire_page`` once ``_browsing`` is
+    False, so a page that yields is never retired — which is why none of
+    this is covered by the leaving-the-route tests. Every one of these
+    outlives the page in a way the user feels.
+    """
+
+    class GrabApp:
+        def __init__(self):
+            self.claims = []
+            self.models = []
+
+        def claim_keys(self, keys=()):
+            self.claims.append(tuple(keys))
+
+        def set_picture_pan(self, config=None):
+            self.models.append(config)
+
+        def node_rect(self, _node_id):
+            return None
+
+        def scroll_offsets(self):
+            return {}
+
+        def invalidate(self):
+            pass
+
+    def open_comic(self, *a, **kw):
+        browser = super().open_comic(*a, **kw)
+        browser.app = self.GrabApp()
+        build_scene(browser)
+        return browser
+
+    def test_yielding_to_playback_resets_the_pictures_zoom(self):
+        """video-zoom and video-pan are GLOBAL mpv options, so a film that
+        started while a comic was open inherits the page's zoom — and so
+        does every film after it, because clear_picture refuses once
+        _video is set."""
+        browser = self.open_comic()
+        self.page(browser)._place()
+        self.assertEqual(browser.controller.picture_views_reset, 0)
+        browser._yield()
+        self.assertGreaterEqual(browser.controller.picture_views_reset, 1)
+
+    def test_yielding_to_playback_gives_the_keys_back(self):
+        """SPACE stays force-bound to the reader otherwise: pause is dead
+        and instead turns the page and reports the new position."""
+        browser = self.open_comic()
+        browser._yield()
+        self.assertEqual(browser.app.claims[-1], ())
+
+    def test_yielding_to_playback_drops_the_pan_model(self):
+        """Or a wheel notch pans the playing video inside the comic's
+        clamp."""
+        browser = self.open_comic()
+        self.page(browser)._place()
+        browser._yield()
+        self.assertIsNone(browser.app.models[-1])
+
+    def test_minimizing_releases_the_same_three_things(self):
+        browser = self.open_comic()
+        self.page(browser)._place()
+        browser.minimize()
+        self.assertEqual(browser.app.claims[-1], ())
+        self.assertIsNone(browser.app.models[-1])
+        self.assertGreaterEqual(browser.controller.picture_views_reset, 1)
+
+
+class TestAbandonedOpen(ComicHarness):
+    """A book whose open is still in flight when the user navigates away.
+
+    **On `_DeferredPool`, deliberately.** Every other suite here installs
+    `_SyncPool`, which runs work at submit time — so the window this is
+    about, a job in flight across a navigation, cannot exist in them, and
+    the bug below shipped under a green suite for exactly that reason.
+    """
+
+    def open_deferred(self):
+        source = FakeSource()
+        source.libraries = [{"Id": "lib-books", "Name": "Books",
+                             "Type": "CollectionFolder",
+                             "CollectionType": "books"}]
+        item = comic()
+        source.items[item["Id"]] = item
+        browser = MpvtkBrowser(app=None, source=source)
+        pool = _DeferredPool()
+        browser._pool = pool
+        browser.controller = FakeController()
+        browser.server = "srv1"
+        browser.controller.book_downloads[item["Id"]] = ("complete", self.cbz)
+        browser.navigate({"kind": "comic", "server": "srv1",
+                          "item_id": item["Id"], "title": "A Comic"})
+        return browser, pool
+
+    def test_navigating_away_mid_open_does_not_strand_the_route(self):
+        """AsyncRunner drops BOTH callbacks when the epoch has moved on, so
+        a flag cleared only in done/failed is never cleared at all — and
+        every re-entry is gated on it. That history entry then says
+        "Getting the comic…" for the rest of the session.
+        """
+        browser, pool = self.open_deferred()
+        route = browser.route
+        pool.release(0)                    # the item load lands...
+        self.assertTrue(route.get("_opening"),
+                        "the archive open is not in flight")   # ...and submits
+        browser.go_back()                  # bumps the epoch
+        pool.release(0)                    # the open finishes, too late
+        self.assertFalse(route.get("_opening"),
+                         "the in-flight flag was never cleared, so this "
+                         "route can never open the file again")
+
+    def test_coming_back_to_an_abandoned_open_still_opens_the_comic(self):
+        """The whole point of clearing the flag: the route is re-enterable.
+        The route dict survives in the history with its data intact, so
+        load() will not run again and only the render path can notice."""
+        browser, pool = self.open_deferred()
+        pool.release(0)
+        browser.go_back()
+        pool.release(0)                    # abandoned
+        browser.go_forward()
+        build_scene(browser)               # the render path re-opens
+        pool.drain()
+        build_scene(browser)
+        pool.drain()
+        self.assertIsNone(browser.route.get("_error"))
+        self.assertIsNotNone(self.page(browser).archive,
+                             "the comic never re-opened")
 
 
 class TestResume(ComicHarness):

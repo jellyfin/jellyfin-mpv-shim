@@ -424,6 +424,14 @@ class _Walker:
         if tag in ("img", "image"):
             if drawn:
                 self._image(node, align, indent)
+            # Counted, never drawn. These are the only branches of this
+            # function that return without recursing, and the count has to
+            # agree with `locations.text_node_lengths`, which walks every
+            # text node there is — as epub.js's own tree walker does. An
+            # `<svg><title>` or a `<text>` label in a diagram is text to
+            # the count and to no one else, and a document that skips it
+            # here reports every position after it short.
+            self.walk(node, style, align, indent, pre, drawn=False)
             return
         if tag == "svg":
             # An SVG wrapper around a raster image is how most epub covers
@@ -433,6 +441,7 @@ class _Walker:
                 inner = node.find("image")
                 if inner is not None:
                     self._image(inner, align or "center", indent)
+            self.walk(node, style, align, indent, pre, drawn=False)
             return
 
         inner_style = style

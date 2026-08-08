@@ -137,7 +137,14 @@ class ComicPage(Page):
             route["_error"] = str(exc) or _("This comic could not be opened.")
             self.ctx.invalidate()
 
-        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
+        # ``always``, because AsyncRunner drops BOTH callbacks when the
+        # epoch has moved on — press Back while a novel's index is still
+        # building and neither `done` nor `failed` ever runs. Without this
+        # the flag stays True for the life of the route dict, and since
+        # every re-entry is gated on it, that history entry says
+        # "Getting the comic…" for the rest of the session.
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed,
+                         always=lambda: route.update(_opening=False))
 
     def close(self):
         """Leave the window as we found it.

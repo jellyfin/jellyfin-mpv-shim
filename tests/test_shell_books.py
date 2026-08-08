@@ -1666,5 +1666,53 @@ class TestProgressDialog(BookPageHarness):
         self.assertIn("no reading position", text)
 
 
+class TestChapteredAudioThatIsNotABook(unittest.TestCase):
+    """A podcast or an m4b in a MUSIC library: chaptered, not an AudioBook.
+
+    The now-playing bar's tiers dict only holds keys that were appended, so
+    a reader guarded more weakly than the writer raises KeyError — and the
+    toolkit keeps the previous frame and counts the error, so the browser
+    stops repainting for the rest of playback rather than showing anything
+    wrong. Every existing chapter test passes is_audiobook=True, so this
+    combination was never built.
+    """
+
+    def plan(self, **np):
+        from jellyfin_mpv_shim.mpvtk_browser.music import MusicMixin
+
+        class M(MusicMixin):
+            pass
+
+        snapshot = {"is_audiobook": False, "queue_len": 3,
+                    "chapters": [{"time": 0, "title": "One"},
+                                 {"time": 90, "title": "Two"}]}
+        snapshot.update(np)
+        return MusicMixin._np_plan(M.__new__(M), snapshot, 1600), snapshot
+
+    def test_the_bar_builds_for_chaptered_audio_that_is_not_a_book(self):
+        tiers, np = self.plan()
+        self.assertNotIn("ch_btns", tiers)
+        from jellyfin_mpv_shim.mpvtk_browser.music import MusicMixin
+
+        class M(MusicMixin):
+            def _np_btn(self, *a, **kw):
+                return None
+
+            def _np_solo_chapters(self, _np):
+                return False
+
+            def _ctl(self, _fn):
+                pass
+
+        # The call that used to raise KeyError.
+        MusicMixin._transport(M.__new__(M), np, tiers)
+
+    def test_an_audiobook_still_gets_its_chapter_buttons(self):
+        """The fix must not be "drop the feature": a real audiobook keeps
+        the prev/next pair the tier exists for."""
+        tiers, _np = self.plan(is_audiobook=True)
+        self.assertIn("ch_btns", tiers)
+
+
 if __name__ == "__main__":
     unittest.main()

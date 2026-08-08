@@ -1506,6 +1506,34 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: was the whole browser silently freezing, with no error anywhere.
     PAGE_OBJ_KEY = "_page_obj"
 
+    def _release_page_grabs(self):
+        """Give back everything a page took hold of outside its own scene.
+
+        Called when the browser hands the window over — to playback, or to
+        being minimized. ``build()`` returns before ``_retire_page`` once
+        ``_browsing`` is False, so a page that yields is never retired and
+        none of this would be dropped otherwise.
+
+        All three outlive the page in a way the user feels. A key claim
+        keeps SPACE bound to the reader, so pause is dead and instead turns
+        the page and writes the new position to the server. A pan model
+        makes a wheel notch pan the *playing video* inside the comic's
+        clamp. And the picture's zoom and pan are global mpv options, so
+        the film plays at whatever the last comic page was set to.
+        """
+        claim = getattr(self.app, "claim_keys", None)
+        if claim is not None:
+            try:
+                claim(())
+            except Exception:
+                log.debug("could not drop the key claim", exc_info=True)
+        self._set_picture_pan(None)
+        if self.controller is not None:
+            try:
+                self.controller.reset_picture_view()
+            except Exception:
+                log.debug("could not reset the picture view", exc_info=True)
+
     def _retire_page(self, route):
         """Tell the page we just stopped drawing that it is off screen.
 
@@ -1912,6 +1940,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _yield(self):
         self._park_on_leaving_browse()
         self._browsing = False
+        self._release_page_grabs()
         self._tell_controller("on_browse_leave")
         if self.hud.available():
             # keep the renderer attached: blank scene + summon bindings
@@ -2078,6 +2107,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_on_leaving_browse()
         self._minimized = True
         self._browsing = False
+        self._release_page_grabs()
         self.hud.shown = False
         self._set_renderer_active(False)
         self._tell_controller("on_minimize")

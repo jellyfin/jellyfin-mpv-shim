@@ -287,14 +287,25 @@ class EpubDocument:
             return pages[self._page]
 
     def _resync_page(self):
-        """Find the page holding the current offset after a re-layout."""
+        """Find the page holding the current offset after a re-layout.
+
+        **The FIRST page of an equal-offset run, not the last.** Offsets are
+        per token now (``layout._tokenize``), but two pages can still start
+        at the same one — an image and the line under it share theirs, and a
+        page whose first item carries no text of its own inherits the
+        previous. Taking the last of such a run walks the reader forward
+        every time the page size changes, which is what a resize is; taking
+        the first leaves them where they were, and paging on from there
+        costs at most the one press they would have made anyway.
+        """
         pages = self.pages(self._spine)
         self._page = 0
         for i, page in enumerate(pages):
-            if page.start_offset <= self._offset:
-                self._page = i
-            else:
+            if page.start_offset > self._offset:
                 break
+            if i and page.start_offset == pages[self._page].start_offset:
+                continue        # same offset: keep the earlier page
+            self._page = i
 
     def goto(self, spine_index, char_offset=0):
         with self._lock:
@@ -439,10 +450,26 @@ class EpubDocument:
 
     def render(self, size, colors, origin=None):
         """Draw the current page into a PIL image of ``size``."""
+        return self.render_keyed(size, colors, origin)[1]
+
+    def render_keyed(self, size, colors, origin=None):
+        """``(page_key, image)`` — the page drawn, and what it IS.
+
+        The key has to come from the same locked read as the pixels. A
+        caller that computes the key first and renders afterwards is naming
+        the page it *asked* for, not the one it got: rendering happens on a
+        worker, the reader turns pages on the loop thread, and a turn
+        between the two stores one page's pixels under another page's name.
+        In a cache that keeps the first entry for a key, that is permanent —
+        the correct image is freed and the wrong one is served for the life
+        of the entry.
+        """
         with self._lock:
             page = self.current_page()
-            return paint.render_page(page, size, self.style, self.measurer,
-                                     colors, self._load_image, origin)
+            key = self.page_key()
+            image = paint.render_page(page, size, self.style, self.measurer,
+                                      colors, self._load_image, origin)
+            return key, image
 
     def page_key(self):
         """A content key for the current page's bitmap.

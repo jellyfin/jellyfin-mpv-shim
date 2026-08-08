@@ -305,10 +305,31 @@ class TestPagination(unittest.TestCase):
                                                           words.count(token)))
 
     def test_page_start_offsets_only_ever_increase(self):
+        """Strictly, which is what the name says.
+
+        ``sorted(offsets) == offsets`` permits exactly the duplicates this
+        forbids, and duplicates are the bug: every page broken out of one
+        paragraph used to report the same offset, so a resize resolved the
+        tie forward and the reported position stood still across the whole
+        paragraph. A novel is mostly multi-page paragraphs.
+        """
         pages = layout.paginate(blocks_of(paragraphs(30)), COLUMN[0],
                                 COLUMN[1], measurer())
         offsets = [p.start_offset for p in pages]
         self.assertEqual(offsets, sorted(offsets))
+        self.assertEqual(len(set(offsets)), len(offsets),
+                         "pages share a start offset: %r" % (offsets,))
+
+    def test_a_paragraph_longer_than_a_page_still_moves_the_offset(self):
+        """The narrow case the above generalises, stated on its own because
+        it is the one that reaches the server: one paragraph, several
+        pages, and the position has to advance across them."""
+        one = "<p>" + " ".join("word%d" % i for i in range(4000)) + "</p>"
+        pages = layout.paginate(blocks_of(one), COLUMN[0], COLUMN[1],
+                                measurer())
+        self.assertGreater(len(pages), 3, "the fixture fits on one page")
+        offsets = [p.start_offset for p in pages]
+        self.assertEqual(len(set(offsets)), len(offsets), repr(offsets))
 
     def test_nothing_is_placed_below_the_page(self):
         pages = layout.paginate(blocks_of(paragraphs(20)), COLUMN[0],
@@ -489,8 +510,11 @@ class TestDocumentPosition(unittest.TestCase):
             self.assertLessEqual(
                 page.start_offset, before,
                 "the page now starts after the text the reader was on")
+            # `min(before, page.end_offset)` here made this unfalsifiable —
+            # x >= min(y, x) holds for every x — and this is the guard for
+            # exactly the bug that shipped underneath it.
             self.assertGreaterEqual(
-                page.end_offset, min(before, page.end_offset),
+                page.end_offset, before,
                 "the reader's position fell off the page")
 
     def test_repeated_relayouts_do_not_walk_the_position(self):

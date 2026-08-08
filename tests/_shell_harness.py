@@ -611,6 +611,7 @@ class FakeController:
         self.pictures = []
         self.picture_views = []
         self.pictures_cleared = 0
+        self.picture_views_reset = 0
 
     def show_picture(self, path):
         self.pictures.append(path)
@@ -618,6 +619,9 @@ class FakeController:
 
     def clear_picture(self):
         self.pictures_cleared += 1
+
+    def reset_picture_view(self):
+        self.picture_views_reset += 1
 
     def set_picture_view(self, zoom=None, pan_x=None, pan_y=None):
         self.picture_views.append({"zoom": zoom, "pan_x": pan_x,

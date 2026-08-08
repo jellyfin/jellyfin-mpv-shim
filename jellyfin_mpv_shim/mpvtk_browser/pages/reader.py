@@ -166,7 +166,14 @@ class ReaderPage(Page):
             route["_error"] = str(exc) or _("This book could not be opened.")
             self.ctx.invalidate()
 
-        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
+        # ``always``, because AsyncRunner drops BOTH callbacks when the
+        # epoch has moved on — press Back while a novel's index is still
+        # building and neither `done` nor `failed` ever runs. Without this
+        # the flag stays True for the life of the route dict, and since
+        # every re-entry is gated on it, that history entry says
+        # "Getting the book…" for the rest of the session.
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed,
+                         always=lambda: route.update(_opening=False))
 
     def _reader_style(self):
         from ...epub.layout import ReaderStyle
@@ -496,6 +503,15 @@ class ReaderPage(Page):
         data = route.get("_data")
         if data is None:
             return chrome.busy()
+        # Coming back to a book whose open was abandoned — an epoch bump
+        # drops both callbacks, so nothing else notices the document never
+        # arrived, and `load()` does not run again for a route that is
+        # still in the history with its data intact.
+        if (route.get("_doc") is None and not route.get("_opening")
+                and not route.get("_error")):
+            path = (data.get("state") or (None, None))[1]
+            if path:
+                self._open_book(path)
         item = data.get("item") or {}
         doc = route.get("_doc")
         body = (self._page_node(doc, width, self._area_height(height))
@@ -633,7 +649,7 @@ class ReaderPage(Page):
         col_w, col_x = style.column(physical[0])
         if doc.set_viewport(col_w, physical[1] - 2 * style.margin_y):
             route.pop("_entry", None)
-        key = self._page_key(doc, physical, palette_name)
+        key = self._page_key(doc.page_key(), physical, palette_name)
         entry = route.get("_entry")
         if entry is not None and route.get("_entry_key") == key:
             store.keep(entry)
@@ -650,13 +666,26 @@ class ReaderPage(Page):
         colors = paint.palette(palette_name)
 
         def work():
-            image = doc.render(physical, colors, (col_x, style.margin_y))
-            return store.bitmap(key, image, lsize=logical)
+            # The key comes back from the render, not from the closure.
+            # This runs on a worker; the reader turns pages on the loop
+            # thread, and a turn between the submit above and this line
+            # would otherwise file page N+1's pixels under page N's name.
+            # The strip store keeps the FIRST entry for a key and frees the
+            # later one, so that mistake is permanent, not a flicker.
+            drawn, image = doc.render_keyed(physical, colors,
+                                            (col_x, style.margin_y))
+            drawn_key = self._page_key(drawn, physical, palette_name)
+            return drawn_key, store.bitmap(drawn_key, image, lsize=logical)
 
         def done(result):
-            route["_entry"] = result
-            route["_entry_key"] = key
+            drawn_key, entry = result
+            route["_entry"] = entry
+            route["_entry_key"] = drawn_key
             route["_busy_key"] = None
+            # If drawn_key != key the reader moved on between the submit
+            # and the worker. The bitmap is still correct and correctly
+            # named, so it is kept; the repaint below then asks for the
+            # page we are actually on.
             self.ctx.invalidate()
 
         def failed(exc):
@@ -672,8 +701,16 @@ class ReaderPage(Page):
         return previous
 
     @staticmethod
-    def _page_key(doc, physical, palette_name):
-        raw = "%r|%dx%d|%s" % (doc.page_key(), physical[0], physical[1],
+    def _page_key(page_key, physical, palette_name):
+        """The strip-store key for a page identity.
+
+        Takes the document's ``page_key()`` VALUE rather than the document,
+        so the caller decides when it was read — the worker reads it under
+        the document's lock together with the pixels (``render_keyed``),
+        and the loop thread reads it to ask whether the cache already has
+        the frame it wants to draw.
+        """
+        raw = "%r|%dx%d|%s" % (page_key, physical[0], physical[1],
                                palette_name)
         return "epub-" + hashlib.sha1(raw.encode("utf-8")).hexdigest()
 

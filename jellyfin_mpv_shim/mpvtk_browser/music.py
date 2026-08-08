@@ -218,6 +218,15 @@ class MusicMixin:
             order.append(("chapters", self.NP_PICKER_W))
         order += [("queue", btn), ("stop", btn)]
         if book and chapters:
+            # `book and`, and the two readers below say the same — they
+            # drifted apart once, and the tier dict only holds keys that
+            # were appended, so the weaker read raised KeyError and the
+            # browser stopped repainting for the rest of playback. Any
+            # chaptered audio that is not an AudioBook reached it: a
+            # podcast or an m4b in a music library. The chapter PICKER is
+            # still offered to those (above, under plain `chapters`); it is
+            # the prev/next pair that is a book affordance, exactly as
+            # skip_btns is.
             order.append(("ch_btns", 2 * btn))
         order += [("favorite", btn), ("repeat", btn)]
 
@@ -289,7 +298,7 @@ class MusicMixin:
         out = [self._np_btn("skip_previous", "np-prev",
                             lambda: self._ctl(lambda c: c.prev()),
                             _("Previous"))] if walk else []
-        if chapters and tiers["ch_btns"]:
+        if book and chapters and tiers["ch_btns"]:
             # Through the player's own chapter_seek, not a seek computed
             # here: "previous chapter" means re-start the current one
             # unless you press it in its first couple of seconds, and that
@@ -315,7 +324,7 @@ class MusicMixin:
                 lambda: self._ctl(
                     lambda c: c.seek_relative(self.SKIP_FORWARD)),
                 _("Forward %d seconds") % self.SKIP_FORWARD))
-        if chapters and tiers["ch_btns"]:
+        if book and chapters and tiers["ch_btns"]:
             out.append(self._np_btn(
                 "redo", "np-chnext",
                 lambda: self._ctl(lambda c: c.chapter_seek(1)),

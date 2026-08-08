@@ -523,31 +523,52 @@ def _tokenize(block, measurer, spans=None):
         text = span.text
         if not text:
             continue
-        offset = span.char_offset
+        # **Per token, not per span.** Every token used to carry the span's
+        # own offset, so every line broken out of one span reported the same
+        # position — and a paragraph is one span. That gave every page of a
+        # multi-page paragraph an identical `start_offset`, which
+        # `book._resync_page` then resolved to the LAST of the run: a
+        # chapter's first page was unreachable from its own TOC entry, a
+        # resize moved the reader a page forward, and the fraction reported
+        # to the server stood still for the length of the paragraph.
+        #
+        # The within-span position is measured in the span's own (normalized)
+        # text while `char_offset` counts the raw text node, so this
+        # advances slightly slower than the count does. That is safe in the
+        # direction that matters: the sum can never exceed the raw length,
+        # so a token's offset stays inside its span's range and the sequence
+        # stays monotonic, which is everything the page lookup needs.
+        base = span.char_offset
+        pos = 0
         if block.pre:
             # Preformatted: every line is its own hard-broken run and the
             # spaces are content.
             for i, chunk in enumerate(text.split("\n")):
                 if i:
-                    tokens.append(_Token("", span.style, False, 0.0, offset,
-                                         hard=True))
+                    tokens.append(_Token("", span.style, False, 0.0,
+                                         base + pos, hard=True))
+                    pos += 1            # the newline this break came from
                 # Tabs are drawn by nobody: no face has a glyph, so one
                 # reaches the page as a tofu box. Expanded here rather than
                 # in the parser because the character count has to keep
                 # matching a DOM that still holds the tab.
-                chunk = chunk.expandtabs(4)
-                if chunk:
-                    tokens.append(_Token(chunk, span.style, False,
-                                         measurer.width(chunk, span.style),
-                                         offset))
+                drawn = chunk.expandtabs(4)
+                if drawn:
+                    tokens.append(_Token(drawn, span.style, False,
+                                         measurer.width(drawn, span.style),
+                                         base + pos))
+                pos += len(chunk)
             continue
         for piece, is_space, hard in _split_words(text):
             if hard:
-                tokens.append(_Token("", span.style, False, 0.0, offset,
+                tokens.append(_Token("", span.style, False, 0.0, base + pos,
                                      hard=True))
+                pos += 1                # ditto
                 continue
             tokens.append(_Token(piece, span.style, is_space,
-                                 measurer.width(piece, span.style), offset))
+                                 measurer.width(piece, span.style),
+                                 base + pos))
+            pos += len(piece)
     return tokens
 
 

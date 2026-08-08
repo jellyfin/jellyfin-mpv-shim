@@ -23,10 +23,10 @@ import os
 import tempfile
 import unittest
 
-from jellyfin_mpv_shim.epub import locations
+from jellyfin_mpv_shim.epub import content, locations
 from jellyfin_mpv_shim.epub.archive import open_epub
 
-from tests._epub_fixtures import build_epub, paragraphs
+from tests._epub_fixtures import build_epub, paragraphs, xhtml
 
 
 class TestCountSection(unittest.TestCase):
@@ -54,12 +54,55 @@ class TestCountSection(unittest.TestCase):
         _chars, ends = locations.count_section([600, 2000], brk=1024)
         self.assertEqual(ends[0], 600 + 424)
 
-    def test_whitespace_only_nodes_contribute_nothing(self):
-        """The caller drops them, which is the contract — but the count has
-        to be identical either way or the two walks disagree."""
-        with_ws = locations.count_section([1500], brk=1024)
-        self.assertEqual(with_ws, locations.count_section([1500], brk=1024))
+    def test_an_empty_section_contributes_nothing(self):
         self.assertEqual(locations.count_section([], brk=1024), (0, []))
+
+    def test_the_two_walks_over_one_document_count_the_same(self):
+        """**The only test that can catch a whole class of bug**, and the
+        one that was missing.
+
+        There are two independent walks over the same tree: `content`'s,
+        which records a character offset on every span, and `locations`',
+        which measures the sections. If they ever disagree, every stored
+        reading position is wrong by the difference — and nothing else in
+        the suite compares them, because each is tested against its own
+        expectations.
+
+        This replaces an assertion that read
+        ``assertEqual(count_section([1500]), count_section([1500]))`` — the
+        same call on both sides, true of every possible implementation. It
+        occupied the name of the whitespace rule, which is in fact pinned
+        by ``test_whitespace_between_tags_is_dropped`` below.
+
+        The markup deliberately includes the shapes where the two walks
+        take *different* branches: svg wrappers (which the content walk
+        skips for drawing), script/style (invisible but counted), hidden
+        blocks, and stray inter-tag whitespace.
+        """
+        cases = {
+            "svg wrapper": "<svg><title>Cover Image Here</title>"
+                           "<image href='c.jpg'/></svg><p>after</p>",
+            "svg labels": "<p>before</p><svg><text>x axis</text>"
+                          "<text>y axis</text></svg><p>after</p>",
+            "script and style": "<p>shown</p><script>var x = 1;</script>"
+                                "<style>p{color:red}</style>",
+            "hidden": "<div hidden>secret words</div><p>shown</p>",
+            "image with alt": '<p>a</p><img src="p.png" alt="a picture"/>'
+                              "<p>b</p>",
+            "whitespace between tags": "<p>one</p>\n   \n<p>two</p>",
+            "nested inline": "<p>plain <em>emph <strong>both</strong></em>"
+                             " tail</p>",
+        }
+        for name, body in cases.items():
+            with self.subTest(case=name):
+                markup = xhtml(body)
+                counted = content.parse_document(markup)[1]
+                measured = sum(locations.text_node_lengths(markup))
+                self.assertEqual(
+                    counted, measured,
+                    "the content walk counted %d and the locations walk "
+                    "%d for %s — every position after the difference is "
+                    "wrong by it" % (counted, measured, name))
 
     def test_a_section_with_text_always_contributes_at_least_one_location(
             self):
