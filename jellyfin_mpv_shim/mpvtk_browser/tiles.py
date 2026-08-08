@@ -12,7 +12,7 @@ image cache — ``_image_done`` runs on a pool thread and writes then
 import logging
 
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import Menu
 from . import components
 from .repository import PLAYABLE_TYPES, PLAYLIST_SUPPORTED_TYPES
@@ -118,6 +118,14 @@ class TilesMixin:
     #: menu is a reasonable second door to it.
     MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "AudioBook", "Book", "Series",
                                       "Season", "Playlist"}
+
+    #: Types that offer Read. A `Book` and nothing else — deliberately NOT
+    #: `Folder`, which is the shape a books library browses in: a folder is
+    #: a *collection* of books, so "read this" has no object, and the
+    #: reader would have to pick one on the user's behalf. That is the
+    #: whole reason the entry is per-item rather than on every tile in a
+    #: books library.
+    MENU_READ = {"Book"}
 
     #: Live types get their own entries: a channel is watched rather than
     #: played into a queue, and a program is not itself playable at all.
@@ -296,6 +304,14 @@ class TilesMixin:
         if t in self.MENU_FAVORITE:
             out.append((_("Remove from Favorites") if fav
                         else _("Add to Favorites"), "favorite", "favorite"))
+        if t in self.MENU_READ:
+            # Same verb the book's own page uses, and the same two
+            # meanings behind it: the built-in reader for an epub, the
+            # desktop for everything else (books.py). `_p` because the
+            # other "Read" on these screens is the *state* — "I have read
+            # it" — and gettext keys on the English, so without a context
+            # no language could tell the verb from the adjective.
+            out.append((_p("open a book", "Read"), "menu_book", "read"))
         if t in self.MENU_ADD_TO and not self._offline and self._edit_apis():
             out.append((_("Add to Playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
@@ -365,6 +381,10 @@ class TilesMixin:
             self._close_menu()
             self._open_add_to(item)
             return
+        elif action == "read":
+            self._close_menu()
+            self._menu_read(item, server)
+            return
         elif action == "download":
             self._close_menu()
             self._open_download(item)
@@ -383,6 +403,24 @@ class TilesMixin:
             self._live_menu_action(action, item, server)
             return
         self._close_menu()
+
+    def _menu_read(self, item, server):
+        """Open a book from its tile.
+
+        The split is `books.book_format`'s, not this menu's, and it is the
+        same call the book's own page makes: an epub opens in the window,
+        anything else is downloaded and handed to the desktop. Deciding it
+        here would be a second place to keep in step with what the reader
+        can actually draw.
+        """
+        from ..books import book_format
+
+        if book_format(item) == "epub":
+            self.navigate({"kind": "reader", "server": server,
+                           "item_id": item.get("Id"),
+                           "title": item.get("Name", "")})
+            return
+        self._actions.read_book(item, server)
 
     def _live_menu_action(self, action, item, server):
         """Record / cancel from a tile or guide cell.

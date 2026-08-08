@@ -59,6 +59,41 @@ class TestMarkupSafety(unittest.TestCase):
             blocks, _chars = content.parse_document(broken)
             self.assertIsInstance(blocks, list)
 
+    def test_a_document_that_will_not_finish_is_given_up_on(self):
+        """The parser is fast on everything measured, so this is insurance
+        rather than a fix for a known input — but it has to actually
+        *stop*, which is why the deadline is checked inside the parse and
+        not by abandoning a thread that goes on burning CPU."""
+        with self.assertRaises(xmlish.ParseTimeout):
+            xmlish.parse("<p>x</p>" * 200000, timeout=0.001)
+
+    def test_giving_up_is_the_same_answer_as_an_unreadable_document(self):
+        """Half a dozen callers already catch `EpubError` to mean "skip
+        this document and carry on". A timeout that needed its own
+        `except` would be one somebody forgets, and a hostile chapter
+        would take the whole book with it."""
+        from jellyfin_mpv_shim.epub.errors import EpubError as Base
+
+        self.assertTrue(issubclass(xmlish.ParseTimeout, Base))
+        self.assertTrue(issubclass(xmlish.ParseTimeout, EpubError))
+
+    def test_a_deeply_nested_document_still_reads(self):
+        """900 nested elements is a `RecursionError` in the walk, because
+        CPython allows 1000 frames — reachable by a generated book without
+        any malice. Past the cap the nesting is dropped and the text is
+        kept, which is the right half to lose."""
+        depth = 5000
+        markup = ("<html><body>" + "<div>" * depth + "words in here"
+                  + "</div>" * depth + "</body></html>")
+        blocks, _chars = content.parse_document(markup)
+        self.assertEqual([b.text() for b in blocks], ["words in here"])
+
+    def test_the_depth_cap_does_not_bite_a_real_document(self):
+        markup = "<html><body>" + "<div>" * 30 + (
+            "<p>a <em>real</em> book</p>") + "</div>" * 30 + "</body></html>"
+        blocks, _chars = content.parse_document(markup)
+        self.assertEqual([b.text() for b in blocks], ["a real book"])
+
     def test_document_order_is_preserved(self):
         """`find_all` walks pre-order. Reversing it silently reverses the
         spine, and a book opens at its last chapter."""

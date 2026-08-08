@@ -290,6 +290,41 @@ class TestPlayChips(BooksHarness):
         self.assertIn("download", actions)
         self.assertNotIn("play", actions)
 
+    def test_a_book_tile_offers_read(self):
+        b = self.open_folder([])
+        actions = {key for _l, _i, key in b._tile_menu_entries(book())}
+        self.assertIn("read", actions)
+
+    def test_a_folder_of_books_does_not_offer_read(self):
+        """A folder is how a books library browses, and it is a collection
+        of books — "read this" has no object, and the alternative is the
+        reader picking one on the user's behalf."""
+        b = self.open_folder([])
+        folder = {"Id": "folder1", "Name": "The Divided Account",
+                  "Type": "Folder", "IsFolder": True,
+                  "UserData": {"UnplayedItemCount": 2}}
+        actions = {key for _l, _i, key in b._tile_menu_entries(folder)}
+        self.assertNotIn("read", actions)
+
+    def test_reading_an_epub_from_a_tile_opens_the_reader(self):
+        b = self.open_folder([book()])
+        b.controller.book_downloads["bk1"] = ("complete", "/tmp/x.epub")
+        b._menu_read(book(), "srv1")
+        self.assertEqual(b.route["kind"], "reader")
+        self.assertEqual(b.route["item_id"], "bk1")
+
+    def test_reading_a_pdf_from_a_tile_still_hands_it_to_the_desktop(self):
+        """The split is books.book_format's, and this is the second caller
+        of it — deciding it in the menu would be a second place to keep in
+        step with what the reader can draw."""
+        b = self.open_folder([])
+        before = b.route["kind"]
+        b._menu_read(book(path="/library/A Manual.pdf"), "srv1")
+        self.assertEqual(b.route["kind"], before,
+                         "a pdf navigated to the reader")
+        self.assertTrue(b.controller.opened or b.controller.enqueued,
+                        "nothing was handed to the desktop")
+
     def test_a_books_library_tile_gets_no_chip_either(self):
         # It would not have anyway (a CollectionType makes it a door), but
         # via the other branch — so this pins the outcome, not the route.

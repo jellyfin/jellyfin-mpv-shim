@@ -36,6 +36,10 @@ import zipfile
 from urllib.parse import unquote
 
 from . import xmlish
+# Re-exported: this is where callers have always imported it from, and it
+# is the layer that gives it meaning. See errors.py for why it is defined
+# one module lower.
+from .errors import EpubError
 
 log = logging.getLogger("epub.archive")
 
@@ -60,10 +64,6 @@ MAX_META_BYTES = 4 * 1024 * 1024
 IMAGE_TYPES = frozenset({
     "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp",
 })
-
-
-class EpubError(Exception):
-    """This file cannot be read as an epub, with a reason for the user."""
 
 
 class TooLarge(EpubError):

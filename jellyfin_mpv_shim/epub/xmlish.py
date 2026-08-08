@@ -30,7 +30,40 @@ uses anyway and what an epub with a prefixed namespace needs regardless.
 """
 
 import re
+import time
 from html.parser import HTMLParser
+
+from .errors import EpubError
+
+#: How long one document may take to parse. Generous by three orders of
+#: magnitude — a real chapter is ~10 ms and the largest file in a normal
+#: book is a few hundred KB — so reaching it means something is wrong with
+#: the file rather than large about it.
+PARSE_TIMEOUT = 5.0
+
+#: How deep a tree may get. Two things, one cap. The walk in ``content.py``
+#: is recursive, and CPython's default limit is 1000 frames, so **900
+#: nested elements is a `RecursionError`** (measured) — which a generated
+#: book can reach without malice. And a document that nests to a million is
+#: not a book. Past this the element is still read and its text still
+#: counted; only the nesting is dropped, which for a reader that uses depth
+#: for indent and emphasis is the right thing to lose.
+MAX_DEPTH = 200
+
+#: Handler calls between clock reads. `time.monotonic` is ~40 ns and a big
+#: document is a few hundred thousand tokens, so checking every one would
+#: be measurable; checking every few hundred is free and still bounds the
+#: overshoot to microseconds.
+_CLOCK_EVERY = 512
+
+
+class ParseTimeout(EpubError):
+    """A document took longer to parse than :data:`PARSE_TIMEOUT`.
+
+    An :class:`~.errors.EpubError` on purpose: every caller that already
+    knows how to skip an unreadable document skips this one too, so a
+    hostile chapter costs that chapter and not the book.
+    """
 
 #: Elements that never have content, so a document that closes them anyway
 #: (``<br/></br>``) and one that never does must produce the same tree.
@@ -104,7 +137,7 @@ def _local(name):
 
 
 class _Builder(HTMLParser):
-    def __init__(self):
+    def __init__(self, deadline=None):
         # convert_charrefs resolves the *standard* named and numeric
         # references (``&amp;``, ``&#8212;``) into text, which is what we
         # want. An entity the DTD would have had to define is not in that
@@ -113,15 +146,41 @@ class _Builder(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.root = Node("#document")
         self._stack = [self.root]
+        self._deadline = deadline
+        self._ticks = 0
+
+    def _tick(self):
+        """Give up if this document has had its time.
+
+        Checked from the handlers rather than by feeding the parser in
+        chunks, which is the obvious implementation and is a trap:
+        `HTMLParser` keeps whatever it could not consume in `rawdata` and
+        rescans it from the start on the next `feed`, so a document with an
+        unterminated tag near the top becomes quadratic in the number of
+        chunks. Measured on 800 KB: 53 ms in one call, 401 ms in 64 KB
+        chunks, 2419 ms in 8 KB chunks. One `feed` is both faster and
+        safer, and this is how it is still interruptible.
+
+        The residue is a document that produces *no* handler calls at all,
+        which cannot be interrupted from here. That is bounded rather than
+        open-ended: the worst such input found was 627 ms for 2 MB, against
+        an entry cap of 32 MB.
+        """
+        self._ticks += 1
+        if self._deadline is None or self._ticks % _CLOCK_EVERY:
+            return
+        if time.monotonic() > self._deadline:
+            raise ParseTimeout("this document took too long to read")
 
     # -- elements ---------------------------------------------------------
 
     def handle_starttag(self, tag, attrs):
+        self._tick()
         tag = _local(tag)
         node = Node(tag, {_local(k): (v if v is not None else "")
                           for k, v in attrs}, self._stack[-1])
         self._stack[-1].children.append(node)
-        if tag not in VOID_TAGS:
+        if tag not in VOID_TAGS and len(self._stack) < MAX_DEPTH:
             self._stack.append(node)
 
     def handle_startendtag(self, tag, attrs):
@@ -145,6 +204,7 @@ class _Builder(HTMLParser):
                 return
 
     def handle_data(self, data):
+        self._tick()
         if data:
             self._stack[-1].children.append(data)
 
@@ -168,13 +228,14 @@ class _Builder(HTMLParser):
         pass
 
 
-def parse(data):
+def parse(data, timeout=PARSE_TIMEOUT):
     """Parse markup into a :class:`Node` tree rooted at ``#document``.
 
     ``data`` may be `bytes` or `str`; bytes are decoded by
-    :func:`decode`. Never raises on malformed input — that is the whole
+    :func:`decode`. Never raises on **malformed** input — that is the whole
     point of this parser — so callers check for the elements they need
-    rather than catching.
+    rather than catching. It raises :class:`ParseTimeout` on input that is
+    *hostile* rather than merely broken; ``timeout=None`` disables that.
     """
     if isinstance(data, (bytes, bytearray)):
         data = decode(data)
@@ -186,7 +247,8 @@ def parse(data):
     # because the DOM epub.js counts never contained the CR either.
     if "\r" in data:
         data = data.replace("\r\n", "\n").replace("\r", "\n")
-    builder = _Builder()
+    builder = _Builder(None if timeout is None
+                       else time.monotonic() + timeout)
     builder.feed(data)
     builder.close()
     return builder.root
