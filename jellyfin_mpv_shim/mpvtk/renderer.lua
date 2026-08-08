@@ -220,12 +220,27 @@ local state = {
     dd = {},                -- id -> {sel}
     focus = nil,            -- focused textbox id
     dd_open = nil,          -- open dropdown id
+    keys = {},              -- key name -> true: claimed by the app (mpvtk-keys)
+    keys_bound = {},        -- key name -> true for the ones we forced ourselves
     cursor_on = true,
     geo = {},               -- scroll id -> {dx, dy, x1,y1,x2,y2 (clip)}
     bars = {},              -- scroll id -> thumb geometry (for hit test)
     dd_geo = nil,           -- open popup geometry
     sl = {},                -- slider id -> {value}
     slider_drag = nil,      -- slider id being dragged
+    -- Picture panning (the comic reader). While `on`, a drag over the
+    -- window and the wheel move mpv's video-pan-x/y directly, which is the
+    -- whole point: a page turn is a Python round trip but a *scroll* is
+    -- sixty of them a second, and the app has nothing to add to one. The
+    -- app pushes the clamp and the pixel size of the displayed picture
+    -- (mpvtk-vpan); everything per-frame is arithmetic here.
+    --
+    -- A field on `state` rather than a file-scope local because
+    -- renderer.lua's main chunk is AT Lua's 200-local ceiling -- see
+    -- tests/test_renderer_lua.py, and state.builtin_drag above for the
+    -- same dodge.
+    vpan = nil,             -- {on, unitx, unity, minx, maxx, miny, maxy, step}
+    vpan_drag = nil,        -- {x, y} pointer position at the last pan
     tb_drag = nil,          -- {id, anchor} during click-drag selection
     tb_menu = nil,          -- {id, x, y} textbox context menu
     scale = 1,              -- UI scale (mpvtk-scale); see ui_px()
@@ -1354,10 +1369,25 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local d = dd_state(node)
     local open = state.dd_open == node.id
     if node.ticon then
+        local hovered = open or state.hover_id == node.id
+        local isz = math.floor(node.size * 1.2)
+        if node.tchip then
+            -- Button trigger (the now-playing bar's chapter picker): a
+            -- filled rounded square, matching the transport buttons it
+            -- sits among. Colours come from the app theme, which the
+            -- renderer has no token for -- see Dropdown.trigger_chip.
+            draw_rect(ass, ex, ey, node.w, node.h, {
+                fill = hovered and node.tchip[2] or node.tchip[1],
+                radius = 6, clip = clip,
+            })
+            draw_icon_path(ass, node.ticon,
+                ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
+                node.tchip[3], clip)
+            return
+        end
         -- chromeless icon trigger (playback HUD track pickers):
         -- round translucent accent wash when hovered/open, accent
         -- icon tint — same treatment as the HUD's flat buttons
-        local hovered = open or state.hover_id == node.id
         if hovered then
             local r = math.min(node.w, node.h) / 2
             draw_rect(ass, ex + node.w / 2 - r, ey + node.h / 2 - r,
@@ -1366,7 +1396,6 @@ local function draw_dropdown(ass, node, ex, ey, clip)
                     clip = clip,
                 })
         end
-        local isz = math.floor(node.size * 1.2)
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
             hovered and state.accent or state.tok.on_surface_muted, clip)
@@ -2986,11 +3015,65 @@ local function tb_menu_action(node, label)
     end
 end
 
+-- Move the displayed picture by (dx, dy) PHYSICAL pixels, clamped to what
+-- the app said is reachable. mpv's pan unit is the scaled picture, not the
+-- window (measured -- see mpvtk_browser/gateway/picture.py), which is why
+-- the divisor is unitx/unity and not the window size.
+function state.vpan_by(dx, dy)
+    local v = state.vpan
+    if not v or not v.on then return false end
+    local px = mp.get_property_number('video-pan-x', 0) + dx / (v.unitx or 1)
+    local py = mp.get_property_number('video-pan-y', 0) + dy / (v.unity or 1)
+    px = math.max(v.minx or 0, math.min(px, v.maxx or 0))
+    py = math.max(v.miny or 0, math.min(py, v.maxy or 0))
+    mp.set_property_number('video-pan-x', px)
+    mp.set_property_number('video-pan-y', py)
+    return true
+end
+
+-- One wheel notch down the page. Returns false when the page will not move
+-- any further, which is what turns the page instead: a comic reader that
+-- stops dead at the bottom of a page makes the wheel useless for the one
+-- gesture it is there for.
+function state.vpan_wheel(dir, scale)
+    local v = state.vpan
+    if not v or not v.on then return false end
+    local before = mp.get_property_number('video-pan-y', 0)
+    -- dir > 0 is "scroll down", which moves the picture UP, which is a
+    -- SMALLER pan (a positive pan pushes the picture down the window).
+    state.vpan_by(0, -dir * (v.step or 60) * (scale or 1))
+    local after = mp.get_property_number('video-pan-y', 0)
+    if math.abs(after - before) > 1e-6 then
+        state.vpan_edge = nil
+        return true
+    end
+    -- At the end of the page. The turn is a round trip -- the app extracts
+    -- the next page and pushes a new clamp -- and a fling delivers a dozen
+    -- notches before any of that lands, so without an interlock one flick
+    -- past the bottom turns several pages at once. Ask once, then wait for
+    -- the clamp to change, which is what a page arriving looks like.
+    --
+    -- Per DIRECTION, not per page: the last page never gets a new clamp
+    -- because there is no page to turn to, and in Fit Page it has no pan
+    -- range either -- so an interlock that ignored the direction stayed
+    -- latched and killed scrolling BACK off the end of a comic as well.
+    local edge = dir > 0 and 'bottom' or 'top'
+    if state.vpan_edge == edge then return true end
+    state.vpan_edge = edge
+    send({ t = 'vpan', edge = edge })
+    return true
+end
+
 local function on_mouse_move(x, y)
     phud_touch()
     -- The observer only fires on a change, so reaching here IS movement.
     state.phud.moved = true
     state.mouse.x, state.mouse.y = x, y
+    if state.vpan_drag then
+        state.vpan_by(x - state.vpan_drag.x, y - state.vpan_drag.y)
+        state.vpan_drag.x, state.vpan_drag.y = x, y
+        return
+    end
     if state.tb_drag then
         local node = state.byid[state.tb_drag.id]
         if node and node.t == 'textbox' then
@@ -3276,6 +3359,13 @@ local function on_mouse_down()
     if state.focus and (not node or node.id ~= state.focus) then
         blur()
     end
+    -- Nothing under the pointer and a picture on screen: the press grabs
+    -- the picture. Below the node test on purpose -- a press on one of the
+    -- reader's own bar buttons is a press on the button, and only the part
+    -- of the window that IS the page drags.
+    if not node and not modal_active() and state.vpan_grab(x, y) then
+        return
+    end
     if not node then
         -- click-away from an open modal dialog dismisses it
         if modal_active() then
@@ -3367,7 +3457,22 @@ local function on_mouse_down()
     end
 end
 
+-- Grab the picture. Called from on_mouse_down's no-node path (below), so a
+-- press on a bar button is a press on the button and only the empty middle
+-- of the comic reader drags -- which is exactly the part that IS the page.
+function state.vpan_grab(x, y)
+    if state.vpan and state.vpan.on then
+        state.vpan_drag = { x = x, y = y }
+        return true
+    end
+    return false
+end
+
 local function on_mouse_up()
+    if state.vpan_drag then
+        state.vpan_drag = nil
+        return       -- a drag is not a click, however short it was
+    end
     if state.dd_bar_drag then
         state.dd_bar_drag = nil
         request_render()
@@ -3411,6 +3516,12 @@ local function on_mouse_up()
     end
 end
 
+-- Declared here rather than beside its methods below, because `on_wheel`
+-- calls one of them and a Lua local is invisible above its declaration.
+-- The table is filled in further down (search `keyclaim.take`); by the
+-- time anything runs, the chunk has executed in full.
+local keyclaim = {}
+
 -- e.scale carries hi-res wheel deltas (trackpads, libinput
 -- button-scrolling trackballs) — honor it instead of stepping whole
 -- notches. state.wheel_count feeds the debug HUD: if the counter stops
@@ -3436,6 +3547,21 @@ local function on_wheel(dir, axis, e)
     if state.dd_open and axis == 'y' then
         popup_scroll(dir > 0 and 3 or -3)
         return
+    end
+    -- A displayed picture takes the wheel next. It is not a container, so
+    -- scroll_at below finds nothing over it -- which would leave the wheel
+    -- dead on the one screen whose entire content is scrollable.
+    -- A page that claimed the wheel takes it before any container does:
+    -- the epub reader's whole content is one bitmap, so there is nothing
+    -- for scroll_at to find, and a notch there means "turn the page" the
+    -- way it does in every other reader.
+    if axis == 'y' and keyclaim.take_wheel(dir, scale) then return end
+    if state.vpan and state.vpan.on and axis == 'y' then
+        -- `scale` carries the hi-res delta a trackpad or a button-scrolling
+        -- trackball sends; ignoring it makes one flick of such a device a
+        -- full notch per event, which on a comic page is a page turn per
+        -- flick rather than a smooth scroll.
+        if state.vpan_wheel(dir, scale) then return end
     end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
     local locked = false
@@ -3692,9 +3818,13 @@ local function nav_candidates()
     local modal = modal_active()
     local out = {}
     for _, node in ipairs(state.nodes) do
+        -- nnav: a clickable node that is not a control -- the reader's
+        -- page-turn halves. It has no visual identity, so the focus ring
+        -- would be a blue box round half a page of text, pointing at
+        -- nothing. Still clickable, just not walkable.
         if node.t ~= 'scroll' and node.t ~= 'layer' and
             node.t ~= 'menu' and node.t ~= 'occ' and
-            (not modal or node.mod) and not node.dis and
+            (not modal or node.mod) and not node.dis and not node.nnav and
             (node.click or node.dbl or node.t == 'textbox' or
              node.t == 'dropdown' or node.t == 'slider') and
             visible(node) then
@@ -4289,20 +4419,125 @@ local function key_scroll(kind)
     end
 end
 
+-- Keys the APP has claimed (`mpvtk-keys`), for a page whose whole content is
+-- one bitmap and whose gesture is therefore not "move focus" or "scroll" but
+-- something only Python can answer -- the epub reader's page turn.
+--
+-- Deliberately NOT a general key-event firehose. A claimed key is dispatched
+-- here only when nothing on screen has a better claim to it: a focused
+-- textbox owns its arrows, an open dropdown or context menu owns its
+-- navigation, and a modal owns everything. That precedence is the same one
+-- key_scroll and nav_move already apply, and stating it once here is what
+-- keeps a page that claims LEFT from breaking the search box on the same
+-- screen.
+-- ONE file-scope local for all of this, not three. renderer.lua's main
+-- chunk sits at Lua's 200-local ceiling (tests/test_renderer_lua.py), so a
+-- family of related helpers goes in a table rather than costing a slot
+-- each.
+--
+-- `take` is the precedence rule, and it is deliberately the same one
+-- key_scroll and nav_move already apply: a focused textbox owns its arrows,
+-- an open dropdown or context menu owns its navigation, a modal owns
+-- everything. Stating it once here is what lets a page claim LEFT without
+-- breaking a search box drawn on the same screen.
+function keyclaim.take(key)
+    if not state.keys[key] then return false end
+    if state.focus or state.dd_open or active_menu() or modal_active() then
+        return false
+    end
+    -- ...and a focus RING, not only a focused textbox. Without this the
+    -- claim outranks spatial navigation: DOWN moves the ring into the
+    -- reader's own bottom bar and then RIGHT turns the page instead of
+    -- stepping to the next button, so the ring can never leave the first
+    -- control it landed on. A remote has no TAB, so that made the bar's
+    -- buttons unreachable by remote entirely. The claim resumes as soon as
+    -- the ring is dismissed (any mouse press drops it).
+    if state.nav_mode and state.nav then
+        return false
+    end
+    send({ t = 'key', key = key })
+    request_render()
+    return true
+end
+
 local NAV_KEYS = {
-    { 'UP', function() nav_move(0, -1) end },
-    { 'DOWN', function() nav_move(0, 1) end },
-    { 'LEFT', function() nav_move(-1, 0) end },
-    { 'RIGHT', function() nav_move(1, 0) end },
-    { 'ENTER', function() nav_activate() end },
+    { 'UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
+    { 'DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
+    { 'LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
+    { 'RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
+    { 'ENTER', function() if not keyclaim.take('ENTER') then nav_activate() end end },
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
     { 'MENU', function() nav_context() end },
-    { 'PGUP', function() key_scroll('PGUP') end },
-    { 'PGDWN', function() key_scroll('PGDWN') end },
-    { 'HOME', function() key_scroll('HOME') end },
-    { 'END', function() key_scroll('END') end },
+    { 'PGUP', function() if not keyclaim.take('PGUP') then key_scroll('PGUP') end end },
+    { 'PGDWN', function() if not keyclaim.take('PGDWN') then key_scroll('PGDWN') end end },
+    { 'HOME', function() if not keyclaim.take('HOME') then key_scroll('HOME') end end },
+    { 'END', function() if not keyclaim.take('END') then key_scroll('END') end end },
 }
+
+-- Every key in NAV_KEYS is already force-bound, so claiming one only changes
+-- what its handler does. A claimed key that is NOT in that list needs a
+-- binding of its own, and needs it removed again when the claim is dropped
+-- (SPACE is mpv's pause; leaving it bound after the reader closes would
+-- swallow it for the whole session).
+keyclaim.nav_names = {}
+for _, k in ipairs(NAV_KEYS) do keyclaim.nav_names[k[1]] = true end
+
+-- The wheel is delivered by the `mpvtk_wheel` section, not by a per-key
+-- binding, so a claim on it must NOT add one -- two bindings for one
+-- physical notch is two events. Same exclusion as the nav keys, for the
+-- same reason, and `take_wheel` below is where a claimed notch is
+-- answered.
+keyclaim.wheel_names = { WHEEL_UP = true, WHEEL_DOWN = true }
+
+--: Accumulated wheel delta, so hi-res devices do not fly through a book.
+keyclaim.wheel_accum = 0
+
+-- A wheel notch a page has claimed. Returns true if it was consumed.
+function keyclaim.take_wheel(dir, scale)
+    local name = dir > 0 and 'WHEEL_DOWN' or 'WHEEL_UP'
+    if not state.keys[name] then return false end
+    -- The popup/menu/modal half of `take`'s precedence, but NOT its focus
+    -- ring: a ring is about where the arrows go, and scrolling is not an
+    -- arrow. Someone with the chapter picker focused still expects the
+    -- wheel to move the book.
+    if state.dd_open or active_menu() or modal_active() or state.focus then
+        return false
+    end
+    -- A trackpad sends fractions of a notch, several per gesture, so one
+    -- flick would otherwise be a dozen page turns. Accumulate until a
+    -- whole notch has arrived; a reversal starts again from zero, or the
+    -- tail of a fling would cancel the flick that followed it.
+    if (keyclaim.wheel_accum > 0) ~= (dir > 0) then
+        keyclaim.wheel_accum = 0
+    end
+    keyclaim.wheel_accum = keyclaim.wheel_accum + dir * math.abs(scale or 1)
+    if math.abs(keyclaim.wheel_accum) < 1 then return true end
+    keyclaim.wheel_accum = 0
+    send({ t = 'key', key = name })
+    request_render()
+    return true
+end
+
+function keyclaim.set(list)
+    local want = {}
+    for _, key in ipairs(list or {}) do want[key] = true end
+    for key in pairs(state.keys_bound) do
+        if not want[key] then
+            mp.remove_key_binding('mpvtk_key_' .. key)
+            state.keys_bound[key] = nil
+        end
+    end
+    for key in pairs(want) do
+        if not keyclaim.nav_names[key] and not keyclaim.wheel_names[key]
+            and not state.keys_bound[key] then
+            mp.add_forced_key_binding(key, 'mpvtk_key_' .. key,
+                function() keyclaim.take(key) end, { repeatable = true })
+            state.keys_bound[key] = true
+        end
+    end
+    state.keys = want
+end
 
 local function bind_nav_keys()
     for _, k in ipairs(NAV_KEYS) do
@@ -4363,6 +4598,16 @@ mp.set_key_bindings({
     { 'wheel_right', function(e) on_wheel(1, 'x', e) end },
     { 'shift+wheel_up', function(e) on_wheel(-1, 'x', e) end },
     { 'shift+wheel_down', function(e) on_wheel(1, 'x', e) end },
+    -- ctrl+wheel is zoom wherever a picture is being panned, and nothing
+    -- anywhere else. Sent to the app rather than applied here: a zoom
+    -- changes the clamp, and the clamp comes from the page's size and the
+    -- bars' heights, neither of which the renderer knows.
+    { 'ctrl+wheel_up', function()
+        if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = 1 }) end
+    end },
+    { 'ctrl+wheel_down', function()
+        if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = -1 }) end
+    end },
 }, 'mpvtk_wheel', 'force')
 -- Whether these sections may be enabled with `allow-vo-dragging`, and what
 -- the user's own `input-builtin-dragging` was before we touched it. Kept on
@@ -4773,6 +5018,28 @@ mp.register_script_message('mpvtk-scene', function(json)
     request_render()
 end)
 
+mp.register_script_message('mpvtk-keys', function(json)
+    local t = json and utils.parse_json(json) or nil
+    keyclaim.set(t and t.keys or {})
+end)
+
+-- Picture panning: the comic reader hands over the clamp and the displayed
+-- size of the page, and the gestures stop being its problem. Everything
+-- per-frame -- a drag, a wheel notch -- is then arithmetic in here against
+-- mpv's own video-pan-x/y, with no round trip at all.
+mp.register_script_message('mpvtk-vpan', function(json)
+    local t = json and utils.parse_json(json) or nil
+    if not t or not t.on then
+        state.vpan = nil
+        state.vpan_drag = nil
+        return
+    end
+    state.vpan = t
+    -- A fresh clamp is what a page arriving looks like, so this is where
+    -- the end-of-page interlock above is released.
+    state.vpan_edge = nil
+end)
+
 mp.register_script_message('mpvtk-focus', function(json)
     local t = json and utils.parse_json(json) or nil
     local id = t and t.id or nil
@@ -4864,6 +5131,12 @@ end
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     phud_clear()
+    if not want then
+        -- Yielding to playback. A claim that outlived the UI would take a
+        -- key away from the player itself, which is the one place these
+        -- keys have a job that matters more than ours.
+        keyclaim.set({})
+    end
     -- Re-assert browse's input BEFORE the early return. phud_clear may
     -- have just left HUD mode, and the return below fires whenever `active`
     -- did not change -- which is the case both at startup (state.active
@@ -4904,8 +5177,8 @@ mp.register_script_message('mpvtk-active', function(on)
 end)
 
 -- ------------------------------------------------ playback HUD (mpvtk-hud)
--- A third lifecycle state besides active/inactive (MIGRATION.md Phase
--- 9): during video playback the renderer stays ATTACHED but IDLE —
+-- A third lifecycle state besides active/inactive: during video
+-- playback the renderer stays ATTACHED but IDLE —
 -- blank scene, no forced input sections, only a lightweight summon
 -- surface (arrow/ENTER catchers + the mouse-move observer above).
 -- Summoning binds the full sections and notifies Python ({t=hud,

@@ -483,6 +483,34 @@ class Settings(SettingsBase):
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"
     poster_scale: Optional[float] = None
+    # The in-window epub reader (mpvtk_browser/pages/reader.py). These are
+    # settings rather than per-book state because they are a property of
+    # the reader's eyes and the room, not of the book: somebody who needs
+    # 27px needs it for every book, and having set it once should never be
+    # asked again. The reader's own A-/A+ and page-colour buttons write
+    # these, so the control on screen and the row in Settings are the same
+    # value seen twice.
+    #
+    # Type size is in logical pixels before UI scaling, like every other
+    # size in the browser. The reader steps it through a list of sensible
+    # sizes; a number typed here is used as-is, clamped to something that
+    # can hold a line of text.
+    reader_font_size: int = 21
+    # Page colour: "dark", "sepia" or "light". Dark by default because the
+    # app around it is dark and a white page in a dark room at midnight is
+    # the reason readers grew this setting -- not because it is better for
+    # reading, which the other two are there for.
+    reader_theme: str = "dark"
+    # Justified text is what a printed book does, and what every epub is
+    # typeset expecting. Off gives a ragged right edge, which some people
+    # find easier and which avoids the rivers a narrow window can open up.
+    reader_justify: bool = True
+    # The comic reader's reading mode: "width" (the page as wide as the
+    # window, scrolled down) or "page" (a whole page at once). Sticky
+    # because it is a preference about how somebody reads comics, not
+    # about one comic -- a reader who wants whole pages wants them for
+    # every book, and picking it again per volume is the annoyance.
+    comic_fit: str = "width"
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.

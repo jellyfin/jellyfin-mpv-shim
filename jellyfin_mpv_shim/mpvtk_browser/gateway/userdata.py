@@ -69,6 +69,55 @@ class UserDataMixin(GatewayCore):
                       item_id, exc_info=True)
             return False
 
+    def record_reading_position(self, server_uuid, item_id, ticks):
+        """A reader's cursor, on its way to wherever it can be kept.
+
+        Distinct from :meth:`set_position`, which is the manual Progress…
+        dialog: that one is a value the user typed, it may legitimately go
+        backwards, and it is deliberately *not* queued. This one is the
+        equivalent of a playback progress report, and it needs what those
+        get -- because a downloaded book is the one thing you can go on
+        reading with the server away, and until this existed an offline
+        page turn was written nowhere at all. Reopening the book offline
+        started it again from page one, and nothing was ever sent.
+
+        Three places, in this order, and the order is the point:
+
+        1. **The local catalog**, verbatim, so re-opening offline lands
+           where the reading stopped. Only for a downloaded item -- which
+           an in-window reader always is, since the file is what it opens.
+        2. **The server**, directly, which is the whole story while online.
+        3. **The replay queue**, but *only if the server refused*. Queuing
+           unconditionally would be worse than not queuing: the queue is
+           advance-only, so an entry left behind after a successful write
+           would be replayed later and undo a subsequent page turn that
+           went backwards.
+
+        Returns True when the server took it.
+        """
+        from ...sync.manager import syncManager
+
+        db = getattr(syncManager, "db", None)
+        if db is not None:
+            try:
+                db.set_reading_position(item_id, int(ticks))
+            except Exception:
+                log.debug("could not record the reading position locally",
+                          exc_info=True)
+        if self.set_position(server_uuid, item_id, ticks):
+            return True
+        if db is None:
+            return False
+        try:
+            # is_complete, because the queue is keyed on the catalog and an
+            # entry for something not downloaded would sit there forever.
+            if db.is_complete(item_id):
+                db.upsert_playstate(server_uuid, item_id,
+                                    position_ticks=int(ticks))
+        except Exception:
+            log.debug("could not queue the reading position", exc_info=True)
+        return False
+
     def set_favorite(self, server_uuid, item_id, favorite):
         """Returns True when the change was recorded. Favorites have no
         offline queue, so offline this is a refusal, not a silent no-op —
@@ -81,4 +130,56 @@ class UserDataMixin(GatewayCore):
             return True
         except Exception:
             log.error("mpvtk set_favorite failed", exc_info=True)
+            return False
+
+    # -- reading position --------------------------------------------------
+    #
+    # A book's position is the one piece of user data this app can neither
+    # observe nor infer. The file is read in some other application, which
+    # reports to nobody -- so unlike every other item here, where the player
+    # is the source of truth, the *user* is. These two are the manual push
+    # and pull that stands in for a progress report.
+
+    def get_position(self, server_uuid, item_id):
+        """This item's stored `UserData`, straight from the server.
+
+        Fetched rather than read off the DTO the screen already has: the
+        whole reason to open the progress dialog is that the position may
+        have moved somewhere else -- another client, another device -- since
+        the page loaded. A stale number is exactly the failure this is
+        supposed to fix. Returns ``None`` when it could not be read, which
+        the dialog shows as such rather than as a position of zero.
+        """
+        client = deps.clientManager.clients.get(server_uuid)
+        if client is None or not item_id:
+            return None
+        try:
+            return client.jellyfin.get_userdata_for_item(item_id) or {}
+        except Exception:
+            log.error("mpvtk get_position failed", exc_info=True)
+            return None
+
+    def set_position(self, server_uuid, item_id, ticks):
+        """Write a playback position. Returns True when the server took it.
+
+        `UpdateItemUserData` merges: fields named here overwrite, everything
+        else in UserData is left alone. That matters -- posting a position
+        must not clear the played flag or the favourite heart.
+
+        Deliberately NOT queued offline, unlike ``set_watched``. That queue
+        is advance-only (it keeps the larger position), which is the right
+        rule for a progress report and the wrong one for a value the user
+        typed: correcting a book *back* to page 40 is a normal thing to
+        want, and a queue that silently kept 300 would be worse than a
+        refusal the caller can report.
+        """
+        client = deps.clientManager.clients.get(server_uuid)
+        if client is None or not item_id:
+            return False
+        try:
+            client.jellyfin.update_userdata_for_item(
+                item_id, {"PlaybackPositionTicks": int(ticks)})
+            return True
+        except Exception:
+            log.error("mpvtk set_position failed", exc_info=True)
             return False

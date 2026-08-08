@@ -69,7 +69,13 @@ class PageContext:
     nav: Any
     #: Off-thread work, epoch-guarded. See ``async_runner.AsyncRunner``.
     run: Any
-    #: Render resources: the strip store, the thumbnail store, tile geometry.
+    #: Render resources: the strip store, the thumbnail store, tile geometry,
+    #: and ``node_rect(id)`` — a node's laid-out rect from the **last pushed
+    #: scene**, which is the toolkit's answer (GUIDE §2) for content that has
+    #: to be *rasterized* at the size layout gives it. An image cannot flex,
+    #: so a page drawing one full-bleed measures the hole on one frame and
+    #: fills it on the next. A page that only needs to *place* things should
+    #: flex instead.
     art: Any
     #: The player and everything outside the package. A ``PlayerGateway``.
     player: Any
@@ -128,6 +134,25 @@ class Page:
     def render(self, size) -> Any:
         """Build the content-area widget tree. Loop thread."""
         raise NotImplementedError
+
+    def close(self) -> None:
+        """This page has stopped being the screen. Loop thread.
+
+        Called once, when the shell renders a *different* page — not on
+        navigation, because navigation happens on threads the render loop
+        does not own (a websocket, mpv's event thread) and this may touch
+        the player.
+
+        Almost no page needs it. It exists for the two that take something
+        the window can only hold one of: the comic reader hands mpv a
+        picture, which nothing else would take down, and it extracts pages
+        to files, which nothing else would delete. A page that only holds
+        memory should let the caches do their job instead.
+
+        It may be followed by another ``load()`` — going back returns to a
+        route whose dict is still here — so it must leave the page usable
+        rather than spent.
+        """
 
     # -- convenience -------------------------------------------------------
 

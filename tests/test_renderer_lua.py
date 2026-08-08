@@ -13,6 +13,7 @@ developer with mpv (which embeds Lua) will have one.
 
 import os
 import shutil
+import re
 import subprocess
 import unittest
 
@@ -129,6 +130,44 @@ class TestRendererLua(unittest.TestCase):
             if check.returncode != 0:
                 return n - 1
         return self.HEADROOM_PROBE
+
+    def test_no_renderer_helper_is_defined_and_never_called(self):
+        """A `function state.X` nobody calls is a feature that is wired up
+        everywhere except where it fires.
+
+        Written after exactly that: the comic reader's wheel handler was
+        defined, the message that configures it arrived, the drag and the
+        ctrl+wheel paths that read the same state both worked — and the
+        branch that *calls* it never made it into `on_wheel`, so plain
+        scrolling did nothing while everything around it behaved. Nothing
+        failed, in Lua or in Python; the function was simply unreachable.
+
+        Scoped to the `state.`/`keyclaim.` helpers because those are the
+        ones that exist to
+        dodge the local ceiling: a file-scope `local function` that nobody
+        calls is at least visible as an unused name, while a table field
+        assigned in one place and read in none looks exactly like a field
+        that is used somewhere else in a 4,500-line file.
+        """
+        with open(RENDERER, encoding="utf-8") as fh:
+            source = fh.read()
+        defined = set(re.findall(
+            r"^function (?:state|keyclaim)\.(\w+)\s*\(", source, re.M))
+        self.assertTrue(defined, "no state helpers found — has the "
+                                 "convention changed?")
+        dead = []
+        for name in sorted(defined):
+            # Every mention that is not the definition line.
+            uses = re.findall(r"(?:state|keyclaim)\.%s\b" % name,
+                              source)
+            if len(uses) < 2:
+                dead.append(name)
+        self.assertEqual(
+            dead, [],
+            "defined on `state` but never called:\n  "
+            + "\n  ".join(dead)
+            + "\n\nEither call it, or delete it. A helper that is only "
+              "ever defined is a branch that silently does nothing.")
 
     def test_there_is_a_local_budget_left(self):
         """The ceiling is not a wall you should discover by hitting it.

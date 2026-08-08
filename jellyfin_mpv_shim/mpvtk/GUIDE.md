@@ -203,7 +203,7 @@ scroll container id), `top` (floating layer), `mod` (modal layer).
 
 | t | extra fields |
 |---|---|
-| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring, wdrag (title bar: press drags the window, dbl toggles maximized — renderer-side, no event) |
+| rect | fill, a, radius, bc/bw, click, ctx, rpt (hold-repeat), hover{fill,bc,c}, ring, nnav (clickable but outside the focus order — an ImageMap `zone`), wdrag (title bar: press drags the window, dbl toggles maximized — renderer-side, no event) |
 | text | text, size, c, bold, align, click, hover (one node per wrapped line: `id`, `id.l1`, …) |
 | img | src (path or `&addr`), iw, ih, v (cache-bust) |
 | scroll | axis, cw/ch (content), bar, watch |
@@ -220,8 +220,23 @@ the renderer subtracts live offsets and clips. `ring` marks transparent
 hit-rects over bitmaps whose hover ring draws *outside* their bounds.
 
 Other messages: `mpvtk-metrics` (measured glyph widths + font family,
-pushed once at ready), `mpvtk-focus` (below), `mpvtk-debug` (test
-hooks, §7).
+pushed once at ready), `mpvtk-focus` (below), `mpvtk-keys` (below),
+`mpvtk-debug` (test hooks, §7).
+
+`mpvtk-keys {"keys": ["LEFT", …]}` — the app CLAIMS those mpv keys for
+as long as it keeps the claim; each arrives back as a `key` event
+instead of doing what it normally does. For a page whose gesture is
+neither "move focus" nor "scroll" and so cannot be a widget: the epub
+reader, whose content is one bitmap and whose LEFT/RIGHT mean *turn
+the page*. Precedence is the renderer's and matches `key_scroll`'s — a
+focused textbox, an open dropdown or menu, and any modal all take the
+key first, so a page may claim LEFT without breaking the search box
+above it. A claim is dropped by sending an empty list, and the
+renderer drops every claim itself on `mpvtk-active no` (there those
+keys are the player's seek keys, and the player outranks the UI).
+`MpvtkApp.claim_keys()` is the Python side; the browser drives it from
+a page's `claimed_keys` attribute, so leaving the page gives them
+back.
 
 `mpvtk-focus {"id": …}` puts spatial-nav focus on a node — a textbox
 also takes the keyboard, because asking for the search box means asking
@@ -245,6 +260,7 @@ handlers registered during layout:
 | dbl | id | double-click on a node with on_dbl (after its two clicks) |
 | nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
 | forward | — | the mouse's forward button, while the UI owns the pointer (`MpvtkApp.on_forward`) |
+| key | key | a key claimed via `mpvtk-keys`, when nothing on screen outranks the claim (`MpvtkApp.on_key`) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |
@@ -425,5 +441,8 @@ the player's own mpv window. How it lands against the model above:
   remote/keyboard case.
 
 The browser replaced an earlier Tkinter browser package (removed on
-reaching parity). Note: `mpvtk_browser/__init__.py` still cites a
-`MIGRATION.md` that does not exist — a leftover pointer, not a doc.
+reaching parity). The migration's own write-ups (`MIGRATION.md`,
+`PARITY.md`) were deleted in c37bfc3e and this section is what survives of
+them; the comments that cited those files were cleaned up on 2026-08-07, so
+a fresh citation of either is a dead pointer rather than a doc you have not
+found.

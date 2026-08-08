@@ -449,6 +449,49 @@ class SyncDB:
                     self._conn.rollback()
                     raise
 
+    def set_reading_position(self, item_id, position_ticks):
+        """Store a reader's cursor **verbatim**, not advance-only.
+
+        ``update_userdata`` is the playback rule: a position only ever moves
+        forward, because a progress report that went backwards is a stop
+        report or a stale one. A book is not that. Turning back a chapter is
+        an ordinary thing to do, the number is a cursor rather than a
+        high-water mark, and the server agrees -- a `Book` is excluded from
+        both arms of ``UserDataManager.UpdatePlayState`` and stores what it
+        is given. Kept apart from ``update_userdata`` rather than added to it
+        as a flag, because every caller of that one is playback and none of
+        them wants this.
+
+        Local only. What is *sent* to the server on reconnect stays
+        advance-only (``upsert_playstate``), so a client that has been
+        offline cannot rewind the place another device reached.
+        """
+        with self._lock:
+            if self._conn is None:
+                return
+            row = self._conn.execute(
+                "SELECT userdata_json FROM downloads WHERE item_id=?",
+                (item_id,)).fetchone()
+            if row is None:
+                return
+            try:
+                userdata = json.loads(row["userdata_json"] or "{}")
+            except ValueError:
+                userdata = {}
+            if userdata.get("PlaybackPositionTicks") == position_ticks:
+                return
+            userdata["PlaybackPositionTicks"] = position_ticks
+            # Derived; see update_userdata.
+            userdata.pop("PlayedPercentage", None)
+            try:
+                self._conn.execute(
+                    "UPDATE downloads SET userdata_json=? WHERE item_id=?",
+                    (json.dumps(userdata), item_id))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
     def clear_playstate(self, ids):
         if not ids:
             return

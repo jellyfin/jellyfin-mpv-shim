@@ -54,6 +54,7 @@ from .editing import EditingMixin
 from .hud import HudMixin
 from .livetv import LiveTvMixin
 from .lock import LockMixin
+from .picture import PictureMixin
 from .playback import PlaybackMixin
 from .queue import QueueMixin
 from .servers import ServersMixin, _collect_servers, _saved_servers_exist
@@ -65,6 +66,7 @@ from .users import UsersMixin
 
 class PlayerGateway(
     PlaybackMixin,
+    PictureMixin,
     TransportMixin,
     HudMixin,
     UserDataMixin,

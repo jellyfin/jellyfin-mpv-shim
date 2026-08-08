@@ -277,7 +277,14 @@ class PhotoGlyphTest(unittest.TestCase):
 
     def test_a_folder_says_folder(self):
         self.assertEqual(placeholder_glyph({"Type": "Folder",
-                                            "Name": "2019"}), "▸")
+                                            "Name": "2019"}), "▤")
+
+    def test_a_folder_does_not_look_like_a_play_button(self):
+        """It was "▸", which drawn large and centred on an artless tile is
+        the play shape -- a books library came out as a grid of folders
+        wearing play buttons, and was reported as such."""
+        self.assertNotIn(placeholder_glyph({"Type": "Folder", "Name": "x"}),
+                         ("▸", "▶", "►"))
 
     def test_a_photo_album_says_album(self):
         self.assertEqual(placeholder_glyph({"Type": "PhotoAlbum",
@@ -286,6 +293,19 @@ class PhotoGlyphTest(unittest.TestCase):
     def test_an_ordinary_item_still_gets_its_initial(self):
         self.assertEqual(placeholder_glyph({"Type": "Movie",
                                             "Name": "Arrival"}), "A")
+
+    def test_an_audiobook_gets_the_audio_note(self):
+        """It IS an audio item, and it hits the case this table is for: an
+        author folder of three books called "The ..." drew three tiles all
+        reading "T"."""
+        self.assertEqual(placeholder_glyph({"Type": "AudioBook",
+                                            "Name": "The Copper Bell"}), "♪")
+
+    def test_a_book_keeps_its_initial(self):
+        # Deliberate: a title is what tells one book from another, and a
+        # shelf of identical marks says less than a shelf of letters.
+        self.assertEqual(placeholder_glyph({"Type": "Book",
+                                            "Name": "Ascent"}), "A")
 
     def test_music_keeps_its_note(self):
         self.assertEqual(placeholder_glyph({"Type": "MusicAlbum",

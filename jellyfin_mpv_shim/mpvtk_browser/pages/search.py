@@ -15,6 +15,7 @@ reaches the shell for nothing.
 
 import logging
 
+from ...books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ...i18n import _
 from ...mpvtk.widgets import Column, Text, VScroll
 from .. import theme
@@ -35,6 +36,12 @@ log = logging.getLogger("mpvtk_browser.pages.search")
 #: nodes and blows past mpv's 63-overlay budget. 60 is what the whole
 #: screen used to be capped at, now applied per row instead of across them.
 ROW_MAX = 60
+
+#: Sentinel geom: shape this row from the artwork it actually got, via
+#: ``TileRenderer.auto_geom``. Only the two book rows use it -- every other
+#: row here has one true shape, and inferring theirs would let a single
+#: oddly-tagged result restyle the whole carousel.
+AUTO_SHAPE = object()
 
 #: The two entries in the section order that are not "filter the items by
 #: type into a carousel": People come from their own request, and Songs are
@@ -142,6 +149,15 @@ class SearchPage(Page):
             (SONGS_ROW, (), None, None, None),
             (_("Videos"), ("Video", "MusicVideo"), art.geom_wide, "Primary",
              True),
+            # Web's order puts these last but for Collections, and it draws
+            # them AutoOverflow -- shape inferred from the artwork rather
+            # than from the type. That is the honest rule for these two:
+            # an audiobook wears whatever the ripper embedded (square art
+            # from the audio file, or the book's portrait cover), and a
+            # comic is a different shape from a novel. AUTO_SHAPE asks
+            # auto_geom, which is the same call the Live TV rows make.
+            (_("Audiobooks"), (AUDIOBOOK_TYPE,), AUTO_SHAPE, None, True),
+            (_("Books"), (BOOK_TYPE,), AUTO_SHAPE, None, True),
         ]
         used = set()
         for label, types_, geom, itype, inherit in groups:
@@ -172,9 +188,13 @@ class SearchPage(Page):
             group = [it for it in items if it.get("Type") in types_][:ROW_MAX]
             if group:
                 used.update(types_)
+                row_geom, row_itype = geom, itype
+                if geom is AUTO_SHAPE:
+                    row_geom, row_itype = tiles.auto_geom(
+                        group, default=art.geom, default_type="Primary")
                 rows.append(tiles.tile_row(
-                    label, group, "search-" + label, geom=geom,
-                    image_type=itype, inherit=inherit,
+                    label, group, "search-" + label, geom=row_geom,
+                    image_type=row_itype, inherit=inherit,
                     autofocus_first=claim()))
         # Programs before Channels, which is the rest of web's order: what
         # is on now is a result, a channel is a place to go and look.

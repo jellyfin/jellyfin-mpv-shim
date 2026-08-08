@@ -125,7 +125,8 @@ class DownloadsTabMixin:
                 item_ids=(None if kind in ("series", "playlist")
                           else self._dl_group_item_ids(group))),
             bold=True, count=group.get("count"),
-            icon={"movies": "movie", "playlist": "queue_music"}.get(kind),
+            icon={"movies": "movie", "playlist": "queue_music",
+                  "audiobooks": "audiotrack", "books": "menu_book"}.get(kind),
             route=route, toggle=gkey if children else None,
             expanded=g_open,
             # Reclaim space on a finished show without losing what's
@@ -141,17 +142,29 @@ class DownloadsTabMixin:
                 if kind in ("series", "playlist")
                 and group.get("watched_count") else None))]
         for ci, child in enumerate(children if g_open else []):
-            if child.get("kind") == "season":
+            # A middle level: a season, or one audiobook's chapter files.
+            # Told apart by having children of its own rather than by kind,
+            # so a new nested group renders without touching this loop --
+            # only its delete scope has to be named.
+            if child.get("kind") in ("season", "audiobook"):
                 skey = self._dl_key(child, "%d.%d" % (gi, ci))
                 s_open = skey not in collapsed
                 eps = child.get("children") or []
                 rows.append(self._dl_row(
                     "dl-g%d-s%d" % (gi, ci), child.get("title", "?"),
                     self._human_size(child.get("size", 0)), 1,
-                    self._dl_delete_cb(route, child,
-                                       season_id=child.get("id")),
+                    self._dl_delete_cb(
+                        route, child,
+                        # A season is a server-side object and deletes by
+                        # id. An audiobook is not -- nothing joins its
+                        # chapters but the folder they came from -- so it
+                        # names its rows, like the flat groups do.
+                        season_id=(child.get("id")
+                                   if child.get("kind") == "season" else None),
+                        item_ids=(None if child.get("kind") == "season"
+                                  else self._dl_group_item_ids(child))),
                     route=route, toggle=skey if eps else None,
-                    expanded=s_open))
+                    expanded=s_open, count=child.get("count")))
                 for ei, ep in enumerate(eps if s_open else []):
                     rows.append(self._dl_item_row(
                         route, ep, "dl-g%d-s%d-e%d" % (gi, ci, ei), 2))
@@ -181,13 +194,19 @@ class DownloadsTabMixin:
         return self._dl_row(node_id, title, meta, depth,
                             self._dl_delete_cb(route, item,
                                                item_id=item.get("id")))
-    @staticmethod
-    def _dl_group_item_ids(group):
-        """Every download id under a group, including nested season rows."""
+    @classmethod
+    def _dl_group_item_ids(cls, group):
+        """Every download id under a group, however deeply nested.
+
+        Recursive rather than one hard-coded level: the Audiobooks section
+        is group -> book -> chapter, which the season-shaped version walked
+        one level of and then took the *book* rows' (absent) ids. That is
+        how a group-level Remove silently deletes nothing.
+        """
         out = []
         for child in group.get("children") or ():
-            if child.get("kind") == "season":
-                out += [g.get("id") for g in child.get("children") or ()]
+            if child.get("children"):
+                out += cls._dl_group_item_ids(child)
             elif child.get("id"):
                 out.append(child["id"])
         return [i for i in out if i]

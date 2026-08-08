@@ -59,6 +59,17 @@ CONTRACT = [
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.
     "tests.e2e.test_syncplay_group",
+    # Books: the DTO with the widest gap between what it looks like and what
+    # it is (no media source, no container, no size), and a progress unit
+    # the server's own comments call a placeholder. Both are things a fake
+    # cannot disagree with, because a fake is written from the same reading
+    # of the API the code is.
+    "tests.e2e.test_books",
+    # The audiobook resume rule, which is a different rule from the video
+    # one and is stated in MINUTES -- so a book under ten minutes can hold
+    # no position at all. Pinned because reading it wrong looks exactly
+    # like a client bug.
+    "tests.e2e.test_audiobooks",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.
@@ -83,6 +94,16 @@ PER_BACKEND = [
     # wiring between PlayerManager and SyncPlayManager, which a fake player
     # is written to agree with and so cannot fail.
     "tests.e2e.test_syncplay_playback",
+    # A real audiobook, a real stream, a real seek: the half of the resume
+    # loop the contract tier cannot see, because it drives the server
+    # directly rather than through the player.
+    "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
+    # The comic reader, which is the one browser screen the contract-tier
+    # route walk cannot open: a comic page is PLAYED, so showing one imports
+    # player.py and opens a window. Per backend because what it asserts on
+    # is mpv's own properties (`path`, `keepaspect`), and the two backends
+    # disagree about property types often enough to be worth both legs.
+    "tests.e2e.test_comic_reader",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

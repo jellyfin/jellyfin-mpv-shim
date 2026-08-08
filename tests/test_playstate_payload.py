@@ -72,6 +72,9 @@ MOVIE = {"Name": "The Movie", "Type": "Movie", "MediaType": "Video"}
 PHOTO = {"Name": "A Photo", "Type": "Photo", "MediaType": "Photo"}
 SONG = {"Name": "A Song", "Type": "Audio", "MediaType": "Audio",
         "Artists": ["A Band"], "Album": "An Album"}
+AUDIOBOOK = {"Name": "The Lantern Keeper", "Type": "AudioBook",
+             "MediaType": "Audio", "Artists": ["Elena Farrow"],
+             "Album": "The Lantern Keeper"}
 
 
 class TestEpisodeContext(unittest.TestCase):
@@ -144,6 +147,67 @@ class TestTheAudioBarIsUnaffected(unittest.TestCase):
     def test_a_song_has_empty_context_rather_than_missing_keys(self):
         st = snapshot(SONG)
         self.assertEqual(st["series_name"], "")
+
+
+class TestAudiobooksAreToldFromSongs(unittest.TestCase):
+    """The audio bar grows skip-back-10 / skip-forward-30 and chapter ticks
+    for a book and not for a song, so the snapshot has to say which it is.
+
+    An AudioBook IS an Audio item -- same MediaType, same pipeline -- so
+    `is_audio` cannot answer this and a second field has to.
+    """
+
+    def test_an_audiobook_says_so(self):
+        st = snapshot(AUDIOBOOK)
+        self.assertTrue(st["is_audio"])
+        self.assertTrue(st["is_audiobook"])
+
+    def test_a_song_does_not(self):
+        st = snapshot(SONG)
+        self.assertTrue(st["is_audio"])
+        self.assertFalse(st["is_audiobook"])
+
+    def test_a_video_does_not(self):
+        self.assertFalse(snapshot(MOVIE)["is_audiobook"])
+
+
+class TestChaptersRideTheSnapshot(unittest.TestCase):
+    """Read once per push rather than per frame.
+
+    The video HUD asks the player for its chapters while it draws, which is
+    fine because it is only up during playback. The audio bar is on screen
+    for as long as the browser is, and on the jsonipc backend every property
+    read is an IPC round trip -- so a per-frame read there is a round trip
+    per frame, for a list that cannot change within one item.
+    """
+
+    class _WithChapters(_Player):
+        chapter_list = [{"title": "One", "time": 0},
+                        {"title": "Two", "time": 300.5}]
+
+    def _snapshot(self, player):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = _Video(AUDIOBOOK)
+        pm._player = player
+        pm._hud_skip = None
+        pm.repeat_mode = "none"
+        PlayerManager.push_playstate(pm)
+        return got[0]
+
+    def test_chapters_are_carried(self):
+        st = self._snapshot(self._WithChapters())
+        self.assertEqual(st["chapters"],
+                         [{"title": "One", "time": 0.0},
+                          {"title": "Two", "time": 300.5}])
+
+    def test_a_file_with_none_carries_an_empty_list(self):
+        # Not a missing key: the bar reads it unconditionally, and a fake
+        # that omitted it would make every chapter control unreachable
+        # while the tests still passed.
+        st = self._snapshot(_Player())
+        self.assertEqual(st["chapters"], [])
 
 
 class TestTheHudRendersWhatThePlayerSends(unittest.TestCase):

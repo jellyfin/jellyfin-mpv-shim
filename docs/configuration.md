@@ -226,6 +226,15 @@ You can use the config file to enable and disable features.
 - `logo_legibility_library` - The same, for a library set to draw **Logo** artwork. Default: `false`
   - Off by default because the two conventions are opposite: a film's or series' logo is white by convention and already reads on a dark background, and it is the plate that then makes it need a shadow. Turn it on if your logo artwork is dark.
   - Also on the **View** menu of any library set to draw Logo artwork, which is where you would be when you notice.
+- `reader_font_size` - Type size in the built-in epub reader, in pixels before interface scaling. Default: `21`
+  - The `A-` and `A+` buttons in the reader write this setting, so the size you read at is the size you come back to — for every book, on every launch.
+  - Those buttons step through a list of sensible sizes (15, 17, 19, 21, 24, 27, 31, 36). A number set here is used as it is; the buttons then step to the next size above or below it.
+- `reader_theme` - Page colour in the reader. One of `dark`, `sepia`, `light`. Default: `dark`
+  - Dark to match the rest of the app, not because it is better to read: the other two are there for that. The button at the bottom right of the reader cycles them.
+- `reader_justify` - Justify the text, as a printed book does. Default: `true`
+  - Off gives a ragged right edge. Worth trying in a narrow window, where justification has fewer places to put the extra space and can open up rivers.
+- `comic_fit` - How a comic page is fitted when you open one. One of `width` (the page as wide as the window, scrolled down) or `page` (a whole page at once). Default: `width`
+  - The **Fit Width** / **Fit Page** buttons on the comic reader's own bar write this setting, so the next comic opens the way you were reading the last one.
 - `ui_scale` - Scale factor for the in-player UI (tiles, text, chrome). Default: `null`
   - `null` follows the display: mpv's `display-hidpi-scale`, which is `1.0` on
     X11 and the compositor's factor on Wayland/macOS.

@@ -127,6 +127,77 @@ class DownloadsMixin(GatewayCore):
         except Exception:
             return (set(), set(), set(), set())
 
+    # -- books -------------------------------------------------------------
+    #
+    # A book is the one library item this app cannot render (see
+    # ``books.py``), so its downloaded copy is not an offline convenience —
+    # it is the only way to read the thing at all. That makes two questions
+    # the rest of the download API never had to answer: where is the file,
+    # and would the desktop open it.
+
+    def book_download_state(self, item_id):
+        """``(status, path)`` for one item's download.
+
+        ``status`` is a catalog status (``"complete"``, ``"downloading"``,
+        ``"pending"``, ``"error"``) or ``None`` when nothing is queued;
+        ``path`` is the absolute file, and only ever set alongside
+        ``"complete"``.
+
+        The path is checked on disk rather than trusted from the row. A
+        catalog that says complete and a file that is gone is a real state —
+        the store can be moved, pruned or cleaned by hand — and the reader
+        this feeds would otherwise be handed a path that does not exist,
+        which every desktop reports as a corrupt book.
+        """
+        import os
+        from ...sync.manager import syncManager
+        from ...sync.db import STATUS_COMPLETE
+        db = getattr(syncManager, "db", None)
+        if db is None:
+            return (None, None)
+        try:
+            row = db.get(item_id)
+        except Exception:
+            log.debug("book_download_state failed for %s", item_id,
+                      exc_info=True)
+            return (None, None)
+        if not row:
+            return (None, None)
+        status = row.get("status") or None
+        rel = row.get("file_path")
+        if status != STATUS_COMPLETE or not rel:
+            return (status, None)
+        path = os.path.join(syncManager.root or "", rel)
+        return (status, path) if os.path.exists(path) else (status, None)
+
+    def open_downloaded_file(self, item_id):
+        """Hand this item's downloaded file to the desktop. ``(ok, method)``.
+
+        Lives here rather than in the page because it is the shell reaching
+        outside the process, which is what this gateway is for — and because
+        the path it needs comes from the catalog, which the browser has no
+        business opening itself.
+        """
+        from ...system_open import open_path
+        _status, path = self.book_download_state(item_id)
+        if not path:
+            return (False, None)
+        return open_path(path)
+
+    def delete_downloads(self, item_ids):
+        """Delete several downloads by id.
+
+        The scoped deletes (series/season/playlist) cannot express "these
+        files": an audiobook read from a folder is N rows with no server-side
+        object joining them, so the caller names them. Raises, like its
+        single-item sibling — a failed delete that looks like a success is
+        the bug ``delete_download`` was fixed for.
+        """
+        from ...sync.manager import syncManager
+        for one in item_ids or ():
+            if one:
+                syncManager.delete(item_id=one)
+
     def on_downloads_changed(self, callback):
         """Subscribe to catalog changes. The browser polled a status blob
         and never refreshed its badges from it; syncManager has had a push

@@ -275,6 +275,42 @@ class TestWhileMusicPlays(RemoteCommandBase):
         self.assertEqual(pm.hud_menus, 1)
         self.assertEqual(pm._player.keys, [])
 
+    def test_back_still_navigates_the_library(self):
+        """The same mistake, in the one place it survived.
+
+        The mouse's back button rides this: the renderer routes it as a
+        synthetic ESC and the player decides. Refusing it for the whole of
+        music and audiobook playback made the button dead while the library
+        was on screen — and because you could then never go back, FORWARD
+        had nothing to return to and looked broken with it.
+        """
+        pm = self._pm_music()
+        backs = []
+        pm.on_nav_back = lambda: (backs.append(1) or True)
+        self.assertTrue(pm._nav_back(), "BACK was refused during audio")
+        self.assertEqual(len(backs), 1)
+
+    def test_back_over_a_video_is_still_the_players(self):
+        """A picture IS the player: there the library is not on screen, and
+        ESC has to keep meaning "leave fullscreen"."""
+        pm = self._pm(playing=True, hud_shown=True)
+        pm.on_nav_back = lambda: True
+        self.assertFalse(pm._nav_back(),
+                         "BACK was taken from the player over a video")
+
+    def test_back_while_idle_still_navigates(self):
+        pm = self._pm(browsing=True)
+        pm.on_nav_back = lambda: True
+        self.assertTrue(pm._nav_back())
+
+    def test_back_needs_a_handler_and_an_active_ui(self):
+        pm = self._pm_music()
+        pm.on_nav_back = None
+        self.assertFalse(pm._nav_back())
+        pm.on_nav_back = lambda: True
+        pm.mpvtk_active = False
+        self.assertFalse(pm._nav_back())
+
 
 class TestHome(RemoteCommandBase):
     def test_it_reaches_the_browser_over_a_playing_video(self):

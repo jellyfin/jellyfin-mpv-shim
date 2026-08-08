@@ -9,7 +9,7 @@ Selection and items live in the *route dict* (``route["_sel"]``,
 ``route["_items"]``, ``route["_anchor"]``). Edits are optimistic: they mutate
 the route dict, call the server, and restore in ``on_error``. Note the runner
 drops ``on_error`` when the epoch has moved, so navigating away mid-flight can
-leave a rejected edit in the route dict (see ``mpvtk/MIGRATION.md``).
+leave a rejected edit in the route dict.
 """
 
 from ...i18n import _

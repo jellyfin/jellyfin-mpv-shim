@@ -199,6 +199,69 @@ on a typical window, more if there is room) and the arrows page it, rather than 
 grid you scroll sideways. That suits a remote better, and it avoids the scroll-sync stutter a
 grid inside the player's window would have.
 
+### Books and Audiobooks
+
+Books libraries now appear with your other libraries, and the two things
+Jellyfin calls a "book" are handled quite differently — because the server
+treats them quite differently.
+
+**Audiobooks are ordinary audio.** They play, queue, download and report
+progress like any other track, and browse through the now-playing bar at the
+bottom of the window. A books library opens as its folder tree (the same
+default the web client uses), and a folder holding the chapters of one
+audiobook is drawn as an album would be: a cover, **Play** / **Resume** /
+**Add to Queue** / **Download**, and a numbered chapter list. Resume picks up
+at the first chapter you have not finished, at the point you left it.
+
+A single-file audiobook (`.m4b`) is one long item with chapters inside it, so
+the audio bar grows controls for one: **chapter back/forward** around the play
+button, **back 10s / forward 30s** either side of it, **chapter ticks on the
+scrubber** so you can see where you are in the book rather than in the file,
+and a **chapter list**. They appear only for an audiobook that actually has
+chapters, so music is unaffected — and the bar drops them again on a narrow
+window, keeping whichever matter most for what is playing.
+
+Books you have finished get a tick on the shelf and part-read ones a progress
+bar, and right-clicking a book's folder can mark it finished or unfinished.
+Once you have started a book there is no bare "Play" button: the page offers
+**Resume** and, separately, **Play from Beginning** — starting a ten-hour book
+over by accident overwrites hours of position as it plays.
+
+**Books are download-and-open.** There is no reader in the player, and there
+will not be one: Jellyfin stores books but does not *serve* them — there is
+no endpoint that returns a page, an archive entry or a chapter of an ebook,
+so the only thing any client can fetch is the whole file. Rather than build a
+worse reader than the one you already have, a book's page offers **Read**,
+which downloads it if it is not already on disk and then hands it to whatever
+your desktop opens that format with. **Download** beside it fetches the copy
+and stops there. `epub`, `pdf` and the comic formats all
+work this way, and so do `mobi`/`azw3` — which the web client cannot open at
+all, because it has no reader for them and we do not need one.
+
+Downloaded books and audiobooks appear as their own two sections in
+**Settings → Downloads**, with audiobooks grouped by book so a thirty-file
+rip is one row rather than thirty.
+
+**Reading progress is manual, and deliberately so.** Your reader does not
+report back to Jellyfin — nothing could make it — so a PDF or comic gets a
+**Progress…** button with **Pull** and **Push**: pull to see where another
+device left off before you open the file, push to record the page you
+actually got to when you close it.
+
+**Ebooks get no such button, on purpose.** Jellyfin stores an epub's place
+as a position in the ebook reader's internal index (the text chopped into
+~1000-character runs, counted per chapter), not as a page or a percentage of
+the book. No reader shows you that number, so there is nothing you could
+type — and the scale is not the one "percent" suggests, because the
+denominator depends on how the book was split into chapters. The figure is
+still read from the server and shown on the page; only setting it is left
+out, until there is a unit worth asking you for.
+
+One thing to know: **downloading is a permission**, and for books it is not
+optional. If your account does not have "Allow media downloads", Read will
+say so — for a film that permission only costs you offline viewing, but for a
+book it is the only way to get at the content at all.
+
 ### Display Mirroring
 
 Casting an item from another Jellyfin client shows it on your display before you play it,

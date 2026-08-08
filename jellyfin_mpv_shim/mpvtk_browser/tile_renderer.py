@@ -192,6 +192,21 @@ CHIP_HOT_SCALE = 1.18
 CHIP_HOT_ALPHA = 70
 
 
+def _flat_image(box, colour):
+    """A solid ``colour`` panel at physical ``box``, as a PIL image.
+
+    Only for the banner's waiting state, which is composed through the same
+    ``compose_banner`` as the real thing so the heading lands in the same
+    place. Made at full size rather than 1x1-and-scaled because
+    ``scale_to_cover`` would resample it, and a resample of one pixel is
+    both wasteful and (with some filters) not the colour asked for.
+    """
+    from PIL import Image as PILImage
+
+    return PILImage.new("RGBA", (max(1, box[0]), max(1, box[1])),
+                        theme.rgb(colour, 255))
+
+
 def _play_chip_bitmap(size, hot=False):
     """The round play button that appears on a hovered tile, at physical size.
 
@@ -733,6 +748,19 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
+    def has_backdrop(self, item):
+        """Whether this item will ever have a banner — answerable *now*.
+
+        The whole point is that it needs no image: ``backdrop_spec`` is a
+        pure function of the DTO the page already has, so a header can
+        reserve the right space on its very first paint instead of finding
+        out when the bitmap lands. See :meth:`backdrop_node` for what that
+        prevents.
+        """
+        if self.art.server is None:
+            return False
+        return self.art.source.backdrop_spec(item) is not None
+
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
         """A backdrop banner for detail/series headers.
@@ -741,8 +769,27 @@ class TileRenderer:
         gradient, like the Tk browser did — text drawn as ASS would sit
         under the image (bitmaps composite above all script ASS), and the
         occlude punch would show the window background rather than the
-        artwork. Returns a placeholder Box while the art loads or if the
-        item has none, in which case the caller still draws its own heading."""
+        artwork.
+
+        **The waiting state bakes the same heading over a flat panel**, and
+        that is not cosmetic. Baking the heading into the artwork means the
+        heading is *inside* the banner's fixed box when the art is there and
+        has to be drawn somewhere else when it is not — so a header that drew
+        it below the banner while waiting moved everything under it (play
+        buttons included) the moment the image arrived, by the height of up
+        to three text blocks. Composing the placeholder through the same
+        function fixes the geometry at the first paint, keeps the text in
+        the same place within the banner rather than merely reserving blank
+        space, and leaves the title readable if the fetch never succeeds —
+        `_request_image` gives up after ``IMG_MAX_ATTEMPTS``, and a permanent
+        failure would otherwise be an anonymous grey panel forever.
+
+        A plain placeholder Box is still returned when the item genuinely has
+        no artwork, because then there is no baked heading to match and the
+        caller draws its own. :meth:`has_backdrop` is how a caller tells the
+        two apart — *not* the returned node's type, which cannot distinguish
+        "none" from "not yet".
+        """
         spec = None
         if self.art.server is not None:
             spec = self.art.source.backdrop_spec(item)
@@ -780,6 +827,24 @@ class TileRenderer:
                     img, pbox, title, meta, context), lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
+            if title:
+                # Waiting on the artwork: the same heading over a flat
+                # panel, so the box the page lays out now is the box it
+                # keeps. Keyed apart from the loaded banner ("pending"), or
+                # the placeholder would be served from the cache once the
+                # real one had been composed and the header would never
+                # update. The callable form defers the compose to a cache
+                # miss -- this is asked for on most frames of a header that
+                # is waiting, and drawn on the first one only.
+                pending = "pending|" + key
+                b = self.art.strips.bitmap(
+                    pending,
+                    lambda: components.compose_banner(
+                        _flat_image(pbox, theme.PLACEHOLDER_BG),
+                        pbox, title, meta, context),
+                    lsize=box)
+                return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                             v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
     def _tile(self, item, geom, image_type="Primary", parent_item=False,
@@ -795,6 +860,13 @@ class TileRenderer:
         from . import live_tv
 
         progress = (pos / rt) if (pos and rt) else 0.0
+        if not progress and item.get("IsFolder"):
+            # A container has no position of its own and no runtime, so the
+            # ratio above is always zero for one. The server computes
+            # PlayedPercentage across its children instead -- which for an
+            # audiobook folder is exactly "how far through the book am I",
+            # the number that makes a shelf of part-read books readable.
+            progress = float(ud.get("PlayedPercentage") or 0.0) / 100.0
         recording = live_tv.is_recording_now(item)
         record = live_tv.timer_state(item) or ""
         if item.get("_recording") and not record:
@@ -1296,7 +1368,8 @@ class TileRenderer:
 
     def track_list(self, tracks, prefix, on_play, playing_id=None,
                     selected=None, on_select=None, album=True,
-                    art=False, scroll_id=None, head_h=0, menu=False):
+                    art=False, scroll_id=None, head_h=0, menu=False,
+                    watched=False):
         """Tabular track list (album, playlist, queue, search songs).
 
         Uses the toolkit's Table so header and cells come from one column
@@ -1308,9 +1381,19 @@ class TileRenderer:
         one-click way to jump to a track. Without it, clicking the row plays.
 
         ``art=True`` adds a leading album-art thumbnail column — useful in
-        mixed-album lists (playlists); redundant on an album page."""
+        mixed-album lists (playlists); redundant on an album page.
+
+        ``watched=True`` adds a leading tick column for entries that have
+        been played. Off by default because it is dead weight on a music
+        playlist, where nobody tracks which songs they have heard — but on
+        an audiobook it is the whole state of the thing: which chapters are
+        behind you is what Resume is computed from, and without it marking
+        one had no visible effect at all.
+        """
         selected = selected or set()
         columns = []
+        if watched:
+            columns.append({"label": "", "w": 26})
         if art:
             columns.append({"label": "", "w": 32})
         columns += [{"label": "#", "w": 46, "align": "right"},
@@ -1358,7 +1441,8 @@ class TileRenderer:
                 # the track's position -- and does nothing: no handlers, no
                 # art cell to composite, the same treatment image_map and
                 # item_list give a hole.
-                cells = ([self._art_placeholder()] if art else []) + \
+                cells = ([""] if watched else []) + \
+                    ([self._art_placeholder()] if art else []) + \
                     ["", "", ""] + ([""] if album else []) + [""]
                 rows.append({"id": "%s-%d" % (prefix, i), "cells": cells})
                 continue
@@ -1368,6 +1452,12 @@ class TileRenderer:
                 cells.insert(0, self.art_cell(tr)
                              if art_first <= i < art_last
                              else self._art_placeholder())
+            if watched:
+                # An Icon, not a "✓" glyph: this is a Table cell drawn by
+                # the renderer rather than baked into a strip bitmap, so it
+                # gets the same check every other control in the app uses.
+                cells.insert(0, Icon("check", 15, color=theme.ACCENT)
+                             if components.is_watched(tr) else "")
             if album:
                 cells.append(tr.get("Album", "") or "")
             cells.append(components.track_duration(tr))

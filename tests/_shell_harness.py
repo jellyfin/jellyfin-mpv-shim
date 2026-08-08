@@ -133,6 +133,21 @@ class FakeSource:
         # get_library_items — a fake that swallows its arguments turns every
         # test above it into a proxy assertion.
         self.queries = []
+        #: EnableContentDownloading, as can_download answers it.
+        self.download_allowed = True
+        #: item id -> DTO, consulted by get_item before its default. The
+        #: book screens are the first to care what get_item returns for
+        #: something that is not a movie.
+        self.items = {}
+        #: Whether an item is treated as HAVING backdrop artwork. This
+        #: answered None unconditionally, which did not leave the
+        #: has-artwork header untested -- it made it *unreachable* while
+        #: every header test reported a pass, because a header that will
+        #: get a banner lays out differently from one that never will
+        #: (the heading is baked into the bitmap, so it must not also be
+        #: drawn below it). `tools/audit_fake_contracts.py` cannot see
+        #: this: `backdrop_spec` is provided, just never honestly.
+        self.has_backdrop = False
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -243,12 +258,19 @@ class FakeSource:
         return None
 
     def backdrop_spec(self, item):
-        return None
+        if not self.has_backdrop:
+            return None
+        return (item.get("Id") or "x", "Backdrop", "tag0")
 
     def backdrop_url(self, *a, **k):
-        return None
+        # A URL only when there is artwork to fetch: `_request_image` bails
+        # on a falsy url before it records anything, so a fake that always
+        # answered None left the request path unreachable too.
+        return "http://s/backdrop" if self.has_backdrop else None
 
     def get_item(self, server_uuid, item_id):
+        if item_id in self.items:
+            return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
                 "RunTimeTicks": 90 * 600000000,
@@ -263,6 +285,13 @@ class FakeSource:
                          "DisplayTitle": "English 5.1"},
                         {"Type": "Subtitle", "Index": 2,
                          "DisplayTitle": "English"}]}]}
+
+    def can_download(self, server_uuid):
+        """`EnableContentDownloading`. Real, not a stub returning True: for a
+        book this is the difference between a Read button and an explanation,
+        and a fake that could only say yes would leave the refusal path with
+        nowhere to be observed."""
+        return self.download_allowed
 
     def get_similar(self, server_uuid, item_id, limit=12):
         return [{"Id": "s1", "Name": "Similar", "Type": "Movie"}]
@@ -565,6 +594,62 @@ class FakeController:
         self.minimized = 0
         self.played = []
         self.transport = []
+        #: item_id -> (status, absolute path or None), as the real gateway
+        #: answers. Tests set entries to put a book on disk.
+        self.book_downloads = {}
+        self.opened = []
+        self.open_result = (True, "fake")
+        self.deleted_downloads = []
+        self.enqueued = []
+        #: item_id -> UserData dict, the server's side of the progress
+        #: push/pull. Writable, so a push really does change what a pull
+        #: reads back -- a fake that recorded the write without applying it
+        #: could not show the dialog re-reading after a save.
+        self.positions = {}
+        self.positions_written = []
+        self.set_position_ok = True
+        #: What a reader asked to have recorded, whether or not the server
+        #: took it. Separate from positions_written because the two answer
+        #: different questions: that one is "did the server get it", this
+        #: one is "did the reader report at all", and an offline reader
+        #: still has to do the second.
+        self.reading_positions = []
+        #: Everything handed to the clipboard, in order. Recorded rather
+        #: than dropped: what the reader copied is the only observable the
+        #: copy menu has, and a fake that returned success without keeping
+        #: the text would pass a test that copied the wrong paragraph.
+        self.copied = []
+        #: What ``copy_text`` answers: ``(ok, method, path)``. Settable, so
+        #: a test can drive the "no clipboard on this box, saved to a file"
+        #: message as well as the happy one.
+        self.copy_result = (True, "fake", None)
+        #: The comic reader's side of the window: what was handed to mpv to
+        #: display, and every view change asked for. Recorded rather than
+        #: dropped -- "which page is on screen" and "where is it" have no
+        #: other observable, because the picture is mpv's and not a node in
+        #: any scene this suite can read.
+        self.pictures = []
+        self.picture_views = []
+        self.pictures_cleared = 0
+        self.picture_views_reset = 0
+
+    def show_picture(self, path):
+        self.pictures.append(path)
+        return True
+
+    def clear_picture(self):
+        self.pictures_cleared += 1
+
+    def reset_picture_view(self):
+        self.picture_views_reset += 1
+
+    def set_picture_view(self, zoom=None, pan_x=None, pan_y=None):
+        self.picture_views.append({"zoom": zoom, "pan_x": pan_x,
+                                   "pan_y": pan_y})
+
+    def copy_text(self, text):
+        self.copied.append(text)
+        return self.copy_result
 
     def on_browse_enter(self):
         self.entered += 1
@@ -584,6 +669,12 @@ class FakeController:
     def play_list(self, item_ids, server_uuid, start_index, offset_ticks=None,
                   srcid=None, aid=None, sid=None, pause_stills=True):
         self.played.append((list(item_ids), server_uuid, start_index))
+        # In a parallel list, not appended to the tuple above: a lot of
+        # tests assert on `played` by equality. Recorded at all because it
+        # is load-bearing on its own -- resuming an audiobook is an index
+        # AND an offset, and a fake that dropped the second would let a
+        # resume that restarts the chapter pass a test named for it.
+        self.__dict__.setdefault("play_offsets", []).append(offset_ticks)
         self.__dict__.setdefault("pause_stills", []).append(pause_stills)
         self.__dict__.setdefault("tracks", []).append(
             {"srcid": srcid, "aid": aid, "sid": sid})
@@ -619,6 +710,77 @@ class FakeController:
 
     def connect_and_rebuild(self):
         return FakeSource()
+
+    # -- books -------------------------------------------------------------
+    #
+    # Declared rather than left to __getattr__, which returns None for
+    # everything. These four are *read*, not just called: the book page
+    # unpacks a (status, path) pair and the progress dialog reads a UserData
+    # blob out of one. A recorder returning None makes both raise inside a
+    # try/except and leaves the screen looking exactly as it does when
+    # nothing is downloaded -- so a test named "the button says Remove
+    # Download" could never fail. That is the stand-in failure mode
+    # tools/audit_fake_contracts.py exists for.
+
+    def download_enqueue(self, server_uuid, item_id, item_type,
+                         include_watched=False):
+        """Queue a download AND write the row.
+
+        Recording the call without writing a row is the `FakeManager.enqueue`
+        failure this project has already had once: every later read sees a
+        virgin catalog, so nothing that depends on the enqueue having
+        happened -- a button changing, a pending open surviving -- can be
+        observed at all.
+        """
+        self.enqueued.append((server_uuid, item_id, item_type,
+                              include_watched))
+        status, path = self.book_downloads.get(item_id, (None, None))
+        if status is None and path is None:
+            # No row yet -- which is what an entry of (None, None) means,
+            # not merely a missing key. Seeding one is the whole point:
+            # `is_complete` short-circuits a real enqueue, everything else
+            # gets a PENDING row.
+            self.book_downloads[item_id] = ("pending", None)
+
+    def downloaded_ids(self):
+        """(items, series, seasons, playlists), as the real gateway answers.
+
+        Real rather than left to __getattr__, which returns None: the
+        browser unpacks this into four arguments, so a recorder makes the
+        refresh raise -- and everything else driven by the same
+        notification (pending book opens, a page re-reading its own state)
+        silently stopped happening behind it.
+        """
+        return (set(self.book_downloads), set(), set(), set())
+
+    def book_download_state(self, item_id):
+        return self.book_downloads.get(item_id, (None, None))
+
+    def open_downloaded_file(self, item_id):
+        self.opened.append(item_id)
+        return self.open_result
+
+    def delete_downloads(self, item_ids):
+        self.deleted_downloads.append(list(item_ids))
+
+    def get_position(self, server_uuid, item_id):
+        return self.positions.get(item_id)
+
+    def record_reading_position(self, server_uuid, item_id, ticks):
+        """A reader's cursor. Declared rather than left to __getattr__:
+        that would record the call and return a Mock-ish None, so nothing
+        below could tell a page turn that reported from one that did not.
+        The real one also writes the catalog and queues on refusal, which
+        is tested against a real catalog in test_reading_position.py."""
+        self.reading_positions.append((item_id, int(ticks)))
+        return self.set_position(server_uuid, item_id, ticks)
+
+    def set_position(self, server_uuid, item_id, ticks):
+        if self.set_position_ok:
+            self.positions.setdefault(item_id, {})["PlaybackPositionTicks"] \
+                = int(ticks)
+        self.positions_written.append((item_id, int(ticks)))
+        return self.set_position_ok
 
     def __getattr__(self, name):
         # Record transport calls (toggle_pause/stop/next/prev/…) without

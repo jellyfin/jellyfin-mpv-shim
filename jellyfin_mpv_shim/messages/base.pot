@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 18:31-0400\n"
+"POT-Creation-Date: 2026-08-07 15:00-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,6 +15,26 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: jellyfin_mpv_shim/books.py
+msgid "Unknown format"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, python-format
+msgid "Page %(page)d of %(total)d"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "Page %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py
+#, python-format
+msgid "%d%% read"
+msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -487,10 +507,13 @@ msgid "Failed to load. Check the connection."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
 msgstr ""
@@ -500,10 +523,14 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Previous page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
 msgstr ""
 
@@ -765,11 +792,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Remove Download"
 msgstr ""
 
@@ -779,6 +808,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
 msgstr ""
 
@@ -797,6 +827,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Library Browser"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Reading"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -885,6 +919,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Dark"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Sepia"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Light"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Width"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1066,6 +1125,22 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Type Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Page Colour"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Justify Text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Comic Reading Mode"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1327,6 +1402,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"In pixels, before interface scaling. The A- and A+ buttons in the reader "
+"change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How a comic page is fitted to the window when you open it. The reader's own "
+"buttons change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Evens out loud effects and quiet dialogue. This turns passthrough off while "
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
@@ -1382,6 +1469,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Back"
 msgstr ""
@@ -1408,6 +1497,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d watched"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%d of unknown size"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1538,6 +1632,60 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
+msgid ""
+"%s records your place as an ebook reader position, which no application "
+"shows you a number for — so there is nothing meaningful to set by hand. It "
+"is still read from the server and shown above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%s stores no reading position."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading Progress"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading the position…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Pull"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Push"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "The position could not be read."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Enter a number."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "Enter a page between 1 and %d."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Enter a page of 1 or more."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading position saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "The position could not be saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
 msgid "%s (joined)"
 msgstr ""
 
@@ -1596,6 +1744,22 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Automatic"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Audiobooks"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Books"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+msgid "Ungrouped"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -1677,6 +1841,11 @@ msgid "Continue Listening"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Continue Reading"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -1702,12 +1871,16 @@ msgid "Subtitle Track"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
 msgstr ""
 
@@ -1755,6 +1928,7 @@ msgid "Previous"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Previous Chapter"
 msgstr ""
 
@@ -1767,6 +1941,7 @@ msgid "Forward 30 Seconds"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Next Chapter"
 msgstr ""
 
@@ -1873,6 +2048,42 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Opening %s…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Nothing on this system could open %s."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s is already downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid ""
+"Your account is not allowed to download from this server, and a book can "
+"only be read by downloading it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s has not been downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Downloading %s…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s could not be downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -2089,6 +2300,12 @@ msgid "Repeat Off"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Back %d seconds"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2097,6 +2314,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Pause"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Forward %d seconds"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2119,13 +2341,102 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d chapters"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Resume"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Restart"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Add to Queue"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Finished"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Item not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%s in"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Title"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Start"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d pages"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgctxt "open a book"
+msgid "Read"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Open Externally"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Downloading…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Progress…"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Nothing here yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Item not available."
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This comic could not be opened."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This page could not be read."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "The download failed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Getting the comic…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom out"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom in"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -2135,11 +2446,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Go to Series"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Resume"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -2468,11 +2774,6 @@ msgid "Similar Artists"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Queue"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Instant Mix"
 msgstr ""
 
@@ -2581,11 +2882,6 @@ msgid "Delete the playlist %s?"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Title"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Type"
 msgstr ""
 
@@ -2606,6 +2902,68 @@ msgstr ""
 msgid ""
 "Still reading this playlist's visibility from the server. Try again in a "
 "moment."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "This book could not be opened."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copy Paragraph"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copy Page"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the paragraph."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the page."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "There is nothing to copy."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copying is not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Could not copy the text."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, python-format
+msgid "No clipboard available — saved to %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Contents"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Getting the book…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "This book could not be drawn."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Smaller text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Larger text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Page colour"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2714,6 +3072,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+msgid "Downloaded Books"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -2929,11 +3291,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Could not copy the log."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, python-format
-msgid "No clipboard available — saved to %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py

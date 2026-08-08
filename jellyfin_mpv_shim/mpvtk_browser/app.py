@@ -4,7 +4,7 @@
 This is the mpvtk analogue of the Tk ``BrowserApp``. It runs in the main
 process next to ``playerManager`` (no ``multiprocessing`` child), attaches
 its UI to the player's mpv window via ``mpvtk.MpvtkApp.attach`` (see
-``mpvtk/MIGRATION.md``), and reproduces the load-bearing paradigms of the
+``mpvtk/GUIDE.md``), and reproduces the load-bearing paradigms of the
 Tk browser: a route-dict nav stack (``navigate``/``go_back``), background
 API calls with epoch-guarded staleness, and full-scene rebuilds driven by
 ``invalidate()`` (renderer-local state — scroll, focus — survives).
@@ -110,8 +110,9 @@ from .pagination import Paginator
 from .pages import PAGES
 from .pages.base import PageContext
 from .hud import build_hud
-from .repository import (FOLDER_TYPES, LIVE_TV_COLLECTION, LIVE_TYPES,
-                         PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
+from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
+from .repository import (BOOKS_COLLECTION, FOLDER_TYPES, LIVE_TV_COLLECTION,
+                         LIVE_TYPES, PHOTO_TYPE, PLAYABLE_TYPES, SERIES_TYPES)
 from .strips import (BANNER_GEOM, LANDSCAPE_GEOM, POSTER_GEOM, SQUARE_GEOM,
                      StripStore, TileGeom)
 from .dialogs import DialogsMixin
@@ -135,7 +136,10 @@ def now_id_of(state):
 # "cast" is chrome-free for two reasons: it is a full-bleed backdrop
 # (chrome over it would look wrong), and in headless mode the chrome IS
 # the way into the library.
-CHROME_FREE = {"login", "locked", "connecting", "cast"}
+# The reader is here for the same reason the cast screen is: it is a
+# full-bleed page with its own bar, and the library chrome above it would be
+# a second back button and a search box over a book.
+CHROME_FREE = {"login", "locked", "connecting", "cast", "reader", "comic"}
 
 # Where the now-playing bar must NOT appear. Deliberately not CHROME_FREE:
 # the cast screen is chrome-free but IS where audio playback lives in
@@ -300,6 +304,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # see _shed_caches_on_screen_change.
         self._screen_seq = 0
         self._shed_seq = 0
+        #: The Page currently on screen, so the one before it can be told
+        #: it is not. See _retire_page.
+        self._live_page = None
         self._csd = False
         self._maximized = False
         # Modal dialog: a builder callable -> Dialog node, or None.
@@ -397,7 +404,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             guide_settings=lambda server, prefs, categories, on_save=None:
                 self._open_guide_settings(server, prefs, categories, on_save),
             view_settings=lambda current, on_set, paginated=None:
-                self.view_settings(current, on_set, paginated))
+                self.view_settings(current, on_set, paginated),
+            open_book_progress=lambda item, server=None:
+                self._open_book_progress(item, server))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,
@@ -416,6 +425,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # ids the add-to dialog will post (a container resolves to many)
         self._addto_ids = None
         self._addto_explicit_ids = None
+        # Book reading-position dialog state + its rebuilder (see dialogs).
+        self._bkprog = None
+        self._bkprog_build = None
         # transient status message + when it was set (see _toast_node)
         self._status_at = 0.0
         self._toast_timer = None
@@ -692,6 +704,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.route.pop("_data", None)
             self.route.pop("_items", None)
             self.route.pop("_loading", None)
+            self._load_route(self.route)
+        # Coming out of a reader: the position moved while it was open, and
+        # it moved on the READER's copy of the DTO. The book page below
+        # holds its own dict, fetched before any of that, so without this
+        # it goes on showing the figure it was loaded with — "42% read"
+        # under a Resume button that resumes at 61%.
+        elif (any((r or {}).get("kind") in ("reader", "comic") for r in left)
+              and self.route.get("kind") == "book"):
+            self.route.pop("_data", None)
             self._load_route(self.route)
         self.invalidate()
 
@@ -1259,8 +1280,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         h -= self.PAGINATION_BAR_H
         if (self._now_playing is not None
                 and route.get("kind") not in NO_NOW_PLAYING):
-            from .music import NOW_PLAYING_BAR_H
-            h -= NOW_PLAYING_BAR_H
+            from .music import now_playing_bar_h
+            # The bar is two rows for an audiobook and on a narrow window,
+            # so its height is a function of what is playing -- subtracting
+            # a constant lays the page out against the wrong remainder and
+            # the bottom of it disappears behind the bar.
+            h -= now_playing_bar_h(self._now_playing, size[0])
         return max(1, h)
 
     def _page_count(self, route, ps):
@@ -1419,7 +1444,24 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             geom=self.geom, geom_wide=self.geom_wide,
             geom_square=self.geom_square,
             geom_banner=self.geom_banner,
-            tiles=self.tiles, scroll=self._scroll, pages=self._pages)
+            tiles=self.tiles, scroll=self._scroll, pages=self._pages,
+            # A node's geometry from the LAST PUSHED scene (mpvtk GUIDE §2),
+            # for content that has to be *rasterized* at the size layout
+            # gives it rather than merely placed there: an Image cannot
+            # flex, so the reader measures its hole on one frame and fills
+            # it on the next. Here for the same reason `tiles` and `scroll`
+            # are — it answers a question about what the renderer drew — and
+            # it is not a field of its own because the contract test caps
+            # those, correctly.
+            # How the renderer should drive a picture mpv is displaying:
+            # the clamp and the pan unit for a comic page. Here rather
+            # than as a PageContext field for the same reason node_rect
+            # is -- it is a fact about what the renderer is drawing, and
+            # the context is capped.
+            set_picture_pan=(lambda cfg=None:
+                             self._set_picture_pan(cfg)),
+            node_rect=(lambda node_id: self.app.node_rect(node_id)
+                       if self.app is not None else None))
 
     def _page_context(self):
         """Build the dependency bundle handed to every page.
@@ -1472,6 +1514,127 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: renderer keeps the previous frame when build() throws, so the symptom
     #: was the whole browser silently freezing, with no error anywhere.
     PAGE_OBJ_KEY = "_page_obj"
+
+    def _release_page_grabs(self):
+        """Give back everything a page took hold of outside its own scene.
+
+        Called when the browser hands the window over — to playback, or to
+        being minimized. ``build()`` returns before ``_retire_page`` once
+        ``_browsing`` is False, so a page that yields is never retired and
+        none of this would be dropped otherwise.
+
+        All three outlive the page in a way the user feels. A key claim
+        keeps SPACE bound to the reader, so pause is dead and instead turns
+        the page and writes the new position to the server. A pan model
+        makes a wheel notch pan the *playing video* inside the comic's
+        clamp. And the picture's zoom and pan are global mpv options, so
+        the film plays at whatever the last comic page was set to.
+        """
+        claim = getattr(self.app, "claim_keys", None)
+        if claim is not None:
+            try:
+                claim(())
+            except Exception:
+                log.debug("could not drop the key claim", exc_info=True)
+        self._set_picture_pan(None)
+        # The window is being handed over, so whatever picture was in it is
+        # not on screen any more. The page checks this on its way back in;
+        # without it the bars repaint over an empty window, because the
+        # route was never retired and so never re-opened.
+        route = self.route
+        if route.get("_showing"):
+            route["_showing"] = False
+        if self.controller is not None:
+            try:
+                self.controller.reset_picture_view()
+            except Exception:
+                log.debug("could not reset the picture view", exc_info=True)
+
+    def _retire_page(self, route):
+        """Tell the page we just stopped drawing that it is off screen.
+
+        On the loop thread, from build(), rather than in navigate(): that
+        is reachable from mpv's event thread and from the websocket (a
+        remote's GoHome, a phone's DisplayContent), and what a page does
+        here may touch the player. Observed rather than pushed, the same
+        way _shed_caches_on_screen_change is, and for the same reason.
+
+        The comparison is by page *object*, so a route re-entered later
+        gets its close() and its next load() in the right order.
+        """
+        page = self._page_for(route)
+        previous = getattr(self, "_live_page", None)
+        if previous is page:
+            return
+        self._live_page = page
+        if getattr(page, "kind", None) != "comic":
+            # Dropped by whoever is NOT the picture page, the same way a
+            # key claim is: a gesture model that outlives its page pans a
+            # picture nobody can see.
+            self._set_picture_pan(None)
+        if previous is None:
+            return
+        try:
+            previous.close()
+        except Exception:
+            log.warning("page close failed", exc_info=True)
+
+    def _claim_page_keys(self, route):
+        """Push this route's key claim to the renderer (see
+        ``MpvtkApp.claim_keys``).
+
+        Driven by a ``claimed_keys`` attribute on the Page rather than by
+        the shell knowing which kinds want keys — and read every frame, so
+        a claim cannot outlive the page that made it. Almost every page
+        claims nothing, and ``claim_keys`` is a no-op when the set has not
+        changed.
+        """
+        claim = getattr(self.app, "claim_keys", None)
+        if claim is None:
+            return
+        page = self._page_for(route)
+        try:
+            claim(getattr(page, "claimed_keys", ()) or ())
+        except Exception:
+            log.debug("key claim failed", exc_info=True)
+
+    def _set_picture_pan(self, config=None):
+        """Push (or drop) the renderer's gesture model for a picture."""
+        setter = getattr(self.app, "set_picture_pan", None)
+        if setter is None:
+            return
+        try:
+            setter(config)
+        except Exception:
+            log.debug("could not set the pan model", exc_info=True)
+
+    def _on_picture_gesture(self, kind, evt):
+        """A wheel or drag gesture over a displayed picture. Loop thread.
+
+        Node-less, so it cannot go through the handler registry: the
+        picture is mpv's video, not something in the scene. Handed to
+        whichever page put it there, which is the only thing that knows
+        what "past the bottom" means.
+        """
+        page = self._page_for(self.route)
+        handler = getattr(page, "on_picture_gesture", None)
+        if handler is None:
+            return
+        try:
+            handler(kind, evt)
+        except Exception:
+            log.warning("page picture gesture failed", exc_info=True)
+
+    def _on_claimed_key(self, key):
+        """A key this route claimed. Handed to the page, on the loop thread."""
+        page = self._page_for(self.route)
+        handler = getattr(page, "on_key", None)
+        if handler is None:
+            return
+        try:
+            handler(key)
+        except Exception:
+            log.warning("page key handler failed", exc_info=True)
 
     def _page_for(self, route):
         """The Page serving ``route``, or None if its kind is still a mixin.
@@ -1587,6 +1750,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.navigate(dict(base, kind="playlist"))
         elif t == "Audio":
             self._play_list([item.get("Id")], server, audio=True)
+        elif t == AUDIOBOOK_TYPE:
+            # A page, NOT immediate playback -- unlike the Audio above it.
+            # An AudioBook plays like a track, but it is a *book*: it has a
+            # description, a length, chapters and a place you got to, and a
+            # tile that started it left every one of those unreachable.
+            # A song has none of them, which is why the split is here and
+            # not one line up. The hover play chip still starts it, exactly
+            # as it does for a film.
+            self.navigate(dict(base, kind="audiobook"))
+        elif t == BOOK_TYPE:
+            self.navigate(dict(base, kind="book"))
         elif t == "Studio":
             # A studio spans films and shows, so it opens as a row per kind
             # rather than one grid of everything sorted by name.
@@ -1657,9 +1831,26 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # the Collections toggle (movies libraries only).
             # parent_type as well as collection_type: inside a BoxSet the
             # tile menu can offer "Remove from Collection".
-            self.navigate(dict(base, kind="grid", parent_id=item.get("Id"),
+            #
+            # Books are the one library whose collection type is INHERITED
+            # down the tree. A folder's own DTO does not say which library it
+            # is in, and for books that answer changes the screen: a folder
+            # of audiobook chapters is drawn as an album, not a grid. So it
+            # is carried on the route. Only for books -- propagating any
+            # other type would make a folder inside a movies library run the
+            # library's typed, recursive query and list the whole library
+            # again (LIBRARY_ITEM_TYPES); "books" has no entry there, so
+            # carrying it changes nothing about the request.
+            ctype = item.get("CollectionType")
+            if ctype is None and self.route.get(
+                    "collection_type") == BOOKS_COLLECTION:
+                ctype = BOOKS_COLLECTION
+            self.navigate(dict(base,
+                               kind=("books" if ctype == BOOKS_COLLECTION
+                                     else "grid"),
+                               parent_id=item.get("Id"),
                                parent_type=t,
-                               collection_type=item.get("CollectionType")))
+                               collection_type=ctype))
         else:
             self.set_status(_("Selected: %s") % item.get("Name", ""))
             self.invalidate()
@@ -1695,6 +1886,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_clipboard_error = self._on_clipboard_error
         if hasattr(app, "on_forward"):
             app.on_forward = self._on_mouse_forward
+        if hasattr(app, "on_key"):
+            app.on_key = self._on_claimed_key
+        app.on_picture_gesture = self._on_picture_gesture
         if hasattr(app, "on_scene_pushed"):
             # The strip cache's clock. Not build(): see StripStore.
             app.on_scene_pushed = self._on_scene_pushed
@@ -1762,6 +1956,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _yield(self):
         self._park_on_leaving_browse()
         self._browsing = False
+        self._release_page_grabs()
         self._tell_controller("on_browse_leave")
         if self.hud.available():
             # keep the renderer attached: blank scene + summon bindings
@@ -1928,6 +2123,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._park_on_leaving_browse()
         self._minimized = True
         self._browsing = False
+        self._release_page_grabs()
         self.hud.shown = False
         self._set_renderer_active(False)
         self._tell_controller("on_minimize")
@@ -2252,7 +2448,36 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 # leave the badges alone rather than raise on a pool thread.
                 self.tiles.set_downloaded(*self.controller.downloaded_ids())
             except Exception:
-                return
+                # Guarded, NOT returned from. This used to bail out of the
+                # whole function, so a badge read that failed silently
+                # skipped everything below it -- the pending book opens and
+                # the page's own state re-read, neither of which has
+                # anything to do with the badge sets. Three independent
+                # consumers of one notification; one failing must not take
+                # the others with it.
+                log.debug("downloaded-id refresh failed", exc_info=True)
+            # A book download is the one whose *completion* something is
+            # waiting on: Read starts the fetch and opens the file when it
+            # lands (ItemActions.read_book). This is where the catalog says
+            # it landed, so this is where that wait is resolved -- rather
+            # than in a poller per press, which would outlive the press.
+            try:
+                self._actions.flush_pending_reads()
+            except Exception:
+                log.debug("pending book reads failed", exc_info=True)
+            # And the screen showing that download has to be told. The
+            # badge sets above cover every TILE, but a page that resolved
+            # something richer than "is it downloaded" at load time -- the
+            # book page, which distinguishes queued from in-flight from on
+            # disk -- has to re-read it. Asked for generically so the shell
+            # does not have to know which kinds care.
+            try:
+                page = self._page_for(self.route)
+                refresh = getattr(page, "refresh_download_state", None)
+                if refresh is not None:
+                    refresh()
+            except Exception:
+                log.debug("page download-state refresh failed", exc_info=True)
             self.invalidate()
         self._pool.submit(work)
 
@@ -2293,6 +2518,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if route["kind"] in LIVE_KINDS:
             self._poll_live_tv(route)
         content = self._render_route(route, size)
+        # After render, so a page can decide what it claims from what it
+        # drew, and unconditional so that leaving the page drops the claim.
+        self._claim_page_keys(route)
+        self._retire_page(route)
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(window_chrome.chrome(self, w))
@@ -2644,13 +2873,25 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.app.run(self.build)
 
     def shutdown(self, free_bitmaps=True):
-        """Stop background work.
+        """Stop background work, and let the live page go.
+
+        The page that is on screen has never been retired — retirement is
+        observed from ``build()``, which stops running — so anything it
+        took hold of is still held. For the comic reader that is a
+        directory of extracted pages, which nothing else will delete:
+        quitting inside a comic left them behind every time.
 
         ``free_bitmaps=False`` keeps the composited tile buffers alive. On
         libmpv those are read BY ADDRESS by mpv every frame it composites, so
         they may only be released once mpv is genuinely dead — the caller
         knows that, this does not. See mpvtk_browser.ui.stop().
         """
+        page, self._live_page = self._live_page, None
+        if page is not None:
+            try:
+                page.close()
+            except Exception:
+                log.debug("page close on shutdown failed", exc_info=True)
         self._shutdown_evt.set()   # also stops the downloads poller
         self._async.shutdown(wait=False, cancel_futures=True)
         # Relocating the download store copies the whole thing and has no

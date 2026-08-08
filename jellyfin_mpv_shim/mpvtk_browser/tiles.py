@@ -12,7 +12,7 @@ image cache — ``_image_done`` runs on a pool thread and writes then
 import logging
 
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.widgets import Menu
 from . import components
 from .repository import PLAYABLE_TYPES, PLAYLIST_SUPPORTED_TYPES
@@ -85,11 +85,23 @@ class TilesMixin:
     # Types the tile menu offers each action for. Every entry used to be
     # shown for every item, so right-clicking a cast member offered to
     # play, download and mark a Person watched.
-    MENU_PLAYABLE = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
-                                      "MusicGenre", "Series", "Season",
-                                      "Playlist"}
+    # AudioBook sits beside Audio in all of these, because that is what it
+    # is: an ordinary audio item with a real media source. Leaving it out
+    # gave an audiobook tile no play chip, no Play, no Add to Queue, no
+    # favourite and no download -- every affordance a music track has, and
+    # for no reason but the type string being longer.
+    MENU_PLAYABLE = PLAYABLE_TYPES | {"Audio", "AudioBook", "MusicAlbum",
+                                      "MusicArtist", "MusicGenre", "Series",
+                                      "Season", "Playlist"}
 
-    MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season"}
+    # Folder and AudioBook are here for books. A folder of chapter files is
+    # how a multi-file audiobook exists, and marking one finished (or
+    # un-finishing it to listen again) is the only way to correct where the
+    # book thinks you are -- the resume point is computed from which
+    # chapters are played. The server takes the mark on a folder and
+    # cascades it to the children, which is what makes the entry honest.
+    MENU_WATCHED = PLAYABLE_TYPES | {"Series", "Season", "Folder",
+                                     "AudioBook"}
 
     # MENU_PLAYABLE minus MusicGenre: a genre is not a library item, so
     # favoriting one posts a non-favoritable id and the server rejects it.
@@ -97,10 +109,23 @@ class TilesMixin:
     # widening but was a no-op — both names were already in the set.)
     MENU_FAVORITE = MENU_PLAYABLE - {"MusicGenre"}
 
-    MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "MusicAlbum", "MusicArtist",
-                                    "MusicGenre", "Series", "Season"}
+    MENU_ADD_TO = PLAYABLE_TYPES | {"Audio", "AudioBook", "MusicAlbum",
+                                    "MusicArtist", "MusicGenre", "Series",
+                                    "Season"}
 
-    MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "Series", "Season", "Playlist"}
+    #: Book is in: downloading one is not an offline convenience here, it is
+    #: the only way to get at the content at all (books.py), so the tile
+    #: menu is a reasonable second door to it.
+    MENU_DOWNLOAD = PLAYABLE_TYPES | {"Audio", "AudioBook", "Book", "Series",
+                                      "Season", "Playlist"}
+
+    #: Types that offer Read. A `Book` and nothing else — deliberately NOT
+    #: `Folder`, which is the shape a books library browses in: a folder is
+    #: a *collection* of books, so "read this" has no object, and the
+    #: reader would have to pick one on the user's behalf. That is the
+    #: whole reason the entry is per-item rather than on every tile in a
+    #: books library.
+    MENU_READ = {"Book"}
 
     #: Live types get their own entries: a channel is watched rather than
     #: played into a queue, and a program is not itself playable at all.
@@ -128,9 +153,37 @@ class TilesMixin:
             # Photo is deliberately absent from MENU_PLAYABLE, and should
             # stay absent here: clicking the picture already shows it.
             return True
+        if t in self.CHIP_CONTAINERS and self._in_books_library():
+            # A folder in a books library is an author or a title, and which
+            # of the two decides whether it can be played at all: a folder
+            # of Books has no playable content whatsoever (a Book has no
+            # media source), while a folder of AudioBooks is an album. The
+            # DTO does not say which -- a Folder carries nothing about its
+            # contents -- and this runs per tile per strip, so it cannot ask.
+            #
+            # So neither gets a chip. That costs the audiobook case a
+            # shortcut and spares the book case a button that does nothing
+            # at all, which is the right way round: the audiobook folder's
+            # page has a real Play button one click in, and a dead play
+            # button reads as a broken client. It is the same argument the
+            # note above makes for libraries -- deciding to play a container
+            # can cost the click that gets you inside it.
+            return False
         # CollectionType is what makes a folder a library -- a plain Folder
         # inside one has none -- so this is the test for "is this a door".
         return t in self.CHIP_CONTAINERS and not item.get("CollectionType")
+
+    def _in_books_library(self):
+        """Whether the screen being drawn is inside a books library.
+
+        Read off the route rather than the item because it is not on the
+        item: a folder's own DTO has no CollectionType, which is exactly
+        why the browse route carries one down the tree (see
+        MpvtkBrowser._open_item).
+        """
+        from .repository import BOOKS_COLLECTION
+
+        return self.route.get("collection_type") == BOOKS_COLLECTION
 
     def _play_tile(self, item):
         """What the hover chip does. The tile's own click still opens the
@@ -251,6 +304,14 @@ class TilesMixin:
         if t in self.MENU_FAVORITE:
             out.append((_("Remove from Favorites") if fav
                         else _("Add to Favorites"), "favorite", "favorite"))
+        if t in self.MENU_READ:
+            # Same verb the book's own page uses, and the same two
+            # meanings behind it: the built-in reader for an epub, the
+            # desktop for everything else (books.py). `_p` because the
+            # other "Read" on these screens is the *state* — "I have read
+            # it" — and gettext keys on the English, so without a context
+            # no language could tell the verb from the adjective.
+            out.append((_p("open a book", "Read"), "menu_book", "read"))
         if t in self.MENU_ADD_TO and not self._offline and self._edit_apis():
             out.append((_("Add to Playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
@@ -320,6 +381,10 @@ class TilesMixin:
             self._close_menu()
             self._open_add_to(item)
             return
+        elif action == "read":
+            self._close_menu()
+            self._menu_read(item, server)
+            return
         elif action == "download":
             self._close_menu()
             self._open_download(item)
@@ -338,6 +403,25 @@ class TilesMixin:
             self._live_menu_action(action, item, server)
             return
         self._close_menu()
+
+    def _menu_read(self, item, server):
+        """Open a book from its tile.
+
+        The split is `books.book_format`'s, not this menu's, and it is the
+        same call the book's own page makes: an epub opens in the window,
+        anything else is downloaded and handed to the desktop. Deciding it
+        here would be a second place to keep in step with what the reader
+        can actually draw.
+        """
+        from ..books import reader_route
+
+        kind = reader_route(item)
+        if kind:
+            self.navigate({"kind": kind, "server": server,
+                           "item_id": item.get("Id"),
+                           "title": item.get("Name", "")})
+            return
+        self._actions.read_book(item, server)
 
     def _live_menu_action(self, action, item, server):
         """Record / cancel from a tile or guide cell.
@@ -487,7 +571,7 @@ class TilesMixin:
             # try to play a listing.
             self._play_list([item.get("ChannelId") or item.get("Id")], server)
             return
-        if t == "Audio":
+        if t in ("Audio", "AudioBook"):
             self._play_list([item.get("Id")], server, audio=True)
             return
         if t in PLAYABLE_TYPES:

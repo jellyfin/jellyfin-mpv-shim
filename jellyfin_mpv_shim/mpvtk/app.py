@@ -283,12 +283,25 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        # called as ("vpan", evt) when a wheel notch ran off the end of a
+        # panned picture, and as ("vzoom", evt) on ctrl+wheel over one.
+        # Node-less for the same reason the picture is: it is mpv's video,
+        # not something in the scene. See set_picture_pan.
+        self.on_picture_gesture = None
+        #: Last pan model pushed, so an unchanged one costs no message.
+        self._picture_pan = None
+        self._pan_lock = threading.Lock()
         # called when the mouse's forward button is pressed while the UI
         # owns the pointer. No node and no argument: it means "go forward
         # in whatever history you keep", which the app owns -- the
         # renderer has no idea what is behind it. Its counterpart, the
         # back button, needs no hook because it presses ESC.
         self.on_forward = None
+        # called with an mpv key name when a key this app CLAIMED (see
+        # claim_keys) is pressed and nothing on screen has a better claim
+        # to it. Runs on the loop thread.
+        self.on_key = None
+        self._claimed_keys = ()
         # called with no arguments immediately after a scene has been PUSHED
         # to the renderer. Runs on the loop thread.
         #
@@ -659,6 +672,13 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_hud_skip handler failed")
             return
+        if t == "key":
+            if self.on_key is not None:
+                try:
+                    self.on_key(evt.get("key") or "")
+                except Exception:
+                    log.exception("on_key handler failed")
+            return
         if t == "forward":
             if self.on_forward is not None:
                 try:
@@ -680,6 +700,18 @@ class MpvtkApp:
             v = evt.get("value")
             if isinstance(v, str):
                 self._extend_metrics([v])
+        if t in ("vpan", "vzoom"):
+            # Picture gestures carry no node: the picture is mpv's, not a
+            # node in any scene, so there is nothing for the handler
+            # registry to key on. Delivered to the app the way `key` and
+            # `forward` are.
+            hook = self.on_picture_gesture
+            if hook is not None:
+                try:
+                    hook(t, evt)
+                except Exception:
+                    log.exception("mpvtk picture gesture failed")
+            return
         h = self._handlers.get(evt.get("id"), {})
         fn = h.get(t)
         if fn is None:
@@ -809,7 +841,17 @@ class MpvtkApp:
         Only meaningful for an attached app: while suspended the renderer
         unbinds its forced mouse/wheel sections and blanks the scene, so the
         player's OSC gets the input it needs. Pushing an empty scene is not
-        enough — the bindings are what swallow the clicks."""
+        enough — the bindings are what swallow the clicks.
+
+        **Forgetting the caches is part of it.** The renderer drops its key
+        claim and its pan model on its own when it goes inactive, and never
+        says so; both of ours are compare-and-skip caches, so after a window
+        close and a tray reopen they would answer "already pushed" about a
+        claim that no longer exists — and a reader would come back with
+        LEFT/RIGHT walking the focus ring and SPACE toggling mpv's pause.
+        """
+        self._claimed_keys = ()
+        self._picture_pan = None
         self.backend.command(
             "script-message", "mpvtk-active", "yes" if active else "no"
         )
@@ -863,6 +905,64 @@ class MpvtkApp:
             "script-message", "mpvtk-focus",
             json.dumps({"id": node_id} if node_id else {}),
         )
+
+    def claim_keys(self, keys=()):
+        """Take over a set of mpv keys for as long as this page needs them.
+
+        For a page whose gesture is neither "move focus" nor "scroll" and
+        so cannot be expressed as a widget — the epub reader, whose entire
+        content is one bitmap and whose LEFT/RIGHT mean *turn the page*.
+        Claimed keys arrive as ``on_key(name)``.
+
+        **A claim is scoped by whoever set it and must be dropped.** Call
+        it with no arguments when the page that wanted them goes away; the
+        renderer also drops every claim when the UI yields to playback,
+        because there those keys are the player's seek keys and the player
+        outranks us.
+
+        Precedence is the renderer's, not ours: a focused textbox, an open
+        dropdown or menu, and any modal all take the key first. So a page
+        may claim LEFT without breaking the search box drawn above it.
+        """
+        keys = tuple(keys or ())
+        if keys == self._claimed_keys:
+            return
+        self._claimed_keys = keys
+        self.backend.command(
+            "script-message", "mpvtk-keys", json.dumps({"keys": list(keys)}),
+        )
+
+    def set_picture_pan(self, config=None):
+        """Hand the renderer the gesture model for a displayed picture.
+
+        ``config`` is ``{"unitx", "unity", "minx", "maxx", "miny", "maxy",
+        "step"}`` or None to stop. While it is set, a drag over the empty
+        part of the window and the wheel move mpv's ``video-pan-x/y``
+        **in the renderer**, with no round trip: a page turn is one
+        message, but a scroll is sixty a second and the app has nothing to
+        add to one.
+
+        The units are the *displayed picture's* pixel size, because that is
+        what mpv's pan is measured in — see
+        ``mpvtk_browser/gateway/picture.py``, where the measurement is. The
+        clamp comes from the app because it depends on the page's size and
+        the reader's own chrome, neither of which the renderer knows; the
+        app re-sends it whenever either moves.
+        """
+        payload = dict(config or {})
+        payload["on"] = bool(config)
+        # Under the lock: the compare, the store and the send are one
+        # decision, and this is reached from the loop thread (a render) and
+        # from a pool worker (a page landing). Interleaved, two callers can
+        # both see "unchanged" against a value neither of them sent, and
+        # the renderer keeps panning against a stale clamp.
+        with self._pan_lock:
+            if payload == self._picture_pan:
+                return
+            self._picture_pan = payload
+            self.backend.command(
+                "script-message", "mpvtk-vpan", json.dumps(payload),
+            )
 
     def summon_hud(self):
         """Wake an idle HUD as if a nav key were pressed (no pause

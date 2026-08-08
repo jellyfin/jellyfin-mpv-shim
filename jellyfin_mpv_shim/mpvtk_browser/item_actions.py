@@ -65,6 +65,9 @@ class ItemActions:
         self._edit_ok = None
         #: Cached recording-capability probe; see can_record.
         self._record_ok = None
+        #: item_id -> name for books whose download was started by a Read
+        #: press and which should be opened when it lands. See read_book.
+        self._pending_reads: dict = {}
 
     # -- plumbing ----------------------------------------------------------
 
@@ -275,10 +278,15 @@ class ItemActions:
 
         ud = item.setdefault("UserData", {})
         was_played, was_count = ud.get("Played"), ud.get("UnplayedItemCount")
+        was_pct = ud.get("PlayedPercentage")
         new = not components.is_watched(item)
         ud["Played"] = new
-        if item.get("Type") in ("Series", "Season"):
+        if item.get("Type") in ("Series", "Season", "Folder"):
+            # Kept in step with is_watched, which reads this for a container
+            # -- otherwise the optimistic flip sets Played and the tick is
+            # then recomputed from a stale count that still says unwatched.
             ud["UnplayedItemCount"] = 0 if new else 1
+            ud["PlayedPercentage"] = 100 if new else 0
 
         def work(ctl):
             # Roll the optimistic flip back if nothing recorded it (offline
@@ -291,6 +299,10 @@ class ItemActions:
                     ud.pop("UnplayedItemCount", None)
                 else:
                     ud["UnplayedItemCount"] = was_count
+                if was_pct is None:
+                    ud.pop("PlayedPercentage", None)
+                else:
+                    ud["PlayedPercentage"] = was_pct
                 self.services.invalidate()
 
         self._fire(work)
@@ -457,6 +469,28 @@ class ItemActions:
         except Exception:
             return True
 
+    def can_download(self, server=None):
+        """Whether this user may fetch bytes from ``server`` at all.
+
+        `EnableContentDownloading` is granted independently of everything
+        else, and for books it is not a convenience gate: `/Items/{id}/
+        Download` is the only endpoint that serves a book, so a user without
+        it cannot read one. Every other download is an offline nicety, which
+        is why this is asked about books and not bolted onto the generic
+        download button -- taking that away from a user whose policy we
+        could not read would be the worse mistake.
+
+        Fails OPEN, like ``can_record`` and ``can_manage_collections``.
+        """
+        source = getattr(self.services, "source", None)
+        ask = getattr(source, "can_download", None)
+        if ask is None or server is None:
+            return True
+        try:
+            return bool(ask(server))
+        except Exception:
+            return True
+
     def can_edit(self):
         """Whether the apiclient can edit playlists/collections.
 
@@ -519,3 +553,182 @@ class ItemActions:
             self.services.set_status(_("The download could not be removed."))
 
         self.run.run(work, done, ep, on_error=failed)
+
+    def remove_downloads(self, item_ids, name=""):
+        """Delete a named set of downloads, after confirming.
+
+        An audiobook read from a folder is N catalog rows with no
+        server-side object joining them — no series id, no playlist — so
+        there is nothing for the scoped deletes to be scoped by. The caller
+        names the rows instead.
+        """
+        ids = [i for i in (item_ids or ()) if i]
+        if not ids:
+            return
+        self.dialogs.confirm(
+            _("Delete the downloaded copy of %s?") % name,
+            lambda: self._do_remove_downloads(ids),
+            title=_("Delete Download"), yes=_("Delete"))
+
+    def _do_remove_downloads(self, ids):
+        ep = self.run.epoch
+        ctl = self.services.controller
+
+        def work():
+            ctl.delete_downloads(ids)
+
+        def failed(_exc):
+            self.services.set_status(_("The download could not be removed."))
+
+        self.run.run(work, lambda _r: self._on_downloads_changed(), ep,
+                     on_error=failed)
+
+    # -- books -------------------------------------------------------------
+
+    def read_book(self, item, server):
+        """Open a book in whatever the desktop reads it with, fetching it
+        first if it is not on disk yet.
+
+        Read is one gesture over two steps because a book cannot be read
+        *from* the server — there is no endpoint that serves a page (see
+        ``books.py``) — so downloading is never the thing the user wanted,
+        only the thing that has to happen first. Download on its own is a
+        separate button (:meth:`download_book`), for the case where it IS
+        the thing they wanted.
+
+        The wait is *not* a thread. Enqueuing registers the id here, and
+        ``flush_pending_reads`` — driven by the catalog's own change
+        notification — opens it when it lands. A poller per press would
+        outlive the press, and there is already something that knows exactly
+        when a download finishes.
+        """
+        self._book_fetch(item, server, then_open=True)
+
+    def download_book(self, item, server):
+        """Fetch a book and stop there.
+
+        No download dialog, unlike every other Download button in the app:
+        that dialog exists to confirm a size and to offer the watched
+        filter, and a book has neither — no size on the wire at all, and
+        nothing to expand. One file, one press.
+        """
+        self._book_fetch(item, server, then_open=False)
+
+    def _book_fetch(self, item, server, then_open):
+        iid = item.get("Id")
+        if not iid:
+            return
+        ctl = self.services.controller
+        if ctl is None:
+            return
+        ep = self.run.epoch
+        name = item.get("Name") or ""
+
+        def work():
+            status, path = ctl.book_download_state(iid)
+            if path:
+                # Already on disk. Read opens it; Download has nothing left
+                # to do and says so rather than silently doing nothing.
+                return ("open" if then_open else "have", None)
+            if not self.can_download(server):
+                # The one case where a missing permission is fatal rather
+                # than inconvenient: there is no other endpoint that serves
+                # a book. Named, because otherwise it looks like a broken
+                # file -- which is what the memo on this gate warns about.
+                return ("forbidden", None)
+            if self.services.offline:
+                # Nothing downloaded and no server to fetch from. Say so,
+                # rather than enqueuing against a source that cannot answer
+                # and leaving a press with no visible effect at all.
+                return ("offline", None)
+            if status not in ("pending", "downloading"):
+                # include_watched, because the gateway defaults it False and
+                # the sync manager then skips any Book whose UserData says
+                # Played — and "Finished" is a toggle sitting on this very
+                # page, beside this very button. Without it, pressing
+                # Finished then Read reports "Downloading X…", enqueues
+                # nothing, and later says it could not be downloaded. The
+                # filter exists for bulk enqueues of a series; a single
+                # item the user explicitly asked for has nothing to filter.
+                ctl.download_enqueue(server, iid, item.get("Type"),
+                                     include_watched=True)
+            return ("queued", None)
+
+        def done(result):
+            what, _extra = result
+            if what == "open":
+                ok, _method = ctl.open_downloaded_file(iid)
+                self.services.set_status(
+                    _("Opening %s…") % name if ok else
+                    _("Nothing on this system could open %s.") % name)
+            elif what == "have":
+                self.services.set_status(
+                    _("%s is already downloaded.") % name)
+            elif what == "forbidden":
+                self.services.set_status(
+                    _("Your account is not allowed to download from this "
+                      "server, and a book can only be read by downloading "
+                      "it."))
+            elif what == "offline":
+                self.services.set_status(
+                    _("%s has not been downloaded.") % name)
+            else:
+                if then_open:
+                    self._pending_reads[iid] = name
+                self.services.set_status(_("Downloading %s…") % name)
+            # However it ended, the catalog may now say something different
+            # from what the screen is drawing: a row was just queued, or an
+            # already-complete one was found. Re-reading here rather than
+            # waiting for the sync worker's own notification is what makes
+            # the button change under the press that caused it.
+            self._on_downloads_changed()
+            self.services.invalidate()
+
+        def failed(_exc):
+            self.services.set_status(_("%s could not be downloaded.") % name)
+            self._on_downloads_changed()
+
+        self.run.run(work, done, ep, on_error=failed)
+
+    def flush_pending_reads(self):
+        """Open any book whose download has finished since the last call.
+
+        Called from the downloads-changed hook, which means it runs on
+        whichever thread the sync worker notifies from — so it touches only
+        its own dict and the gateway, and reports through ``set_status``
+        like everything else here.
+
+        A failed download is dropped from the set with a message: left in,
+        it would sit there being retried against a row that is never going
+        to complete, and the user would be told nothing at all.
+        """
+        if not self._pending_reads:
+            return
+        ctl = self.services.controller
+        if ctl is None:
+            return
+        for iid, name in list(self._pending_reads.items()):
+            try:
+                status, path = ctl.book_download_state(iid)
+            except Exception:
+                log.debug("could not read download state for %s", iid,
+                          exc_info=True)
+                continue
+            if path:
+                # **Pop first, and only act if WE popped it.** This runs on
+                # whichever thread the sync worker notifies from, and two
+                # downloads finishing together call it twice at once — so a
+                # check-then-pop lets both passes see the same entry and
+                # launch the user's reader application twice for one book.
+                if self._pending_reads.pop(iid, None) is None:
+                    continue
+                ok, _method = ctl.open_downloaded_file(iid)
+                self.services.set_status(
+                    _("Opening %s…") % name if ok else
+                    _("Nothing on this system could open %s.") % name)
+            elif status in (None, "error"):
+                if self._pending_reads.pop(iid, None) is None:
+                    continue
+                self.services.set_status(_("%s could not be downloaded.")
+                                         % name)
+        self.services.invalidate()

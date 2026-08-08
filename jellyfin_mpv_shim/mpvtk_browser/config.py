@@ -115,6 +115,11 @@ TAB_SECTIONS = {
                                 "scroll_mode", "paginated",
                                 "logo_legibility_live_tv",
                                 "logo_legibility_library"]),
+        # The epub reader. On this tab rather than Playback because a book
+        # is not played -- and next to the browser's look because that is
+        # what these are: how a page is set, in a window the same size.
+        (_("Reading"), ["reader_font_size", "reader_theme",
+                        "reader_justify", "comic_fit"]),
         # Downloading is acquiring library content for later, which is a
         # browsing activity rather than a watching one. NOT on the Downloads
         # tab, the obvious-looking home: that tab is the *manager* -- what is
@@ -234,6 +239,17 @@ LABELED_ENUMS = {
     "segment_commercial": _SEGMENT_ACTIONS,
     "segment_preview": _SEGMENT_ACTIONS,
     "segment_recap": _SEGMENT_ACTIONS,
+    "reader_theme": [
+        (_("Dark"), "dark"),
+        (_("Sepia"), "sepia"),
+        (_("Light"), "light"),
+    ],
+    # The same two the comic reader's own bar offers, and the same value:
+    # picking one there writes this.
+    "comic_fit": [
+        (_("Fit Width"), "width"),
+        (_("Fit Page"), "page"),
+    ],
     "hud_scrim": [
         (_("Default"), "default"),
         (_("Panel behind the controls"), "panel"),
@@ -300,6 +316,13 @@ LABEL_OVERRIDES = {
     "poster_scale": _("Cover Size"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
+    # Named for what they do to the page, not for the module they belong
+    # to: under a "Reading" heading, "Reader Font Size" says "reader"
+    # twice and "Font" about something that is not a font.
+    "reader_font_size": _("Type Size"),
+    "reader_theme": _("Page Colour"),
+    "reader_justify": _("Justify Text"),
+    "comic_fit": _("Comic Reading Mode"),
     "headless": _("Cast-target mode (no library browsing)"),
     "display_mirror_summon": _("Casting Opens the Library Browser"),
     "browser_fullscreen": _("Fullscreen Library Browser"),
@@ -474,6 +497,10 @@ NOTES = {
                              "profile is loaded. This only applies while a "
                              "profile is active, and OpenGL can cost you HDR "
                              "output."),
+    "reader_font_size": _("In pixels, before interface scaling. The A- and "
+                          "A+ buttons in the reader change this too."),
+    "comic_fit": _("How a comic page is fitted to the window when you open "
+                   "it. The reader's own buttons change this too."),
     "audio_night_mode": _("Evens out loud effects and quiet dialogue. This "
                           "turns passthrough off while it is enabled, because "
                           "the volume has to be adjusted before your receiver "

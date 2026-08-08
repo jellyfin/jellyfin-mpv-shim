@@ -12,7 +12,9 @@ consulted first, which is exactly the silent-winner hazard
 """
 
 from .base import Page, PageContext
+from .books import AudiobookPage, BookPage, BooksPage
 from .byname import ByNamePage
+from .comic import ComicPage
 from .detail import DetailPage
 from .favorites import FavoritesPage
 from .genres import GenresPage
@@ -21,6 +23,7 @@ from .music import MusicLibraryPage
 from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
 from .playlist import PlaylistPage
 from .queue_edit import PlaylistEditPage, QueuePage
+from .reader import ReaderPage
 from .home import HomePage
 from .livetv import ChannelPage, LiveTvPage, ProgramPage
 from .search import SearchPage
@@ -29,7 +32,11 @@ from .series import SeriesPage
 
 #: kind -> Page subclass.
 PAGES = {
+    AudiobookPage.kind: AudiobookPage,
+    BookPage.kind: BookPage,
+    BooksPage.kind: BooksPage,
     ByNamePage.kind: ByNamePage,
+    ComicPage.kind: ComicPage,
     DetailPage.kind: DetailPage,
     FavoritesPage.kind: FavoritesPage,
     GenresPage.kind: GenresPage,
@@ -42,6 +49,7 @@ PAGES = {
     PlaylistEditPage.kind: PlaylistEditPage,
     PlaylistPage.kind: PlaylistPage,
     QueuePage.kind: QueuePage,
+    ReaderPage.kind: ReaderPage,
     PersonPage.kind: PersonPage,
     HomePage.kind: HomePage,
     LiveTvPage.kind: LiveTvPage,

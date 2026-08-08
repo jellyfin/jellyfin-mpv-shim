@@ -220,6 +220,11 @@ function mp.set_property(name, value)
     return true
 end
 function mp.set_property_bool(name, value) M.log.props[name] = value end
+
+-- The comic reader's pan is set this way, sixty times a second, entirely in
+-- the renderer -- so it never reached mpv through any of the paths above and
+-- had no fake at all until the end-of-page interlock needed testing.
+function mp.set_property_number(name, value) M.log.props[name] = value end
 function mp.get_property_native(name, def) return M.log.props[name] or def end
 function mp.get_property(name, def)
     if M.unavailable[name] then return nil, "property unavailable" end

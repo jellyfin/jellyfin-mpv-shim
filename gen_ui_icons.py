@@ -69,6 +69,13 @@ ICON_NAMES = [
     "groups",
     "search",
     "file_download",
+    # books: the Read button, and the push/pull pair on the reading-position
+    # dialog. A book has no player to report its progress, so those two are
+    # a real gesture the user makes rather than decoration -- they earn
+    # icons that say "to the server" and "from it".
+    "menu_book",
+    "cloud_download",
+    "cloud_upload",
     "delete",
     "edit",
     "movie",

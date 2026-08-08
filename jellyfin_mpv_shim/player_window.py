@@ -402,6 +402,139 @@ class WindowMixin:
         except Exception:
             log.debug("Could not save the window geometry", exc_info=True)
 
+    # ---------------------------------------------------- still pictures
+
+    def show_picture(self, path):
+        """Display a local image file in the browse window.
+
+        The comic reader's page. It is *played* rather than drawn: mpv
+        decodes pictures already and has video-zoom/video-pan, which beats
+        decoding each page with Pillow and pushing a viewport-sized bitmap
+        through the overlay transport on every pan.
+
+        **Here rather than in the gateway** because these are the same
+        three properties ``set_browse_window`` owns — the browse background
+        is itself "force_window with nothing loaded", and a picture is that
+        state with something loaded. Splitting them would leave two places
+        setting keep_open and image_display_duration with no idea about
+        each other, which is how the backdrop and the picture would take
+        turns overwriting one another.
+
+        ``_showing_browse_bg`` goes False for exactly that reason: the flag
+        means "the window is empty and painted", which stops being true
+        here, and a later ``set_browse_window(True)`` has to know to stop
+        the picture before claiming it again.
+        """
+        if not self._mpv_alive or self._video is not None:
+            return False
+        from .player import _mpv_errors     # per call: see the module docs
+        try:
+            # **keepaspect, first.** set_browse_window turns it OFF so the
+            # library window resizes freely instead of snapping to the last
+            # video's shape -- and with it off mpv stretches whatever is
+            # loaded to fill the window. A comic page came out distorted,
+            # and video-zoom had no visible effect at all, because a
+            # stretched picture already fills the window at every zoom.
+            self._player.keepaspect = True
+            # An image has no duration, so mpv shows it for
+            # image_display_duration (1s) and then idles.
+            self._player.image_display_duration = "inf"
+            self._player.keep_open = True
+            self._player.command("loadfile", path, "replace")
+            self._showing_browse_bg = False
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+            return False
+        return True
+
+    def reset_picture_view(self):
+        """Put video-zoom and video-pan back, whatever is playing.
+
+        **Split out of clear_picture, and guarded differently on purpose.**
+        Zoom and pan are global mpv options: a comic leaves them at (say)
+        2.67x and panned, and the next thing loaded inherits them.
+        clear_picture bails when ``_video`` is set, which is exactly the
+        case that matters — playback starting is how the comic stops being
+        on screen — so a reset that shared its guard could never run when
+        it was needed, and every film after a comic played zoomed until a
+        comic was opened and closed again with nothing playing.
+
+        **keepaspect is not one of those, and putting it here stretched
+        every video.** It is not the picture's property: it is the window's,
+        owned by set_browse_window (off, so the library resizes freely) and
+        browse_yield (on, so video keeps its shape), and show_picture
+        borrows it for as long as a page is up. This runs from
+        ``_release_page_grabs`` on *every* browse -> video handoff, through
+        ``run_action`` — which is documented to DEFER to the action thread
+        whenever the player lock is busy, and it is busy for the whole of a
+        playback start. browse_yield is a direct call. So the two ran in the
+        order the lock decided, and whenever the reset landed second the
+        film played stretched to the window with its aspect ignored — with
+        no comic anywhere in the session, because this path does not need
+        one. Hence the guard: while a video is playing or opening, the
+        window's shape belongs to browse_yield and this must not touch it.
+
+        ``_loading`` is half of that guard for the same reason it is in
+        set_browse_window: ``_video`` is not assigned until the open
+        succeeds, so during a start the obvious test says "nothing is
+        playing" and lets exactly the harmful write through.
+
+        Safe to call at any time: with no picture and no video these are
+        already at their defaults, and setting them again costs nothing.
+        """
+        if not self._mpv_alive:
+            return
+        from .player import _mpv_errors     # per call: see the module docs
+        try:
+            self._player.video_zoom = 0.0
+            self._player.video_pan_x = 0.0
+            self._player.video_pan_y = 0.0
+            if self._video is None and not self._loading:
+                # Nothing is playing, so the window is the library's: back
+                # to free resizing, or the next resize snaps to the shape
+                # of the comic page that just left.
+                self._player.keepaspect = False
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            wlog.debug("could not reset the picture view", exc_info=True)
+
+    def clear_picture(self):
+        """Take the picture down and go back to the painted browse window.
+
+        Through ``set_browse_window`` rather than by stopping directly:
+        that method is what decides what an empty window looks like, and
+        reproducing half of it here is how the two drift.
+        """
+        self.reset_picture_view()
+        if not self._mpv_alive or self._video is not None:
+            return
+        if self.mpvtk_active:
+            self.set_browse_window(True)
+
+    def set_picture_view(self, zoom=None, pan_x=None, pan_y=None):
+        """Move the displayed picture: mpv's three view properties.
+
+        ``zoom`` is mpv's own unit — a log2 exponent on top of the scale
+        that fits the picture in the window — so 0 is "fits" and 1 is twice
+        that. ``mpvtk_browser.gateway.picture`` turns a reading mode into
+        one.
+        """
+        if not self._mpv_alive:
+            return
+        from .player import _mpv_errors     # per call: see the module docs
+        try:
+            if zoom is not None:
+                self._player.video_zoom = float(zoom)
+            if pan_x is not None:
+                self._player.video_pan_x = float(pan_x)
+            if pan_y is not None:
+                self._player.video_pan_y = float(pan_y)
+        except _mpv_errors:
+            self._handle_mpv_disconnect()
+        except Exception:
+            wlog.debug("could not set the picture view", exc_info=True)
+
     def set_browse_window(self, enabled: bool):
         """Persistent window for the in-window mpvtk browser.
 

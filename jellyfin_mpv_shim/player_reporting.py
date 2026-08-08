@@ -40,11 +40,24 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
+from .books import AUDIOBOOK_TYPE
 from .i18n import _
 from .media import segment_labels
 from .utils import none_fallback, synchronous
 
 log = logging.getLogger("player")
+
+
+def _queue_len(video):
+    """How many entries the playing queue holds, or 1 when it cannot be
+    read. Never raises: this is on the publication path, where nothing may
+    disturb what it is reporting on -- and 1 is the answer that changes
+    nothing about the bar, so an unreadable queue keeps every control.
+    """
+    try:
+        return len(video.parent.queue)
+    except Exception:
+        return 1
 
 
 # noinspection PyUnresolvedReferences
@@ -143,11 +156,45 @@ class ReportingMixin:
                     ]
             except Exception:
                 ranges = None
+            # Chapters ride the snapshot rather than being read per frame.
+            # The video HUD asks the player for them while it draws, which
+            # is fine because it is only up during playback; the audio bar
+            # is on screen for as long as the browser is, and on the jsonipc
+            # backend every property read is an IPC round trip. They cannot
+            # change within one item anyway, so pushing them with the rest
+            # costs one extra read per state change and makes the bar free.
+            #
+            # This is what makes an audiobook navigable: a single .m4b is one
+            # item whose chapters live in the file, so mpv is the only thing
+            # that knows them -- the item's own Chapters array is the
+            # server's scene index and is empty for one.
+            chapters = []
+            try:
+                for chapter in (self._player.chapter_list or []):
+                    chapters.append({"title": chapter.get("title") or "",
+                                     "time": float(chapter.get("time") or 0.0)})
+            except Exception:
+                chapters = []
             skip = self._hud_skip
             cb({
                 "stopped": False,
                 "is_audio": (item.get("MediaType") == "Audio"
                              or item.get("Type") == "Audio"),
+                # A book, not a song. The now-playing bar grows two things
+                # for one -- skip-back-10 / skip-forward-30, and chapter
+                # ticks on the scrubber -- because an audiobook is listened
+                # to in hours across weeks, and "I missed that sentence" and
+                # "skip the recap" are gestures nobody makes at a song.
+                "is_audiobook": item.get("Type") == AUDIOBOOK_TYPE,
+                # How many entries the queue holds. The bar hides its
+                # previous/next buttons on a chaptered audiobook that is
+                # alone in the queue: there a .m4b IS the whole book, so
+                # those two buttons can only stop playback, sitting either
+                # side of the chapter arrows that are the real answer.
+                # Read off the queue rather than has_next/has_prev so one
+                # number covers both, and so "is there anything else at
+                # all" is answerable without knowing which end you are at.
+                "queue_len": _queue_len(video),
                 # A still image. The HUD hides its scrubber and time
                 # readout for one: mpv reports a 5s "duration" from
                 # --image-display-duration, which is real -- that is when
@@ -196,6 +243,8 @@ class ReportingMixin:
                 # buffered/seekable ranges in seconds, for the HUD's
                 # seek-bar shading (None when the demuxer has none)
                 "ranges": ranges,
+                # [{"title", "time"}], empty when the file has none.
+                "chapters": chapters,
             })
         except Exception:
             log.debug("push_playstate failed", exc_info=True)

@@ -393,6 +393,120 @@ fake.subprocess = nil
 -- case. Default (continuous) scrolling moves the stored offset by a flat
 -- pixel step and lets the DISPLAY snap; snapped_scrolling steps whole detents.
 
+-- ------------------------------------------------- a page claiming the wheel
+
+-- The epub reader has no scroll container -- its whole content is one
+-- bitmap -- so a notch there means "turn the page", which it asks for by
+-- claiming WHEEL_UP/WHEEL_DOWN like any other key. Two things to pin: that
+-- the claim is answered at all (nothing else would deliver it), and that a
+-- hi-res device does not fly through the book, since a trackpad sends
+-- fractions of a notch several times per gesture.
+
+local function key_events()
+    local out = {}
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and e.t == "key" then out[#out + 1] = e end
+    end
+    return out
+end
+
+scene({})
+fake.mouse(400, 300)
+fake.send("mpvtk-keys", fake.token({ keys = { "WHEEL_UP", "WHEEL_DOWN" } }))
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#key_events(), 1, "a claimed wheel notch was not delivered")
+eq((key_events()[1] or {}).key, "WHEEL_DOWN", "the wrong key was sent")
+
+fake.reset_events()
+fake.key("wheel_down", { scale = 0.3 })
+fake.key("wheel_down", { scale = 0.3 })
+eq(#key_events(), 0, "a fraction of a notch turned a page")
+fake.key("wheel_down", { scale = 0.5 })
+eq(#key_events(), 1, "accumulated fractions never made a notch")
+
+fake.reset_events()
+fake.key("wheel_up", { scale = 1 })
+eq((key_events()[1] or {}).key, "WHEEL_UP", "scrolling up did not go back")
+
+-- With no claim it must fall through to the ordinary scroll path, or every
+-- other screen loses its wheel.
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#key_events(), 0, "the wheel was still claimed after the claim was dropped")
+
+-- --------------------------------------------- the comic page's wheel
+
+-- A picture takes the wheel next: it is not a container, so scroll_at finds
+-- nothing over it. What is pinned here is the interlock at the end of a
+-- page, which has to hold off a fling (a dozen notches arrive before the
+-- next page and its clamp do) without latching.
+
+local function vpan_events()
+    local out = {}
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and e.t == "vpan" then out[#out + 1] = e end
+    end
+    return out
+end
+
+-- A page that FITS the window, which is Fit Page: no pan range at all, so
+-- every notch is at the end of the page.
+local function fitted_page()
+    fake.log.props["video-pan-x"] = 0
+    fake.log.props["video-pan-y"] = 0
+    fake.send("mpvtk-vpan", fake.token({
+        on = true, unitx = 1280, unity = 720, step = 120,
+        minx = 0, maxx = 0, miny = 0, maxy = 0,
+    }))
+end
+
+scene({})
+fake.mouse(400, 300)
+fitted_page()
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#vpan_events(), 1, "a notch at the bottom did not ask for the next page")
+fake.key("wheel_down", { scale = 1 })
+fake.key("wheel_down", { scale = 1 })
+eq(#vpan_events(), 1, "a fling past the bottom turned several pages")
+
+-- A fresh clamp is what a page arriving looks like, and it is what releases
+-- the interlock. In Fit Page the clamp is identical page to page, which is
+-- why the app puts the page number in it -- without that there is no
+-- message here at all and the wheel turns exactly one page, ever.
+fitted_page()
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#vpan_events(), 1, "a new clamp did not release the end-of-page interlock")
+
+-- Reversing must re-ask even with no new clamp: the LAST page never gets
+-- one (there is nothing to turn to), and in Fit Page it has no pan range
+-- either, so an interlock that ignored the direction left the wheel dead in
+-- both directions at the end of a comic.
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#vpan_events(), 0, "the interlock did not hold for a repeated notch")
+fake.key("wheel_up", { scale = 1 })
+eq(#vpan_events(), 1, "scrolling back off the end of a comic was dead")
+eq((vpan_events()[1] or {}).edge, "top", "the wrong edge was reported")
+
+-- A page with somewhere to go scrolls instead of turning, and any movement
+-- clears the interlock.
+fake.log.props["video-pan-x"] = 0
+fake.log.props["video-pan-y"] = 0
+fake.send("mpvtk-vpan", fake.token({
+    on = true, unitx = 1280, unity = 2000, step = 120,
+    minx = 0, maxx = 0, miny = -0.4, maxy = 0.4,
+}))
+fake.reset_events()
+fake.key("wheel_down", { scale = 1 })
+eq(#vpan_events(), 0, "a page with room to scroll asked for a turn")
+ok(fake.log.props["video-pan-y"] < 0, "the page did not scroll")
+
+fake.send("mpvtk-vpan", fake.token({ on = false }))
+
 local function wheel(id, steps, dir)
     fake.send("mpvtk-debug", fake.token({
         cmd = "wheel", id = id, dir = dir or 1, steps = steps or 1,

@@ -161,10 +161,12 @@ class DownloadCommitTest(TmpTest):
         item_dir = m._item_dir(m.db.get("a"))
 
         # headers= is passed by _download so the media request carries the
-        # Authorization header; a fake without it makes the download a
-        # TypeError and the row lands in 'error'.
+        # Authorization header, and on_headers= so a book download can read
+        # the served filename back off the response. A fake missing either
+        # makes the download a TypeError and the row lands in 'error' --
+        # which is how this signature stays honest.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None, headers=None):
+                        stopping=None, headers=None, on_headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -187,10 +189,12 @@ class DownloadCommitTest(TmpTest):
         item_dir = m._item_dir(m.db.get("a"))
 
         # headers= is passed by _download so the media request carries the
-        # Authorization header; a fake without it makes the download a
-        # TypeError and the row lands in 'error'.
+        # Authorization header, and on_headers= so a book download can read
+        # the served filename back off the response. A fake missing either
+        # makes the download a TypeError and the row lands in 'error' --
+        # which is how this signature stays honest.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None, headers=None):
+                        stopping=None, headers=None, on_headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -208,10 +212,12 @@ class DownloadCommitTest(TmpTest):
         add_row(m, "a", size_bytes=100)
 
         # headers= is passed by _download so the media request carries the
-        # Authorization header; a fake without it makes the download a
-        # TypeError and the row lands in 'error'.
+        # Authorization header, and on_headers= so a book download can read
+        # the served filename back off the response. A fake missing either
+        # makes the download a TypeError and the row lands in 'error' --
+        # which is how this signature stays honest.
         def fake_stream(url, dest, item_id, name, expected,
-                        stopping=None, headers=None):
+                        stopping=None, headers=None, on_headers=None):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest + ".part", "wb") as fh:
                 fh.write(b"x" * 100)
@@ -892,3 +898,282 @@ class PermanentFailureTest(TmpTest):
             m._download(m.db.get("a"))
         self.assertEqual(m.db.get("a")["status"], STATUS_ERROR)
         self.assertEqual(m.db.discarded_ids(), {"a"})
+
+
+class BookDownloadTest(TmpTest):
+    """A Book is the one download target with no media source at all.
+
+    No MediaSources, no Container, no size under any Fields value — measured
+    against a live server, not assumed. Everything the pipeline normally
+    reads off a source has to come from somewhere else or be skipped, and
+    the extension in particular is load-bearing: for a video it is cosmetic,
+    for a book it is what tells the desktop which application opens the file.
+    """
+
+    def _book(self, path="/library/A Novel.epub", **extra):
+        return {"Id": "b", "Type": "Book", "Name": "A Novel", "Path": path,
+                **extra}
+
+    # -- the extension -----------------------------------------------------
+
+    def test_a_book_takes_its_extension_from_its_path(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        self.assertEqual(m._ext_for(self._book()), "epub")
+
+    def test_a_container_still_wins_where_there_is_one(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        self.assertEqual(
+            m._ext_for({"Type": "Movie",
+                        "MediaSources": [{"Container": "mkv,webm"}]}), "mkv")
+
+    def test_a_book_with_no_path_is_not_called_a_video(self):
+        # "bin" rather than the mkv default: an unopenable file named
+        # honestly beats one claiming to be something it is not, and
+        # _download corrects it from Content-Disposition anyway.
+        m = make_manager(self.tmp, self.addCleanup)
+        self.assertEqual(m._ext_for({"Type": "Book"}), "bin")
+
+    def test_the_row_is_written_with_the_book_extension(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._add_row("uuid", "srv", self._book(path="/l/A Comic.cbz"))
+        self.assertEqual(m.db.get("b")["ext"], "cbz")
+
+    # -- what the pipeline must NOT do -------------------------------------
+
+    def test_a_book_download_asks_for_no_media_source(self):
+        """PlaybackInfo, subtitles, trickplay and media segments are all
+        properties of a media source. A Book is not IHasMediaSources, so
+        each of these is a request that can only come back empty — and the
+        first one logs a server-side error on the way."""
+        m = make_manager(self.tmp, self.addCleanup)
+        asked = []
+        for name in ("_playback_source", "_download_subs",
+                     "_download_trickplay", "_download_segments"):
+            setattr(m, name, lambda *a, _n=name, **k: asked.append(_n))
+        m._add_row("uuid", "srv", self._book())
+        m._stream = _fake_stream(b"x" * 10)
+        m._download(m.db.get("b"))
+        self.assertEqual(asked, [])
+        self.assertEqual(m.db.get("b")["status"], STATUS_COMPLETE)
+
+    def test_artwork_is_still_fetched(self):
+        # The cover is the one thing a book DOES have, and it is what the
+        # offline browser draws.
+        m = make_manager(self.tmp, self.addCleanup)
+        art = []
+        m._download_artwork = lambda *a, **k: art.append(1)
+        m._add_row("uuid", "srv", self._book())
+        m._stream = _fake_stream(b"x" * 10)
+        m._download(m.db.get("b"))
+        self.assertEqual(len(art), 1)
+
+    # -- the served filename -----------------------------------------------
+
+    def test_the_served_filename_corrects_a_wrong_extension(self):
+        """`Path` is metadata; `Content-Disposition` is the file.
+
+        They normally agree, and when they do not it is the response that is
+        right — a server serving a converted or renamed copy would otherwise
+        have us write an epub as .pdf, which every reader refuses with a
+        corruption error.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        m._add_row("uuid", "srv", self._book(path="/l/A Novel.pdf"))
+        m._stream = _fake_stream(
+            b"x" * 10,
+            served={"Content-Disposition": 'attachment; filename="A.epub"'})
+        m._download(m.db.get("b"))
+        row = m.db.get("b")
+        self.assertEqual(row["ext"], "epub")
+        self.assertTrue(row["file_path"].endswith("media.epub"))
+        self.assertTrue(os.path.exists(os.path.join(m.root, row["file_path"])))
+        # And nothing is left behind under the name the metadata claimed.
+        self.assertFalse(os.path.exists(
+            os.path.join(m._item_dir(row), "media.pdf")))
+
+    def test_a_disposition_that_agrees_changes_nothing(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._add_row("uuid", "srv", self._book())
+        m._stream = _fake_stream(
+            b"x" * 10,
+            served={"Content-Disposition":
+                    'attachment; filename="A Novel.epub"'})
+        m._download(m.db.get("b"))
+        self.assertTrue(m.db.get("b")["file_path"].endswith("media.epub"))
+
+    def test_a_response_with_no_disposition_keeps_the_path_extension(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        m._add_row("uuid", "srv", self._book())
+        m._stream = _fake_stream(b"x" * 10)
+        m._download(m.db.get("b"))
+        self.assertTrue(m.db.get("b")["file_path"].endswith("media.epub"))
+
+    def test_the_size_is_learned_from_the_response(self):
+        # There is no size on the wire for a book, so the row starts at 0
+        # and the only source of truth is what actually arrived.
+        m = make_manager(self.tmp, self.addCleanup)
+        m._add_row("uuid", "srv", self._book())
+        self.assertEqual(m.db.get("b")["size_bytes"], 0)
+        m._stream = _fake_stream(b"x" * 1234)
+        m._download(m.db.get("b"))
+        self.assertEqual(m.db.get("b")["size_bytes"], 1234)
+
+
+class DispositionTest(unittest.TestCase):
+    """The header is server-controlled input, so it is parsed rather than
+    split on, and only its extension is ever used."""
+
+    def _ext(self, raw):
+        return manager_module._disposition_ext(
+            {"Content-Disposition": raw} if raw is not None else {})
+
+    def test_a_plain_filename(self):
+        self.assertEqual(self._ext('attachment; filename="A Novel.epub"'),
+                         "epub")
+
+    def test_jellyfins_own_two_spellings(self):
+        # It sends both; the ASCII one is enough, because an extension is
+        # ASCII in every format that exists.
+        self.assertEqual(
+            self._ext('attachment; filename="Adrift.epub"; '
+                      "filename*=UTF-8''Adrift.epub"), "epub")
+
+    def test_a_semicolon_inside_a_quoted_name(self):
+        # Why this is parsed with the stdlib's message machinery rather than
+        # split on ";".
+        self.assertEqual(self._ext('attachment; filename="a; b.pdf"'), "pdf")
+
+    def test_a_traversal_attempt_yields_only_an_extension(self):
+        # Never a path. The answer is used to build a filename, so a header
+        # must not be able to steer where anything is written.
+        self.assertEqual(self._ext('attachment; filename="../../evil.epub"'),
+                         "epub")
+
+    def test_a_name_with_no_extension(self):
+        self.assertIsNone(self._ext('attachment; filename="A Novel"'))
+
+    def test_a_non_alphanumeric_suffix_is_not_an_extension(self):
+        self.assertIsNone(self._ext('attachment; filename="x.e/p"'))
+
+    def test_no_header_at_all(self):
+        self.assertIsNone(self._ext(None))
+        self.assertIsNone(self._ext(""))
+
+
+class ExpandFolderTest(TmpTest):
+    """A multi-file audiobook is a FOLDER and nothing else joins it.
+
+    `SeriesName` is null on audiobooks and `Album` is tag-derived, so an
+    untagged rip has no metadata linking its files at all. The folder is
+    therefore the download unit, and it is the only container this manager
+    expands by listing rather than through an endpoint of its own.
+    """
+
+    class Api:
+        def __init__(self, items):
+            self.items = items
+            self.calls = []
+
+        def get_user_items(self, **kw):
+            self.calls.append(kw)
+            return {"Items": list(self.items)}
+
+    def test_a_folder_expands_to_its_children(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api([{"Id": "1", "Type": "AudioBook"},
+                        {"Id": "2", "Type": "AudioBook"}])
+        self.assertEqual([i["Id"] for i in m._expand(api, "f", "Folder")],
+                         ["1", "2"])
+
+    def test_it_does_not_recurse(self):
+        """"Download this folder" means this folder. An author directory
+        holding forty books must not quietly become forty downloads."""
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api([])
+        m._expand(api, "f", "Folder")
+        self.assertNotIn("recursive", api.calls[0])
+
+    def test_it_asks_for_path(self):
+        # The only statement of a Book's format, and the row is written
+        # from this response.
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api([])
+        m._expand(api, "f", "Folder")
+        self.assertIn("Path", api.calls[0]["fields"])
+
+    def test_unsupported_children_are_dropped(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api([{"Id": "1", "Type": "AudioBook"},
+                        {"Id": "2", "Type": "Folder"},
+                        {"Id": "3", "Type": "Book"},
+                        {"Id": "4", "Type": "MusicArtist"}])
+        self.assertEqual([i["Id"] for i in m._expand(api, "f", "Folder")],
+                         ["1", "3"])
+
+
+class BookEstimateTest(TmpTest):
+
+    class Api:
+        def __init__(self, items):
+            self.items = items
+
+        def get_user_items(self, **kw):
+            return {"Items": list(self.items)}
+
+    def _estimate(self, items):
+        m = make_manager(self.tmp, self.addCleanup)
+        api = self.Api(items)
+        client = FakeClient()
+        client.jellyfin = api
+        m.get_client = lambda uuid: client
+        return m.estimate("uuid", "f", "Folder")
+
+    def test_books_are_counted_as_unsized(self):
+        """A size that silently undercounts is worse than one that admits
+        what it left out — and for a books-only download the whole figure
+        would otherwise read as 0 B."""
+        est = self._estimate([
+            {"Id": "1", "Type": "Book"},
+            {"Id": "2", "Type": "AudioBook", "MediaSources": [{"Size": 500}]},
+        ])
+        self.assertEqual(est["count"], 2)
+        self.assertEqual(est["total_bytes"], 500)
+        self.assertEqual(est["unsized_count"], 1)
+
+    def test_an_audiobook_folder_counts_as_audio_only(self):
+        # Which is what makes the dialog default to including played items:
+        # you do not skip a chapter you have already listened to when
+        # downloading the book.
+        est = self._estimate([
+            {"Id": "1", "Type": "AudioBook", "MediaSources": [{"Size": 1}]},
+            {"Id": "2", "Type": "AudioBook", "MediaSources": [{"Size": 1}]},
+        ])
+        self.assertTrue(est["audio_only"])
+
+    def test_a_folder_of_books_is_not_audio_only(self):
+        est = self._estimate([{"Id": "1", "Type": "Book"}])
+        self.assertFalse(est["audio_only"])
+
+
+def _fake_stream(body, served=None):
+    """A ``_stream`` that writes ``body`` and reports ``served`` as the
+    response headers.
+
+    Takes on_headers, like the real one. A fake that did not would make the
+    download a TypeError and the row land in 'error' — which is exactly how
+    this signature stays honest.
+
+    ``served`` rather than ``headers``: the real signature already has a
+    ``headers`` parameter (the REQUEST's, carrying the Authorization) and
+    naming both the same shadowed the closure, so every disposition test
+    handed the auth headers to on_headers and quietly asserted nothing.
+    """
+    def fake(url, dest, item_id, name, expected, stopping=None,
+             headers=None, on_headers=None):
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest + ".part", "wb") as fh:
+            fh.write(body)
+        if on_headers is not None:
+            on_headers(served or {})
+        return len(body), len(body)
+    return fake

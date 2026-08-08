@@ -631,8 +631,19 @@ def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
             # region rather than an element, so it cannot say this any
             # other way.
             rnode["af"] = True
-        rnode["hover"] = reg.get(
-            "hover", {"bc": theme.ACCENT, "bw": 3})
+        if reg.get("zone"):
+            # A click ZONE, not a control: the whole bitmap does one thing
+            # and half of it does another, so there is nothing on screen for
+            # a ring to point AT. Ringing half a page is not an affordance,
+            # it is a blue box over the paragraph being read — and the same
+            # goes for the spatial-nav ring, which is why this also takes
+            # the region out of the focus order (`nnav`). A zone is reached
+            # by pointing at it or by the keys the page claims, never by
+            # walking to it.
+            rnode["nnav"] = True
+        else:
+            rnode["hover"] = reg.get(
+                "hover", {"bc": theme.ACCENT, "bw": 3})
         ctx.nodes.append(rnode)
     return
 
@@ -870,6 +881,9 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
             from .vector import icon_ass
 
             node["ticon"] = icon_ass(el.trigger_icon)
+            chip = getattr(el, "trigger_chip", None)
+            if chip:
+                node["tchip"] = list(chip)
         else:
             # A ceiling, not a width: a short list stays tidy, and the popup
             # is never narrower than the control it drops out of.

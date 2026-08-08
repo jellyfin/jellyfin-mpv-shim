@@ -219,7 +219,7 @@ class CastMixin:
 
     def _render_cast(self, route, size):
         from ..mpvtk.widgets import Column, Image as ImageNode
-        from .music import NOW_PLAYING_BAR_H
+        from .music import now_playing_bar_h
 
         # Full-bleed, so unlike every other view this sizes itself rather
         # than flexing — which means it has to account for the now-playing
@@ -228,7 +228,11 @@ class CastMixin:
         # all, on a page that is the only page there is.
         w, h = size
         if self._now_playing is not None:
-            h = max(1, h - NOW_PLAYING_BAR_H)
+            # The height that will actually be DRAWN: the bar is two rows
+            # for an audiobook and on a narrow window, and this page sizes
+            # itself rather than flexing, so a constant here puts part of
+            # the cast screen behind the bar.
+            h = max(1, h - now_playing_bar_h(self._now_playing, w))
         size = (w, h)
 
         if self._cast_size != size:
