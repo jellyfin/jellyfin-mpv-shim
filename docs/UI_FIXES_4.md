@@ -1814,3 +1814,99 @@ The userdata pull asking for the apiclient's default field set. Real but
 small, and `UserData` rides `EnableUserData` rather than `Fields`, so the
 tightening is a `fields=""` experiment rather than a fix. Left for the next
 pass.
+
+---
+
+## Round 3 — three more from **[iw]**
+
+## 17 — The unplayed-count chip could not hold three digits
+
+**Fixed.** `strips._paint_decorations` drew the chip as a fixed `_px(26)`
+rounded rect centred on the badge column. Measured at the default
+`badge_size` of 14: `"9"` is 10px wide, `"12"` is 19, `"123"` is **29**. So a
+three-digit count was wider than the chip carrying it and hung out of both
+ends, and two digits already sat on 3px of padding where one digit had 8.
+
+Sized from the text now, jellyfin-web's way — its `.countIndicator` is
+`padding: 0 .5em` over a min-width — and pinned by its **right** edge, since
+growing from the centre walks a wide chip off the corner of the card.
+
+`tests/test_strip_count_badge.py` measures the composited pixels rather than
+the arithmetic, because the arithmetic is what was wrong: the old code
+computed a width too, it just did not compute it from the text. It asserts
+**padding**, not containment: at exactly three digits the ink's antialiased
+edge is dim enough that a strict inside/outside test reads the overflow as
+contained, which is the case the bug report is about.
+
+## 18 — "Follow display" and the Genres screen
+
+**[iw]** reported the UI under Genres flashing oddly with `ui_scale` on
+"Follow display", not reproducible after setting a fixed scale and putting it
+back, and guessed caching or scroll jank. Traced, not reproduced. Three
+things came out of it.
+
+### It is not layout, and now something checks that
+
+Genres, Favorites and By-Name were excluded from the DPI matrix as screens
+the fake source had no data for. That stopped being true when the harness
+grew `genre_rows` / `favorite_rows` / `byname_rows` — so the screen named in
+the report had never been laid out at a scale by anything in the suite. They
+are in now, over several rows with names of real length (the tile captions
+are baked into the strip bitmap, so what these screens put on the page is
+their row *headings*, and one heading cannot overflow anything). All seven
+scales, every window: clean.
+
+### It cannot be a live rescale
+
+`scaling._scale` is resolved once, on the renderer's `ready` event, and never
+moves — the setting says "takes effect after a restart" and means it. So the
+whole family of "half the frame is at the old scale" is out by construction.
+
+### What the measurement did find: Genres has no windowing
+
+`GenresPage.render` builds a `tile_row` for **every** genre, visible or not,
+and each row composites a full-width strip bitmap. Twenty-five genres in a
+1920x1080 window, measured through the real `StripStore`:
+
+| scale | strip bytes held |
+|-------|------------------|
+| 1.0   | 42.0 MB          |
+| 1.5   | 94.7 MB          |
+| 2.0   | **168.1 MB**     |
+
+`StripStore.MAX_BYTES` is 128 MB, and `TIGHT_MAX_BYTES` — what a machine
+short of RAM gets — is 32 MB. At the `max_genres` cap of 40 rows, 2x comes to
+roughly 270 MB.
+
+The bound cannot defend itself here, and that is the part worth writing down.
+Every row is touched by every build, so every entry is `_protected`, so
+`_trim_to` stops dead at the LRU head and frees nothing. The budget is not
+enforced and then exceeded; it is *unreachable*. It is also exactly a
+scale-squared effect, which is the correlation in the report.
+
+That is consistent with the symptom without being a reproduction of it: on
+the jsonipc backend these bytes are files in a scratch directory that is
+RAM-backed wherever one exists, and a write that fails makes `_compose`
+raise. `strips.strip` logs `strip composite failed` and the row stays a
+placeholder — a row of blank cards — until the next frame retries. That is a
+flash, on the screen named, four times more likely per unit of scale².
+
+### The fix, deliberately not taken in this batch
+
+The primitives are already here — `row_window`, `virtual_window`,
+`list_virtual` — but they serve *grids* and *tables*. A Column of
+`tile_row`s is the one shape with no windowing, and there are four:
+`home` (bounded at ten sections, so it is fine), `favorites`, `byname`, and
+`genres` (bounded at forty, so it is not). Row heights are known before the
+rows are built, so the window is computable the same way `grid_of`'s is.
+
+It is a change to the scroll/build path, which is not something to land
+beside a chip-width fix. Sequenced against #15 and #16 by **[iw]**.
+
+## 19 — Filters: no Language, and probably not only Language
+
+**[iw]**, reported by a user: jellyfin-web can sort/filter by language and we
+cannot. Not started. Worth doing as a survey rather than as one field — the
+question is which of web's filters we are missing, not whether we are missing
+this one, and if the answer is "most of them" the shape is likely an
+"advanced filters" dialog rather than more rows in the existing bar.
