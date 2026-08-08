@@ -113,6 +113,26 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
 
 
 
+def _source_height(video):
+    """The video height of what is about to play, or None.
+
+    Read off the **MediaSource**, not the item: an item with several
+    versions has one height per version, and the one being played is the
+    one that decides whether hardware decoding is worth its risk. A photo,
+    an audio track and anything the server did not probe all answer None,
+    which every caller treats as "software" -- see mpv_options.hwdec_for.
+    """
+    try:
+        streams = (getattr(video, "media_source", None) or {}).get(
+            "MediaStreams") or []
+        for stream in streams:
+            if stream.get("Type") == "Video" and stream.get("Height"):
+                return int(stream["Height"])
+    except Exception:
+        log.debug("could not read the source height", exc_info=True)
+    return None
+
+
 def runtime_force_window_works(version):
     """Whether this mpv acts on a force-window change made while idle.
 
@@ -1806,6 +1826,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
+        # Hardware decoding, BEFORE play() for the same reason as the two
+        # above: hwdec is read when the decoder is initialised, and the
+        # failures this setting is cautious about (a driver that resets the
+        # GPU, a vp9 path that hangs before the window opens) happen there.
+        # Setting it afterwards would apply to the file after this one.
+        #
+        # Re-applied per item rather than only at construction, which is
+        # what lets "over-1080p" be a policy at all -- and, for the static
+        # modes, what makes a settings change take effect on the next item
+        # instead of the next launch.
+        try:
+            from .mpv_options import hwdec_for
+
+            self._player.hwdec = hwdec_for(_source_height(video))
+        except Exception:
+            # Never let a decode *preference* stop playback: mpv keeps
+            # whatever it had, which is at worst the previous item's.
+            log.debug("could not apply the hwdec setting", exc_info=True)
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
         # the duration wait below and the HUD's scrub bar both depend on it

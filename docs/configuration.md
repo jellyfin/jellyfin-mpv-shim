@@ -22,6 +22,23 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `hwdec` - Hardware video decoding. Default: `no`
+  - Values: `no` (software decoding, the same default mpv itself uses),
+      `over-1080p`, `auto`, `auto-copy`.
+  - `over-1080p` is software decoding at 1080p and below and hardware above it —
+      the cautious way to turn it on. Most hardware of the last decade decodes
+      1080p without help, and often looks better doing it, so this limits
+      hardware decoding to the files that actually need it (4K HEVC, AV1).
+  - `auto` uses mpv's whitelisted hardware decoders, decoding straight into the
+      GPU. `auto-copy` is the same but copies frames back to system RAM: slower,
+      and it avoids the hardware/renderer interop paths entirely, so it is worth
+      trying if `auto` misbehaves.
+  - It is off by default because some graphics drivers handle hardware decoding
+      badly, and mpv's own maintainers decline to enable it by default for that
+      reason. If turning it on stops video working — or stops the window opening
+      at all — start the app once with `--disable-hwdec`, which forces software
+      decoding for that run without changing the setting, and then change it back.
+  - The playback HUD's *Playback Info* panel reports what is actually in use.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile

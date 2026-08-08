@@ -118,6 +118,27 @@ class Settings(SettingsBase):
     direct_paths: bool = False
     remote_direct_paths: bool = False
     path_substitutions: list = []
+    #: Hardware video decoding. "no" (mpv's own default and ours),
+    #: "over-1080p" (software below, hardware above), "auto" (mpv's
+    #: whitelisted direct modes), or "auto-copy" (the same, copied back to
+    #: system RAM).
+    #:
+    #: **Off by default, and that follows mpv rather than the other
+    #: clients.** mpv's manual on turning it on: "acknowledge that this may
+    #: cause problems", and its maintainers decline to default it on
+    #: (mpv#12948) because particular vendor/GPU combinations are badly
+    #: broken -- AMD vaapi on Linux causing GPU resets, vp9 on Intel Macs
+    #: hanging mpv before the window even opens. Jellyfin Media Player did
+    #: default it on and it worked for most people; this is about the tail
+    #: it did not work for, who are disproportionately the people on
+    #: hardware that needed it.
+    #:
+    #: "over-1080p" is the option that exists because *we* can do what mpv
+    #: cannot: the source resolution is in the DTO before playback starts,
+    #: so decoding can be software where software is fine and hardware only
+    #: where it is not. Most hardware of the last decade decodes 1080p
+    #: without help, and often looks better doing it.
+    hwdec: str = "no"
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-08 15:57-0400\n"
+"POT-Creation-Date: 2026-08-08 16:15-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1209,6 +1209,22 @@ msgid "Skip Intro / Credits"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Off (software decoding)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Only above 1080p"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "On"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "On (copy back)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
 msgstr ""
 
@@ -1387,6 +1403,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hardware Decoding"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1571,6 +1591,14 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Off by default because some graphics drivers handle it badly. \"Only above "
+"1080p\" is the cautious way to turn it on: most hardware decodes 1080p in "
+"software without help. If video stops working, start with --disable-hwdec "
+"and change this back."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

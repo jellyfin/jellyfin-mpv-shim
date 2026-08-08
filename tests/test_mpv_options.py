@@ -301,3 +301,105 @@ class ExternalMpvTest(SettingsCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HwdecTest(SettingsCase):
+    """Hardware decoding — the setting, and the policy behind "over-1080p".
+
+    Off by default, following mpv rather than the other Jellyfin clients:
+    mpv's manual says to "acknowledge that this may cause problems" and its
+    maintainers decline to enable it by default (mpv#12948), because
+    particular vendor/GPU combinations are badly broken. "over-1080p" is
+    the option only *this* client can offer — the source resolution is in
+    the DTO before playback starts, so decoding can be software where
+    software is fine.
+    """
+
+    def test_the_default_is_software_decoding(self):
+        self.assertEqual(settings.hwdec, "no")
+        self.assertEqual(mpv_options.hwdec_for(2160), "no")
+
+    def test_the_static_modes_ignore_the_height(self):
+        for mode, expected in (("no", "no"), ("auto", "auto"),
+                               ("auto-copy", "auto-copy")):
+            self.set(hwdec=mode)
+            for height in (None, 480, 1080, 2160):
+                self.assertEqual(mpv_options.hwdec_for(height), expected,
+                                 "%s at %r" % (mode, height))
+
+    def test_the_threshold_is_strictly_above_1080(self):
+        # 1920x1080 decodes in software and 4K does not, which is the line
+        # the setting is named after.
+        self.set(hwdec="over-1080p")
+        self.assertEqual(mpv_options.hwdec_for(1080), "no")
+        self.assertEqual(mpv_options.hwdec_for(1081), "auto")
+        self.assertEqual(mpv_options.hwdec_for(2160), "auto")
+
+    def test_an_unknown_height_stays_on_software(self):
+        """Audio, a photo, or anything the server did not probe. Starting a
+        file with hardware decoding already on and turning it off is the
+        wrong way round — decoder init is where the bad paths hang."""
+        self.set(hwdec="over-1080p")
+        for height in (None, 0, "", "not a number"):
+            self.assertEqual(mpv_options.hwdec_for(height), "no",
+                             "height=%r" % (height,))
+
+    def test_a_hand_edited_value_falls_back_to_software(self):
+        # Handing an unknown string to mpv fails the option at
+        # construction, which takes the whole player with it.
+        self.set(hwdec="turbo-mode")
+        with self.assertLogs("mpv_options", level="WARNING"):
+            self.assertEqual(mpv_options.hwdec_for(2160), "no")
+
+    def test_the_construction_default_is_software_for_the_threshold_mode(self):
+        # Nothing is loaded at construction, so there is no height to judge;
+        # _play_media raises it per file.
+        self.set(hwdec="over-1080p")
+        self.assertEqual(self.build()["hwdec"], "no")
+
+    def test_a_static_mode_reaches_the_option_dict(self):
+        self.set(hwdec="auto-copy")
+        self.assertEqual(self.build()["hwdec"], "auto-copy")
+
+    def test_the_cli_override_beats_every_mode(self):
+        """`--disable-hwdec` is the recovery path for hardware decoding
+        stopping the window opening at all, so nothing may outrank it."""
+        for mode in ("auto", "auto-copy", "over-1080p"):
+            self.set(hwdec=mode)
+            with mock.patch.object(mpv_options, "hwdec_for",
+                                   mpv_options.hwdec_for):
+                with mock.patch("jellyfin_mpv_shim.args.get_args") as ga:
+                    ga.return_value = mock.Mock(disable_hwdec=True)
+                    self.assertEqual(mpv_options.hwdec_for(2160), "no", mode)
+
+    def test_it_survives_argument_parsing_being_unavailable(self):
+        # Imported bare in tests and tools; a missing override is "no
+        # override", never a crash on the playback path.
+        self.set(hwdec="auto")
+        with mock.patch("jellyfin_mpv_shim.args.get_args",
+                        side_effect=RuntimeError("no argv")):
+            self.assertEqual(mpv_options.hwdec_for(2160), "auto")
+
+
+class SourceHeightTest(unittest.TestCase):
+    """What `over-1080p` judges. Read off the MediaSource, not the item: an
+    item with several versions has one height per version, and the one
+    playing is the one whose decoding is at stake."""
+
+    def _height(self, source):
+        from jellyfin_mpv_shim.player import _source_height
+        return _source_height(mock.Mock(media_source=source))
+
+    def test_it_reads_the_video_stream(self):
+        self.assertEqual(self._height({"MediaStreams": [
+            {"Type": "Audio", "Height": 999},
+            {"Type": "Video", "Height": 2160}]}), 2160)
+
+    def test_an_audio_only_source_has_no_height(self):
+        self.assertIsNone(self._height({"MediaStreams": [
+            {"Type": "Audio", "Channels": 2}]}))
+
+    def test_degenerate_sources(self):
+        for source in ({}, None, {"MediaStreams": []},
+                       {"MediaStreams": [{"Type": "Video"}]}):
+            self.assertIsNone(self._height(source), repr(source))

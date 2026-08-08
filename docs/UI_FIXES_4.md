@@ -19,8 +19,11 @@ formatter landing as its own commit before the two items that need it.
 | — | [Groundwork: a shared media-info formatter](#groundwork-a-shared-media-info-formatter) | done `ac2cea8e` |
 | [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | todo |
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
+| [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
+| [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | todo |
+| [14](#14--search-asks-for-no-fields) | Search asks for no fields | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
-| [4](#4--delete-from-disk) | Delete from Disk | done |
+| [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
 | [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | todo |
 | [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | todo |
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | todo |
@@ -883,3 +886,115 @@ the mpv integration matrix on both backends:
    that transcodes; a multi-version item; a downloaded copy played while
    online. The path row shows for everyone, so check it as a non-admin too —
    deliberately, see #11.
+
+---
+
+## 12 — A hardware-decoding setting
+
+**[iw]** "We should also add a setting to the player for hwdec. Am debating if
+it should be enabled by default. Jellyfin Media Player enabled it by default
+and it worked fine for *most* users but caused issues for a long tail of
+users, probably sadly the same users that probably needed it the most.
+Anything 1080p or lower though probably doesn't need hardware decoding on most
+hardware from the past decade."
+
+### What the research changed
+
+The obvious design — default to `auto-safe`, mpv's "safer on" — **does not
+exist**. In current mpv `auto-safe` is documented as "exactly the same as
+auto", and `auto` is already the whitelisted mode; `auto-unsafe` is the
+anything-goes one. mpv#12948 is the proposal to default it on, and it is open
+and argued against by a maintainer:
+
+* particular vendor/GPU combinations are badly broken — AMD vaapi on Linux
+  causing GPU resets — and mpv cannot afford Chromium's allow/blocklists;
+* IINA, which does default it on, had to strip vp9 from `hwdec-codecs` after
+  Intel Macs froze;
+* one reporter has mpv **hanging with the window never opening** on
+  vp9/videotoolbox;
+* the power-saving argument is questionable below ~720p on desktop, which is
+  the same observation as **[iw]**'s about 1080p.
+
+mpv's manual, on turning it on: *"acknowledge that this may cause problems"*.
+
+### Does `auto-copy` buy us anything? — no
+
+**[iw]** asked, and the answer is no, for a reason specific to this app. mpv's
+case for copy-back is that it *"will allow CPU processing with video filters.
+This mode works with all video filters and VOs."* We use **no video filters**
+— the shader pack is `glsl-shaders`, which runs inside the GPU renderer on
+frames already on the GPU — and we set no `vo`, so we get mpv's default, which
+is **gpu-next**: a VO that does direct hwdec interop natively. JMP needed
+copy-back because `vo_libmpv` renders into Qt, which is the hard interop case.
+So it is offered as a fallback for a misbehaving direct path, not as a default.
+
+### Shape
+
+Four values: `no` (default), `over-1080p`, `auto`, `auto-copy`.
+
+`over-1080p` is the one **only this client can offer**: the source resolution
+is in the DTO before playback starts, so decoding can be software where
+software is fine and hardware only where it is not. It is the thing mpv's own
+maintainer says would be needed first ("some basic qualifiers for it like a
+minimum video resolution").
+
+Three things are load-bearing:
+
+* **It is applied per file, before `play()`**, beside the volume and
+  still-duration writes and for the same reason: `hwdec` is read at *decoder
+  init*, which is where the failure modes happen. Setting it after would apply
+  to the next file. A side benefit is that changing the setting takes effect
+  on the next item rather than the next launch.
+* **The height comes off the MediaSource, not the item.** A multi-version item
+  has one height per version and the one playing is the one at stake.
+* **An unknown height means software.** Audio, a photo, an unprobed file —
+  starting hardware and turning it off is the wrong way round.
+
+`--disable-hwdec` is the recovery path, per-run like `--ui-scale` rather than a
+config write like `--reset-shaders`: it exists for hardware decoding stopping
+the window opening at all, and once it has opened the setting is reachable in
+the ordinary way.
+
+### Open
+
+**The default is Off, and that was the investigation's call rather than
+[iw]'s** — no option was picked. The argument for it: shipping a new default
+in the same release as the feature gives no signal about which of the two
+broke someone. It is one line in `conf.py` plus the doc entry to change.
+
+## 13 — Shader packs must not reach stills
+
+**[iw]** "We need to make sure we're not applying shader packs to photos and
+comic books!"
+
+Confirmed, and it is worse than per-file: `VideoProfileManager.load_profile`
+is applied once — from the menu, or restored at startup from
+`shader_pack_profile` — and left on the mpv instance. Nothing on the play path
+touches it. So an anime-upscaling chain runs over a photograph, and over a
+comic page at 1600x2400 or larger, where it is both wrong and expensive.
+
+**The fix cannot be `unload_profile`.** That clears `current_profile`, which
+the menu's selection and the remembered setting both read, so a still would
+silently reset the user's chosen profile. It needs a suspend/resume pair that
+keeps the remembered name — suspend on a photo (`_play_media`, `is_photo`) and
+on a comic page (`show_picture`), resume for video and on `clear_picture`.
+
+## 14 — Search asks for no fields
+
+Noticed while adding `CanDelete`. `LibrarySource.search` passes **no `fields`
+at all**, which costs three things at once, measured against a real 800-item
+search:
+
+* `PrimaryImageAspectRatio` is absent on **all 800 items**, so search tiles
+  have never been shaped by their own artwork (`auto_geom` falls back for
+  every one of them);
+* `MediaSourceCount` is absent, so a multi-version item shows no version chip
+  — this is the one **[iw]** remembers being asked for;
+* `CanDelete` is absent, so #4's Delete from Disk cannot appear on a search
+  result, unlike everywhere else.
+
+Adding `GRID_FIELDS` costs +47 KB on a 1.28 MB response and was not slower in
+the measurement. Note that `MediaSourceCount` is **absent rather than 1** for
+a single-version item — the server omits the property at 1, which
+`tile_renderer` already documents — so the chip correctly stays off for most
+of a library either way.

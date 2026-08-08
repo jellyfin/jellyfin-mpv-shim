@@ -141,8 +141,8 @@ TAB_SECTIONS = {
         (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
                                 "mouse_chapter_nav"]),
-        (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
-                         "remote_kbps", "direct_paths",
+        (_("Playback"), ["auto_play", "hwdec", "always_transcode",
+                         "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
         # Passthrough keys are listed in full here; sections() drops the
         # ones the selected mode cannot carry.
@@ -201,6 +201,12 @@ _SEGMENT_ACTIONS = [
 
 # Enums whose stored value isn't presentable: [(label, value), ...].
 LABELED_ENUMS = {
+    "hwdec": [
+        (_("Off (software decoding)"), "no"),
+        (_("Only above 1080p"), "over-1080p"),
+        (_("On"), "auto"),
+        (_("On (copy back)"), "auto-copy"),
+    ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
@@ -297,6 +303,7 @@ LABELED_ENUMS = {
 LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "hwdec": _("Hardware Decoding"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
     "auto_download_next_up_limit": _("Next Up Entries to Consider"),
@@ -373,6 +380,15 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # The reason this is off by default, in the place someone deciding
+    # whether to change it is looking. mpv's own manual says to
+    # "acknowledge that this may cause problems"; the tail it breaks for
+    # is disproportionately the hardware that needed it.
+    "hwdec": _("Off by default because some graphics drivers handle it "
+               "badly. \"Only above 1080p\" is the cautious way to turn "
+               "it on: most hardware decodes 1080p in software without "
+               "help. If video stops working, start with --disable-hwdec "
+               "and change this back."),
     "close_to_tray": CAST_TARGET_NOTE,
     "allow_background": CAST_TARGET_NOTE,
     # Advanced-only (see SECTIONS), and the note is why: it reads like "turn

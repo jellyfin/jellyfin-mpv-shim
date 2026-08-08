@@ -13,6 +13,7 @@ and safe to call, but creating the config tree is a side effect and belongs
 with the code that is actually starting a player.
 """
 
+import logging
 import platform
 import sys
 from collections import OrderedDict
@@ -22,9 +23,61 @@ from .conf import settings
 from .constants import APP_NAME, DESKTOP_ID, USER_APP_NAME
 from .utils import get_resource
 
+log = logging.getLogger("mpv_options")
+
 #: Styles that must not leave mpv's built-in OSC on: two that replace it
 #: with something of ours, and one that replaces it with nothing.
 _REPLACES_OSC = ("mpv", "mpvtk", "none")
+
+
+#: Config value -> the mpv ``hwdec`` value, where it is a constant.
+#: "over-1080p" is absent because it is not one: see :func:`hwdec_for`.
+_HWDEC_STATIC = {"no": "no", "auto": "auto", "auto-copy": "auto-copy"}
+
+#: Above this source height, "over-1080p" turns hardware decoding on.
+#: Strictly greater, so a 1920x1080 file decodes in software and a 4K one
+#: does not -- which is the line the setting is named after.
+HWDEC_THRESHOLD_H = 1080
+
+
+def hwdec_for(height=None):
+    """mpv's ``hwdec`` for the configured mode and this file's height.
+
+    ``height`` is the source's video height, or None when nothing is loaded
+    (mpv's construction, and any item whose height we could not read). None
+    resolves the threshold mode to "no": starting a file with hardware
+    decoding already on and turning it off is the wrong way round -- the
+    failure modes this setting is cautious about happen at *decoder init*.
+
+    ``--disable-hwdec`` overrides everything and is checked here, so there
+    is one place that can be wrong. It is a per-run override rather than a
+    config write (like --ui-scale, unlike --reset-shaders): it exists for
+    the case where hardware decoding stops the window opening at all, and
+    once it has opened the setting is reachable in the ordinary way.
+    """
+    from .args import get_args
+
+    try:
+        if getattr(get_args(), "disable_hwdec", False):
+            return "no"
+    except Exception:
+        # Argument parsing is not available in every embedding of this
+        # module (tests import it bare). A missing override is "no
+        # override", never a crash on the playback path.
+        log.debug("could not read the hwdec override", exc_info=True)
+    mode = (settings.hwdec or "no").strip().lower()
+    if mode in _HWDEC_STATIC:
+        return _HWDEC_STATIC[mode]
+    if mode == "over-1080p":
+        try:
+            return "auto" if int(height or 0) > HWDEC_THRESHOLD_H else "no"
+        except (TypeError, ValueError):
+            return "no"
+    # A value hand-edited into the JSON. Software decoding is the answer
+    # that cannot make things worse, and handing an unknown string to mpv
+    # would fail the option at construction and take the player with it.
+    log.warning("Unknown hwdec setting %r; using software decoding.", mode)
+    return "no"
 
 
 def resolve_osc_style():
@@ -125,6 +178,13 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
                 "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
             }
         )
+
+    # Hardware decoding, at construction. The threshold mode resolves to
+    # "no" here (nothing is loaded, so there is no height) and is raised
+    # per file in PlayerManager._play_media -- which is also where the
+    # static modes are re-applied, so that changing this setting takes
+    # effect on the next item rather than the next launch.
+    mpv_options["hwdec"] = hwdec_for()
 
     if osc_style in _REPLACES_OSC:
         # "mpv" loads the patched stock OSC as a script; "mpvtk" has the
