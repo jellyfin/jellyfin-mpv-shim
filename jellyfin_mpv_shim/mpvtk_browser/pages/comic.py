@@ -252,7 +252,9 @@ class ComicPage(Page):
 
         Fire and forget, like the epub reader's: a failed write costs the
         position elsewhere, and blocking a page turn on a round trip would
-        cost the reading. The DTO in hand is updated as well — this page's
+        cost the reading. And like the epub reader's, it goes through
+        ``record_reading_position`` so a page turned with the server away
+        reaches the local catalog and the replay queue rather than nowhere. The DTO in hand is updated as well — this page's
         own copy; the book page below holds a different dict, which
         ``_land_back`` reloads on the way out.
         """
@@ -266,7 +268,7 @@ class ComicPage(Page):
             return
         self.route["_saved"] = ticks
         item.setdefault("UserData", {})["PlaybackPositionTicks"] = ticks
-        setter = getattr(self.ctx.player, "set_position", None)
+        setter = getattr(self.ctx.player, "record_reading_position", None)
         if setter is None:
             return
         self.ctx.run.submit(lambda: setter(server, item["Id"], ticks))
@@ -370,6 +372,18 @@ class ComicPage(Page):
                     "unity": max(1.0, size[1] * scale),
                     "minx": min_x, "maxx": max_x,
                     "miny": min_y, "maxy": max_y,
+                    # **Which page this clamp is for**, and the renderer
+                    # never reads it. It is here to make the payload
+                    # DIFFER: `set_picture_pan` skips an unchanged model,
+                    # and the renderer releases its end-of-page interlock
+                    # when a fresh one arrives. In Fit Page every page is
+                    # fitted whole, so consecutive pages of the same size
+                    # produce a byte-identical clamp -- no message, no
+                    # release, and the wheel turned exactly one page and
+                    # then went dead. Fit Width hid it because a taller
+                    # page has a pan range, so the clamp really does
+                    # change.
+                    "page": self.page_index(),
                     # One notch of the wheel, in physical pixels of the
                     # window. Three lines of a comic page is meaningless;
                     # a fixed distance is what every viewer does.

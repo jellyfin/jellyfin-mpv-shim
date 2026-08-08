@@ -15,6 +15,7 @@ right numbers and at the right moments.
 import io
 import os
 import tempfile
+import threading
 import unittest
 import zipfile
 
@@ -372,6 +373,48 @@ class TestGestures(ComicHarness):
         self.assertEqual(page.page_index(), 1)
         page.on_picture_gesture("vpan", {"edge": "top"})
         self.assertEqual(page.page_index(), 0)
+
+    def test_fit_page_still_sends_a_model_on_every_turn(self):
+        """`MpvtkApp.set_picture_pan` skips an unchanged model, and the
+        renderer releases its end-of-page interlock when a fresh one
+        arrives. In Fit Page every page is fitted whole, so consecutive
+        pages of the same size produce a byte-identical clamp — no message,
+        no release, and the wheel turned exactly one page and then went
+        dead. Fit Width hid it: a taller page has a pan range, so its clamp
+        really does change."""
+        browser = self.open_comic()
+        page = self.page(browser)
+        page._set_mode("page")
+        first = self.models(browser)[-1]
+        page.on_picture_gesture("vpan", {"edge": "bottom"})
+        second = self.models(browser)[-1]
+        self.assertNotEqual(first, second,
+                            "the renderer was handed the same clamp twice, "
+                            "so it never released the interlock")
+
+    def test_an_unchanged_model_is_not_re_sent(self):
+        """The other half of the pair, on the real app: the skip is what
+        keeps a repaint from costing a message, and it is why the payload
+        above has to differ on its own."""
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        sent = []
+
+        class Backend:
+            def command(self, *args):
+                sent.append(args)
+
+        app = MpvtkApp.__new__(MpvtkApp)
+        app.backend = Backend()
+        app._picture_pan = None
+        app._pan_lock = threading.Lock()
+        model = {"unitx": 1.0, "unity": 2.0, "minx": 0.0, "maxx": 0.0,
+                 "miny": 0.0, "maxy": 0.0, "step": 120, "page": 0}
+        app.set_picture_pan(model)
+        app.set_picture_pan(dict(model))
+        self.assertEqual(len(sent), 1)
+        app.set_picture_pan(dict(model, page=1))
+        self.assertEqual(len(sent), 2)
 
     def test_ctrl_wheel_zooms(self):
         browser = self.open_comic()

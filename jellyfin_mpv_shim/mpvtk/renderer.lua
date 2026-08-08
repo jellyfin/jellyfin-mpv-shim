@@ -3052,9 +3052,15 @@ function state.vpan_wheel(dir, scale)
     -- notches before any of that lands, so without an interlock one flick
     -- past the bottom turns several pages at once. Ask once, then wait for
     -- the clamp to change, which is what a page arriving looks like.
-    if state.vpan_edge then return true end
-    state.vpan_edge = dir > 0 and 'bottom' or 'top'
-    send({ t = 'vpan', edge = state.vpan_edge })
+    --
+    -- Per DIRECTION, not per page: the last page never gets a new clamp
+    -- because there is no page to turn to, and in Fit Page it has no pan
+    -- range either -- so an interlock that ignored the direction stayed
+    -- latched and killed scrolling BACK off the end of a comic as well.
+    local edge = dir > 0 and 'bottom' or 'top'
+    if state.vpan_edge == edge then return true end
+    state.vpan_edge = edge
+    send({ t = 'vpan', edge = edge })
     return true
 end
 
