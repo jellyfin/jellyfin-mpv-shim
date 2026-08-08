@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-08 18:43+0000\n"
+"PO-Revision-Date: 2026-08-08 20:28+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1315,7 +1315,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Collections…"
-msgstr "Rinkiniai…"
+msgstr "Kolekcijos…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -1328,11 +1328,11 @@ msgstr "Pridėti prie Kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No collections yet."
-msgstr "Rinkinių dar nėra."
+msgstr "Kolekcijų dar nėra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New collection name…"
-msgstr "Naujas rinkinio pavadinimas…"
+msgstr "Naujas kolekcijos pavadinimas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3013,7 +3013,7 @@ msgstr "Pašalinti iš grojaraščio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Remove from Collection"
-msgstr "Pašalinti iš Rinkinio"
+msgstr "Pašalinti iš kolekcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, python-format
@@ -3023,7 +3023,7 @@ msgstr "Pašalinti %s iš šio grojaraščio?"
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, python-format
 msgid "Remove %s from this collection?"
-msgstr "Pašalinti %s iš šio rinkinio?"
+msgstr "Pašalinti %s iš šis kolekcijos?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
