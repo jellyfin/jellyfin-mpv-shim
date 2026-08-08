@@ -37,7 +37,12 @@ class HudMixin(GatewayCore):
                 "key": settings.hud_wake_key or "ENTER",
                 "hide": max(0.0, float(settings.hud_hide_secs or 0)),
                 "mode": settings.hud_autohide or "hover",
-                "shadow": settings.hud_scrim == "none"}
+                "shadow": settings.hud_scrim == "none",
+                # Whether the hidden HUD takes the left button at all. It
+                # rides this message rather than being read at startup for
+                # the same reason the rest do: engage() re-sends them, which
+                # is what makes the setting apply without a restart.
+                "click": bool(settings.mouse_click_pauses)}
 
     def hud_menu_state(self):
         """osc_bridge's menu/track state blob for the HUD's pickers

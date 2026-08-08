@@ -187,6 +187,9 @@ local state = {
              -- auto-hide policy and the no-scrim text halo, pushed
              -- with the engage (mpvtk-hud) so setting changes stick
              hide_s = 4, hide_mode = 'hover', shadow = false,
+             -- does a left click on the hidden HUD pause? off gives mpv's
+             -- own modality back (drag with left, pause with right)
+             click_pauses = true,
              -- has the pointer MOVED since this summon? The bar-hover
              -- hold below is meaningless without it: see phud_busy
              moved = false },
@@ -3377,9 +3380,22 @@ local function on_mouse_down()
                 request_render()
             end
         elseif state.phud.mode and state.phud.shown then
-            -- summoned HUD: clicking bare video toggles pause, like
-            -- the lua OSC's click-anywhere behavior
-            mp.commandv('cycle', 'pause')
+            -- Summoned HUD, click on bare video. The HUD's own controls
+            -- are nodes and were handled above; this is the picture.
+            --
+            -- **The setting has to be honoured here too, not only while
+            -- the HUD is hidden.** The controls being on screen does not
+            -- change what the user asked the left button to mean, and
+            -- while `mpvtk_mouse` is enabled it is this branch -- not the
+            -- phud binding -- that the click reaches.
+            if state.phud.click_pauses then
+                mp.commandv('cycle', 'pause')   -- the lua OSC's click-anywhere
+            else
+                -- mpv's modality: the left button drags the window. Same
+                -- command and the same reasoning as the title bar below --
+                -- the press is the only moment mpv will take it.
+                pcall(mp.commandv, 'begin-vo-dragging')
+            end
         end
         return
     end
@@ -3736,7 +3752,18 @@ end
 local function on_dbl()
     local x, y = state.mouse.x, state.mouse.y
     local node = node_at(x, y)
-    if not node then return end
+    if not node then
+        -- Bare video with the HUD up. `mpvtk_mouse` has taken
+        -- mbtn_left_dbl, so mpv's own MBTN_LEFT_DBL never runs and
+        -- double-click stopped full-screening the moment the controls
+        -- appeared -- in BOTH modes, which is why this is not conditional.
+        -- (With click-to-pause on, the pair of single clicks either side
+        -- of this cancel out, exactly as they do with the HUD hidden.)
+        if state.phud.mode and state.phud.shown then
+            mp.commandv('cycle', 'fullscreen')
+        end
+        return
+    end
     if node.t ~= 'textbox' then
         if node.dbl then
             send({ t = 'dbl', id = node.id })
@@ -3789,6 +3816,15 @@ local function on_rclick()
     end
     if node and node.ctx then
         send({ t = 'context', id = node.id, x = x, y = y })
+        return
+    end
+    -- Bare video, HUD up, mpv's modality: right click is what pauses
+    -- there, and `mpvtk_mouse` has taken mbtn_right so mpv's own default
+    -- cannot. Only in that mode -- with click-to-pause on, the left
+    -- button already does it and a right click means nothing here.
+    if not node and not state.phud.click_pauses
+        and state.phud.mode and state.phud.shown then
+        mp.commandv('cycle', 'pause')
     end
 end
 
@@ -5298,8 +5334,21 @@ function phud_bind_summon()
             end
         end
     end
-    -- clicking the hidden-HUD video pauses (the lua OSC's
-    -- click-anywhere), except on the standalone skip button
+    -- Clicking the hidden-HUD video pauses (the lua OSC's
+    -- click-anywhere), except on the standalone skip button.
+    --
+    -- **Not bound at all in mpv's modality** (mouse_click_pauses off): a
+    -- forced binding here is what stops the VO dragging the window with
+    -- the left button, so giving dragging back means not taking the
+    -- button. Right-click-to-pause and double-click-to-fullscreen are
+    -- mpv's own defaults and need nothing from us either way -- measured:
+    -- a double click delivers mbtn_left, mbtn_left_dbl, mbtn_left, so
+    -- even with this bound the two pause toggles cancel and fullscreen
+    -- still fires.
+    if not state.phud.click_pauses then
+        state.kb_summon = true
+        return
+    end
     mp.add_forced_key_binding('mbtn_left', 'mpvtk_phud_click', function()
         local r = state.phud.skip_rect
         local x, y = state.phud.mx, state.phud.my
@@ -5551,6 +5600,10 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         state.phud.hide_s = hide ~= nil and hide or PHUD_HIDE.def
         state.phud.hide_mode = (opts and opts.mode) or 'hover'
         state.phud.shadow = (opts and opts.shadow) or false
+        -- Absent means the historical behaviour, not false: an older
+        -- Python side sends no `click` and must keep click-to-pause.
+        local click = opts and opts.click
+        state.phud.click_pauses = click == nil or click and true or false
         if state.phud.hide_s <= 0 then
             -- A zero delay only means anything as "gone the moment the
             -- pointer leaves the controls"; with no pointer test it is a

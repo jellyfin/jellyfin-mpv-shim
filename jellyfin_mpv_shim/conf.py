@@ -535,6 +535,17 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
+    #: Left-click on the video toggles pause (#669).
+    #:
+    #: On -- the default, and what this client has always done -- the
+    #: hidden HUD takes ``mbtn_left`` and pauses, like the lua OSC's
+    #: click-anywhere. Off gives mpv's own modality back: nothing binds the
+    #: left button, so the VO drags the window with it and RIGHT click is
+    #: what pauses. Measured, both ways: double-click still fullscreens in
+    #: *either* mode, because mpv delivers mbtn_left, mbtn_left_dbl,
+    #: mbtn_left for a double -- so the two pause toggles cancel and the
+    #: default binding still fires.
+    mouse_click_pauses: bool = True
     hud_grab_keys: bool = False
     # The key that summons the HUD for keyboard driving while it is
     # hidden (mpv key name syntax). ENTER also toggles pause on wake.

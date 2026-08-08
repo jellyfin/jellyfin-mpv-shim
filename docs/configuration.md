@@ -22,6 +22,14 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
+  - This is what this client has always done (the same "click anywhere" the MPV
+      OSC has). Turning it off gives MPV's own mouse behaviour back: nothing
+      binds the left button, so dragging the video moves the window, and **right
+      click** is what pauses.
+  - The two cannot both be had: a binding on the left button is exactly what
+      stops the video output dragging the window with it.
+  - Double click is full screen in either mode.
 - `hwdec` - Hardware video decoding. Default: `no`
   - Values: `no` (software decoding, the same default mpv itself uses),
       `over-1080p`, `auto`, `auto-copy`.

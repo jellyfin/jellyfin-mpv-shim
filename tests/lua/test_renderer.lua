@@ -2148,6 +2148,152 @@ ok(box and box.clip and box.clip.y1 >= HDR_H,
 
 fake.send("mpvtk-theme", fake.token({ glow = false }))
 
+-- =============================== the left button, and who gets to have it
+--
+-- #669. Clicking the hidden HUD pauses, which is the lua OSC's
+-- click-anywhere and this client's long-standing behaviour. A *forced*
+-- binding on mbtn_left is also exactly what stops the VO dragging the
+-- window with that button, so giving mpv's modality back means not taking
+-- the button at all rather than taking it and behaving differently.
+--
+-- Measured against a real mpv under Xvfb, both ways: a double click
+-- delivers mbtn_left, mbtn_left_dbl, mbtn_left. So the two pause toggles
+-- cancel and mpv's own MBTN_LEFT_DBL still fullscreens *with* our binding
+-- installed -- which is why double-click needs nothing from us in either
+-- mode, and why only the single-click binding is conditional.
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "click-to-pause is the default: mbtn_left is taken")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = false }))
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "mpv modality: mbtn_left is left alone so the VO can drag")
+
+-- The wake key still has to work in that mode, or the HUD becomes
+-- unreachable from the keyboard as well as from the left button.
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "the wake key survives mpv modality")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = true }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "and it comes back when the setting is turned on again")
+
+-- An older Python side sends no `click` at all. Absent must mean the
+-- historical behaviour, not false -- otherwise a version skew silently
+-- removes click-to-pause for everyone.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4 }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "an absent click option keeps click-to-pause")
+
+fake.send("mpvtk-hud", "no")
+
+-- ----------------- ...and the same answer while the controls are ON SCREEN
+--
+-- The bug this pins: the setting was honoured only while the HUD was
+-- hidden. Once summoned, `mpvtk_mouse` owns mbtn_left / mbtn_left_dbl /
+-- mbtn_right, so every one of them reaches the scene handlers instead of
+-- the phud binding or mpv's defaults -- and those handlers paused on any
+-- bare-video click, swallowed the double click, and swallowed the right
+-- click. Reported from hand-testing; nothing here had ever clicked the
+-- *picture* with the controls up.
+
+local function hud_up(opts)
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes", fake.token(opts))
+    fake.observe("mouse-pos", { x = 640, y = 300, hover = true })
+    fake.observe("mouse-pos", { x = 640, y = 360, hover = true })
+    -- Bars at the edges; the middle of the window is bare video.
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+    repaint()
+    fake.mouse(640, 360)
+    fake.log.commands = {}
+end
+
+local function did(cmd, arg)
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == cmd and (arg == nil or c[2] == arg) then return true end
+    end
+    return false
+end
+
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.key("mbtn_left")
+ok(did("cycle", "pause"),
+   "click-to-pause on: a click on bare video still pauses with the HUD up")
+
+hud_up({ hide = 4, mode = "hover", click = false })
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "mpv modality: a click on bare video must not pause with the HUD up")
+ok(did("begin-vo-dragging"),
+   "mpv modality: a click on bare video starts a window drag instead")
+
+-- Double click is full screen in BOTH modes -- it is mpv's own default and
+-- the only reason it stopped working is that our section took the key.
+for _, mode in ipairs({ true, false }) do
+    hud_up({ hide = 4, mode = "hover", click = mode })
+    fake.key("mbtn_left_dbl")
+    ok(did("cycle", "fullscreen"),
+       "double click on bare video did not full-screen with the HUD up",
+       "click_pauses=" .. tostring(mode))
+end
+
+hud_up({ hide = 4, mode = "hover", click = false })
+fake.key("mbtn_right")
+ok(did("cycle", "pause"),
+   "mpv modality: right click on bare video pauses with the HUD up")
+
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "click-to-pause on: right click is not a second way to pause")
+
+-- A click on a CONTROL is still a click on a control, in either mode --
+-- the fall-through must not have eaten the HUD's own buttons. The bar's
+-- own background is deliberately NOT a control: pressing the gaps between
+-- buttons drags the window, which is what pressing chrome does everywhere
+-- and mirrors it pausing there under the other setting.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover",
+                                           click = false }))
+fake.observe("mouse-pos", { x = 640, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 640, y = 360, hover = true })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-pp", t = "rect", x = 600, y = 660, w = 40, h = 40,
+          click = true } })
+repaint()
+fake.mouse(620, 680)                    -- squarely on the play button
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not did("begin-vo-dragging"),
+   "a press on a HUD control started a window drag instead of clicking")
+ok(not did("cycle", "pause"),
+   "a press on a HUD control fell through to the bare-video handler")
+
+-- ...and NOT while the library owns the window. `mpvtk_mouse` is enabled
+-- in browse mode too, so an unguarded fall-through would make a
+-- double-click on empty library background toggle full screen -- which is
+-- what the phud test on the fullscreen branch is actually protecting.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+scene({ { id = "tile", t = "rect", x = 10, y = 10, w = 100, h = 100,
+          click = true } })
+repaint()
+fake.mouse(640, 400)                    -- empty page background
+fake.log.commands = {}
+fake.key("mbtn_left_dbl")
+ok(not did("cycle", "fullscreen"),
+   "double-clicking empty library background toggled full screen")
+fake.send("mpvtk-active", "no")
+
 -- ========================================================== teardown
 
 scene({})

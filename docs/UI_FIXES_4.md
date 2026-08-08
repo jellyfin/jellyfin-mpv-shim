@@ -17,7 +17,7 @@ formatter landing as its own commit before the two items that need it.
 | # | Title | State |
 |---|---|---|
 | — | [Groundwork: a shared media-info formatter](#groundwork-a-shared-media-info-formatter) | done `ac2cea8e` |
-| [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | todo |
+| [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | done, needs hand-testing |
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
 | [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
 | [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | done |
@@ -109,19 +109,70 @@ already reaching us there.
   pausing then comes free from mpv.
 - Double-click fullscreen in both modes.
 
-### The thing to hand-test first
+### What measurement settled
 
-Whether `allow-vo-dragging` genuinely lets a *bound* `mbtn_left` coexist with
-the VO's drag, or only lets an unbound one through. If it is the latter, the
-"off" mode cannot have both and the honest answer is that drag arrives with
-the mpv modality only — which changes what the setting means and needs saying
-in its note rather than discovering later. Test on X11 **and** Wayland (the
-Debian VM has both sessions — see the `gnome-test-vm` note); window dragging is
-VO-side and the two do not have to agree.
+Driven against a real mpv under Xvfb with `xdotool`, which answered both open
+questions and removed half the work.
 
-Also worth watching: with the click bound, the first press of a double-click
-already toggled pause. Whether that reads as "fullscreen and pause twice, net
-zero" or as a visible flicker is a look-at-it question, not a reasoning one.
+**A double click delivers `mbtn_left`, `mbtn_left_dbl`, `mbtn_left`.** So with
+our click-to-pause bound, the two pause toggles *cancel* and mpv's own
+`MBTN_LEFT_DBL cycle fullscreen` still fires — observed as
+`pause true -> pause false -> fullscreen true`. **Double-click fullscreen
+therefore already worked and needed no code at all**, in either mode. The
+plan had it down as something to add.
+
+**And the whole `allow-vo-dragging` question was the wrong one.** A forced
+binding on `mbtn_left` is simply what stops the VO dragging with that button,
+so the two are mutually exclusive and the setting is "which of them do you
+want" rather than "can we have both". Confirmed the other way too: with
+nothing bound, left click does nothing, right click pauses, double click
+fullscreens — mpv's modality entire, for free.
+
+(`begin-vo-dragging` *is* a command, and `--input-builtin-dragging=no` "does
+not disable window dragging initialized with the command" — so a hybrid that
+starts a drag on motion-while-pressed and pauses on release-without-motion is
+buildable. It is more than #669 asked for and is not in this batch.)
+
+### The half that hand-testing found
+
+**[iw]**: "this mostly works, but critically the HUD breaks the setting. When
+the HUD is visible, dragging doesn't work, double click for fullscreen doesn't
+work, and it always plays/pauses on single click."
+
+All three, one cause. The setting was honoured in `phud_bind_summon`, which
+governs the HUD while it is *hidden*. Once summoned, `ui_resume` enables the
+`mpvtk_mouse` section, which owns `mbtn_left`, `mbtn_left_dbl` and
+`mbtn_right` — so every one of them reaches the scene handlers instead, and
+those handlers paused on any bare-video click, returned early from
+`on_dbl`, and ignored a right click with no node under it.
+
+Fixed in all three, at the "no node under the pointer" branch each of them
+already had:
+
+* left click → pause, **or** `begin-vo-dragging` in mpv's modality (the same
+  command, and the same press-is-the-only-moment reasoning, as the
+  client-side title bar directly below it);
+* double click → `cycle fullscreen`, in **both** modes, because this is
+  mpv's own default and the only reason it stopped was our section taking
+  the key. Guarded on the HUD being shown — `mpvtk_mouse` is enabled in
+  *browse* mode too, and an unguarded version makes a double-click on empty
+  library background toggle full screen;
+* right click → `cycle pause`, in mpv's modality only.
+
+Pressing the bar's own *background* drags rather than pausing in that mode,
+which is deliberate: it is chrome, it mirrors that press pausing under the
+other setting, and the controls themselves are higher nodes that `node_at`
+already prefers.
+
+Nothing in the lua suite had ever clicked the **picture** with the controls
+up, which is why this reached hand-testing. Six assertions now do.
+
+### Still to hand-test
+
+Dragging itself, which Xvfb cannot answer: it has no window manager, and
+window dragging is the VO asking the WM to take over. **[iw]** will test X11;
+the Debian VM covers Wayland (see the `gnome-test-vm` note). The two do not
+have to agree — this is VO-side.
 
 ---
 
@@ -848,10 +899,8 @@ The `PlayMethod` reporting change is deferred out of the batch entirely (see
 
 ## Open questions
 
-- **#1** — does `allow-vo-dragging` let a *bound* `mbtn_left` coexist with VO
-  dragging, or only an unbound one? Decides whether the default mode can have
-  drag at all. To be answered by measurement at the start of #1, on X11 and on
-  Wayland separately.
+- **#1** — dragging itself, which needs a window manager: **[iw]** on X11, the
+  VM on Wayland. Everything else about it was settled by measurement (above).
 - **#7** — a poster with no backdrop at all: poster on a flat panel, or fall
   through to today's text header? Taking the first unless it looks wrong.
 - **#8** — does the image endpoint leave the EXIF tag on a rotated HEIC?

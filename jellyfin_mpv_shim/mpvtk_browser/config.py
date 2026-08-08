@@ -140,7 +140,7 @@ TAB_SECTIONS = {
         # applies at all.
         (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
-                                "mouse_chapter_nav"]),
+                                "mouse_chapter_nav", "mouse_click_pauses"]),
         (_("Playback"), ["auto_play", "hwdec", "always_transcode",
                          "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
@@ -303,6 +303,7 @@ LABELED_ENUMS = {
 LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "mouse_click_pauses": _("Left Click Pauses Playback"),
     "hwdec": _("Hardware Decoding"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
@@ -380,6 +381,13 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # What turning it OFF buys, since that is the non-obvious half: the
+    # left button is what the VO drags the window with, so pausing with it
+    # and dragging with it are mutually exclusive.
+    "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "
+                            "drag the video to move the window, and right "
+                            "click to pause. Double click is full screen "
+                            "either way."),
     # The reason this is off by default, in the place someone deciding
     # whether to change it is looking. mpv's own manual says to
     # "acknowledge that this may cause problems"; the tail it breaks for
