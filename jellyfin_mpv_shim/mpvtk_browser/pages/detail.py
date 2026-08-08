@@ -122,6 +122,15 @@ class DetailPage(Page):
     def _detail_actions(self, item, server):
         btns = detail_components.common_actions(
             self.ctx.actions, self.ctx.art.tiles, item, server, "act")
+        if item.get("MediaSources"):
+            # Here the DTO really does carry them (DETAIL_FIELDS), so this
+            # asks jellyfin-web's own question rather than the tile menu's
+            # type-shaped stand-in for it. An item whose sources came back
+            # empty has nothing to show, and a button that opens an empty
+            # dialog is worse than no button.
+            btns.append(controls.action_btn(
+                "info", _("Media Info"), "act-minfo",
+                lambda: self.ctx.dialogs.media_info(item, server)))
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             btns.append(controls.action_btn(
                 "movie", _("Go to Series"), "act-series",

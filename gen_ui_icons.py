@@ -78,6 +78,9 @@ ICON_NAMES = [
     "cloud_upload",
     "delete",
     "edit",
+    # the Media Info dialog, on the tile menu and the detail page --
+    # jellyfin-web's own icon for MoreMediaInfo (itemContextMenu.js).
+    "info",
     "movie",
     "radio",
     # by-name screens (genres, networks) -- the same two jellyfin-web uses

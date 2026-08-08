@@ -592,13 +592,16 @@ def _info_dialog(b, size):
     for heading, rows in _info_rows(info, stats):
         body.append(Text(heading, size=17, bold=True, color=theme.ACCENT))
         for label, value in rows:
+            # An explicit value width rather than flex, for the reason
+            # DialogsMixin.MINFO_VALUE_W spells out: a wrap=True Text with
+            # no `w` measures one line tall, so inside a Row it clips and
+            # ellipsizes -- which on a path throws away the filename and on
+            # a transcode reason throws away the end of the sentence.
+            label_w = min(160, w // 3)
             body.append(Row([
-                Text(label, size=15, color=theme.SUBTLE_FG,
-                     w=min(160, w // 3)),
-                # Wrapped: a path and a reason are both longer than the
-                # panel, and ellipsizing a path in the middle throws away
-                # the filename, which is the half anyone reads.
-                Text(value, size=15, wrap=True, flex=1),
+                Text(label, size=15, color=theme.SUBTLE_FG, w=label_w),
+                Text(value, size=15, wrap=True,
+                     w=max(80, w - 48 - label_w - 8)),
             ], gap=8, align="start"))
     if not body:
         body.append(Text(_("Nothing is playing."), size=15,

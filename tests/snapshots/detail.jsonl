@@ -32,6 +32,9 @@
 {"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "act-download", "radius": 6, "sc": "detail", "t": "rect", "w": 115.9, "x": 243.8, "y": 684.2}
 {"c": "e8e8e8", "h": 18.0, "id": "r.1.0.5.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19 9 l 15 9 l 15 3 l 9 3 l 9 9 l 5 9 l 12 16 l 19 9 m 5 18 l 5 20 l 19 20 l 19 18 l 5 18", "sc": "detail", "t": "icon", "w": 18.0, "x": 253.8, "y": 695.2}
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.5.2.1", "sc": "detail", "size": 16, "t": "text", "text": "Download", "w": 70.9, "x": 278.8, "y": 694.2}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "act-minfo", "radius": 6, "sc": "detail", "t": "rect", "w": 122.9, "x": 367.6, "y": 684.2}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.5.3.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 12 2 b 6.48 2 2 6.48 2 12 b 2 17.52 6.48 22 12 22 b 17.52 22 22 17.52 22 12 b 22 6.48 17.52 2 12 2 m 13 17 l 11 17 l 11 11 l 13 11 l 13 17 m 13 9 l 11 9 l 11 7 l 13 7 l 13 9", "sc": "detail", "t": "icon", "w": 18.0, "x": 377.6, "y": 695.2}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.5.3.1", "sc": "detail", "size": 16, "t": "text", "text": "Media Info", "w": 77.9, "x": 402.6, "y": 694.2}
 {"align": "left", "c": "9aa0a6", "h": 20.0, "id": "r.1.0.6.0", "sc": "detail", "size": 16, "t": "text", "text": "Audio", "w": 90.0, "x": 16.0, "y": 749.2}
 {"h": 38.0, "id": "dt-audio", "items": ["English 5.1"], "sc": "detail", "sel": 0, "size": 20, "t": "dropdown", "w": 300.0, "x": 114.0, "y": 740.2}
 {"align": "left", "c": "9aa0a6", "h": 20.0, "id": "r.1.0.7.0", "sc": "detail", "size": 16, "t": "text", "text": "Subtitle", "w": 90.0, "x": 16.0, "y": 803.2}

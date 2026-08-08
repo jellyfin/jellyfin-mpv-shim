@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-08 15:27-0400\n"
+"POT-Creation-Date: 2026-08-08 15:41-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1812,6 +1812,24 @@ msgid "Back"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Unknown"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "No media information is available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Media Info"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "OK"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Could not check what needs downloading."
 msgstr ""
 
@@ -1937,10 +1955,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "OK"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py

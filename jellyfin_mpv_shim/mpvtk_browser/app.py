@@ -406,7 +406,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             view_settings=lambda current, on_set, paginated=None:
                 self.view_settings(current, on_set, paginated),
             open_book_progress=lambda item, server=None:
-                self._open_book_progress(item, server))
+                self._open_book_progress(item, server),
+            media_info=lambda item, server=None:
+                self._open_media_info(item, server))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,

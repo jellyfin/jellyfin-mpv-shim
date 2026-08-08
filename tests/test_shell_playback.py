@@ -1644,3 +1644,22 @@ class TestPlaybackInfoPanel(unittest.TestCase):
         # The heading must go with its rows; a bare "Player" heading over
         # nothing reads as a panel that failed to load.
         self.assertNotIn("Player", self._texts(nodes))
+
+    def test_a_long_path_is_not_truncated_in_the_panel(self):
+        """A wrap=True Text with no explicit `w` measures one line tall, so
+        inside a Row it clips and the last visible line is ellipsized —
+        which on a path throws away the filename. Same bug, same fix, as
+        the Media Info dialog (DialogsMixin.MINFO_VALUE_W)."""
+        path = ("/media/Films/Blade_Runner_2049_2017_UHD_Remux/"
+                "blade_runner_2049.2017.2160p.remux.mkv")
+        b, ctl = self._browser()
+        ctl.playback_info_blob["source"] = dict(
+            ctl.playback_info_blob["source"], Path=path)
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        # Whitespace-stripped: a wrapped Text is several nodes and the
+        # breaker drops the space it broke at (CLAUDE.md, "a space is not
+        # a run"). On screen that is a line break; only a rebuild loses it.
+        flat = "".join(self._texts(nodes)).replace(" ", "")
+        self.assertIn(path, flat)
+        self.assertNotIn("…", flat)

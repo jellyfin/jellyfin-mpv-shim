@@ -7,8 +7,9 @@ and the SyncPlay group dialog.
 State on ``self``: ``_dialog`` — a builder callable or None — is the single
 modal slot, rendered by core's ``build()``. Also ``_addto_build``,
 ``_addto_ids``, ``_addto_explicit_ids`` and ``_addcol_name`` (add-to
-dialog), ``_dl`` (download dialog) and ``_bkprog``/``_bkprog_build`` (the
-book reading-position dialog). All are loop-thread only.
+dialog), ``_dl`` (download dialog), ``_bkprog``/``_bkprog_build`` (the
+book reading-position dialog) and ``_minfo``/``_minfo_src`` (the media
+info dialog). All are loop-thread only.
 """
 
 from ..i18n import _, _p
@@ -26,6 +27,7 @@ from ..mpvtk.widgets import (
     VScroll,
 )
 from . import components, theme
+from .components import media_info
 
 
 class DialogsMixin:
@@ -241,6 +243,123 @@ class DialogsMixin:
     # -------------------------------------------------------- downloads
 
     _human_size = staticmethod(components.human_size)
+
+    #: Height the media-info list scrolls at. A film with eight subtitle
+    #: tracks is a hundred rows; every other dialog here is a choice with a
+    #: handful of options, so this one is the only one that scrolls to a
+    #: fixed height rather than sizing to its content.
+    MEDIA_INFO_H = 420
+
+    def _open_media_info(self, item, server=None):
+        """jellyfin-web's ``itemMediaInfo``: every attribute of every stream.
+
+        **The DTO is refetched rather than trusted.** Web can test
+        ``item.MediaSources`` on a card because its list responses carry
+        them; ours deliberately do not — MediaSources on a grid query is a
+        third of the response body for something no tile draws (see
+        repository.GRID_FIELDS). So the menu offers this on *type*, and the
+        streams are fetched when it is opened. Web fetches too
+        (``loadMediaInfo`` -> ``getItem``); it just had enough to decide
+        beforehand.
+        """
+        server = server or self.route.get("server") or self.server
+        if self.controller is None or server is None:
+            return
+        item_id = item.get("Id")
+        if not item_id:
+            return
+        ep = self._epoch
+        self._minfo_src = 0
+
+        def work():
+            try:
+                return self.source.get_item(server, item_id)
+            except Exception:
+                # Fall back to what the tile already had. It is thin -- no
+                # streams -- but the dialog then says "no media information"
+                # rather than never opening, which from a menu press is
+                # indistinguishable from a broken entry.
+                return item
+
+        self.run_async(work, self._show_media_info, ep)
+
+    def _show_media_info(self, item):
+        item = item or {}
+        sources = item.get("MediaSources") or []
+
+        def build():
+            from .components import chrome
+
+            src = sources[self._minfo_src] if sources else {}
+            rows = []
+            if len(sources) > 1:
+                # A version picker, as web has: an item with several
+                # versions describes a different file per version, and
+                # showing only the first is quietly wrong rather than
+                # incomplete.
+                rows.append(Dropdown(
+                    "minfo-src",
+                    [s.get("Name") or _("Unknown") for s in sources],
+                    selected=self._minfo_src,
+                    on_select=self._pick_media_info_source,
+                    popup_w=self.MESSAGE_W))
+            for label, value in media_info.source_attributes(src):
+                rows.append(self._minfo_row(label, value))
+            for stream in media_info.visible_streams(src):
+                attrs = media_info.stream_attributes(stream, src)
+                if not attrs:
+                    continue
+                rows.append(Text(media_info.stream_heading(stream), size=17,
+                                 bold=True, color=theme.ACCENT))
+                for label, value in attrs:
+                    rows.append(self._minfo_row(label, value))
+            if not rows:
+                rows.append(Text(_("No media information is available."),
+                                 size=15, color=theme.SUBTLE_FG))
+            return Dialog("minfo", self._dialog_shell("minfo", [
+                Text(_("Media Info"), size=22, bold=True),
+                chrome.paragraph(item.get("Name") or "", 16,
+                                 self.MESSAGE_W, color=theme.SUBTLE_FG),
+                VScroll(Column(rows, gap=6, align="stretch"),
+                        id="minfo-scroll", h=self.MEDIA_INFO_H),
+                self._dialog_buttons([
+                    Button(_("OK"), id="minfo-ok",
+                           on_click=self._close_dialog, autofocus=True)]),
+            ]), on_dismiss=self._close_dialog)
+
+        self._minfo_build = build
+        self._show_dialog(build)
+
+    #: The label column, and what a value therefore gets. **An explicit
+    #: width, not flex** -- and that is load-bearing, not tidiness: a
+    #: ``wrap=True`` Text with no ``w`` measures one line tall (layout.py's
+    #: note on `measure`), so inside a Row it makes the Row too short, and
+    #: the text is then clipped and the last visible line ellipsized. A path
+    #: with no spaces to break on -- `/media/Films/Blade_Runner_2049/...` --
+    #: is the shape that shows it, and losing its tail loses the filename,
+    #: which is the half anyone reads.
+    MINFO_LABEL_W = 150
+    MINFO_VALUE_W = 440 - 2 * 24 - 150 - 8
+
+    def _minfo_row(self, label, value):
+        """One labelled attribute, wrapped rather than ellipsized."""
+        return Row([
+            Text(label, size=15, color=theme.SUBTLE_FG,
+                 w=self.MINFO_LABEL_W),
+            Text(value, size=15, wrap=True, w=self.MINFO_VALUE_W),
+        ], gap=8, align="start")
+
+    def _pick_media_info_source(self, index, _value):
+        """Switch versions.
+
+        Reads the index in the *handler* and asks for a repaint. The
+        renderer flips a Dropdown's own selection optimistically, so the
+        control would look right while every row below it still described
+        the old file -- which is the browser's standing footgun in its
+        quietest form.
+        """
+        self._minfo_src = int(index)
+        self.invalidate()
 
     def _open_download(self, item):
         server = self.route.get("server") or self.server

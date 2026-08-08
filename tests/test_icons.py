@@ -13,6 +13,8 @@ the converter's contract.
 """
 
 import sys
+import ast
+import os
 import unittest
 
 sys.argv = [sys.argv[0]]
@@ -21,19 +23,84 @@ from jellyfin_mpv_shim.mpvtk import vector  # noqa: E402
 from jellyfin_mpv_shim.ui_icon_paths import ICON_PATHS  # noqa: E402
 
 
+#: Where the UI names icons. Kept to the package, since a name in a test
+#: or a tool is not something the UI draws.
+_UI_ROOT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "jellyfin_mpv_shim")
+
+
+def _scanned_icon_names():
+    """Every icon name the UI asks for, read out of the source.
+
+    ``icon="x"`` as a keyword anywhere, and ``action_btn("x", ...)`` whose
+    first argument is the icon (components/controls.py). Empty strings are
+    skipped -- an action_btn with no icon is a real and deliberate shape.
+    """
+    names = set()
+    for base, _dirs, files in os.walk(_UI_ROOT):
+        for fn in files:
+            if not fn.endswith(".py"):
+                continue
+            path = os.path.join(base, fn)
+            with open(path, encoding="utf-8") as fh:
+                try:
+                    tree = ast.parse(fh.read(), filename=path)
+                except SyntaxError:
+                    continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                for kw in node.keywords:
+                    if (kw.arg == "icon"
+                            and isinstance(kw.value, ast.Constant)
+                            and isinstance(kw.value.value, str)
+                            and kw.value.value):
+                        names.add(kw.value.value)
+                fn_name = getattr(node.func, "attr",
+                                  getattr(node.func, "id", None))
+                if (fn_name == "action_btn" and node.args
+                        and isinstance(node.args[0], ast.Constant)
+                        and isinstance(node.args[0].value, str)
+                        and node.args[0].value):
+                    names.add(node.args[0].value)
+    return names
+
+
 class TestTheDataSurvives(unittest.TestCase):
     def test_the_icon_set_is_present_and_populated(self):
         self.assertGreater(len(ICON_PATHS), 30,
                            "the generated icon data is missing or truncated")
 
     def test_every_icon_the_ui_names_exists(self):
-        """The UI asks for icons by name; a missing one renders blank."""
-        for name in ("play_arrow", "pause", "home", "search", "settings",
-                     "favorite", "favorite_border", "lock", "person",
-                     "refresh", "folder", "content_copy", "queue_music",
-                     "file_download", "groups", "radio"):
-            self.assertIn(name, ICON_PATHS, name)
+        """The UI asks for icons by name; a missing one renders blank.
 
+        **Scanned from the source, not listed here.** This was a hand-written
+        sample of sixteen names, which is a test that passes for every icon
+        nobody thought to add to it -- and that is exactly how "info"
+        shipped missing: the button drew, the dialog opened, every test
+        was green, and the glyph was an empty path. A blank icon is the
+        quietest possible failure, so the check has to be exhaustive or it
+        is decoration.
+
+        Two spellings are found: the ``icon=`` keyword on any widget, and
+        ``action_btn``'s first positional argument. That is a **lower
+        bound**, not the whole set -- a tile-menu entry names its icon as
+        the middle of a bare 3-tuple, and icons.ALIASES names several
+        indirectly, neither of which is safely distinguishable from any
+        other string by a scan. So this catches the common case and not
+        every case; widening it is still cheaper than the bug it prevents.
+        """
+        named = _scanned_icon_names()
+        self.assertGreater(len(named), 30,
+                           "the scan found almost nothing -- it has probably "
+                           "stopped matching how icons are named")
+        missing = sorted(n for n in named if n not in ICON_PATHS)
+        self.assertEqual(missing, [],
+                         "named by the UI but absent from the generated set, "
+                         "so they render blank: %r. Add them to "
+                         "gen_ui_icons.py's ICON_NAMES and re-run it."
+                         % (missing,))
 
 class TestTheConverter(unittest.TestCase):
     def test_every_icon_converts_to_a_drawing(self):
