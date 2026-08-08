@@ -69,7 +69,13 @@ class PageContext:
     nav: Any
     #: Off-thread work, epoch-guarded. See ``async_runner.AsyncRunner``.
     run: Any
-    #: Render resources: the strip store, the thumbnail store, tile geometry.
+    #: Render resources: the strip store, the thumbnail store, tile geometry,
+    #: and ``node_rect(id)`` — a node's laid-out rect from the **last pushed
+    #: scene**, which is the toolkit's answer (GUIDE §2) for content that has
+    #: to be *rasterized* at the size layout gives it. An image cannot flex,
+    #: so a page drawing one full-bleed measures the hole on one frame and
+    #: fills it on the next. A page that only needs to *place* things should
+    #: flex instead.
     art: Any
     #: The player and everything outside the package. A ``PlayerGateway``.
     player: Any

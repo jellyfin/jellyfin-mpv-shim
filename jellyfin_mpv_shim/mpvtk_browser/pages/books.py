@@ -641,9 +641,22 @@ class BookPage(Page):
             parts.append(genres)
         return "   ·   ".join(p for p in parts if p)
 
+    def _read_here(self, item, server):
+        """Open the built-in reader on this book."""
+        self.ctx.nav.navigate({"kind": "reader", "server": server,
+                               "item_id": item.get("Id"),
+                               "title": item.get("Name", "")})
+
     def _buttons(self, item, server, state):
         actions = self.ctx.actions
         status, path = state or (None, None)
+        # **Only epub reads in this window**, and the button row says so by
+        # what it offers rather than by refusing afterwards. A PDF or a
+        # comic needs a page rasterizer we do not have and will not grow
+        # (see ``epub/paint.py`` on scope); a mobi is a format nothing in
+        # the Jellyfin ecosystem opens at all. For those, Read still means
+        # what it always meant -- hand the file to the desktop.
+        readable = book_format(item) == "epub"
         btns = [controls.action_btn(
             # Two senses of one English word on one screen, which is exactly
             # what _p exists for: this one is the verb ("open this book"),
@@ -651,8 +664,18 @@ class BookPage(Page):
             # on the English, so without contexts no language could tell
             # them apart -- and several need different words.
             "menu_book", _p("open a book", "Read"), "bk-read",
-            lambda: actions.read_book(item, server),
+            (lambda: self._read_here(item, server)) if readable
+            else (lambda: actions.read_book(item, server)),
             primary=True, size=18, autofocus=True)]
+        if readable:
+            # Kept next to it rather than behind a setting: the built-in
+            # reader draws paragraphs, headings, emphasis and pictures and
+            # deliberately nothing else, so a book that needs more than
+            # that needs this button, and needing it is not a state the
+            # user can be expected to predict from a preferences page.
+            btns.append(controls.action_btn(
+                "", _("Open Externally"), "bk-read-ext",
+                lambda: actions.read_book(item, server), size=18))
         if path:
             btns.append(controls.action_btn(
                 "delete", _("Remove Download"), "bk-undownload",

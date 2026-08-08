@@ -220,8 +220,23 @@ the renderer subtracts live offsets and clips. `ring` marks transparent
 hit-rects over bitmaps whose hover ring draws *outside* their bounds.
 
 Other messages: `mpvtk-metrics` (measured glyph widths + font family,
-pushed once at ready), `mpvtk-focus` (below), `mpvtk-debug` (test
-hooks, §7).
+pushed once at ready), `mpvtk-focus` (below), `mpvtk-keys` (below),
+`mpvtk-debug` (test hooks, §7).
+
+`mpvtk-keys {"keys": ["LEFT", …]}` — the app CLAIMS those mpv keys for
+as long as it keeps the claim; each arrives back as a `key` event
+instead of doing what it normally does. For a page whose gesture is
+neither "move focus" nor "scroll" and so cannot be a widget: the epub
+reader, whose content is one bitmap and whose LEFT/RIGHT mean *turn
+the page*. Precedence is the renderer's and matches `key_scroll`'s — a
+focused textbox, an open dropdown or menu, and any modal all take the
+key first, so a page may claim LEFT without breaking the search box
+above it. A claim is dropped by sending an empty list, and the
+renderer drops every claim itself on `mpvtk-active no` (there those
+keys are the player's seek keys, and the player outranks the UI).
+`MpvtkApp.claim_keys()` is the Python side; the browser drives it from
+a page's `claimed_keys` attribute, so leaving the page gives them
+back.
 
 `mpvtk-focus {"id": …}` puts spatial-nav focus on a node — a textbox
 also takes the keyboard, because asking for the search box means asking
@@ -245,6 +260,7 @@ handlers registered during layout:
 | dbl | id | double-click on a node with on_dbl (after its two clicks) |
 | nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
 | forward | — | the mouse's forward button, while the UI owns the pointer (`MpvtkApp.on_forward`) |
+| key | key | a key claimed via `mpvtk-keys`, when nothing on screen outranks the claim (`MpvtkApp.on_key`) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |

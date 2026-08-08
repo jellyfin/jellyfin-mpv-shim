@@ -289,6 +289,11 @@ class MpvtkApp:
         # renderer has no idea what is behind it. Its counterpart, the
         # back button, needs no hook because it presses ESC.
         self.on_forward = None
+        # called with an mpv key name when a key this app CLAIMED (see
+        # claim_keys) is pressed and nothing on screen has a better claim
+        # to it. Runs on the loop thread.
+        self.on_key = None
+        self._claimed_keys = ()
         # called with no arguments immediately after a scene has been PUSHED
         # to the renderer. Runs on the loop thread.
         #
@@ -659,6 +664,13 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_hud_skip handler failed")
             return
+        if t == "key":
+            if self.on_key is not None:
+                try:
+                    self.on_key(evt.get("key") or "")
+                except Exception:
+                    log.exception("on_key handler failed")
+            return
         if t == "forward":
             if self.on_forward is not None:
                 try:
@@ -862,6 +874,32 @@ class MpvtkApp:
         self.backend.command(
             "script-message", "mpvtk-focus",
             json.dumps({"id": node_id} if node_id else {}),
+        )
+
+    def claim_keys(self, keys=()):
+        """Take over a set of mpv keys for as long as this page needs them.
+
+        For a page whose gesture is neither "move focus" nor "scroll" and
+        so cannot be expressed as a widget — the epub reader, whose entire
+        content is one bitmap and whose LEFT/RIGHT mean *turn the page*.
+        Claimed keys arrive as ``on_key(name)``.
+
+        **A claim is scoped by whoever set it and must be dropped.** Call
+        it with no arguments when the page that wanted them goes away; the
+        renderer also drops every claim when the UI yields to playback,
+        because there those keys are the player's seek keys and the player
+        outranks us.
+
+        Precedence is the renderer's, not ours: a focused textbox, an open
+        dropdown or menu, and any modal all take the key first. So a page
+        may claim LEFT without breaking the search box drawn above it.
+        """
+        keys = tuple(keys or ())
+        if keys == self._claimed_keys:
+            return
+        self._claimed_keys = keys
+        self.backend.command(
+            "script-message", "mpvtk-keys", json.dumps({"keys": list(keys)}),
         )
 
     def summon_hud(self):

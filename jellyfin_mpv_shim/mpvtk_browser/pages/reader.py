@@ -1,0 +1,511 @@
+"""Reading an epub in the player's window.
+
+The screen is one bitmap and two bars. The bitmap is the page, rasterized
+by :mod:`jellyfin_mpv_shim.epub` at the exact size it will be drawn (mpv
+never resamples an overlay — mpvtk GUIDE §5) and handed to the scene as a
+single `Image`; the bars are ordinary widgets. Nothing about the book's
+typography is expressed as toolkit nodes, and that is the design, not a
+stage of one — see ``epub/paint.py`` for the four reasons.
+
+**The book cannot be read from the server.** There is no endpoint that
+serves a page, a spine document or an archive entry; ``/Items/{id}/Download``
+is the whole API (``jellyfin_mpv_shim/books.py``). So this page is only
+reachable once the file is on disk, and it says so and fetches it when it
+is not — the same two-step Read has always been, with the reader on the end
+of it instead of the desktop.
+
+**Position is written back on every turn, and it is the number every other
+client uses.** ``epub/locations.py`` reimplements epub.js's locations
+index, so the fraction stored here resumes correctly in jellyfin-web and
+vice versa. This is what changed the old "epub progress is not settable"
+rule: that rule was about a *manual* control, where the objection was that
+no reader shows the user a number to type. A reader that observes its own
+progress has no such problem — it is the reader.
+
+Everything expensive happens on the pool: opening the archive, building the
+locations index, paginating a chapter, rasterizing a page. The loop thread
+only ever reads what those left behind.
+"""
+
+import hashlib
+import logging
+
+from ...books import fraction_of, ticks_for_fraction
+from ...i18n import _
+from ...mpvtk.widgets import (Button, Column, Dropdown, ImageMap, Row,
+                              Spacer, Text)
+from .. import theme
+from ..components import chrome
+from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.reader")
+
+#: Height of the bars above and below the page.
+TOP_BAR_H = 44
+BOTTOM_BAR_H = 48
+
+#: Side padding around the page bitmap, on top of the reader's own margins.
+PAGE_PAD = 8
+
+#: Font sizes the +/- buttons step through, in logical pixels. A list rather
+#: than an increment so every step is one somebody chose to read at.
+FONT_STEPS = (15, 17, 19, 21, 24, 27, 31, 36)
+
+#: Palettes the theme button cycles, in the order it cycles them.
+PALETTE_ORDER = ("light", "sepia", "dark")
+
+
+class ReaderPage(Page):
+    """An open book, one page at a time."""
+
+    kind = "reader"
+
+    #: Keys this page takes over while it is on screen (see
+    #: ``MpvtkApp.claim_keys``). The page turn is the reason the mechanism
+    #: exists: LEFT/RIGHT on a page whose content is a single bitmap mean
+    #: "turn", and spatial navigation has nothing to move between.
+    claimed_keys = ("LEFT", "RIGHT", "PGUP", "PGDWN", "SPACE", "HOME", "END")
+
+    # -- lifecycle ---------------------------------------------------------
+
+    def load(self, epoch):
+        route = self.route
+        source = self.ctx.source
+        srv = route.get("server") or self.ctx.server
+        item_id = route["item_id"]
+
+        def work():
+            item = source.get_item(srv, item_id)
+            state = (None, None)
+            try:
+                state = self.ctx.player.book_download_state(item_id)
+            except Exception:
+                log.debug("book download state unavailable", exc_info=True)
+            return {"item": item, "state": state}
+
+        self.route_async(work, self._opened, epoch)
+
+    def _opened(self, data):
+        self.route["_data"] = data
+        status, path = data.get("state") or (None, None)
+        if path:
+            self._open_book(path)
+        elif status not in ("pending", "downloading"):
+            self._fetch()
+
+    def refresh_download_state(self):
+        """The catalog changed — called by the shell's downloads hook.
+
+        This page is the one screen that is *waiting* on a download rather
+        than merely reporting one, so it opens the book the moment the file
+        appears instead of leaving the reader on "Downloading…" until the
+        user goes back and in again.
+        """
+        data = self.route.get("_data")
+        if not data or self.route.get("_doc") is not None:
+            return
+        item = data.get("item") or {}
+        if not item.get("Id"):
+            return
+        try:
+            data["state"] = self.ctx.player.book_download_state(item["Id"])
+        except Exception:
+            log.debug("book download state unavailable", exc_info=True)
+            return
+        _status, path = data["state"]
+        if path:
+            self._open_book(path)
+
+    def _fetch(self):
+        data = self.route.get("_data") or {}
+        item = data.get("item") or {}
+        server = self.route.get("server") or self.ctx.server
+        self.ctx.actions.download_book(item, server)
+
+    def _open_book(self, path):
+        """Open the archive and build the index, off the loop thread."""
+        route = self.route
+        if route.get("_opening"):
+            return
+        route["_opening"] = True
+
+        def work():
+            from ...epub import EpubDocument
+            from ...mpvtk import pilfont
+
+            item = (route.get("_data") or {}).get("item") or {}
+            # The script of the *title* picks the face for the whole book,
+            # which is as good an answer as one face per book allows and is
+            # what pilfont already does for tile captions.
+            script = pilfont.script_of(item.get("Name") or "")
+            doc = EpubDocument(path, self._reader_style(), script)
+            doc.build_index()
+            # Resume before the first paint, so the book never shows page
+            # one of chapter one and then jumps.
+            doc.goto_fraction(fraction_of(item))
+            return doc
+
+        def done(doc):
+            route["_doc"] = doc
+            route["_opening"] = False
+            self.ctx.invalidate()
+
+        def failed(exc):
+            route["_opening"] = False
+            route["_error"] = str(exc) or _("This book could not be opened.")
+            self.ctx.invalidate()
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
+
+    def _reader_style(self):
+        from ...epub.layout import ReaderStyle
+        from ...mpvtk.scaling import px
+
+        route = self.route
+        size = FONT_STEPS[self._font_step()]
+        # Physical pixels: the bitmap is drawn at real device resolution and
+        # never resampled, so every number the layout engine sees has to be
+        # through px() — the same boundary strips and the cast screen cross.
+        return ReaderStyle(font_px=px(size), margin_x=px(28), margin_y=px(20),
+                           justify=bool(route.get("_justify", True)))
+
+    def _font_step(self):
+        return max(0, min(int(self.route.get("_font", 3)),
+                          len(FONT_STEPS) - 1))
+
+    # -- position ----------------------------------------------------------
+
+    def _save_position(self, doc=None):
+        """Write where we are back to the server.
+
+        Fire and forget: a failed write costs the position on other
+        clients, and blocking a page turn on a round trip would cost the
+        reading.
+        """
+        doc = doc or self.route.get("_doc")
+        if doc is None:
+            return
+        fraction = doc.fraction()
+        if fraction is None:
+            return
+        data = self.route.get("_data") or {}
+        item = data.get("item") or {}
+        server = self.route.get("server") or self.ctx.server
+        if not item.get("Id") or server is None:
+            return
+        if self.route.get("_saved") == round(fraction, 6):
+            return
+        self.route["_saved"] = round(fraction, 6)
+        ticks = ticks_for_fraction(fraction)
+        # Keep the local DTO in step, so going back to the book's page shows
+        # the position we just wrote rather than the one we arrived with.
+        item.setdefault("UserData", {})["PlaybackPositionTicks"] = ticks
+        setter = getattr(self.ctx.player, "set_position", None)
+        if setter is None:
+            return
+
+        def work():
+            setter(server, item["Id"], ticks)
+
+        self.ctx.run.submit(work)
+
+    # -- input -------------------------------------------------------------
+
+    def on_key(self, key):
+        """A claimed key. Loop thread; see ``claimed_keys``."""
+        if key in ("RIGHT", "PGDWN", "SPACE"):
+            self._turn(1)
+        elif key in ("LEFT", "PGUP"):
+            self._turn(-1)
+        elif key == "HOME":
+            self._jump_section(-1)
+        elif key == "END":
+            self._jump_section(1)
+
+    def _turn(self, direction):
+        doc = self.route.get("_doc")
+        if doc is None:
+            return
+        moved = doc.next_page() if direction > 0 else doc.prev_page()
+        if moved:
+            self._save_position(doc)
+        self.ctx.invalidate()
+
+    def _jump_section(self, direction):
+        doc = self.route.get("_doc")
+        if doc is None:
+            return
+        if doc.next_section() if direction > 0 else doc.prev_section():
+            self._save_position(doc)
+        self.ctx.invalidate()
+
+    def _goto_chapter(self, spine_index):
+        doc = self.route.get("_doc")
+        if doc is None:
+            return
+        doc.goto(spine_index, 0)
+        self._save_position(doc)
+        self.ctx.invalidate()
+
+    def _step_font(self, delta):
+        self.route["_font"] = max(0, min(self._font_step() + delta,
+                                         len(FONT_STEPS) - 1))
+        doc = self.route.get("_doc")
+        if doc is not None:
+            # set_style re-paginates, and the document finds the page
+            # holding the offset it was already on — which is why the state
+            # is a character offset and not a page number.
+            doc.set_style(self._reader_style())
+        self.ctx.invalidate()
+
+    def _cycle_palette(self):
+        current = self.route.get("_palette") or PALETTE_ORDER[0]
+        index = (PALETTE_ORDER.index(current) + 1
+                 if current in PALETTE_ORDER else 0) % len(PALETTE_ORDER)
+        self.route["_palette"] = PALETTE_ORDER[index]
+        self.ctx.invalidate()
+
+    def _chapter_picker(self, doc):
+        """The table of contents, as the bar's one wide control.
+
+        A Dropdown rather than a dialog: the toolkit's popup already
+        scrolls, clamps to the screen and walks with the arrow keys, and a
+        book's TOC is exactly the list that control is for. Books with no
+        TOC at all are common enough (a plain-text conversion has none), so
+        the control is left out rather than shown empty.
+        """
+        chapters = doc.chapters()
+        if not chapters:
+            return None
+        labels = [("   " * min(c.level, 3)) + c.title for c in chapters]
+        targets = [c.spine_index for c in chapters]
+        # The entry covering where we are, which is the last one at or
+        # before this spine document — the same rule as the running header.
+        selected = 0
+        for i, target in enumerate(targets):
+            if target <= doc.spine_index:
+                selected = i
+        return Dropdown("rd-toc", labels, selected=selected, size=14,
+                        force=True, popup_w=420, trigger_icon="menu_book",
+                        on_select=lambda i, _v=None:
+                            self._goto_chapter(targets[i]))
+
+    # -- render ------------------------------------------------------------
+
+    def render(self, size):
+        route = self.route
+        width, height = size
+        if route.get("_error"):
+            return chrome.error(route["_error"])
+        data = route.get("_data")
+        if data is None:
+            return chrome.busy()
+        item = data.get("item") or {}
+        doc = route.get("_doc")
+        body = (self._page_node(doc, width, self._area_height(height))
+                if doc is not None
+                else self._waiting(data))
+        # Flexing, not fixed to ``size``: this page is chrome-free but the
+        # now-playing bar still draws below it (someone may be listening to
+        # something while they read), and a Column claiming the whole window
+        # lays that bar out past the bottom of it. The cast screen has the
+        # same problem and solves it by subtracting a height it knows; this
+        # one measures instead, because it also has to *rasterize* to the
+        # answer.
+        return Column([self._top_bar(item, doc), body,
+                       self._bottom_bar(doc, width)],
+                      flex=1, align="stretch")
+
+    #: The id whose laid-out rect tells the next frame how tall the page
+    #: bitmap may be.
+    AREA_ID = "rd-area"
+
+    def _area_height(self, window_height):
+        """How tall to rasterize, from the last frame's measured hole.
+
+        An `Image` cannot flex — the renderer never resamples one — so the
+        size has to be known before the node is built, and the only thing
+        that knows it is the layout that has already run. First frame falls
+        back to the whole window less the bars, which is right whenever
+        nothing else is on screen and one frame stale when something is.
+        """
+        rect = None
+        try:
+            rect = self.ctx.art.node_rect(self.AREA_ID)
+        except Exception:
+            log.debug("node_rect unavailable", exc_info=True)
+        if rect and rect.get("h"):
+            return int(rect["h"])
+        return max(80, window_height - TOP_BAR_H - BOTTOM_BAR_H)
+
+    def _waiting(self, data):
+        status, _path = data.get("state") or (None, None)
+        if status in ("pending", "downloading") or self.route.get("_opening"):
+            message = _("Getting the book…")
+        elif status == "error":
+            message = _("The download failed.")
+        else:
+            message = _("Getting the book…")
+        return Column([Spacer(), Text(message, size=18,
+                                      color=theme.SUBTLE_FG, align="center"),
+                       Spacer()], id=self.AREA_ID, flex=1, align="center")
+
+    def _page_node(self, doc, width, height):
+        """The page bitmap, with the two halves that turn it."""
+        from ...mpvtk.scaling import raster
+
+        page_h = max(80, height)
+        page_w = max(80, width - 2 * PAGE_PAD)
+        entry = self._bitmap(doc, raster(page_w, page_h), (page_w, page_h),
+                             self.route.get("_palette") or PALETTE_ORDER[0])
+        if entry is None:
+            return Column([Spacer(), chrome.busy(), Spacer()],
+                          id=self.AREA_ID, flex=1)
+        # An ImageMap rather than an Image under transparent boxes: regions
+        # are the toolkit's answer for "this bitmap is clickable in places"
+        # and they lay out as hit-rects whose hover ring draws outside the
+        # bitmap, which is the only place a ring on an image can go
+        # (GUIDE §6). A click on the right-hand side turns forward, on the
+        # left back — the gesture every reader has.
+        lw, lh = entry["lw"], entry["lh"]
+        half = lw // 2
+        regions = [
+            {"id": "rd-back-half", "x": 0, "y": 0, "w": half, "h": lh,
+             "on_click": lambda: self._turn(-1)},
+            {"id": "rd-fwd-half", "x": half, "y": 0, "w": lw - half,
+             "h": lh, "on_click": lambda: self._turn(1)},
+        ]
+        return Row([ImageMap(entry["src"], entry["iw"], entry["ih"],
+                             regions=regions, w=lw, h=lh,
+                             v=entry.get("v", 0))],
+                   id=self.AREA_ID, flex=1, justify="center", align="center")
+
+    def _bitmap(self, doc, physical, logical, palette_name):
+        """The current page's bitmap entry, composited on the pool.
+
+        Keyed by everything that changes the pixels: which page, at which
+        layout, in which palette. A key that is already in the strip store
+        costs nothing, which is what makes this safe to ask for every frame.
+        """
+        from ...epub import paint
+
+        route = self.route
+        store = self.ctx.art.strips
+        if store is None:
+            return None
+        # The viewport is the *column*, and it is set here rather than at
+        # open time because only the render pass knows how much room the
+        # bars left. set_viewport re-paginates when it changes and finds the
+        # page holding the current offset.
+        style = doc.style
+        column = (physical[0] - 2 * style.margin_x,
+                  physical[1] - 2 * style.margin_y)
+        if doc.set_viewport(*column):
+            route.pop("_entry", None)
+        key = self._page_key(doc, physical, palette_name)
+        entry = route.get("_entry")
+        if entry is not None and route.get("_entry_key") == key:
+            store.keep(entry)
+            return entry
+        if route.get("_busy_key") == key:
+            # Already being drawn. Keep showing the previous page rather
+            # than blinking a spinner between every turn.
+            previous = route.get("_entry")
+            if previous is not None:
+                store.keep(previous)
+                return previous
+            return None
+        route["_busy_key"] = key
+        colors = paint.palette(palette_name)
+
+        def work():
+            image = doc.render(physical, colors)
+            return store.bitmap(key, image, lsize=logical)
+
+        def done(result):
+            route["_entry"] = result
+            route["_entry_key"] = key
+            route["_busy_key"] = None
+            self.ctx.invalidate()
+
+        def failed(exc):
+            route["_busy_key"] = None
+            log.warning("could not draw the page", exc_info=exc)
+            route["_error"] = _("This book could not be drawn.")
+            self.ctx.invalidate()
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
+        previous = route.get("_entry")
+        if previous is not None:
+            store.keep(previous)
+        return previous
+
+    @staticmethod
+    def _page_key(doc, physical, palette_name):
+        raw = "%r|%dx%d|%s" % (doc.page_key(), physical[0], physical[1],
+                               palette_name)
+        return "epub-" + hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+    def _top_bar(self, item, doc):
+        title = (doc.chapter_title() if doc is not None else "") or \
+            (item.get("Name") or self.route.get("title", ""))
+        fraction = doc.fraction() if doc is not None else None
+        right = []
+        if fraction is not None:
+            right.append(Text("%.0f%%" % (fraction * 100), size=14,
+                              color=theme.SUBTLE_FG))
+        return Row([
+            Button("", id="rd-back", icon="arrow_back", w=34, h=34, pad=0,
+                   justify="center", tip=_("Back"),
+                   on_click=self.ctx.nav.go_back),
+            Text(title, size=15, color=theme.TEXT_FG, flex=1),
+        ] + right, h=TOP_BAR_H, pad=(10, 4), gap=10, align="center",
+            bg=theme.PANEL_BG)
+
+    def _bottom_bar(self, doc, width):
+        pages = ""
+        if doc is not None:
+            pages = _("Page %(page)d of %(total)d") % {
+                "page": doc.page_number + 1, "total": doc.page_count()}
+        narrow = width < 760
+
+        def icon_btn(icon, node_id, cb, tip):
+            return Button("", id=node_id, icon=icon, w=34, h=34, pad=0,
+                          justify="center", tip=tip, on_click=cb)
+
+        def text_btn(label, node_id, cb, tip, size=17):
+            # The type-size and palette controls have no Material glyph in
+            # the generated set, and the conventional labels for them are
+            # letters anyway: every reader on the shelf spells these "A-",
+            # "A+" and the name of the page colour.
+            return Button(label, id=node_id, w=36, h=34, pad=0, size=size,
+                          justify="center", tip=tip, on_click=cb)
+
+        children = [
+            icon_btn("chevron_left", "rd-prev", lambda: self._turn(-1),
+                     _("Previous page")),
+            icon_btn("chevron_right", "rd-next", lambda: self._turn(1),
+                     _("Next page")),
+        ]
+        if not narrow and pages:
+            children.append(Text(pages, size=14, color=theme.SUBTLE_FG))
+        children.append(Spacer())
+        if doc is not None:
+            picker = self._chapter_picker(doc)
+            if picker is not None:
+                children.append(picker)
+        children += [
+            text_btn("A\u2212", "rd-smaller", lambda: self._step_font(-1),
+                     _("Smaller text"), size=15),
+            text_btn("A+", "rd-bigger", lambda: self._step_font(1),
+                     _("Larger text"), size=19),
+            text_btn(self._palette_label(), "rd-theme", self._cycle_palette,
+                     _("Page colour"), size=14),
+        ]
+        return Row(children, h=BOTTOM_BAR_H, pad=(10, 6), gap=6,
+                   align="center", bg=theme.PANEL_BG)
+
+    def _palette_label(self):
+        name = self.route.get("_palette") or PALETTE_ORDER[0]
+        return {"light": _("Light"), "sepia": _("Sepia"),
+                "dark": _("Dark")}.get(name, name)

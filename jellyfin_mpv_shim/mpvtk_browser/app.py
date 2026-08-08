@@ -136,7 +136,10 @@ def now_id_of(state):
 # "cast" is chrome-free for two reasons: it is a full-bleed backdrop
 # (chrome over it would look wrong), and in headless mode the chrome IS
 # the way into the library.
-CHROME_FREE = {"login", "locked", "connecting", "cast"}
+# The reader is here for the same reason the cast screen is: it is a
+# full-bleed page with its own bar, and the library chrome above it would be
+# a second back button and a search box over a book.
+CHROME_FREE = {"login", "locked", "connecting", "cast", "reader"}
 
 # Where the now-playing bar must NOT appear. Deliberately not CHROME_FREE:
 # the cast screen is chrome-free but IS where audio playback lives in
@@ -1429,7 +1432,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             geom=self.geom, geom_wide=self.geom_wide,
             geom_square=self.geom_square,
             geom_banner=self.geom_banner,
-            tiles=self.tiles, scroll=self._scroll, pages=self._pages)
+            tiles=self.tiles, scroll=self._scroll, pages=self._pages,
+            # A node's geometry from the LAST PUSHED scene (mpvtk GUIDE §2),
+            # for content that has to be *rasterized* at the size layout
+            # gives it rather than merely placed there: an Image cannot
+            # flex, so the reader measures its hole on one frame and fills
+            # it on the next. Here for the same reason `tiles` and `scroll`
+            # are — it answers a question about what the renderer drew — and
+            # it is not a field of its own because the contract test caps
+            # those, correctly.
+            node_rect=(lambda node_id: self.app.node_rect(node_id)
+                       if self.app is not None else None))
 
     def _page_context(self):
         """Build the dependency bundle handed to every page.
@@ -1482,6 +1495,36 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: renderer keeps the previous frame when build() throws, so the symptom
     #: was the whole browser silently freezing, with no error anywhere.
     PAGE_OBJ_KEY = "_page_obj"
+
+    def _claim_page_keys(self, route):
+        """Push this route's key claim to the renderer (see
+        ``MpvtkApp.claim_keys``).
+
+        Driven by a ``claimed_keys`` attribute on the Page rather than by
+        the shell knowing which kinds want keys — and read every frame, so
+        a claim cannot outlive the page that made it. Almost every page
+        claims nothing, and ``claim_keys`` is a no-op when the set has not
+        changed.
+        """
+        claim = getattr(self.app, "claim_keys", None)
+        if claim is None:
+            return
+        page = self._page_for(route)
+        try:
+            claim(getattr(page, "claimed_keys", ()) or ())
+        except Exception:
+            log.debug("key claim failed", exc_info=True)
+
+    def _on_claimed_key(self, key):
+        """A key this route claimed. Handed to the page, on the loop thread."""
+        page = self._page_for(self.route)
+        handler = getattr(page, "on_key", None)
+        if handler is None:
+            return
+        try:
+            handler(key)
+        except Exception:
+            log.warning("page key handler failed", exc_info=True)
 
     def _page_for(self, route):
         """The Page serving ``route``, or None if its kind is still a mixin.
@@ -1733,6 +1776,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_clipboard_error = self._on_clipboard_error
         if hasattr(app, "on_forward"):
             app.on_forward = self._on_mouse_forward
+        if hasattr(app, "on_key"):
+            app.on_key = self._on_claimed_key
         if hasattr(app, "on_scene_pushed"):
             # The strip cache's clock. Not build(): see StripStore.
             app.on_scene_pushed = self._on_scene_pushed
@@ -2360,6 +2405,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if route["kind"] in LIVE_KINDS:
             self._poll_live_tv(route)
         content = self._render_route(route, size)
+        # After render, so a page can decide what it claims from what it
+        # drew, and unconditional so that leaving the page drops the claim.
+        self._claim_page_keys(route)
         children = []
         if route["kind"] not in CHROME_FREE:
             children.append(window_chrome.chrome(self, w))

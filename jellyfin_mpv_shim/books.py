@@ -35,9 +35,9 @@ and `pdfPlayer` report a page index and `bookPlayer` reports
 "multiple progress types"; treat it as a wire format to interoperate with,
 never as a design to build on.
 
-**An epub's number is not a percentage anyone can name, which is why it
-cannot be set here.** It is ``location / total`` over epub.js's *locations
-index* — the book's text cut into ~1024-character runs, counted per spine
+**An epub's number is not a percentage anyone can name, which is why the
+user cannot be asked to type it.** It is ``location / total`` over epub.js's
+*locations index* — the book's text cut into ~1024-character runs, counted per spine
 section with a partial tail at each boundary. Two consequences, and both
 are fatal to a "type where you are" control:
 
@@ -49,10 +49,19 @@ are fatal to a "type where you are" control:
   implementation detail of one JavaScript library, so the user has no
   number to type and no way to check the one we would show them.
 
-So progress here is **readable and not writable** for epub: the stored
-fraction is still shown, because it is the same figure every other client
-shows and it does say roughly how far in you are, but there is no honest
-way to offer a control that sets it. See ``progress_settable``.
+So the stored fraction is **readable, shown, and not something the user
+can be asked to type**. That is what ``progress_settable`` answers, and it
+is a question about the *manual* control only.
+
+**The built-in reader is the exception, and it is the exception that
+proves the rule.** ``jellyfin_mpv_shim/epub/`` reimplements epub.js's
+locations index, so when the shim is the thing displaying the book it
+knows exactly which location the visible page starts at and writes that
+back — the same number jellyfin-web would have written, which is the whole
+reason the index was ported rather than approximated. The objection above
+was never "this number cannot be computed"; it was "no reader shows the
+user a number to read off and type here". A reader that observes its own
+progress does not have that problem, because it is the reader.
 
 Kept out of the browser package because the download manager needs the same
 answers and must not import a UI module.
@@ -186,6 +195,33 @@ def progress_of(item):
     return mode, None, None
 
 
+def fraction_of(item):
+    """An epub's stored position as a raw fraction in [0, 1], or ``None``.
+
+    :func:`progress_of` rounds to whole percent, which is the right unit to
+    *show* and the wrong one to resume from: one percent of a novel is a
+    dozen locations, i.e. several pages. The reader wants the number the
+    server actually holds.
+    """
+    if progress_mode(item) != PROGRESS_PERCENT:
+        return None
+    ticks = ((item or {}).get("UserData") or {}).get(
+        "PlaybackPositionTicks") or 0
+    return max(0.0, min(ticks / float(EPUB_FULL_TICKS), 1.0))
+
+
+def ticks_for_fraction(fraction):
+    """Ticks for a raw fraction, in the server's epub encoding.
+
+    The inverse of :func:`fraction_of`, and what the built-in reader
+    reports: jellyfin-web sends ``10000 * (progress * 1000)``, i.e. the
+    fraction times 10^7 with no rounding, so writing whole percent here
+    would put us a few pages off from the client that wrote it last.
+    """
+    value = max(0.0, min(float(fraction), 1.0))
+    return int(round(value * EPUB_FULL_TICKS))
+
+
 def progress_settable(item):
     """Whether the user can meaningfully *state* where they are in this book.
 
@@ -202,7 +238,9 @@ def progress_settable(item):
     rather than shipping a plausible-looking way to record the wrong place.
 
     Not the same question as :func:`progress_mode`. The stored fraction is
-    still *read* for an epub and still shown; only setting it is refused.
+    still *read* for an epub and still shown; only asking the user for one
+    is refused. Nor does it gate the built-in reader, which reports its own
+    position through :func:`ticks_for_fraction` — see the module docstring.
     """
     return progress_mode(item) == PROGRESS_PAGES
 
@@ -220,13 +258,12 @@ def ticks_for_page(page):
 def ticks_for_percent(percent):
     """Ticks for a whole percentage, in the server's epub encoding.
 
-    **Nothing in the UI calls this**, and that is deliberate: the value it
-    produces is a position in epub.js's locations index, which no reader
-    shows the user a number for (see :func:`progress_settable`). It stays
-    because it is the inverse of the read path and documents the encoding
-    in executable form — if the server ever gains a real progress type, or
-    a local epub indexer is ever written, this is the half that already
-    agrees with :func:`progress_of`.
+    Whole percent, for a control that deals in whole percent. There is no
+    such control — see :func:`progress_settable` — so the only caller of
+    this spelling is its own test; the reader reports through
+    :func:`ticks_for_fraction`, which does not round. It stays because it
+    is the inverse of the read path in the same units the read path shows,
+    and losing it would leave that pairing undocumented in executable form.
     """
     pct = max(0.0, min(float(percent), 100.0))
     return int(round(pct * EPUB_FULL_TICKS / 100.0))

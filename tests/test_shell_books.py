@@ -1321,16 +1321,45 @@ class TestBookPage(BookPageHarness):
     def test_reading_an_undownloaded_book_fetches_it(self):
         b = self.open_book()
         _n, handlers = build_scene(b)
-        handlers["bk-read"]["click"]()
+        handlers["bk-read-ext"]["click"]()
         # The enqueue goes through the transport recorder on the fake.
         self.assertTrue(b.controller.enqueued, "Read did not fetch the book")
         self.assertEqual(b.controller.opened, [],
                          "it opened a file it had not downloaded")
 
-    def test_reading_a_downloaded_book_opens_it_straight_away(self):
+    def test_reading_an_epub_opens_the_built_in_reader(self):
+        """Read means *this window* for the one format this app can draw.
+
+        The desktop hand-off is still one button along — a book whose
+        layout needs more than paragraphs, headings and pictures needs it —
+        but it is no longer what Read does, because for an epub the app now
+        has somewhere better to put it.
+        """
         b = self.open_book(state=("complete", "/store/media.epub"))
         _n, handlers = build_scene(b)
         handlers["bk-read"]["click"]()
+        self.assertEqual(b.route["kind"], "reader")
+        self.assertEqual(b.route["item_id"], "bk1")
+        self.assertEqual(b.controller.opened, [],
+                         "Read handed the file to the desktop as well")
+
+    def test_a_format_the_reader_cannot_draw_still_opens_externally(self):
+        """A PDF or a comic needs a page rasterizer this app does not have,
+        so Read keeps its old meaning there and the second button is not
+        offered at all — two buttons doing the same thing is worse than
+        one."""
+        b = self.open_book(item=book(path="/library/A Novel.pdf"),
+                           state=("complete", "/store/media.pdf"))
+        nodes, handlers = build_scene(b)
+        self.assertNotIn("bk-read-ext", ids(nodes))
+        handlers["bk-read"]["click"]()
+        self.assertEqual(b.controller.opened, ["bk1"])
+        self.assertEqual(b.route["kind"], "book")
+
+    def test_reading_a_downloaded_book_opens_it_straight_away(self):
+        b = self.open_book(state=("complete", "/store/media.epub"))
+        _n, handlers = build_scene(b)
+        handlers["bk-read-ext"]["click"]()
         self.assertEqual(b.controller.opened, ["bk1"])
 
     def test_a_download_that_lands_later_opens_the_book(self):
@@ -1339,7 +1368,7 @@ class TestBookPage(BookPageHarness):
         press — a poller would outlive the press."""
         b = self.open_book()
         _n, handlers = build_scene(b)
-        handlers["bk-read"]["click"]()
+        handlers["bk-read-ext"]["click"]()
         self.assertEqual(b.controller.opened, [])
         b.controller.book_downloads["bk1"] = ("complete", "/store/media.epub")
         b._actions.flush_pending_reads()
@@ -1351,7 +1380,7 @@ class TestBookPage(BookPageHarness):
         multi-pass failure this guards."""
         b = self.open_book()
         _n, handlers = build_scene(b)
-        handlers["bk-read"]["click"]()
+        handlers["bk-read-ext"]["click"]()
         b.controller.book_downloads["bk1"] = ("complete", "/store/media.epub")
         for _pass in range(4):
             b._actions.flush_pending_reads()

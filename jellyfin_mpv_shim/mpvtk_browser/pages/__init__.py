@@ -22,6 +22,7 @@ from .music import MusicLibraryPage
 from .music_detail import AlbumPage, ArtistPage, MusicGenrePage
 from .playlist import PlaylistPage
 from .queue_edit import PlaylistEditPage, QueuePage
+from .reader import ReaderPage
 from .home import HomePage
 from .livetv import ChannelPage, LiveTvPage, ProgramPage
 from .search import SearchPage
@@ -46,6 +47,7 @@ PAGES = {
     PlaylistEditPage.kind: PlaylistEditPage,
     PlaylistPage.kind: PlaylistPage,
     QueuePage.kind: QueuePage,
+    ReaderPage.kind: ReaderPage,
     PersonPage.kind: PersonPage,
     HomePage.kind: HomePage,
     LiveTvPage.kind: LiveTvPage,

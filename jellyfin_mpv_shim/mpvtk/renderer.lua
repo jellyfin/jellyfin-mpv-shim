@@ -220,6 +220,8 @@ local state = {
     dd = {},                -- id -> {sel}
     focus = nil,            -- focused textbox id
     dd_open = nil,          -- open dropdown id
+    keys = {},              -- key name -> true: claimed by the app (mpvtk-keys)
+    keys_bound = {},        -- key name -> true for the ones we forced ourselves
     cursor_on = true,
     geo = {},               -- scroll id -> {dx, dy, x1,y1,x2,y2 (clip)}
     bars = {},              -- scroll id -> thumb geometry (for hit test)
@@ -4303,20 +4305,80 @@ local function key_scroll(kind)
     end
 end
 
+-- Keys the APP has claimed (`mpvtk-keys`), for a page whose whole content is
+-- one bitmap and whose gesture is therefore not "move focus" or "scroll" but
+-- something only Python can answer -- the epub reader's page turn.
+--
+-- Deliberately NOT a general key-event firehose. A claimed key is dispatched
+-- here only when nothing on screen has a better claim to it: a focused
+-- textbox owns its arrows, an open dropdown or context menu owns its
+-- navigation, and a modal owns everything. That precedence is the same one
+-- key_scroll and nav_move already apply, and stating it once here is what
+-- keeps a page that claims LEFT from breaking the search box on the same
+-- screen.
+local keyclaim = {}
+
+-- ONE file-scope local for all of this, not three. renderer.lua's main
+-- chunk sits at Lua's 200-local ceiling (tests/test_renderer_lua.py), so a
+-- family of related helpers goes in a table rather than costing a slot
+-- each.
+--
+-- `take` is the precedence rule, and it is deliberately the same one
+-- key_scroll and nav_move already apply: a focused textbox owns its arrows,
+-- an open dropdown or context menu owns its navigation, a modal owns
+-- everything. Stating it once here is what lets a page claim LEFT without
+-- breaking a search box drawn on the same screen.
+function keyclaim.take(key)
+    if not state.keys[key] then return false end
+    if state.focus or state.dd_open or active_menu() or modal_active() then
+        return false
+    end
+    send({ t = 'key', key = key })
+    request_render()
+    return true
+end
+
 local NAV_KEYS = {
-    { 'UP', function() nav_move(0, -1) end },
-    { 'DOWN', function() nav_move(0, 1) end },
-    { 'LEFT', function() nav_move(-1, 0) end },
-    { 'RIGHT', function() nav_move(1, 0) end },
-    { 'ENTER', function() nav_activate() end },
+    { 'UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
+    { 'DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
+    { 'LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
+    { 'RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
+    { 'ENTER', function() if not keyclaim.take('ENTER') then nav_activate() end end },
     { 'TAB', function() nav_tab(1) end },
     { 'shift+TAB', function() nav_tab(-1) end },
     { 'MENU', function() nav_context() end },
-    { 'PGUP', function() key_scroll('PGUP') end },
-    { 'PGDWN', function() key_scroll('PGDWN') end },
-    { 'HOME', function() key_scroll('HOME') end },
-    { 'END', function() key_scroll('END') end },
+    { 'PGUP', function() if not keyclaim.take('PGUP') then key_scroll('PGUP') end end },
+    { 'PGDWN', function() if not keyclaim.take('PGDWN') then key_scroll('PGDWN') end end },
+    { 'HOME', function() if not keyclaim.take('HOME') then key_scroll('HOME') end end },
+    { 'END', function() if not keyclaim.take('END') then key_scroll('END') end end },
 }
+
+-- Every key in NAV_KEYS is already force-bound, so claiming one only changes
+-- what its handler does. A claimed key that is NOT in that list needs a
+-- binding of its own, and needs it removed again when the claim is dropped
+-- (SPACE is mpv's pause; leaving it bound after the reader closes would
+-- swallow it for the whole session).
+keyclaim.nav_names = {}
+for _, k in ipairs(NAV_KEYS) do keyclaim.nav_names[k[1]] = true end
+
+function keyclaim.set(list)
+    local want = {}
+    for _, key in ipairs(list or {}) do want[key] = true end
+    for key in pairs(state.keys_bound) do
+        if not want[key] then
+            mp.remove_key_binding('mpvtk_key_' .. key)
+            state.keys_bound[key] = nil
+        end
+    end
+    for key in pairs(want) do
+        if not keyclaim.nav_names[key] and not state.keys_bound[key] then
+            mp.add_forced_key_binding(key, 'mpvtk_key_' .. key,
+                function() keyclaim.take(key) end, { repeatable = true })
+            state.keys_bound[key] = true
+        end
+    end
+    state.keys = want
+end
 
 local function bind_nav_keys()
     for _, k in ipairs(NAV_KEYS) do
@@ -4787,6 +4849,11 @@ mp.register_script_message('mpvtk-scene', function(json)
     request_render()
 end)
 
+mp.register_script_message('mpvtk-keys', function(json)
+    local t = json and utils.parse_json(json) or nil
+    keyclaim.set(t and t.keys or {})
+end)
+
 mp.register_script_message('mpvtk-focus', function(json)
     local t = json and utils.parse_json(json) or nil
     local id = t and t.id or nil
@@ -4878,6 +4945,12 @@ end
 mp.register_script_message('mpvtk-active', function(on)
     local want = (on == 'yes' or on == 'true' or on == '1')
     phud_clear()
+    if not want then
+        -- Yielding to playback. A claim that outlived the UI would take a
+        -- key away from the player itself, which is the one place these
+        -- keys have a job that matters more than ours.
+        keyclaim.set({})
+    end
     -- Re-assert browse's input BEFORE the early return. phud_clear may
     -- have just left HUD mode, and the return below fires whenever `active`
     -- did not change -- which is the case both at startup (state.active
