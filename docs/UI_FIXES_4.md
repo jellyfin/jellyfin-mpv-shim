@@ -26,7 +26,7 @@ formatter landing as its own commit before the two items that need it.
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
 | [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | todo |
-| [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | todo |
+| [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | done |
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | todo |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
 | [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | **answered — work needed** |
@@ -432,6 +432,67 @@ Three declines, all silent no-ops rather than errors:
 
 The lookup is one blocking HTTP call on a keypress, so it belongs on the action
 thread like the rest of `play_prev`'s work, not on the render loop.
+
+### What it came to
+
+`AdjacentTo` looked like the server-side answer and is not: measured, it
+returns the **entire series**, not the neighbours. So the lookup is the
+episode list, once, and the queue is **prepended** rather than rebuilt —
+the entries ahead already exist, already carry their PlaylistItemIds, and
+may have been edited from the queue screen or by a websocket Play command,
+all of which reconstructing from the server's listing would discard.
+
+`Media.replace_queue` turned out to be exactly the right tool despite being
+written for SyncPlay: it is the only publisher of a whole new queue that
+already has the lock-free ordering discipline this needs. Its docstring now
+says it is not SyncPlay-specific.
+
+Lazy, on the press: nothing is fetched until someone actually uses the
+button, and then once for the rest of the session. Doing it at playback
+start would put a round trip on every episode for a button most people
+never touch.
+
+### What the server does with our queue — checked, because a remote can drive this
+
+**[iw]**: "worth a quick look at the server code to check for footguns related
+to remote control, this issue was raised against our project but is also a
+defect in jf-web which we generally have parity with."
+
+`NowPlayingQueue` is what we publish (`player_reporting.py:345`), and across
+the whole server it has exactly **two** consumers:
+
+* `SessionManager.cs:1116` stores it on the session (and hands it back on the
+  session DTO, which is what a remote's queue view draws);
+* `Group.cs:262` seeds a **SyncPlay** group's playlist from it on
+  `CreateGroup` — `session.NowPlayingQueue.Select(item => item.Id)`.
+
+Two things follow, one reassuring and one worth reporting upstream.
+
+**Widening is safe.** The group takes only the *ids*; the synthetic
+`PlaylistItemId`s we invent never reach the server's queue at all, so there is
+nothing there for them to collide with or to go stale against. And the widen
+is refused outright while SyncPlay is enabled, so a group's queue is never
+rewritten under it.
+
+**#650 propagates into SyncPlay, and jellyfin-web has it identically.**
+`PlayQueueManager.Previous()` is pure index arithmetic on the playlist it was
+handed (`PlayingItemIndex--`, floor at 0) — it cannot look up an episode
+outside the list. So a group created from a Next Up start inherits the
+truncated queue and **no member can step back before that episode**, which is
+the same bug one layer up. jellyfin-web reports the same truncated
+`NowPlayingQueue`, so it seeds groups the same way. Our fix improves this for
+free without touching SyncPlay: once someone presses previous, the widened
+queue rides the next timeline report, and a group created after that gets the
+whole series.
+
+**One thread note.** A remote `PreviousTrack` runs `play_prev` on the
+**websocket callback thread** (`event_handler.py:239`), where the local key
+routes through `put_task` and the action thread. That asymmetry predates this
+and the handler already does blocking player work there — `stop`, `seek`, and
+`play_prev`'s own `get_playback_url` PlaybackInfo POST — so the widen's single
+extra GET is incremental rather than novel. Measured against the QA server:
+120 episodes, 12 ms, 158 KB. Worth tidying one day; not worth widening this
+change to do it.
 
 ### Test
 

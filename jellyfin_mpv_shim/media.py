@@ -1011,8 +1011,17 @@ class Media(object):
         self.has_next = self.seq < len(new_queue) - 1
 
     def replace_queue(self, sp_items, seq):
-        """Update queue for SyncPlay.
-        Returns None if the video is the same or a new Media if not."""
+        """Swap in a different queue, keeping this Media if it can.
+
+        Returns None when the entry at ``seq`` is the item already playing
+        (updated in place), or a new Media when it is not.
+
+        Written for SyncPlay, which is still its main caller, but not
+        specific to it: PlayerManager._widen_queue_backwards uses it to
+        prepend the episodes before a Next Up start (#650). What makes it
+        the right tool for both is the ordering discipline below -- any
+        publisher of a whole new queue needs it.
+        """
         if self.queue[self.seq]["Id"] == sp_items[seq]["Id"]:
             # has_next/has_prev are derived state and every other publisher
             # re-derives them (insert_items above, _publish_queue in the

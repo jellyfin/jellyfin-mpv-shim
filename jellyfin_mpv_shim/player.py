@@ -2597,9 +2597,74 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return True
         return False
 
+    def _widen_queue_backwards(self, video):
+        """Put the episodes *before* this one into the queue. True if it grew.
+
+        Starting an episode from Next Up or Continue Watching builds the
+        queue with ``StartItemId``, which is inclusive -- so the queue is
+        this episode onward and there is nothing behind it to step to
+        (#650). jellyfin-web has the same gap; the issue asks for "load
+        more/full list, so going back is possible", and this is that, done
+        lazily: nothing is fetched until someone actually presses previous,
+        and then once for the rest of the session.
+
+        **Prepends rather than rebuilding.** The entries after the current
+        one already exist, already carry their PlaylistItemIds, and may
+        have been edited (``insert_items`` from the queue screen, a
+        websocket Play command) -- reconstructing them from the server's
+        episode list would silently discard all of that. So the server's
+        answer is used only for the part we do not have.
+
+        Runs under the player lock, like every other blocking server call
+        on this path (``get_playback_url`` is one), and returns False on
+        anything unexpected: this is a convenience on a keypress, and the
+        worst honest outcome is the previous button doing nothing, which is
+        what it did before.
+        """
+        from .utils import get_seq
+
+        if self.syncplay.is_enabled():
+            # The group owns the queue. Inventing entries it has never
+            # heard of is not ours to do -- request_prev is the whole
+            # protocol for this, and play_prev already routes there.
+            return False
+        client = getattr(video, "client", None)
+        if client is None:
+            return False        # offline: nothing to ask
+        item = getattr(video, "item", None) or {}
+        if item.get("Type") != "Episode" or not item.get("SeriesId"):
+            return False
+        try:
+            result = client.jellyfin.get_episodes(item["SeriesId"]) or {}
+        except Exception:
+            log.debug("could not read the series for a backwards step",
+                      exc_info=True)
+            return False
+        ids = [e.get("Id") for e in (result.get("Items") or []) if e.get("Id")]
+        try:
+            index = ids.index(video.item_id)
+        except ValueError:
+            # The playing episode is not in its own series listing. A
+            # mixed-in special, or a library that changed underneath us.
+            return False
+        if index <= 0:
+            return False        # already the first episode
+        media = video.parent
+        prefix = [{"PlaylistItemId": "playlistItem{0}".format(get_seq()),
+                   "Id": eid} for eid in ids[:index]]
+        media.replace_queue(prefix + list(media.queue), len(prefix) + media.seq)
+        log.info("Queue widened backwards by %d episode(s).", len(prefix))
+        return True
+
     @synchronous("_lock")
     def play_prev(self):
         video = self._video
+        if video is not None and not video.parent.has_prev:
+            # Nothing behind us *in the queue* is not the same as nothing
+            # behind us in the series. Only on an explicit press: this is a
+            # server round trip, and doing it up front would put one on
+            # every episode start for a button most people never touch.
+            self._widen_queue_backwards(video)
         if video and video.parent.has_prev:
             new_video = video.parent.get_prev().video
             self.send_timeline_stopped(True)
