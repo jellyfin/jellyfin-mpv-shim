@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-01-11 07:07+0000\n"
-"Last-Translator: CaRotNamAnh_2k11 <namanhcarot@gmail.com>\n"
+"PO-Revision-Date: 2026-08-08 17:42+0000\n"
+"Last-Translator: hoanghuy309 <hoanghuy309@gmail.com>\n"
 "Language-Team: Vietnamese <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/vi/>\n"
 "Language: vi\n"
@@ -1544,10 +1544,8 @@ msgid "Thumbnail"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Thoát và đánh dấu là chưa xem"
+msgstr "Ảnh ngang"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2486,9 +2484,8 @@ msgstr "Ngày Phát Hành"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Community Rating"
-msgstr "Đánh Giá Cộng Đồng"
+msgstr "Điểm Cộng Đồng"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2514,15 +2511,13 @@ msgstr ""
 
 # seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Parental Rating"
-msgstr "Xếp hạng Phụ Huynh"
+msgstr "Phân Loại Độ Tuổi"
 
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Random"
-msgstr "Ngẫu Nhiên"
+msgstr "Ngẫu nhiên"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
