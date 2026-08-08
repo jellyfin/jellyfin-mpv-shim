@@ -58,6 +58,14 @@ SIZE = (1280, 720)
 #: list this walk is here to render).
 BOOKS_LIBRARY = "Books"
 
+#: The epub the reader is walked on. Named rather than taken as "the first
+#: book", because a `Book` is also what a `.cbz` comes back as — picking one
+#: by shape would open the comic reader from the test named for the epub one
+#: about a third of the time and pass either way. Any epub does for a *walk*
+#: (nothing here asserts on the text), so an unnamed one is accepted as a
+#: fallback and only a library with no epub at all skips.
+EPUB_BOOK = "The Standard Reference"
+
 #: Window chrome, excluded from the interaction sweep — see `_interact`.
 CHROME_PREFIXES = ("nav-", "chrome-", "topbar-", "bar-")
 
@@ -401,6 +409,124 @@ class RouteWalkTest(unittest.TestCase):
         self._walk("audiobook", dict(self._base(audiobook), kind="audiobook"))
         self._interact("audiobook")
 
+    # -- the readers -------------------------------------------------------
+
+    def _epub(self):
+        books = self.session.find_all(library=BOOKS_LIBRARY, item_type="Book",
+                                      fields="Path")
+        epubs = [b for b in books
+                 if (b.get("Path") or "").lower().endswith(".epub")]
+        if not epubs:
+            self.skipTest("no epub in %r — this library predates stdjflib's "
+                          "book fixtures" % BOOKS_LIBRARY)
+        named = [b for b in epubs if b.get("Name") == EPUB_BOOK]
+        return (named or epubs)[0]
+
+    def _download_into_a_temp_store(self, item):
+        """Fetch `item` for real, into a store the **singleton** points at.
+
+        The singleton and not a manager of our own, because that is what the
+        reader reads: `book_download_state` reaches `sync.manager.syncManager`
+        directly (gateway/downloads.py), so a `SyncManager()` built here the
+        way `test_books` builds one would be invisible to the page and the
+        walk would render "Getting the book…" instead.
+
+        Downloaded for real rather than stubbed. A stand-in returning a path
+        would leave nothing under test: the question this walk asks is whether
+        the reader can find the catalog's file and open it, and both halves —
+        the row the gateway looks up and the bytes the epub layer parses —
+        are exactly what a stub would supply for free. `/Items/{id}/Download`
+        is also the only endpoint that yields a book at all, so there is no
+        cheaper real version of it.
+        """
+        import shutil
+        import tempfile
+        from unittest import mock
+
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.sync.manager import syncManager
+
+        root = tempfile.mkdtemp(prefix="jms-e2e-reader-")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        db = SyncDB(os.path.join(root, "catalog.db"))
+        self.addCleanup(db.close)
+
+        # `mock.patch.object` rather than save-and-assign: `get_client` is a
+        # bound method and `db`/`root` start as None, so restoring by hand
+        # leaves instance attributes shadowing the class's — which the next
+        # test in the process then inherits.
+        for attr, value in (("db", db), ("root", root),
+                            ("get_client", lambda uuid: self.session.client)):
+            patcher = mock.patch.object(syncManager, attr, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+        self.assertEqual(
+            syncManager.enqueue(_e2e.SOURCE_UUID, item["Id"], "Book",
+                                include_watched=True), 1,
+            "the book was not enqueued, so there is nothing to open")
+        syncManager._download(db.get(item["Id"]))
+        row = db.get(item["Id"])
+        self.assertEqual(row["status"], "complete",
+                         "the book did not download, so the reader would be "
+                         "walked against a missing file")
+        return os.path.join(root, row["file_path"])
+
+    def test_reader_screen(self):
+        """The epub reader, on a real book fetched from the real endpoint.
+
+        **Why this needs a controller when no other screen here does.** The
+        reader's loader asks `ctx.player.book_download_state` where the file
+        is, and the walk's browser is built with none — so the page would
+        take the "not downloaded" branch and ask for a *download* instead of
+        opening anything. The real `PlayerGateway` is used rather than a
+        stand-in, and it is safe in the contract tier for a specific reason:
+        it holds no state, imports lazily, and the three methods this page
+        reaches (`book_download_state`, `record_reading_position`,
+        `copy_text`) do not go through `_act`. It is set for this test only
+        — every other screen's gateway calls DO go through `_act`, which
+        imports `player.py` and opens an mpv window, and that is what keeps
+        this tier displayless.
+
+        **Three assertions, for the reason the module docstring gives.** A
+        reader whose document never opened still builds a perfectly good
+        screen — the "Getting the book…" placeholder — so a walk that only
+        checked the build would pass against a book it never parsed. That is
+        the same failure `_walk`'s `_loading` check exists for, one layer
+        further in: `_doc` is the reader's equivalent, and `_error` is where
+        a failed parse lands rather than raising.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
+
+        book = self._epub()
+        self._download_into_a_temp_store(book)
+        # Rebuilt per call from `self.controller` (see `_page_context`), so
+        # assigning it here reaches the page without rebuilding the browser.
+        self.browser.controller = PlayerGateway()
+
+        self._walk("reader", dict(self._base(book), kind="reader"))
+
+        route = self.browser.route
+        self.assertIsNone(
+            route.get("_error"),
+            "the reader failed to open the book: %s" % route.get("_error"))
+        self.assertFalse(
+            route.get("_opening"),
+            "the reader is still opening the book, so its scene is the "
+            "'Getting the book…' placeholder rather than a page")
+        doc = route.get("_doc")
+        self.assertIsNotNone(
+            doc, "the reader built a scene with no open document — that is "
+                 "the placeholder, which builds perfectly and proves nothing")
+        # Laid out, not merely opened. `build()` has run by now (via
+        # `_walk`), so the viewport is set and this is the real pagination
+        # against the real book rather than an empty document that parsed.
+        self.assertTrue(
+            doc.current_page().items,
+            "the reader opened the book and paginated it to a page with "
+            "nothing on it")
+        self._interact("reader")
+
     def test_person(self):
         movie = self._item("Movies", "Movie", fields="People")
         people = (self.source.get_item(_e2e.SOURCE_UUID, movie["Id"])
@@ -471,12 +597,34 @@ class RouteWalkTest(unittest.TestCase):
             "home", "grid", "music", "series", "season", "detail", "album",
             "artist", "music_genre", "person", "search", "favorites",
             "genres", "playlist", "playlist_edit", "queue", "livetv",
-            "channel", "program", "books", "book", "audiobook",
+            "channel", "program", "books", "book", "audiobook", "reader",
         }
         # Reached by a Studio or Genre tile rather than by a library, and
         # covered by `list` below; kept out of the walk because building one
         # needs an ItemsByName id that this library may not have.
-        excused = {"byname", "list"}
+        #
+        # `comic` is excused for a different reason, and only because it is
+        # walked somewhere else: a comic page is *played* rather than drawn,
+        # so opening one calls `show_picture` -> `_act` -> `import player`,
+        # which selects an mpv backend and opens a window. That is precisely
+        # what this tier is defined by not doing (see the module docstring),
+        # and it is why the epub reader can be walked here and the comic
+        # reader cannot. Its walk is `tests/e2e/test_comic_reader.py`, in E2,
+        # where there is a real player to show the page — and that file's
+        # existence is asserted below rather than trusted, because an excuse
+        # justified by coverage elsewhere becomes a lie the moment the
+        # elsewhere is renamed or deleted, and a comment cannot notice that.
+        excused = {"byname", "list", "comic"}
+        covered_elsewhere = {
+            "comic": os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "test_comic_reader.py"),
+        }
+        for kind, path in covered_elsewhere.items():
+            self.assertTrue(
+                os.path.exists(path),
+                "%r is excused from this walk only because %s walks it with "
+                "a real player, and that file is gone — either restore it or "
+                "stop excusing the route" % (kind, os.path.basename(path)))
         unwalked = sorted(set(self.PAGES) - walked - excused)
         self.assertEqual(
             unwalked, [],

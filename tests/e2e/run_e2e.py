@@ -98,6 +98,12 @@ PER_BACKEND = [
     # loop the contract tier cannot see, because it drives the server
     # directly rather than through the player.
     "tests.e2e.test_audiobooks.AudiobookPlaybackTest",
+    # The comic reader, which is the one browser screen the contract-tier
+    # route walk cannot open: a comic page is PLAYED, so showing one imports
+    # player.py and opens a window. Per backend because what it asserts on
+    # is mpv's own properties (`path`, `keepaspect`), and the two backends
+    # disagree about property types often enough to be worth both legs.
+    "tests.e2e.test_comic_reader",
 ]
 
 MODULES = CONTRACT + PER_BACKEND

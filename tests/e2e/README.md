@@ -47,7 +47,7 @@ E1 and E2 exist so far:
 | `test_auto_download` | E1 | the two endpoints the lookahead window is built from — NextUp names the first episode of an *unstarted* series (or the window silently never extends), advances with what was watched, is empty for a finished one; `StartItemId` is inclusive and carries `MediaSources` |
 | `test_strm_source` | E1 | `.strm` shortcuts: where the source is, where the runtime is, what a refused one resolves to |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
-| `test_route_walk` | E1 | every screen loads and renders against the real library |
+| `test_route_walk` | E1 | every screen loads and renders against the real library — including the **epub reader**, on a book downloaded for real |
 | `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
 | `test_large_queue` | E1 | a queue too big for one request line (the 414) |
@@ -66,6 +66,7 @@ E1 and E2 exist so far:
 | `test_track_selection` | E2 | Jellyfin's stream index vs mpv's track id, in both numbering schemes, and reported back |
 | `test_photos` | E2 | one still is held, an album is a slideshow, and neither inherits the browser's endless display duration |
 | `test_window_resize` | E2 | the window changes size under the UI, down to a size nobody could use |
+| `test_comic_reader` | E2 | the one browser screen the walk cannot open: a comic page is *played*, so the page reaching mpv, `keepaspect`, and `_video` staying None all need a real player |
 
 **E1 runs once, without a display**, because nothing in it imports
 `player.py`; the runner keeps it in its own tier and the whole of it is under
@@ -109,6 +110,20 @@ not mean right-click is covered everywhere; see `_interact`.
 `jellyfin_mpv_shim` sees neither.
 
 ## Things that are easy to get wrong
+
+**The two readers sit in different tiers, and it is not arbitrary.** An epub
+page is *drawn* — Pillow makes a bitmap, the browser pushes it like a tile
+strip — so `test_route_walk` opens one with no player in the process. A comic
+page is *played*: `show_picture` goes through the gateway's `_act`, which
+imports `player.py`, which selects a backend and opens a window. So `comic` is
+excused from the contract-tier walk and covered by `test_comic_reader` in E2.
+The excuse asserts that file exists rather than trusting a comment, because an
+excuse justified by coverage elsewhere becomes a lie the moment the elsewhere
+is renamed. **A route walk for a reader needs an assertion past the build**:
+both readers draw a perfectly good "Getting the book…" placeholder when they
+have no file, so the walk checks `_doc` / `_comic` — a negative control that
+stopped `book_download_state` finding the download passed every build check
+and failed only on that one.
 
 **Never bake an item id into a test.** Ids are assigned on scan and change on
 every reprovision. `Session.find` / `.episodes` look up by name.
