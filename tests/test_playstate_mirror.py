@@ -202,3 +202,163 @@ class PullFromTheServerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheReportingPathsActuallyCallItTest(unittest.TestCase):
+    """The half the first attempt missed entirely.
+
+    `record_offline_progress` was made to write the catalog whether or not
+    there is a server — and then never called when there was one, because
+    all three of its call sites were gated on being offline. Hand-testing
+    found it: watch a downloaded episode 30% in while online, go offline,
+    and it resumes from 3 seconds.
+
+    So these tests are at the **caller**, not the method. Testing the
+    method alone is exactly what passed while the feature did nothing.
+    """
+
+    def _reporter(self, online=True):
+        from jellyfin_mpv_shim.player_reporting import ReportingMixin
+
+        import threading
+
+        pm = ReportingMixin.__new__(ReportingMixin)
+        # The mixin borrows these from PlayerManager (see its TYPE_CHECKING
+        # block); the decorated methods take the lock on the way in.
+        pm._tl_lock = threading.RLock()
+        pm._lock = threading.RLock()
+        pm.should_send_timeline = True
+        pm._last_offline_record = 0.0
+        # Terminating the transcode is submitted to a worker; the stop
+        # paths call it and this test is not about it.
+        pm._reporter = mock.Mock()
+        pm.syncplay = mock.Mock()
+        pm.syncplay.is_enabled.return_value = False
+        video = mock.Mock()
+        video.client = mock.Mock() if online else None
+        video.is_photo = False
+        video.playback_info = {"PlaySessionId": "s"}
+        video.item_id = "ep1"
+        video.is_transcode = False
+        video.record_offline_progress = mock.Mock()
+        pm._video = video
+        pm.last_seek = 900.0
+        pm.start_time = 0.0
+        return pm, video
+
+    def test_backing_out_records_locally_while_online(self):
+        """The reported case: played, backed out, went offline."""
+        pm, video = self._reporter(online=True)
+        pm.get_timeline_options = mock.Mock(
+            return_value={"PositionTicks": 9_000_000_000})
+        pm.send_timeline_stopped(finished=False, client=None)
+        video.record_offline_progress.assert_called_once()
+        self.assertEqual(
+            video.record_offline_progress.call_args.args[0], 9_000_000_000)
+
+    def test_closing_the_window_records_locally_while_online(self):
+        """Two paths can both record here, and that is fine.
+
+        `_report_stopped_offline` records against the video it was *handed*
+        — it runs on a daemon thread during teardown, when `self._video`
+        may already be None — and then delegates to `send_timeline_stopped`,
+        which records against `self._video` when there still is one. Both
+        writes go through `db.update_userdata`, which is advance-only and
+        idempotent for the same position, so the duplicate costs a query
+        and nothing else. What matters is that at least one of them fires
+        while online, which is what did not happen before.
+        """
+        pm, video = self._reporter(online=True)
+        video.client.jellyfin.session_stop = mock.Mock()
+        # `self._video` is already None, which is the state this path
+        # actually runs in — it is handed the video precisely because the
+        # player has let go of it. That also makes it the only recorder,
+        # so this test sees its gating rather than the delegate's.
+        pm._video = None
+        pm._report_stopped_offline(video)
+        self.assertTrue(
+            video.record_offline_progress.called,
+            "nothing recorded the position while the window closed")
+        self.assertEqual(
+            video.record_offline_progress.call_args.args[0], 9_000_000_000)
+
+    def test_a_photo_still_reports_nothing(self):
+        """The guard that predates this must survive it: a photo never went
+        through PlaybackInfo, and reporting one puts every picture looked
+        at into Continue Watching."""
+        pm, video = self._reporter(online=True)
+        video.is_photo = True
+        pm._report_stopped_offline(video)
+        video.record_offline_progress.assert_not_called()
+
+    def test_an_online_video_without_the_method_is_left_alone(self):
+        """A plain `media.Video` has no record_offline_progress; the
+        hasattr check is what tells the two apart."""
+        import threading
+
+        from jellyfin_mpv_shim.player_reporting import ReportingMixin
+
+        pm = ReportingMixin.__new__(ReportingMixin)
+        pm._tl_lock = threading.RLock()
+        pm._lock = threading.RLock()
+        pm._reporter = mock.Mock()
+        pm.syncplay = mock.Mock()
+        pm.syncplay.is_enabled.return_value = False
+        video = mock.Mock(spec=["client", "is_photo", "playback_info",
+                                "item_id", "is_transcode"])
+        video.client = mock.Mock()
+        video.is_photo = False
+        video.playback_info = {"PlaySessionId": "s"}
+        pm._video = video
+        pm.get_timeline_options = mock.Mock(
+            return_value={"PositionTicks": 1})
+        # Must not raise looking for a method that is not there.
+        pm.send_timeline_stopped(finished=False, client=None)
+
+
+class HomeAsksForAFreshPullTest(unittest.TestCase):
+    """The home screen brings the pull forward.
+
+    A five-minute background tick is right for a poll and wrong for the
+    moment somebody opens the screen that draws watched state -- and, as
+    [iw] found, for the moment they open it and then go offline: the stale
+    answer is then what they have for as long as they are offline.
+    """
+
+    def _manager(self, last=0.0, now=1000.0):
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+
+        m = SyncManager.__new__(SyncManager)
+        m._last_userdata = last
+        m._wake = mock.Mock()
+        return m
+
+    def test_a_request_makes_the_pull_due_and_wakes_the_worker(self):
+        import time as _time
+        m = self._manager(last=0.0)
+        with mock.patch.object(_time, "monotonic", return_value=1000.0):
+            m.request_userdata_refresh()
+        self.assertEqual(m._last_userdata, 0.0)
+        m._wake.set.assert_called_once()
+
+    def test_bouncing_in_and_out_of_home_does_not_hammer_it(self):
+        """Without a floor this is a round trip per visit."""
+        import time as _time
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        m = self._manager()
+        with mock.patch.object(_time, "monotonic", return_value=1000.0):
+            m._last_userdata = 1000.0 - (mgr.USERDATA_REQUEST_FLOOR / 2)
+            m.request_userdata_refresh()
+        self.assertNotEqual(m._last_userdata, 0.0)
+        m._wake.set.assert_not_called()
+
+    def test_it_does_not_block_whoever_asked(self):
+        """Marks it due and returns -- the requests happen on the sync
+        thread, not on the one that was loading a page."""
+        import time as _time
+        m = self._manager()
+        m._refresh_userdata = mock.Mock()
+        with mock.patch.object(_time, "monotonic", return_value=1000.0):
+            m.request_userdata_refresh()
+        m._refresh_userdata.assert_not_called()

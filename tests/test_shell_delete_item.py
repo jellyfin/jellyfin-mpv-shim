@@ -15,6 +15,7 @@ Three properties, and each has already been a bug somewhere in this app:
 """
 
 import unittest
+from unittest import mock
 
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
@@ -210,6 +211,15 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         nodes, _h = build_scene(self._browser(), (1280, 720))
         self.assertIn("act-delete", ids(nodes))
 
+    def test_it_is_absent_offline(self):
+        """Same gate as the tile menu. `CanDelete` comes off a DTO the
+        *catalog* stored, so offline it can still say True — and pressing
+        it reaches for a server that is not there."""
+        b = self._browser()
+        b._offline = True
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertNotIn("act-delete", ids(nodes))
+
     def test_and_absent_when_it_does_not(self):
         nodes, _h = build_scene(self._browser(can_delete=False), (1280, 720))
         self.assertNotIn("act-delete", ids(nodes))
@@ -220,6 +230,28 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         handlers["act-delete"]["click"]()
         nodes, _h = build_scene(b, (1280, 720))
         self.assertIn("confirm", ids(nodes))
+
+    def test_the_list_underneath_re_reads_itself(self):
+        """The bug hand-testing found: leaving the page is the easy half.
+
+        `_land_back` refreshes Home and two special cases; a grid otherwise
+        keeps the items it was loaded with, so the deleted tile was still
+        sitting there — and pressing it 404s. The earlier version of this
+        test asserted only that we left the page, which is exactly why it
+        passed against the bug.
+        """
+        b = self._browser()
+        _nodes, handlers = build_scene(b, (1280, 720))
+        # Pretend the grid underneath has already loaded its items.
+        b.nav_stack[0]["_items"] = [{"Id": "m1", "Name": "The Film"}]
+        handlers["act-delete"]["click"]()
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["dlg-ok"]["click"]()
+        self.assertEqual([r["kind"] for r in b.nav_stack], ["grid"])
+        self.assertNotIn(
+            "_items", b.route,
+            "the grid kept its cached items, so the deleted tile is still "
+            "on screen")
 
     def test_confirming_deletes_and_leaves_the_page(self):
         b = self._browser()
@@ -233,3 +265,40 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         # Back to the grid it was opened from — not still showing a page
         # whose item no longer exists.
         self.assertEqual([r["kind"] for r in b.nav_stack], ["grid"])
+
+
+class DeletingAContainerTakesItsDownloadsTest(unittest.TestCase):
+    """A Series is not a downloaded row — its episodes are.
+
+    `delete_download(item_id=<series id>)` matches nothing, so deleting a
+    series from the server left every episode of it on disk, pointing at an
+    item that no longer exists. The dispatch is shared with
+    `remove_download` so a container cannot be handled correctly in one
+    place and by id in the other.
+    """
+
+    def _delete(self, item):
+        from jellyfin_mpv_shim.mpvtk_browser.item_actions import ItemActions
+        ctl = mock.Mock()
+        ItemActions._drop_downloads(ctl, item)
+        return ctl.delete_download.call_args.kwargs
+
+    def test_a_series_is_deleted_by_series_id(self):
+        self.assertEqual(
+            self._delete({"Id": "s1", "Type": "Series"}),
+            {"series_id": "s1"})
+
+    def test_a_season_names_both(self):
+        self.assertEqual(
+            self._delete({"Id": "se1", "Type": "Season", "SeriesId": "s1"}),
+            {"series_id": "s1", "season_id": "se1"})
+
+    def test_a_playlist_is_deleted_by_playlist_id(self):
+        self.assertEqual(
+            self._delete({"Id": "p1", "Type": "Playlist"}),
+            {"playlist_id": "p1"})
+
+    def test_an_episode_is_deleted_by_item_id(self):
+        self.assertEqual(
+            self._delete({"Id": "e1", "Type": "Episode"}),
+            {"item_id": "e1"})

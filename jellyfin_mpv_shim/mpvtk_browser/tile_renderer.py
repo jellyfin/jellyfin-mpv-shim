@@ -794,7 +794,11 @@ class TileRenderer:
         if not spec or spec == backdrop_spec:
             return None, ""
         item_id, itype, itag = spec
-        pw, ph = raster(slot[2], slot[3])
+        # `box` arrives PHYSICAL from backdrop_node (it rastered it), and
+        # poster_box works in the same units -- so rastering again asked the
+        # server for a poster at scale-squared on any HiDPI display, and
+        # cached it under a key the drawn size never matches.
+        pw, ph = int(slot[2]), int(slot[3])
         key = make_key(item_id, itype, itag, pw, ph, fit="fit")
         url = self.art.source.image_url(self.art.server, item_id, itype,
                                         itag, pw, ph, fill=False)
@@ -874,8 +878,16 @@ class TileRenderer:
             # key, and the cache serves the poster-less one for ever.
             key += "|" + (poster_key if poster is not None else "nopo")
             if img is not None:
-                b = self.art.strips.bitmap(key, components.compose_banner(
-                    img, pbox, title, meta, context, poster=poster),
+                # Deferred, like the placeholder below: `bitmap` calls this
+                # only on a MISS. Composing eagerly meant every repaint of a
+                # detail page re-cropped the backdrop, re-drew the heading
+                # and — since the inset poster arrived — re-blurred a
+                # full-canvas drop shadow, to hand the answer to a cache
+                # that already had it.
+                b = self.art.strips.bitmap(
+                    key,
+                    lambda: components.compose_banner(
+                        img, pbox, title, meta, context, poster=poster),
                     lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])

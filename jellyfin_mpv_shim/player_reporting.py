@@ -413,12 +413,18 @@ class ReportingMixin:
                             self.syncplay.sync_playback_time()
                     except:
                         log.error("Error syncing playback time.", exc_info=True)
-                elif hasattr(video, "record_offline_progress"):
-                    # Offline playback has no server session, so stop() is the
-                    # only other place the resume position is saved — an
-                    # unclean exit (crash/power-off) would lose it. Persist it
-                    # periodically here instead. Throttle so we don't hammer
-                    # SQLite every 5s tick.
+                # ...and the local catalog gets it either way. **Not an
+                # `elif`**, which is the bug this replaces: every call site
+                # was gated on being offline, so making
+                # record_offline_progress write locally-either-way fixed a
+                # method that was never *called* when there was a server.
+                # The catalog is what the app reads when the server is
+                # away, so it has to be written while the server is there.
+                #
+                # Throttled, so this does not hammer SQLite on every 5s
+                # tick. The name is now a misnomer: it records progress,
+                # and only the *replay queue* half of it is offline-only.
+                if hasattr(video, "record_offline_progress"):
                     now = time.monotonic()
                     if now - self._last_offline_record >= 30:
                         options = self.get_timeline_options(video=video)
@@ -470,10 +476,15 @@ class ReportingMixin:
         if options is None:
             options = self.get_timeline_options(finished, video=video)
 
-        # Capture offline progress for the auto-advance / finish paths (stop()
+        # Capture progress for the auto-advance / finish paths (stop()
         # handles the explicit-stop case before clearing self._video).
-        if client is None and video is not None and video.client is None \
-                and options is not None \
+        #
+        # No longer gated on being offline: this is the path that catches
+        # "watched a while, backed out", which is most of how a resume
+        # position is set at all -- the periodic tick above may never have
+        # fired. Gating it was why a downloaded episode watched online and
+        # then opened on a train started from the beginning.
+        if video is not None and options is not None \
                 and hasattr(video, "record_offline_progress"):
             video.record_offline_progress(
                 options.get("PositionTicks"), finished)
@@ -558,9 +569,9 @@ class ReportingMixin:
             "PlaySessionId": video.playback_info["PlaySessionId"],
             "ItemId": video.item_id,
         }
-        # Offline playback has no server session; keep the position locally so
-        # closing the mpv window doesn't lose it.
-        if video.client is None and hasattr(video, "record_offline_progress"):
+        # Keep the position locally so closing the mpv window doesn't lose
+        # it -- online too, for the reason in send_timeline_stopped above.
+        if hasattr(video, "record_offline_progress"):
             try:
                 video.record_offline_progress(options.get("PositionTicks"), False)
             except Exception:

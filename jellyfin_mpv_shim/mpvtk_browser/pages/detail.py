@@ -131,7 +131,11 @@ class DetailPage(Page):
             btns.append(controls.action_btn(
                 "info", _("Media Info"), "act-minfo",
                 lambda: self.ctx.dialogs.media_info(item, server)))
-        if self.ctx.actions.can_delete(item):
+        # `actions.offline` as well as CanDelete, like the tile menu: the
+        # flag comes off a DTO the *catalog* stored, so offline it can still
+        # say True -- and pressing it would reach for a server that is not
+        # there. The local copy has its own Remove Download.
+        if not self.ctx.actions.offline and self.ctx.actions.can_delete(item):
             # Last in the row, like the tile menu, and for the same reason:
             # it is the only control here that destroys anything.
             btns.append(controls.action_btn(
@@ -151,10 +155,16 @@ class DetailPage(Page):
         """Leave the page once its item is gone.
 
         Unlike a grid, this screen *is* the deleted item: re-reading it
-        would fetch a 404 and show an error where a film used to be. Back,
-        which lands on the list it was opened from -- and that list re-reads
-        itself on the way in, so the tile goes too.
+        would fetch a 404 and show an error where a film used to be.
+
+        The flag is what makes the list underneath re-read. Going back
+        alone does **not**: `_land_back` refreshes Home and the two cases
+        that had a reason to, and a grid otherwise keeps the items it was
+        loaded with -- so the deleted tile was still sitting there, and
+        pressing it 404s. Found by hand-testing; the unit tests only ever
+        checked that we left the page, which was the easy half.
         """
+        self.route["_deleted"] = True
         self.ctx.nav.go_back()
 
     def _start(self, item, server, offset_ticks=None):

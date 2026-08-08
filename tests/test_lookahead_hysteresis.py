@@ -109,49 +109,59 @@ def _downloader(rows):
     return d
 
 
-def _row(series="s1", status=STATUS_COMPLETE, server="srv"):
-    return {"series_id": series, "status": status, "server_uuid": server}
+def _row(series="s1", status=STATUS_COMPLETE, server="srv", item_id=None):
+    return {"series_id": series, "status": status, "server_uuid": server,
+            "item_id": item_id or "e0"}
 
 
-class UpcomingHeldTest(unittest.TestCase):
-    """What counts as "already have it"."""
+class HeldIdsTest(unittest.TestCase):
+    """What counts as "already have it" — and *which* episodes.
+
+    The first version counted every held episode of the series rather than
+    the ones in the window, so somebody holding twenty old episodes was
+    above any minimum for ever and the series was never topped up again.
+    Silently: no downloads, no error. The issue says "at least the minimum
+    number of **upcoming** episodes", and upcoming is the word that does
+    the work.
+    """
 
     def test_queued_and_in_progress_count(self):
         """The issue names this: without it every pass re-queues the same
-        episodes for as long as the first batch takes, which is exactly the
-        stampede hysteresis replaces."""
-        d = _downloader([_row(status=STATUS_COMPLETE),
-                         _row(status=STATUS_PENDING),
-                         _row(status=STATUS_DOWNLOADING)])
-        self.assertEqual(d._upcoming_held("srv", "s1"), 3)
+        episodes for as long as the first batch takes."""
+        d = _downloader([_row(status=STATUS_COMPLETE, item_id="a"),
+                         _row(status=STATUS_PENDING, item_id="b"),
+                         _row(status=STATUS_DOWNLOADING, item_id="c")])
+        self.assertEqual(d._held_ids("srv", "s1"), {"a", "b", "c"})
 
     def test_errors_do_not(self):
-        # Episodes we tried and failed to get. Treating a failure as stock
-        # is how a series quietly stops being topped up.
-        d = _downloader([_row(status=STATUS_COMPLETE),
-                         _row(status=STATUS_ERROR)])
-        self.assertEqual(d._upcoming_held("srv", "s1"), 1)
+        d = _downloader([_row(status=STATUS_COMPLETE, item_id="a"),
+                         _row(status=STATUS_ERROR, item_id="b")])
+        self.assertEqual(d._held_ids("srv", "s1"), {"a"})
 
     def test_another_server_does_not(self):
-        d = _downloader([_row(server="other"), _row(server="srv")])
-        self.assertEqual(d._upcoming_held("srv", "s1"), 1)
+        d = _downloader([_row(server="other", item_id="a"),
+                         _row(server="srv", item_id="b")])
+        self.assertEqual(d._held_ids("srv", "s1"), {"b"})
 
-    def test_a_catalog_failure_looks_stocked_rather_than_empty(self):
-        """The safe direction: answering "none" would top the series up on
-        every pass, which is the behaviour being removed."""
+    def test_a_catalog_failure_is_unknown_rather_than_empty(self):
+        """None, not an empty set: empty reads as "hold nothing", which
+        tops the series up on every pass — the behaviour being removed."""
         d = _downloader([])
         d.manager.db.list = mock.Mock(side_effect=RuntimeError("locked"))
-        self.assertGreater(d._upcoming_held("srv", "s1"), 1000)
+        self.assertIsNone(d._held_ids("srv", "s1"))
 
 
 class LookaheadBatchingTest(SettingsCase):
     """The property the issue is actually about, over several passes."""
 
-    def _planner(self, held, episodes=12):
+    def _planner(self, held_ids=(), episodes=12, old_ids=()):
+        """A planner whose catalog holds `held_ids` from the window, plus
+        `old_ids` which are episodes of the same series that are NOT in it.
+        """
         settings.auto_download_lookahead = 2
         settings.auto_download_lookahead_min = 2
         settings.auto_download_lookahead_max = 8
-        rows = [_row() for _ in range(held)]
+        rows = [_row(item_id=i) for i in tuple(held_ids) + tuple(old_ids)]
         d = _downloader(rows)
         d._followed_series = lambda _s: {"s1"}
         d._watch_position = staticmethod(lambda _api, _sid: "anchor")
@@ -160,19 +170,27 @@ class LookaheadBatchingTest(SettingsCase):
             "Items": [{"Id": "e%d" % i} for i in range(episodes)]}
         return d, api
 
-    def test_a_stocked_series_costs_nothing(self):
-        d, api = self._planner(held=4)
+    def test_a_stocked_series_queues_nothing(self):
+        d, api = self._planner(held_ids=["e0", "e1", "e2", "e3"])
         self.assertEqual(d._lookahead(api, "srv"), [])
-        api.get_episodes.assert_not_called()
 
     def test_exactly_at_the_low_mark_is_still_stocked(self):
-        d, api = self._planner(held=2)
+        d, api = self._planner(held_ids=["e0", "e1"])
         self.assertEqual(d._lookahead(api, "srv"), [])
+
+    def test_old_episodes_outside_the_window_do_not_count(self):
+        """The bug: twenty held episodes of a series with none of them
+        upcoming used to read as "stocked", and the series was never topped
+        up again — with nothing said about it."""
+        d, api = self._planner(held_ids=[],
+                               old_ids=["z%d" % i for i in range(20)])
+        self.assertEqual(len(d._lookahead(api, "srv")), 8)
 
     def test_below_it_tops_up_to_the_maximum_in_one_go(self):
         """"With minimum 2 and maximum 8, dropping to one episode queues up
-        to seven more" — one batch, not one episode."""
-        d, api = self._planner(held=1)
+        to seven more" — one batch, not one episode. `fill` skips the ones
+        already held, so the whole window is handed over."""
+        d, api = self._planner(held_ids=["e0"])
         out = d._lookahead(api, "srv")
         self.assertEqual(len(out), 8)
         self.assertEqual(api.get_episodes.call_args.kwargs["limit"], 8)
@@ -181,7 +199,7 @@ class LookaheadBatchingTest(SettingsCase):
         settings.auto_download_lookahead_min = None
         settings.auto_download_lookahead_max = None
         settings.auto_download_lookahead = 2
-        d = _downloader([_row() for _ in range(4)])
+        d = _downloader([_row(item_id="e%d" % i) for i in range(4)])
         d._followed_series = lambda _s: {"s1"}
         d._watch_position = staticmethod(lambda _api, _sid: "anchor")
         api = mock.Mock()
@@ -192,21 +210,55 @@ class LookaheadBatchingTest(SettingsCase):
 
     def test_it_settles_rather_than_walking(self):
         """Three passes with the catalog growing as the first pass's
-        downloads land. The second and third must ask for nothing — the old
+        downloads land. The second and third must queue nothing — the old
         flat window's failure was re-queueing every pass."""
         asked = []
-        held = [1]
-
-        def run():
-            d, api = self._planner(held=held[0])
-            out = d._lookahead(api, "srv")
-            asked.append(len(out))
-            held[0] += len(out)
+        held = ["e0"]
 
         for _ in range(3):
-            run()
+            d, api = self._planner(held_ids=list(held))
+            out = d._lookahead(api, "srv")
+            asked.append(len(out))
+            held = [i["Id"] for i in out] or held
+
         self.assertEqual(asked, [8, 0, 0])
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoExtraWorkWhenUnconfiguredTest(SettingsCase):
+    """The advanced settings must cost nothing when they are not set.
+
+    The lookahead has always made one `get_episodes` per followed series per
+    pass; hysteresis must not add a second, and the catalog read it needs
+    must not happen at all when the window is unconfigured.
+    """
+
+    def _run(self):
+        d = _downloader([_row(item_id="e0")])
+        d._followed_series = lambda _s: {"s1"}
+        d._watch_position = staticmethod(lambda _api, _sid: "anchor")
+        d.manager.db.list = mock.Mock(return_value=[])
+        api = mock.Mock()
+        api.get_episodes.return_value = {
+            "Items": [{"Id": "e%d" % i} for i in range(12)]}
+        d._lookahead(api, "srv")
+        return api, d.manager.db.list
+
+    def test_unconfigured_reads_no_catalog_rows(self):
+        settings.auto_download_lookahead = 2
+        settings.auto_download_lookahead_min = None
+        settings.auto_download_lookahead_max = None
+        api, db_list = self._run()
+        self.assertEqual(api.get_episodes.call_count, 1)
+        db_list.assert_not_called()
+
+    def test_configured_asks_the_server_exactly_as_often(self):
+        settings.auto_download_lookahead = 2
+        settings.auto_download_lookahead_min = 2
+        settings.auto_download_lookahead_max = 8
+        api, db_list = self._run()
+        self.assertEqual(api.get_episodes.call_count, 1)
+        db_list.assert_called_once()

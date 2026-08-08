@@ -707,6 +707,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.route.pop("_items", None)
             self.route.pop("_loading", None)
             self._load_route(self.route)
+        # The page we left was DELETED out from under itself. Whatever is
+        # underneath still lists it, so it draws a tile pointing at nothing
+        # — which invites a second press, and the second press 404s.
+        #
+        # Flagged on the route rather than detected here, because only the
+        # page that deleted knows: a detail screen is left for a dozen
+        # reasons, and re-reading the list on all of them would refetch a
+        # grid every time somebody looked at a film and came back. Asked of
+        # every route left, like the playlist-editor case above, so a jump
+        # through the history menu behaves the same as one Back press.
+        elif any((r or {}).get("_deleted") for r in left):
+            self.route.pop("_data", None)
+            self.route.pop("_items", None)
+            self.route.pop("_loading", None)
+            self._load_route(self.route)
         # Coming out of a reader: the position moved while it was open, and
         # it moved on the READER's copy of the DTO. The book page below
         # holds its own dict, fetched before any of that, so without this

@@ -366,8 +366,14 @@ class AutoDownloader:
         except Exception:
             log.debug("Could not read the discard list", exc_info=True)
             discarded = set()
+        capped = False
         for server_uuid, item, origin in self._candidates():
-            if budget <= 0 or queued >= cap:
+            if queued >= cap:
+                # Reached only when there IS another candidate: the loop
+                # body does not run otherwise.
+                capped = True
+                break
+            if budget <= 0:
                 break
             if self._interrupted():
                 break
@@ -382,7 +388,12 @@ class AutoDownloader:
             if added:
                 queued += added
                 budget -= self._size_of(item)
-        if queued >= cap:
+        if capped:
+            # Only when the loop actually broke with a candidate in hand.
+            # `queued >= cap` on its own is true whenever the pass filled
+            # exactly to the limit with nothing left over, and then this
+            # promised a "rest" that does not exist -- which matters
+            # because this line is how the feature is verified by hand.
             log.info("Auto-download: stopped at the %d-item per-pass limit; "
                      "the rest follow next pass.", cap)
         return queued
@@ -482,17 +493,7 @@ class AutoDownloader:
                 # say. Either way, extending the window is a guess, and the
                 # wrong guess here is the runaway this method exists to avoid.
                 continue
-            count = flat
-            if window is not None:
-                low, high = window
-                have = self._upcoming_held(server_uuid, series_id)
-                if have >= low:
-                    # Above the low mark: do nothing at all. This is the
-                    # whole point of the feature -- the reporter's disks
-                    # were spinning up for one episode at a time, and a
-                    # series that is stocked should cost no transfers.
-                    continue
-                count = high
+            count = window[1] if window is not None else flat
             try:
                 result = api.get_episodes(series_id, start_item_id=anchor,
                                           limit=count,
@@ -503,38 +504,56 @@ class AutoDownloader:
                 continue
             # StartItemId is inclusive, so the first entry is the anchor —
             # the next episode to watch, which is part of the window.
-            out.extend((result.get("Items", []) or [])[:count])
+            items = (result.get("Items", []) or [])[:count]
+            if window is not None:
+                low = window[0]
+                held = self._held_ids(server_uuid, series_id)
+                if held is None:
+                    continue    # see _held_ids: look stocked, do nothing
+                have = sum(1 for item in items if item.get("Id") in held)
+                if have >= low:
+                    # Above the low mark: queue nothing. The whole point --
+                    # the reporter's disks were spinning up for one episode
+                    # at a time, and a stocked series should cost no
+                    # transfers.
+                    continue
+            out.extend(items)
         return out
 
-    def _upcoming_held(self, server_uuid, series_id):
-        """How many episodes of this series we already have or have asked for.
+    def _held_ids(self, server_uuid, series_id):
+        """Ids of this series we hold or have asked for, or None if unknown.
 
-        **Queued and in-progress count, not just complete** -- the issue
-        names that explicitly, and without it every pass would re-queue the
-        same episodes for as long as the first batch took to download,
-        which is precisely the stampede hysteresis is meant to replace.
+        **Ids rather than a count, and the caller intersects them with the
+        window** -- which is the whole correctness of the hysteresis and is
+        not what the first version did. That one counted every held episode
+        of the series, so somebody holding twenty *old* episodes was above
+        any minimum for ever and the series was **never topped up again**.
+        Silent, too: no downloads, no error. The issue says "at least the
+        minimum number of *upcoming* episodes", and upcoming is the word
+        that does the work.
 
-        Errored rows do not count: those are episodes we tried and failed to
-        get, and treating a failure as stock is how a series quietly stops
-        being topped up. (`_record_permanent_failure` keeps the planner from
-        retrying them for ever; that is a different mechanism and it works
-        off the discard list.)
+        Queued and in-progress count, not just complete -- the issue names
+        that, and without it every pass re-queues the same episodes for as
+        long as the first batch takes, which is the stampede this replaces.
 
-        Counted against the catalog rather than against the window, because
-        the window is what we are deciding the size of.
+        Errored rows do not: those are episodes we tried and failed to get,
+        and treating a failure as stock is how a series quietly stops being
+        topped up (which is the same failure this docstring opens with,
+        reached another way).
         """
         held = {STATUS_COMPLETE, STATUS_PENDING, STATUS_DOWNLOADING}
         try:
             rows = self.manager.db.list(series_id=series_id)
         except Exception:
-            log.debug("Could not count held episodes for %s", series_id,
+            log.debug("Could not read held episodes for %s", series_id,
                       exc_info=True)
-            # Answering "none" would top the series up on every pass; the
-            # safe direction is to look stocked and do nothing this time.
-            return 1 << 30
-        return sum(1 for row in rows
-                   if row.get("server_uuid") == server_uuid
-                   and row.get("status") in held)
+            # None, not an empty set: an empty one reads as "hold nothing",
+            # which tops the series up on every pass -- the behaviour being
+            # removed. The caller skips the series this time instead.
+            return None
+        return {row.get("item_id") for row in rows
+                if row.get("server_uuid") == server_uuid
+                and row.get("status") in held}
 
     @staticmethod
     def _watch_position(api, series_id):

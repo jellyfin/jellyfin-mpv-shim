@@ -177,3 +177,56 @@ class OfflineVideoTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SameCodecReEncodeTest(unittest.TestCase):
+    """A re-encode that keeps the codec is not a remux.
+
+    The url names the *target* codec, and for a bitrate- or level-limited
+    transcode that is the codec the file already has — so the codec
+    comparison alone calls it a copy. Measured against a live server with a
+    100 kbps ceiling on an h264 file: target `h264`, reasons
+    `AudioCodecNotSupported,ContainerBitrateExceedsLimit`.
+    """
+
+    def test_a_bitrate_ceiling_is_a_transcode(self):
+        method, _r = media.transcode_play_method(
+            SOURCE, url("hevc", "aac", "ContainerBitrateExceedsLimit"))
+        self.assertEqual(method, media.PLAY_TRANSCODE)
+
+    def test_the_measured_case(self):
+        source = {"MediaStreams": [
+            {"Type": "Video", "Index": 0, "Codec": "h264"},
+            {"Type": "Audio", "Index": 1, "Codec": "aac"}]}
+        method, _r = media.transcode_play_method(
+            source,
+            url("h264", "aac",
+                "AudioCodecNotSupported%2CContainerBitrateExceedsLimit"))
+        self.assertEqual(method, media.PLAY_TRANSCODE)
+
+    def test_a_video_level_limit_is_a_transcode(self):
+        method, _r = media.transcode_play_method(
+            SOURCE, url("hevc", "aac", "VideoLevelNotSupported"))
+        self.assertEqual(method, media.PLAY_TRANSCODE)
+
+    def test_an_audio_only_reason_still_leaves_the_video_direct(self):
+        """The DirectStream case: video passed through, audio re-encoded."""
+        method, _r = media.transcode_play_method(
+            SOURCE, url("hevc", "aac", "AudioChannelsNotSupported"))
+        self.assertEqual(method, media.PLAY_DIRECT_STREAM)
+
+    def test_a_codec_reason_does_not_outrank_the_target_codec(self):
+        """`TranscodeReasons` says why *direct play* was refused, not what
+        the transcoder does with each stream — so AudioCodecNotSupported
+        can sit on a session whose profile then copies the audio anyway.
+        Treating it as authoritative reported a remux as a DirectStream,
+        which the live-server e2e test caught."""
+        method, _r = media.transcode_play_method(
+            SOURCE, url("hevc", "aac",
+                        "ContainerNotSupported%2CAudioCodecNotSupported"))
+        self.assertEqual(method, media.PLAY_REMUX)
+
+    def test_a_container_only_reason_is_still_a_remux(self):
+        method, _r = media.transcode_play_method(
+            SOURCE, url("hevc", "aac", "ContainerNotSupported"))
+        self.assertEqual(method, media.PLAY_REMUX)

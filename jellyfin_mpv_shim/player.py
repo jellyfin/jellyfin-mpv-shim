@@ -1776,7 +1776,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return False
         return True
 
-    @synchronous("_lock")
     def _forced_hwdec(self):
         """Whether a shader profile has named the decoder it requires.
 
@@ -1834,6 +1833,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log.debug("could not read the filter chain", exc_info=True)
         return False
 
+    @synchronous("_lock")
     def _play_media(
         self,
         video: "Video_type",
@@ -1916,11 +1916,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # user's own mpv.conf, or a shader profile naming the decoder
             # its filter requires. Both outrank the setting, and both are
             # already applied, so the right move is not to write at all.
-            forced = self._forced_hwdec()
-            want = None if forced else hwdec_for(_source_height(video),
-                                                 self._needs_copy_hwdec())
-            if want is not None:
-                self._player.hwdec = want
+            from .args import get_args
+
+            # --disable-hwdec outranks EVERYTHING, including a profile that
+            # named its decoder. It is the recovery path for hardware
+            # decoding stopping the window opening at all, so a shader
+            # profile silently defeating it would leave the user with no way
+            # back in -- which is the one thing this flag exists to prevent.
+            if getattr(get_args(), "disable_hwdec", False):
+                self._player.hwdec = "no"
+            else:
+                forced = self._forced_hwdec()
+                want = None if forced else hwdec_for(
+                    _source_height(video), self._needs_copy_hwdec())
+                if want is not None:
+                    self._player.hwdec = want
         except Exception:
             # Never let a decode *preference* stop playback: mpv keeps
             # whatever it had, which is at worst the previous item's.

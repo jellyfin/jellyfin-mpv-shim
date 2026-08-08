@@ -87,6 +87,35 @@ def _target_codecs(transcoding_url):
     return one("VideoCodec"), one("AudioCodec"), reasons
 
 
+#: Reasons that force the VIDEO to be re-encoded **even when the target
+#: codec matches the source**. These are all "the codec is fine, this
+#: property is not": a resolution, a level, a bit depth, a bitrate ceiling.
+#:
+#: **Codec-identity reasons are deliberately absent**, and the distinction
+#: matters. `TranscodeReasons` says why *direct play* was refused, not what
+#: the transcoder does with each stream -- so `AudioCodecNotSupported` can
+#: appear on a session whose transcoding profile then happily copies the
+#: audio. Treating every reason as authoritative made a remux report as a
+#: DirectStream, which the e2e test against a live server caught.
+#: Where the reason is about the codec, the target codec is the better
+#: witness and wins.
+_VIDEO_REASONS = frozenset({
+    "ContainerBitrateExceedsLimit", "VideoBitrateNotSupported",
+    "VideoResolutionNotSupported", "VideoFramerateNotSupported",
+    "VideoLevelNotSupported", "VideoProfileNotSupported",
+    "VideoBitDepthNotSupported", "VideoRangeTypeNotSupported",
+    "AnamorphicVideoNotSupported", "InterlacedVideoNotSupported",
+    "RefFramesNotSupported",
+})
+
+#: The same for audio: properties, not the codec name.
+_AUDIO_REASONS = frozenset({
+    "AudioBitrateNotSupported", "AudioChannelsNotSupported",
+    "AudioSampleRateNotSupported", "AudioBitDepthNotSupported",
+    "AudioProfileNotSupported", "SecondaryAudioNotSupported",
+})
+
+
 def transcode_play_method(media_source, transcoding_url, aid=None):
     """``(play_method, reasons)`` for a source the server is serving us.
 
@@ -122,20 +151,29 @@ def transcode_play_method(media_source, transcoding_url, aid=None):
     if audio is None:
         audio = next((s for s in streams if s.get("Type") == "Audio"), None)
 
-    def direct(stream, target):
+    named = set(reasons)
+
+    def direct(stream, target, touching):
         if stream is None:
             # No stream of that kind is not a stream being re-encoded. A file
             # with no audio would otherwise report as a transcode forever.
             return True
+        # **The reasons outrank the codec comparison**, because a same-codec
+        # re-encode names the source codec in the url and is otherwise
+        # indistinguishable from a copy. If the server says it is
+        # transcoding *because of* something about this stream, it is not
+        # passing it through.
+        if named & touching:
+            return False
         codec = (stream.get("Codec") or "").lower()
         names = [t.strip().lower() for t in (target or "").split(",")]
         # An empty target means the server named no codec for this kind,
         # which is how it says "untouched".
         return not target or (codec and codec in names)
 
-    if not direct(video, target_v):
+    if not direct(video, target_v, _VIDEO_REASONS):
         return PLAY_TRANSCODE, reasons
-    if not direct(audio, target_a):
+    if not direct(audio, target_a, _AUDIO_REASONS):
         return PLAY_DIRECT_STREAM, reasons
     return PLAY_REMUX, reasons
 
@@ -525,6 +563,14 @@ class Video(object):
         return path
 
     def _get_url_from_source(self):
+        # Everything below is decided fresh. This method runs again when the
+        # quality is changed or a failed load is retried with a transcode
+        # forced, and without the reset a Video that direct-played first
+        # keeps `direct_path` set (the panel then says "local file" over a
+        # transcode) and keeps the previous negotiation's transcode reasons.
+        self.play_method = None
+        self.transcode_reasons = []
+        self.direct_path = False
         # Only use Direct Paths if:
         # - The media source supports direct paths.
         # - Direct paths are enabled in the config.

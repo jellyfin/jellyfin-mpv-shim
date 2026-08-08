@@ -5275,6 +5275,25 @@ local function phud_skip_bind()
         send({ t = 'hudskip' })
         phud_skip_hide()
     end)
+    -- The MOUSE half of the skip button normally lives in
+    -- mpvtk_phud_click, which mpv's modality does not install -- taking
+    -- mbtn_left is exactly what stops the VO dragging the window. So bind
+    -- it here instead, for the few seconds the button is actually up, and
+    -- drag by our own command meanwhile. Without this the Skip button is
+    -- keyboard-only in that mode, which is not a trade anybody chose.
+    if not state.phud.click_pauses then
+        mp.add_forced_key_binding('mbtn_left', 'mpvtk_skip_click', function()
+            local r = state.phud.skip_rect
+            local x, y = state.phud.mx, state.phud.my
+            if state.phud.skip_show and r and x >= r.x1 and x <= r.x2
+                and y >= r.y1 and y <= r.y2 then
+                send({ t = 'hudskip' })
+                phud_skip_hide()
+            else
+                pcall(mp.commandv, 'begin-vo-dragging')
+            end
+        end)
+    end
     state.kb_skip = true
 end
 

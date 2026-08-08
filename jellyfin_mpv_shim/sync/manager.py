@@ -51,6 +51,12 @@ PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
 #: it costs a request per batch against every reachable server.
 USERDATA_REFRESH_INTERVAL = 300
 
+#: Floor on how often a *request* (the home screen loading) can bring the
+#: pull forward. Without it, bouncing in and out of Home is a refresh per
+#: visit; with it, the screen you are about to read is up to date and the
+#: server is asked at most twice a minute.
+USERDATA_REQUEST_FLOOR = 30
+
 #: Ids per request. They travel in the query string, which servers and
 #: proxies cap (the apiclient's own note on get_items says so), and a
 #: catalog of a few hundred downloads would otherwise be one 414.
@@ -912,6 +918,25 @@ class SyncManager:
             self.db.clear_playstate(done)
             log.info("Synced %d offline playstate change(s) to the server.",
                      len(done))
+
+    def request_userdata_refresh(self):
+        """Bring the userdata pull forward — the home screen is loading.
+
+        The five-minute tick is right for a background poll and wrong for
+        the moment somebody opens the screen that draws watched state: an
+        episode finished on a phone should not need up to five minutes to
+        show here, and going offline in that window shows the stale answer
+        for as long as you are offline.
+
+        Cheap and non-blocking: this only marks the pull due and wakes the
+        worker, so the requests happen on the sync thread rather than on
+        whatever loaded the page.
+        """
+        now = time.monotonic()
+        if now - self._last_userdata < USERDATA_REQUEST_FLOOR:
+            return          # one just ran; the screen is already current
+        self._last_userdata = 0.0       # due on the next tick
+        self._wake.set()
 
     def _refresh_userdata(self):
         """Pull the server's watched state for what we hold, and store it.

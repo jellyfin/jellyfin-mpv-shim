@@ -533,3 +533,45 @@ class HeaderPosterTest(unittest.TestCase):
         from jellyfin_mpv_shim.conf import settings
         self.assertTrue(settings.detail_poster)
         self.assertTrue(settings.detail_episode_image)
+
+    def test_the_banner_is_composed_only_on_a_cache_miss(self):
+        """`bitmap` takes a callable and calls it only on a miss. Composing
+        eagerly re-cropped the backdrop, re-drew the heading and re-blurred
+        a full-canvas drop shadow on *every repaint* of a detail page, to
+        hand the answer to a cache that already had it."""
+        from types import SimpleNamespace
+        from PIL import Image as PILImage
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        art = PILImage.new("RGB", (40, 60), (200, 40, 40))
+        passed = []
+
+        class _Strips:
+            @staticmethod
+            def bitmap(key, image, lsize=None):
+                passed.append(image)
+                return {"src": "s", "iw": 1, "ih": 1, "lw": 1, "lh": 1,
+                        "v": 0}
+
+        class _Source:
+            @staticmethod
+            def backdrop_spec(_item):
+                return ("m1", "Backdrop", "bt")
+
+            @staticmethod
+            def backdrop_url(*_a, **_k):
+                return "http://srv/bd.jpg"
+
+            @staticmethod
+            def image_spec(_item, _t="Primary", _w=280, inherit=True):
+                return None
+
+        r = TileRenderer.__new__(TileRenderer)
+        r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None,
+                                strips=_Strips())
+        r._request_image = lambda *a, **k: art
+        box = TileRenderer.banner_box(r, self.SIZE[0])
+        r.backdrop_node({"Id": "m1"}, box, "detail-bd", title="A Film")
+        self.assertTrue(passed)
+        self.assertTrue(callable(passed[-1]),
+                        "the banner was composed before the cache was asked")

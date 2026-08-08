@@ -588,7 +588,12 @@ class ItemActions:
             ctl = self.services.controller
             try:
                 if ctl is not None:
-                    ctl.delete_download(item_id=iid)
+                    # By TYPE, like remove_download -- deleting a Series
+                    # with `item_id=` matches one catalog row that does not
+                    # exist (a series is not downloaded, its episodes are),
+                    # so every episode was left on disk pointing at an item
+                    # the server no longer has.
+                    self._drop_downloads(ctl, item)
             except Exception:
                 log.debug("could not drop the local copy of %s", iid,
                           exc_info=True)
@@ -599,6 +604,23 @@ class ItemActions:
 
         self.edit(lambda c: c.delete_item(server, iid), on_ok=gone,
                   error=_("%s could not be deleted.") % name)
+
+    @staticmethod
+    def _drop_downloads(ctl, item):
+        """Delete whatever this item's *downloads* are, by type.
+
+        The same dispatch as :meth:`remove_download`, shared so a container
+        cannot be handled correctly in one place and by id in the other.
+        """
+        iid, kind = item.get("Id"), item.get("Type")
+        if kind == "Series":
+            ctl.delete_download(series_id=iid)
+        elif kind == "Season":
+            ctl.delete_download(series_id=item.get("SeriesId"), season_id=iid)
+        elif kind == "Playlist":
+            ctl.delete_download(playlist_id=iid)
+        else:
+            ctl.delete_download(item_id=iid)
 
     def confirm_remove_download(self, item):
         """Confirm, then delete this item's downloaded copy."""
@@ -614,15 +636,7 @@ class ItemActions:
         ctl = self.services.controller
 
         def work():
-            if t == "Series":
-                ctl.delete_download(series_id=iid)
-            elif t == "Season":
-                ctl.delete_download(series_id=item.get("SeriesId"),
-                                    season_id=iid)
-            elif t == "Playlist":
-                ctl.delete_download(playlist_id=iid)
-            else:
-                ctl.delete_download(item_id=iid)
+            self._drop_downloads(ctl, item)
 
         def done(_ok):
             self._on_downloads_changed()

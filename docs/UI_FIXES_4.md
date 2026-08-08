@@ -1619,3 +1619,198 @@ user-editable settings, so "drop the binding" has to keep honouring a value
 somebody has already customised; and the no-lua path is not hypothetical —
 it is what CLI mode *is*, so every key that moves to a section needs its
 Python fallback kept and tested, not assumed dead.
+
+---
+
+## Hand-testing round 1 — what [iw] found
+
+Confirmed working by hand: the header artwork (#7), the media info and
+playback info screens (#10/#11), **Delete from Disk actually deleting** —
+Live TV recordings on the QA server, from both the context menu and the
+detail page — window dragging in mpv's modality (#1, the one thing Xvfb could
+not answer), hwdec "Only above 1080p" reading `no` on a 1080p Hi10 file and
+`vulkan` on a 4K HDR one (#12), previous-from-Next-Up walking ep4 back to ep1
+and correctly declining under SyncPlay (#6), the shader suspension applying to
+video, not to comics or photos, and coming back afterwards (#13), and the
+lookahead fetching 8 in one batch (#5).
+
+### One real bug, and the test that should have caught it
+
+**The list underneath a deleted detail page did not refresh.** `go_back()`
+lands on the grid, and `_land_back` re-reads only Home and two special cases
+— everything else keeps the items it was loaded with. So the deleted tile was
+still on screen, and pressing it 404s.
+
+Fixed by flagging the route (`_deleted`) before going back, which `_land_back`
+now treats like the playlist-editor case: pop the cached items and reload.
+Flagged rather than detected there, because only the page that deleted knows —
+a detail screen is left for a dozen reasons and re-reading on all of them
+would refetch a grid every time somebody looked at a film and came back.
+
+The existing test asserted **only that we left the page**, which is precisely
+why it passed against the bug. That is the "assert the property, not the
+mechanics" rule failing in its usual direction: the easy half of the
+behaviour was checked and the half that matters was not.
+
+### ...and a second bug, found by pulling on a log line
+
+**[iw]** verified #5 by watching the log, saw the per-pass cap fire at 8, and
+then noted that disabling and re-enabling downloaded **two more**. Chasing why
+turned up a real defect in the hysteresis, unrelated to the two extra items
+(which were legitimately Next Up entries — that source has no hysteresis).
+
+`_upcoming_held` counted **every held episode of the series**, not the ones in
+the window. The issue says "at least the minimum number of *upcoming*
+episodes", and *upcoming* is the word that does the work: someone holding
+twenty old episodes of a series was above any minimum for ever, so that series
+was **never topped up again** — with no downloads and no error to show for it.
+[iw]'s own test did not hit it because the eight they held were exactly the
+upcoming ones.
+
+Fixed by asking the server for the window first and intersecting: `_held_ids`
+returns the ids we hold, and the caller counts how many of *those* are in the
+window. `fill` already skips items in the catalog, so the whole window is
+handed over and the ones we have cost nothing.
+
+**This costs nothing extra against master, which is worth stating plainly
+because the first draft of this note claimed otherwise.** Master already
+called `get_episodes` once per followed series per pass, unconditionally; so
+does this, with `limit` set to the maximum instead of the flat window. The
+buggy intermediate version *skipped* that call when it believed a series was
+stocked — so the "saving" I described existed only relative to my own broken
+code, and it was bought with the wrong answer.
+
+The one genuinely new piece of work is the `db.list(series_id=…)` inside
+`_held_ids`, and it is gated on the window being configured: with the advanced
+settings unset it never runs. It is also a local SQLite read, not a server
+request.
+
+The per-pass log line was corrected at the same time: it fired on
+`queued >= cap`, which is also true when a pass fills exactly to the limit
+with nothing left over, and then promised a "rest" that does not exist. It now
+fires only where the loop actually broke with a candidate in hand — which
+matters because that line is how the feature is verified by hand.
+
+### #9 did not work at all — and the reason is instructive
+
+**[iw]**: "downloaded an episode, watched 30% in, went offline using firejail,
+its progress was at 3s — note that I played and then immediately backed out."
+
+The method was right and **never called**. `record_offline_progress` was made
+to write the catalog whether or not there is a server; all *three* of its call
+sites were gated on being offline:
+
+* the periodic timeline tick was an `elif` on "no client";
+* `send_timeline_stopped` required `client is None and video.client is None`;
+* `_report_stopped_offline` required `video.client is None`.
+
+So online, the method that had been fixed was never reached. Ungated all
+three. The stop paths are the ones that mattered for the reported case: "played
+and immediately backed out" never reaches the 30-second periodic tick, so the
+stop is the only chance to record anything.
+
+**The tests were at the wrong layer**, which is why they passed. They exercised
+`record_offline_progress` directly and proved it writes locally when online —
+true, and useless, because nothing called it. The new ones are at the
+**caller**: they assert `send_timeline_stopped` and `_report_stopped_offline`
+reach it with a server present.
+
+Two details worth keeping. `_report_stopped_offline` runs on a daemon thread
+during teardown and is *handed* its video because `self._video` may already be
+None — so its own record is sometimes the only one, and its test sets
+`_video = None` to isolate that rather than watching the delegate do the work.
+And both it and `send_timeline_stopped` can record for one stop; that is
+harmless, because `db.update_userdata` is advance-only and idempotent for the
+same position.
+
+The name `record_offline_progress` is now a misnomer — it records progress, and
+only the *replay queue* half of it is offline-only. Left alone because
+`hasattr(video, "record_offline_progress")` is the duck-type check that tells
+an `OfflineVideo` from a `Video` in five places; renaming it is a tidy-up for
+its own commit, not a rider on a bug fix.
+
+### One thing to attribute rather than fix
+
+Shutdown reported a leaked thread parked in the apiclient's websocket
+(`websocket/_app.py:run_forever` -> `dispatcher.read` -> `sel.select`). Nothing
+in this batch touches the websocket: `SyncManager.get_client` is an injected
+pure lookup (`clients.py` hands it in), so `_refresh_userdata` cannot start
+one, and `stop_all_clients` already calls `client.stop()` on every client.
+Almost certainly a pre-existing apiclient teardown issue — the watchdog exits
+anyway, which is what it is for — but it wants its own reproduction rather
+than a guess, and it is not this branch's to fix.
+
+---
+
+## Adversarial review round — what 42 agents found
+
+Five reviewers by angle (concurrency, pure-function correctness, browser
+footguns, renderer/Lua, server contract), then **two independent refutation
+passes per finding**, then a synthesis. 18 candidates; the ones that survived
+and were acted on:
+
+### The serious one: `_play_media` ran unlocked for eleven commits
+
+`@synchronous("_lock")` was on `_play_media` on master. `faf129fd` inserted
+`_forced_hwdec` **between the decorator and the def**, so the decorator moved
+to the helper and the whole of a playback start — `loadfile`, the duration
+wait bounded only by `playback_timeout`, and every assignment after it — ran
+with no lock on every external entry path.
+
+That invariant is load-bearing and is stated in at least five places:
+`run_action`'s non-blocking fast path is built on it, and so are
+`cancel_load`, `retry_failed_playback`, `gateway/base.py` and
+`player_window.reset_picture_view`'s guard. Concretely: a browser Stop would
+take the free lock and run *inline* mid-start, clearing `_video` and
+returning to the library, and the start would then finish and resurrect
+itself.
+
+**Nothing failed.** The suite passed, the app worked, and the damage was a
+race under timing nobody reproduces on purpose. `tests/test_player_locking.py`
+now asserts both the source *and* `__wrapped__` for eight methods, and
+reproducing the drift fails with "_forced_hwdec is holding the lock that
+belongs to _play_media".
+
+The lesson is narrow and worth keeping: **inserting a method directly above
+an existing one silently steals its decorator.** Nothing in Python or in a
+behavioural test notices.
+
+### Also fixed
+
+* **`--disable-hwdec` was defeated by a shader profile naming a decoder** —
+  the recovery path for "hardware decoding stops the window opening" did not
+  work in the one case it exists for. It now outranks a profile, and the pack
+  is refused its `hwdec` under the flag as well as under an mpv.conf pin.
+* **Deleting a Series or Season left every episode on disk** —
+  `delete_download(item_id=<series id>)` matches no row. Shares
+  `remove_download`'s type dispatch now.
+* **The Skip Intro button was unclickable in mpv modality** (three reviewers,
+  independently) — its *mouse* half lives in `mpvtk_phud_click`, which that
+  mode does not install. Bound for the seconds the button is up, dragging by
+  `begin-vo-dragging` meanwhile.
+* **`transcode_reasons` / `direct_path` were never reset**, so a quality
+  change or a forced-transcode retry reported the previous negotiation.
+* **The inset poster was fetched at scale²** on HiDPI — `raster()` applied to
+  an already-physical box.
+* **Detail-page Delete was not gated on offline**, unlike the tile menu.
+* **The banner recomposed on every repaint** — `bitmap()` takes a callable
+  and calls it only on a miss; the loaded path passed an eager image, which
+  re-cropped the backdrop, re-drew the heading and (since #7) re-blurred a
+  full-canvas drop shadow every frame.
+* **A same-codec re-encode was reported as a Remux.** Measured: a 100 kbps
+  ceiling on an h264 file gives target `h264` with reasons
+  `ContainerBitrateExceedsLimit`, so the codec comparison alone calls it a
+  copy. The reasons now outrank the comparison.
+
+### Refuted
+
+A claim that a 500 from the delete endpoint is reported as success: the
+apiclient calls `raise_for_status()`, so it propagates and `edit()`'s failure
+path fires.
+
+### Not acted on
+
+The userdata pull asking for the apiclient's default field set. Real but
+small, and `UserData` rides `EnableUserData` rather than `Fields`, so the
+tightening is a `fields=""` experiment rather than a fix. Left for the next
+pass.

@@ -80,6 +80,24 @@ class MPVSettingError(Exception):
     pass
 
 
+def _hwdec_taken_out_of_our_hands():
+    """Whether something outranks both us and the pack on hwdec.
+
+    Two things do: the user's own mpv.conf (a pin -- nothing writes the
+    option), and ``--disable-hwdec`` (the recovery path for hardware
+    decoding stopping the window opening at all). A profile naming its
+    decoder outranks the *setting*, but not these.
+    """
+    from .args import get_args
+
+    try:
+        if getattr(get_args(), "disable_hwdec", False):
+            return True
+    except Exception:
+        log.debug("could not read the hwdec override", exc_info=True)
+    return hwdec_pinned_by_config() is not None
+
+
 class VideoProfileManager:
     def __init__(
         self, menu: "OSDMenu_type", player_manager: "PlayerManager_type", player
@@ -243,9 +261,9 @@ class VideoProfileManager:
                 # Checked here rather than left to _play_media, because a
                 # profile applies its settings directly and would otherwise
                 # slip past the pin between one file and the next.
-                if hwdec_pinned_by_config() is not None:
+                if _hwdec_taken_out_of_our_hands():
                     log.info("Not applying the shader pack's hwdec=%s; "
-                             "mpv.conf pins it.", value)
+                             "--disable-hwdec or mpv.conf decides it.", value)
                     continue
                 if str(value).strip().lower() in NAIVE_HWDEC:
                     log.info("Not applying the shader pack's hwdec=%s; "

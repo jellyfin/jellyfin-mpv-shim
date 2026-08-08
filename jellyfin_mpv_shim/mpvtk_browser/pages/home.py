@@ -9,12 +9,16 @@ screen.
 Reaches the shell for nothing. The first page to manage that.
 """
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
 from .. import components, home_sections, theme, user_prefs
 from ..components import chrome
 from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.home")
 
 
 class HomePage(Page):
@@ -66,6 +70,21 @@ class HomePage(Page):
         source = self.ctx.source
         run = self.ctx.run
         invalidate = self.ctx.invalidate
+
+        # This screen's rows *are* watched state, and the copy the catalog
+        # holds for offline browsing is only refreshed on a background
+        # tick. Ask for that pull now, so an episode finished on another
+        # device is current here -- and, more to the point, is still
+        # current when the network goes away a moment later. Non-blocking:
+        # it marks the pull due and wakes the sync worker.
+        refresh = getattr(self.ctx.player, "refresh_downloaded_userdata",
+                          None)
+        if refresh is not None:
+            try:
+                refresh()
+            except Exception:
+                log.debug("could not request a userdata refresh",
+                          exc_info=True)
 
         def work():
             server = route.get("server") or self.ctx.server
