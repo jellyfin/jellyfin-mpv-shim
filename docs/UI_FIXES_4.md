@@ -26,7 +26,7 @@ formatter landing as its own commit before the two items that need it.
 | [14](#14--search-asks-for-no-fields) | Search asks for no fields | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
-| [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | todo |
+| [5](#5--lookahead-hysteresis-661) | Lookahead hysteresis (#661) | done |
 | [6](#6--previous-item-from-next-up-650) | Previous item from Next Up (#650) | done |
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | done |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
@@ -388,6 +388,34 @@ needs the disclosure to become a property of a group rather than its name — a
 small change in the settings renderer, and the second time it has been wanted.
 
 `test_docs_coverage.py` fails until `docs/configuration.md` has all three.
+
+### What it came to
+
+`hysteresis()` and `_per_pass()` resolve the three settings; `_lookahead`
+consults the first and `fill` the second. `_upcoming_held` does the counting,
+against the **catalog** rather than against the window — the window is what is
+being sized.
+
+Four decisions worth keeping:
+
+* **Queued and downloading count as held.** The issue asks for it, and
+  without it every pass re-queues the same episodes for as long as the first
+  batch takes, which is precisely the stampede this replaces.
+* **Errored rows do not.** Those are episodes we tried and failed to get, and
+  treating a failure as stock is how a series quietly stops being topped up.
+* **A catalog read failure looks *stocked*, not empty.** Answering "none"
+  would top up on every pass — the behaviour being removed.
+* **A sub-1 per-pass cap falls back to 20 rather than clamping to 1.** A
+  hand-typed `-3` clamped to 1 is a one-item trickle that looks like the
+  feature working, and this setting exists to make passes bigger.
+
+### The settings screen needed a small change first
+
+`ADVANCED_GROUPS` replaces `title == _("Advanced")`. The disclosure used to be
+a property of a group's *name*, which capped a tab at one hidden group and
+forced it to be called that — so these three fields could not sit behind it
+next to the settings they qualify without moving to another tab. Now it is
+membership in a set, with one checkbox per tab however many groups are in it.
 
 ### Note text
 
@@ -1519,14 +1547,31 @@ rest of the time without any conditional behaviour for the user to notice.
 
 ### The shape of the audit
 
+**The test is not "does mpv bind this key" but "does our binding MEAN the
+same thing as mpv's"** — which is the distinction that puts `q` on the
+opposite side to `space` despite both being mpv defaults. `kb_stop` is
+bound to `q`, and mpv's `q` quits; ours **returns to the browser**. That is
+a different verb wearing the same key, so it stays intercepted **[iw]**,
+and dropping it because "mpv already binds q" would be exactly the wrong
+reading of this exercise.
+
+And the answer to the complaint behind PR #547 is a config decision, not a
+mechanism **[iw]**: "if someone doesn't like *our* custom bindings they can
+disable them or remap them to something else, that's a legitimate mpv shim
+config decision." What is *not* legitimate is silently swallowing a key
+whose meaning we did not change — which is the whole of what this removes.
+The gain is that a user's own `input.conf` is intercepted only where we
+genuinely need to intercept it.
+
 For each of the seventeen `kb_*` settings, decide which of three it is:
 
 * **mpv's already** — drop the binding and let the default fire (`f`, and
   arguably `space` once the point above is confirmed);
 * **claimed while a UI owns the screen** — an input section or
   `claim_keys`, released otherwise (the menu's arrows/ENTER/ESC);
-* **genuinely ours** — a shim concept mpv has no opinion about (`w`/`u`
-  watched, `<`/`>` queue, `q` stop-to-library).
+* **genuinely ours** — either a shim concept mpv has no opinion about
+  (`w`/`u` watched, `<`/`>` queue) or, like `q`, a key mpv *does* bind
+  where we deliberately mean something else.
 
 The regression surface is real and spread across three input owners (mpv
 defaults, `menu.py`, the renderer), which is why the first deliverable is

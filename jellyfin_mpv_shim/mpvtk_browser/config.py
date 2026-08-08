@@ -135,6 +135,12 @@ TAB_SECTIONS = {
                           "auto_download_delete_watched",
                           "auto_download_keep_days",
                           "auto_download_interval_mins"]),
+        # Behind the disclosure, directly under the settings they qualify
+        # (#661). Blank means "use the simple lookahead above", which is not
+        # guessable from a label, so NOTES carries it.
+        (_("Download Tuning"), ["auto_download_lookahead_min",
+                                "auto_download_lookahead_max",
+                                "auto_download_max_per_pass"]),
     ],
     "playback": [
         # The in-player UI leads: it is the thing you are looking at while
@@ -181,6 +187,19 @@ TAB_SECTIONS = {
 #: the other two stay the size the split made them -- and so there is one
 #: place to look for a key you cannot find.
 ADVANCED_TAB = "general"
+
+#: Group titles that sit behind the "Show advanced settings" disclosure,
+#: on whichever tab they appear.
+#:
+#: It used to be the literal title "Advanced", which made the disclosure a
+#: property of a group's *name* -- so a tab could have at most one, it had
+#: to be called that, and a handful of tuning keys could not be tucked away
+#: beside the settings they qualify without being moved to another tab
+#: entirely. #661's three fields are exactly that case.
+ADVANCED_GROUPS = frozenset({
+    _("Advanced"),
+    _("Download Tuning"),
+})
 
 #: Flattened, in tab order. Anything that wants "every curated key" reads
 #: this rather than knowing about the tabs.
@@ -317,6 +336,9 @@ LABEL_OVERRIDES = {
     "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
     "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
     "auto_download_interval_mins": _("Check Every (minutes)"),
+    "auto_download_lookahead_min": _("Top Up When Fewer Than (episodes)"),
+    "auto_download_lookahead_max": _("Top Up To (episodes)"),
+    "auto_download_max_per_pass": _("Maximum Downloads per Check"),
     "close_to_tray": _("Close to Tray (keep running)"),
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
@@ -385,6 +407,15 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # A blank numeric field meaning "use the setting above" is not
+    # guessable from a label, and these three are the ones where leaving
+    # them alone is the right answer for almost everybody.
+    "auto_download_lookahead_min": _("Leave these blank unless downloads are "
+                                     "waking your disks too often. Set both "
+                                     "of the first two together: episodes "
+                                     "are then fetched in one batch when a "
+                                     "series runs low, instead of one at a "
+                                     "time."),
     # Both reasons someone turns this off, because they are unrelated and
     # only one of them is about taste.
     # Only the second one carries the spoiler argument, which is why they

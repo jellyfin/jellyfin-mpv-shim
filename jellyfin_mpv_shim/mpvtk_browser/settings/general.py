@@ -47,13 +47,22 @@ class GeneralTabMixin:
         schema = cfg.settings_schema()
         values = cfg.get_settings()
         show_adv = bool(route.get("_advanced"))
+        seen_advanced = False
         rows = []
         for title, keys in cfg.sections(route.get("_tab", "general")):
-            advanced = title == _("Advanced")
+            # Membership, not the title itself: the disclosure used to be
+            # a property of a group being *called* "Advanced", which capped
+            # a tab at one and forced any tucked-away group to be named
+            # that. See config.ADVANCED_GROUPS.
+            advanced = title in getattr(cfg, "ADVANCED_GROUPS", ())
             if advanced:
-                rows.append(Checkbox(
-                    _("Show advanced settings"), show_adv, id="set-adv",
-                    on_toggle=lambda: self._toggle_advanced(route)))
+                if not seen_advanced:
+                    # One checkbox per tab, at the first advanced group:
+                    # two would be two controls for one piece of state.
+                    seen_advanced = True
+                    rows.append(Checkbox(
+                        _("Show advanced settings"), show_adv, id="set-adv",
+                        on_toggle=lambda: self._toggle_advanced(route)))
                 if not show_adv:
                     continue
             rows.append(Text(title, size=20, bold=True))

@@ -1520,3 +1520,62 @@ class TestPinFailsClosed(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAdvancedGroupMembership(unittest.TestCase):
+    """The disclosure is membership in a set, not a group's name.
+
+    It used to be `title == "Advanced"`, which capped a tab at one hidden
+    group and forced it to be called that — so #661's three tuning fields
+    could not be tucked away beside the settings they qualify without being
+    moved to another tab entirely.
+    """
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource(),
+                              controller=FakeController())
+        self.cfg = self.b._config()
+        # _config() hands back a shared object, so anything overwritten
+        # here leaks into every later test in the file. (Found exactly that
+        # way: five unrelated settings tests started erroring.)
+        for attr in ("sections", "ADVANCED_GROUPS"):
+            if hasattr(self.cfg, attr):
+                self.addCleanup(setattr, self.cfg, attr,
+                                getattr(self.cfg, attr))
+
+    def _ids(self):
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        return ids(nodes)
+
+    def test_a_second_advanced_group_is_also_hidden(self):
+        self.cfg.sections = lambda tab=None: (
+            [] if tab in ("browse", "playback") else
+            [("Interface", ["player_name"]),
+             ("Advanced", ["autoplay"]),
+             ("Tuning", ["seek_up"])])
+        self.cfg.ADVANCED_GROUPS = frozenset({"Advanced", "Tuning"})
+        present = self._ids()
+        self.assertIn("set-adv", present)
+        self.assertNotIn("set-autoplay", present)
+        self.assertNotIn("set-seek_up", present)
+
+    def test_one_checkbox_however_many_groups(self):
+        """Two would be two controls for one piece of state."""
+        self.cfg.sections = lambda tab=None: (
+            [] if tab in ("browse", "playback") else
+            [("Advanced", ["autoplay"]), ("Tuning", ["seek_up"])])
+        self.cfg.ADVANCED_GROUPS = frozenset({"Advanced", "Tuning"})
+        self.b._open_settings()
+        nodes, _h = build_scene(self.b)
+        self.assertEqual(
+            sum(1 for n in nodes if n.get("id") == "set-adv"), 1)
+
+    def test_a_group_not_in_the_set_stays_visible(self):
+        self.cfg.sections = lambda tab=None: (
+            [] if tab in ("browse", "playback") else
+            [("Interface", ["player_name"]), ("Tuning", ["seek_up"])])
+        self.cfg.ADVANCED_GROUPS = frozenset({"Advanced"})
+        present = self._ids()
+        self.assertIn("set-seek_up", present)
+        self.assertNotIn("set-adv", present)

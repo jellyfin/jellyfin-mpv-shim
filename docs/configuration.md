@@ -442,6 +442,22 @@ nothing is playing.
   - The window is anchored on the next episode *to watch* (the server's Next Up for that series),
     not on the last one downloaded, so a series you stop watching settles at this many episodes
     instead of being fetched in its entirety.
+- `auto_download_lookahead_min` - Leave a series alone while it already has at
+      least this many upcoming episodes held or queued. Default: `null`
+- `auto_download_lookahead_max` - ...and top it up to this many when it drops
+      below the minimum. Default: `null`
+  - **Set both or neither.** With one set and not the other, the pair is
+      ignored and `auto_download_lookahead` is used as before — there is no
+      sensible guess for the missing half.
+  - Downloads then arrive in fewer, larger batches, which is the point: the
+      flat lookahead fetches one episode at a time, waking a spun-down disk for
+      each one.
+  - Episodes that are queued or downloading count as held, so a pass does not
+      re-request what the previous pass already asked for.
+- `auto_download_max_per_pass` - How many items one automatic check may queue.
+      Default: `null`, meaning 20
+  - The limit was previously hardcoded at 20; this makes it adjustable without
+      changing that default. Values below 1 are ignored.
 - `auto_download_max_gb` - Storage budget for automatic downloads. Default: `20`
   - Only applies to automatic downloads. Ones you asked for are never counted against it and are
     never deleted automatically.

@@ -954,6 +954,13 @@ class FakeConfig:
         self.schema = {"autoplay": "bool", "player_name": "str",
                        "seek_up": "int", "osc_mode": "str", "lang": "str"}
 
+    #: Which groups sit behind "Show advanced settings". Modelled because
+    #: the renderer reads it: it used to key off a group being *called*
+    #: "Advanced", and a stand-in without this makes every group look
+    #: ordinary -- the disclosure then never renders and the test named
+    #: after it passes against a form that has no disclosure at all.
+    ADVANCED_GROUPS = frozenset({"Advanced"})
+
     def sections(self, tab=None):
         # The real one splits its groups across the General/Browse/Playback
         # tabs and takes which one to draw. This stand-in keeps one group on

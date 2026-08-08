@@ -308,6 +308,21 @@ class Settings(SettingsBase):
     # actually working through.
     auto_download_next_up_limit: int = 10
     auto_download_lookahead: int = 2
+    #: Hysteresis for the lookahead (#661), and the per-pass cap that was
+    #: hardcoded. **All three default to None, meaning "behave exactly as
+    #: before"** -- a flat window of auto_download_lookahead and a 20-item
+    #: pass. That is deliberate: the failure mode this feature is about is
+    #: unwanted disk activity, so an install that never opens the setting
+    #: must not change behaviour at all.
+    #:
+    #: With min and max set, a series is left alone while it already has at
+    #: least `min` upcoming episodes held or queued, and is topped up to
+    #: `max` when it drops below. Fewer, larger batches -- which is the
+    #: point: the reporter's HDDs were spinning up for one episode at a
+    #: time.
+    auto_download_lookahead_min: Optional[int] = None
+    auto_download_lookahead_max: Optional[int] = None
+    auto_download_max_per_pass: Optional[int] = None
     # Budget for auto-downloads only (see SyncDB.auto_size). Downloads the
     # user asked for are never counted against it and never reaped.
     auto_download_max_gb: int = 20

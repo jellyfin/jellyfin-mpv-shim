@@ -29,8 +29,8 @@ import logging
 import time
 
 from ..conf import settings
-from .db import (STATUS_COMPLETE, ORIGIN_AUTO_NEXT_UP,
-                 ORIGIN_AUTO_LOOKAHEAD)
+from .db import (STATUS_COMPLETE, STATUS_DOWNLOADING, STATUS_PENDING,
+                 ORIGIN_AUTO_NEXT_UP, ORIGIN_AUTO_LOOKAHEAD)
 
 log = logging.getLogger("sync.auto")
 
@@ -57,7 +57,60 @@ _UNKNOWN_SIZE = 2 * _GB
 #: Hard ceiling on items queued in one pass, whatever the budget says. A
 #: backstop for a pathological library (every size unreported, a cap of 0
 #: meaning unlimited): auto-download should trickle, not stampede.
+#:
+#: The default for ``auto_download_max_per_pass``, which #661 asked to make
+#: configurable and which the issue explicitly wanted left at 20.
 _MAX_PER_PASS = 20
+
+
+def _per_pass():
+    """How many items one pass may queue.
+
+    Anything below 1 falls back to the default rather than being clamped to
+    it: a hand-typed -3 clamped to 1 is a one-item-per-pass trickle that
+    looks like the feature working, and this setting exists to make passes
+    *bigger*.
+    """
+    value = settings.auto_download_max_per_pass
+    try:
+        value = int(value) if value is not None else 0
+    except (TypeError, ValueError):
+        return _MAX_PER_PASS
+    return value if value >= 1 else _MAX_PER_PASS
+
+
+def hysteresis():
+    """``(min, max)`` for the lookahead, or None when it is not configured.
+
+    Both or neither. A half-configured pair is something a person can type
+    into the JSON, and guessing the other half is worse than declining --
+    "min 5" with no max could mean top up to 5 or top up to the old flat
+    window, and those differ by however large the series is. Declined
+    loudly, the same way `allowed_servers` reports "enabled but no servers":
+    silently doing nothing is otherwise indistinguishable from a bug.
+
+    Also declined when max < min, which is the same class of typo.
+    """
+    lo = settings.auto_download_lookahead_min
+    hi = settings.auto_download_lookahead_max
+    if lo is None and hi is None:
+        return None
+    if lo is None or hi is None:
+        log.warning("auto_download_lookahead_min and _max must be set "
+                    "together; ignoring the one that is set and using the "
+                    "flat lookahead.")
+        return None
+    try:
+        lo, hi = int(lo), int(hi)
+    except (TypeError, ValueError):
+        log.warning("auto_download_lookahead_min/_max are not numbers; "
+                    "using the flat lookahead.")
+        return None
+    if lo < 0 or hi < lo:
+        log.warning("auto_download_lookahead_max (%s) is below the minimum "
+                    "(%s); using the flat lookahead.", hi, lo)
+        return None
+    return lo, hi
 
 
 class AutoDownloader:
@@ -307,13 +360,14 @@ class AutoDownloader:
         an overshoot throttles the pass after it rather than compounding.
         """
         queued = 0
+        cap = _per_pass()
         try:
             discarded = self.manager.db.discarded_ids()
         except Exception:
             log.debug("Could not read the discard list", exc_info=True)
             discarded = set()
         for server_uuid, item, origin in self._candidates():
-            if budget <= 0 or queued >= _MAX_PER_PASS:
+            if budget <= 0 or queued >= cap:
                 break
             if self._interrupted():
                 break
@@ -328,9 +382,9 @@ class AutoDownloader:
             if added:
                 queued += added
                 budget -= self._size_of(item)
-        if queued >= _MAX_PER_PASS:
+        if queued >= cap:
             log.info("Auto-download: stopped at the %d-item per-pass limit; "
-                     "the rest follow next pass.", _MAX_PER_PASS)
+                     "the rest follow next pass.", cap)
         return queued
 
     @staticmethod
@@ -418,7 +472,8 @@ class AutoDownloader:
         (they are in the catalog), so in the steady state this queues nothing
         until an episode is watched.
         """
-        count = int(settings.auto_download_lookahead or 0)
+        flat = int(settings.auto_download_lookahead or 0)
+        window = hysteresis()
         out = []
         for series_id in self._followed_series(server_uuid):
             anchor = self._watch_position(api, series_id)
@@ -427,6 +482,17 @@ class AutoDownloader:
                 # say. Either way, extending the window is a guess, and the
                 # wrong guess here is the runaway this method exists to avoid.
                 continue
+            count = flat
+            if window is not None:
+                low, high = window
+                have = self._upcoming_held(server_uuid, series_id)
+                if have >= low:
+                    # Above the low mark: do nothing at all. This is the
+                    # whole point of the feature -- the reporter's disks
+                    # were spinning up for one episode at a time, and a
+                    # series that is stocked should cost no transfers.
+                    continue
+                count = high
             try:
                 result = api.get_episodes(series_id, start_item_id=anchor,
                                           limit=count,
@@ -439,6 +505,36 @@ class AutoDownloader:
             # the next episode to watch, which is part of the window.
             out.extend((result.get("Items", []) or [])[:count])
         return out
+
+    def _upcoming_held(self, server_uuid, series_id):
+        """How many episodes of this series we already have or have asked for.
+
+        **Queued and in-progress count, not just complete** -- the issue
+        names that explicitly, and without it every pass would re-queue the
+        same episodes for as long as the first batch took to download,
+        which is precisely the stampede hysteresis is meant to replace.
+
+        Errored rows do not count: those are episodes we tried and failed to
+        get, and treating a failure as stock is how a series quietly stops
+        being topped up. (`_record_permanent_failure` keeps the planner from
+        retrying them for ever; that is a different mechanism and it works
+        off the discard list.)
+
+        Counted against the catalog rather than against the window, because
+        the window is what we are deciding the size of.
+        """
+        held = {STATUS_COMPLETE, STATUS_PENDING, STATUS_DOWNLOADING}
+        try:
+            rows = self.manager.db.list(series_id=series_id)
+        except Exception:
+            log.debug("Could not count held episodes for %s", series_id,
+                      exc_info=True)
+            # Answering "none" would top the series up on every pass; the
+            # safe direction is to look stocked and do nothing this time.
+            return 1 << 30
+        return sum(1 for row in rows
+                   if row.get("server_uuid") == server_uuid
+                   and row.get("status") in held)
 
     @staticmethod
     def _watch_position(api, series_id):
