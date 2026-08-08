@@ -16,7 +16,8 @@ from ...i18n import _
 from ...mpvtk.scaling import px
 from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from .. import components, theme
-from ..components import chrome, controls, detail as detail_components
+from ..components import (chrome, controls, detail as detail_components,
+                          media_info)
 from .base import Page
 
 log = logging.getLogger("mpvtk_browser.pages.detail")
@@ -367,43 +368,15 @@ class DetailPage(Page):
 
     def _media_info_line(self, item):
         """Codec/resolution/audio/size line plus "Ends at", like
-        jellyfin-web — enough to judge direct-play before hitting Play."""
+        jellyfin-web — enough to judge direct-play before hitting Play.
+
+        The file's half of this is ``media_info.summary_parts``, shared with
+        the two screens that show the same knowledge in full; "Ends at" stays
+        here because it is a property of the *item* (its resume position),
+        not of the file, and neither of those screens wants it.
+        """
         src = self._sel_source(item.get("MediaSources") or [])
-        streams = (src or {}).get("MediaStreams") or []
-        parts = []
-        video = next((s for s in streams if s.get("Type") == "Video"), None)
-        if video:
-            if video.get("DisplayTitle"):
-                parts.append(video["DisplayTitle"])
-            else:
-                # Codec as well as resolution. "1080p" alone drops the one
-                # thing that decides whether it will direct-play; Tk showed
-                # both when the server had no DisplayTitle to give.
-                bits = [(video.get("Codec") or "").upper()]
-                if video.get("Width") and video.get("Height"):
-                    bits.append("%dx%d" % (video["Width"], video["Height"]))
-                elif video.get("Height"):
-                    bits.append("%dp" % video["Height"])
-                joined = " ".join(b for b in bits if b)
-                if joined:
-                    parts.append(joined)
-            # VideoRangeType first: VideoRange only says HDR, not which.
-            vrange = video.get("VideoRangeType") or video.get("VideoRange")
-            if vrange and vrange != "SDR":
-                parts.append(vrange)
-        audio = next((s for s in streams if s.get("Type") == "Audio"), None)
-        if audio:
-            bits = [(audio.get("Codec") or "").upper(),
-                    audio.get("ChannelLayout") or ""]
-            joined = " ".join(b for b in bits if b)
-            if joined:
-                parts.append(joined)
-        if src and src.get("Container"):
-            parts.append(src["Container"].upper())
-        if src and src.get("Size"):
-            parts.append(components.human_size(src["Size"]))
-        if src and src.get("Bitrate"):
-            parts.append(_("%.1f Mbps") % (src["Bitrate"] / 1000000.0))
+        parts = media_info.summary_parts(src)
         runtime = item.get("RunTimeTicks")
         if runtime:
             pos = (item.get("UserData") or {}).get(
