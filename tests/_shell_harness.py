@@ -594,6 +594,12 @@ class FakeController:
         self.positions = {}
         self.positions_written = []
         self.set_position_ok = True
+        #: What a reader asked to have recorded, whether or not the server
+        #: took it. Separate from positions_written because the two answer
+        #: different questions: that one is "did the server get it", this
+        #: one is "did the reader report at all", and an offline reader
+        #: still has to do the second.
+        self.reading_positions = []
         #: Everything handed to the clipboard, in order. Recorded rather
         #: than dropped: what the reader copied is the only observable the
         #: copy menu has, and a fake that returned success without keeping
@@ -745,6 +751,15 @@ class FakeController:
 
     def get_position(self, server_uuid, item_id):
         return self.positions.get(item_id)
+
+    def record_reading_position(self, server_uuid, item_id, ticks):
+        """A reader's cursor. Declared rather than left to __getattr__:
+        that would record the call and return a Mock-ish None, so nothing
+        below could tell a page turn that reported from one that did not.
+        The real one also writes the catalog and queues on refusal, which
+        is tested against a real catalog in test_reading_position.py."""
+        self.reading_positions.append((item_id, int(ticks)))
+        return self.set_position(server_uuid, item_id, ticks)
 
     def set_position(self, server_uuid, item_id, ticks):
         if self.set_position_ok:

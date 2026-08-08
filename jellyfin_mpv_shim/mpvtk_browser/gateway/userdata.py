@@ -69,6 +69,55 @@ class UserDataMixin(GatewayCore):
                       item_id, exc_info=True)
             return False
 
+    def record_reading_position(self, server_uuid, item_id, ticks):
+        """A reader's cursor, on its way to wherever it can be kept.
+
+        Distinct from :meth:`set_position`, which is the manual Progress…
+        dialog: that one is a value the user typed, it may legitimately go
+        backwards, and it is deliberately *not* queued. This one is the
+        equivalent of a playback progress report, and it needs what those
+        get -- because a downloaded book is the one thing you can go on
+        reading with the server away, and until this existed an offline
+        page turn was written nowhere at all. Reopening the book offline
+        started it again from page one, and nothing was ever sent.
+
+        Three places, in this order, and the order is the point:
+
+        1. **The local catalog**, verbatim, so re-opening offline lands
+           where the reading stopped. Only for a downloaded item -- which
+           an in-window reader always is, since the file is what it opens.
+        2. **The server**, directly, which is the whole story while online.
+        3. **The replay queue**, but *only if the server refused*. Queuing
+           unconditionally would be worse than not queuing: the queue is
+           advance-only, so an entry left behind after a successful write
+           would be replayed later and undo a subsequent page turn that
+           went backwards.
+
+        Returns True when the server took it.
+        """
+        from ...sync.manager import syncManager
+
+        db = getattr(syncManager, "db", None)
+        if db is not None:
+            try:
+                db.set_reading_position(item_id, int(ticks))
+            except Exception:
+                log.debug("could not record the reading position locally",
+                          exc_info=True)
+        if self.set_position(server_uuid, item_id, ticks):
+            return True
+        if db is None:
+            return False
+        try:
+            # is_complete, because the queue is keyed on the catalog and an
+            # entry for something not downloaded would sit there forever.
+            if db.is_complete(item_id):
+                db.upsert_playstate(server_uuid, item_id,
+                                    position_ticks=int(ticks))
+        except Exception:
+            log.debug("could not queue the reading position", exc_info=True)
+        return False
+
     def set_favorite(self, server_uuid, item_id, favorite):
         """Returns True when the change was recorded. Favorites have no
         offline queue, so offline this is a refusal, not a silent no-op —

@@ -227,11 +227,14 @@ class ReaderPage(Page):
     # -- position ----------------------------------------------------------
 
     def _save_position(self, doc=None):
-        """Write where we are back to the server.
+        """Write where we are back to wherever it can be kept.
 
         Fire and forget: a failed write costs the position on other
         clients, and blocking a page turn on a round trip would cost the
-        reading.
+        reading. ``record_reading_position`` rather than ``set_position``,
+        so the local catalog and the offline replay queue get it too — a
+        downloaded book is the one thing that can be read with the server
+        away, and an offline page turn used to be written nowhere at all.
         """
         doc = doc or self.route.get("_doc")
         if doc is None:
@@ -261,7 +264,7 @@ class ReaderPage(Page):
         # book route left by a reader. What this covers is the reader's own
         # bar, and a re-entry that finds the route still in the history.
         item.setdefault("UserData", {})["PlaybackPositionTicks"] = ticks
-        setter = getattr(self.ctx.player, "set_position", None)
+        setter = getattr(self.ctx.player, "record_reading_position", None)
         if setter is None:
             return
 
