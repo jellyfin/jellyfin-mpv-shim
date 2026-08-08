@@ -67,6 +67,39 @@ class WordySource(FakeSource):
         "Restored in 4K from the original camera negative."
     )
 
+    #: Several rows with names of real length, for the three row-per-thing
+    #: screens. The harness ships one row of one item, which draws two
+    #: labels -- below MIN_TEXTS, and nowhere near enough page to measure.
+    #: The captions are not labels at any width (they are baked into the
+    #: strip bitmap), so what these screens put on the page is their row
+    #: HEADINGS, and a screen with one heading cannot overflow.
+    _ROW_TITLES = ("Science Fiction & Fantasy", "Documentary",
+                   "Action & Adventure", "Mystery & Thriller")
+
+    @staticmethod
+    def _row_items(prefix, n=10):
+        return [{"Id": "%s-%d" % (prefix, i), "Name": "A Film of Some Name",
+                 "Type": "Movie", "PrimaryImageAspectRatio": 2 / 3}
+                for i in range(n)]
+
+    @property
+    def genre_rows(self):
+        return [{"key": "g%d" % i, "title": t, "types": "Movie",
+                 "items": self._row_items("g%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
+
+    @property
+    def favorite_rows(self):
+        return [{"key": "f%d" % i, "title": t, "types": "Movie",
+                 "items": self._row_items("f%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
+
+    @property
+    def byname_rows(self):
+        return [{"key": "b%d" % i, "title": t, "types": "Movie",
+                 "total": 40, "items": self._row_items("b%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
+
     def get_item(self, server_uuid, item_id, **kw):
         item = super().get_item(server_uuid, item_id, **kw)
         if not item:
@@ -107,10 +140,21 @@ MIN_LOGICAL_W = 640
 #: plus the ones carrying dense chrome, which is where a row of controls runs
 #: out of page: tab bars, filter bars, track tables and the queue's toolbar.
 #:
-#: ``favorites``, ``genres`` and ``byname`` are deliberately absent: the fake
-#: source has no data for them, so they render an empty state that would pass
-#: this at any width and any scale. ``_walk`` pins that they are not quietly
-#: joined by a screen that has *become* empty.
+#: ``favorites``, ``genres`` and ``byname`` used to be excluded here, on the
+#: grounds that the fake source had no data for them and they would render an
+#: empty state that passes at any width. That has not been true since the
+#: harness grew ``genre_rows`` / ``favorite_rows`` / ``byname_rows`` -- they
+#: drew a real screen and nobody was measuring it, which is how a screen
+#: reported as misbehaving on a scaled display turned out never to have been
+#: laid out at a scale here. They are in, over ``RowSource``'s several rows:
+#: one row of one item is a screen too thin to run out of anything.
+#:
+#: Still absent, and each for the same honest reason -- no fixture that would
+#: draw the real thing: ``reader``, ``comic``, ``book``/``audiobook``/
+#: ``books``, ``playlist``/``playlist_edit``, ``person``, ``music_genre``,
+#: and Live TV's ``program`` / ``channel``. ``test_every_screen_has_a_test``
+#: guards the table below, not the set of routes that exist, so adding a
+#: screen here is the only thing that starts measuring it.
 SCREENS = {
     "home": {"kind": "home", "server": "s1"},
     "grid": {"kind": "grid", "parent_id": "lib1", "server": "s1",
@@ -129,6 +173,11 @@ SCREENS = {
     "artist": {"kind": "artist", "item_id": "ar1", "server": "s1"},
     "livetv": {"kind": "livetv", "server": "s1"},
     "queue": {"kind": "queue", "server": "s1"},
+    "genres": {"kind": "genres", "parent_id": "lib1", "server": "s1",
+               "collection_type": "movies", "title": "Genres"},
+    "favorites": {"kind": "favorites", "server": "s1", "title": "Favorites"},
+    "byname": {"kind": "byname", "server": "s1", "parent_id": "lib1",
+               "title": "People"},
 }
 
 #: A screen with fewer drawn labels than this is a spinner or an error state,
@@ -321,6 +370,15 @@ class DpiMatrixTest(unittest.TestCase):
 
     def test_queue(self):
         self._no_overflow("queue")
+
+    def test_genres(self):
+        self._no_overflow("genres")
+
+    def test_favorites(self):
+        self._no_overflow("favorites")
+
+    def test_byname(self):
+        self._no_overflow("byname")
 
     def test_every_screen_has_a_test(self):
         """A SCREENS entry with no test above is a screen nobody checks."""
