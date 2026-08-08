@@ -441,5 +441,8 @@ the player's own mpv window. How it lands against the model above:
   remote/keyboard case.
 
 The browser replaced an earlier Tkinter browser package (removed on
-reaching parity). Note: `mpvtk_browser/__init__.py` still cites a
-`MIGRATION.md` that does not exist — a leftover pointer, not a doc.
+reaching parity). The migration's own write-ups (`MIGRATION.md`,
+`PARITY.md`) were deleted in c37bfc3e and this section is what survives of
+them; the comments that cited those files were cleaned up on 2026-08-07, so
+a fresh citation of either is a dead pointer rather than a doc you have not
+found.

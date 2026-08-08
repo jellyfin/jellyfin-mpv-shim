@@ -4,7 +4,7 @@
 This is the mpvtk analogue of the Tk ``BrowserApp``. It runs in the main
 process next to ``playerManager`` (no ``multiprocessing`` child), attaches
 its UI to the player's mpv window via ``mpvtk.MpvtkApp.attach`` (see
-``mpvtk/MIGRATION.md``), and reproduces the load-bearing paradigms of the
+``mpvtk/GUIDE.md``), and reproduces the load-bearing paradigms of the
 Tk browser: a route-dict nav stack (``navigate``/``go_back``), background
 API calls with epoch-guarded staleness, and full-scene rebuilds driven by
 ``invalidate()`` (renderer-local state — scroll, focus — survives).

@@ -2369,9 +2369,10 @@ class LibrarySource:
 
     def image_url(self, server_uuid, item_id, image_type, tag, width,
                   height=None, fill=False, index=None):
-        # .get, not a bare index: image_url runs on the Tk thread from tile
-        # lazy-loading, and a rebuilt source can have dropped this server while
-        # a view still shows tiles keyed to it. Art just stops resolving.
+        # .get, not a bare index: image_url runs on the browser's loop
+        # thread from tile compositing, and a rebuilt source can have dropped
+        # this server while a view still shows tiles keyed to it. Art just
+        # stops resolving.
         conn = self._conns.get(server_uuid)
         if conn is None:
             return None
@@ -2470,7 +2471,7 @@ class _OfflineSnapshot:
     reload() builds a complete snapshot and publishes it with a single
     attribute assignment, so a reader that grabbed ``self._snap`` never sees
     a torn mix of new and old state (reload runs on an api-pool thread while
-    the Tk thread reads for artwork). Nothing mutates a snapshot's dicts
+    the loop thread reads for artwork). Nothing mutates a snapshot's dicts
     after publish — except ``art_cache``, a memo of resolved artwork paths
     (safe: values are deterministic for the snapshot, so a racing double
     compute is idempotent)."""
@@ -3164,7 +3165,7 @@ class OfflineLibrarySource:
 
     def _art_path(self, item_id, image_type, snap=None):
         """Resolve an item's local artwork file. Memoized per snapshot: this
-        runs on the Tk thread from tile lazy-loading, and each uncached call
+        runs on the loop thread from tile compositing, and each uncached call
         costs several os.path.exists probes (a real stutter source when the
         download folder lives on a network share). The memo dies with its
         snapshot, so a reload invalidates it automatically."""

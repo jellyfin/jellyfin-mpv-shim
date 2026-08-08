@@ -5177,8 +5177,8 @@ mp.register_script_message('mpvtk-active', function(on)
 end)
 
 -- ------------------------------------------------ playback HUD (mpvtk-hud)
--- A third lifecycle state besides active/inactive (MIGRATION.md Phase
--- 9): during video playback the renderer stays ATTACHED but IDLE —
+-- A third lifecycle state besides active/inactive: during video
+-- playback the renderer stays ATTACHED but IDLE —
 -- blank scene, no forced input sections, only a lightweight summon
 -- surface (arrow/ENTER catchers + the mouse-move observer above).
 -- Summoning binds the full sections and notifies Python ({t=hud,

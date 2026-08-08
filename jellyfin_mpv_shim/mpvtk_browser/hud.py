@@ -12,7 +12,7 @@ kept fresh by the shared 1s ticker.
 
 This IS the jellyfin-styled player UI (``osc_style: mpvtk``, the
 default) — it replaced the retired trickplay-jf-osc.lua at feature
-parity (MIGRATION.md Phase 9).
+parity.
 """
 
 import logging
