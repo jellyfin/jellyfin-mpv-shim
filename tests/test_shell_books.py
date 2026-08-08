@@ -1666,6 +1666,61 @@ class TestProgressDialog(BookPageHarness):
         self.assertIn("no reading position", text)
 
 
+class TestFinishedBookStillDownloads(unittest.TestCase):
+    """"Finished" is a toggle on the same page as Read and Download.
+
+    The sync manager skips any Book whose UserData says Played unless the
+    enqueue asks for watched items — so pressing Finished and then Read
+    reported "Downloading X…", enqueued nothing, and later said it could
+    not be downloaded. The tile menu's own Download worked, because the
+    dialog behind it already passes the flag.
+    """
+
+    def test_read_asks_for_the_item_even_when_it_is_marked_played(self):
+        from jellyfin_mpv_shim.mpvtk_browser.item_actions import ItemActions
+
+        calls = []
+
+        class Ctl:
+            def book_download_state(self, _iid):
+                return (None, None)
+
+            def download_enqueue(self, server, iid, kind,
+                                 include_watched=False):
+                calls.append(include_watched)
+
+        class Services:
+            controller = Ctl()
+            offline = False
+
+            def set_status(self, _text):
+                pass
+
+            def invalidate(self):
+                pass
+
+        class Run:
+            epoch = 0
+
+            def run(self, work, on_done, _epoch, on_error=None, always=None):
+                result = work()
+                if on_done:
+                    on_done(result)
+                if always:
+                    always()
+
+        actions = ItemActions.__new__(ItemActions)
+        actions.services = Services()
+        actions.run = Run()
+        actions._pending_reads = {}
+        actions._on_downloads_changed = lambda: None
+        actions.read_book({"Id": "bk1", "Name": "A Novel", "Type": "Book",
+                           "UserData": {"Played": True}}, "srv1")
+        self.assertEqual(calls, [True],
+                         "a single item the user asked for was filtered out "
+                         "by the watched filter")
+
+
 class TestChapteredAudioThatIsNotABook(unittest.TestCase):
     """A podcast or an m4b in a MUSIC library: chaptered, not an AudioBook.
 

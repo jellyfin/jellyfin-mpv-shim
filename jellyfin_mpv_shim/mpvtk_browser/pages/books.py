@@ -167,9 +167,18 @@ class BooksPage(GridPage):
         # this dict to the download dialog, which estimates by (id, type) --
         # so a folder whose own DTO has not landed (or whose fetch failed)
         # would offer a Download of nothing at all.
-        folder = route.get("_folder") or {
-            "Id": route.get("parent_id"), "Type": "Folder",
-            "Name": route.get("title", "")}
+        folder = route.get("_folder")
+        if folder is None:
+            # **Kept on the route, not rebuilt.** Finished and Favorite flip
+            # this dict optimistically and the next frame reads it back; a
+            # literal rebuilt in the builder is a fresh dict every frame, so
+            # the button could never show its own on-state and every press
+            # re-sent the same value. One of the two named footguns in
+            # CLAUDE.md, in its other form: state that a handler writes and
+            # the next draw cannot see.
+            folder = route.setdefault("_folder_stub", {
+                "Id": route.get("parent_id"), "Type": "Folder",
+                "Name": route.get("title", "")})
         ids = [t.get("Id") for t in tracks if t.get("Id")]
         header = Row([
             art.tiles.art_cell(folder, size=HEADER_ART),

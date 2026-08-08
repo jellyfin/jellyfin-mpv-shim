@@ -188,12 +188,17 @@ def decode_image(data, max_pixels=40_000_000):
 
     try:
         picture = Image.open(io.BytesIO(data))
+        # **Before load(), not after.** Image.open parses the header only,
+        # so the size is known while the pixels are still compressed;
+        # checking afterwards means a flat 8000x8000 PNG is a few hundred
+        # KB on the wire, ~190 MB in memory, and only then refused — which
+        # is the allocation the guard exists to prevent.
+        if picture.size[0] * picture.size[1] > max_pixels:
+            log.info("image %s is too large to draw", picture.size)
+            return None
         picture.load()
     except Exception:
         log.debug("undecodable image", exc_info=True)
-        return None
-    if picture.size[0] * picture.size[1] > max_pixels:
-        log.info("image %s is too large to draw", picture.size)
         return None
     return picture
 

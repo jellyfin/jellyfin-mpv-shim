@@ -480,6 +480,154 @@ class TestAbandonedOpen(ComicHarness):
                              "the comic never re-opened")
 
 
+class TestOutOfOrderAndFailure(ComicHarness):
+    """Extractions run on a pool several jobs deep when a turn key is held,
+    and they finish in whatever order they finish."""
+
+    def deferred(self):
+        source = FakeSource()
+        source.libraries = [{"Id": "lib-books", "Name": "Books",
+                             "Type": "CollectionFolder",
+                             "CollectionType": "books"}]
+        item = comic()
+        source.items[item["Id"]] = item
+        browser = MpvtkBrowser(app=None, source=source)
+        pool = _DeferredPool()
+        browser._pool = pool
+        browser.controller = FakeController()
+        browser.server = "srv1"
+        browser.controller.book_downloads[item["Id"]] = ("complete", self.cbz)
+        browser.navigate({"kind": "comic", "server": "srv1",
+                          "item_id": item["Id"], "title": "A Comic"})
+        pool.release(0)          # item load
+        pool.release(0)          # archive open (submits page 0)
+        return browser, pool
+
+    def test_a_late_page_does_not_overwrite_a_newer_one(self):
+        """Two turns in flight, the FIRST answering last. Without the
+        index check the window shows page 1 while the bar reads "3 of 4",
+        and it stays wrong until the next turn."""
+        browser, pool = self.deferred()
+        pool.release(0)                      # page 0 lands
+        page = self.page(browser)
+        page._turn(1)
+        page._turn(1)                        # two extractions queued
+        self.assertEqual(page.page_index(), 2)
+        pool.release_last()                  # page 2 answers first
+        handed = browser.controller.pictures[-1]
+        pool.release(0)                      # page 1 answers late
+        self.assertEqual(browser.controller.pictures[-1], handed,
+                         "a stale extraction replaced the current page")
+
+    def test_a_failure_on_a_route_left_behind_is_dropped(self):
+        """Leaving mid-extraction used to write our own cleanup's errno
+        onto the route — and `_error` is read before anything else on the
+        way back in, so that history entry was a dead end."""
+        browser, pool = self.deferred()
+        route = browser.route
+        browser.go_back()
+        route["_comic"] = None               # what close() does
+        pool.drain()
+        self.assertIsNone(route.get("_error"))
+
+    def test_a_failed_page_keeps_the_bars_and_clears_on_the_next_good_one(
+            self):
+        """"comic" is CHROME_FREE, so an error that replaces the whole
+        screen leaves no Back button and no way out but the tray."""
+        browser = self.open_comic()
+        build_scene(browser)
+        page = self.page(browser)
+        browser.route["_error"] = "page 2 is corrupt"
+        nodes, _handlers = build_scene(browser)
+        found = ids(nodes)
+        self.assertIn("cm-back", found, "the error left no way out")
+        self.assertIn("cm-next", found)
+        page._turn(1)
+        self.assertIsNone(browser.route.get("_error"),
+                          "a good page did not clear the error")
+
+    def test_the_page_is_put_back_after_the_window_is_handed_over(self):
+        """Yielding issues `stop`; the route is never retired, so nothing
+        else notices the window is empty."""
+        browser = self.open_comic()
+        build_scene(browser)
+        before = len(browser.controller.pictures)
+        browser._yield()
+        browser._browsing = True             # the window comes back
+        build_scene(browser)
+        self.assertGreater(len(browser.controller.pictures), before,
+                           "the comic never went back in the window")
+
+
+class TestArchiveLifetime(ComicHarness):
+    def test_closing_is_final_and_a_late_worker_gives_up(self):
+        """close() deletes files a worker may be mid-write on. Re-creating
+        the directory on demand afterwards would leak one per race."""
+        from jellyfin_mpv_shim.comic import ComicArchive, ComicError
+
+        archive = ComicArchive(self.cbz)
+        first = archive.page_path(0)
+        self.assertTrue(os.path.exists(first))
+        archive.close()
+        self.assertFalse(os.path.exists(first))
+        self.assertIsNone(archive.dir())
+        with self.assertRaises(ComicError):
+            archive.page_path(1)
+
+    def test_the_cache_is_wider_than_the_pool(self):
+        """Extractions run on that pool, so a narrower cache has one
+        worker trimming a file another has just handed to mpv."""
+        from jellyfin_mpv_shim import comic as comic_mod
+
+        self.assertGreater(comic_mod.PAGE_CACHE, 4)
+
+    def test_concurrent_extraction_of_every_page_is_consistent(self):
+        """Threads rather than a pool double, because the bookkeeping this
+        guards is real locking and a fake would not exercise it."""
+        import threading
+
+        from jellyfin_mpv_shim.comic import ComicArchive
+
+        big = build_cbz(os.path.join(self._tmp.name, "many.cbz"), pages=12,
+                        size=(80, 120))
+        archive = ComicArchive(big)
+        self.addCleanup(archive.close)
+        seen, errors = {}, []
+
+        def grab(i):
+            try:
+                path = archive.page_path(i)
+                with open(path, "rb") as handle:
+                    seen[i] = handle.read()
+            except Exception as exc:      # noqa: BLE001 - reported below
+                errors.append(exc)
+
+        threads = [threading.Thread(target=grab, args=(i,)) for i in range(12)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [])
+        with zipfile.ZipFile(big) as source:
+            for i, name in enumerate(archive.pages):
+                self.assertEqual(seen[i], source.read(name),
+                                 "page %d came back as another page" % i)
+
+
+class TestShutdown(ComicHarness):
+    def test_quitting_inside_a_comic_deletes_the_extracted_pages(self):
+        """The live page is never retired — retirement is observed from
+        build(), which stops running — so nothing else drops what it
+        holds."""
+        browser = self.open_comic()
+        build_scene(browser)
+        path = browser.controller.pictures[-1]
+        self.assertTrue(os.path.exists(path))
+        browser.shutdown(free_bitmaps=False)
+        self.assertFalse(os.path.exists(path),
+                         "the extracted pages outlived the app")
+
+
 class TestResume(ComicHarness):
     def test_a_comic_opens_where_the_server_says_it_was_left(self):
         browser = self.open_comic(

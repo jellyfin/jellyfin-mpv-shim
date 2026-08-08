@@ -664,6 +664,14 @@ def _wrap(block, avail, measurer, indent):
     cap = block.dropcap_span()
     tokens = _tokenize(block, measurer,
                        block.spans[1:] if cap is not None else None)
+    if cap is not None and not tokens:
+        # The capital was the whole paragraph. `_add_dropcap` only fires
+        # when there are lines to hang it on, so this used to emit nothing
+        # at all — a chapter number set at 2.6em on its own line, or an
+        # ornament divider, vanished silently with no gap where it was.
+        # Set it as ordinary (large) text instead.
+        cap = None
+        tokens = _tokenize(block, measurer)
     if not tokens:
         return []
     align = block.align or ("justify" if style.justify else "left")

@@ -154,6 +154,7 @@ class ComicPage(Page):
         down and the comic would sit behind the library grid; and the
         extracted pages are files, which nothing else will delete.
         """
+        self.route.pop("_showing", None)
         archive = self.route.pop("_comic", None)
         if archive is not None:
             try:
@@ -201,12 +202,29 @@ class ComicPage(Page):
             path, size = result
             if route.get("_comic") is not archive:
                 return              # navigated away while extracting
+            if route.get("_page") != index:
+                # A newer turn has already been asked for. Extractions run
+                # on a pool several deep when the key is held, and they
+                # finish in whatever order they finish: without this, a
+                # late page-3 result shows page 3 while the bar reads
+                # "6 of N", and it stays wrong until the next turn.
+                return
             route["_size"] = size
+            route.pop("_error", None)
             self.ctx.player.show_picture(path)
+            route["_showing"] = True
             self._place(to_bottom=to_bottom)
             self.ctx.invalidate()
 
         def failed(exc):
+            if route.get("_comic") is not archive:
+                # Same liveness question `done` asks. Without it, leaving
+                # mid-extraction writes the errno from our own cleanup onto
+                # a route the user is no longer looking at — and `_error`
+                # is checked before anything else on the way back in.
+                return
+            if route.get("_page") != index:
+                return
             route["_error"] = str(exc) or _("This page could not be read.")
             self.ctx.invalidate()
 
@@ -234,8 +252,9 @@ class ComicPage(Page):
 
         Fire and forget, like the epub reader's: a failed write costs the
         position elsewhere, and blocking a page turn on a round trip would
-        cost the reading. The DTO in hand is updated as well, or going back
-        to the book's own page shows the figure it was loaded with.
+        cost the reading. The DTO in hand is updated as well — this page's
+        own copy; the book page below holds a different dict, which
+        ``_land_back`` reloads on the way out.
         """
         data = self.route.get("_data") or {}
         item = data.get("item") or {}
@@ -396,10 +415,11 @@ class ComicPage(Page):
         from ...mpvtk.scaling import raster
 
         route = self.route
-        if route.get("_error"):
-            return chrome.error(route["_error"])
         data = route.get("_data")
         if data is None:
+            if route.get("_error"):
+                # Nothing else to draw yet, so the error IS the screen.
+                return chrome.error(route["_error"])
             return chrome.busy()
         # Coming back to a comic this page closed on the way out. The route
         # dict survives in the history with its data intact, so load() will
@@ -410,6 +430,14 @@ class ComicPage(Page):
             path = (data.get("state") or (None, None))[1]
             if path:
                 self._open_comic(path)
+        elif self.archive is not None and not route.get("_showing"):
+            # The archive is still open but the window is not showing the
+            # page: the browser yielded (playback, or being minimized),
+            # which issues `stop`, and came back. Nothing else notices —
+            # the route was never retired, so the re-open above does not
+            # fire — and the bars would repaint over an empty window until
+            # the user pressed Next.
+            self._show_page(route.get("_page", 0))
         # The window in the units mpv measures in. Kept on the route so the
         # placement maths can run from a button press, which has no size.
         window = raster(*size)
@@ -418,8 +446,20 @@ class ComicPage(Page):
             if route.get("_size"):
                 self._place()
         item = data.get("item") or {}
-        body = (self._waiting(data) if self.archive is None
-                else Spacer(flex=1))
+        if route.get("_error"):
+            # **Inside the page's own Column**, not instead of it. "comic"
+            # is CHROME_FREE, so returning a bare error node leaves a line
+            # of grey text on an empty window with no Back button, no bars
+            # and no way out but the tray — for one unreadable page in an
+            # otherwise fine comic. Keeping the bars means the next/prev
+            # buttons are still there, and `done` clears `_error` on the
+            # first page that does read.
+            body = Column([Spacer(), chrome.error(route["_error"]),
+                           Spacer()], flex=1, align="center")
+        elif self.archive is None:
+            body = self._waiting(data)
+        else:
+            body = Spacer(flex=1)
         return Column([self._top_bar(item), body, self._bottom_bar(size[0])],
                       flex=1, align="stretch")
 

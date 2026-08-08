@@ -244,11 +244,27 @@ def text_node_lengths(markup):
         node = stack.pop()
         if isinstance(node, str):
             if node.strip():
-                out.append(len(node))
+                out.append(utf16_len(node))
             continue
         for child in reversed(node.children):
             stack.append(child)
     return out
+
+
+def utf16_len(text):
+    """Length as epub.js measures it: **UTF-16 code units**.
+
+    ``node.length`` in the DOM is specified in UTF-16 units, so an emoji or
+    a CJK Extension-B ideograph costs two there and one to Python's
+    ``len``. A book with a thousand of them counts a thousand short here,
+    and the fraction written for a position disagrees with the number
+    jellyfin-web would have written for the same place.
+
+    The error largely cancels between a location and the total, so this is
+    a small correction — but it is free, and it is the difference between
+    a port that agrees with its original and one that nearly does.
+    """
+    return len(text) + sum(1 for ch in text if ord(ch) > 0xFFFF)
 
 
 def build(package, progress=None):

@@ -705,6 +705,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.route.pop("_items", None)
             self.route.pop("_loading", None)
             self._load_route(self.route)
+        # Coming out of a reader: the position moved while it was open, and
+        # it moved on the READER's copy of the DTO. The book page below
+        # holds its own dict, fetched before any of that, so without this
+        # it goes on showing the figure it was loaded with — "42% read"
+        # under a Resume button that resumes at 61%.
+        elif (any((r or {}).get("kind") in ("reader", "comic") for r in left)
+              and self.route.get("kind") == "book"):
+            self.route.pop("_data", None)
+            self._load_route(self.route)
         self.invalidate()
 
     def go_forward(self):
@@ -1528,6 +1537,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             except Exception:
                 log.debug("could not drop the key claim", exc_info=True)
         self._set_picture_pan(None)
+        # The window is being handed over, so whatever picture was in it is
+        # not on screen any more. The page checks this on its way back in;
+        # without it the bars repaint over an empty window, because the
+        # route was never retired and so never re-opened.
+        route = self.route
+        if route.get("_showing"):
+            route["_showing"] = False
         if self.controller is not None:
             try:
                 self.controller.reset_picture_view()
@@ -2857,13 +2873,25 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.app.run(self.build)
 
     def shutdown(self, free_bitmaps=True):
-        """Stop background work.
+        """Stop background work, and let the live page go.
+
+        The page that is on screen has never been retired — retirement is
+        observed from ``build()``, which stops running — so anything it
+        took hold of is still held. For the comic reader that is a
+        directory of extracted pages, which nothing else will delete:
+        quitting inside a comic left them behind every time.
 
         ``free_bitmaps=False`` keeps the composited tile buffers alive. On
         libmpv those are read BY ADDRESS by mpv every frame it composites, so
         they may only be released once mpv is genuinely dead — the caller
         knows that, this does not. See mpvtk_browser.ui.stop().
         """
+        page, self._live_page = self._live_page, None
+        if page is not None:
+            try:
+                page.close()
+            except Exception:
+                log.debug("page close on shutdown failed", exc_info=True)
         self._shutdown_evt.set()   # also stops the downloads poller
         self._async.shutdown(wait=False, cancel_futures=True)
         # Relocating the download store copies the whole thing and has no

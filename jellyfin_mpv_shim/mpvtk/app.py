@@ -290,6 +290,7 @@ class MpvtkApp:
         self.on_picture_gesture = None
         #: Last pan model pushed, so an unchanged one costs no message.
         self._picture_pan = None
+        self._pan_lock = threading.Lock()
         # called when the mouse's forward button is pressed while the UI
         # owns the pointer. No node and no argument: it means "go forward
         # in whatever history you keep", which the app owns -- the
@@ -840,7 +841,17 @@ class MpvtkApp:
         Only meaningful for an attached app: while suspended the renderer
         unbinds its forced mouse/wheel sections and blanks the scene, so the
         player's OSC gets the input it needs. Pushing an empty scene is not
-        enough — the bindings are what swallow the clicks."""
+        enough — the bindings are what swallow the clicks.
+
+        **Forgetting the caches is part of it.** The renderer drops its key
+        claim and its pan model on its own when it goes inactive, and never
+        says so; both of ours are compare-and-skip caches, so after a window
+        close and a tray reopen they would answer "already pushed" about a
+        claim that no longer exists — and a reader would come back with
+        LEFT/RIGHT walking the focus ring and SPACE toggling mpv's pause.
+        """
+        self._claimed_keys = ()
+        self._picture_pan = None
         self.backend.command(
             "script-message", "mpvtk-active", "yes" if active else "no"
         )
@@ -940,12 +951,18 @@ class MpvtkApp:
         """
         payload = dict(config or {})
         payload["on"] = bool(config)
-        if payload == self._picture_pan:
-            return
-        self._picture_pan = payload
-        self.backend.command(
-            "script-message", "mpvtk-vpan", json.dumps(payload),
-        )
+        # Under the lock: the compare, the store and the send are one
+        # decision, and this is reached from the loop thread (a render) and
+        # from a pool worker (a page landing). Interleaved, two callers can
+        # both see "unchanged" against a value neither of them sent, and
+        # the renderer keeps panning against a stale clamp.
+        with self._pan_lock:
+            if payload == self._picture_pan:
+                return
+            self._picture_pan = payload
+            self.backend.command(
+                "script-message", "mpvtk-vpan", json.dumps(payload),
+            )
 
     def summon_hud(self):
         """Wake an idle HUD as if a nav key were pressed (no pause

@@ -260,14 +260,65 @@ def _declarations(body):
     out = {}
     for match in _DECL.finditer(body):
         name = match.group(1).lower()
-        if name not in USED_PROPERTIES:
-            continue
-        value = match.group(2).strip().lower()
         # `!important` is not implemented; stripping the marker and keeping
         # the value is closer than dropping the declaration, and every epub
         # that uses it does so on a rule that would have won anyway.
-        out[name] = value.replace("!important", "").strip()
+        value = match.group(2).replace("!important", "").strip().lower()
+        if name in SHORTHANDS:
+            out.update(SHORTHANDS[name](value))
+            continue
+        if name not in USED_PROPERTIES:
+            continue
+        out[name] = value
     return out
+
+
+def expand_margin(value):
+    """``margin: 10px 12.5%`` -> the four longhands this reader reads.
+
+    Books write the shorthand far more often than the longhands — one real
+    title's stylesheet uses it 40 times against 32 — so dropping it means
+    dropping most of what the book says about its own insets: a pull-quote
+    or a verse block sets flush with the prose, which is exactly the
+    failure `content._margin_em` exists to prevent.
+    """
+    parts = value.split()
+    if not parts or len(parts) > 4:
+        return {}
+    if len(parts) == 1:
+        top = right = bottom = left = parts[0]
+    elif len(parts) == 2:
+        top, right = parts
+        bottom, left = top, right
+    elif len(parts) == 3:
+        top, right, bottom = parts
+        left = right
+    else:
+        top, right, bottom, left = parts
+    return {"margin-top": top, "margin-right": right,
+            "margin-bottom": bottom, "margin-left": left}
+
+
+def expand_list_style(value):
+    """``list-style: none`` -> ``list-style-type: none``.
+
+    Only the type is read. The shorthand's other two slots (position and
+    image) say nothing this reader draws, and a keyword it does not know is
+    left alone rather than guessed at — same rule as an unparseable
+    selector.
+    """
+    known = {"none", "disc", "circle", "square", "decimal", "lower-alpha",
+             "upper-alpha", "lower-latin", "upper-latin", "lower-roman",
+             "upper-roman"}
+    for part in value.split():
+        if part in known:
+            return {"list-style-type": part}
+    return {}
+
+
+#: Shorthands expanded into the longhands above. Kept small on purpose:
+#: every entry is a property this reader actually draws with.
+SHORTHANDS = {"margin": expand_margin, "list-style": expand_list_style}
 
 
 def _selector(selector):

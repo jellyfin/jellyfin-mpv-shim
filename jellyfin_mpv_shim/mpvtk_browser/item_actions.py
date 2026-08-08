@@ -642,7 +642,16 @@ class ItemActions:
                 # and leaving a press with no visible effect at all.
                 return ("offline", None)
             if status not in ("pending", "downloading"):
-                ctl.download_enqueue(server, iid, item.get("Type"))
+                # include_watched, because the gateway defaults it False and
+                # the sync manager then skips any Book whose UserData says
+                # Played — and "Finished" is a toggle sitting on this very
+                # page, beside this very button. Without it, pressing
+                # Finished then Read reports "Downloading X…", enqueues
+                # nothing, and later says it could not be downloaded. The
+                # filter exists for bulk enqueues of a series; a single
+                # item the user explicitly asked for has nothing to filter.
+                ctl.download_enqueue(server, iid, item.get("Type"),
+                                     include_watched=True)
             return ("queued", None)
 
         def done(result):
@@ -706,13 +715,20 @@ class ItemActions:
                           exc_info=True)
                 continue
             if path:
-                self._pending_reads.pop(iid, None)
+                # **Pop first, and only act if WE popped it.** This runs on
+                # whichever thread the sync worker notifies from, and two
+                # downloads finishing together call it twice at once — so a
+                # check-then-pop lets both passes see the same entry and
+                # launch the user's reader application twice for one book.
+                if self._pending_reads.pop(iid, None) is None:
+                    continue
                 ok, _method = ctl.open_downloaded_file(iid)
                 self.services.set_status(
                     _("Opening %s…") % name if ok else
                     _("Nothing on this system could open %s.") % name)
             elif status in (None, "error"):
-                self._pending_reads.pop(iid, None)
+                if self._pending_reads.pop(iid, None) is None:
+                    continue
                 self.services.set_status(_("%s could not be downloaded.")
                                          % name)
         self.services.invalidate()

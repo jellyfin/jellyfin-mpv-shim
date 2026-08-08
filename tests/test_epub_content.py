@@ -418,6 +418,42 @@ class TestNovelTypography(unittest.TestCase):
         items = [b for b in blocks if b.text().strip()]
         self.assertEqual([b.marker for b in items], ["", ""])
 
+    def test_the_margin_shorthand_is_expanded(self):
+        """Books write the shorthand far more often than the longhands —
+        one real title's stylesheet uses it 40 times against 32 — so
+        dropping it drops most of what the book says about its insets."""
+        blocks = self.blocks('<div class="s"><p>quoted</p></div>',
+                             "div.s{margin:10px 2em}")
+        inset = [b for b in blocks if "quoted" in b.text()][0]
+        self.assertAlmostEqual(inset.indent, 2.0, places=3)
+        self.assertAlmostEqual(inset.indent_right, 2.0, places=3)
+
+    def test_a_percentage_margin_is_read_against_the_measure(self):
+        """`12.5%` as `0.125em` is a fifth of a character — not a wrong
+        inset so much as no inset, which is the failure the property is
+        there to prevent."""
+        blocks = self.blocks('<div class="s"><p>quoted</p></div>',
+                             "div.s{margin:10px 12.5%}")
+        self.assertGreater(blocks[0].indent, 3.0)
+
+    def test_the_list_style_shorthand_is_expanded(self):
+        blocks = self.blocks("<ul><li>Anna</li><li>Piet</li></ul>",
+                             "ul{list-style:none}")
+        items = [b for b in blocks if b.text().strip()]
+        self.assertEqual([b.marker for b in items], ["", ""])
+
+    def test_a_shorthand_keyword_this_reader_cannot_draw_is_left_alone(self):
+        blocks = self.blocks("<ul><li>x</li></ul>",
+                             "ul{list-style:url(dot.png) outside}")
+        self.assertEqual(blocks[0].marker, "\u2022")
+
+    def test_characters_are_counted_as_epub_js_counts_them(self):
+        """UTF-16 code units, not code points: `node.length` in the DOM is
+        specified that way, so a non-BMP character costs two there."""
+        blocks, counted = content.parse_document(
+            xhtml("<p>hi \U0001F600 there</p>"))
+        self.assertEqual(counted, len("hi \U0001F600 there") + 1)
+
     def test_a_stylesheet_can_change_the_numbering(self):
         blocks = self.blocks("<ol><li>x</li><li>y</li></ol>",
                              "ol{list-style-type:lower-roman}")
@@ -528,6 +564,27 @@ class TestNovelTypography(unittest.TestCase):
         self.assertFalse(blocks[0].dropcap)
 
     # -- what came off the disk -------------------------------------------
+
+    def test_a_document_of_nothing_but_end_tags_is_given_up_on(self):
+        """The deadline is checked from the handlers, so it has to be
+        checked from ALL of them — a document with no start tags and no
+        text has nowhere else to fire."""
+        with self.assertRaises(xmlish.ParseTimeout):
+            xmlish.parse("</p>" * 200000, timeout=0.001)
+
+    def test_a_utf16_document_is_decoded_not_mangled(self):
+        """cp1252 maps every byte, so the fallback chain never fails on
+        UTF-16: it comes back NUL-interleaved, which is unreadable text and
+        twice the character count every other client sees."""
+        markup = xhtml("<p>hello there</p>")
+        for bom in ("utf-16-le", "utf-16-be"):
+            with self.subTest(encoding=bom):
+                raw = markup.encode("utf-16")
+                if bom == "utf-16-be":
+                    raw = b"\xfe\xff" + markup.encode("utf-16-be")
+                text = xmlish.decode(raw)
+                self.assertIn("hello there", text)
+                self.assertNotIn("\x00", text)
 
     def test_windows_line_endings_do_not_reach_the_page(self):
         """A CR has no glyph in any face, so it draws as a tofu box at the

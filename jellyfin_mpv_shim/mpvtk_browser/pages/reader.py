@@ -241,14 +241,26 @@ class ReaderPage(Page):
             return
         self.route["_saved"] = round(fraction, 6)
         ticks = ticks_for_fraction(fraction)
-        # Keep the local DTO in step, so going back to the book's page shows
-        # the position we just wrote rather than the one we arrived with.
+        # A sequence number, because these go onto a pool several workers
+        # wide with no ordering: hold RIGHT and the POST for page 3 can
+        # reach the server after the one for page 7, leaving the stored
+        # position behind where the reader actually is. The worker checks
+        # it is still the newest before posting; a superseded write has
+        # nothing to say that the newer one does not.
+        seq = self.route.get("_pos_seq", 0) + 1
+        self.route["_pos_seq"] = seq
+        # Keep the local DTO in step. This is the READER's copy — the book
+        # page below holds its own, which is why `_land_back` reloads a
+        # book route left by a reader. What this covers is the reader's own
+        # bar, and a re-entry that finds the route still in the history.
         item.setdefault("UserData", {})["PlaybackPositionTicks"] = ticks
         setter = getattr(self.ctx.player, "set_position", None)
         if setter is None:
             return
 
         def work():
+            if self.route.get("_pos_seq") != seq:
+                return
             setter(server, item["Id"], ticks)
 
         self.ctx.run.submit(work)
@@ -681,7 +693,6 @@ class ReaderPage(Page):
             drawn_key, entry = result
             route["_entry"] = entry
             route["_entry_key"] = drawn_key
-            route["_busy_key"] = None
             # If drawn_key != key the reader moved on between the submit
             # and the worker. The bitmap is still correct and correctly
             # named, so it is kept; the repaint below then asks for the
@@ -689,12 +700,22 @@ class ReaderPage(Page):
             self.ctx.invalidate()
 
         def failed(exc):
-            route["_busy_key"] = None
             log.warning("could not draw the page", exc_info=exc)
             route["_error"] = _("This book could not be drawn.")
             self.ctx.invalidate()
 
-        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
+        def settle():
+            # Clears the in-flight marker however the job ended, INCLUDING
+            # the epoch-superseded case where neither callback runs. Only
+            # when it is still ours: a newer paint has already claimed the
+            # slot and must keep it. Left set, this pins the screen to the
+            # previous page's bitmap under the new page's bar until
+            # something else asks for a repaint.
+            if route.get("_busy_key") == key:
+                route["_busy_key"] = None
+
+        self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed,
+                         always=settle)
         previous = route.get("_entry")
         if previous is not None:
             store.keep(previous)

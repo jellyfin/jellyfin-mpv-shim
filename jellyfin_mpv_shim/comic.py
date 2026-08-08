@@ -41,6 +41,7 @@ import re
 import shutil
 import tarfile
 import tempfile
+import threading
 import zipfile
 
 log = logging.getLogger("comic")
@@ -63,9 +64,14 @@ PAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".avif",
 #: is not. A 64 MB entry in a comic is not a page.
 MAX_PAGE_BYTES = 64 * 1024 * 1024
 
-#: How many extracted pages to keep on disk. Three, so paging back and
-#: forth across a boundary does not re-extract every time.
-PAGE_CACHE = 3
+#: How many extracted pages to keep on disk.
+#:
+#: **Above the browser's pool width**, which is what makes it a cache and
+#: not a hazard: extractions run on that pool, so with a narrower cache a
+#: burst of page turns has one worker trimming a file another worker has
+#: just written and handed to mpv. Eight is generous for a few hundred KB
+#: each and leaves room for paging back and forth across a boundary.
+PAGE_CACHE = 8
 
 _DIGITS = re.compile(r"(\d+)")
 
@@ -129,6 +135,15 @@ class ComicArchive:
         self._own_dir = cache_dir is None
         #: index -> extracted path, most recent last.
         self._extracted = {}
+        #: Extraction runs on the browser's worker pool, several jobs deep
+        #: when a page-turn key is held, while ``close()`` runs on the loop
+        #: thread. Without this, one worker's trim raced another's write and
+        #: ``close()``'s rmtree landed in the middle of an ``open(...)``.
+        self._lock = threading.RLock()
+        #: Set by close(). Checked wherever the directory would be created,
+        #: so a worker that arrives after the reader has gone gives up
+        #: instead of mkdtemp'ing a directory nobody will ever remove.
+        self._closed = False
 
     # -- entries -----------------------------------------------------------
 
@@ -169,9 +184,13 @@ class ComicArchive:
     # -- extraction --------------------------------------------------------
 
     def dir(self):
-        if self._dir is None:
-            self._dir = tempfile.mkdtemp(prefix="jmpvs-comic-")
-        return self._dir
+        """The extraction directory, made on demand. None once closed."""
+        with self._lock:
+            if self._closed:
+                return None
+            if self._dir is None:
+                self._dir = tempfile.mkdtemp(prefix="jmpvs-comic-")
+            return self._dir
 
     def page_path(self, index):
         """Page ``index`` as a file on disk, extracted if it is not already.
@@ -182,22 +201,44 @@ class ComicArchive:
         """
         if not 0 <= index < len(self.pages):
             raise ComicError("no page %d" % index)
-        hit = self._extracted.get(index)
-        if hit and os.path.exists(hit):
-            return hit
+        with self._lock:
+            hit = self._extracted.get(index)
+            if hit and os.path.exists(hit):
+                return hit
         name = self.pages[index]
         suffix = os.path.splitext(name)[1].lower() or ".img"
-        dest = os.path.join(self.dir(), "page%05d%s" % (index, suffix))
+        where = self.dir()
+        if where is None:
+            raise ComicError("this comic has been closed")
+        dest = os.path.join(where, "page%05d%s" % (index, suffix))
+        # The read and the write happen OUTSIDE the lock: a page is a few
+        # hundred KB of decompression and several of these run at once when
+        # a turn key is held, so holding the lock across them would serialise
+        # the pool for no benefit. Only the bookkeeping is guarded, and two
+        # workers extracting the same page write the same bytes to the same
+        # path, which os.replace makes atomic.
         data = self._read(index, name)
-        tmp = dest + ".part"
-        with open(tmp, "wb") as handle:
-            handle.write(data)
-        # Written aside and renamed: mpv is told to load this path from
-        # another thread, and a half-written JPEG is a decode error rather
-        # than a wait.
-        os.replace(tmp, dest)
-        self._extracted[index] = dest
-        self._trim(index)
+        tmp = "%s.%d.part" % (dest, threading.get_ident())
+        try:
+            with open(tmp, "wb") as handle:
+                handle.write(data)
+            # Written aside and renamed: mpv is told to load this path from
+            # another thread, and a half-written JPEG is a decode error
+            # rather than a wait.
+            os.replace(tmp, dest)
+        except OSError as exc:
+            # The reader left while this was in flight and close() took the
+            # directory. A ComicError so the caller's error path reports
+            # something a person can read rather than a raw errno.
+            self._unlink(tmp)
+            raise ComicError("page %d could not be unpacked: %s"
+                             % (index, exc)) from exc
+        with self._lock:
+            if self._closed:
+                self._unlink(dest)
+                raise ComicError("this comic has been closed")
+            self._extracted[index] = dest
+            self._trim(index)
         return dest
 
     def _read(self, index, name):
@@ -225,6 +266,7 @@ class ComicArchive:
         return data
 
     def _trim(self, keep):
+        """Drop the oldest extractions. Caller holds the lock."""
         while len(self._extracted) > PAGE_CACHE:
             for index in list(self._extracted):
                 if index == keep:
@@ -235,7 +277,10 @@ class ComicArchive:
                 return
 
     def _remove(self, index):
-        path = self._extracted.pop(index, None)
+        self._unlink(self._extracted.pop(index, None))
+
+    @staticmethod
+    def _unlink(path):
         if not path:
             return
         try:
@@ -244,15 +289,19 @@ class ComicArchive:
             log.debug("could not remove %s", path, exc_info=True)
 
     def close(self):
-        """Drop every extracted page.
+        """Drop every extracted page. Safe to call twice, and final.
 
-        Called when the reader leaves, and safe to call twice. The archive
-        stays usable — the next :meth:`page_path` extracts again — which is
-        what lets the shell close a comic without knowing whether the page
-        is coming back.
+        **Final**, unlike the epub reader's close(): this one deletes files
+        that a worker may be in the middle of writing, so "usable again
+        afterwards" would mean racing the rmtree with a mkdtemp on every
+        re-entry. `_closed` makes a late worker give up instead — the page
+        object opens a fresh archive when the route is re-entered, which
+        costs one central-directory read.
         """
-        for index in list(self._extracted):
-            self._remove(index)
-        if self._own_dir and self._dir:
-            shutil.rmtree(self._dir, ignore_errors=True)
-            self._dir = None
+        with self._lock:
+            self._closed = True
+            for index in list(self._extracted):
+                self._remove(index)
+            directory, self._dir = self._dir, None
+        if self._own_dir and directory:
+            shutil.rmtree(directory, ignore_errors=True)

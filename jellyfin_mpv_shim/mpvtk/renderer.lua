@@ -3035,16 +3035,26 @@ end
 -- any further, which is what turns the page instead: a comic reader that
 -- stops dead at the bottom of a page makes the wheel useless for the one
 -- gesture it is there for.
-function state.vpan_wheel(dir)
+function state.vpan_wheel(dir, scale)
     local v = state.vpan
     if not v or not v.on then return false end
     local before = mp.get_property_number('video-pan-y', 0)
     -- dir > 0 is "scroll down", which moves the picture UP, which is a
     -- SMALLER pan (a positive pan pushes the picture down the window).
-    state.vpan_by(0, -dir * (v.step or 60))
+    state.vpan_by(0, -dir * (v.step or 60) * (scale or 1))
     local after = mp.get_property_number('video-pan-y', 0)
-    if math.abs(after - before) > 1e-6 then return true end
-    send({ t = 'vpan', edge = dir > 0 and 'bottom' or 'top' })
+    if math.abs(after - before) > 1e-6 then
+        state.vpan_edge = nil
+        return true
+    end
+    -- At the end of the page. The turn is a round trip -- the app extracts
+    -- the next page and pushes a new clamp -- and a fling delivers a dozen
+    -- notches before any of that lands, so without an interlock one flick
+    -- past the bottom turns several pages at once. Ask once, then wait for
+    -- the clamp to change, which is what a page arriving looks like.
+    if state.vpan_edge then return true end
+    state.vpan_edge = dir > 0 and 'bottom' or 'top'
+    send({ t = 'vpan', edge = state.vpan_edge })
     return true
 end
 
@@ -3530,7 +3540,11 @@ local function on_wheel(dir, axis, e)
     -- scroll_at below finds nothing over it -- which would leave the wheel
     -- dead on the one screen whose entire content is scrollable.
     if state.vpan and state.vpan.on and axis == 'y' then
-        if state.vpan_wheel(dir) then return end
+        -- `scale` carries the hi-res delta a trackpad or a button-scrolling
+        -- trackball sends; ignoring it makes one flick of such a device a
+        -- full notch per event, which on a comic page is a page turn per
+        -- flick rather than a smooth scroll.
+        if state.vpan_wheel(dir, scale) then return end
     end
     local node = scroll_at(state.mouse.x, state.mouse.y, axis)
     local locked = false
@@ -4416,6 +4430,16 @@ function keyclaim.take(key)
     if state.focus or state.dd_open or active_menu() or modal_active() then
         return false
     end
+    -- ...and a focus RING, not only a focused textbox. Without this the
+    -- claim outranks spatial navigation: DOWN moves the ring into the
+    -- reader's own bottom bar and then RIGHT turns the page instead of
+    -- stepping to the next button, so the ring can never leave the first
+    -- control it landed on. A remote has no TAB, so that made the bar's
+    -- buttons unreachable by remote entirely. The claim resumes as soon as
+    -- the ring is dismissed (any mouse press drops it).
+    if state.nav_mode and state.nav then
+        return false
+    end
     send({ t = 'key', key = key })
     request_render()
     return true
@@ -4959,6 +4983,9 @@ mp.register_script_message('mpvtk-vpan', function(json)
         return
     end
     state.vpan = t
+    -- A fresh clamp is what a page arriving looks like, so this is where
+    -- the end-of-page interlock above is released.
+    state.vpan_edge = nil
 end)
 
 mp.register_script_message('mpvtk-focus', function(json)

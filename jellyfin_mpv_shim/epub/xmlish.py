@@ -192,6 +192,11 @@ class _Builder(HTMLParser):
             self._stack.pop()
 
     def handle_endtag(self, tag):
+        # Ticked like the other two handlers. A document that is nothing
+        # but end tags produces no start tags and no data, so without this
+        # the deadline has no place to fire and 32 MB of "</p>" holds the
+        # thread for tens of seconds.
+        self._tick()
         tag = _local(tag)
         if tag in VOID_TAGS:
             return
@@ -273,6 +278,17 @@ def decode(data):
     """
     if data[:3] == b"\xef\xbb\xbf":
         return data[3:].decode("utf-8", "replace")
+    # UTF-16, which cp1252 would otherwise "succeed" at: every byte maps,
+    # so the fallback chain never fails and the document comes back as
+    # NUL-interleaved mojibake — unreadable text AND a character count
+    # twice what every other client sees, which puts the stored position
+    # at half the book. The BOM is the whole test; a BOM-less UTF-16 epub
+    # is out of spec and indistinguishable from binary.
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        try:
+            return data.decode("utf-16")
+        except (UnicodeDecodeError, LookupError):
+            pass
     head = data[:1024]
     match = _XML_DECL.search(head) or _META_CHARSET.search(head)
     encodings = []

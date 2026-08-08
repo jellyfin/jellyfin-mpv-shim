@@ -205,6 +205,15 @@ class TestNovelTypographyOnThePage(unittest.TestCase):
                     % height)
         self.assertGreater(checked, 10, "the sweep never found the capital")
 
+    def test_a_paragraph_that_is_only_a_drop_capital_still_draws(self):
+        """A chapter number or an ornament set at 2.6em on its own line.
+        `_add_dropcap` only fires when there are lines to hang it on, so
+        this used to emit nothing at all — no glyph and no gap."""
+        lines = self.lines('<p class="num">II</p>', "p.num{font-size:2.6em}")
+        self.assertTrue(lines, "the paragraph vanished")
+        self.assertEqual("".join(p.text for ln in lines
+                                 for p in ln.pieces), "II")
+
     def test_a_raised_marker_is_moved_up_by_the_body_size(self):
         lines = self.lines("<p>carry.<sup>1</sup> And on she went.</p>")
         marker = [p for ln in lines for p in ln.pieces if p.text == "1"][0]

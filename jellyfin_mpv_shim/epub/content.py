@@ -361,7 +361,11 @@ class _Walker:
         # agrees with, which is worse than no number at all.
         offset = self.counted
         if text.strip():
-            self.counted += len(text)
+            # UTF-16 units, as epub.js counts (locations.utf16_len). The two
+            # walks must agree with each other AND with the original.
+            from .locations import utf16_len
+
+            self.counted += utf16_len(text)
         if not drawn:
             return
         if not pre:
@@ -716,6 +720,17 @@ def _smallcaps_spans(text, style, offset):
     return out
 
 
+#: What a percentage margin is a percentage OF, in ems.
+#:
+#: CSS says the containing block's width, which this reader does not model
+#: — but it does cap the measure, and that cap is the width of every block
+#: on the page (``layout.ReaderStyle.max_measure``). Reading `12.5%` as
+#: `0.125em`, which is what the font-size path returns for a percentage,
+#: makes a sidebar's inset a fifth of one character: not wrong-looking so
+#: much as absent, which is the failure the property exists to prevent.
+MEASURE_EM = 34.0
+
+
 def _margin_em(decls, prop):
     """A horizontal margin in ems, or 0. Negative margins are dropped —
     pulling a block out past the reader's own margin puts it off the page,
@@ -729,6 +744,8 @@ def _margin_em(decls, prop):
     em = length_em(value)
     if em is None:
         return 0.0
+    if value.strip().endswith("%"):
+        em *= MEASURE_EM
     return max(0.0, min(em, 8.0))
 
 

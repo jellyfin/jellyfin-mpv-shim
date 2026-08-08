@@ -381,6 +381,39 @@ class TestCopying(ReaderHarness):
         handlers["rd-menu"]["select"](0, None)
         self.assertEqual(browser.controller.copied, [want])
 
+    def test_the_conversion_holds_on_a_hidpi_display(self):
+        """`_column_y` is where three coordinate spaces meet, and at scale
+        1.0 two of them are the same number — so every test of it was
+        checking a conversion with nothing to convert.
+
+        Asserted on the conversion itself rather than through which
+        paragraph comes back: a paragraph is a hundred pixels tall, so it
+        absorbs an error that a HiDPI user would feel as the wrong half of
+        the page. (Checked: dropping the `px()` here does not change which
+        paragraph this fixture returns.)
+        """
+        from jellyfin_mpv_shim.mpvtk import scaling
+
+        original = scaling.scale()
+        self.addCleanup(scaling.set_scale, original)
+        for scale in (1.0, 2.0):
+            with self.subTest(scale=scale):
+                scaling.set_scale(scale)
+                browser = self.open_reader()
+                browser.app.rects["rd-page"] = dict(self.PAGE_RECT)
+                build_scene(browser)
+                page = self.page(browser)
+                style = self.doc(browser).style
+                for physical in (0, 120, 640):
+                    # The event arrives in LOGICAL window pixels; the answer
+                    # is in physical pixels from the top of the column.
+                    event_y = (self.PAGE_RECT["y"]
+                               + scaling.dip(physical + style.margin_y))
+                    self.assertAlmostEqual(
+                        page._column_y(event_y), physical, delta=1,
+                        msg="scale %s, %d px down the column"
+                            % (scale, physical))
+
     def test_the_paragraph_is_the_one_at_that_height_all_down_the_page(self):
         """Swept, because a conversion that is off by a constant — a
         forgotten margin, an unscaled origin — agrees with the truth over
