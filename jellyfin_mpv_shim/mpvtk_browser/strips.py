@@ -748,13 +748,29 @@ class StripStore:
             self._paint_kind(img, dr, cx, cy, t.kind)
             cx -= _px(self.BADGE_PITCH)
         if t.badge:
-            bw = _px(26)
+            # Sized to the number it carries, not to a guess about how big
+            # numbers get. This was a fixed 26 logical px, which is three
+            # physical px NARROWER than "123" draws at the default badge
+            # size -- so a three-digit count (routine on an unwatched anime
+            # series, and reachable by anyone who adds a show and never
+            # starts it) hung out of both ends of its own chip. Two digits
+            # fitted, with 3px of padding against the single digit's 8.
+            #
+            # jellyfin-web's `.countIndicator` is the same shape and grows
+            # the same way: `padding: 0 .5em` over a min-width. The chip is
+            # pinned by its RIGHT edge rather than its centre, because that
+            # edge is the one lined up with the badge stack beside it --
+            # growing from the middle would walk a wide chip off the corner
+            # of the card.
+            text = str(t.badge)
+            font = _font(g.badge_size, bold=True)
+            bw = max(_px(26), int(dr.textlength(text, font=font)) + _px(14))
+            right = cx + _px(13)
             dr.rounded_rectangle(
-                [cx - bw // 2, _px(5), cx + bw // 2, _px(25)],
+                [right - bw, _px(5), right, _px(25)],
                 radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
-            dr.text((cx, _px(15)), str(t.badge),
-                    font=_font(g.badge_size, bold=True), anchor="mm",
+            dr.text((right - bw / 2, _px(15)), text, font=font, anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
