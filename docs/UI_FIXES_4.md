@@ -16,7 +16,7 @@ formatter landing as its own commit before the two items that need it.
 
 | # | Title | State |
 |---|---|---|
-| — | [Groundwork: a shared media-info formatter](#groundwork-a-shared-media-info-formatter) | todo |
+| — | [Groundwork: a shared media-info formatter](#groundwork-a-shared-media-info-formatter) | done `ac2cea8e` |
 | [1](#1--mpv-default-mouse-modality-669) | mpv default mouse modality (#669) | todo |
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | todo |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
@@ -26,7 +26,7 @@ formatter landing as its own commit before the two items that need it.
 | [7](#7--posters-and-thumbnails-on-video-pages) | Posters/thumbnails on video pages | todo |
 | [8](#8--fact-check-exif-orientation) | Fact check: EXIF orientation | **answered — no work** |
 | [9](#9--fact-check-does-playstate-reach-the-local-catalog) | Fact check: playstate → local catalog | **answered — work needed** |
-| [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | todo |
+| [10](#10--playback-info-that-matches-jellyfin-webs) | Playback info matching jellyfin-web | done |
 | [11](#11--media-info-in-the-context-menu) | Media info in the context menu | todo |
 
 ---
@@ -587,6 +587,34 @@ The play method is four-valued, not two (`playback/playmethodhelper.js`):
 | Transcode | server `PlayMethod === 'Transcode'` |
 | DirectPlay | server `PlayMethod` is DirectStream or DirectPlay |
 
+### What the server actually returns — measured, and not what was planned
+
+Both readings this section originally proposed were wrong, and a live probe
+against 10.11 is what caught them. Two device profiles per outcome, one item,
+PlaybackInfo only (no stream fetched, so no ffmpeg started):
+
+* **``TranscodeReasons`` is not a MediaSource field.** It is a query
+  parameter *inside* ``TranscodingUrl``, comma-joined. Reading it off the
+  DTO — which is what the schema suggests — yields None every time, and the
+  panel then says the file is being transcoded for no reason at all.
+* **A remuxing URL does not say ``VideoCodec=copy``.** It names the *target*
+  codec, which for a remux is simply the codec the file already has. The
+  test is a comparison against the source stream, not a keyword — and the
+  parameter can name several codecs, so it is membership, not equality.
+
+Source ``mkv / hevc / aac``:
+
+===============================  ============  ============  ==============
+profile                          VideoCodec    AudioCodec    method
+===============================  ============  ============  ==============
+container refused, codecs kept   hevc          aac           Remux
+container refused, audio changed hevc          opus          DirectStream
+video codec refused              h264          aac           Transcode
+===============================  ============  ============  ==============
+
+`tests/test_play_method.py` carries these as fixtures, with the URLs in the
+shape the server really sends.
+
 ### The design decision
 
 jellyfin-web derives all of that from `session.TranscodingInfo` — the
@@ -641,13 +669,62 @@ records and shows for our sessions, and the mapping wants confirming against a
 live dashboard with all three branches forced. #10 derives its *displayed* play
 method locally and does not touch what is reported, so the two are independent.
 
-### Shape
+### Also: the useful half of mpv's own overlay
 
-- The play method, its reasons, and the target codecs onto the playstate
-  snapshot (`player_reporting.py:180`) — computed once at playback start, not
-  per frame, like `is_audiobook`.
-- A HUD page rendering it through the groundwork formatter.
-- SyncPlay rows if a group is active; that data is already local.
+**[iw]** "Worth adding things from MPV's display to ours that are actually
+useful, MPV's screen was never ideal because it showed behind our OSC."
+
+That is not a preference, it is the z-order: stats.lua draws ASS and the HUD
+is overlay bitmaps, which composite **above** all script ASS (mpvtk GUIDE
+§6). mpv's numbers have therefore always been drawn *behind* the controls
+you would be reading them from. Moving the viewer-facing ones into a panel
+we draw is the only way they are legible while the OSC is up.
+
+The set answers a viewer's questions, not a developer's: hardware
+acceleration, video output, framerate, dropped frames, A/V sync, buffered
+seconds, download speed. Three rules, each with a test:
+
+* **Dropped frames is two numbers, labelled.** A decoder drop is a machine
+  that cannot keep up; a VO drop is usually display sync. One combined
+  figure sends people to the wrong fix.
+* **Software decoding reads "No"**, not mpv's own ``"no"``, which looks like
+  a broken value rather than an answer.
+* **A counter mpv has nothing to say about is omitted, never shown as 0.**
+  There is no ``estimated-vf-fps`` before the first frame and no video
+  counters during audio; a zero would read as a measurement. The whole
+  block goes when mpv says nothing, so there is never a heading over
+  nothing.
+
+A misspelled property name fails *silently* — both backends turn an unknown
+attribute into a property read, so it raises, is dropped with the
+legitimately-absent ones, and the row simply never appears.
+`tests/test_mpv_stat_properties.py` checks every name against
+``mpv --list-properties``, offline, skipping when mpv is not on PATH.
+
+### Shape — what it came to
+
+- `media.py` owns the derivation and the four constants, set at each of the
+  four exits of `_get_url_from_source` (plus the photo branch, which returns
+  before it, and `OfflineVideo`, which sets it in `__init__` — a local file
+  has no decision pending, so the panel must not need playback started).
+- `gateway/hud.py:playback_info()` and `player_stats()`, both read per build
+  rather than pushed on the playstate snapshot: the panel is open for
+  seconds and the blob carries a whole MediaSource.
+- The panel is a **`Dialog`**, which buys two things for one: ESC and
+  click-outside dismissal, and `state.modal` — which `phud_busy` treats as a
+  busy HUD, so the panel cannot be read for four seconds and then yanked
+  away with the bar it hangs off.
+- Sized against the window. The HUD is drawn down to phone-shaped, and a
+  fixed 520-wide panel in a 480-wide window has its edges off both sides.
+
+### One string is not ours to choose
+
+`seed_from_jellyfin_web.py` matches our msgid against jellyfin-web's
+**value**. So every label here is their English character for character —
+trailing full stops and all, including `DV bl preset flag`, typo and all.
+77 of the formatter's 82 strings seed on that basis; the five that do not
+are unit formats web builds with template literals. Tidying any of them
+costs the translation in 86 locales and gains nothing.
 
 ---
 

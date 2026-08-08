@@ -387,11 +387,21 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         # bar itself — see TestTheGearDoesNotRepeatTheBar below.
         for want in ("Speed", "Aspect", "Profile",
                      "Subtitle Size", "Subtitle Position",
-                     "Subtitle Color", "Playback Data",
+                     "Subtitle Color", "Playback Info",
                      "Screenshot", "Unwatched"):
             self.assertTrue(any(want.lower() in l.lower()
                                 for l in labels),
                             "missing %r in %r" % (want, labels))
+        # "Playback Info" is OURS (#10), and it replaced the row that
+        # toggled mpv's stats.lua overlay rather than sitting beside it.
+        # mpv's is still one keypress away on `i`/`I` and answers a
+        # different question -- what the decoder is doing, rather than what
+        # the server is sending -- so the two are not rivals for one row.
+        # The lua OSC's own gear sheet still carries it; see
+        # osc_bridge._labels, which this does not touch.
+        self.assertFalse(any("playback data" in l.lower() for l in labels),
+                         "the gear kept mpv's overlay row as well: %r"
+                         % (labels,))
         idx = next(i for i, l in enumerate(labels)
                    if "Playback Speed" in l)
         handlers["hud-menu"]["select"](idx, labels[idx])
@@ -1440,3 +1450,197 @@ class TestCastingDoesNotSummonTheBrowser(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlaybackInfoPanel(unittest.TestCase):
+    """The gear menu's Playback Info panel (#10).
+
+    jellyfin-web reads its own session back off the server to answer this;
+    we made the decision ourselves in ``media.Video._get_url_from_source``,
+    so the panel is an attribute read. What these pin is that the rows which
+    only exist in the transcoding state actually reach the screen — those
+    are the ones the panel was added for.
+    """
+
+    def _browser(self, **info):
+        ctl = HudController()
+        if info:
+            ctl.playback_info_blob.update(info)
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=ctl)
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False, "title": "Movie",
+                       "position": 50.0, "duration": 100.0, "paused": False}
+        return b, ctl
+
+    @staticmethod
+    def _texts(nodes):
+        return [n.get("text") or "" for n in nodes]
+
+    def test_the_panel_is_closed_until_it_is_opened(self):
+        b, _c = self._browser()
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertNotIn("hud-info", ids(nodes))
+
+    def test_the_gear_row_opens_ours_not_mpvs_stats_overlay(self):
+        """`i` still opens mpv's stats.lua — a different question (what the
+        decoder is doing, not what the server is sending). The gear row is
+        this one, so pressing it must not toggle the mpv overlay."""
+        b, ctl = self._browser()
+        b.hud.menu = "root"
+        nodes, handlers = build_scene(b, (1280, 720))
+        rows = [n for n in nodes if n.get("id") == "hud-menu"]
+        self.assertTrue(rows, "the gear menu did not render")
+        items = rows[0].get("items") or []
+        self.assertIn("Playback Info", items)
+        handlers["hud-menu"]["select"](items.index("Playback Info"),
+                                       "Playback Info")
+        self.assertTrue(b.hud.info)
+        self.assertFalse(any(c[0] == "toggle_stats" for c in ctl.transport),
+                         "the gear row toggled mpv's overlay")
+
+    def test_an_open_panel_shows_the_play_method_and_why(self):
+        b, _c = self._browser()
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertIn("hud-info", ids(nodes))
+        text = " | ".join(self._texts(nodes))
+        self.assertIn("Transcoding", text)
+        # The reason is the single most useful thing on the panel and the
+        # least readable as the server sends it ("VideoCodecNotSupported").
+        self.assertIn("The video codec is not supported", text)
+        self.assertNotIn("VideoCodecNotSupported", text)
+
+    def test_it_describes_the_streams_of_the_chosen_source(self):
+        b, _c = self._browser()
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        text = " | ".join(self._texts(nodes))
+        for expected in ("HEVC", "3840x2160", "TRUEHD", "7.1", "mkv"):
+            self.assertIn(expected, text)
+
+    def test_direct_play_says_which_kind_of_direct(self):
+        """The distinction no other client makes, because no other client
+        has all three: a local file, a stream of the same bytes, and a
+        downloaded copy."""
+        for flags, expected in (
+                ({"direct_path": True, "offline": False}, "local file"),
+                ({"direct_path": False, "offline": False},
+                 "stream from server"),
+                ({"direct_path": True, "offline": True}, "downloaded copy")):
+            b, _c = self._browser(play_method="DirectPlay",
+                                  transcode_reasons=[], **flags)
+            b.hud.info = True
+            nodes, _h = build_scene(b, (1280, 720))
+            text = " | ".join(self._texts(nodes))
+            self.assertIn("Direct playing", text)
+            self.assertIn(expected, text)
+
+    def test_a_direct_play_has_no_reasons_block(self):
+        b, _c = self._browser(play_method="DirectPlay", transcode_reasons=[])
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertNotIn("Reasons", self._texts(nodes))
+
+    def test_closing_the_panel_asks_for_a_repaint(self):
+        """A Checkbox-shaped trap: nothing reconciles the tree afterwards,
+        so a handler that changes state without invalidating leaves the
+        panel on screen (see CLAUDE.md on the browser's standing footgun)."""
+        b, _c = self._browser()
+        b.hud.info = True
+        b.invalidated = 0
+        real = b.invalidate
+
+        def counting():
+            b.invalidated += 1
+            real()
+
+        b.invalidate = counting
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["hud-info-close"]["click"]()
+        self.assertFalse(b.hud.info)
+        self.assertGreater(b.invalidated, 0)
+
+    def test_the_hud_hiding_takes_the_panel_with_it(self):
+        # It is anchored to a bar that is no longer there, and leaving it
+        # set brings it back uninvited with the next summon.
+        b, _c = self._browser()
+        b.hud.info = True
+        b.hud.on_hud(False)
+        self.assertFalse(b.hud.info)
+
+    def test_nothing_playing_leaves_the_panel_shut(self):
+        b, ctl = self._browser()
+        ctl.playback_info_blob = None
+        ctl.playback_info = lambda: None
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        self.assertNotIn("hud-info", ids(nodes))
+
+    def test_the_panel_fits_the_window_it_floats_over(self):
+        """The HUD is drawn at every width from a phone-shaped window up.
+        A fixed-width panel has its own edges off both sides of a narrow
+        one, and the scroll would run past the bottom of a short one."""
+        b, _c = self._browser()
+        b.hud.info = True
+        for size in ((1280, 720), (640, 400), (420, 300)):
+            nodes, _h = build_scene(b, size)
+            panel = [n for n in nodes if n.get("id") == "hud-info"]
+            self.assertTrue(panel, "no panel at %r" % (size,))
+            for node in nodes:
+                if node.get("id") in ("hud-info", "hud-info-scroll"):
+                    self.assertLessEqual(node.get("w") or 0, size[0],
+                                         "%s wider than the window at %r"
+                                         % (node.get("id"), size))
+                    self.assertLessEqual(node.get("h") or 0, size[1],
+                                         "%s taller than the window at %r"
+                                         % (node.get("id"), size))
+
+    def test_it_shows_what_mpv_is_doing_with_the_stream(self):
+        """mpv's own stats.lua overlay is ASS and our HUD is overlay
+        bitmaps, which composite above all script ASS — so mpv's numbers
+        have always been drawn *behind* the controls you read them from.
+        The useful half lives here now, where it is legible."""
+        b, _c = self._browser()
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        text = " | ".join(self._texts(nodes))
+        self.assertIn("gpu-next", text)          # video output
+        self.assertIn("Buffered", text)          # why it keeps stalling
+        self.assertIn("42.5", text)
+        self.assertIn("Dropped frames", text)
+        # Both counters, labelled: a decoder drop is a machine that cannot
+        # keep up and a VO drop is usually display sync. One combined
+        # number sends people to the wrong place.
+        self.assertIn("0 output, 3 decoder", text)
+
+    def test_software_decoding_reads_as_no_rather_than_mpvs_word(self):
+        b, _c = self._browser()
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        rows = " | ".join(self._texts(nodes))
+        self.assertIn("Hardware acceleration", rows)
+        idx = self._texts(nodes).index("Hardware acceleration")
+        self.assertEqual(self._texts(nodes)[idx + 1], "No")
+
+    def test_counters_mpv_has_nothing_to_say_about_are_left_out(self):
+        """Not an error state: there is no rendered-fps estimate before the
+        first frame and none of the video counters during audio. Zeroes
+        would read as measurements."""
+        b, ctl = self._browser()
+        ctl.player_stats_blob = {"buffered": 1.0}
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        text = " | ".join(self._texts(nodes))
+        self.assertIn("Buffered", text)
+        for absent in ("Video output", "Dropped frames", "A/V sync"):
+            self.assertNotIn(absent, text)
+
+    def test_no_player_block_at_all_when_mpv_says_nothing(self):
+        b, ctl = self._browser()
+        ctl.player_stats_blob = {}
+        b.hud.info = True
+        nodes, _h = build_scene(b, (1280, 720))
+        # The heading must go with its rows; a bare "Player" heading over
+        # nothing reads as a panel that failed to load.
+        self.assertNotIn("Player", self._texts(nodes))

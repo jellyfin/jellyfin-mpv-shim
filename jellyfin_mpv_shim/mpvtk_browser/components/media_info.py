@@ -203,16 +203,16 @@ def _dolby_vision_attributes(stream):
     """
     if not stream.get("VideoDoViTitle"):
         return []
-    out = [(_("Dolby Vision title"), str(stream["VideoDoViTitle"]))]
+    out = [(_("DV title"), str(stream["VideoDoViTitle"]))]
     for key, label in (("DvVersionMajor", _("DV version major")),
                        ("DvVersionMinor", _("DV version minor")),
                        ("DvProfile", _("DV profile")),
                        ("DvLevel", _("DV level")),
-                       ("RpuPresentFlag", _("RPU present")),
-                       ("ElPresentFlag", _("EL present")),
-                       ("BlPresentFlag", _("BL present")),
+                       ("RpuPresentFlag", _("DV rpu preset flag")),
+                       ("ElPresentFlag", _("DV el preset flag")),
+                       ("BlPresentFlag", _("DV bl preset flag")),
                        ("DvBlSignalCompatibilityId",
-                        _("DV BL signal compatibility ID"))):
+                        _("DV bl signal compatibility id"))):
         value = stream.get(key)
         if value is not None:
             out.append((label, str(value)))
@@ -323,34 +323,37 @@ def play_method_label(method):
 #: the screen and the least readable — it is the answer to "why is my server
 #: pinned at 100%".
 _REASONS = {
-    "ContainerNotSupported": _("The container is not supported."),
-    "VideoCodecNotSupported": _("The video codec is not supported."),
-    "AudioCodecNotSupported": _("The audio codec is not supported."),
-    "SubtitleCodecNotSupported": _("The subtitle codec is not supported."),
-    "AudioIsExternal": _("The audio track is external."),
-    "SecondaryAudioNotSupported": _("Secondary audio is not supported."),
-    "VideoProfileNotSupported": _("The video profile is not supported."),
-    "VideoLevelNotSupported": _("The video level is not supported."),
-    "VideoResolutionNotSupported": _("The video resolution is not supported."),
-    "VideoBitDepthNotSupported": _("The video bit depth is not supported."),
-    "VideoFramerateNotSupported": _("The video framerate is not supported."),
-    "RefFramesNotSupported": _("The number of reference frames is not "
-                               "supported."),
-    "AnamorphicVideoNotSupported": _("Anamorphic video is not supported."),
-    "InterlacedVideoNotSupported": _("Interlaced video is not supported."),
-    "AudioChannelsNotSupported": _("The audio channel count is not "
-                                   "supported."),
-    "AudioProfileNotSupported": _("The audio profile is not supported."),
-    "AudioSampleRateNotSupported": _("The audio sample rate is not "
-                                     "supported."),
-    "AudioBitDepthNotSupported": _("The audio bit depth is not supported."),
-    "ContainerBitrateExceedsLimit": _("The bitrate exceeds the limit."),
-    "VideoBitrateNotSupported": _("The video bitrate is not supported."),
-    "AudioBitrateNotSupported": _("The audio bitrate is not supported."),
-    "UnknownVideoStreamInfo": _("The video stream could not be inspected."),
-    "UnknownAudioStreamInfo": _("The audio stream could not be inspected."),
-    "DirectPlayError": _("Direct play failed."),
-    "VideoRangeTypeNotSupported": _("The video range is not supported."),
+    "ContainerNotSupported": _("The container is not supported"),
+    "VideoCodecNotSupported": _("The video codec is not supported"),
+    "AudioCodecNotSupported": _("The audio codec is not supported"),
+    "SubtitleCodecNotSupported": _("The subtitle codec is not supported"),
+    "AudioIsExternal": _("The audio stream is external"),
+    "SecondaryAudioNotSupported":
+        _("Secondary audio tracks are not supported"),
+    "VideoProfileNotSupported":
+        _("The video codec's profile is not supported"),
+    "VideoLevelNotSupported": _("The video codec's level is not supported"),
+    "VideoResolutionNotSupported":
+        _("The video's resolution is not supported"),
+    "VideoBitDepthNotSupported": _("The video's bit depth is not supported"),
+    "VideoFramerateNotSupported": _("The video's framerate is not supported"),
+    "RefFramesNotSupported": _("Reference frames are not supported"),
+    "AnamorphicVideoNotSupported": _("Anamorphic video is not supported"),
+    "InterlacedVideoNotSupported": _("Interlaced video is not supported"),
+    "AudioChannelsNotSupported":
+        _("The number of audio channels is not supported"),
+    "AudioProfileNotSupported":
+        _("The audio codec's profile is not supported"),
+    "AudioSampleRateNotSupported":
+        _("The audio's sample rate is not supported"),
+    "AudioBitDepthNotSupported": _("The audio's bit depth is not supported"),
+    "ContainerBitrateExceedsLimit": _("The video's bitrate exceeds the limit"),
+    "VideoBitrateNotSupported": _("The video's bitrate is not supported"),
+    "AudioBitrateNotSupported": _("The audio's bitrate is not supported"),
+    "UnknownVideoStreamInfo": _("The video stream info is unknown"),
+    "UnknownAudioStreamInfo": _("The audio stream info is unknown"),
+    "DirectPlayError": _("There was an error starting direct playback"),
+    "VideoRangeTypeNotSupported": _("The video's range type is not supported"),
 }
 
 

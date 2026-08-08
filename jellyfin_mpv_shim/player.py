@@ -538,8 +538,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Tracks whether mpv's stats.lua ("Playback Data") overlay is up, so
         # it can be cleared when the library comes back. It is ASS OSD, which
         # the in-window browser draws over — but left on, it lingers behind
-        # the library once playback ends. Both the HUD gear entry and the `i`
-        # key funnel through toggle_stats() so this stays truthful.
+        # the library once playback ends. The `i` key and the lua OSC's gear
+        # sheet funnel through toggle_stats() so this stays truthful (the
+        # mpvtk HUD's gear row is now our own Playback Info -- see #10).
         self._stats_shown = False
         # True while the in-window browser's solid background image is the
         # loaded file. Guards against reloading it on top of itself, which
@@ -2172,9 +2173,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def toggle_stats(self):
         """Toggle mpv's "Playback Data" (stats.lua) overlay, tracking its
-        state. Both the HUD gear menu's Playback Data entry and the `i` key
-        route here so ``_stats_shown`` stays truthful and clear_stats() can
-        reliably put it away when the library returns."""
+        state.
+
+        Reached from the `i` key and from the *lua* OSC's gear sheet. The
+        mpvtk HUD's gear no longer has an entry for it: that row is
+        "Playback Info" now, which is ours and answers what the server is
+        sending rather than what the decoder is doing (#10). Everything
+        still funnels through here so ``_stats_shown`` stays truthful and
+        clear_stats() can reliably put the overlay away when the library
+        returns."""
         if not self._mpv_alive:
             return
         try:

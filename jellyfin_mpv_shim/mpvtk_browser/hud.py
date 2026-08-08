@@ -25,6 +25,7 @@ from ..mpvtk.widgets import (
     Box,
     Button,
     Column,
+    Dialog,
     Dropdown,
     Element,
     Gradient,
@@ -34,8 +35,10 @@ from ..mpvtk.widgets import (
     Spacer,
     Stack,
     Text,
+    VScroll,
 )
 from . import theme, window_chrome
+from .components import media_info
 from .window_chrome import WINDOW_CONTROL_W
 
 log = logging.getLogger("mpvtk_browser.hud")
@@ -369,8 +372,13 @@ def _menu_rows(b, st, w=None):
         rows.append((_("Night Mode (Auto Volume Adj)"),
                      "check" if settings.audio_night_mode else None,
                      leaf(lambda: b._ctl(lambda c: c.toggle_night_mode()))))
-        rows.append((_("Playback Data"), None, leaf(
-            lambda: b._ctl(lambda c: c.toggle_stats()))))
+        # Ours, not mpv's. mpv's stats.lua overlay is still one keypress
+        # away on `i` (player._stats_key) and is a different question --
+        # what the decoder is doing, not what the server is sending -- so
+        # the two are not rivals for this row. This is the one a viewer
+        # wants when the fan spins up.
+        rows.append((_("Playback Info"), None, leaf(
+            lambda: _open_info(b))))
         if st.get("allow_screenshot"):
             rows.append((_("Screenshot"), None, leaf(
                 lambda: _hud_action(b, "screenshot"))))
@@ -451,6 +459,171 @@ def _settings_menu(b, menu_state, size):
         icons=[r[1] for r in rows],
         on_select=lambda i, v, rr=rows: rr[i][2](),
         on_dismiss=lambda: _close_hud_menu(b))
+
+
+#: The info panel's width, and the height its scroll gives up at. Wide
+#: enough for "The video resolution is not supported." on one line, since
+#: those sentences are the point of the panel; tall enough for a typical
+#: file's whole summary without scrolling, and no taller, because it is
+#: floating over the frame somebody is watching.
+INFO_W = 520
+INFO_MAX_H = 420
+
+
+def _mpv_rows(stats):
+    """The live-counter block, from mpv rather than from the DTO.
+
+    Only what a *viewer* asks: is my GPU being used, why is it stuttering,
+    why did it stall. Each row is omitted when mpv had nothing to say --
+    which is a real state rather than an error (no rendered-fps estimate
+    before the first frame, none of the video counters during audio), and
+    is why they are individually guarded rather than shown as zeroes.
+    """
+    rows = []
+    hwdec = stats.get("hwdec")
+    if hwdec:
+        # mpv says "no" for software decoding, which reads as a broken
+        # value rather than an answer.
+        rows.append((_("Hardware acceleration"),
+                     _("No") if hwdec == "no" else str(hwdec)))
+    if stats.get("vo"):
+        rows.append((_("Video output"), str(stats["vo"])))
+    fps = stats.get("fps")
+    if fps:
+        rows.append((_("Framerate"), "%.2f" % float(fps)))
+    drops_vo, drops_dec = stats.get("drops_vo"), stats.get("drops_dec")
+    if drops_vo is not None or drops_dec is not None:
+        # Both, and labelled, because they mean opposite things: the
+        # decoder dropping frames is a machine that cannot keep up, the VO
+        # dropping them is usually a display-sync problem. One combined
+        # number sends people to the wrong place.
+        rows.append((_("Dropped frames"),
+                     _("%(vo)d output, %(dec)d decoder")
+                     % {"vo": int(drops_vo or 0), "dec": int(drops_dec or 0)}))
+    if stats.get("avsync") is not None:
+        rows.append((_("A/V sync"), "%+.3f s" % float(stats["avsync"])))
+    if stats.get("buffered") is not None:
+        # The answer to "why does it keep stalling" -- and the one number
+        # here that a Jellyfin user can act on, by turning the stream down.
+        rows.append((_("Buffered"), _("%.1f s") % float(stats["buffered"])))
+    speed = stats.get("cache_speed")
+    if speed:
+        rows.append((_("Download speed"),
+                     _("%.1f Mbps") % (float(speed) * 8 / 1000000.0)))
+    return rows
+
+
+def _info_rows(info, stats=None):
+    """``[(heading, [(label, value), ...]), ...]`` for the panel.
+
+    jellyfin-web's playerstats categories, minus the two that need the
+    server polled (transcode completion and encoder fps) — see the gateway's
+    ``playback_info`` — plus one they do not have: what mpv is doing with
+    the stream once it arrives.
+    """
+    source = info.get("source") or {}
+    method = info.get("play_method")
+    playback = []
+    if info.get("item_type"):
+        playback.append((_("Media type"), info["item_type"]))
+    label = media_info.play_method_label(method)
+    if label:
+        # How it got here, which web cannot say and we can: a file we opened
+        # ourselves is a different thing from the same bytes over HTTP, and
+        # on a downloaded copy it is the whole answer.
+        if method == media_info.DIRECT_PLAY:
+            label += "  (%s)" % (_("downloaded copy") if info.get("offline")
+                                 else _("local file") if info.get("direct_path")
+                                 else _("stream from server"))
+        playback.append((_("Play method"), label))
+    reasons = media_info.transcode_reasons(info.get("transcode_reasons"))
+
+    out = [(_("Playback"), playback)] if playback else []
+    if reasons:
+        # Numbered rather than bulleted: the label column is what every
+        # other block here uses, and an empty one leaves the sentences
+        # hanging in the middle of the panel.
+        out.append((_("Reasons"),
+                    [("%d." % (i + 1), r) for i, r in enumerate(reasons)]))
+    player_rows = _mpv_rows(stats or {})
+    if player_rows:
+        out.append((_("Player"), player_rows))
+    file_rows = media_info.source_attributes(source)
+    if file_rows:
+        out.append((_("File"), file_rows))
+    for stream in media_info.visible_streams(source):
+        rows = media_info.stream_attributes(stream, source)
+        if rows:
+            out.append((media_info.stream_heading(stream), rows))
+    return out
+
+
+def _info_dialog(b, size):
+    """The playback-info panel, or None when it is closed.
+
+    A ``Dialog`` rather than a floating Box for two reasons that are one
+    reason: it gets ESC and click-outside dismissal for free, and the
+    renderer's auto-hide treats an open modal as a busy HUD
+    (``phud_busy``) — so the panel cannot be read for four seconds and then
+    yanked away with the bar it is attached to.
+    """
+    if not b.hud.info:
+        return None
+    info = _ctl_get(b, "playback_info", None)
+    if not info:
+        return None
+    # Sized against the window, not at a constant. The HUD is drawn at every
+    # width from a phone-shaped window upward -- the bar itself scales to
+    # 72% and sheds controls -- and a 520-wide panel in a 480-wide window is
+    # a dialog with its own edges off both sides of the screen.
+    win_w, win_h = size
+    w = max(280, min(INFO_W, win_w - 40))
+    # The floor is deliberately below anything readable: at that point
+    # the window is too short for the panel AND its own heading, and a
+    # scroll of two rows inside the window beats a panel whose Close
+    # button is off the bottom of the screen.
+    body_h = max(60, min(INFO_MAX_H, win_h - 220))
+    blocks = [Text(_("Playback Info"), size=22, bold=True)]
+    if info.get("title"):
+        blocks.append(Text(info["title"], size=16, color=theme.SUBTLE_FG,
+                           wrap=True, w=w - 48))
+    body = []
+    stats = _ctl_get(b, "player_stats", {}) or {}
+    for heading, rows in _info_rows(info, stats):
+        body.append(Text(heading, size=17, bold=True, color=theme.ACCENT))
+        for label, value in rows:
+            body.append(Row([
+                Text(label, size=15, color=theme.SUBTLE_FG,
+                     w=min(160, w // 3)),
+                # Wrapped: a path and a reason are both longer than the
+                # panel, and ellipsizing a path in the middle throws away
+                # the filename, which is the half anyone reads.
+                Text(value, size=15, wrap=True, flex=1),
+            ], gap=8, align="start"))
+    if not body:
+        body.append(Text(_("Nothing is playing."), size=15,
+                         color=theme.SUBTLE_FG))
+    blocks.append(VScroll(Column(body, gap=6, align="stretch"),
+                          id="hud-info-scroll", h=body_h))
+    blocks.append(Row([Spacer(flex=1),
+                       Button(_("Close"), id="hud-info-close",
+                              on_click=lambda: _close_info(b))], gap=10))
+    return Dialog("hud-info",
+                  Column(blocks, pad=24, gap=14, bg=theme.PANEL_BG,
+                         radius=12, border=theme.BORDER, w=w,
+                         align="stretch"),
+                  on_dismiss=lambda: _close_info(b))
+
+
+def _open_info(b):
+    b.hud.menu = None          # it was opened from the gear menu
+    b.hud.info = True
+    b.invalidate()
+
+
+def _close_info(b):
+    b.hud.info = False
+    b.invalidate()
 
 
 def _toggle_tc(b):
@@ -791,6 +964,10 @@ def build_hud(b, size):
     menu = _settings_menu(b, menu_state, size)
     if menu is not None:
         children.append(menu)
+
+    info = _info_dialog(b, size)
+    if info is not None:
+        children.append(info)
 
     # The same corner the library grows, for the same reason the buttons
     # above are here: a windowed video on a desktop that draws no frame is

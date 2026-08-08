@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 15:00-0400\n"
+"POT-Creation-Date: 2026-08-08 15:27-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -812,6 +812,353 @@ msgstr ""
 msgid "Favorite"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Video"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Audio"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Subtitle"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Lyric"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Image"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Container"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Format"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Path"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Yes"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "No"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+msgid "Title"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Codec"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Codec tag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Profile"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Level"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Resolution"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Aspect ratio"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Anamorphic"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Interlaced"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Framerate"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Layout"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+msgid "Channels"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d ch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Bitrate"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d kbps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Sample rate"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d Hz"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Bit depth"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d bit"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Video range"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Video range type"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Color space"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Color transfer"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Color primaries"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Pixel format"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Ref frames"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Rotation"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Forced"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/osc_bridge.py
+msgid "External"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Timestamp"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV title"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV version major"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV version minor"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV profile"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV level"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV rpu preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV el preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV bl preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV bl signal compatibility id"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f Mbps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Direct playing"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Direct streaming"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Remuxing"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Transcoding"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The container is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The subtitle codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio stream is external"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Secondary audio tracks are not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec's profile is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec's level is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's resolution is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bit depth is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's framerate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Reference frames are not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Anamorphic video is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Interlaced video is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The number of audio channels is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio codec's profile is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's sample rate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's bit depth is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bitrate exceeds the limit"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bitrate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's bitrate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video stream info is unknown"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio stream info is unknown"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "There was an error starting direct playback"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's range type is not supported"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
 msgstr ""
@@ -844,21 +1191,13 @@ msgid "Player Controls"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Playback"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Audio"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Transcoding"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -944,10 +1283,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Page"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1450,6 +1785,7 @@ msgid "Collections…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Close"
@@ -1912,13 +2248,83 @@ msgstr ""
 msgid "Subtitle Color"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-msgid "Playback Data"
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Playback Info"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
 msgid "None (Disabled)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Hardware acceleration"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Video output"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Dropped frames"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%(vo)d output, %(dec)d decoder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "A/V sync"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Buffered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Download speed"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Media type"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "downloaded copy"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "local file"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "stream from server"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Play method"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Reasons"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Player"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "File"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Nothing is playing."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2377,12 +2783,6 @@ msgid "%s in"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Title"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Start"
 msgstr ""
 
@@ -2468,15 +2868,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Subtitle"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, python-format
-msgid "%.1f Mbps"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -2617,11 +3008,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Guide"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-msgid "Channels"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -3518,11 +3904,11 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-msgid "Transcode"
+msgid "Playback Data"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-msgid "External"
+msgid "Transcode"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py

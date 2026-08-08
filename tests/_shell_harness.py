@@ -838,6 +838,31 @@ class HudController(FakeController):
             {"title": "Middle", "time": 40.0},
             {"title": "End", "time": 80.0},
         ]
+        self.player_stats_blob = {
+            "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
+            "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
+            "buffered": 42.5, "cache_speed": 1_500_000,
+        }
+        self.playback_info_blob = {
+            "title": "Movie", "item_type": "Movie", "media_type": "Video",
+            "play_method": "Transcode",
+            "transcode_reasons": ["VideoCodecNotSupported"],
+            "direct_path": False, "offline": False,
+            "aid": 1, "sid": None,
+            "source": {
+                "Container": "mkv", "Size": 8400000000,
+                "Path": "/media/Films/Film (2017)/film.mkv",
+                "MediaStreams": [
+                    {"Type": "Video", "Index": 0, "Codec": "hevc",
+                     "Width": 3840, "Height": 2160, "BitDepth": 10},
+                    {"Type": "Audio", "Index": 1, "Codec": "truehd",
+                     "Channels": 8, "ChannelLayout": "7.1",
+                     "IsDefault": True},
+                    {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
+                     "Language": "eng", "IsExternal": True},
+                ],
+            },
+        }
 
     def use_hud(self):
         return True
@@ -847,6 +872,27 @@ class HudController(FakeController):
 
     def chapters(self):
         return list(self.chapter_list)
+
+    def player_stats(self):
+        """Live mpv counters, as the real gateway answers them.
+
+        Populated rather than empty, and with a *software* decoder and real
+        drop counts, because the rows this feeds only exist when mpv has
+        something to say -- a fake answering {} leaves every one of them
+        with nowhere to live while the tests of them still pass.
+        """
+        return dict(self.player_stats_blob)
+
+    def playback_info(self):
+        """What the playback-info panel reads.
+
+        A *transcode* by default, and with real streams on it, because the
+        rows that only exist in that state (the reasons, the play method's
+        qualifier) are the ones the panel was added for -- a fake answering
+        DirectPlay with no streams leaves them with nowhere to live and
+        every test of them passing against an empty panel.
+        """
+        return dict(self.playback_info_blob)
 
 class StubHudApp:
     """Records the renderer-facing calls the HUD lifecycle makes."""

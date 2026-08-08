@@ -15,7 +15,7 @@ import os
 from .. import conf
 from ..conf import settings
 from ..language_config import apply as apply_language_config
-from ..media import Intro, Video
+from ..media import Intro, Video, PLAY_DIRECT
 from .manager import syncManager
 
 log = logging.getLogger("sync.offline_media")
@@ -85,6 +85,14 @@ class OfflineVideo(Video):
         self.audio_seq = {}
         self.audio_uid = {}
         self.is_transcode = False
+        # A downloaded copy is the most direct play there is: a file on this
+        # disk, opened by us. Set here rather than in get_playback_url alone
+        # because the playback-info screen may be asked before a url has been
+        # requested, and unlike the online Video there is no decision pending
+        # -- it is a local file whatever anyone's profile says.
+        self.play_method = PLAY_DIRECT
+        self.transcode_reasons = []
+        self.direct_path = True
         self.trs_ovr = None
         # Stubbed so the timeline/stop reporting code paths don't blow up.
         self.playback_info = {"PlaySessionId": "", "MediaSources": [self._source]}

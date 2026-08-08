@@ -144,7 +144,13 @@ class StreamAttributeTest(unittest.TestCase):
                        "DvProfile": 7, "DvLevel": 6, "BlPresentFlag": 0})
         self.assertEqual(dovi["DV profile"], "7")
         # 0 is a real flag value, not an absent one.
-        self.assertEqual(dovi["BL present"], "0")
+        #
+        # "DV bl preset flag" is jellyfin-web's own spelling, typo and all
+        # (MediaInfoBlPresentFlag). Ours has to be character-identical or
+        # seed_from_jellyfin_web.py cannot match it -- see the note on
+        # _REASONS. Tidying it here would cost the translation, not gain a
+        # better label.
+        self.assertEqual(dovi["DV bl preset flag"], "0")
 
     def test_timestamp_comes_from_the_source_and_only_for_video(self):
         source = {"Timestamp": "Zero"}
@@ -200,8 +206,13 @@ class PlayMethodTest(unittest.TestCase):
         self.assertEqual(media_info.play_method_label("Teleportation"), "")
 
     def test_reasons_become_sentences(self):
+        # No trailing full stop, and the phrasing is not ours to tidy:
+        # seed_from_jellyfin_web.py matches our msgid against
+        # jellyfin-web's *value*, so any edit here is the difference
+        # between 25 strings arriving translated in 86 locales and 25
+        # nobody ever translates.
         out = media_info.transcode_reasons(["VideoCodecNotSupported"])
-        self.assertEqual(out, ["The video codec is not supported."])
+        self.assertEqual(out, ["The video codec is not supported"])
 
     def test_reasons_arrive_as_a_flags_string_on_some_endpoints(self):
         out = media_info.transcode_reasons(
