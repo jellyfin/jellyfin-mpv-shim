@@ -234,3 +234,44 @@ class TvSortTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SearchAsksForFieldsTest(unittest.TestCase):
+    """Search asked for **no fields at all** (#14).
+
+    Every other list names what it wants; this one named nothing, and the
+    cost was three things at once rather than one. Measured against a real
+    800-item search: +47 KB on a 1.28 MB response, and not slower.
+
+    Found while adding `CanDelete` for Delete from Disk — the entry could
+    not appear on a search result the way it does everywhere else, and
+    pulling that thread showed the other two.
+    """
+
+    def _search_call(self):
+        api = FakeApi()
+        src = LibrarySource.__new__(LibrarySource)
+        src._conn = lambda _uuid: type("C", (), {"api": api})()
+        src.search("srv", "the")
+        return api.calls[0]
+
+    def test_it_asks_for_the_aspect_ratio(self):
+        """Absent on *every* result before this, so search tiles have never
+        been shaped by their own artwork — auto_geom fell back for all of
+        them, which is why a row of films and a row of episodes looked the
+        same shape."""
+        self.assertIn("PrimaryImageAspectRatio", self._search_call()["fields"])
+
+    def test_it_asks_for_the_version_count(self):
+        # The one someone actually reported: a multi-version item drew no
+        # version chip in search results.
+        self.assertIn("MediaSourceCount", self._search_call()["fields"])
+
+    def test_it_asks_whether_the_item_can_be_deleted(self):
+        self.assertIn("CanDelete", self._search_call()["fields"])
+
+    def test_it_does_not_ask_for_overviews(self):
+        """Search asks for 800 items — five times a grid page — so the one
+        field the grid drops for being a third of the body is the one this
+        must not add back."""
+        self.assertNotIn("Overview", self._search_call()["fields"])

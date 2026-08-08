@@ -2194,6 +2194,20 @@ class LibrarySource:
             include_item_types=SEARCH_TYPES,
             recursive=True,
             limit=limit,
+            # GRID_FIELDS, not nothing. This asked for no fields at all,
+            # which cost three things at once and measured at +47 KB on a
+            # 1.28 MB response: `PrimaryImageAspectRatio` was absent on
+            # *every* result, so search tiles have never been shaped by
+            # their own artwork (auto_geom fell back for all of them);
+            # `MediaSourceCount` was absent, so a multi-version item showed
+            # no version chip; and `CanDelete` was absent, so Delete from
+            # Disk could not appear on a search result the way it does
+            # everywhere else.
+            #
+            # GRID_FIELDS rather than LIST_FIELDS deliberately: this asks
+            # for 800 items, and LIST_FIELDS carries Overview -- which is a
+            # third of a response body for something no tile draws.
+            fields=GRID_FIELDS,
             enable_total_record_count=False,
         ) or {}
         return result.get("Items", [])
