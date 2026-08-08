@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-07 19:25+0000\n"
+"PO-Revision-Date: 2026-08-08 18:43+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1946,7 +1946,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Live Broadcasts"
-msgstr ""
+msgstr "Tiesioginės transliacijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "New Episodes"
@@ -1981,7 +1981,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Live"
-msgstr ""
+msgstr "Tiesiogiai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
