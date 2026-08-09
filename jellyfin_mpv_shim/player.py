@@ -912,7 +912,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu_down, self._on_menu_down)
         self._bind_key(settings.kb_pause, self._on_pause_key)
         self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
-        self._bind_key(settings.kb_debug, self._on_debug_key)
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
@@ -1073,23 +1072,25 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.fullscreen_disable = True
 
     def _on_menu_ok(self):
+        """ENTER: confirm the OSD menu, and nothing else.
+
+        This was the one handler in its group with no ``is_menu_shown``
+        guard, so ENTER did not mean "confirm" -- it meant *open* the OSD
+        menu, because ``menu_action("ok")`` on a hidden menu is
+        ``show_menu()``. Under mpvtk that is the exact thing
+        ``toggle_settings_menu`` refuses a few lines above, and for the
+        reason stated there: the OSD menu draws as mpv OSD text, so it
+        lands under the overlay bitmaps and takes the arrow keys with it.
+
+        **[iw]**: "ENTER doesn't need to open the menu, `c` is fine for
+        that." So it opens nothing under either OSC. Swallowed rather than
+        left to mpv, which binds ENTER to ``playlist-next`` -- our mpv
+        playlist holds one file, so what that does depends on ``keep-open``
+        and is not a behaviour to inherit by accident. Part of #16's
+        "stop intercepting keys whose meaning we did not change", except
+        that here the honest answer is that we mean nothing by it at all.
+        """
         if self.menu.is_menu_shown:
-            self.menu.menu_action("ok")
-            return
-        # The one handler in this group that had no `is_menu_shown` guard,
-        # so ENTER did not mean "confirm" -- it meant *open* the OSD menu,
-        # because menu_action("ok") on a hidden menu is show_menu(). Under
-        # mpvtk that is the exact thing toggle_settings_menu refuses to do
-        # a few lines above, and for the reason stated there: the OSD menu
-        # is drawn as mpv OSD text, so it lands UNDER the overlay bitmaps
-        # and takes the arrow keys with it.
-        #
-        # Deliberately not routed to the HUD's gear instead. mpv binds
-        # ENTER to playlist-next, we mean nothing by it during playback,
-        # and inventing a second door to the gear menu is a new gesture
-        # rather than the removal of a hazard. The classic OSC keeps what
-        # it has always had.
-        if getattr(self, "_osc_style_resolved", None) != "mpvtk":
             self.menu.menu_action("ok")
 
     def _on_menu_left(self):
@@ -1130,12 +1131,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _on_fullscreen_key(self):
         self.toggle_fullscreen()
-
-    # This gives you an interactive python debugger prompt.
-    def _on_debug_key(self):
-        import pdb
-
-        pdb.set_trace()
 
     # Kill shader packs (useful for breakage)
     def _on_kill_shader_key(self):

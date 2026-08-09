@@ -17,8 +17,9 @@ The bug class these guard against is a **mis-wired binding**: a key that fires t
 wrong handler, or a menu/seek key that ignores the menu-shown state. Each test
 asserts a key hits the *right* handler and that no handler raises.
 
-NOTE: ``settings.kb_debug`` ("~") is deliberately never pressed — its handler
-calls ``pdb.set_trace()`` and would hang the test run.
+NOTE: ``settings.kb_debug`` is gone (#16). It used to be excluded from the
+full-sweep test because its handler called ``pdb.set_trace()`` and would hang
+the run — which is most of why a released build should not have carried it.
 
 The singleton is shared and cached across tests, so every test resets the mutable
 state it depends on (menu hidden, ``_video`` present, ``do_not_handle_pause`` /
@@ -305,14 +306,14 @@ class KeyboardRoutingTest(unittest.TestCase):
                 kb_seek.assert_called_once_with(action)
             skip.assert_not_called()
 
-    def test_ok_key_always_routes_to_menu_action_ok(self):
-        # menu_ok forwards to menu.menu_action("ok") regardless of menu state;
-        # the OSDMenu itself opens the menu on "ok" when hidden.
+    def test_ok_key_confirms_a_shown_menu_and_opens_nothing(self):
+        # It used to forward regardless of menu state, and menu_action("ok")
+        # on a hidden menu is show_menu() -- so ENTER *opened* the OSD menu.
+        # [iw]: "ENTER doesn't need to open the menu, `c` is fine for that."
         with mock.patch.object(self.pm.menu, "menu_action") as menu_action:
             self.pm.menu.is_menu_shown = False
             self.pm._player.press_key(settings.kb_menu_ok)
-            menu_action.assert_called_once_with("ok")
-            menu_action.reset_mock()
+            menu_action.assert_not_called()
             self.pm.menu.is_menu_shown = True
             self.pm._player.press_key(settings.kb_menu_ok)
             menu_action.assert_called_once_with("ok")
@@ -342,13 +343,15 @@ class KeyboardRoutingTest(unittest.TestCase):
 
     def test_no_binding_raises_on_press(self):
         # Press every registered binding (both menu-shown and menu-hidden) and
-        # assert none raises. kb_debug is skipped: its handler calls
-        # pdb.set_trace() and would hang the run.
+        # assert none raises. Nothing is skipped any more: kb_debug used to
+        # be, because its handler called pdb.set_trace() and would hang the
+        # run -- which is also why it is gone (#16; [iw]: "isn't needed
+        # anymore, I haven't used it in literal years").
         pm = self.pm
-        debug_key = settings.kb_debug
-        keys = [k for k in pm._player._key_bindings if k != debug_key]
+        keys = list(pm._player._key_bindings)
         self.assertIn(settings.kb_stop, keys)   # sanity: bindings exist
-        self.assertNotIn(debug_key, keys)        # sanity: debug is excluded
+        self.assertFalse(hasattr(settings, "kb_debug"),
+                         "the pdb binding is gone; nothing should re-add it")
 
         # Stub the collaborators that would otherwise pause playback / sleep /
         # touch the profile manager, so the sweep only checks the routing layer.

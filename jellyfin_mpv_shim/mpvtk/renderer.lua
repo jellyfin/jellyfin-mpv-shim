@@ -3759,7 +3759,19 @@ local function on_dbl()
         -- appeared -- in BOTH modes, which is why this is not conditional.
         -- (With click-to-pause on, the pair of single clicks either side
         -- of this cancel out, exactly as they do with the HUD hidden.)
-        if state.phud.mode and state.phud.shown then
+        --
+        -- **"No node" is not "bare video" while something floats over the
+        -- scene.** A modal's body, a dropdown's popup rows, a context menu
+        -- and the textbox copy menu are all popup geometry rather than
+        -- scene nodes, so node_at is nil ON them -- and this branch would
+        -- full-screen the window from a double click inside the Playback
+        -- Info panel or on a track picker's row. on_mouse_down handles all
+        -- four above its own bare-video branch; these two did not.
+        -- Inlined rather than given a helper: this chunk is at Lua's
+        -- 200-local ceiling.
+        if state.phud.mode and state.phud.shown
+            and not modal_active() and not state.dd_open
+            and not active_menu() and not state.tb_menu then
             mp.commandv('cycle', 'fullscreen')
         end
         return
@@ -3822,8 +3834,15 @@ local function on_rclick()
     -- there, and `mpvtk_mouse` has taken mbtn_right so mpv's own default
     -- cannot. Only in that mode -- with click-to-pause on, the left
     -- button already does it and a right click means nothing here.
+    --
+    -- The context menu and the textbox menu returned above; a modal and an
+    -- open dropdown did not, and node_at is nil over both of them (their
+    -- bodies are popup geometry, not scene nodes) -- so without this a
+    -- right click on the Playback Info panel toggled pause under it. See
+    -- on_dbl for the same trap.
     if not node and not state.phud.click_pauses
-        and state.phud.mode and state.phud.shown then
+        and state.phud.mode and state.phud.shown
+        and not modal_active() and not state.dd_open then
         mp.commandv('cycle', 'pause')
     end
 end

@@ -369,7 +369,9 @@ class EnterKeyTest(RemoteCommandBase):
     def test_it_does_not_open_the_osd_menu_under_mpvtk(self):
         # The exact thing toggle_settings_menu refuses, by the other door:
         # the OSD menu draws as mpv OSD text, lands under the overlay
-        # bitmaps, and takes the arrow keys with it.
+        # bitmaps, and takes the arrow keys with it. (Under the classic OSC
+        # it opens nothing either -- see below -- but this is the case that
+        # was actively harmful rather than merely unwanted.)
         pm = self._pm(playing=True, osc="mpvtk")
         pm._on_menu_ok()
         self.assertFalse(pm.menu.is_menu_shown)
@@ -383,10 +385,14 @@ class EnterKeyTest(RemoteCommandBase):
         pm._on_menu_ok()
         self.assertEqual(pm.hud_menus, 0)
 
-    def test_the_classic_osc_keeps_what_it_had(self):
+    def test_it_opens_nothing_under_the_classic_osc_either(self):
+        # This started as "the classic OSC keeps what it had", which was the
+        # conservative reading. [iw] overruled it: "ENTER doesn't need to
+        # open the menu, `c` is fine for that." So the rule is one rule.
         pm = self._pm(playing=True, osc="classic")
         pm._on_menu_ok()
-        self.assertEqual(pm.menu.actions, ["ok"])
+        self.assertFalse(pm.menu.is_menu_shown)
+        self.assertEqual(pm.menu.actions, [])
 
     def test_browsing_under_mpvtk_is_also_refused(self):
         # Not only during playback: the library is the case where the OSD

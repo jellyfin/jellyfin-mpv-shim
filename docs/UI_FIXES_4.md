@@ -1700,14 +1700,38 @@ ESC, which is the part with the real regression surface and needs the no-lua
 fallback kept and tested rather than assumed dead.
 
 **(2) is done.** It was not quite the one-line guard it looked like: the
-guard is easy, but *what ENTER should do instead* has design content, and
-two answers were available. It is swallowed under mpvtk rather than routed
-to the HUD's gear — mpv binds ENTER to `playlist-next`, we mean nothing by
-it during playback, and adding a second door to the gear menu would be a new
-gesture rather than the removal of a hazard. The classic OSC keeps exactly
-what it had. `tests/test_remote_menu_commands.py:EnterKeyTest`.
+guard is easy, but *what ENTER should do instead* had design content. **[iw]**
+settled it — "ENTER doesn't need to open the menu, `c` is fine for that" — so
+it opens nothing under either OSC and only confirms a menu that is already
+up. Swallowed rather than left to mpv, whose `playlist-next` on our
+single-file playlist does something that depends on `keep-open` and is not a
+behaviour to inherit by accident. `tests/test_remote_menu_commands.py:EnterKeyTest`.
 
-The rest of #16 is unstarted, by the sequencing above.
+**`kb_debug` is gone**, setting and handler. **[iw]**: "isn't needed anymore,
+I haven't used it in literal years." It dropped a released build into `pdb`
+with no console attached to prompt at, so the key froze the player; it was
+also the one binding the integration sweep had to skip, for exactly that
+reason. An unknown key left behind in someone's `config.json` is ignored by
+`SettingsBase.from_dict` (it iterates the declared fields) and disappears on
+the next save, so no migration is needed.
+
+**The arrows and `f` are agreed and unstarted.** **[iw]**: "agree arrow keys,
+ENTER, and fullscreen removal from default bindings are a huge improvement
+for end users, a lot of people get annoyed by those bindings." Both need the
+claim mechanism rather than a deletion, and that is the part with the real
+regression surface:
+
+* the **arrows** are claimed by three separate things — the OSD menu,
+  `skip_intro_on_seek`, and SyncPlay (a seek in a group has to be broadcast
+  exactly as a pause does, and unlike `pause` there is no defensive observer
+  to catch one we did not initiate) — so dropping them outright breaks
+  SyncPlay seeking. They need an input section enabled while a claimant
+  wants them, plus `__fields_set__` to keep honouring a customised
+  `seek_left`;
+* **`f`** needs the `fullscreen` observer described above *and* an ignore
+  flag in the `pause_ignore` shape, because `set_fullscreen(persist=False)`
+  exists precisely to make changes the app itself makes not count, and a
+  naive observer would record those too.
 
 ---
 
@@ -1835,8 +1859,9 @@ than a guess, and it is not this branch's to fix.
 
 Five reviewers by angle (concurrency, pure-function correctness, browser
 footguns, renderer/Lua, server contract), then **two independent refutation
-passes per finding**, then a synthesis. 18 candidates; the ones that survived
-and were acted on:
+passes per finding**, then a synthesis. **18 candidates, 14 survived** —
+three of which were the same `_play_media` finding from three reviewers, so
+twelve distinct. The ones acted on:
 
 ### The serious one: `_play_media` ran unlocked for eleven commits
 
@@ -1903,6 +1928,31 @@ The userdata pull asking for the apiclient's default field set. Real but
 small, and `UserData` rides `EnableUserData` rather than `Fields`, so the
 tightening is a `fields=""` experiment rather than a fix. Left for the next
 pass.
+
+### One that was missed, and how
+
+**[iw]** asked whether every review finding had actually been fixed. Checking
+the workflow's own output rather than this section — `result.confirmed`, 14
+entries — turned up **one that survived verification and was never written
+down here, so it was never fixed**: `on_dbl` and `on_rclick`'s bare-video
+fall-throughs fire while a modal or a dropdown popup is open.
+
+`node_at()` answers with clickable *scene* nodes. A modal's body, a
+dropdown's popup rows, a context menu and the textbox copy menu are none of
+those, so it returns nil **on** them — and "no node" is what both handlers
+read as "bare video". `on_mouse_down` checks all four before its own
+bare-video branch; these two checked none. Concretely, with the HUD up: a
+double click inside the Playback Info panel (which this batch introduced —
+the HUD's first modal) full-screened the window under it, and in mpv
+modality a right click on it toggled pause. Fixed in both, inlined rather
+than given a helper because renderer.lua's main chunk is at Lua's 200-local
+ceiling, with five renderer tests that all fail without the guards.
+
+Worth recording *why* it slipped: the synthesis prose was written from the
+findings I had in front of me, and this section was then written from the
+prose. Neither step counted. The list of what survived was a machine-readable
+field in the task output the whole time — **check the output, not the
+summary of it.**
 
 ---
 
@@ -1999,3 +2049,12 @@ cannot. Not started. Worth doing as a survey rather than as one field — the
 question is which of web's filters we are missing, not whether we are missing
 this one, and if the answer is "most of them" the shape is likely an
 "advanced filters" dialog rather than more rows in the existing bar.
+
+## 20 — People carousels are not keyed properly
+
+**[iw]**, from hand-testing: the people rows spam "duplicate node id" errors.
+Not started. A row id is built from the item id, and a person can legitimately
+appear twice in one credit list (two roles, or the same name resolved to two
+entries), so the collision is in how the row keys its tiles rather than in the
+data. Captured here rather than fixed because it is a different screen from
+anything else in this batch.

@@ -2256,6 +2256,67 @@ fake.key("mbtn_right")
 ok(not did("cycle", "pause"),
    "click-to-pause on: right click is not a second way to pause")
 
+-- ------------- ...but "no node" is not "bare video" while something floats
+--
+-- node_at() answers with clickable SCENE nodes, and a modal's body, a
+-- dropdown's popup rows and a context menu are none of those -- so it is
+-- nil ON them. on_mouse_down checks all four before its bare-video branch;
+-- on_dbl and on_rclick did not, so a double click inside the Playback Info
+-- panel full-screened the window under it and a right click paused. Found
+-- by the adversarial review, missed by everything above: these tests had
+-- never had anything open over the picture.
+
+local MODAL = { id = "dlg", t = "layer", kind = "modal",
+                x = 340, y = 200, w = 600, h = 320 }
+
+for _, mode in ipairs({ true, false }) do
+    hud_up({ hide = 4, mode = "hover", click = mode })
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            MODAL })
+    repaint()
+    fake.log.commands = {}
+    fake.key("mbtn_left_dbl")
+    ok(not did("cycle", "fullscreen"),
+       "double click inside an open modal must not full-screen the window",
+       "click_pauses=" .. tostring(mode))
+end
+
+hud_up({ hide = 4, mode = "hover", click = false })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        MODAL })
+repaint()
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "right click inside an open modal must not pause under it")
+
+-- The dropdown popup has the same shape: its rows are popup geometry, not
+-- scene nodes, so a double click on the audio-track picker landed here too.
+hud_up({ hide = 4, mode = "hover", click = false })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "dd", t = "dropdown", x = 500, y = 300, w = 200, h = 30,
+          size = 18, items = { "One", "Two", "Three" }, sel = 0 } })
+repaint()
+click("dd")                          -- open it
+fake.mouse(640, 360)                 -- pointer over a popup row
+fake.log.commands = {}
+fake.key("mbtn_left_dbl")
+ok(not did("cycle", "fullscreen"),
+   "double click on an open dropdown's row must not full-screen")
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "right click on an open dropdown must not pause under it")
+
+-- ...and the guard must not have cost the thing it guards: with nothing
+-- floating, both still do what mpv would.
+hud_up({ hide = 4, mode = "hover", click = false })
+fake.key("mbtn_left_dbl")
+ok(did("cycle", "fullscreen"),
+   "with nothing open, double click on bare video still full-screens")
+fake.key("mbtn_right")
+ok(did("cycle", "pause"),
+   "with nothing open, right click on bare video still pauses")
+
 -- A click on a CONTROL is still a click on a control, in either mode --
 -- the fall-through must not have eaten the HUD's own buttons. The bar's
 -- own background is deliberately NOT a control: pressing the gaps between

@@ -388,7 +388,6 @@ class Settings(SettingsBase):
     kb_menu_down: str = "down"
     kb_pause: str = "space"
     kb_fullscreen: str = "f"
-    kb_debug: str = "~"
     kb_kill_shader: str = "k"
     seek_up: int = 60
     seek_down: int = -60
