@@ -2102,13 +2102,87 @@ rows are built, so the window is computable the same way `grid_of`'s is.
 It is a change to the scroll/build path, which is not something to land
 beside a chip-width fix. Sequenced against #15 and #16 by **[iw]**.
 
-## 19 — Filters: no Language, and probably not only Language
+## 19 — Filters: no Language, and not only Language — **surveyed**
 
-**[iw]**, reported by a user: jellyfin-web can sort/filter by language and we
-cannot. Not started. Worth doing as a survey rather than as one field — the
-question is which of web's filters we are missing, not whether we are missing
-this one, and if the answer is "most of them" the shape is likely an
-"advanced filters" dialog rather than more rows in the existing bar.
+**[iw]**, reported by a user: jellyfin-web can filter by language and we
+cannot. Surveyed rather than patched, as **[iw]** framed it — "I wonder what
+other filters we haven't implemented? We might end up wanting to add an
+advanced filters modal or something eventually." The answer is *most of
+them*, and the reported one has a problem underneath it.
+
+### The finding that changes the job
+
+**The server ignores `AudioLanguages`.** Measured against the QA server
+(Jellyfin **12.0.0**), on a library whose items *do* carry the tag
+(`MediaStreams[].Language == "eng"`):
+
+| query | result |
+|---|---|
+| all movies | 1131 |
+| `AudioLanguages=eng` | 1131 |
+| `AudioLanguages=zzz` | **1131** |
+
+A nonsense value returning the full count is the signature of a parameter
+being **dropped, not applied** — the same wart as the Live TV category flags.
+Tried as `AudioLanguages`, `audioLanguages` and `AudioLanguage`; all three
+inert. Other filters on the same endpoint work fine in the same run
+(`HasSubtitles` → 14, `IsHD` → 49, `Is4K` → 5), so this is not the request
+being malformed.
+
+jellyfin-web sends the same parameter (`src/utils/items.ts`'s
+`getFiltersQuery`), so **web's own language filter is presumably just as
+inert here**. Whether that is true of stable 10.x is untested and is the
+first thing to establish: building the control before knowing would ship a
+switch that does nothing.
+
+### Parity, in full
+
+Web's modern filter panel is thirteen categories
+(`src/apps/modern/features/libraries/components/filter/`), against our five.
+
+| web filter | API parameter | us |
+|---|---|---|
+| Status | `filters=IsPlayed/IsUnplayed/IsFavorite/IsResumable/Likes` | **partial** — Unplayed and Favorites only |
+| Genres | `genres` | **yes** |
+| Years | `years` | **yes** |
+| (alpha picker) | `nameStartsWith` / `nameLessThan` | **yes** |
+| Features | `hasSubtitles`, `hasTrailer`, `hasSpecialFeature`, `hasThemeSong`, `hasThemeVideo` | no |
+| Video quality | `isHd`, `is4K`, `is3D` | no |
+| Video types | `videoTypes=BluRay/Dvd/Iso/VideoFile` | no |
+| Official ratings | `officialRatings` | no |
+| Tags | `tags` | no |
+| Studios | `studioIds` | no |
+| Series status | `seriesStatus=Continuing/Ended` | no |
+| Episode | `isMissing`, `isUnaired`, `parentIndexNumber=0` | no |
+| **Audio languages** | `audioLanguages` | no — **and see above** |
+| **Subtitle languages** | `subtitleLanguages` | no |
+
+**Sorts are nearly at parity** and are not the problem: web offers SortName,
+DateCreated, PremiereDate, CommunityRating, CriticRating, OfficialRating,
+DatePlayed, PlayCount, Runtime, Random and DateLastContentAdded — every one
+of which we have — plus `ProductionYear` (we have `PremiereDate` and not
+this) and the music-specific Album / AlbumArtist / Artist, which our music
+library answers with its own screens. **No language sort exists in web
+either**, so the report is about filtering.
+
+### Shape
+
+**[iw]**'s instinct was right: nine missing categories will not fit the
+filter row, which already carries a sort, three filters and a shuffle. A
+dialog is the shape — and the natural model is the one this codebase already
+has for view settings, since these are per-library and jellyfin-web persists
+them (`LibraryViewSettings`) exactly as it persists the view type the shim
+already reads and writes through `view_prefs`.
+
+Not started beyond this. The order that seems right:
+
+1. **Establish whether `audioLanguages` works on stable 10.x.** It is the
+   reported bug, and if the answer is no, the honest fix is to say so rather
+   than to ship an inert control.
+2. The cheap, certainly-working ones first — Features, video quality, Tags,
+   Official ratings — which are plain booleans and lists on a request we
+   already build.
+3. The dialog, once there are enough of them to need one.
 
 ## 20 — People carousels are not keyed properly
 
@@ -2406,9 +2480,33 @@ prefix. Either way the picker offers a choice it cannot express.
    for a stream that has the key set to null rather than missing, and
    `.capitalize()` then raised. Any untagged subtitle track.
 
-   Not verified against real data: the QA library has no subtitle streams at
-   all, so `DisplayTitle`'s exact shape here is the documented contract and
-   jellyfin-web's usage, not a measurement.
+   **Verified against real data**, after **[iw]** pointed out that the QA
+   server's *Test Media* library has subtitles (my first search covered the
+   bulk library and found none). What it sends:
+
+   ```
+   DisplayTitle='Styled - English - Default - ASS'   Title='Styled'
+   DisplayTitle='English - SUBRIP'                   Title=None
+   DisplayTitle='English - SUBRIP - External'        Title=None
+   DisplayTitle='English - DVBSUB'                   Title=None
+   ```
+
+   The first is exactly the case this exists for: composed from
+   Language/Codec it is `Eng (ass)`, which is what *every* ASS track in that
+   file would be called. `tests/test_track_picker_labels.py` pins those
+   strings as fixtures rather than invented ones.
+
+   Two things the real data showed that are worth knowing and were not
+   worth changing. The server puts **`External`** in DisplayTitle itself, so
+   a track delivered as a separate file now reads `English - SUBRIP -
+   External` beside our own `External` aside — mildly redundant, and the
+   aside is still the more useful of the two because it is a *shim* fact
+   (this one will be fetched separately) rather than a container fact.
+   Suppressing it would mean matching a translated word against the server's
+   English, which fails in every other locale. And one track reports
+   `Language='Greek, Modern (1453-)'` — a name, not a code — which only
+   reaches the composed fallback, but is pinned so it cannot start raising
+   there.
 
 2. **The three detail-page pickers get `popup_w`**, exactly as the Settings
    page's audio-device list uses it. The OPEN list widens, up to 640; the

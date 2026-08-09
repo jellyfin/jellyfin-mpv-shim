@@ -60,6 +60,50 @@ class SubtitleLabelTest(unittest.TestCase):
             "Unkn (subrip)")
 
 
+class RealServerStringsTest(unittest.TestCase):
+    """The strings a real Jellyfin actually sends, from the QA server's Test
+    Media library. Measured, not invented — the first version of this file
+    guessed at DisplayTitle's shape because the library I searched had no
+    subtitle streams; **[iw]** pointed at the one that does."""
+
+    #: (DisplayTitle, Title, Language, Codec) exactly as returned.
+    REAL = [
+        ("Styled - English - Default - ASS", "Styled", "eng", "ass"),
+        ("English - SUBRIP", None, "eng", "subrip"),
+        ("Spanish - SUBRIP", None, "spa", "subrip"),
+        ("English - SUBRIP - External", None, "eng", "subrip"),
+        ("English - DVBSUB", None, "eng", "DVBSUB"),
+        ("Greek - SUBRIP - External", None, "Greek, Modern (1453-)",
+         "subrip"),
+    ]
+
+    @staticmethod
+    def _stream(display, title, lang, codec):
+        return {"DisplayTitle": display, "Title": title, "Language": lang,
+                "Codec": codec, "Type": "Subtitle"}
+
+    def test_the_authors_own_title_survives(self):
+        """The case this change exists for, in real data: an ASS track named
+        "Styled". Composed from Language/Codec it is "Eng (ass)" — the same
+        string every other ASS track in the file would get."""
+        styled = self._stream(*self.REAL[0])
+        self.assertEqual(get_sub_display_title(styled),
+                         "Styled - English - Default - ASS")
+        self.assertNotIn("Eng (ass)", get_sub_display_title(styled))
+
+    def test_every_real_track_is_distinguishable(self):
+        labels = [get_sub_display_title(self._stream(*r)) for r in self.REAL]
+        self.assertEqual(len(labels), len(set(labels)))
+
+    def test_a_full_language_name_does_not_break_the_fallback(self):
+        """The server sends Language='Greek, Modern (1453-)' for one of
+        these — a name, not a code. It only reaches the composed form when
+        DisplayTitle is absent, but it must not raise there."""
+        s = self._stream(*self.REAL[5])
+        del s["DisplayTitle"]
+        self.assertIn("Greek", get_sub_display_title(s))
+
+
 class PickerWidthTest(unittest.TestCase):
     """The open list may be wider than the control; the control may not."""
 
