@@ -888,15 +888,26 @@ class Float(Element):
 
 
 class Dialog(Element):
-    """Modal dialog: centered floating container that grabs all input.
-    Clicks outside it and ESC emit on_dismiss(); the app closes it by
+    """Modal dialog: floating container that grabs all input. Clicks
+    outside it and ESC emit on_dismiss(); the app closes it by
     re-rendering without the Dialog. No dimmed backdrop (bitmaps render
-    above ASS, so a scrim cannot cover posters — see README z-order)."""
+    above ASS, so a scrim cannot cover posters — see README z-order).
 
-    def __init__(self, id, child, on_dismiss=None, **kw):
+    ``side`` moves it off centre. Centred is right for a dialog that IS
+    the task — a confirm, a download, a picker — because there is nothing
+    behind it worth seeing. It is wrong for one whose whole purpose is to
+    change what is behind it: a centred filter panel covers the middle of
+    the window, which is where the results and the loading spinner are,
+    so the one thing you want to watch while filtering is the one thing
+    it hides. ``"left"`` pins it to the same margin the page content
+    uses, leaving the library visible beside it.
+    """
+
+    def __init__(self, id, child, on_dismiss=None, side="center", **kw):
         super().__init__(id=id, **kw)
         self.child = child
         self.on_dismiss = on_dismiss
+        self.side = side
 
 
 #: Nominal size of an icon-only Dropdown trigger, in logical px. Not a

@@ -243,38 +243,6 @@ class GridPage(Page):
         # there are no holes to ask about.
         total = len(items) if sort_by == "Random" else total
         route["_total"] = total
-        # Results of a DIFFERENT query replace the list rather than
-        # spreading over it, and reset the paginator with it.
-        #
-        # `_reload` leaves the old items up so the page does not blank
-        # (see there), and `spread` merges -- so without this, page 0 of
-        # the new query would be laid over the old list and every slot
-        # past it would still hold results of the filter the user just
-        # changed away from. No later load heals that: every slot is
-        # full, so nothing is ever asked for again.
-        #
-        # Keyed on the query rather than on a "reloading" flag, and after
-        # `_view` is settled above so the key carries the artwork type
-        # this grid is really drawn with. A flag has to be cleared by
-        # somebody, and every candidate leaks: cleared here it survives a
-        # load that fails or is superseded, leaving the route unable to
-        # page for the rest of its life; cleared in `_route_async` it is
-        # cleared by whichever load settles first, which is the older one.
-        # A key needs no clearing -- it simply stops differing. It also
-        # gets the failure case right by construction: after a filter
-        # load fails the items on screen are the previous filter's, so
-        # paging them with the new one stays blocked, which is what the
-        # `_error` banner is offering a retry for.
-        #
-        # `_install` runs twice per load and the two calls can be seconds
-        # apart; the second finds the key already stored and merges, so
-        # the user is not yanked back to page 1 from wherever they paged
-        # to in between.
-        key = self._query_key()
-        if route.get("_items_query") != key:
-            route.pop("_items", None)
-            self._pages.reset(route)
-            route["_items_query"] = key
         # The list is `total` slots wide from here on, holes and all, so the
         # grid is its full height and the scrollbar its full length before
         # anything past the first page exists (#617). Spread over whatever is
@@ -296,7 +264,24 @@ class GridPage(Page):
         route = self.route
         items = route.get("_items")
         if items is None:
-            return chrome.busy()
+            # The SHELL stays and only the tiles blank -- **[iw]**: "what
+            # should happen is the tiles blank out but the shell stays".
+            #
+            # This used to be `chrome.busy()` for the whole page, so a
+            # filter tick, a sort change or a letter press replaced the
+            # title, the filter bar and the A-Z rail with a spinner and
+            # the library looked dead -- behind the filter panel, which
+            # covers the middle of the window, the page simply emptied.
+            #
+            # The tiles genuinely are unknown for the length of the query
+            # and drawing the previous ones would be a small lie; the
+            # title, the controls and their state are not unknown, and
+            # blanking them was the whole of the problem. Same Column,
+            # pad and gap as the loaded path, so nothing above the tiles
+            # moves when they arrive.
+            return Column(self._header(None, size[0]) + [chrome.busy()],
+                          pad=chrome.CONTENT_PAD, gap=GRID_GAP,
+                          flex=1, align="stretch")
         header = self._header(items, size[0])
         if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             return self._list_view(items, header)
@@ -557,23 +542,6 @@ class GridPage(Page):
                 self.route.get("server") or self.ctx.server,
                 _image_type_of(self.route.get("_view")))
 
-    def _query_key(self, bound=None):
-        """A ``_bound_query`` that can be **stored and compared later**.
-
-        Two differences from the tuple itself, both load-bearing. It
-        carries the filters as a tuple of pairs rather than the route's
-        own dict, which every filter handler mutates *in place* -- a
-        stored reference would change along with the route and always
-        compare equal, which is the failure mode where a guard exists and
-        never fires. And it is only ever compared, never hashed, so a
-        filter whose value is a list (the language pickers) is fine.
-        """
-        sort_by, sort_order, filters, person, srv, image_type = (
-            bound or self._bound_query())
-        return (sort_by, sort_order,
-                tuple(sorted((filters or {}).items())),
-                person, srv, image_type)
-
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
@@ -614,21 +582,6 @@ class GridPage(Page):
         bound = self._bound_query()
         if bound[0] == "Random":
             return
-        loaded_with = self.route.get("_items_query")
-        if loaded_with is not None \
-                and loaded_with != self._query_key(bound):
-            # The list on screen answers a DIFFERENT query from the one a
-            # page would be fetched with -- a reload is in flight (or
-            # failed). Splicing into it would leave the grid holding a
-            # mixture of two filters that no later load heals, since
-            # every slot would then be full and nothing asked for again.
-            return
-        # A *missing* key is not a mismatch. It means nothing recorded
-        # where these items came from, which is the state of any route
-        # whose items were put there by something other than `_install`
-        # -- and reading that as "different" would disable paging on it
-        # outright rather than guard it. `_install` records the key on
-        # every load, so a real grid always has one.
 
         def put(r, items, total):
             r["_items"], r["_total"] = items, total
@@ -1050,17 +1003,16 @@ class GridPage(Page):
         an empty page for the length of a query says nothing true either,
         and it says it much louder.
 
-        The derived state goes now (it is cheap and recomputes from the
-        items still present); ``_items`` and ``_total`` are replaced at
-        install time. Nothing *fetches* against the mixture in between,
-        because the route still records which query its items came from
-        and it no longer matches -- see ``_query_key``, ``_window`` and
-        ``_install``.
+        ``_total`` is deliberately NOT dropped. It is the header's item
+        count, which is shell rather than content -- and zeroing it puts
+        "0 items" over the spinner, which is a worse thing to say than a
+        count one second out of date. ``_install`` overwrites it.
         """
         route = self.route
-        for k in ("_grid_shape", "_win_tried", "_win_load"):
+        for k in ("_items", "_grid_shape", "_win_tried", "_win_load"):
             route.pop(k, None)
         route["_loading"] = False
+        self._pages.reset(route)
         self.ctx.nav.reload(route)
 
     def _set(self, key, value):

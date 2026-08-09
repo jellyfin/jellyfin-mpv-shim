@@ -658,6 +658,15 @@ class DialogsMixin:
                                on_click=self._close_dialog),
                     ]),
                 ], w=520),
+                # Left, not centred -- the one dialog in the app whose
+                # purpose is to change what is behind it. Centred, it sat
+                # over the grid and the loading spinner both, so the
+                # results you were filtering and the sign that they were
+                # being re-queried were the two things it hid. **[iw]**:
+                # "maybe it might make sense to left align this modal?
+                # That would solve a lot of the issues with the spinner
+                # being invisible."
+                side="left",
                 on_dismiss=self._close_dialog)
         self._show_dialog(build)
 

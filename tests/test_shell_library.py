@@ -2586,19 +2586,20 @@ class _ShrinkingSource(FakeSource):
 
 
 class TestFilterRevalidation(unittest.TestCase):
-    """Changing a filter must not blank the library while it re-queries.
+    """Changing a filter blanks the TILES, and nothing else.
 
-    ``render`` answers a missing ``_items`` with ``chrome.busy()`` for the
-    **whole page** -- title, filter bar and A-Z rail included -- and
-    ``_reload`` used to pop it. So every filter tick, sort change and
-    letter press replaced the library with a spinner. Behind the filter
-    panel, which covers the middle of the window, all that is visible of
-    that is the page going empty: **[iw]** "it makes the page look dead
-    behind a modal while re-querying".
+    ``render`` used to answer a missing ``_items`` with ``chrome.busy()``
+    for the **whole page** -- title, filter bar and A-Z rail included --
+    and ``_reload`` pops it. So every filter tick, sort change and letter
+    press replaced the library with a spinner. Behind the filter panel,
+    which covers part of the window, all that was visible of that was the
+    page going empty.
 
-    Stale-while-revalidate, the rule ``refresh_live_tv`` already argues
-    for. The risk it introduces is the point of the second half of these
-    tests: keeping the old list means the new one has to REPLACE it.
+    **[iw]**: "what should happen is the tiles blank out but the shell
+    stays". Which is also the more honest split -- the tiles really are
+    unknown for the length of the query, so drawing the previous ones
+    would be a small lie, while the title, the controls and their state
+    are not unknown and blanking them was the whole of the problem.
     """
 
     def _grid(self, source=None, pool=None):
@@ -2617,32 +2618,59 @@ class TestFilterRevalidation(unittest.TestCase):
         _n2, panel = build_scene(b)
         panel["flt-unplayed"]["click"]()
 
-    def test_the_page_survives_the_frame_the_query_runs_in(self):
-        b = self._grid()
-        loaded = {n.get("id") for n in build_scene(b, size=(1280, 720))[0]}
-        self.assertIn("grid-sort", loaded)
+    @staticmethod
+    def _frame(b):
+        nodes, _h = build_scene(b, size=(1280, 720))
+        found = {n.get("id") for n in nodes}
+        return {
+            "ids": found,
+            "tiles": sum(1 for i in found
+                         if str(i).startswith("grid-0-g")),
+            "busy": any(n.get("t") == "busy" for n in nodes),
+            "count": [n.get("text") for n in nodes
+                      if str(n.get("text", "")).endswith("items")],
+        }
 
-        pool = _DeferredPool()
-        b._pool = pool
+    def test_the_shell_stays_while_the_tiles_blank(self):
+        b = self._grid()
+        loaded = self._frame(b)
+        self.assertTrue(loaded["tiles"])
+
+        b._pool = _DeferredPool()
         self._toggle_unplayed(b)
-        # ...and now look at the frame BEFORE the results land.
-        mid = {n.get("id") for n in build_scene(b, size=(1280, 720))[0]}
-        for nid in ("grid-sort", "grid-filter", "grid-l-A"):
-            self.assertIn(nid, mid, "the page blanked while re-querying")
-        self.assertTrue(
-            any(str(i).startswith("grid-0-g") for i in mid),
-            "the tiles vanished while re-querying")
+        mid = self._frame(b)
+        for nid in ("grid-sort", "grid-filter", "grid-l-A", "grid-viewcfg"):
+            self.assertIn(nid, mid["ids"], "the shell blanked with the tiles")
+        self.assertEqual(mid["tiles"], 0, "the tiles did not blank")
+        self.assertTrue(mid["busy"], "nothing said it was loading")
+
+    def test_the_item_count_does_not_flash_to_zero(self):
+        """``_total`` is deliberately kept across a reload.
+
+        It is shell rather than content, and dropping it puts "0 items"
+        over the spinner -- a worse thing to say than a count one second
+        out of date, and one that reads as "your filter matched nothing"
+        before the query has even answered.
+        """
+        b = self._grid()
+        before = self._frame(b)["count"]
+        self.assertTrue(before)
+        b._pool = _DeferredPool()
+        self._toggle_unplayed(b)
+        self.assertEqual(self._frame(b)["count"], before)
 
     def test_the_new_results_replace_the_old_ones_tail_and_all(self):
-        """The hazard the fix introduces, and the reason it is not simply
-        "stop popping _items".
+        """The reason the tiles are dropped rather than kept.
 
         ``_install`` SPREADS its page over whatever is already there --
-        which is right for a window landing mid-load and wrong for a new
-        query. Only page 0 comes back on the first install, so without a
-        clear, everything past it goes on showing the previous filter's
-        items and no later load heals it: every slot is full, so nothing
-        is ever asked for again.
+        right for a window landing mid-load, wrong for a new query. Only
+        page 0 comes back on the first install, so a grid that kept its
+        items across a reload would go on showing the previous filter in
+        every slot past the first page, and no later load would heal it:
+        every slot is full, so nothing is ever asked for again.
+
+        Keeping the shell and dropping the items is what makes that
+        impossible rather than merely guarded against.
         """
         src = _ShrinkingSource()
         b = self._grid(source=src)
@@ -2668,9 +2696,14 @@ class TestFilterRevalidation(unittest.TestCase):
         spliced into the OLD list, leaving the grid holding a mixture of
         two filters that no later load heals.
 
+        Nothing fetches because ``render`` returns the loading shell
+        before it ever reaches the window: no items, no geometry, no
+        visible range to ask about. That is the whole guard, and it is
+        why there is no flag for a reload being in flight.
+
         The scroll matters and the first version of this test had none:
         with every slot loaded there is nothing for ``window`` to fetch,
-        so it passed with the guard removed. It needs the visible range
+        so it passed however the code behaved. It needs the visible range
         to sit over HOLES, which means scrolling past the loaded head.
         """
         src = _ShrinkingSource()
@@ -2743,3 +2776,99 @@ class TestFilterRevalidation(unittest.TestCase):
                 self.assertFalse(wrong,
                                  "round %d left items from the other "
                                  "filter: %r" % (i, wrong))
+
+
+class TestFilterPanelSide(unittest.TestCase):
+    """The filter panel is pinned left, not centred.
+
+    Every other dialog in the app IS the task -- a confirm, a download, a
+    picker -- so there is nothing behind it worth seeing and centred is
+    right. This one exists to change what is behind it, and centred it
+    covered the two things you want to watch while filtering: the results,
+    and the spinner saying they are being re-queried. **[iw]**: "maybe it
+    might make sense to left align this modal? That would solve a lot of
+    the issues with the spinner being invisible."
+    """
+
+    def _modal(self, width=1280):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        _n, handlers = build_scene(b, size=(width, 720))
+        handlers["grid-filter"]["click"]()
+        nodes, _h = build_scene(b, size=(width, 720))
+        return b, nodes, [n for n in nodes if n.get("kind") == "modal"][0]
+
+    def test_it_sits_at_the_content_margin(self):
+        """The same margin the page content uses, so it lines up with the
+        title rather than floating at an arbitrary offset."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        _b, _n, modal = self._modal()
+        self.assertEqual(modal["x"], chrome.CONTENT_PAD)
+
+    def test_and_stays_left_however_wide_the_window_is(self):
+        """A centred dialog walks right as the window grows -- which is
+        exactly when there is most library beside it to look at."""
+        for width in (1280, 1920, 2560):
+            with self.subTest(width=width):
+                _b, _n, modal = self._modal(width)
+                self.assertEqual(modal["x"], 16)
+
+    def test_a_window_narrower_than_the_panel_does_not_push_it_off(self):
+        """Clamped, not just placed.
+
+        A Dialog is never width-clamped to the window (``_clamp_wh``
+        applies the element's own min/max and nothing else), so a 520px
+        panel on a 480px window overflows whatever it is aligned to.
+        Centring at least splits that overflow in two; left-aligning it
+        at a 16px margin puts all of it on one side and pushes the Done
+        and Clear All buttons out. So the margin gives way rather than the
+        panel: it sits flush at 0 and overflows by as little as it can.
+
+        Asserted as "overflows by no more than the panel is too wide",
+        not as ``x >= 0`` -- which is true of the unclamped placement too
+        and is how the first version of this test passed with the clamp
+        removed.
+        """
+        _b, _n, modal = self._modal(480)
+        self.assertLessEqual(modal["x"] + modal["w"], max(480, modal["w"]),
+                             "the margin pushed the panel further off "
+                             "the right edge than its width required")
+        self.assertEqual(modal["x"], 0)
+
+    def test_other_dialogs_are_still_centred(self):
+        """The side is per-dialog, not a new default: a confirm has
+        nothing behind it worth uncovering."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Dialog, Text
+        self.assertEqual(Dialog("d", Text("x")).side, "center")
+
+    def test_the_spinner_clears_the_panel_on_an_ordinary_window(self):
+        """Which is the point of the whole change -- the loading state is
+        centred in the content area, so on a narrow enough window it
+        lands under the panel however the panel is aligned. This pins
+        that the common sizes are not that."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        for width in (1280, 1920):
+            with self.subTest(width=width):
+                _n, handlers = build_scene(b, size=(width, 720))
+                handlers["grid-filter"]["click"]()
+                _n2, panel = build_scene(b, size=(width, 720))
+                b._pool = _DeferredPool()
+                panel["flt-unplayed"]["click"]()
+                nodes, _h = build_scene(b, size=(width, 720))
+                modal = [n for n in nodes if n.get("kind") == "modal"][0]
+                spinner = [n for n in nodes if n.get("t") == "busy"]
+                self.assertTrue(spinner, "no spinner while loading")
+                self.assertGreaterEqual(
+                    spinner[0]["x"], modal["x"] + modal["w"],
+                    "the spinner is hidden behind the filter panel")
+                b._pool = _SyncPool()
+                b._close_dialog()

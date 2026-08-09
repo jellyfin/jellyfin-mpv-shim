@@ -3392,40 +3392,55 @@ allow-list means a collection type nobody updated the table for silently
 loses filters that do apply, and a filter that is *missing* is much
 harder to notice than one that is present and matches nothing.
 
-**The grid no longer blanks while it re-queries.** `render` answers a
-missing `_items` with `chrome.busy()` for the whole page -- title, filter
-bar and A-Z rail included -- and `_reload` popped it. Behind the filter
-panel, which covers the middle of the window, all that was visible of
-that was the page going empty.
+**The tiles blank; the shell stays.** `render` answered a missing
+`_items` with `chrome.busy()` for the whole page -- title, filter bar and
+A-Z rail included -- and `_reload` pops it. So every filter tick, sort
+change and letter press replaced the library with a spinner, and behind
+the filter panel all that was visible of that was the page emptying.
 
-Stale-while-revalidate, as `refresh_live_tv` already argues for. What
-makes it more than "stop popping `_items`" is that `_install` *spreads*
-its page over what is already there -- right for a window landing
-mid-load, wrong for a new query. Page 0 of the new results would be laid
-over the old list and every slot past it would go on showing the previous
-filter, permanently: every slot is full, so nothing is ever asked for
-again.
+The first attempt at this kept the previous tiles on screen
+(stale-while-revalidate, as `refresh_live_tv` does). **[iw]**: "what
+should happen is the tiles blank out but the shell stays" -- which is the
+better split and the more honest one. The tiles really are unknown for
+the length of the query, so drawing the old ones is a small lie; the
+title, the controls and their state are not unknown, and blanking *them*
+was the whole of the problem.
 
-So the route records the query its items came from (`_items_query`) and
-`_install` replaces rather than merges when it differs. A key rather than
-a "reloading" flag because every place to clear a flag leaks -- cleared
-at install it survives a load that fails or is superseded and the route
-can never page again; cleared in `_route_async` it is cleared by whichever
-load settles first, which is the older one. A key stops differing on its
-own, and gets the failure case right for free: after a failed filter load
-the items on screen really are the previous filter's, so paging them with
-the new query stays blocked, which is what the `_error` retry is for. A
-*missing* key is not a mismatch -- it means nothing recorded the
-provenance, and reading it as "different" would disable paging outright.
+It is also much less machinery. Retaining the items meant guarding
+against `_install`, which SPREADS its page over whatever is there -- page
+0 of the new query laid over the old list, every slot past it still
+showing the previous filter, and no later load healing it because every
+slot is full. That needed the route to record the query its items came
+from and `_window` to refuse to fetch against a mismatch. Dropping the
+items makes all of it unnecessary rather than guarded: there is no list
+to spread over and no geometry to window, because `render` returns the
+loading shell before it reaches either.
 
-Two of the four mutations run against the new tests survived the first
-time, both for the same reason: the test could not reach the state the
-bug lives in. The window-guard test had every slot loaded, so there was
-nothing to fetch with or without the guard. The repeated-toggle test
-could not see the key aliasing the route's live `_filters` dict, because
-that only bites from the **second** toggle -- `_bound_query` hands back a
-fresh dict until a filter exists -- and the stale tail it causes has
-nowhere to show unless the tail is refilled in between.
+`_total` is the one thing deliberately kept. It is the header's item
+count -- shell rather than content -- and zeroing it puts "0 items" over
+the spinner, which reads as "your filter matched nothing" before the
+query has answered.
+
+**The panel is pinned left rather than centred** (`Dialog(side=...)`,
+`layout.DIALOG_MARGIN`). Every other dialog in the app *is* the task --
+a confirm, a download, a picker -- so there is nothing behind it worth
+seeing and centred is right. This one exists to change what is behind it,
+and centred it covered both the results and the spinner saying they were
+being re-queried. **[iw]**: "maybe it might make sense to left align this
+modal? That would solve a lot of the issues with the spinner being
+invisible."
+
+The spinner is centred in the content area, so there is a window width
+below which it lands under the panel however the panel is aligned:
+**measured at 1100px** with the panel 520 wide at a 16px margin. Above
+that it is clear, and `TestFilterPanelSide` pins the common sizes.
+
+A Dialog is also never width-clamped to the *window* -- `_clamp_wh`
+applies the element's own min/max and nothing else -- so a 520px panel on
+a 480px window overflows whatever it is aligned to. Pre-existing and true
+of every dialog; left-aligning turns a symmetric overflow into a
+one-sided one, so the margin gives way (the panel sits flush at 0) rather
+than the panel being pushed further off.
 
 **Adjacent and not fixed:** `_fetch_at` reads `_collections` live off the
 route rather than from its bound query, which is exactly what the sort
