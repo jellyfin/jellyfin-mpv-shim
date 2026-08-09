@@ -748,18 +748,41 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
-    def has_backdrop(self, item):
-        """Whether this item will ever have a banner — answerable *now*.
+    def header_bakes_heading(self, item):
+        """Whether :meth:`backdrop_node` will bake the heading into its
+        bitmap — answerable *now*, before any image has arrived.
 
-        The whole point is that it needs no image: ``backdrop_spec`` is a
-        pure function of the DTO the page already has, so a header can
-        reserve the right space on its very first paint instead of finding
-        out when the bitmap lands. See :meth:`backdrop_node` for what that
-        prevents.
+        The whole point is that it needs no image: both specs are pure
+        functions of the DTO the page already has, so a header can reserve
+        the right space on its very first paint instead of finding out when
+        the bitmap lands. See :meth:`backdrop_node` for what that prevents.
+
+        Called ``has_backdrop`` until the poster fallback below existed, and
+        renamed because that stopped being the question: a header with no
+        backdrop but a poster to inset draws a banner, bakes its heading,
+        and needs the caller *not* to draw one underneath.
         """
         if self.art.server is None:
             return False
-        return self.art.source.backdrop_spec(item) is not None
+        if self.art.source.backdrop_spec(item) is not None:
+            return True
+        # No backdrop, but there may still be artwork to inset. Asked of the
+        # spec rather than of _banner_poster, which fetches.
+        return self._header_poster_spec(item) is not None
+
+    def _header_poster_spec(self, item):
+        """The spec for a header's inset poster, or None — the DTO half of
+        :meth:`_banner_poster`, split out so ``header_bakes_heading`` can ask
+        the question without starting a fetch."""
+        from ..conf import settings
+
+        if (item or {}).get("Type") == "Episode":
+            wanted = settings.detail_episode_image
+        else:
+            wanted = settings.detail_poster
+        if self.art.server is None or not wanted:
+            return None
+        return self.art.source.image_spec(item, "Primary", 0, inherit=False)
 
     def _banner_poster(self, item, box, backdrop_spec):
         """``(image or None, cache tag)`` for the poster inset into a header.
@@ -827,10 +850,11 @@ class TileRenderer:
         `_request_image` gives up after ``IMG_MAX_ATTEMPTS``, and a permanent
         failure would otherwise be an anonymous grey panel forever.
 
-        A plain placeholder Box is still returned when the item genuinely has
-        no artwork, because then there is no baked heading to match and the
-        caller draws its own. :meth:`has_backdrop` is how a caller tells the
-        two apart — *not* the returned node's type, which cannot distinguish
+        A plain placeholder Box is returned only when the item has no
+        artwork **of any kind** -- no backdrop and no poster to inset --
+        because then there is no baked heading to match and the caller draws
+        its own. :meth:`header_bakes_heading` is how a caller tells
+        the two apart — *not* the returned node's type, which cannot distinguish
         "none" from "not yet".
         """
         spec = None
@@ -903,6 +927,32 @@ class TileRenderer:
                 pending = "pending|" + key
                 b = self.art.strips.bitmap(
                     pending,
+                    lambda: components.compose_banner(
+                        _flat_image(pbox, theme.PLACEHOLDER_BG),
+                        pbox, title, meta, context, poster=poster),
+                    lsize=box)
+                return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                             v=b.get("v", 0), w=b["lw"], h=b["lh"])
+        # No backdrop. **A poster is still not stretched across a 2.67:1
+        # banner** -- see backdrop_spec, where cropping a 2:3 poster into a
+        # strip is rejected for looking like a rendering fault. But the
+        # alternative was a bare grey box for every item without key art,
+        # which is what this used to draw and what [iw] reported: nothing
+        # but a grey box, when the item has a perfectly good poster.
+        #
+        # So it gets the composition the *waiting* state already used --
+        # flat panel, heading baked in, artwork inset at its own aspect --
+        # which is the one shape that shows the poster without distorting
+        # it. Same call, same geometry, so a header cannot move depending
+        # on which of the two it got.
+        if title:
+            pbox = raster(*box)
+            poster, poster_key = self._banner_poster(item, pbox, None)
+            if poster is not None:
+                key = "noart|" + make_key(title, meta or "", context or "",
+                                          pbox[0], pbox[1]) + "|" + poster_key
+                b = self.art.strips.bitmap(
+                    key,
                     lambda: components.compose_banner(
                         _flat_image(pbox, theme.PLACEHOLDER_BG),
                         pbox, title, meta, context, poster=poster),

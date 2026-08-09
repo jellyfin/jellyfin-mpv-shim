@@ -15,7 +15,7 @@ paint nothing is cached, so *every* header with a backdrop drew its heading
 below the banner and then dropped up to three text blocks when the bitmap
 came back — with the play buttons under them.
 
-The fix is to ask the DTO instead (`has_backdrop`, which is `backdrop_spec`
+The fix is to ask the DTO instead (`header_bakes_heading`, which is the specs
 and needs no image), and to compose the waiting state through the same
 `compose_banner` over a flat panel. That last half is what makes the title
 readable while loading and, more importantly, keeps it readable when the
@@ -268,7 +268,7 @@ class NoPageAsksTheNodeTest(unittest.TestCase):
             offenders, [],
             "these headers choose their heading from the banner node's type, "
             "which cannot tell 'no artwork' from 'not yet' — ask "
-            "`tiles.has_backdrop(item)` instead: %s" % offenders)
+            "`tiles.header_bakes_heading(item)` instead: %s" % offenders)
 
     def test_every_page_that_draws_a_backdrop_asks_the_item(self):
         missing = []
@@ -277,13 +277,14 @@ class NoPageAsksTheNodeTest(unittest.TestCase):
                 continue
             src = open(os.path.join(self.PAGES_DIR, name),
                        encoding="utf-8").read()
-            if "backdrop_node" in src and "has_backdrop" not in src:
+            if ("backdrop_node" in src
+                    and "header_bakes_heading" not in src):
                 missing.append(name)
         self.assertEqual(
             missing, [],
-            "these pages draw a backdrop header without asking whether the "
-            "item has one, so their heading placement cannot be right in "
-            "both states: %s" % missing)
+            "these pages draw a backdrop header without asking whether it "
+            "bakes its own heading, so their heading placement cannot be "
+            "right in both states: %s" % missing)
 
 
 if __name__ == "__main__":
@@ -370,6 +371,90 @@ class HeaderPosterTest(unittest.TestCase):
         # one would then collide on one key, which is the same bug.
         self.assertIn("nopo", self._key(poster_ready=False))
         self.assertNotIn("nopo", self._key(poster_ready=True))
+
+    def _no_backdrop_renderer(self, has_poster=True):
+        """A renderer for an item with NO backdrop, with or without a
+        poster to fall back to."""
+        from types import SimpleNamespace
+        from PIL import Image as PILImage
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        art = PILImage.new("RGB", (40, 60), (200, 40, 40))
+        composed = []
+
+        class _Source:
+            @staticmethod
+            def backdrop_spec(_item):
+                return None
+
+            @staticmethod
+            def image_spec(_item, _t="Primary", _w=280, inherit=True):
+                return ("m1", "Primary", "pt") if has_poster else None
+
+            @staticmethod
+            def image_url(*_a, **_k):
+                return "http://srv/po.jpg"
+
+        class _Strips:
+            @staticmethod
+            def bitmap(key, image, lsize=None):
+                composed.append((key, callable(image)))
+                return {"src": "s", "iw": 1, "ih": 1, "lw": 1, "lh": 1,
+                        "v": 0}
+
+        r = TileRenderer.__new__(TileRenderer)
+        r.art = SimpleNamespace(server="srv1", source=_Source(),
+                                thumbs=None, strips=_Strips())
+        r._requested, r._img_retry = set(), {}
+        r._request_image = lambda key, url, box: art
+        return r, composed
+
+    def test_no_backdrop_still_shows_the_poster(self):
+        """[iw]: with no backdrop the header short-circuited to a bare grey
+        box, when the item has a perfectly good poster to show.
+
+        It is NOT stretched across the banner -- backdrop_spec rejects that
+        for looking like a rendering fault -- it gets the composition the
+        *waiting* state already used: flat panel, heading baked in, artwork
+        inset at its own aspect.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        from jellyfin_mpv_shim.mpvtk.widgets import Image as ImageNode
+
+        r, composed = self._no_backdrop_renderer()
+        box = TileRenderer.banner_box(r, self.SIZE[0])
+        node = r.backdrop_node({"Id": "m1"}, box, "detail-bd", title="A Film")
+        self.assertIsInstance(
+            node, ImageNode,
+            "a header with a poster and no backdrop drew a plain grey box")
+        self.assertTrue(composed, "nothing was composed")
+        self.assertTrue(composed[-1][1],
+                        "the compose must be deferred to a cache miss")
+
+    def test_no_backdrop_and_no_poster_is_still_a_plain_box(self):
+        # The genuinely artwork-less case keeps the placeholder, because
+        # then there is no baked heading and the caller draws its own.
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        from jellyfin_mpv_shim.mpvtk.widgets import Image as ImageNode
+
+        r, _composed = self._no_backdrop_renderer(has_poster=False)
+        box = TileRenderer.banner_box(r, self.SIZE[0])
+        node = r.backdrop_node({"Id": "m1"}, box, "detail-bd", title="A Film")
+        self.assertNotIsInstance(node, ImageNode)
+
+    def test_the_caller_is_told_which_of_the_two_it_got(self):
+        """The heading is baked into the poster fallback, so a page that
+        drew its own underneath would draw it twice -- which is exactly the
+        bug header_bakes_heading exists to prevent, in its other direction.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        with_poster, _c = self._no_backdrop_renderer(has_poster=True)
+        without, _c2 = self._no_backdrop_renderer(has_poster=False)
+        self.assertTrue(
+            TileRenderer.header_bakes_heading(with_poster, {"Id": "m1"}))
+        self.assertFalse(
+            TileRenderer.header_bakes_heading(without, {"Id": "m1"}))
 
     def test_a_poster_that_is_the_backdrop_is_not_drawn_twice(self):
         """A home video whose landscape Primary is already the banner (see

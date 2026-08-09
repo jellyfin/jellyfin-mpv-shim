@@ -374,21 +374,30 @@ class Settings(SettingsBase):
     mpv_log_level: str = "info"
     idle_when_paused: bool = False
     stop_idle: bool = False
-    kb_stop: str = "q"
-    kb_prev: str = "<"
-    kb_next: str = ">"
-    kb_watched: str = "w"
-    kb_unwatched: str = "u"
-    kb_menu: str = "c"
-    kb_menu_esc: str = "esc"
-    kb_menu_ok: str = "enter"
-    kb_menu_left: str = "left"
-    kb_menu_right: str = "right"
-    kb_menu_up: str = "up"
-    kb_menu_down: str = "down"
-    kb_pause: str = "space"
-    kb_fullscreen: str = "f"
-    kb_kill_shader: str = "k"
+    # Optional, because the documentation has always said "you can also set
+    # them to `null` to disable the shortcut" and `str` made that a lie: a
+    # JSON null coerced to the STRING "None", which _bind_key's None guard
+    # ("an unset keybind is a supported configuration") could never match.
+    # It looked like it worked only because no keyboard produces a key named
+    # None, so mpv bound something unreachable instead of binding nothing.
+    # #16 needs the difference to be real: "the user cleared this" is how a
+    # one-time migration to input.conf tells someone who parked our
+    # interception on purpose from someone who never touched it.
+    kb_stop: Optional[str] = "q"
+    kb_prev: Optional[str] = "<"
+    kb_next: Optional[str] = ">"
+    kb_watched: Optional[str] = "w"
+    kb_unwatched: Optional[str] = "u"
+    kb_menu: Optional[str] = "c"
+    kb_menu_esc: Optional[str] = "esc"
+    kb_menu_ok: Optional[str] = "enter"
+    kb_menu_left: Optional[str] = "left"
+    kb_menu_right: Optional[str] = "right"
+    kb_menu_up: Optional[str] = "up"
+    kb_menu_down: Optional[str] = "down"
+    kb_pause: Optional[str] = "space"
+    kb_fullscreen: Optional[str] = "f"
+    kb_kill_shader: Optional[str] = "k"
     seek_up: int = 60
     seek_down: int = -60
     seek_right: int = 5

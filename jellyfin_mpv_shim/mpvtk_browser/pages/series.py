@@ -54,7 +54,7 @@ class SeriesPage(Page):
         banner = tiles.backdrop_node(item, (bw, bh), "series-bd",
                                      title=item.get("Name", ""), meta=meta)
         blocks = [banner]
-        if not tiles.has_backdrop(item):
+        if not tiles.header_bakes_heading(item):
             # Asked of the DTO, not of the node — see DetailPage.render and
             # `backdrop_node`: a placeholder means "none" or "not yet", and
             # drawing the heading here in the second case shifted the

@@ -869,10 +869,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _bind_key(self, key, func):
         """Bind one configurable key, ignoring the ones the user cleared.
 
-        Was the `keypress` decorator factory; the None check is the whole of
-        it, and an unset keybind is a supported configuration.
+        Was the `keypress` decorator factory; the emptiness check is the
+        whole of it, and an unset keybind is a supported configuration.
+
+        Empty string as well as None: the settings are Optional now, so a
+        documented `null` really does arrive as None, but a config written
+        under the old typing holds the string "None" and somebody clearing
+        the field in a text editor leaves "". All three mean the same thing
+        and none of them is a key.
         """
-        if key is not None:
+        if key and key != "None":
             self._player.on_key_press(key)(func)
 
     def _observe(self, prop, handler):

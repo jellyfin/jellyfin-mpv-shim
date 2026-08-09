@@ -801,7 +801,7 @@ class ProgramPage(Page):
                                      title=title, meta=meta,
                                      context=item.get("ChannelName") or "")
         blocks = [banner]
-        if not tiles.has_backdrop(item):
+        if not tiles.header_bakes_heading(item):
             # No artwork *at all*, asked of the DTO — same split as
             # DetailPage, and the same reason it is not `isinstance`: a
             # placeholder node means "none" or "not yet", and the second

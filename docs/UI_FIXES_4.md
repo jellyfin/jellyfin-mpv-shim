@@ -2058,3 +2058,48 @@ appear twice in one credit list (two roles, or the same name resolved to two
 entries), so the collision is in how the row keys its tiles rather than in the
 data. Captured here rather than fixed because it is a different screen from
 anything else in this batch.
+
+## 21 — A header with no backdrop showed a grey box
+
+**[iw]**: "when no backdrop is available still show thumbnails/posters —
+right now the backdrop short circuits the UI and we don't draw anything
+except a grey box."
+
+Fixed. `backdrop_node` had three outcomes and the third was a bare
+`Box(bg=PLACEHOLDER_BG)`: artwork present → composed banner; artwork coming →
+flat panel with the heading baked in **and the poster inset**; no backdrop →
+grey. The middle one already did exactly what was wanted, and the no-backdrop
+case simply never reached it — the whole thing sat under `if spec:`.
+
+**The poster is still not stretched across the banner.** `backdrop_spec`
+rejects that deliberately (a 2:3 poster cropped into a 2.67:1 strip is a
+horizontal band through the middle of the key art, which reads as a rendering
+fault rather than as missing artwork), and that judgement stands. What the
+waiting composition does instead is draw the poster *inset at its own aspect*
+over a flat panel, which shows the artwork without distorting it — so the
+no-backdrop case now composes the same thing. Same call, same geometry, so a
+header cannot move depending on which of the two it got.
+
+`has_backdrop` became **`header_bakes_heading`**, because that stopped being
+the question: the caller uses it to decide whether to draw the heading as
+text underneath, and a poster-only header bakes its own. Leaving the name
+would have meant a header with a poster drawing its title twice. The
+source-scanning guard in `tests/test_banner_placeholder.py` follows the new
+name, so a page that draws a backdrop header without asking is still caught.
+
+## 22 — `kb_*` could not actually be set to null
+
+Found while working out #16's migration rule, which turns on telling "the
+user cleared this binding" from "the user never touched it".
+
+`docs/configuration.md` has always said *"You can also set them to `null` to
+disable the shortcut"*, and the settings were typed `str` — so a JSON null
+coerced to the **string `"None"`**, and `_bind_key`'s guard (`if key is not
+None`, documented as "an unset keybind is a supported configuration") could
+never match. It looked like it worked only because no keyboard produces a key
+named `None`: mpv bound something unreachable instead of binding nothing.
+
+All fifteen are `Optional[str]` now, and `_bind_key` refuses `None`, `""` and
+the literal `"None"` — the last because a config written under the old typing
+holds it. `__fields_set__` plus the value is now a real answer to "did they
+park this on purpose?", which is what the migration needs.

@@ -71,7 +71,7 @@ class DetailPage(Page):
         banner = tiles.backdrop_node(item, (bw, bh), "detail-bd",
                                      title=title, meta=meta, context=context)
         blocks = [banner]
-        if not tiles.has_backdrop(item):
+        if not tiles.header_bakes_heading(item):
             # No artwork *at all* — asked of the DTO, not of the node that
             # came back. The node cannot answer it: a placeholder means
             # either "none" or "not yet", and drawing the heading below the
