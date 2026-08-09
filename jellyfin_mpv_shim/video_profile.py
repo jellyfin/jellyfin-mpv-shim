@@ -463,6 +463,14 @@ class VideoProfileManager:
         ``force`` resolves the library even when no library override exists
         yet. The read path does not, because that lookup is a request; the
         *menu* must, because it is about to create the first one.
+
+        **A cached answer counts as "already resolved".** The gate is about
+        the cost of a *request*, not about whether the row is wanted -- and
+        without that clause the HUD could never show a "This Library" row
+        at all: it asks with ``force=False`` and warms the cache from the
+        action thread, so a gate on ``has_any`` alone stays shut for exactly
+        the user who has not made a library override yet, which is everyone
+        who is about to make their first.
         """
         item = item or {}
         server = item.get("ServerId")
@@ -470,7 +478,8 @@ class VideoProfileManager:
         series_id = item.get("SeriesId")
         if series_id:
             keys["series"] = key_for(server, series_id)
-        if force or self.overrides.has_any("library"):
+        known = (item.get("SeriesId") or item.get("Id")) in self._library_ids
+        if force or known or self.overrides.has_any("library"):
             library_id = self._library_id(item, client)
             if library_id:
                 keys["library"] = key_for(server, library_id)

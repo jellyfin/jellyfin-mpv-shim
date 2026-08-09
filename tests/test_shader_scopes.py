@@ -168,6 +168,25 @@ class ResolutionCostTest(unittest.TestCase):
         self.assertEqual(m.api.calls, ["show1"])
 
 
+    def test_a_warmed_cache_makes_the_row_appear_without_a_request(self):
+        """The HUD's shape: it asks with force=False and warms the cache
+        from the action thread. A gate on has_any() alone stays shut for
+        exactly the user who has not made a library override yet -- which
+        is everyone about to make their first, so the row never appeared.
+        """
+        m = make_manager()
+        # Nothing set, so the read path asks for nothing.
+        self.assertNotIn("library", m.scope_keys(EPISODE))
+        # The menu opens; the action thread resolves it once.
+        m.scope_keys(EPISODE, force=True)
+        self.assertEqual(m.api.calls, ["show1"])
+        # Now the row is there, and asking again is free.
+        self.assertEqual(m.scope_keys(EPISODE).get("library"), "srv/lib1")
+        self.assertEqual(m.api.calls, ["show1"])
+        self.assertEqual([r[0] for r in m.scope_rows(EPISODE, force=False)],
+                         ["series", "library", "default"])
+
+
 class ApplyTest(unittest.TestCase):
     def test_the_series_override_is_what_plays(self):
         m = make_manager()
