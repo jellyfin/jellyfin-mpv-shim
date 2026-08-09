@@ -2323,7 +2323,11 @@ field set the shim asks for, which is the premise of needing the call at all.
 That last one is written to fail loudly if the server ever grows such a
 field, because then this whole cost model can be deleted.
 
-## 25 — The renderer's own mouse paths bypass SyncPlay
+## 25 — The renderer's own mouse paths bypass SyncPlay — **done**
+
+Both halves are handled: the pause hands over to Python while a group is on,
+the seek is suppressed for the duration. What follows is why each got the
+answer it did, since they are deliberately different.
 
 Noticed while writing #16's sweep: `_is_pointer` excludes `MBTN_*` and
 `WHEEL_*` from every claim, because the pointer belongs to the renderer —
@@ -2332,11 +2336,18 @@ whole subject was getting that ownership right. A second claimant there
 would be fighting it, and mpv's own `MBTN_LEFT_DBL cycle fullscreen` is
 precisely the binding #1 arranged to fall *through* to.
 
-That leaves a real gap, and it is pre-existing rather than new: the
-renderer issues `cycle pause` and `seek` to mpv directly, so neither is
-reported to a SyncPlay group by the direct path — they land on the
+That left a real gap, pre-existing rather than new — though only half of it
+was the renderer's, which is worth stating precisely because the two halves
+got different answers.
+
+The **pause** half was the renderer's: four sites issued `cycle pause`
+straight to mpv. The **seek** half never was — there is no `seek` anywhere
+in `renderer.lua`; the wheel that seeks is mpv's own `WHEEL_LEFT` /
+`WHEEL_RIGHT` (`seek ∓10`), which the renderer does not claim (its
+`wheel_names` are `WHEEL_UP`/`WHEEL_DOWN`, for scrolling). Either way,
+neither reached a SyncPlay group by the direct path: they landed on the
 defensive `pause` observer, with the play-then-force-repause flicker that
-comes with it.
+comes with it, or on nothing at all.
 
 **The pause half is fixed.** **[iw]**, hand-testing the key claims: "our own
 HUD play/pause click handler does NOT get redirected into syncplay" — the
@@ -2363,14 +2374,16 @@ the block above, because `last_event` scans the whole log: `fake.reset_events()`
 between blocks, as the textbox tests already do.
 
 **The seek half is suppressed rather than routed.** **[iw]**: "should just
-disable wheel seek during syncplay." Which is the better trade: routing it
-would mean a message per notch for a gesture that delivers dozens, all to
-reach an operation the group is going to refuse anyway. `keysweep.pointer_keys`
-finds whatever the pointer currently means for seeking (mpv binds
-`WHEEL_LEFT`/`WHEEL_RIGHT` to `seek ∓10`) and the SyncPlay claim emits
-`ignore` lines for them — suppressed at the mpv level, for the duration,
-with no round trip and no renderer involvement. `WHEEL_UP`/`WHEEL_DOWN` are
-volume and are not touched.
+disable wheel seek during syncplay." Which is the better trade twice over:
+routing it would mean a message per notch for a gesture that delivers
+dozens, all to reach an operation the group is going to refuse anyway — and
+it is not the renderer's key to route in the first place.
+`keysweep.pointer_keys` finds whatever the pointer currently means for
+seeking and the SyncPlay claim emits `ignore` lines for it: suppressed at
+the mpv level, for the duration, with no round trip and nothing added to the
+renderer at all. `WHEEL_UP`/`WHEEL_DOWN` are volume and are not touched.
+
+Both halves are done, so #25 is closed.
 
 ## 26 — Two drop-down items from **[iw]**
 
