@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-09 00:18-0400\n"
+"POT-Creation-Date: 2026-08-09 18:45-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1249,11 +1249,23 @@ msgid "No player controls"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Follow display"
+msgid "75%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "85%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "90%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "110%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1262,6 +1274,30 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No minimum"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "14 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "16 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "18 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "20 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Follow display"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1499,6 +1535,14 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Text Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Minimum Text Size"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1793,6 +1837,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Scales the text only. Interface Scale above resizes everything -- artwork, "
+"spacing and controls -- so use this one when the words are too small rather "
+"than the whole interface. It stops at 150% because by then most tile "
+"captions are ellipsized and it is the whole interface that needs to be "
+"bigger -- which is Interface Scale, above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Nothing renders smaller than this, whatever Text Size works out to. Raises "
+"the smallest labels without enlarging headings, which a percentage cannot do."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
@@ -1832,6 +1891,83 @@ msgid ""
 "Evens out loud effects and quiet dialogue. This turns passthrough off while "
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Status"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Unplayed"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Played"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Favorites"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Resumable"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Liked"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Subtitles"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Trailer"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Special Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Song"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Video"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Genres"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Years"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Parental Rating"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Tags"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Audio Language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Subtitle Language"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1951,6 +2087,26 @@ msgid "The download could not be started."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "This library offers no filters."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Filters"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Clear All"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Any"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Auto"
 msgstr ""
@@ -2015,10 +2171,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "View Settings"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Done"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -3028,10 +3180,6 @@ msgid "Critic Rating"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "Parental Rating"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Random"
 msgstr ""
 
@@ -3054,30 +3202,16 @@ msgid "Networks"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Genres"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Genres"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Years"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "Unplayed"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-msgid "Favorites"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Collections"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, python-format
+msgid "Filter (%d)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Filter"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
