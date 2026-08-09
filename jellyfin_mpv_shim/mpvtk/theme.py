@@ -122,15 +122,39 @@ DEFAULT_BASE_SIZE = 17
 
 _base_size = DEFAULT_BASE_SIZE
 
+#: Nothing renders below this, whatever a tier or a call site asked for.
+#: 0 = no floor, which is stock.
+#:
+#: For low vision: a scale multiplies everything, so the smallest text
+#: stays the smallest text and a guide badge at 0.70x base is still the
+#: hardest thing on screen to read. A floor is the other control -- it
+#: compresses the bottom of the scale instead of moving all of it, which
+#: is what somebody who cannot read 12px actually wants.
+_min_size = 0
 
-def set_type_scale(base=None):
+#: The user's text multiplier, applied to EVERY size the toolkit resolves
+#: -- tiers and explicit sizes alike.
+#:
+#: Not folded into the base, which is what it did first: that scaled the
+#: tiers and left the several hundred call sites that still pass a literal
+#: exactly where they were, so turning text up enlarged the controls and
+#: not the body text -- recreating the mismatch the scale exists to fix,
+#: in the other direction. The base is the theme's design; this is the
+#: user's preference about all of it.
+_text_factor = 1.0
+
+
+def set_type_scale(base=None, minimum=None, factor=None):
     """Set the base size every tier derives from. ``None`` restores stock.
 
     Wholesale like :func:`set_tokens`, and for the same reason: a theme
     that says nothing about type must get the default back rather than
     keep the last theme's.
+
+    ``minimum`` floors every size the toolkit resolves and ``factor``
+    multiplies it; see ``_min_size`` and ``_text_factor``.
     """
-    global _base_size
+    global _base_size, _min_size, _text_factor
     try:
         value = float(DEFAULT_BASE_SIZE if base is None else base)
     except (TypeError, ValueError):
@@ -138,6 +162,20 @@ def set_type_scale(base=None):
     # A base of 0 would render the whole UI invisible and a negative one is
     # meaningless; both are reachable from a hand-edited theme file.
     _base_size = value if value > 0 else float(DEFAULT_BASE_SIZE)
+    try:
+        floor = float(0 if minimum is None else minimum)
+    except (TypeError, ValueError):
+        floor = 0.0
+    # A floor above the largest tier would flatten the whole scale into one
+    # size, which is not a readability aid, it is a broken UI. Capped at the
+    # base so the tiers above it keep their spread.
+    try:
+        mult = float(1.0 if factor is None else factor)
+    except (TypeError, ValueError):
+        mult = 1.0
+    _text_factor = mult if mult > 0 else 1.0
+    # Against the SCALED base, so a floor is a floor on what is drawn.
+    _min_size = min(max(floor, 0.0), _base_size * _text_factor)
     return _base_size
 
 
@@ -158,7 +196,26 @@ def size(tier):
     # gives layout a fractional line height to divide the page by. The
     # logical->physical conversion deliberately does NOT round (see
     # scaling._EXACT_KEYS); this is the other end of that.
-    return int(round(_base_size * ratio))
+    return text_size(int(round(_base_size * ratio)))
+
+
+def text_size(size):
+    """``size`` raised to the readability floor.
+
+    Applied where a widget resolves its size, **before layout measures
+    it**. Flooring later -- at the logical-to-physical boundary, where
+    `scaling` already touches every size -- would draw bigger text inside
+    boxes measured for the smaller kind, which is overflow everywhere
+    rather than a readability setting.
+    """
+    try:
+        return max(int(round(float(size) * _text_factor)), int(_min_size))
+    except (TypeError, ValueError):
+        return int(round(_base_size * _text_factor))
+
+
+def min_size():
+    return _min_size
 
 
 #: Aliases kept so existing reads (``theme.HOVER``, ``theme.SOFT``) keep

@@ -552,6 +552,13 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
   words are too small rather than everything being too small.
   (Default: `1.0`)
 
+- `ui_text_min` - Nothing in the interface renders smaller than this many
+  pixels, whatever `ui_text_scale` works out to. `0` disables it. This is
+  the low-vision control: a percentage moves every size together, so the
+  smallest label stays the smallest label — a floor raises the bottom of
+  the scale without enlarging headings that were already readable.
+  (Default: `0`)
+
 ### Seek distances moved to `input.conf`
 
 `seek_up`, `seek_down`, `seek_right`, `seek_left`, `seek_v_exact` and

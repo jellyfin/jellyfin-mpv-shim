@@ -1167,6 +1167,26 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.geom = caption(self.geom)
             self.geom_wide = caption(self.geom_wide)
             self.geom_square = caption(self.geom_square)
+        # ...and the user's text preference on top of whatever the theme
+        # settled on. Last, so a theme that pins a caption size still gets
+        # scaled rather than escaping the setting entirely -- the pin is an
+        # opinion about proportion, not about legibility.
+        # Imported here, not at module scope, like the other conf reads in
+        # this file (import cycle: conf -> ... -> app).
+        from ..conf import settings
+
+        try:
+            factor = float(getattr(settings, "ui_text_scale", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            factor = 1.0
+        try:
+            floor = int(getattr(settings, "ui_text_min", 0) or 0)
+        except (TypeError, ValueError):
+            floor = 0
+        if factor != 1.0 or floor:
+            for name in ("geom", "geom_wide", "geom_square", "geom_banner"):
+                setattr(self, name, getattr(self, name).with_text_scale(
+                    factor if factor > 0 else 1.0, floor))
 
     def apply_cover_size(self):
         """Adopt a changed Cover Size without a restart.

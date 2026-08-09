@@ -205,5 +205,119 @@ class UserOverrideTest(unittest.TestCase):
                 self.assertEqual(got["NORMAL"], tk.DEFAULT_BASE_SIZE)
 
 
+class ReadabilityFloorTest(unittest.TestCase):
+    """`ui_text_min` raises the smallest text, which a multiplier cannot.
+
+    A scale moves everything, so the hardest thing on screen to read stays
+    the hardest thing on screen to read -- a guide badge at 0.70x base is
+    still the smallest text there is. A floor compresses the bottom of the
+    scale instead, which is what low vision actually needs.
+    """
+
+    def tearDown(self):
+        tk.set_type_scale(None)
+
+    def test_it_raises_the_small_tiers_and_leaves_the_rest(self):
+        tk.set_type_scale(17, minimum=15)
+        self.assertEqual(tk.size("MICRO"), 15)
+        self.assertEqual(tk.size("CAPTION"), 15)
+        self.assertEqual(tk.size("NORMAL"), 17)
+        self.assertEqual(tk.size("HERO"), 29)
+
+    def test_it_reaches_an_explicit_size_too(self):
+        # The point of flooring where widgets RESOLVE rather than where
+        # tiers are computed: several hundred call sites still pass a
+        # literal, and 11px is exactly what a floor is for.
+        tk.set_type_scale(17, minimum=16)
+        self.assertEqual(widgets.Text("x", size=11).size, 16)
+
+    def test_it_cannot_flatten_the_scale(self):
+        # A floor above the top tier would render every size identically,
+        # which is a broken UI rather than a readability aid.
+        tk.set_type_scale(17, minimum=999)
+        got = [tk.size(t) for t in ("MICRO", "NORMAL", "HERO")]
+        self.assertEqual(got, sorted(got))
+        self.assertGreater(tk.size("HERO"), tk.size("MICRO"))
+
+    def test_the_floor_is_measured_against_scaled_text(self):
+        # With a 2x multiplier nothing is below 34 anyway, so an 18px floor
+        # must not drag anything DOWN or clamp the multiplier.
+        tk.set_type_scale(17, minimum=18, factor=2.0)
+        self.assertEqual(tk.size("NORMAL"), 34)
+
+
+class EverySizeScalesTest(unittest.TestCase):
+    """The multiplier reaches literals, not just tiers.
+
+    Folding it into the base was the first attempt and it was wrong: the
+    tiers scaled and the several hundred call sites still passing a
+    literal did not, so turning text up enlarged the controls and left the
+    body text behind -- the very mismatch the scale was built to remove.
+    """
+
+    def tearDown(self):
+        tk.set_type_scale(None)
+
+    def test_a_literal_size_follows_the_multiplier(self):
+        tk.set_type_scale(17, factor=2.0)
+        self.assertEqual(widgets.Text("x", size=13).size, 26)
+
+    def test_a_tier_scales_exactly_once(self):
+        # Both the tier and the literal path multiply; a tier must not go
+        # through it twice.
+        tk.set_type_scale(17, factor=2.0)
+        self.assertEqual(tk.size("NORMAL"), 34)
+
+    def test_the_ratios_survive(self):
+        tk.set_type_scale(None)
+        stock = {t: tk.size(t) for t in tk.TYPE_SCALE}
+        tk.set_type_scale(17, factor=1.5)
+        for tier, was in stock.items():
+            with self.subTest(tier):
+                self.assertAlmostEqual(tk.size(tier) / was, 1.5, delta=0.09)
+
+
+class TileCaptionTest(unittest.TestCase):
+    """Tile captions are geometry, not tiers, and were left behind.
+
+    They are painted into the strip bitmap by Pillow and already scale
+    with Cover Size, so they never went through `theme.size()` -- which is
+    why turning text up moved everything except the tiles [iw].
+    """
+
+    def _geom(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        return POSTER_GEOM
+
+    def test_the_caption_band_grows_with_the_text(self):
+        """`caption_h` is a fixed band and `_paint_caption` lays out title,
+        a 7px gap, then subtitle inside it. Scaling the type without the
+        band clips the subtitle away entirely."""
+        g = self._geom()
+        for factor in (1.25, 1.5, 2.0, 3.0):
+            with self.subTest(factor):
+                s = g.with_text_scale(factor)
+                self.assertLessEqual(s.title_size + 7 + s.sub_size,
+                                     s.caption_h)
+
+    def test_it_keeps_the_slack_the_stock_band_has(self):
+        g = self._geom()
+        slack = g.caption_h - (g.title_size + g.sub_size)
+        s = g.with_text_scale(2.0)
+        self.assertGreaterEqual(
+            s.caption_h - (s.title_size + s.sub_size), slack)
+
+    def test_the_floor_reaches_captions(self):
+        s = self._geom().with_text_scale(1.0, minimum=18)
+        self.assertGreaterEqual(s.title_size, 18)
+        self.assertGreaterEqual(s.sub_size, 18)
+
+    def test_a_scale_of_one_changes_nothing(self):
+        g = self._geom()
+        s = g.with_text_scale(1.0)
+        self.assertEqual((s.title_size, s.sub_size, s.caption_h),
+                         (g.title_size, g.sub_size, g.caption_h))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -175,7 +175,7 @@ class Text(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('TITLE') if size is None else size
+        size = theme.size('TITLE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.text = text
         self.size = size
@@ -328,7 +328,7 @@ class Icon(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
@@ -357,7 +357,7 @@ class Button(Box):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
         if kw.get("disabled"):
@@ -420,7 +420,7 @@ class TextBox(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         kw.setdefault("w", 240)
         super().__init__(id=id, **kw)
         self.text = text
@@ -506,7 +506,7 @@ class Checkbox(Row):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         off = bool(kw.get("disabled"))
         box = Box(
             w=20,
@@ -568,7 +568,7 @@ class Grid(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('LARGE') if size is None else size
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
@@ -591,7 +591,7 @@ class Form(Grid):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('LARGE') if size is None else size
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
         label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
             {"w": label_w} if label_w else {},
@@ -758,9 +758,9 @@ class Table(Column):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('LARGE') if size is None else size
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
         header_size = (theme.size('SMALL')
-                       if header_size is None else header_size)
+                       if header_size is None else theme.text_size(header_size))
         selected_bg = selected_bg or theme.SOFT
         header_fg = header_fg or theme.ON_SURFACE_MUTED
         fg = fg or theme.ON_SURFACE
@@ -927,7 +927,7 @@ class Dropdown(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         if trigger_icon:
             kw.setdefault("w", int(size * 1.9))
             kw.setdefault("h", int(size * 1.9))
@@ -967,7 +967,7 @@ class Menu(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else size
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.x = x

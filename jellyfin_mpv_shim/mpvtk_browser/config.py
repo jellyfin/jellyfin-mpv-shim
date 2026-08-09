@@ -109,7 +109,8 @@ TAB_SECTIONS = {
         # The three startup-applied "look" settings, together: the theme
         # sets the palette and its own cover size, and these two can
         # override the sizing.
-        (_("Theme"), ["theme", "poster_scale", "ui_scale"]),
+        (_("Theme"), ["theme", "poster_scale", "ui_scale",
+                       "ui_text_scale", "ui_text_min"]),
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
@@ -234,6 +235,21 @@ LABELED_ENUMS = {
         (_("MPV built-in default"), "default"),
         (_("No player controls"), "none"),
     ],
+    "ui_text_scale": [
+        (_("100% (no scaling)"), 1.0),
+        (_("110%"), 1.1),
+        (_("125%"), 1.25),
+        (_("150%"), 1.5),
+        (_("175%"), 1.75),
+        (_("200%"), 2.0),
+    ],
+    "ui_text_min": [
+        (_("No minimum"), 0),
+        (_("14 px"), 14),
+        (_("16 px"), 16),
+        (_("18 px"), 18),
+        (_("20 px"), 20),
+    ],
     "ui_scale": [
         (_("Follow display"), None),
         (_("100% (no scaling)"), 1.0),
@@ -346,6 +362,8 @@ LABEL_OVERRIDES = {
     "osc_style": _("Player Controls Style"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
+    "ui_text_scale": _("Text Size"),
+    "ui_text_min": _("Minimum Text Size"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
@@ -550,6 +568,13 @@ NOTES = {
     # no msgid, so nothing already translated is discarded.
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
+    "ui_text_scale": _("Scales the text only. Interface Scale above resizes "
+                       "everything -- artwork, spacing and controls -- so "
+                       "use this one when the words are too small rather "
+                       "than the whole interface."),
+    "ui_text_min": _("Nothing renders smaller than this, whatever Text Size "
+                     "works out to. Raises the smallest labels without "
+                     "enlarging headings, which a percentage cannot do."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
                     "mpv.conf) decide. Pick a mode only if you are sending "
                     "audio to a receiver."),

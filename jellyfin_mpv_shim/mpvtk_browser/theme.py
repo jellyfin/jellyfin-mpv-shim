@@ -182,7 +182,14 @@ def apply_to_toolkit(glow=False):
         factor = float(getattr(settings, "ui_text_scale", 1.0) or 1.0)
     except (TypeError, ValueError):
         factor = 1.0
-    tk.set_type_scale(base * (factor if factor > 0 else 1.0))
+    try:
+        floor = int(getattr(settings, "ui_text_min", 0) or 0)
+    except (TypeError, ValueError):
+        floor = 0
+    # base = the theme's design size; factor = the user's preference about
+    # all text, including the many call sites that still pass a literal.
+    tk.set_type_scale(base, minimum=floor,
+                      factor=factor if factor > 0 else 1.0)
 
 
 def mix(a, b, t):

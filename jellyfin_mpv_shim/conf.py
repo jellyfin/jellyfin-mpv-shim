@@ -542,6 +542,11 @@ class Settings(SettingsBase):
     #: spacing) -- this moves only the type, so a user who wants bigger
     #: words without bigger posters has a control that says so.
     ui_text_scale: float = 1.0
+    #: Nothing in the interface renders smaller than this, whatever the
+    #: scale works out to. 0 = no floor. For low vision: a multiplier
+    #: keeps the smallest text the smallest text, so a floor is the
+    #: control that actually raises the hardest thing on screen to read.
+    ui_text_min: int = 0
     # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"

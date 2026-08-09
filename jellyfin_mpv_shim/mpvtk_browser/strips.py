@@ -114,6 +114,36 @@ class TileGeom:
     sub_size: int = 13
     badge_size: int = 14
 
+    def with_text_scale(self, factor, minimum=0):
+        """A copy with the caption text scaled, and room made for it.
+
+        The caption sizes are **geometry**, not type-scale tiers: they are
+        baked into the strip bitmap by Pillow and they already grow with
+        Cover Size, because a label under a bigger poster should. So the
+        user's text preference has to be applied here separately -- it
+        does not arrive through `theme.size()` like everything drawn as a
+        text node, which is why turning text up left the tiles alone.
+
+        ``caption_h`` grows with them. It is a fixed band under the
+        artwork and `_paint_caption` lays out inside it as title, a 7px
+        gap, then subtitle -- 15 + 7 + 13 in 46px at stock. Scale the type
+        without the band and the subtitle is simply clipped away.
+        """
+        import dataclasses
+
+        def scaled(value):
+            return max(1, int(round(value * factor)), int(minimum or 0))
+
+        title, sub = scaled(self.title_size), scaled(self.sub_size)
+        # What the painter needs, plus the slack the stock band already
+        # carries -- so a caption keeps the breathing room it was designed
+        # with instead of being cropped to its own text.
+        slack = self.caption_h - (self.title_size + self.sub_size)
+        return dataclasses.replace(
+            self, title_size=title, sub_size=sub,
+            badge_size=scaled(self.badge_size),
+            caption_h=max(self.caption_h, title + sub + max(slack, 0)))
+
     @property
     def strip_h(self):
         return self.tile_h + self.caption_h
