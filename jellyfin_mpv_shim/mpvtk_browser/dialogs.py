@@ -30,38 +30,96 @@ from . import components, theme
 from .components import media_info
 
 
-#: Every category the panel can draw, in web's order. Each is
-#: ``(key, label, kind)``; "vals" names the `_filtervals` entry a
-#: picker's options come from.
+#: Collection types a filter category can actually match, transcribed
+#: from jellyfin-web's ``FilterButton.tsx`` -- ``isFiltersFeaturesEnabled``
+#: and friends, which gate by ``viewType``.
 #:
-#: A category is drawn only when it has something to offer: the
-#: server returned options for it, or it is a fixed enum. That is
-#: jellyfin-web's own gate (`!!filters?.AudioLanguages?.length`) and
-#: it is what makes this work against a server with no language
-#: filters -- Jellyfin 11 and earlier -- with no version check
-#: anywhere.
+#: Our grids are coarser than web's tabs, so the mapping is: a movies
+#: library is its Movies tab, a tvshows library its Series tab, a music
+#: library its **Albums** tab (that is what our grid lists), and an
+#: untyped library its Mixed tab. ``None`` in a gate means an untyped or
+#: mixed library.
+#:
+#: Ungated categories are the ones web offers everywhere, and are left
+#: to the "did the server return any options" test below.
+
+#: Features and Video Types: web's ``isFiltersFeaturesEnabled``. These
+#: ask about a *media* item -- has it subtitles, a trailer, a theme song
+#: -- and a Series is a container with no media of its own, so on a TV
+#: library they match by proxy while on a music or books library they
+#: can only ever match nothing.
+_FEATURE_LIBRARIES = frozenset({"movies", "tvshows"})
+
+#: Audio/subtitle language: web's ``isFiltersLanguagesEnabled``, which is
+#: the feature set plus Mixed.
+_LANGUAGE_LIBRARIES = frozenset({"movies", "tvshows", None})
+
+#: Played / Unplayed / Resumable: web's ``getVisibleFiltersStatus``,
+#: which hides them for Albums, Artists, Songs, Photos and Studios. Of
+#: the grids we draw that is the music one -- an album has no play state
+#: of its own. Favorites is offered unconditionally, there and here.
+#:
+#: Written as an exclusion rather than an allow-list because that is what
+#: it is: web names the tabs that do NOT get these, and the alternative
+#: here would be enumerating every collection type Jellyfin has or might
+#: add, where anything left out silently loses its Unplayed box.
+_EXCEPT_MUSIC = ("except", frozenset({"music"}))
+
+
+def _applies(gate, collection_type):
+    """Whether a gated row belongs on a ``collection_type`` library.
+
+    ``None`` means everywhere; a frozenset is an allow-list; an
+    ``("except", set)`` pair is a deny-list. Both forms are needed --
+    "only movies and TV" and "anything but music" are different claims,
+    and writing the second as an allow-list means a collection type
+    nobody updated the table for quietly loses filters that do apply.
+    """
+    if gate is None:
+        return True
+    if isinstance(gate, tuple) and gate and gate[0] == "except":
+        return collection_type not in gate[1]
+    return collection_type in gate
+
+
+#: Every category the panel can draw, in web's order. Each is
+#: ``(label, kind, spec, libs)``; "vals" names the `_filtervals` entry a
+#: picker's options come from, and ``libs`` is the gate above (``None``
+#: for "everywhere"). A "checks" spec is ``(key, label, libs)`` per box,
+#: because Status is offered on every library but three of its five boxes
+#: are not.
+#:
+#: A category is drawn only when it has something to offer: it applies to
+#: this library, and the server returned options for it (or it is a fixed
+#: enum). The second half is jellyfin-web's own gate
+#: (`!!filters?.AudioLanguages?.length`) and is what makes this work
+#: against a server with no language filters -- Jellyfin 11 and earlier
+#: -- with no version check anywhere. A section whose every row is gated
+#: out is not drawn at all, heading included.
 FILTER_SECTIONS = (
     (_("Status"), "checks", (
-        ("unplayed", _("Unplayed")),
-        ("played", _("Played")),
-        ("favorite", _("Favorites")),
-        ("resumable", _("Resumable")),
-        ("liked", _("Liked")),
-    )),
+        ("unplayed", _("Unplayed"), _EXCEPT_MUSIC),
+        ("played", _("Played"), _EXCEPT_MUSIC),
+        ("favorite", _("Favorites"), None),
+        ("resumable", _("Resumable"), _EXCEPT_MUSIC),
+        ("liked", _("Liked"), None),
+    ), None),
     (_("Features"), "checks", (
-        ("has_subtitles", _("Has Subtitles")),
-        ("has_trailer", _("Has Trailer")),
-        ("has_special_feature", _("Has Special Features")),
-        ("has_theme_song", _("Has Theme Song")),
-        ("has_theme_video", _("Has Theme Video")),
-    )),
-    (_("Genres"), "pick", ("genre", "genres")),
-    (_("Years"), "pick", ("year", "years")),
-    (_("Parental Rating"), "pick", ("official_ratings", "official_ratings")),
-    (_("Tags"), "pick", ("tags", "tags")),
-    (_("Audio Language"), "pick", ("audio_languages", "audio_languages")),
+        ("has_subtitles", _("Has Subtitles"), None),
+        ("has_trailer", _("Has Trailer"), None),
+        ("has_special_feature", _("Has Special Features"), None),
+        ("has_theme_song", _("Has Theme Song"), None),
+        ("has_theme_video", _("Has Theme Video"), None),
+    ), _FEATURE_LIBRARIES),
+    (_("Genres"), "pick", ("genre", "genres"), None),
+    (_("Years"), "pick", ("year", "years"), None),
+    (_("Parental Rating"), "pick", ("official_ratings", "official_ratings"),
+     None),
+    (_("Tags"), "pick", ("tags", "tags"), None),
+    (_("Audio Language"), "pick", ("audio_languages", "audio_languages"),
+     _LANGUAGE_LIBRARIES),
     (_("Subtitle Language"), "pick",
-     ("subtitle_languages", "subtitle_languages")),
+     ("subtitle_languages", "subtitle_languages"), _LANGUAGE_LIBRARIES),
 )
 
 
@@ -537,7 +595,7 @@ class DialogsMixin:
     # ---------------------------------------------------------- view settings
 
     def filter_panel(self, get_vals, get_filters, on_set, on_toggle,
-                     on_clear):
+                     on_clear, collection_type=None):
         """The filter panel: a modal, because it is a page of controls.
 
         Not accordions, which is what jellyfin-web uses to keep the height
@@ -545,20 +603,34 @@ class DialogsMixin:
         instead, accordions are annoying". So every category is open and
         the body scrolls, which is the same shape as the Live TV guide's
         settings dialog.
+
+        ``collection_type`` gates the categories to the ones this library
+        can match (see FILTER_SECTIONS). A plain value rather than a
+        getter, unlike the other three: it is part of the route's
+        identity, so it cannot change while this panel is open -- which
+        is the one kind of capture the stale-capture audit accepts.
         """
         def build():
             vals = get_vals()
             filters = get_filters()
             rows: list = []
-            for label, kind, spec in FILTER_SECTIONS:
+            for label, kind, spec, libs in FILTER_SECTIONS:
+                if not _applies(libs, collection_type):
+                    continue
                 if kind == "checks":
-                    rows.append(Text(label, size="normal", bold=True))
-                    rows += [
+                    boxes = [
                         Checkbox(text, bool(filters.get(key)),
                                  id="flt-" + key,
                                  on_toggle=lambda k=key: on_toggle(k))
-                        for key, text in spec
+                        for key, text, box_libs in spec
+                        if _applies(box_libs, collection_type)
                     ]
+                    if not boxes:
+                        # Every box gated out, so the heading would be a
+                        # section label with nothing under it.
+                        continue
+                    rows.append(Text(label, size="normal", bold=True))
+                    rows += boxes
                     continue
                 key, vals_key = spec
                 options = vals.get(vals_key) or []

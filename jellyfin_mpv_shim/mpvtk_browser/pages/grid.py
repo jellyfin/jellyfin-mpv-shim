@@ -243,6 +243,38 @@ class GridPage(Page):
         # there are no holes to ask about.
         total = len(items) if sort_by == "Random" else total
         route["_total"] = total
+        # Results of a DIFFERENT query replace the list rather than
+        # spreading over it, and reset the paginator with it.
+        #
+        # `_reload` leaves the old items up so the page does not blank
+        # (see there), and `spread` merges -- so without this, page 0 of
+        # the new query would be laid over the old list and every slot
+        # past it would still hold results of the filter the user just
+        # changed away from. No later load heals that: every slot is
+        # full, so nothing is ever asked for again.
+        #
+        # Keyed on the query rather than on a "reloading" flag, and after
+        # `_view` is settled above so the key carries the artwork type
+        # this grid is really drawn with. A flag has to be cleared by
+        # somebody, and every candidate leaks: cleared here it survives a
+        # load that fails or is superseded, leaving the route unable to
+        # page for the rest of its life; cleared in `_route_async` it is
+        # cleared by whichever load settles first, which is the older one.
+        # A key needs no clearing -- it simply stops differing. It also
+        # gets the failure case right by construction: after a filter
+        # load fails the items on screen are the previous filter's, so
+        # paging them with the new one stays blocked, which is what the
+        # `_error` banner is offering a retry for.
+        #
+        # `_install` runs twice per load and the two calls can be seconds
+        # apart; the second finds the key already stored and merges, so
+        # the user is not yanked back to page 1 from wherever they paged
+        # to in between.
+        key = self._query_key()
+        if route.get("_items_query") != key:
+            route.pop("_items", None)
+            self._pages.reset(route)
+            route["_items_query"] = key
         # The list is `total` slots wide from here on, holes and all, so the
         # grid is its full height and the scrollbar its full length before
         # anything past the first page exists (#617). Spread over whatever is
@@ -525,6 +557,23 @@ class GridPage(Page):
                 self.route.get("server") or self.ctx.server,
                 _image_type_of(self.route.get("_view")))
 
+    def _query_key(self, bound=None):
+        """A ``_bound_query`` that can be **stored and compared later**.
+
+        Two differences from the tuple itself, both load-bearing. It
+        carries the filters as a tuple of pairs rather than the route's
+        own dict, which every filter handler mutates *in place* -- a
+        stored reference would change along with the route and always
+        compare equal, which is the failure mode where a guard exists and
+        never fires. And it is only ever compared, never hashed, so a
+        filter whose value is a list (the language pickers) is fine.
+        """
+        sort_by, sort_order, filters, person, srv, image_type = (
+            bound or self._bound_query())
+        return (sort_by, sort_order,
+                tuple(sorted((filters or {}).items())),
+                person, srv, image_type)
+
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
@@ -565,6 +614,21 @@ class GridPage(Page):
         bound = self._bound_query()
         if bound[0] == "Random":
             return
+        loaded_with = self.route.get("_items_query")
+        if loaded_with is not None \
+                and loaded_with != self._query_key(bound):
+            # The list on screen answers a DIFFERENT query from the one a
+            # page would be fetched with -- a reload is in flight (or
+            # failed). Splicing into it would leave the grid holding a
+            # mixture of two filters that no later load heals, since
+            # every slot would then be full and nothing asked for again.
+            return
+        # A *missing* key is not a mismatch. It means nothing recorded
+        # where these items came from, which is the state of any route
+        # whose items were put there by something other than `_install`
+        # -- and reading that as "different" would disable paging on it
+        # outright rather than guard it. `_install` records the key on
+        # every load, so a real grid always has one.
 
         def put(r, items, total):
             r["_items"], r["_total"] = items, total
@@ -837,7 +901,8 @@ class GridPage(Page):
         self.ctx.dialogs.filter_panel(
             lambda: self.route.get("_filtervals") or {},
             lambda: self.route.get("_filters") or {},
-            self._set_filter, self._panel_toggle, self._clear_filters)
+            self._set_filter, self._panel_toggle, self._clear_filters,
+            collection_type=self.route.get("collection_type"))
 
     def _panel_toggle(self, key):
         """A panel checkbox. Repaints the dialog as well as reloading.
@@ -964,12 +1029,39 @@ class GridPage(Page):
     # -- header actions -----------------------------------------------------
 
     def _reload(self):
-        for k in ("_items", "_total", "_grid_shape", "_win_tried",
-                  "_win_load"):
-            self.route.pop(k, None)
-        self.route["_loading"] = False
-        self._pages.reset(self.route)
-        self.ctx.nav.reload(self.route)
+        """Re-run this route's query, **keeping what is on screen until the
+        new results land**.
+
+        This used to pop ``_items``, and ``render`` answers a missing
+        ``_items`` with ``chrome.busy()`` for the whole page -- title,
+        filter bar, A-Z rail and all. So every filter tick, every sort
+        change and every letter press blanked the library and drew a
+        spinner over it. Behind the filter panel, which covers the middle
+        of the window, all that was visible of that was the page going
+        empty: **[iw]** "it makes the page look dead behind a modal while
+        re-querying".
+
+        Stale-while-revalidate, the rule refresh_live_tv already argues
+        for: a re-read of a screen the user is looking at must not blink a
+        spinner over what they are reading. Unlike that one this DOES
+        bump the epoch -- the query has changed, so anything in flight is
+        answering the wrong question -- and unlike that one the old data
+        is genuinely wrong rather than merely stale. It stays up because
+        an empty page for the length of a query says nothing true either,
+        and it says it much louder.
+
+        The derived state goes now (it is cheap and recomputes from the
+        items still present); ``_items`` and ``_total`` are replaced at
+        install time. Nothing *fetches* against the mixture in between,
+        because the route still records which query its items came from
+        and it no longer matches -- see ``_query_key``, ``_window`` and
+        ``_install``.
+        """
+        route = self.route
+        for k in ("_grid_shape", "_win_tried", "_win_load"):
+            route.pop(k, None)
+        route["_loading"] = False
+        self.ctx.nav.reload(route)
 
     def _set(self, key, value):
         self.route[key] = value
