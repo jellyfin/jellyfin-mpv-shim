@@ -2090,6 +2090,47 @@ raise. `strips.strip` logs `strip composite failed` and the row stays a
 placeholder — a row of blank cards — until the next frame retries. That is a
 flash, on the screen named, four times more likely per unit of scale².
 
+### What a width cap would buy — measured, 2026-08-09
+
+**[iw]**: "It might be worth making these start off as width-constrained
+bitmaps until they're actually interacted with. Lazy loading them would be
+really annoying."
+
+Measured before implementing, and the answer is that it does not reach the
+screen that was reported. A carousel strip is `n * tile_w + (n-1) * gap`
+logical px wide; capping it at the viewport saves the part hanging off the
+right edge:
+
+| screen | tiles/row | rows | 1280px | 1920px | 2560px | held at 1x / 2x |
+|---|---|---|---|---|---|---|
+| Genres | 10 | 25 | 23% | **0%** | **0%** | 42 MB / 168 MB |
+| Favorites | 24 | 6 | 68% | 52% | 36% | 24 MB / 97 MB |
+| By name | 24 | 26 | 68% | 52% | 36% | **105 MB / 422 MB** |
+
+**A genre row is ten tiles — 1626 logical px — which already fits a 1920
+window.** So on the machine the report came from, a width cap frees
+nothing at all; Genres' 168 MB is entirely row *count*, which is a vertical
+problem. It saves 23% at 1280, which does not bring 2x under the 128 MB
+budget either.
+
+Two things did come out of measuring it, and both are worth more than the
+original item:
+
+**By name is worse than Genres and nobody had looked at it.** 26 rows of 24
+tiles is 105 MB at 1x — inside the budget by a hair — and **422 MB at 2x**,
+which is over three times it. Width-capping halves that to ~202 MB, still
+over. It is the worst screen in the app for this and it is not the one that
+got reported.
+
+**A width cap is still the right thing for the wide rows**, where it is
+worth 36–68%, and it is the only measure that touches them without
+windowing. It just is not the fix for #18.
+
+Neither the cap nor windowing is landed here. The cap does not move the
+reported screen, and windowing is the approach [iw] steered away from, so
+which of the two to build (or both) is [iw]'s call with the numbers above
+rather than the audit's.
+
 ### The fix, deliberately not taken in this batch
 
 The primitives are already here — `row_window`, `virtual_window`,
@@ -2112,28 +2153,54 @@ them*, and the reported one has a problem underneath it.
 
 ### The finding that changes the job
 
-**The server ignores `AudioLanguages`.** Measured against the QA server
-(Jellyfin **12.0.0**), on a library whose items *do* carry the tag
-(`MediaStreams[].Language == "eng"`):
+**Corrected on 2026-08-09.** The first pass measured this wrong and
+concluded the server ignores `AudioLanguages`. It does not. Two separate
+facts were being seen as one, and both are now measured against two live
+servers -- the v12 source build on :8096 and a Jellyfin **10.11.11**
+container on :8097 (`stdjflib container --image jellyfin/jellyfin:10.11.11`),
+same library, same query:
 
-| query | result |
-|---|---|
-| all movies | 1131 |
-| `AudioLanguages=eng` | 1131 |
-| `AudioLanguages=zzz` | **1131** |
+| server | endpoint | all | `AudioLanguages=eng` | `=zzz` | `Filters2` offers |
+|---|---|---|---|---|---|
+| 10.11.11 | `/Items` | 1131 | 1131 | 1131 | Genres, Tags |
+| 10.11.11 | `/Users/{id}/Items` | 1131 | 1131 | 1131 | " |
+| 12.0.0 | `/Items` | 1131 | **1108** | **0** | + AudioLanguages, SubtitleLanguages |
+| 12.0.0 | `/Users/{id}/Items` | 1131 | 1131 | 1131 | " |
 
-A nonsense value returning the full count is the signature of a parameter
-being **dropped, not applied** — the same wart as the Live TV category flags.
-Tried as `AudioLanguages`, `audioLanguages` and `AudioLanguage`; all three
-inert. Other filters on the same endpoint work fine in the same run
-(`HasSubtitles` → 14, `IsHD` → 49, `Is4K` → 5), so this is not the request
-being malformed.
+**1. The parameter is v12-only.** `audioLanguages` / `subtitleLanguages`
+landed on Jellyfin master in `2b7f641163 "feat: language filters for
+subtitles and audio"` (2026-05-10) and appear in no 10.10 or 10.11 tag.
+`MediaBrowser.Model/Querying/QueryFilters.cs` at `v10.11.11` has only
+`Genres` and `Tags`. So on every *stable* server there is no server-side
+language filter at all, and jellyfin-web's own control cannot work there
+either.
 
-jellyfin-web sends the same parameter (`src/utils/items.ts`'s
-`getFiltersQuery`), so **web's own language filter is presumably just as
-inert here**. Whether that is true of stable 10.x is untested and is the
-first thing to establish: building the control before knowing would ship a
-switch that does nothing.
+**2. Our endpoint could never see it anyway.** A follow-up commit,
+`068b3fd58d "remove language filters from old Items endpoint"`, makes the
+legacy `Users/{userId}/Items` action pass `[]` for both arrays --
+hard-coded, in the delegation to `GetItems`. Diffing the two signatures,
+those two plus `indexNumber` are the **only three** of 88 parameters the
+legacy route drops. The shim reaches it through
+`get_user_items` -> `user_items`, which is every library grid in the app.
+
+So the earlier "all three spellings inert" reading was one true observation
+(the legacy endpoint drops it) generalized to a claim about the server that
+is false.
+
+**What this settles about the design.** jellyfin-web does not version-gate
+its language filter; it renders the accordion only when
+`/Items/Filters2` returns a non-empty `AudioLanguages`
+(`FilterButton.tsx`, `!!filters?.AudioLanguages?.length`). That gate is
+exactly right and needs no version knowledge, because the same server that
+lacks the query parameter also returns no options: measured above, 10.11
+answers `Filters2` with `{Genres, Tags}` and v12 adds both language lists
+(`English (eng)`, `Undetermined (und)` for our Movies view; 24 subtitle
+languages). Copy that: **offer the control iff the server offered options.**
+
+The remaining work is therefore known and unblocked: move the filtered
+query off `Users/{id}/Items` onto `/Items` (which takes `userId` as a query
+parameter), read the option lists from `Filters2` rather than the older
+`Filters`, and gate the UI on the lists being non-empty.
 
 ### Parity, in full
 
@@ -2791,3 +2858,178 @@ next file cannot be forgotten the same way; it also checks the reverse, that
 every `get_resource("*.lua")` names a file that exists, since `load-script`
 fails silently either way. Verified beyond the guard by building the sdist
 and the wheel and listing their contents — all five scripts in both.
+
+---
+
+## 21 — An mpv built without lua could not start at all
+
+**[iw]**: "we should build a matrix of different mpv configs to test
+against." `~/Desktop/mpv-matrix/build-one.sh <name> <ref> [meson args]`
+does that — a git worktree per variant off `~/Desktop/mpv-build/mpv`, so
+that checkout is never disturbed, installing both `bin/mpv` and
+`lib/.../libmpv.so.2` because the two backends need different ones. It
+reads `mpv-build`'s own `mpv_options`, which is not optional: this box's
+pipewire headers are broken and `-Dpipewire=disabled` lives there.
+
+The variant that matters is `v0.41-nolua` (`-Dlua=disabled`), and pointing
+the shim at it found the bug immediately.
+
+### The fallback was unreachable
+
+`--osc` is only registered when mpv was built with lua, and a build without
+it **does not ignore the option — it refuses to start**. So the app died
+constructing mpv, before `lua_works()` (which needs a live mpv to probe)
+could answer. Measured on both backends, and they report nothing alike:
+
+| backend | what arrives |
+|---|---|
+| libmpv | `AttributeError('mpv option does not exist', -5, (h, b'osc', b'no'))` from the constructor |
+| jsonipc | the binary prints `Error parsing option osc (option not found)` and exits; reaches us as `MPVError("MPV process retry limit reached.")` after every start retry is spent |
+
+The first fix parsed both — an error-shape reader for libmpv and a
+subprocess probe of the binary for jsonipc. **[iw]** cut it: "we don't even
+need the detector, osc not being available means lua wasn't compiled in."
+`--osc` is the single lua-gated option the shim sets, so failing to
+construct *with* it and succeeding *without* it is not evidence to
+interpret, it is the answer. One uniform retry replaces both mechanisms.
+
+Dropping the option is also correct rather than a workaround: the OSC being
+turned off is itself lua, so such a build has none to turn off.
+
+The answer is then recorded rather than rediscovered — `lua_works` skips
+its script load and its 2s timeout. **Only in that direction.** mpv having
+`--osc` proves lua was *compiled in*, not that it runs, and lua that loads
+and then errors is exactly what the probe exists for, so the ordinary path
+still asks. `test_a_clean_start_leaves_the_lua_question_open` is what holds
+that; getting it backwards would skip the probe on every normal machine.
+
+### Where the tests live, and why not together
+
+The pure half is `tests/test_lua_only_options.py`. The live half —
+the shim started against real builds, one subprocess each because `player`
+picks its backend at import — is `tests/e2e/test_mpv_matrix.py`, run with
+`python3 -m unittest tests.e2e.test_mpv_matrix` (~33s).
+
+It is outside the discovered suite for a reason beyond needing a built mpv:
+discovery imports the modules that import `player`, which puts a **live
+libmpv in the test process**, and spawning an mpv binary out of that
+process segfaults at teardown. Reproducible, unrelated to what is being
+asserted, and it survived being moved into a clean child interpreter — the
+fork is the problem, not the child. A flaky segfault is not worth adding to
+a 4300-test suite.
+
+### The version spread is mostly free, and mostly not buildable
+
+Debian 13 ships `libmpv2` **0.40.0** in `/usr/lib/x86_64-linux-gnu` beside
+whatever `mpv-build` installed into `/usr/local`, so a second real version
+costs an `LD_LIBRARY_PATH` — and 0.40 is the useful one, sitting below the
+0.41 line `runtime_force_window_works` draws.
+
+Older than that will not build from the matrix: `FF_PROFILE_*` became
+`AV_PROFILE_*` in FFmpeg 7, so mpv 0.40 and below fail to compile
+`demux_mkv.c` against mpv-build's ffmpeg and would each need an ffmpeg of
+their own era built first — the expensive half of a full `mpv-build` run.
+
+---
+
+## 22 — Carousel headings jogged sideways row to row
+
+**[iw]**: "the titles with a link in them have different margins than the
+non-link items." Measured, at 1280x720:
+
+| row | title x | title y | first tile x | strip y |
+|---|---|---|---|---|
+| plain | 0.0 | 0.0 | 5.0 | 45.0 |
+| linked | 6.0 | 2.0 | 5.0 | 49.0 |
+
+A heading with a "see all" chevron was a `Box(pad=(6, 2))`; one without was
+a bare `Text`. So the title moved 6px right and 2px down, and the row
+measured **4px taller**. The home screen mixes them (Next Up links,
+Continue Watching does not), so adjacent titles jogged and the rows under
+them did not line up.
+
+Both are now the same Box; only the contents and the handlers differ. The
+pad is `RING_PAD`, which is what `hscroll_row` insets the strip by, so the
+title now starts directly above the first tile's artwork — **both** old
+positions were wrong about that, which the detail page's snapshot shows
+plainly: "Cast & Crew" sat at x=16 over tiles at x=21.
+
+Pinned as equality between the two spellings rather than against the
+numbers (the pad is a design value and may move; the two must move
+together), plus the one absolute claim about the artwork.
+`test_only_the_linked_heading_is_clickable` is the guard that making them
+identical did not make the plain one a nav target.
+
+---
+
+## 23 — HiDPI and type sizing audit
+
+**[iw]**, three questions. Measured on the real scene, not read off the
+source.
+
+### 1. What sizes does the app use?
+
+Every `size=` on a widget call, across `mpvtk_browser/` and `mpvtk/`:
+
+| widget | default | calls | what is passed |
+|---|---|---|---|
+| `Text` | 22 | 234 | 15×54, 17×23, 16×22, 14×22, 18×21, 22×19, 20×15, 26×10, computed×17 |
+| `Button` | 20 | 122 | **default ×111**, 15×6, 18×1, 19×1 |
+| `Dropdown` | 20 | 23 | **default ×19**, 16×2, 14×2 |
+| `Checkbox` | 20 | 23 | **default ×23** |
+| `Icon` | 20 | 20 | **default ×20** |
+| `TextBox` | 20 | 19 | **default ×17**, 16×1, 14×1 |
+
+The shape of the problem is in that table. **Body text nearly always passes
+an explicit size and clusters at 14–18; controls nearly always take the
+default 20.** `Text`'s own default of 22 is used by nobody — 217 of 234
+calls override it.
+
+### 2. Do they respond to HiDPI? Yes, and carefully.
+
+`scaling._EXACT_KEYS = ("size",)` — a font size is scaled but deliberately
+**not** rounded, with the reason written down: at 0.75x, `px(18)` is 14,
+which is 18.67 logical, so every line renders 3.7% wider than the width
+layout fitted it to. Verified on the settings scene at 1.25/1.5/2.0: 35
+text nodes, **0 off-scale** at every factor, and no image's physical bitmap
+dimension moved (that boundary is `raster()`'s, not `scale_scene`'s).
+
+So there is no HiDPI bug here. What the report was about is (3).
+
+### 3. The drop-downs really are bigger than the app
+
+Counting the text actually drawn at 1280x720:
+
+| screen | sizes drawn |
+|---|---|
+| settings | 14×6, 15×4, 17×2, **20×22**, 22×1 |
+| grid | 14×1, 15×27, 16×1, **20×7**, 22×1, 26×1 |
+| detail | 15×1, 16×6, 18×4, **20×3**, 22×1, 24×2, 26×1 |
+
+On Settings, **22 nodes at 20px against 12 at 14–17px** — the control text
+is *larger than the labels it belongs to*, which is backwards. The 20px
+nodes are the top-bar nav, the tab buttons, and every Dropdown, TextBox and
+Checkbox: precisely the widgets that never pass a size.
+
+So this is not a design decision anywhere. It is the gap between
+`widgets.py`'s defaults and what call sites ask for, and "some but not all
+buttons" is literally the 6 of 122 that pass `size=15`.
+
+### What it would take
+
+Prototyped: dropping the `Button`/`TextBox`/`Checkbox`/`Dropdown`/`Menu`
+defaults from 20 to 17 moves Settings to `14×6, 15×4, 17×22, 20×2` — the
+two survivors being explicit `Text(size=20)` section headings — and the
+whole DPI matrix (7 scales × every window) stays green. Nothing overflows,
+because the change only ever makes text smaller.
+
+That is the cheap version and it is a real improvement, but it swaps one
+set of unchosen numbers for another. The durable version is a named type
+scale, which the theme layer already has the shape for: `heading_size` is
+a theme key (24), and `tile_title_size` / `tile_sub_size` are two more. A
+`body_size` / `control_size` beside them would put every one of these in a
+themeable table, make the 14–18 spread visible as the decision it is, and
+let a large-text theme move all of it together.
+
+**Not landed.** It is a global visual change and the choice of numbers is
+[iw]'s, not the audit's. The measurement above is what the decision needs.
