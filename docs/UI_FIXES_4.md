@@ -2594,3 +2594,67 @@ double-handling: the claim's own `self.seek()` raises that same observer.
 With that, `_on_menu_left` / `_right` / `_up` / `_down` had no callers left
 and are gone. Nothing binds them, and the menu's section talks to
 `menu_action` directly.
+
+## 27 — No lua is no UI, and the shim did not notice
+
+**[iw]**, following #16's menu section: "the menu is all we have for the CLI
+user who doesn't have lua compiled in — we should probably detect when lua is
+broken and fallback add the osd menu via python."
+
+The premise turned out to be inverted, and the real gap was worse.
+
+**The menu keys are not lua.** `define-section` is core mpv input handling
+and `script-message` is core client messaging, so the OSD menu's arrows reach
+Python with no script host in the path at all. Measured, with no script
+loaded: the message arrives, and `disable-section` releases the key again —
+which also answers, at last, the question that unit tests could not ("the
+keys still work, don't know if they're bound though").
+
+**What was actually broken is everything else.** Every surface the shim
+draws is lua: the browser and the playback HUD are `renderer.lua`, the stock
+OSC is lua, `mouse.lua` is lua. `resolve_osc_style` falls back on
+`enable_gui` and `thumbnail_osc_builtin` — both *settings* — and never on
+whether mpv can run a script. So a default install on a no-lua mpv got no
+browser, no HUD, no OSC **and no menu**: `toggle_settings_menu` refuses the
+OSD menu whenever the *configured* style is mpvtk, live renderer or not. The
+app ran and drew nothing but video, with no way to reach anything.
+
+**[iw]**: "the lua probe failure should be a full and hard fallback to cli
+mode with osd menu enabled (and of course the osc setting doesn't matter
+because MPV's default OSC *needs lua*)."
+
+So `PlayerManager.lua_works()` loads a one-line script and waits for it to
+report. A probe rather than a capability check, for two measured reasons:
+`mpv-configuration` does not mention lua on every build (it does not on
+this one), and **`load-script` on a script that cannot run raises nothing on
+either backend** — so an exception-based check would answer "fine" for
+exactly the user it exists for. A probe also catches lua that loads and then
+errors, which no capability string would. It costs ~1 ms on a healthy mpv
+and the timeout once on a broken one.
+
+`main` then drops the GUI and calls `set_osc_style("none")` — honest, because
+there is no OSC to fall back *to*, and it is what makes the OSD menu
+reachable again.
+
+### A new lua file is five edits, and I made one of them
+
+**[iw]** suggested folding the probe into `mouse.lua` "to avoid config
+churn". The instinct was right and the specific target was not: `mouse.lua`
+loads only when `settings.menu_mouse` is on, so the probe would have been
+gated on a user-facing setting — turning off menu mouse support would have
+disabled the entire GUI. A packaging dependency traded for a worse one.
+
+But the churn is real, and I had already fallen into it. A lua file has to
+be listed in **`MANIFEST.in`** (the sdist; `pyproject.toml`'s `*.lua` glob
+covers only the wheel) **and in all four `build-win*.bat` PyInstaller
+lines**. `lua_probe.lua` was in none of them — so an sdist install and
+*every Windows build* would have shipped without the file, the probe would
+have timed out, and every one of those users would have been dropped to the
+CLI with no GUI. The batch scripts were **[iw]**'s catch, from memory.
+
+`tests/test_lua_resources_are_packaged.py` walks the package for `*.lua` and
+asserts each one appears in the manifest and in every build script, so the
+next file cannot be forgotten the same way; it also checks the reverse, that
+every `get_resource("*.lua")` names a file that exists, since `load-script`
+fails silently either way. Verified beyond the guard by building the sdist
+and the wheel and listing their contents — all five scripts in both.

@@ -11,7 +11,9 @@ from collections import deque
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
-from .utils import synchronous, Timer
+import threading
+
+from .utils import synchronous, Timer, get_resource
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -448,6 +450,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._key_actions = {}
         self._swept = None
         self._swept_ptr = None
+        #: Whether this mpv can run lua, once asked. See lua_works.
+        self._lua_works = None
+        self._lua_probe = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
         # timeline path (time.monotonic seconds); -inf so the first tick fires.
@@ -1438,6 +1443,58 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         return any(getattr(settings, key, default) != default
                    for key, default in self._MPV_EQUIVALENT_SEEK.items())
 
+    def set_osc_style(self, style: str):
+        """Override the resolved OSC style for this mpv instance.
+
+        One caller: the no-lua fallback. Every OSC the shim can offer is a
+        lua script, so when lua is unavailable there is no style to resolve
+        *to* -- and leaving the resolved value at "mpvtk" is what kept the
+        OSD menu unreachable, since ``toggle_settings_menu`` refuses it
+        under that style alone.
+        """
+        self._osc_style_resolved = style
+        self._osc_script_loaded = False
+
+    def lua_works(self, timeout: float = 2.0):
+        """Whether this mpv can run a lua script at all. Cached.
+
+        **Everything the shim draws needs this.** The library browser and
+        the playback HUD are rendered by ``renderer.lua``; the stock OSC is
+        lua; ``mouse.lua`` is lua. An mpv built without it, or with it
+        broken, leaves the app running and drawing nothing but video --
+        and, until this existed, with no menu either, because
+        ``toggle_settings_menu`` refuses the OSD menu whenever the
+        *configured* style is mpvtk, live renderer or not.
+
+        A probe, not a capability string: `mpv-configuration` does not
+        mention lua on every build (measured on this one), and `load-script`
+        on a script that cannot run raises nothing on either backend. Only a
+        script reporting back is proof -- which also catches lua that loads
+        and then errors.
+
+        Costs ~10 ms when lua works (measured), and the full timeout once
+        when it does not.
+        """
+        if self._lua_works is not None:
+            return self._lua_works
+        answered = threading.Event()
+        self._lua_probe = answered
+        try:
+            self._player.command("load-script",
+                                 get_resource("lua_probe.lua"))
+            answered.wait(timeout)
+        except Exception:
+            log.debug("lua probe could not be loaded", exc_info=True)
+        finally:
+            self._lua_probe = None
+        self._lua_works = answered.is_set()
+        if not self._lua_works:
+            log.warning("This MPV cannot run lua scripts. The library "
+                        "browser, the playback HUD and the on-screen "
+                        "controls all need it; falling back to the "
+                        "command line and the OSD menu.")
+        return self._lua_works
+
     # ------------------------------------------------------ the OSD menu
 
     #: Section and message for the OSD menu's own arrow keys.
@@ -1641,6 +1698,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self._on_claimed_key(args[1], args[2])
             elif args[0] == self.MENU_MESSAGE and len(args) >= 2:
                 self.menu.menu_action(args[1])
+            elif args[0] == "jms-lua":
+                if self._lua_probe is not None:
+                    self._lua_probe.set()
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 
