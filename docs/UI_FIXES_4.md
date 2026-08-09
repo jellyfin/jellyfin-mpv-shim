@@ -1620,6 +1620,86 @@ somebody has already customised; and the no-lua path is not hypothetical —
 it is what CLI mode *is*, so every key that moves to a section needs its
 Python fallback kept and tested, not assumed dead.
 
+### The audit — the list, per key
+
+Measured, not read off the source: `input-bindings` from a real mpv with no
+config (`vo=null`, `config=False`), against the seventeen bindings
+`_bind_mpv_handlers` installs. Three verdicts, as above — **mpv's**,
+**claimed**, **ours**.
+
+| setting | key | mpv's default | what we do with it | verdict |
+|---|---|---|---|---|
+| `kb_stop` | `q` | `quit` | return to the browser | **ours** — a different verb wearing mpv's key **[iw]** |
+| `kb_prev` | `<` | `playlist-prev` | previous item in the *Jellyfin* queue | **ours** — mpv's playlist is not our queue (we load one file at a time), so its default does nothing useful |
+| `kb_next` | `>` | `playlist-next` | next item in the queue | **ours**, same reason |
+| `kb_watched` | `w` | `add panscan -0.1` | mark watched | **ours** — a shim verb on a key mpv binds, like `q` |
+| `kb_unwatched` | `u` | `cycle-values sub-ass-override` | mark unwatched | **ours**, same |
+| `kb_menu` | `c` | *unbound* | open the OSD menu | **ours**, and free |
+| `kb_kill_shader` | `k` | *unbound* | drop the shader profile | **ours**, and free |
+| `kb_debug` | `~` | *unbound* (mpv binds `` ` ``, a different key) | **`pdb.set_trace()`** | **ours**, free — but see below |
+| `kb_menu_esc` | `esc` | `set fullscreen no` | menu back → in-window UI back → `set fullscreen no` **and** `fullscreen_disable = True` | **claimed** — the fall-through already *is* mpv's default plus one shim side effect |
+| `kb_menu_ok` | `enter` | `playlist-next` | `menu_action("ok")` — **unconditionally** | **claimed**, and the worst offender: see below |
+| `kb_menu_left` | `left` | `seek -5` | menu nav, else `kb_seek` | **claimed** — and the default `seek_left` is `-5` |
+| `kb_menu_right` | `right` | `seek 5` | menu nav, else skip-intro, else `kb_seek` | **claimed** — `seek_right` default `5` |
+| `kb_menu_up` | `up` | `seek 60` | menu nav, else skip-intro, else `kb_seek` | **claimed** — `seek_up` default `60` |
+| `kb_menu_down` | `down` | `seek -60` | menu nav, else `kb_seek` | **claimed** — `seek_down` default `-60` |
+| `kb_pause` | `space` | `cycle pause` | menu OK, else `toggle_pause` | **mpv's**, claimed while a SyncPlay group is active **[iw]** |
+| `kb_fullscreen` | `f` | `cycle fullscreen` | `toggle_fullscreen` → `set_fullscreen(persist=True)` | **mpv's**, *conditional* — see below |
+| — | `i` / `I` | `script-binding stats/…` | forwards to mpv's stats, or our overlay, or swallows it | **claimed** — already conditional on what is on screen |
+
+### Four things the table turned up
+
+**1. The four arrow keys have mpv's own numbers in them.** `seek_up`,
+`seek_down`, `seek_right`, `seek_left` default to `60`, `-60`, `5`, `-5` —
+which is `seek 60`, `seek -60`, `seek 5`, `seek -5`, character for
+character what mpv binds. So with default settings, no menu on screen, no
+intro segment and no SyncPlay group, these four bindings exist to
+reimplement mpv's arrows exactly. That is the largest single piece of
+"needless interception of MPV's default bindings" in the set, and it is
+four of the seventeen.
+
+They are still **claimed** rather than **mpv's**, because three things
+genuinely need them — the OSD menu, `skip_intro_on_seek`, and SyncPlay
+(a seek in a group has to be broadcast, exactly as a pause does) — and
+because a user who has customised `seek_left` has to keep getting their
+value. `__fields_set__` answers that last one exactly.
+
+**2. `enter` is taken unconditionally, and its fallback is the wrong menu.**
+`_on_menu_ok` is the one handler here with no `is_menu_shown` guard: it
+always calls `menu.menu_action("ok")`, which for a hidden menu means
+`show_menu()`. So ENTER **opens the legacy OSD menu** — under the mpvtk UI,
+a menu that is not the one the user is looking at — and mpv's
+`playlist-next` never fires. Every sibling handler (`left`, `right`, `up`,
+`down`, `esc`, and `space`) checks first. This one is a plain inconsistency
+rather than a design decision, and it is the single clearest fix in #16.
+
+**3. `f` is a real drop candidate, conditional on one observer.** It looks
+like a pure duplicate of `cycle fullscreen` and is not: `toggle_fullscreen`
+goes through `set_fullscreen(persist=True)`, which is what remembers the
+choice into `fullscreen` / `browser_fullscreen`. Dropping the binding would
+lose that — *unless* the intent is recorded by observing mpv's `fullscreen`
+property instead, which is the same defensive-observer shape SyncPlay
+already uses for `pause`. And unlike `pause` there is no cost to it: the
+observer path's flicker exists because a group has to be *asked* before a
+play is allowed, and nothing has to be asked about fullscreen. Do the
+observer, drop the binding, and a user's own `f` mapping is theirs again.
+
+**4. `~` runs `pdb.set_trace()` in a shipped application.** Out of scope for
+the keybinding question and worth its own line anyway: the default binding
+for `kb_debug` drops a released build into an interactive Python debugger,
+which on a GUI launch has no console attached to prompt at — so the key
+freezes the player rather than doing anything visible. It does not conflict
+with mpv (mpv binds `` ` ``, not `~`), so this is not a *reason* to change
+it, only the audit noticing it.
+
+### What is left to decide
+
+Nothing blocking, but the order matters: **(2) first** — it is a one-line
+guard with no design content — then **(3)**, which is self-contained, and
+only then the claimed-section work for the arrows and ESC, which is the part
+with the real regression surface and needs the no-lua fallback kept and
+tested rather than assumed dead.
+
 ---
 
 ## Hand-testing round 1 — what [iw] found
