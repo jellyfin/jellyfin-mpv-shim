@@ -97,6 +97,39 @@ class MpvMatrixTest(unittest.TestCase):
         self.assertFalse(got["ext"])
         self.assertTrue(got["lua"], "the machine's own libmpv lost lua")
 
+    def test_every_libmpv_on_this_machine_comes_up(self):
+        """The version spread, from whatever libmpv this box already has.
+
+        Debian 13 ships 0.40.0 next to whatever `mpv-build` installed into
+        /usr/local, so a second real version costs nothing -- and 0.40 is
+        the interesting one, because it is below the 0.41 line
+        `runtime_force_window_works` draws, so it also walks the "this mpv
+        cannot give up its window" path.
+
+        Older versions than that are **not** buildable from the matrix
+        against mpv-build's ffmpeg: `FF_PROFILE_*` became `AV_PROFILE_*` in
+        FFmpeg 7, so mpv 0.40 and below fail to compile against it and
+        would each need an ffmpeg of their own era built first.
+        """
+        import glob
+        import tempfile
+
+        seen = {}
+        for libdir in ("/usr/lib/x86_64-linux-gnu", "/usr/local/lib",
+                       "/usr/local/lib/x86_64-linux-gnu"):
+            if not glob.glob(os.path.join(libdir, "libmpv.so.2*")):
+                continue
+            with tempfile.TemporaryDirectory() as tmp:
+                got, _done = self._probe(tmp, libdir=libdir)
+            seen[got["version"]] = libdir
+            self.assertTrue(got["lua"], "%s lost lua" % libdir)
+        self.assertTrue(seen, "no libmpv found anywhere")
+        # Not an assertion about *which* versions -- that is the machine's
+        # business -- only that they were told apart. One entry means every
+        # path resolved to the same library and this test proved nothing.
+        if len(seen) < 2:
+            self.skipTest("only one libmpv version here: %r" % list(seen))
+
     # -- -Dlua=disabled, both backends -----------------------------------
 
     def _nolua(self, ext):
