@@ -3181,3 +3181,97 @@ passing suite says nothing about either:
 was, at that moment, vacuous. What caught it was the *positive* assertion
 on the line above raising `KeyError`. A test with only the negative half
 would have shipped silently broken.
+
+---
+
+## 25 — Review round 3, and what a passing suite could not see
+
+**[iw]** asked for an adversarial review of everything since `771c976d`
+(18 commits, ~480 production lines): seven dimensions in parallel, each
+finding verified by an independent skeptic prompted to refute. 27 agents,
+20 findings judged, **12 confirmed, 8 refuted**. All 12 are fixed.
+
+Deduplicated they are five pieces of work, and the three worth reading are
+the ones the suite was *structurally* unable to catch.
+
+### A broken paste hid a real regression
+
+`tests/test_input_conf_migration.py` had a second copy of its module header
+pasted into the middle of the file, and the three tests below it became
+nested functions inside a duplicated `_settings()`. Never collected, never
+run — and nothing goes red for a test that was not collected, so the suite
+stayed green throughout.
+
+Two of them were `test_web_seek_stops_the_distances_moving` and
+`test_skip_intro_on_seek_does_not_stop_them`: the tests watching the seek
+path, absent while exactly that path regressed. They pass unchanged now,
+so they were right all along; they were simply not there.
+
+### The seek settings had stopped meaning anything
+
+#16 gave the arrows back to mpv, and what replaced the old bindings is a
+*claim*: `_seek_is_ours` decides only **whether** to claim, and
+`_on_claimed_key` then seeks by the amount parsed out of mpv's own binding
+— never by the setting. So a changed distance bought a claim that ignored
+it. Nothing else carried the number either: `input_conf.migrate` runs once
+under `config_version < 4`, and `Settings.load` stamps `CONFIG_VERSION` on
+a freshly created config, so a **new install never migrates at all**.
+
+**[iw]**: "should drop the dead settings post-migration." They are gone
+from the schema. Two things fell out of that:
+
+- The migration now reads the **raw config dict**, because by the time it
+  runs `parse_obj` has discarded every key the schema no longer declares.
+  That is what a migration should do anyway — it is the only code that has
+  to know what the config used to look like.
+- `kb_seek`, the phone and web-remote path, was the last reader, which is
+  its own bug: after a migration wrote `up seek 30` and cleared the setting
+  to 60, the arrow key seeked 30 and the remote's Up seeked 60 **on the
+  same machine**. It asks mpv what the keyboard would do now, so the two
+  agree by construction rather than by being kept in step.
+
+And the one case that cannot be carried: `mpv_ext` + `mpv_ext_no_ovr` makes
+external mpv read the user's own config directory, so the file the
+migration writes is never loaded — it wrote there anyway and cleared the
+settings, losing the choice outright. **[iw]**: "that config basically says
+'use my own mpv config, if something breaks it's my problem'." So it now
+does nothing there and logs the block it would have written.
+
+### The no-lua fallback lasted exactly one mpv
+
+`main` asks `lua_works()` once and calls `set_osc_style("none")`, but
+`_init_mpv` re-resolved the style from settings on every mpv re-creation —
+an idle-quit then a cast, `set_browse_window`, `force_window`. So the style
+went back to `mpvtk` with no renderer behind it and `on_hud_menu` still
+None, and `toggle_settings_menu` went back to refusing. **One idle timeout
+put the user back in the state this branch exists to remove.** The Pillow
+fallback had the same shape.
+
+### Two lessons about the tests, not the code
+
+**A stand-in that omits a field makes a path uncoverable, not uncovered.**
+Every Season stand-in omitted `SeriesName`, so `_open_item` — the only
+production path that sets `bar_title` — had nothing to read. A test written
+against those fakes would have passed against code that never set the field
+at all. Fifth instance of the pattern in CLAUDE.md's list.
+
+**My first test for the OSC fix was worthless, and looked fine.** It
+re-implemented the decision inside its own stand-in and asserted a string
+appeared in the source, so `if False and ...` passed both halves. Extracting
+`_effective_osc_style()` and driving the real method kills that mutation and
+the wrong-order one. Every fix in this round is mutation-tested for that
+reason.
+
+### Two corrections to my own claims
+
+Both caught by the suite rather than by me, and both stated confidently in
+a commit message first:
+
+- "The seek settings were never in the settings UI or the README." The
+  README half was true; they are documented in `docs/configuration.md`,
+  which is where this project's configuration reference actually lives. I
+  grepped one file and generalised. `test_no_documented_setting_has_been_removed`
+  exists for exactly this.
+- `migrate` cleared every setting it wrote by reading the class default,
+  which for a seek name is now an `AttributeError` — a production
+  regression in the commit that had already declared the work done.
