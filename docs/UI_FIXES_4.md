@@ -3338,3 +3338,35 @@ docstring that argued the opposite is corrected in place.
 Features should probably be gated to Movies/Episodes: a Series is a
 container with no media, so `HasSubtitles` matches nothing, and web gates
 it the same way. And the panel has no tests of its own yet.
+
+### The row the panel left behind
+
+Re-pointing the five tests that pinned the old bar turned up two bugs in
+the new one, both of which the suite was green over.
+
+**Every button on the row was not the same height.** `action_btn`'s
+docstring already states the rule -- a plain `Button` resolves its label
+from the type scale and comes out taller than the icon buttons beside it,
+"which made the odd trailing button ~5px taller than its neighbours" --
+and the grid bar broke it in five places. It stayed invisible because the
+uneven buttons were on opposite ends of the bar; moving Play All and
+Shuffle next to Filter put a 41.2 next to a 40.0. The type scale had
+narrowed the gap from ~5px to 1.2px, which made it *less* visible without
+making it any less wrong.
+
+**The Collections toggle had no on state on the stock theme.** It was
+styled with `theme.chrome_button_style()`, which returns `{}` for any
+theme that did not ask for accented chrome. On and off rendered
+byte-identical; the only signal you were in collections view was that the
+tiles had changed. It takes `action_btn`'s `on` fill now, the same one
+Watched and Favorite use.
+
+Both are pinned by tests in `FilterOrderTest`, mutation-tested by
+reverting each fix.
+
+The overflow test is worth a note of its own. It pinned 760px as "a width
+where the doors move above the filter row", and the panel -- which took
+five controls off the bar -- moved the split below 760 *without breaking
+the behaviour at all*. The assertion failed while the feature worked. It
+searches the width range for the split now: a pinned width can only ever
+go stale in that direction, and silently, if the number is generous.
