@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-06 13:33+0000\n"
+"PO-Revision-Date: 2026-08-09 17:47+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -152,7 +152,7 @@ msgstr "التنقل لتخطي العرض"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "تخطي الخلاصة"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Recap"
@@ -471,16 +471,12 @@ msgid "Skip Commercials"
 msgstr "تخطي الدعايات"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "تم تخطي الخاتمة"
+msgstr "تخطي المعاينات"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "تم تخطي الخاتمة"
+msgstr "تخطي الملخصات"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -782,16 +778,12 @@ msgid "Download"
 msgstr "تنزيل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove Download"
-msgstr "حذف الخادم"
+msgstr "إزالة المحمّل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
+msgstr "مُشاهد"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -886,31 +878,27 @@ msgstr "متواصل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "ترصيف كصفوف"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "صف واحد لكل شق"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "(default)"
 msgid "Default"
-msgstr "(افتراضي)"
+msgstr "افتراضي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "اللوحة خلف المتحكمات"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "None (Disabled)"
 msgid "None (shadowed text)"
-msgstr "لا شيء (معطل)"
+msgstr "لا شيء (نص مظلل)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "إخفاء عدا الحومان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always hide"
@@ -918,7 +906,7 @@ msgstr "اخف دائما"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "عدم الاخفاء اثناء الايقاف المؤقت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -937,10 +925,8 @@ msgid "Medium"
 msgstr "متوسط"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Large"
 msgid "Extra Large"
-msgstr "كبير"
+msgstr "كبير اكثر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
@@ -3315,19 +3301,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "يوجد تحديث: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "افتح"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "صرف"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "غير متصل - اظهار الموجود."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
