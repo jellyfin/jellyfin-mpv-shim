@@ -295,3 +295,86 @@ class PhotoOrientationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LibraryScopeLookupTest(unittest.TestCase):
+    """#15: the per-library shader scope rests entirely on one server
+    contract, and it was probed by hand once.
+
+    There is no field on any item DTO naming the library it lives in --
+    ``SeriesId`` yes, nothing above that -- so ``/Items/{id}/Ancestors`` is
+    the only thing that answers it, and everything about the feature's cost
+    model (one request per series, cached, recorded at download time so the
+    play path never asks) follows from that. If the server ever grows a
+    field for this, or the ancestor chain changes shape, this is the file
+    that should say so rather than a user finding the scope missing.
+    """
+
+    def setUp(self):
+        self.session = _e2e.Session()
+        self.addCleanup(self.session.stop)
+
+    def _one(self, item_type):
+        items = (self.session.api.get_user_items(
+            include_item_types=item_type, recursive=True, limit=1
+        ) or {}).get("Items", [])
+        self.assertTrue(items, "no %s in the library" % item_type)
+        return items[0]
+
+    def _library_of(self, item_id):
+        for anc in self.session.api.get_ancestors(item_id) or []:
+            if anc.get("Type") == "CollectionFolder":
+                return anc
+        return None
+
+    def test_an_episode_resolves_to_a_collection_folder(self):
+        ep = self._one("Episode")
+        lib = self._library_of(ep["Id"])
+        self.assertIsNotNone(lib, "no CollectionFolder in the ancestor chain")
+        self.assertTrue(lib.get("Id"))
+        # CollectionType is what the browser routes on elsewhere; if it is
+        # ever absent the ancestor is still usable as a key, so this is a
+        # note rather than a dependency.
+        self.assertTrue(lib.get("CollectionType"))
+
+    def test_a_film_resolves_too(self):
+        # A film has no series, so the library is the ONLY scope it can be
+        # given. If this stopped working, per-library would silently mean
+        # per-series-only.
+        mv = self._one("Movie")
+        self.assertIsNotNone(self._library_of(mv["Id"]))
+
+    def test_the_series_is_the_right_cache_key(self):
+        """Every episode of a show is in the same library, which is why the
+        lookup is keyed on SeriesId and a season costs one request rather
+        than one per file. If that were not true the cache would be wrong,
+        not merely inefficient."""
+        eps = (self.session.api.get_user_items(
+            include_item_types="Episode", recursive=True, limit=8,
+            fields="ParentId") or {}).get("Items", [])
+        by_series = {}
+        for ep in eps:
+            if ep.get("SeriesId"):
+                by_series.setdefault(ep["SeriesId"], []).append(ep["Id"])
+        shared = next((v for v in by_series.values() if len(v) > 1), None)
+        self.assertIsNotNone(shared, "no two episodes of one series to compare")
+        libs = {self._library_of(i)["Id"] for i in shared[:3]}
+        self.assertEqual(len(libs), 1,
+                         "episodes of one series are in different libraries, "
+                         "so keying the lookup on SeriesId is wrong")
+
+    def test_no_item_dto_names_its_library(self):
+        """The premise of needing Ancestors at all. Asked with every field
+        the shim ever requests, so this is not a question about which
+        `fields` value to use."""
+        ep = self._one("Episode")
+        lib_id = self._library_of(ep["Id"])["Id"]
+        full = (self.session.api.get_user_items(
+            include_item_types="Episode", recursive=True, limit=1,
+            fields="ParentId,Path,MediaSources,ExternalUrls") or {}
+        ).get("Items", [{}])[0]
+        naming = [k for k, v in full.items() if v == lib_id]
+        self.assertEqual(
+            naming, [],
+            "the DTO now names the library in %s -- the Ancestors call and "
+            "its whole cost model can be dropped" % naming)

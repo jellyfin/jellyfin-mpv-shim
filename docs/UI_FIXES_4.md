@@ -2272,3 +2272,53 @@ now, because that is what the old coercion produced and `save()` wrote it
 back verbatim. That loads as a non-empty string, so the distinction #16's
 input.conf migration turns on would still not exist for exactly the people it
 is about. `CONFIG_VERSION` 3 normalises it.
+
+## 24 — The library lookup belongs in the catalog, not on the play path
+
+**[iw]**, on the offline finding above: "we should probably add the metadata
+locally so the lookup can be done for the shader packs for downloaded media,
+also we should avoid doing sync tasks while holding the player lock when
+possible."
+
+Both done, and together they mean **the play path now makes no request at
+all**.
+
+* **The catalog records it.** `downloads.library_id` (an additive column, the
+  same mechanism `origin` and `completed_at` used) is written by
+  `SyncManager._add_row` at download time — a path already doing network I/O,
+  and keyed on the series so a season costs one request rather than one per
+  file. `SyncDB.library_id` answers for an item id *or* a series id.
+  Consulted **first, online too**: a downloaded item's library is
+  authoritative, free, and answerable with the server away, which is exactly
+  the case that was reaching for the previous item's client to ask a server
+  it already knew was unreachable.
+* **The play path reads caches only.** `apply_for_item` runs inside
+  `_play_media`, which holds the player `_lock` for the whole of a playback
+  start — and `run_action`'s non-blocking fast path is built on that lock
+  being held. Anything still unknown is resolved by `_warm_library_later` on
+  the action thread, which re-applies once it lands. The profile arrives a
+  beat into playback rather than before it, which is fine for the one thing
+  this is: shader profiles are applied to a *running* mpv, and switching one
+  mid-playback is what the menu does. It only happens when a library override
+  exists and the item is neither downloaded nor already cached.
+
+The menu still asks the server synchronously (`force=True`), which is right:
+it is a user action, off the player lock, and it is where the first override
+gets created.
+
+### ...and an e2e test, because the contract was hand-probed
+
+**[iw]**: "this is also one of the reasons I try to have e2e tests for major
+pathways, it avoids assumptions and mocks that often don't catch the things
+most likely to break."
+
+Which is the correct reading of this round: the whole feature rests on
+`/Items/{id}/Ancestors` being the only way to name an item's library, and
+that was established by one manual probe. `tests/e2e/test_batch4_contracts.py:
+LibraryScopeLookupTest` pins four things against a real server — an episode
+and a film both resolve to a `CollectionFolder`, every episode of one series
+resolves to the *same* library (so keying the cache on `SeriesId` is correct
+rather than merely cheap), and **no item DTO names its library** under any
+field set the shim asks for, which is the premise of needing the call at all.
+That last one is written to fail loudly if the server ever grows such a
+field, because then this whole cost model can be deleted.

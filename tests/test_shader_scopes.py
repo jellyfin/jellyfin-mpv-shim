@@ -49,13 +49,32 @@ class FakeClient:
 
 
 class FakePlayerManager:
+    """A player with a real task queue.
+
+    `put_task` is modelled rather than left off: the play path defers the
+    library lookup to the action thread now, so a stand-in without it does
+    not leave that path uncovered -- it makes the deferral silently a no-op
+    and every "no request was made" assertion pass for the wrong reason.
+    """
+
     def __init__(self, item=None, client=None):
         self.item, self.client = item, client
+        self.tasks = []
 
     def get_video(self):
         if self.item is None:
             return None
         return type("V", (), {"item": self.item, "client": self.client})()
+
+    def put_task(self, fn, *a):
+        self.tasks.append(lambda: fn(*a))
+
+    def drain(self):
+        """Run what the action thread would have run."""
+        tasks, self.tasks = self.tasks, []
+        for t in tasks:
+            t()
+        return len(tasks)
 
 
 def make_manager(item=EPISODE, library="lib1", path=None):
@@ -150,24 +169,51 @@ class ResolutionCostTest(unittest.TestCase):
             m.apply_for_item(EPISODE)
         self.assertEqual(m.api.calls, [])
 
+    def test_the_play_path_never_asks_the_server(self):
+        """apply_for_item runs inside _play_media, which holds the player
+        lock for the whole of a playback start. run_action's non-blocking
+        fast path is built on that lock being held, and the apiclient
+        retries an unresponsive server for about two and a half minutes —
+        so the request goes to the action thread, not here."""
+        m = make_manager()
+        m.overrides.set("library", "srv/lib1", "b")
+        with mock.patch.object(m, "load_profile", return_value=True):
+            m.apply_for_item(EPISODE)
+        self.assertEqual(m.api.calls, [], "asked the server under the lock")
+        self.assertEqual(len(m.playerManager.tasks), 1,
+                         "and did not schedule the lookup either")
+
     def test_one_request_per_series_however_many_episodes(self):
         m = make_manager()
         m.overrides.set("library", "srv/lib1", "b")
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", None), \
-                mock.patch.object(m, "load_profile", return_value=True):
+        with mock.patch.object(m, "load_profile", return_value=True):
             for n in range(4):
                 m.apply_for_item(dict(EPISODE, Id="ep%d" % n))
+                m.playerManager.drain()
         self.assertEqual(m.api.calls, ["show1"])
 
     def test_a_server_that_cannot_answer_is_asked_once(self):
         m = make_manager(library=None)
         m.overrides.set("library", "srv/lib1", "b")
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", None):
-            for _n in range(3):
-                m.apply_for_item(EPISODE)
+        for _n in range(3):
+            m.apply_for_item(EPISODE)
+            m.playerManager.drain()
         self.assertEqual(m.api.calls, ["show1"])
+
+    def test_a_downloaded_item_needs_no_request_at_all(self):
+        """The library is recorded in the catalog at download time, so an
+        offline play resolves its scope with the server away — which is
+        what stopped the play path reaching for the previous item's client
+        to ask a server it already knew was unreachable."""
+        m = make_manager()
+        m.overrides.set("library", "srv/lib1", "b")
+        with mock.patch.object(m, "_catalog_library_id", return_value="lib1"), \
+                mock.patch.object(m, "load_profile",
+                                  return_value=True) as load:
+            m.apply_for_item(EPISODE)
+        self.assertEqual(m.api.calls, [])
+        self.assertEqual(m.playerManager.tasks, [])
+        load.assert_called_once_with("b")   # ...and the override applied
 
 
     def test_a_warmed_cache_makes_the_row_appear_without_a_request(self):

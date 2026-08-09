@@ -461,6 +461,15 @@ class VideoProfileManager:
         lookup = item.get("SeriesId") or item.get("Id")
         if not lookup:
             return None
+        # The local catalog first, always -- online too. A downloaded item
+        # recorded its library at download time, which is authoritative,
+        # free, and answerable with the server away. This is what keeps the
+        # offline play path from making a request at all, and it was
+        # reaching for the PREVIOUS item's client to do it.
+        local = self._catalog_library_id(lookup)
+        if local:
+            self._library_ids[lookup] = local
+            return local
         cached = self._library_ids.get(lookup, ASK_PLAYER)
         if cached is not ASK_PLAYER and (cached is not None or not force):
             # A positive answer is permanent. A NEGATIVE one is only cached
@@ -487,6 +496,35 @@ class VideoProfileManager:
                       exc_info=True)
         self._library_ids[lookup] = found
         return found
+
+    def _cached_library_id(self, item):
+        """The library id **without asking the server** -- the local catalog
+        (free, and right for anything downloaded) then the session cache."""
+        lookup = (item or {}).get("SeriesId") or (item or {}).get("Id")
+        if not lookup:
+            return None
+        local = self._catalog_library_id(lookup)
+        if local:
+            self._library_ids[lookup] = local
+            return local
+        cached = self._library_ids.get(lookup)
+        return cached if cached else None
+
+    @staticmethod
+    def _catalog_library_id(lookup):
+        """The library id the downloader recorded for this item or series,
+        or None. Never raises and never blocks on the network."""
+        try:
+            from .sync.manager import syncManager
+
+            db = getattr(syncManager, "db", None)
+            if db is None:
+                return None
+            return db.library_id(lookup)
+        except Exception:
+            log.debug("could not read the catalog's library id",
+                      exc_info=True)
+            return None
 
     def scope_keys(self, item, force=False, client=ASK_PLAYER):
         """``{scope: storage key}`` for ``item``, for scopes that apply.
@@ -515,9 +553,15 @@ class VideoProfileManager:
         series_id = item.get("SeriesId")
         if series_id:
             keys["series"] = key_for(server, series_id)
+        # `force` is the menu, which is allowed to ask the server; the read
+        # path is the play path, and it takes what the caches already have
+        # (the catalog answers for anything downloaded) rather than making a
+        # request while _play_media holds the player lock. What it misses,
+        # _warm_library_later picks up on the action thread.
         known = (item.get("SeriesId") or item.get("Id")) in self._library_ids
         if force or known or self.overrides.has_any("library"):
-            library_id = self._library_id(item, client, force)
+            library_id = (self._library_id(item, client, force) if force
+                          else self._cached_library_id(item))
             if library_id:
                 keys["library"] = key_for(server, library_id)
         return keys
@@ -548,6 +592,7 @@ class VideoProfileManager:
             return True
         scope, profile = self.resolve_for(item, client)
         self.active_scope = scope
+        self._warm_library_later(item, client)
         if self._suspended is None and profile == self.current_profile:
             # Already wearing it. The overwhelmingly common case -- no
             # overrides at all, one profile, file after file -- and worth
@@ -563,6 +608,44 @@ class VideoProfileManager:
                 self.unload_profile()
             return True
         return self.load_profile(profile)
+
+    def _warm_library_later(self, item, client):
+        """Resolve this item's library **off the player lock**, if it still
+        needs resolving, and re-apply once it is known.
+
+        ``apply_for_item`` runs inside ``_play_media``, which holds the
+        player's ``_lock`` for the whole of a playback start -- so a
+        request there is exactly the thing not to do: ``run_action``'s
+        non-blocking fast path is built on that lock being held, and the
+        apiclient will retry an unresponsive server for about two and a
+        half minutes. So the play path reads the caches only (the local
+        catalog, then ``_library_ids``), and anything still unknown is
+        resolved on the action thread.
+
+        The profile then lands a beat into playback rather than before it,
+        which is fine for the one thing this is: shader profiles are
+        applied to a *running* mpv and switching one mid-playback is what
+        the menu does. It only happens at all when a library override
+        exists and the item is neither downloaded nor already cached.
+        """
+        if not self.overrides.has_any("library"):
+            return
+        item = item or {}
+        lookup = item.get("SeriesId") or item.get("Id")
+        if not lookup or lookup in self._library_ids:
+            return
+        put_task = getattr(self.playerManager, "put_task", None)
+        if put_task is None:
+            return
+
+        def work():
+            if self._library_id(item, client) is not None:
+                self.apply_for_item(item, client)
+
+        try:
+            put_task(work)
+        except Exception:
+            log.debug("could not schedule the library lookup", exc_info=True)
 
     def scope_rows(self, item, force=True):
         """``[(scope, key, profile, is_set)]`` for the scope menu, narrowest

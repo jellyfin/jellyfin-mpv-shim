@@ -81,7 +81,13 @@ CREATE TABLE IF NOT EXISTS downloads (
     -- into a form that matches NULL (e.g. `origin IS NOT 'user'`) -- that
     -- would make every un-backfilled legacy row reapable.
     origin TEXT,
-    completed_at INTEGER
+    completed_at INTEGER,
+    -- The CollectionFolder this item lives in. Captured at download time,
+    -- where a request is already normal, so the shader-profile library
+    -- scope can be resolved for downloaded media with the server away --
+    -- and without the play path making a call at all. NULL on rows written
+    -- before this, and on anything the lookup could not answer.
+    library_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_downloads_series ON downloads(series_id);
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
@@ -162,7 +168,8 @@ class SyncDB:
     #: Columns added after the first release, as (name, DDL type). _SCHEMA's
     #: CREATE TABLE IF NOT EXISTS is a no-op on an existing catalog, so a new
     #: column only reaches an existing install through here.
-    _ADDED_COLUMNS = (("origin", "TEXT"), ("completed_at", "INTEGER"))
+    _ADDED_COLUMNS = (("origin", "TEXT"), ("completed_at", "INTEGER"),
+                      ("library_id", "TEXT"))
 
     def _migrate(self):
         """Bring an existing catalog up to the current schema.
@@ -533,6 +540,30 @@ class SyncDB:
                 # callers don't crash.
                 log.warning("Catalog query failed: %s", sql, exc_info=True)
                 return []
+
+    def library_id(self, lookup):
+        """The recorded CollectionFolder for an item id **or a series id**,
+        or None.
+
+        Two lookups because the caller has whichever it has: the shader
+        scope asks about a series, and a film has only its own id. Both
+        columns are indexed (``item_id`` is the primary key,
+        ``idx_downloads_series``), so this is two point queries.
+        """
+        if not lookup:
+            return None
+        try:
+            for sql in ("SELECT library_id FROM downloads WHERE item_id = ?",
+                        "SELECT library_id FROM downloads WHERE series_id = ? "
+                        "AND library_id IS NOT NULL LIMIT 1"):
+                row = self._conn.execute(sql, (lookup,)).fetchone()
+                if row and row[0]:
+                    return row[0]
+        except sqlite3.Error:
+            # A catalog from an older build has no such column. Not fatal:
+            # the caller falls back to asking the server.
+            log.debug("could not read library_id", exc_info=True)
+        return None
 
     def get(self, item_id):
         rows = self._query("SELECT * FROM downloads WHERE item_id=?", (item_id,))

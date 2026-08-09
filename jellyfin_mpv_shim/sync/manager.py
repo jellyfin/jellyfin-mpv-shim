@@ -140,6 +140,10 @@ class SyncManager:
         # drive directly, without start()) stays safe.
         self.auto = None
 
+        #: series/item id -> the CollectionFolder it lives in, for
+        #: _library_id_for. Positive answers only; see there.
+        self._library_ids = {}
+
         self._worker = None
         self._wake = threading.Event()
         self._stop = False
@@ -713,6 +717,43 @@ class SyncManager:
             return book_format(item) or "bin"
         return "mkv"
 
+    def _library_id_for(self, server_uuid, item):
+        """The CollectionFolder ``item`` lives in, or None. Best effort.
+
+        Recorded at download time so the shader-profile library scope can be
+        answered for downloaded media **with the server away**, and so the
+        play path never has to make this call -- it runs there under the
+        player lock, which is the wrong place for a request that the
+        apiclient will retry for two and a half minutes against an
+        unresponsive server.
+
+        Keyed on the series where there is one: every episode of a show is
+        in the same library, so a season costs one request rather than one
+        per file. Failure is not cached here (unlike the player-side cache):
+        this runs once per item on a path that is already doing network I/O,
+        and a download queued during a blip should get its library on the
+        next one rather than never.
+        """
+        lookup = (item or {}).get("SeriesId") or (item or {}).get("Id")
+        if not lookup:
+            return None
+        if lookup in self._library_ids:
+            return self._library_ids[lookup]
+        found = None
+        try:
+            client = self.get_client(server_uuid)
+            if client is not None:
+                for ancestor in client.jellyfin.get_ancestors(lookup) or []:
+                    if ancestor.get("Type") == "CollectionFolder":
+                        found = ancestor.get("Id")
+                        break
+        except Exception:
+            log.debug("could not resolve the library for %s", lookup,
+                      exc_info=True)
+            return None
+        self._library_ids[lookup] = found
+        return found
+
     def _add_row(self, server_uuid, server_id, item, origin=ORIGIN_USER):
         source = (item.get("MediaSources") or [{}])[0]
         ext = self._ext_for(item)
@@ -734,6 +775,7 @@ class SyncManager:
             "downloaded_bytes": 0,
             "status": STATUS_PENDING,
             "runtime_ticks": item.get("RunTimeTicks"),
+            "library_id": self._library_id_for(server_uuid, item),
             "item_json": json.dumps(item),
             "source_json": json.dumps(source),
             "userdata_json": json.dumps(item.get("UserData") or {}),
