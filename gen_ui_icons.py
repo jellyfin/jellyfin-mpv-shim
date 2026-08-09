@@ -115,6 +115,8 @@ ICON_NAMES = [
     "refresh",
     "folder",
     "content_copy",
+    # The library grid's filter panel. web's FilterAlt.
+    "filter_alt",
     # Tile placeholders, for an item with no artwork. jellyfin-web's
     # `getItemTypeIcon` and `getLibraryIcon` (src/utils/image.ts) --
     # taken from there rather than chosen, so a library with no posters

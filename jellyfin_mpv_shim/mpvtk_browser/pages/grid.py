@@ -17,7 +17,8 @@ import logging
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
+    Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll, Dialog,
+)
 from .. import pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
@@ -356,11 +357,21 @@ class GridPage(Page):
     def _view_controls(self):
         """Buttons that LEAVE this library -- Genres, Networks.
 
+        ...and **Collections**, which is one of these and not a filter.
+        It sets `route["_collections"]`, tears down `_items`, `_total`,
+        the grid shape and the paginator, and comes back with a different
+        item type wearing a different tile shape -- its own docstring
+        says "a different query rather than a filter". The test is
+        whether it composes: everything in `_filters` intersects, and
+        Collections cannot intersect with anything. **[iw]**: "we should
+        honestly treat collections as a door."
+
+        (This docstring used to argue the opposite -- that Collections
+        "really is a filter" -- which is why it sat among the checkboxes.)
+
         They lead the filter row rather than sitting among the filters,
         because they are a different kind of thing: a filter changes what
-        this grid shows and these navigate somewhere else entirely. Mixing
-        them in made "Collections" (which really is a filter) and "Genres"
-        (which is a door) look like the same control.
+        this grid shows and these navigate somewhere else entirely.
 
         jellyfin-web reaches both through library tabs, which we do not
         have -- so leading the bar is the nearest thing to a tab strip.
@@ -375,6 +386,12 @@ class GridPage(Page):
         if route.get("collection_type") in GENRE_LIBRARIES:
             out.append(Button(_("Genres"), id="grid-genres", icon="label",
                               on_click=self._open_genres))
+        if route.get("_collection_capable"):
+            out.append(Button(
+                _("Collections"), id="grid-collections", icon="video_library",
+                on_click=self._toggle_collections,
+                **(theme.chrome_button_style()
+                   if route.get("_collections") else {})))
         return out
 
     def _filter_bar(self, width=0):
@@ -392,45 +409,39 @@ class GridPage(Page):
         yi = 0
         if filters.get("year") in years:
             yi = years.index(filters["year"]) + 1
+        active = self._active_filters()
         bar = Row([
             Dropdown("grid-sort", [s[0] for s in self._sorts()],
                      selected=route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
-            Dropdown("grid-genre", [_("All Genres")] + genres, selected=gi,
-                     w=180,
-                     on_select=lambda i, v: self._set_filter(
-                         "genre", None if i == 0 else genres[i - 1])),
-            Dropdown("grid-year",
-                     [_("All Years")] + [str(y) for y in years],
-                     selected=yi, w=140,
-                     on_select=lambda i, v: self._set_filter(
-                         "year", None if i == 0 else years[i - 1])),
-            Checkbox(_("Unplayed"), bool(filters.get("unplayed")),
-                     id="grid-unplayed",
-                     on_toggle=lambda: self._toggle_filter("unplayed")),
-            Checkbox(_("Favorites"), bool(filters.get("favorite")),
-                     id="grid-fav",
-                     on_toggle=lambda: self._toggle_filter("favorite")),
+            # One button instead of the three drop-downs and two
+            # checkboxes that used to live here. The bar had 277px spare
+            # at 1280 -- one control's width, with genre names that size
+            # to their contents -- so the eight categories web offers
+            # could not have gone on it at any window size.
+            #
+            # The count is the badge: web draws a dot, but a dot says
+            # "something is on" and a number says how much of what you
+            # are looking at has been hidden, which is the question you
+            # ask when a library looks short.
+            controls.action_btn(
+                "filter_alt",
+                _("Filter (%d)") % active if active else _("Filter"),
+                "grid-filter", self._open_filters,
+                primary=bool(active)),
         ] + ([
-            # A filter, not a door: it swaps this library's grid for its
-            # collections. So it sits with the other checkboxes rather than
-            # with Genres and Networks -- after Favorites, before the
-            # Paginated toggle, which is not a filter at all.
-            Checkbox(_("Collections"), bool(route.get("_collections")),
-                     id="grid-collections",
-                     on_toggle=self._toggle_collections),
-        ] if route.get("_collection_capable") else []) + [
-            # The play buttons are trailing; the Spacer is what pushes them
-            # away from the filters.
-            Spacer(),
-        ] + ([
-            # Ahead of Shuffle, as jellyfin-web pairs them. Shuffle alone was
-            # the whole of "play this library", which on a Home Videos folder
-            # of holiday clips in date order is the one thing you do not want.
+            # Inline, not pushed to the far edge. They sat there because
+            # the bar used to be five filter controls wide and they had to
+            # go somewhere; with one Filter button there is nothing to be
+            # on the other side OF. **[iw]**: "we should put shuffle next
+            # to Filter. It doesn'''t make sense to put it on the other side
+            # of the UI anymore."
+        ]) + ([
             Button(_("Play All"), id="grid-playall", on_click=self._play_all),
         ] if self._play_all_capable() else []) + ([
             Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
-        ] if self._shuffle_capable() else []), gap=10, align="center")
+        ] if self._shuffle_capable() else []) + [Spacer(flex=1)],
+            gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
         cur_letter = filters.get("letter")
         cells = [
@@ -791,6 +802,52 @@ class GridPage(Page):
         else:
             self.ctx.nav.load(self.route)
 
+    #: Filter keys that are NOT drawn by the panel. `letter` is the A-Z
+    #: rail down the side of the grid, which is a control of its own.
+    _NOT_IN_PANEL = ("letter",)
+
+    def _active_filters(self):
+        """How many filters are on. Drives the button's dot."""
+        f = self.route.get("_filters") or {}
+        return sum(1 for k, v in f.items()
+                   if v and k not in self._NOT_IN_PANEL)
+
+    def _open_filters(self):
+        """The filter panel: a modal, because it is a page of controls."""
+        # Getters, not values. `route.get("_filters") or {}` answers with
+        # a FRESH dict when nothing is set yet, and `_toggle_filter` then
+        # writes to the one `setdefault` makes -- a different object -- so
+        # every tick was drawn from a snapshot taken when the panel opened
+        # and nothing ever moved. `_clear_filters` replaces the dict
+        # outright, which breaks it a second way.
+        #
+        # This is the standing browser footgun (CLAUDE.md): a widget tree
+        # is a snapshot, so read mutable state INSIDE the builder.
+        self.ctx.dialogs.filter_panel(
+            lambda: self.route.get("_filtervals") or {},
+            lambda: self.route.get("_filters") or {},
+            self._set_filter, self._panel_toggle, self._clear_filters)
+
+    def _panel_toggle(self, key):
+        """A panel checkbox. Repaints the dialog as well as reloading.
+
+        The renderer flips a Dropdown's own selection optimistically, but
+        **a Checkbox is drawn from its `checked` argument** and only a
+        redraw can move the tick -- the standing footgun in this codebase
+        (CLAUDE.md), and the reason the Add to Playlist dialog once had a
+        Private box that flipped invisibly.
+        """
+        self._toggle_filter(key)
+        self.ctx.invalidate()
+
+    def _clear_filters(self):
+        """Everything off, except the A-Z rail, which is not in here."""
+        keep = {k: v for k, v in (self.route.get("_filters") or {}).items()
+                if k in self._NOT_IN_PANEL}
+        self.route["_filters"] = keep
+        self._reload()
+        self.ctx.invalidate()
+
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
         would not fit.
@@ -801,8 +858,13 @@ class GridPage(Page):
         toggle and a Genres button that a music one does not, and the sort
         and genre dropdowns are sized to their contents.
         """
+        avail0 = (width or 0) - 2 * chrome.CONTENT_PAD
         if not extras:
-            return bar
+            # Still width it: the trailing Spacer needs leftover to absorb
+            # whether or not this library has doors on the bar, and this
+            # is the path a movies library takes.
+            return (Row(bar.children, gap=10, align="center", w=avail0)
+                    if avail0 > 0 else bar)
         wide = Row(extras + bar.children, gap=10, align="center")
         avail = (width or 0) - 2 * chrome.CONTENT_PAD
         if avail <= 0:
@@ -814,11 +876,17 @@ class GridPage(Page):
             log.debug("could not measure the filter bar", exc_info=True)
             fits = True
         if fits:
-            return wide
+            # An explicit width, so the trailing Spacer has leftover to
+            # absorb and the play buttons sit at the right edge. A Row
+            # sizes to what it measures otherwise, which parked them
+            # immediately after the Filter button.
+            return Row(extras + bar.children, gap=10, align="center",
+                       w=avail)
         # Above, not below: these are the doors out of this library, and a
         # row of them under the filters reads as more filtering.
-        return Column([Row(extras, gap=10, align="center"), bar], gap=8,
-                      align="stretch")
+        return Column([Row(extras, gap=10, align="center"),
+                       Row(bar.children, gap=10, align="center", w=avail)],
+                      gap=8, align="stretch")
 
     def _grid_shape(self, items):
 

@@ -30,6 +30,41 @@ from . import components, theme
 from .components import media_info
 
 
+#: Every category the panel can draw, in web's order. Each is
+#: ``(key, label, kind)``; "vals" names the `_filtervals` entry a
+#: picker's options come from.
+#:
+#: A category is drawn only when it has something to offer: the
+#: server returned options for it, or it is a fixed enum. That is
+#: jellyfin-web's own gate (`!!filters?.AudioLanguages?.length`) and
+#: it is what makes this work against a server with no language
+#: filters -- Jellyfin 11 and earlier -- with no version check
+#: anywhere.
+FILTER_SECTIONS = (
+    (_("Status"), "checks", (
+        ("unplayed", _("Unplayed")),
+        ("played", _("Played")),
+        ("favorite", _("Favorites")),
+        ("resumable", _("Resumable")),
+        ("liked", _("Liked")),
+    )),
+    (_("Features"), "checks", (
+        ("has_subtitles", _("Has Subtitles")),
+        ("has_trailer", _("Has Trailer")),
+        ("has_special_feature", _("Has Special Features")),
+        ("has_theme_song", _("Has Theme Song")),
+        ("has_theme_video", _("Has Theme Video")),
+    )),
+    (_("Genres"), "pick", ("genre", "genres")),
+    (_("Years"), "pick", ("year", "years")),
+    (_("Parental Rating"), "pick", ("official_ratings", "official_ratings")),
+    (_("Tags"), "pick", ("tags", "tags")),
+    (_("Audio Language"), "pick", ("audio_languages", "audio_languages")),
+    (_("Subtitle Language"), "pick",
+     ("subtitle_languages", "subtitle_languages")),
+)
+
+
 class DialogsMixin:
 
     # ----------------------------------------------------- add to playlist
@@ -500,6 +535,85 @@ class DialogsMixin:
         self.invalidate()
 
     # ---------------------------------------------------------- view settings
+
+    def filter_panel(self, get_vals, get_filters, on_set, on_toggle,
+                     on_clear):
+        """The filter panel: a modal, because it is a page of controls.
+
+        Not accordions, which is what jellyfin-web uses to keep the height
+        down -- **[iw]**: "I'm inclined to use checkboxes and drop-downs
+        instead, accordions are annoying". So every category is open and
+        the body scrolls, which is the same shape as the Live TV guide's
+        settings dialog.
+        """
+        def build():
+            vals = get_vals()
+            filters = get_filters()
+            rows: list = []
+            for label, kind, spec in FILTER_SECTIONS:
+                if kind == "checks":
+                    rows.append(Text(label, size="normal", bold=True))
+                    rows += [
+                        Checkbox(text, bool(filters.get(key)),
+                                 id="flt-" + key,
+                                 on_toggle=lambda k=key: on_toggle(k))
+                        for key, text in spec
+                    ]
+                    continue
+                key, vals_key = spec
+                options = vals.get(vals_key) or []
+                if not options:
+                    # Nothing to choose from: the server does not offer
+                    # this category (or has no items carrying it), so the
+                    # picker would be an empty list pretending to be a
+                    # control.
+                    continue
+                rows.append(Text(label, size="normal", bold=True))
+                rows.append(self._filter_picker(key, options, filters, on_set))
+            if not rows:
+                rows = [Text(_("This library offers no filters."),
+                             size="small", color=theme.SUBTLE_FG)]
+            return Dialog(
+                "filters",
+                self._dialog_shell("filters", [
+                    Text(_("Filters"), size="title", bold=True),
+                    VScroll(Column(rows, gap=10, align="stretch"),
+                            id="flt-body", h=380),
+                    self._dialog_buttons([
+                        Button(_("Clear All"), id="flt-clear",
+                               on_click=on_clear),
+                        Button(_("Done"), id="flt-done",
+                               on_click=self._close_dialog),
+                    ]),
+                ], w=520),
+                on_dismiss=self._close_dialog)
+        self._show_dialog(build)
+
+    @staticmethod
+    def _option_pair(option):
+        """``(label, value)`` for a picker option.
+
+        The two endpoints answer differently: `Filters` gives bare
+        strings (a genre, a rating), `Filters2` gives NameValuePairs the
+        source has already flattened to tuples ("English (eng)", "eng").
+        """
+        if isinstance(option, (tuple, list)) and len(option) == 2:
+            return str(option[0]), option[1]
+        return str(option), option
+
+    def _filter_picker(self, key, options, filters, on_set):
+        pairs = [self._option_pair(o) for o in options]
+        current = filters.get(key)
+        selected = 0
+        for i, (_label, value) in enumerate(pairs):
+            if value == current or str(value) == str(current):
+                selected = i + 1
+                break
+        return Dropdown(
+            "flt-" + key, [_("Any")] + [lbl for lbl, _v in pairs],
+            selected=selected, w=440, popup_w=440,
+            on_select=lambda i, _v, p=pairs, k=key: on_set(
+                k, None if i == 0 else p[i - 1][1]))
 
     def view_settings(self, current, on_set, paginated=None):
         """A library's view settings, in a modal.

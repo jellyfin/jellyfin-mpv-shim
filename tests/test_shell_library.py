@@ -890,10 +890,28 @@ class TestGridFilters(unittest.TestCase):
                          "parent_id": "lib1", "title": "Movies"})
         return build_scene(self.b)
 
+    def _panel(self):
+        """The grid with its filter panel open.
+
+        The three drop-downs and two checkboxes that used to sit on the
+        bar are behind one Filter button now -- the bar had 277px spare
+        at 1280 and web offers eight categories, so they could not have
+        stayed. Everything these tests assert is unchanged; only the door
+        to it moved.
+        """
+        _n, h = self._grid()
+        h["grid-filter"]["click"]()
+        return build_scene(self.b)
+
     def test_filter_bar_present(self):
         nodes, _h = self._grid()
-        for nid in ("grid-sort", "grid-genre", "grid-unplayed", "grid-fav",
-                    "grid-shuffle", "grid-l-A", "grid-l-#"):
+        for nid in ("grid-sort", "grid-filter", "grid-shuffle",
+                    "grid-l-A", "grid-l-#"):
+            self.assertIn(nid, ids(nodes))
+
+    def test_the_filters_are_in_the_panel(self):
+        nodes, _h = self._panel()
+        for nid in ("flt-genre", "flt-unplayed", "flt-favorite", "flt-year"):
             self.assertIn(nid, ids(nodes))
 
     def test_sort_change_sets_and_reloads(self):
@@ -902,13 +920,13 @@ class TestGridFilters(unittest.TestCase):
         self.assertEqual(self.b.route["_sort"], 3)
 
     def test_genre_filter(self):
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")   # index 0 = All Genres
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")   # index 0 = All Genres
         self.assertEqual(self.b.route["_filters"]["genre"], "Action")
 
     def test_unplayed_toggle(self):
-        _n, h = self._grid()
-        h["grid-unplayed"]["click"]()
+        _n, h = self._panel()
+        h["flt-unplayed"]["click"]()
         self.assertTrue(self.b.route["_filters"]["unplayed"])
 
     def test_letter_jump(self):
@@ -942,13 +960,13 @@ class TestGridFilters(unittest.TestCase):
                          ("CommunityRating", "Descending"))
 
     def test_the_genre_filter_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
 
     def test_the_unplayed_toggle_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-unplayed"]["click"]()
+        _n, h = self._panel()
+        h["flt-unplayed"]["click"]()
         self.assertTrue(self._last_query()["filters"].get("unplayed"))
 
     def test_the_letter_jump_reaches_the_source(self):
@@ -957,17 +975,17 @@ class TestGridFilters(unittest.TestCase):
         self.assertEqual(self._last_query()["filters"].get("letter"), "M")
 
     def test_the_year_filter_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-year"]["select"](1, "2020")
+        _n, h = self._panel()
+        h["flt-year"]["select"](1, "2020")
         self.assertEqual(self._last_query()["filters"].get("year"), 2020)
 
     def test_filters_accumulate_rather_than_replace(self):
         """Picking a genre then a year must send both — dropping the first
         would silently widen the result set."""
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         _n, h = build_scene(self.b)
-        h["grid-unplayed"]["click"]()
+        h["flt-unplayed"]["click"]()
         f = self._last_query()["filters"]
         self.assertEqual(f.get("genre"), "Action")
         self.assertTrue(f.get("unplayed"))
@@ -975,8 +993,8 @@ class TestGridFilters(unittest.TestCase):
     def test_windowing_carries_the_filters(self):
         """A window fetched later losing them is how the person route
         shipped: the two result sets interleave into duplicates and skips."""
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         before = len(self.b.source.queries)
         grid_scroll(self.b, self.b.route, 100000, 200000)
         self.assertGreater(len(self.b.source.queries), before,
@@ -1505,28 +1523,34 @@ class TestYearFilter(unittest.TestCase):
         self.b.nav_stack = [r]
         return r
 
+    def _panel(self):
+        """The year picker lives in the filter panel now."""
+        _n, h = build_scene(self.b)
+        h["grid-filter"]["click"]()
+        return build_scene(self.b)
+
     def test_the_year_picker_lists_the_available_years(self):
         self._route()
-        nodes, _h = build_scene(self.b)
-        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        nodes, _h = self._panel()
+        dd = next(n for n in nodes if n.get("id") == "flt-year")
         self.assertEqual(dd["items"][1:], ["2021", "1999"])
 
     def test_choosing_a_year_stores_it_as_an_int(self):
         route = self._route()
-        _n, handlers = build_scene(self.b)
-        handlers["grid-year"]["select"](1, "2021")
+        _n, handlers = self._panel()
+        handlers["flt-year"]["select"](1, "2021")
         self.assertEqual(route["_filters"]["year"], 2021)
 
     def test_all_years_clears_the_filter(self):
         route = self._route(_filters={"year": 2021})
-        _n, handlers = build_scene(self.b)
-        handlers["grid-year"]["select"](0, "All Years")
+        _n, handlers = self._panel()
+        handlers["flt-year"]["select"](0, "All Years")
         self.assertIsNone(route["_filters"].get("year"))
 
     def test_the_current_year_is_preselected(self):
         self._route(_filters={"year": 1999})
-        nodes, _h = build_scene(self.b)
-        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        nodes, _h = self._panel()
+        dd = next(n for n in nodes if n.get("id") == "flt-year")
         self.assertEqual(dd["sel"], 2)
 
 class TestCollections(unittest.TestCase):

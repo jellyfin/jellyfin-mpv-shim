@@ -3275,3 +3275,66 @@ a commit message first:
 - `migrate` cleared every setting it wrote by reading the class default,
   which for a seek name is now an `AttributeError` — a production
   regression in the commit that had already declared the work done.
+
+---
+
+## 26 — The filter panel
+
+**[iw]**, following #19's survey. The bar carried three drop-downs and two
+checkboxes and had **277px spare at 1280** — one control's width, against
+web's thirteen categories — so the filters had to leave it. They are
+behind one **Filter** button now, which carries a *count* rather than
+web's dot: "something is on" is less useful than how much of what you are
+looking at has been hidden. Bar: 971px -> 457px.
+
+**Flat controls in a scrolling modal, not accordions.** **[iw]**: "I'm
+inclined to use checkboxes and drop-downs instead, accordions are
+annoying." Same `Dialog` shape as the Live TV guide settings, which is the
+existing precedent for a panel of controls; no new mpvtk primitive.
+
+**Both options endpoints, because they disagree.** `Items/Filters` has
+Years and Official Ratings and no languages; `Items/Filters2` has the
+languages and **no Years**. Switching wholesale to the newer one would
+have silently emptied a picker we already ship. jellyfin-web calls both.
+
+**A category is drawn only when the server offered options for it** —
+web's own gate (`!!filters?.AudioLanguages?.length`), which needs no
+version knowledge because the server that lacks the query parameter also
+returns no options. Confirmed by [iw] on both: the language categories are
+absent on 10.11 and present and working on 12.0.
+
+New filter parameters ride `params=`, because `items_api.get_items`
+**raises** on unknown keywords — deliberately, since a keyword it dropped
+would be a filter that stopped applying.
+
+**Collections is a door, not a filter.** It sets `route["_collections"]`,
+tears down the result set, the grid shape and the paginator, and returns a
+different item type. The test is whether it composes: everything in
+`_filters` intersects and Collections cannot. **[iw]**: "we should
+honestly treat collections as a door." It joins Genres and Networks; the
+docstring that argued the opposite is corrected in place.
+
+### What smoke testing found
+
+- **The checkboxes did not toggle**, and it was this file's own standing
+  footgun. The panel captured `filters` by value at open time —
+  `route.get("_filters") or {}` answers with a *fresh* dict when nothing
+  is set, and `_toggle_filter` writes to the one `setdefault` makes. It
+  takes getters now and reads inside the builder. The warning about
+  exactly this is in `_panel_toggle`'s docstring, written while the bug
+  was two functions away.
+- **A double space before the play buttons**, which turned out to be
+  worse than spacing: a bare `Spacer()` is a zero-width child that still
+  collects a gap either side, and the buttons were never right-aligned —
+  five controls used to fill the row so it looked deliberate. They are
+  inline beside Filter now, since with one button there is nothing to be
+  on the other side of.
+- **"TV Shows blanks behind the modal" is not a bug** — the shell hides
+  during a reload and the spinner is covered by the dialog [iw].
+
+### Left to do
+
+`Tags` and `Video Types` are translated but not in `FILTER_SECTIONS`.
+Features should probably be gated to Movies/Episodes: a Series is a
+container with no media, so `HasSubtitles` matches nothing, and web gates
+it the same way. And the panel has no tests of its own yet.

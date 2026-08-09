@@ -384,6 +384,44 @@ class ServerConn:
             log.debug("Error stopping browse client", exc_info=True)
 
 
+#: Status filters -- `setting key -> the member of Jellyfin's `Filters`
+#: enum`. web's FiltersStatus, minus IsFavorite, which has a parameter of
+#: its own (`is_favorite`) and would be sent twice.
+STATUS_FILTERS = (
+    ("unplayed", "IsUnplayed"),
+    ("played", "IsPlayed"),
+    ("resumable", "IsResumable"),
+    ("liked", "Likes"),
+)
+
+#: Feature filters -- each its own boolean query parameter. web's
+#: FiltersFeatures.
+FEATURE_FILTERS = (
+    ("has_subtitles", "HasSubtitles"),
+    ("has_trailer", "HasTrailer"),
+    ("has_special_feature", "HasSpecialFeature"),
+    ("has_theme_song", "HasThemeSong"),
+    ("has_theme_video", "HasThemeVideo"),
+)
+
+#: Filters whose value is a LIST of chosen options.
+#:
+#: `audio_languages` / `subtitle_languages` exist only on Jellyfin 12 and
+#: later, and only reach the server because item queries moved to
+#: `/Items` -- the legacy `Users/{id}/Items` route hard-codes them empty
+#: (see jellyfin_mpv_shim/items_api.py). The panel offers a category only
+#: when the server returned options for it, which is jellyfin-web's own
+#: gate and needs no version check.
+LIST_FILTERS = (
+    ("official_ratings", "OfficialRatings"),
+    ("tags", "Tags"),
+    ("video_types", "VideoTypes"),
+    ("audio_languages", "AudioLanguages"),
+    ("subtitle_languages", "SubtitleLanguages"),
+    ("studio_ids", "StudioIds"),
+)
+
+
 class LibrarySource:
     """Live, multi-server browse data source.
 
@@ -1432,9 +1470,11 @@ class LibrarySource:
         kwargs: dict[str, str] = {}
         if not filters:
             return kwargs
-        active = []
-        if filters.get("unplayed"):
-            active.append("IsUnplayed")
+        # Status. web's `Filters` enum, sent as one comma-joined value --
+        # `is_favorite` is the exception, because it has its own parameter
+        # and the enum member is redundant with it.
+        active = [name for key, name in STATUS_FILTERS
+                  if filters.get(key)]
         if active:
             kwargs["filters"] = ",".join(active)
         if filters.get("favorite"):
@@ -1443,6 +1483,28 @@ class LibrarySource:
             kwargs["genres"] = filters["genre"]
         if filters.get("year"):
             kwargs["years"] = str(filters["year"])
+        # Features (HasSubtitles, HasTrailer, ...) and the two languages,
+        # each its own boolean or list parameter rather than a member of
+        # `Filters`. All measured working on /Items; the languages need
+        # a server that has them, which is why the panel only offers a
+        # category the server returned options for.
+        #
+        # Through `params`, not as keywords: `items_api.get_items` names
+        # only the parameters the apiclient does, and RAISES on anything
+        # else -- deliberately, since a keyword it silently dropped would
+        # be a filter that stopped applying. `params` is the documented
+        # way past that and `build_query` merges it last.
+        extra: dict[str, str] = {}
+        for key, param in FEATURE_FILTERS:
+            if filters.get(key):
+                extra[param] = "true"
+        for key, param in LIST_FILTERS:
+            value = filters.get(key)
+            if value:
+                extra[param] = ",".join(str(v) for v in value) if isinstance(
+                    value, (list, tuple, set)) else str(value)
+        if extra:
+            kwargs["params"] = extra
         letter = filters.get("letter")
         if letter == "#":
             kwargs["name_less_than"] = "A"
@@ -1821,7 +1883,14 @@ class LibrarySource:
         }
         if extra:
             kwargs.update(extra)
-        kwargs.update(self._filter_kwargs(filters))
+        # Merged, not replaced: both sides may carry `params` and an
+        # update() would drop whichever landed first.
+        got = self._filter_kwargs(filters)
+        merged = dict(kwargs.get("params") or {})
+        merged.update(got.pop("params", None) or {})
+        kwargs.update(got)
+        if merged:
+            kwargs["params"] = merged
         result = items_api.get_items(api, **kwargs) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
@@ -1999,12 +2068,53 @@ class LibrarySource:
                     years.add(int(y))
                 except (TypeError, ValueError):
                     continue
-            return {"genres": result.get("Genres") or [],
-                    "years": sorted(years, reverse=True)}
+            out = {"genres": result.get("Genres") or [],
+                   "years": sorted(years, reverse=True),
+                   "official_ratings": result.get("OfficialRatings") or [],
+                   "tags": result.get("Tags") or []}
+            out.update(self._filters2(server_uuid, parent_id,
+                                      collection_type))
+            return out
         except Exception:
             log.warning("Items/Filters failed; falling back to genres",
                         exc_info=True)
         return {"genres": self.get_genres(server_uuid, parent_id), "years": []}
+
+    def _filters2(self, server_uuid, parent_id=None, collection_type=None):
+        """The options only ``Items/Filters2`` knows: the two languages.
+
+        **Both endpoints, not one.** They return different, overlapping
+        sets: the legacy `Filters` has Years and OfficialRatings and no
+        languages; `Filters2` has the languages and no Years. Measured on
+        a live server -- switching wholesale to the newer one would have
+        silently emptied the Year picker we already ship. jellyfin-web
+        calls both for the same reason (`useFetchItems`).
+
+        Absent on Jellyfin 11 and earlier, where the query parameters do
+        not exist either -- so an empty answer here is exactly the gate
+        the panel needs, and it needs no version check.
+        """
+        api = self._conn(server_uuid).api
+        params = {"userId": "{UserId}"}
+        if parent_id:
+            params["parentId"] = parent_id
+        types = LIBRARY_ITEM_TYPES.get(collection_type or "")
+        if types:
+            params["includeItemTypes"] = types
+        try:
+            got = api.items("/Filters2", params=params) or {}
+        except Exception:
+            log.debug("Items/Filters2 unavailable", exc_info=True)
+            return {}
+
+        def pairs(key):
+            # NameValuePair: the Name is "English (eng)" and the Value is
+            # what the query wants.
+            return [(o.get("Name") or o.get("Value") or "", o.get("Value"))
+                    for o in (got.get(key) or []) if o.get("Value")]
+
+        return {"audio_languages": pairs("AudioLanguages"),
+                "subtitle_languages": pairs("SubtitleLanguages")}
 
     def get_similar(self, server_uuid, item_id, limit=12):
         """"More Like This" items."""
