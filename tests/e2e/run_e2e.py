@@ -55,6 +55,7 @@ CONTRACT = [
     # (ChildCount is 0 for a collection read off disk while the listing has
     # every member), plus the three edit endpoints nothing else calls.
     "tests.e2e.test_collections",
+    "tests.e2e.test_items_endpoint",
     # Two real clients on one real group. No mpv: SyncPlay drives a player
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.

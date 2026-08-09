@@ -32,8 +32,12 @@ class FakeApi:
         self.calls = []
         self.filter_calls = []
 
-    def get_user_items(self, **kw):
-        self.calls.append(kw)
+    def items(self, handler="", action="GET", params=None, **_kw):
+        # `items`, not `get_user_items`: the shim queries GET /Items now
+        # (see jellyfin_mpv_shim/items_api). So what is recorded is the
+        # real query dict, in the server's own spelling, rather than the
+        # apiclient's keyword names.
+        self.calls.append(dict(params or {}))
         return {"Items": [], "TotalRecordCount": 0}
 
     def get_filters(self, parent_id=None, include_item_types=None):
@@ -57,26 +61,26 @@ class QueryShapeTest(unittest.TestCase):
         for ctype, itype in LIBRARY_ITEM_TYPES.items():
             with self.subTest(ctype):
                 call = self._call(ctype)
-                self.assertEqual(call["include_item_types"], itype)
-                self.assertIs(call["recursive"], True)
+                self.assertEqual(call["IncludeItemTypes"], itype)
+                self.assertIs(call["Recursive"], True)
 
     def test_a_folder_is_listed_exactly_as_it_stands(self):
         """A folder inside a library carries no collection type, and
         flattening one would destroy the only structure a Home Videos
         library has. Neither key is sent at all."""
         call = self._call(None)
-        self.assertNotIn("include_item_types", call)
-        self.assertNotIn("recursive", call)
+        self.assertNotIn("IncludeItemTypes", call)
+        self.assertNotIn("Recursive", call)
 
     def test_an_unknown_collection_type_is_a_folder(self):
         call = self._call("somethingnew")
-        self.assertNotIn("recursive", call)
+        self.assertNotIn("Recursive", call)
 
     def test_the_grid_does_not_ask_for_overviews(self):
         """A tile draws a name, a year and a runtime -- none of them fields.
         Overview was a third of the response body for a hundred items."""
         self.assertNotIn("Overview", GRID_FIELDS)
-        self.assertIn("PrimaryImageAspectRatio", self._call("movies")["fields"])
+        self.assertIn("PrimaryImageAspectRatio", self._call("movies")["Fields"])
 
     def test_every_browse_query_asks_for_the_version_count(self):
         """MediaSourceCount is not one of the unconditional properties: leave
@@ -84,7 +88,7 @@ class QueryShapeTest(unittest.TestCase):
         library holds twice draws exactly like one it holds once. Both field
         sets, because a film reaches the screen through a row as often as
         through a grid."""
-        self.assertIn("MediaSourceCount", self._call("movies")["fields"])
+        self.assertIn("MediaSourceCount", self._call("movies")["Fields"])
         self.assertIn("MediaSourceCount", GRID_FIELDS)
         self.assertIn("MediaSourceCount", LIST_FIELDS)
 
@@ -119,16 +123,16 @@ class MusicOrderTest(unittest.TestCase):
         return api.calls[0]
 
     def test_the_songs_tab_is_ordered_by_title(self):
-        self.assertEqual(self._call("get_songs")["sort_by"], "Name")
+        self.assertEqual(self._call("get_songs")["SortBy"], "Name")
 
     def test_the_albums_tab_keeps_sortname(self):
         """An album's SortName IS its name, modulo the leading article --
         this is only a track's problem."""
-        self.assertEqual(self._call("get_music_albums")["sort_by"], "SortName")
+        self.assertEqual(self._call("get_music_albums")["SortBy"], "SortName")
 
     def test_an_explicit_sort_still_wins(self):
         self.assertEqual(
-            self._call("get_songs", sort_by="DateCreated")["sort_by"],
+            self._call("get_songs", sort_by="DateCreated")["SortBy"],
             "DateCreated")
 
 
@@ -260,18 +264,18 @@ class SearchAsksForFieldsTest(unittest.TestCase):
         been shaped by their own artwork — auto_geom fell back for all of
         them, which is why a row of films and a row of episodes looked the
         same shape."""
-        self.assertIn("PrimaryImageAspectRatio", self._search_call()["fields"])
+        self.assertIn("PrimaryImageAspectRatio", self._search_call()["Fields"])
 
     def test_it_asks_for_the_version_count(self):
         # The one someone actually reported: a multi-version item drew no
         # version chip in search results.
-        self.assertIn("MediaSourceCount", self._search_call()["fields"])
+        self.assertIn("MediaSourceCount", self._search_call()["Fields"])
 
     def test_it_asks_whether_the_item_can_be_deleted(self):
-        self.assertIn("CanDelete", self._search_call()["fields"])
+        self.assertIn("CanDelete", self._search_call()["Fields"])
 
     def test_it_does_not_ask_for_overviews(self):
         """Search asks for 800 items — five times a grid page — so the one
         field the grid drops for being a third of the body is the one this
         must not add back."""
-        self.assertNotIn("Overview", self._search_call()["fields"])
+        self.assertNotIn("Overview", self._search_call()["Fields"])

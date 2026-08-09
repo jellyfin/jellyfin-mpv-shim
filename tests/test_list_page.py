@@ -33,8 +33,11 @@ class _Api:
     def get_next(self, **kw):
         return self._record("get_next", kw)
 
-    def get_user_items(self, **kw):
-        return self._record("get_user_items", kw)
+    def items(self, handler="", action="GET", params=None, **_kw):
+        # GET /Items -- see jellyfin_mpv_shim/items_api. Recorded under
+        # the endpoint it actually hits, and with the query the server
+        # actually receives.
+        return self._record("items", dict(params or {}))
 
 
 def _source(api):
@@ -67,27 +70,33 @@ class SpecDispatchTest(unittest.TestCase):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "genre_ids": "g1"})
         name, kw = api.calls[0]
-        self.assertEqual(name, "get_user_items")
-        self.assertEqual(kw["genre_ids"], "g1")
-        self.assertTrue(kw["recursive"])
+        self.assertEqual(name, "items")
+        self.assertEqual(kw["GenreIds"], "g1")
+        self.assertTrue(kw["Recursive"])
 
     def test_favorites_are_the_same_query_with_a_predicate(self):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "is_favorite": True})
-        self.assertEqual(api.calls[0][1]["is_favorite"], "true")
+        self.assertEqual(api.calls[0][1]["IsFavorite"], "true")
 
     def test_studios_ride_the_params_passthrough(self):
-        """get_user_items has no named studio_ids; params is the documented
-        way through and merges last."""
+        """`get_items` has no named studio_ids; params is the documented
+        way through and merges last.
+
+        Asserted on the built query rather than on a `params` key, because
+        that is where it ends up -- `build_query` merges params in last, so
+        a passthrough that stopped being merged would still look right in a
+        test that only checked what was handed over.
+        """
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "studio_ids": "s1"})
-        self.assertEqual(api.calls[0][1]["params"], {"StudioIds": "s1"})
+        self.assertEqual(api.calls[0][1]["StudioIds"], "s1")
 
     def test_the_grids_own_filters_still_apply(self):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "genre_ids": "g1"},
                               filters={"unplayed": True})
-        self.assertEqual(api.calls[0][1]["filters"], "IsUnplayed")
+        self.assertEqual(api.calls[0][1]["Filters"], "IsUnplayed")
 
     def test_an_unknown_type_raises_rather_than_looking_empty(self):
         """A typo in a route must not render as an empty library."""
@@ -383,9 +392,9 @@ class FavoritesTest(unittest.TestCase):
         rows = _source(api).get_favorite_sections("srv")
         self.assertTrue(rows)
         kw = api.calls[0][1]
-        self.assertEqual(kw["is_favorite"], "true")
-        self.assertTrue(kw["recursive"])
-        self.assertIn("include_item_types", kw)
+        self.assertEqual(kw["IsFavorite"], "true")
+        self.assertTrue(kw["Recursive"])
+        self.assertIn("IncludeItemTypes", kw)
 
     def test_offline_has_none(self):
         src = OfflineLibrarySource.__new__(OfflineLibrarySource)
@@ -493,7 +502,7 @@ class GenresTest(unittest.TestCase):
         g = _G()
         _source(g).get_genre_sections("srv", "lib1", "tvshows")
         self.assertEqual(g.calls[0][1]["include_item_types"], "Series")
-        self.assertEqual(g.calls[1][1]["include_item_types"], "Series")
+        self.assertEqual(g.calls[1][1]["IncludeItemTypes"], "Series")
         del api
 
     def test_an_unknown_collection_type_has_no_genres_screen(self):
@@ -701,9 +710,9 @@ class ByNameTest(unittest.TestCase):
             "srv", {"type": "items", "person_ids": "p1"})
         self.assertTrue(rows)
         kw = api.calls[0][1]
-        self.assertEqual(kw["person_ids"], "p1")
-        self.assertIn("include_item_types", kw)
-        self.assertTrue(kw["recursive"])
+        self.assertEqual(kw["PersonIds"], "p1")
+        self.assertIn("IncludeItemTypes", kw)
+        self.assertTrue(kw["Recursive"])
 
     def test_offline_has_none(self):
         src = OfflineLibrarySource.__new__(OfflineLibrarySource)

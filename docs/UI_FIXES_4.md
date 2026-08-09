@@ -3092,3 +3092,92 @@ let a large-text theme move all of it together.
 
 **Not landed.** It is a global visual change and the choice of numbers is
 [iw]'s, not the audit's. The measurement above is what the decision needs.
+
+---
+
+## 24 — Off `GET /Users/{userId}/Items` entirely
+
+**[iw]**: "we should migrate off of that wholesale then, Jellyfin upstream
+plans to break those old legacy endpoints eventually and they're already
+causing issues for us." Both halves of that are true and they are separate
+arguments: the route is `[Obsolete("Kept for backwards compatibility")]`,
+*and* it is already lossy (§19 — three of 88 parameters dropped, silently).
+
+`jellyfin_mpv_shim/items_api.py` is the replacement; 8 call sites across
+`repository.py` and `sync/manager.py` moved. No apiclient change: the user
+rides as `UserId: "{UserId}"`, a template the http layer substitutes into
+**params** as well as into the URL.
+
+Signature-compatible with `get_user_items` on purpose — six of the eight
+sites spread a kwargs dict built somewhere else, so a rename that also
+reshuffled arguments would have been a migration nobody could review.
+
+**The helper's own failure mode is the bug it fixes.** A keyword we fail to
+map is not an error, it is a filter that stops being applied — and a
+library where everything matches looks exactly like a library with no
+filter. So the mapping is checked against the apiclient's *own signature
+and source* rather than a copy of itself, and an unmapped keyword raises.
+
+Verified against the live server before the tests were touched — six query
+shapes, identical `TotalRecordCount`, identical item ids, identical DTO
+field sets. And the thing it buys, on the same server:
+
+| | legacy | modern |
+|---|---|---|
+| unfiltered | 1131 | 1131 |
+| `AudioLanguages=eng` | 1131 | **1108** |
+| `AudioLanguages=zzz` | 1131 | **0** |
+
+`tests/e2e/test_items_endpoint.py` pins it, and is the only test in the
+project that can tell the two endpoints apart — from the client's side a
+dropped filter and a library that matches everything are the same thing. It
+skips by **asking the server** (`/Items/Filters2` returning options), which
+is the gate jellyfin-web uses and the one the filter UI will use, so it
+needs no version knowledge.
+
+### What the batch rename cost, which is the part worth writing down
+
+The call boundary moved from `get_user_items(**kwargs)` to
+`items(params={...})`, so every stand-in had to grow `items()` and every
+assertion had to move from the apiclient's keyword names to the server's
+query keys. That was done with a regex over `["snake_case"]`, and **it was
+wrong five times** — every one of them a recorded call that was never the
+items query:
+
+| what | endpoint | vocabulary |
+|---|---|---|
+| `vals["genres"]` | `get_filter_values` output | not a query at all |
+| `kw["limit"]` (nextup) | `get_next` | keywords |
+| `kw["include_item_types"]`, `kw["parent_id"]` | `get_studios` | keywords |
+| `g.calls[0][1][...]` | `get_genres` | keywords |
+| `call["media_types"]` (shuffle) | `get_random_items` | keywords |
+
+Only `/Items` became a query dict. The two spellings now live side by side
+— `test_list_page.py:504-505` asserts both, two lines apart — and which is
+right is decided by *which endpoint the recorded call went to*, not by what
+the key is called.
+
+All five failed loudly with `KeyError`, but that was luck rather than
+coverage, and [iw] named the reason: "this is the type of thing I'd run,
+and then very carefully review the diff of. The tests help a ton but
+probably aren't sufficient to catch every type of bug able to be caused by
+such a batch rename."
+
+The class they cannot catch is the **negative** assertion.
+`assertNotIn("recursive", call)` passes trivially once the dict holds only
+PascalCase keys — a live test silently becomes a tautology, and nothing
+goes red. There were six of those in the rename. Two checks, because a
+passing suite says nothing about either:
+
+1. Every negative assertion was mutation-tested by making `build_query`
+   emit `Recursive` and `IncludeItemTypes` unconditionally. All 16 affected
+   tests went red; a tautology would have stayed green.
+2. Both directions of the diff were audited by *recorder*, not by name —
+   every remaining snake_case subscript confirmed to be a non-items call,
+   and every PascalCase one confirmed to be on an items record.
+
+`test_shuffle_filters_on_the_same_axis` is the one to keep in mind: its
+`assertIsNone(call.get("IncludeItemTypes"))` had been renamed wrongly and
+was, at that moment, vacuous. What caught it was the *positive* assertion
+on the line above raising `KeyError`. A test with only the negative half
+would have shipped silently broken.

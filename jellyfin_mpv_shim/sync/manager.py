@@ -16,6 +16,7 @@ import time
 
 import requests
 
+from .. import items_api
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE, book_format, is_book
 from ..conf import settings
 from ..conffile import confdir
@@ -678,7 +679,7 @@ class SyncManager:
                 # and an author directory holding forty books should not
                 # quietly become forty downloads. Path is asked for because
                 # it is the only statement of a Book's format (books.py).
-                res = api.get_user_items(parent_id=item_id,
+                res = items_api.get_items(api, parent_id=item_id,
                                          fields="MediaSources,Path",
                                          sort_by="SortName", limit=500)
                 items = (res or {}).get("Items", [])

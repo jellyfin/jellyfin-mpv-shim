@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from jellyfin_apiclient_python import JellyfinClient
 
+from .. import items_api
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
@@ -1319,7 +1320,7 @@ class LibrarySource:
 
         def find(item_type, fields):
             try:
-                result = api.get_user_items(
+                result = items_api.get_items(api, 
                     include_item_types=item_type, search_term=term,
                     recursive=True, limit=limit, fields=fields,
                     image_type_limit=1,
@@ -1427,7 +1428,7 @@ class LibrarySource:
 
     @staticmethod
     def _filter_kwargs(filters):
-        """Translate the UI's filter dict into ``get_user_items`` arguments."""
+        """Translate the UI's filter dict into ``get_items`` arguments."""
         kwargs: dict[str, str] = {}
         if not filters:
             return kwargs
@@ -1703,12 +1704,12 @@ class LibrarySource:
                 kwargs[key] = spec[key]
         if spec.get("is_favorite"):
             kwargs["is_favorite"] = "true"
-        # StudioIds has no named argument on get_user_items; params is the
+        # StudioIds has no named argument on get_items; params is the
         # documented way through for query parameters the signature does not
         # spell out, and it merges last.
         if spec.get("studio_ids") is not None:
             kwargs["params"] = {"StudioIds": spec["studio_ids"]}
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             sort_by=sort_by,
             sort_order=sort_order,
             start_index=start_index,
@@ -1748,7 +1749,7 @@ class LibrarySource:
         # how a TV library answers with 43,000 episodes.
         typed = ({"include_item_types": include, "recursive": True}
                  if include else {})
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             parent_id=parent_id,
             **typed,
             sort_by=sort_by,
@@ -1769,10 +1770,10 @@ class LibrarySource:
         items from several libraries), mirroring jellyfin-web's Collections
         view. Returns ``(items, total)`` like ``get_library_items``."""
         api = self._conn(server_uuid).api
-        # get_user_items rather than the apiclient's get_collections: this grid
+        # get_items rather than the apiclient's get_collections: this grid
         # carries the same filter row as any other, and the collections helper
         # has no filter arguments.
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             include_item_types="BoxSet",
             recursive=True,
             sort_by=sort_by,
@@ -1821,7 +1822,7 @@ class LibrarySource:
         if extra:
             kwargs.update(extra)
         kwargs.update(self._filter_kwargs(filters))
-        result = api.get_user_items(**kwargs) or {}
+        result = items_api.get_items(api, **kwargs) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_music_albums(self, server_uuid, parent_id, sort_by="SortName",
@@ -2107,7 +2108,7 @@ class LibrarySource:
         if ids or not any(i.get("IsFolder") for i in items):
             return ids
         api = self._conn(server_uuid).api
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             parent_id=parent_id,
             recursive=True,
             media_types=QUEUEABLE_MEDIA_PARAM,
@@ -2189,7 +2190,7 @@ class LibrarySource:
         counting matches is work the server can skip.
         """
         api = self._conn(server_uuid).api
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             search_term=term,
             include_item_types=SEARCH_TYPES,
             recursive=True,

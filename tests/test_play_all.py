@@ -34,21 +34,25 @@ MIXED_ALBUM = [
 
 class FakeApi:
     def __init__(self, items=None, recursive_items=None):
-        self.items = items if items is not None else []
+        # `_items`, because `items` is now a *method* on this fake -- the
+        # shim queries GET /Items (jellyfin_mpv_shim/items_api), and an
+        # attribute of that name would shadow it.
+        self._items = items if items is not None else []
         self.recursive_items = recursive_items or []
         self.calls = []
 
-    def get_user_items(self, **kw):
+    def items(self, handler="", action="GET", params=None, **_kw):
+        kw = dict(params or {})
         self.calls.append(kw)
-        if kw.get("recursive"):
+        if kw.get("Recursive"):
             return {"Items": list(self.recursive_items),
                     "TotalRecordCount": len(self.recursive_items)}
-        return {"Items": list(self.items),
-                "TotalRecordCount": len(self.items)}
+        return {"Items": list(self._items),
+                "TotalRecordCount": len(self._items)}
 
     def get_random_items(self, **kw):
         self.calls.append(dict(kw, _random=True))
-        return {"Items": list(self.recursive_items or self.items)}
+        return {"Items": list(self.recursive_items or self._items)}
 
 
 class Harness(unittest.TestCase):
@@ -74,12 +78,12 @@ class PlayAllQueriesTest(Harness):
             "srv", "album", sort_by="DateCreated", sort_order="Descending",
             filters={"unplayed": True})
         (call,) = api.calls
-        self.assertEqual(call["parent_id"], "album")
-        self.assertEqual(call["sort_by"], "DateCreated")
-        self.assertEqual(call["sort_order"], "Descending")
-        self.assertEqual(call["filters"], "IsUnplayed")
-        self.assertNotIn("recursive", call)
-        self.assertNotIn("include_item_types", call)
+        self.assertEqual(call["ParentId"], "album")
+        self.assertEqual(call["SortBy"], "DateCreated")
+        self.assertEqual(call["SortOrder"], "Descending")
+        self.assertEqual(call["Filters"], "IsUnplayed")
+        self.assertNotIn("Recursive", call)
+        self.assertNotIn("IncludeItemTypes", call)
 
     def test_the_order_is_the_grids_order(self):
         api = FakeApi(list(reversed(MIXED_ALBUM)))
@@ -132,8 +136,8 @@ class PlayAllFolderFallbackTest(Harness):
             recursive_items=[{"Id": "v1"}, {"Id": "v2"}])
         self.assertEqual(self._source(api).get_play_all_ids("srv", "lib"),
                          ["v1", "v2"])
-        self.assertTrue(api.calls[-1]["recursive"])
-        self.assertEqual(api.calls[-1]["media_types"], "Audio,Photo,Video")
+        self.assertTrue(api.calls[-1]["Recursive"])
+        self.assertEqual(api.calls[-1]["MediaTypes"], "Audio,Photo,Video")
 
     def test_one_playable_item_is_enough_to_stay_flat(self):
         """A recursive second query is the expensive path, and a folder that
@@ -162,6 +166,10 @@ class ShuffleTest(Harness):
         self.assertEqual(self._source(api).get_shuffle_ids("srv", "lib"),
                          ["a", "b"])
         (call,) = api.calls
+        # `get_random_items` keeps the apiclient's keyword vocabulary --
+        # only the /Items query became a query dict. The two spellings now
+        # live side by side in this file, and which one is right is decided
+        # by *which endpoint* the recorded call went to.
         self.assertEqual(call["media_types"], "Audio,Photo,Video")
         self.assertIsNone(call.get("include_item_types"))
 
