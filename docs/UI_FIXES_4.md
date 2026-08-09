@@ -2322,3 +2322,31 @@ rather than merely cheap), and **no item DTO names its library** under any
 field set the shim asks for, which is the premise of needing the call at all.
 That last one is written to fail loudly if the server ever grows such a
 field, because then this whole cost model can be deleted.
+
+## 25 — The renderer's own mouse paths bypass SyncPlay
+
+Noticed while writing #16's sweep: `_is_pointer` excludes `MBTN_*` and
+`WHEEL_*` from every claim, because the pointer belongs to the renderer —
+`mpvtk_mouse` owns the buttons while the HUD or the library is up, and #1's
+whole subject was getting that ownership right. A second claimant there
+would be fighting it, and mpv's own `MBTN_LEFT_DBL cycle fullscreen` is
+precisely the binding #1 arranged to fall *through* to.
+
+That leaves a real gap, and it is pre-existing rather than new: the
+renderer's right-click-to-pause and its wheel-seek issue `cycle pause` and
+`seek` to mpv directly, so neither is reported to a SyncPlay group by the
+direct path — they land on the defensive `pause` observer, with the
+play-then-force-repause flicker that comes with it. The fix belongs in the
+renderer (route those two through the shim), not in a section that would
+compete with it.
+
+## 26 — Two drop-down items from **[iw]**
+
+1. **Subtitle display titles are missing from the HUD's subtitle selector.**
+   The picker shows the language/codec summary but not the stream's own
+   `DisplayTitle`, which is what distinguishes "Signs & Songs" from "Full"
+   on the releases that carry both.
+2. **The detail page's subtitle / version / audio drop-downs should be
+   allowed to be wider**, using the same rule the Settings page's audio
+   input drop-down already uses. Only those three: they carry the longest
+   values in the app and are the ones that ellipsize into uselessness.

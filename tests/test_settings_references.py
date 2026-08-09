@@ -76,8 +76,16 @@ class TestEverySettingsReferenceResolves(unittest.TestCase):
         # Annotations are the declared keys; dir() adds the methods and
         # properties SettingsBase and Settings define (load, migrate, ...),
         # which are legitimate reads too.
+        #
+        # Dunders were excluded from `dir()` to keep Python's own machinery
+        # out, which also excluded SettingsBase's -- so `__fields_set__`,
+        # the record of which keys came from the file rather than the class
+        # default, read as an undeclared setting. It is the opposite: it is
+        # how #16 tells "the user chose this" from "this is our default",
+        # and the audit should know about it rather than about neither.
         known = (set(Settings.__annotations__)
-                 | {n for n in dir(Settings) if not n.startswith("__")})
+                 | {n for n in dir(Settings) if not n.startswith("__")}
+                 | {"__fields__", "__fields_set__"})
         missing = {}
         for path in _sources():
             with open(path, encoding="utf-8") as fh:

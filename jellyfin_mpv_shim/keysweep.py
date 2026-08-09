@@ -87,6 +87,57 @@ def classify(cmd):
     return None
 
 
+#: mpv's seek flags that mean "not relative to where we are". A claim
+#: re-issues the user's intent through the shim's own seek, which is
+#: relative -- so an absolute one is left alone rather than mistranslated.
+_ABSOLUTE_SEEK = ("absolute", "absolute-percent", "absolute+keyframes",
+                  "relative-percent")
+
+
+def action(cmd):
+    """``(semantic, arg)`` for a command a claim can carry out, or None.
+
+    The *intent*, not just the category, because a claim substitutes the
+    shim's own SyncPlay-aware operation for the binding and the two have to
+    mean the same thing. ``PLAYONLY`` is bound to ``set pause no``:
+    answering it with a toggle would pause a playing file from the key
+    whose entire job is to not do that.
+
+    ``arg`` is ``None`` for a toggle, a bool for a set, and
+    ``(seconds, exact)`` for a seek.
+    """
+    parts = _tokens(cmd)
+    if not parts:
+        return None
+    verb = parts[0]
+    if verb == "seek":
+        if len(parts) < 2:
+            return None
+        flags = parts[2:]
+        if any(f in _ABSOLUTE_SEEK for f in flags):
+            # Not translatable into the shim's relative seek. Left alone.
+            return None
+        try:
+            amount = float(parts[1])
+        except ValueError:
+            return None
+        return SEEK, (amount, "exact" in flags)
+    if verb in ("cycle", "toggle") and len(parts) >= 2:
+        semantic = _PROPERTY_SEMANTIC.get(parts[1])
+        return (semantic, None) if semantic else None
+    if verb == "set" and len(parts) >= 3:
+        semantic = _PROPERTY_SEMANTIC.get(parts[1])
+        if not semantic:
+            return None
+        value = parts[2].lower()
+        if value in ("yes", "true", "1", "on"):
+            return semantic, True
+        if value in ("no", "false", "0", "off"):
+            return semantic, False
+        return None
+    return None
+
+
 def winning(bindings):
     """``{key: entry}`` -- the binding that actually fires for each key.
 
@@ -111,6 +162,24 @@ def _rank(entry):
     return (0 if entry.get("is_weak") else 1, entry.get("priority") or 0)
 
 
+def _is_pointer(key):
+    """Whether ``key`` is mouse or wheel input.
+
+    **Excluded from every claim.** The pointer belongs to the renderer:
+    `mpvtk_mouse` owns the buttons while the HUD or the library is up, and
+    #1's whole subject was getting that ownership right -- a second
+    claimant on MBTN_* would be fighting it, and mpv's own
+    `MBTN_LEFT_DBL cycle fullscreen` is exactly the binding #1 arranged to
+    fall *through* to.
+
+    It does leave a gap: the renderer's own right-click-to-pause and
+    wheel-seek do not go through the shim's SyncPlay-aware operations. That
+    is a pre-existing hole and it belongs in the renderer, not in a section
+    that would compete with it. See #25.
+    """
+    return key.startswith("MBTN_") or key.startswith("WHEEL_")
+
+
 def sweep(bindings, wanted):
     """``[(key, semantic, cmd)]`` for every key that currently means one of
     ``wanted``, sorted for a stable section.
@@ -119,10 +188,12 @@ def sweep(bindings, wanted):
     """
     out = []
     for key, entry in winning(bindings).items():
-        semantic = classify(entry.get("cmd"))
-        if semantic in wanted:
-            out.append((key, semantic, (entry.get("cmd") or "").strip()))
-    return sorted(out)
+        if _is_pointer(key):
+            continue
+        parsed = action(entry.get("cmd"))
+        if parsed is not None and parsed[0] in wanted:
+            out.append((key, parsed[0], parsed[1]))
+    return sorted(out, key=lambda c: (c[1], c[0]))
 
 
 def is_mpv_default(bindings, key):
@@ -147,5 +218,5 @@ def section_lines(claims, message):
     return "\n".join(
         "%s script-message %s %s %s" % (key, message, semantic,
                                         shlex.quote(key))
-        for key, semantic, _cmd in claims
+        for key, semantic, _arg in claims
     )

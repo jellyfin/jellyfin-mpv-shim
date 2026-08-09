@@ -104,17 +104,49 @@ class PrecedenceTest(unittest.TestCase):
         self.assertFalse(keysweep.is_mpv_default(bindings, "nosuchkey"))
 
 
+class ActionTest(unittest.TestCase):
+    """The *intent*, not just the category. A claim substitutes the shim's
+    own SyncPlay-aware operation for the binding, so the two have to mean
+    the same thing."""
+
+    def test_a_play_only_key_is_not_a_toggle(self):
+        # PLAYONLY is `set pause no`. Answering it with a toggle would
+        # pause a playing file from the key whose entire job is not to.
+        self.assertEqual(keysweep.action("set pause no"), (PAUSE, False))
+        self.assertEqual(keysweep.action("set pause yes"), (PAUSE, True))
+        self.assertEqual(keysweep.action("cycle pause"), (PAUSE, None))
+
+    def test_a_seek_carries_its_amount_and_exactness(self):
+        self.assertEqual(keysweep.action("seek -5"), (SEEK, (-5.0, False)))
+        self.assertEqual(keysweep.action("seek 1 exact"), (SEEK, (1.0, True)))
+
+    def test_an_absolute_seek_is_left_alone(self):
+        """The shim's seek is relative; there is no honest translation, so
+        the key stays the user's."""
+        for cmd in ("seek 50 absolute-percent", "seek 0 absolute",
+                    "seek 10 relative-percent"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(keysweep.action(cmd))
+
+    def test_an_unparseable_amount_is_left_alone(self):
+        self.assertIsNone(keysweep.action("seek ${duration}"))
+        self.assertIsNone(keysweep.action("seek"))
+
+    def test_a_set_to_something_that_is_not_a_bool_is_left_alone(self):
+        self.assertIsNone(keysweep.action("set pause ${x}"))
+
+
 class SectionTest(unittest.TestCase):
     def test_the_key_travels_in_the_message(self):
         """So the handler can re-issue what was bound to it. Without the
         key, a claim substitutes our verb for theirs, which is the thing
         this whole exercise removes."""
-        claims = [("SPACE", PAUSE, "cycle pause")]
+        claims = [("SPACE", PAUSE, None)]
         line = keysweep.section_lines(claims, "jms-key")
         self.assertEqual(line, "SPACE script-message jms-key pause SPACE")
 
     def test_a_key_name_with_a_space_survives(self):
-        claims = [("Shift+LEFT", SEEK, "seek -5")]
+        claims = [("Shift+LEFT", SEEK, (-5.0, False))]
         self.assertIn("Shift+LEFT", keysweep.section_lines(claims, "jms-key"))
 
     def test_it_is_stable_across_calls(self):
@@ -123,7 +155,7 @@ class SectionTest(unittest.TestCase):
         claims = keysweep.sweep(
             [weak("f", "cycle fullscreen"), weak("SPACE", "cycle pause"),
              weak("UP", "seek 60")], {PAUSE, SEEK, FULLSCREEN})
-        self.assertEqual([c[0] for c in claims], ["SPACE", "UP", "f"])
+        self.assertEqual([c[0] for c in claims], ["f", "SPACE", "UP"])
 
 
 class AgainstRealMpvTest(unittest.TestCase):
@@ -150,8 +182,12 @@ class AgainstRealMpvTest(unittest.TestCase):
         self.assertTrue({"SPACE", "f", "LEFT", "RIGHT", "UP", "DOWN"} <= keys)
         # ...and the ones it never did. A user pausing with `p`, the media
         # key or the mouse is not reported to a SyncPlay group today.
-        for missed in ("p", "PLAYPAUSE", "MBTN_RIGHT", "WHEEL_LEFT"):
+        for missed in ("p", "PLAYPAUSE", "REWIND", "Shift+LEFT"):
             self.assertIn(missed, keys)
+        # ...but NOT the pointer. That belongs to the renderer -- see
+        # _is_pointer, and #1, whose whole subject was that ownership.
+        self.assertFalse([k for k in keys if k.startswith(("MBTN_", "WHEEL_"))],
+                         "a claim on the pointer would fight mpvtk_mouse")
 
     def test_it_does_not_claim_the_whole_keyboard(self):
         claims = keysweep.sweep(

@@ -443,6 +443,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.last_update = Timer()
         self._jf_settings = None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
+        #: owner -> semantics, and the sweep, for the #16 key claims.
+        self._key_claims = {}
+        self._key_actions = {}
+        self._swept = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
         # timeline path (time.monotonic seconds); -inf so the first tick fires.
@@ -917,8 +921,25 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu_up, self._on_menu_up)
         self._bind_key(settings.kb_menu_down, self._on_menu_down)
         self._bind_key(settings.kb_pause, self._on_pause_key)
-        self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
+        # #16: `f` is mpv's own key with mpv's own meaning, so it is no
+        # longer bound here -- the fullscreen claim below takes whatever key
+        # currently means `cycle fullscreen`, runs it, and records the
+        # user's intent (which is the whole reason we needed the key at
+        # all). A value the user explicitly set is still honoured: that is
+        # their choice, not our interception.
+        if "kb_fullscreen" in getattr(settings, "__fields_set__", ()):
+            self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
+        # Standing claim: recording "the user asked for fullscreen" is
+        # always wanted, and interception is how it is known -- a change
+        # that came through our binding is user-initiated by construction,
+        # where an observer plus an ignore flag needs that flag set and
+        # cleared around every self-initiated change and is wrong wherever
+        # somebody forgets.
+        from . import keysweep
+
+        self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
+        self._refresh_key_section()
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
         if settings.mouse_chapter_nav:
@@ -1369,6 +1390,106 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._terminate_thread.start()
 
+    # ------------------------------------------------------- key claims
+    #
+    # #16. Rather than binding `space`, `f` and the arrows for ever, ask mpv
+    # which keys currently MEAN pause/seek/fullscreen (keysweep) and take
+    # only those, only while something needs them. A claim re-issues the
+    # user's own intent through the shim's SyncPlay-aware operations, so the
+    # key keeps meaning what their config says it means.
+    #
+    # An input SECTION rather than per-key bindings, because that is the one
+    # mechanism both backends have: libmpv can unregister a key binding and
+    # python_mpv_jsonipc cannot (it has bind_key_press and no unbind at
+    # all), while define-section/enable-section/disable-section are ordinary
+    # commands on either.
+
+    #: The section's name, and the script-message verb its lines send.
+    KEY_SECTION = "jms_keys"
+    KEY_MESSAGE = "jms-key"
+
+    def claim_keys(self, owner, semantics=None):
+        """Take, or give back, every key that currently means one of
+        ``semantics``. ``None`` releases ``owner``'s claim.
+
+        Owners are independent and the section is the union, so SyncPlay
+        joining a group does not disturb the standing fullscreen claim.
+        """
+        with self._lock:
+            if semantics:
+                self._key_claims[owner] = set(semantics)
+            else:
+                self._key_claims.pop(owner, None)
+            self._refresh_key_section()
+
+    def _swept_keys(self):
+        """The sweep, done ONCE and cached.
+
+        Cached because it must not see our own section: the lines we install
+        are non-weak, so a re-sweep would find `script-message jms-key ...`
+        winning every claimed key, classify it as nothing, and quietly drop
+        the claim on the next refresh. Bindings do not change at runtime
+        anyway -- mpv reads input.conf at startup.
+        """
+        if self._swept is None:
+            from . import keysweep
+
+            try:
+                bindings = self._player.input_bindings
+            except Exception:
+                log.debug("could not read input-bindings", exc_info=True)
+                bindings = []
+            self._swept = keysweep.sweep(
+                bindings, {keysweep.PAUSE, keysweep.SEEK,
+                           keysweep.FULLSCREEN})
+            log.debug("key sweep: %s", self._swept)
+        return self._swept
+
+    def _refresh_key_section(self):
+        """Rebuild and re-enable the section for the current claims. Callers
+        hold ``_lock``."""
+        from . import keysweep
+
+        wanted = set()
+        for owned in self._key_claims.values():
+            wanted |= owned
+        claims = [c for c in self._swept_keys() if c[1] in wanted]
+        self._key_actions = {key: (semantic, arg)
+                             for key, semantic, arg in claims}
+        try:
+            if not claims:
+                self._player.command("disable-section", self.KEY_SECTION)
+                return
+            self._player.command(
+                "define-section", self.KEY_SECTION,
+                keysweep.section_lines(claims, self.KEY_MESSAGE), "force")
+            self._player.command("enable-section", self.KEY_SECTION)
+        except Exception:
+            log.debug("could not update the key section", exc_info=True)
+
+    def _on_claimed_key(self, semantic, key):
+        """A claimed key was pressed: carry out what the user had bound,
+        through the operation that knows about SyncPlay and about
+        remembering the choice."""
+        found = self._key_actions.get(key)
+        if found is None:
+            return
+        _semantic, arg = found
+        if semantic == "pause":
+            if arg is None:
+                self.toggle_pause()
+            else:
+                # `set pause yes/no` -- PAUSEONLY and PLAYONLY. Answering
+                # these with a toggle would pause a playing file from the
+                # key whose entire job is not to.
+                self.set_paused(bool(arg))
+        elif semantic == "seek":
+            amount, exact = arg
+            self.seek(amount, exact=exact)
+        elif semantic == "fullscreen":
+            want = (not self._player.fs) if arg is None else bool(arg)
+            self.set_fullscreen(want, persist=True)
+
     def _on_client_message(self, event):
         try:
             # Python-MPV 1.0 uses a class/struct combination now
@@ -1394,6 +1515,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.menu.menu_action("ok")
             elif args[0] == "shim-menu-back":
                 self.menu.menu_action("back")
+            elif args[0] == self.KEY_MESSAGE and len(args) >= 3:
+                self._on_claimed_key(args[1], args[2])
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 
