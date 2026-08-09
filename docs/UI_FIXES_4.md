@@ -3370,3 +3370,74 @@ five controls off the bar -- moved the split below 760 *without breaking
 the behaviour at all*. The assertion failed while the feature worked. It
 searches the width range for the split now: a pinned width can only ever
 go stale in that direction, and silently, if the number is generous.
+
+### Gating the panel, and the flash behind it
+
+**Every library type drew the same panel.** A books library offered "Has
+Theme Song", a music library "Has Subtitles", and both offered audio and
+subtitle language pickers. A filter that cannot match does not fail
+quietly -- it returns an empty grid, which reads as a broken library
+rather than as a filter that never applied.
+
+The gate is transcribed from jellyfin-web's `FilterButton.tsx`, not
+reasoned out: `isFiltersFeaturesEnabled` (Movies/Series/Episodes),
+`isFiltersLanguagesEnabled` (those plus Mixed), `getVisibleFiltersStatus`
+(no play state for Albums/Artists/Songs). Our grids are coarser than
+web's tabs -- a music library's grid is its Albums tab -- so the mapping
+is written down beside the table.
+
+Gates come in two forms deliberately. "Only movies and TV" is an
+allow-list; "anything but music" is a deny-list. Writing the second as an
+allow-list means a collection type nobody updated the table for silently
+loses filters that do apply, and a filter that is *missing* is much
+harder to notice than one that is present and matches nothing.
+
+**The grid no longer blanks while it re-queries.** `render` answers a
+missing `_items` with `chrome.busy()` for the whole page -- title, filter
+bar and A-Z rail included -- and `_reload` popped it. Behind the filter
+panel, which covers the middle of the window, all that was visible of
+that was the page going empty.
+
+Stale-while-revalidate, as `refresh_live_tv` already argues for. What
+makes it more than "stop popping `_items`" is that `_install` *spreads*
+its page over what is already there -- right for a window landing
+mid-load, wrong for a new query. Page 0 of the new results would be laid
+over the old list and every slot past it would go on showing the previous
+filter, permanently: every slot is full, so nothing is ever asked for
+again.
+
+So the route records the query its items came from (`_items_query`) and
+`_install` replaces rather than merges when it differs. A key rather than
+a "reloading" flag because every place to clear a flag leaks -- cleared
+at install it survives a load that fails or is superseded and the route
+can never page again; cleared in `_route_async` it is cleared by whichever
+load settles first, which is the older one. A key stops differing on its
+own, and gets the failure case right for free: after a failed filter load
+the items on screen really are the previous filter's, so paging them with
+the new query stays blocked, which is what the `_error` retry is for. A
+*missing* key is not a mismatch -- it means nothing recorded the
+provenance, and reading it as "different" would disable paging outright.
+
+Two of the four mutations run against the new tests survived the first
+time, both for the same reason: the test could not reach the state the
+bug lives in. The window-guard test had every slot loaded, so there was
+nothing to fetch with or without the guard. The repeated-toggle test
+could not see the key aliasing the route's live `_filters` dict, because
+that only bites from the **second** toggle -- `_bound_query` hands back a
+fresh dict until a filter exists -- and the stale tail it causes has
+nowhere to show unless the tail is refilled in between.
+
+**Adjacent and not fixed:** `_fetch_at` reads `_collections` live off the
+route rather than from its bound query, which is exactly what the sort
+and filters are bound to avoid. It is unreachable today --
+`_toggle_collections` pops `_items`, so `render` returns busy before
+`_window` can run -- but it is the thing that would break if the
+collections toggle were ever given the same stale-while-revalidate
+treatment. Fixing it means adding `_collections` to `_bound_query`, whose
+arity two subclasses implement.
+
+**Still open:** `Video Types` is translated in `LIST_FILTERS` but has no
+UI. It is not a picker driven by server-returned options like the others
+-- web draws it as fixed checkboxes over two enums (SD/HD/4K/3D and
+DVD/Blu-ray/ISO) -- so it needs a section kind the panel does not have.
+Its gate is the same as Features.
