@@ -1075,7 +1075,19 @@ class TileRenderer:
         # Section-title size is theme-controlled (24 = the stock value), so a
         # theme with larger covers can size its headings to match.
         title_size = (theme.active() or {}).get("heading_size", 24)
-        heading: object = Text(title, size=title_size, bold=True)
+        # Both spellings of the heading are the SAME box, and only its
+        # contents and handlers differ. They used to be a bare Text and a
+        # padded Box, which meant a linked row's title sat 6px right and 2px
+        # down of a plain one and the whole row measured 4px taller -- so on
+        # a page that mixes them (the home screen: Next Up links, Continue
+        # Watching does not) the titles jogged sideways row to row.
+        #
+        # The pad is RING_PAD because that is what `hscroll_row` insets the
+        # strip by, so the title now starts exactly above the first tile's
+        # artwork. Both of the old positions were wrong about that; this is
+        # not a compromise between them.
+        inner: list = [Text(title, size=title_size, bold=True)]
+        link: dict = {}
         if see_all is not None:
             # jellyfin-web's chevron: the heading becomes the link to the
             # full listing, because a row is a top-N of something and this
@@ -1088,13 +1100,14 @@ class TileRenderer:
             # it in its TV layout, but that is web having two layouts and
             # hiding the affordance in one, not a judgement that a remote
             # cannot use it.
-            heading = Box(
-                [Text(title, size=title_size, bold=True),
-                 Icon("chevron_right", int(title_size * 0.9),
-                      color=theme.TEXT_FG)],
-                id="%s-more" % row_id, direction="row", align="center",
-                gap=2, pad=(6, 2), radius=6,
-                hover={"fill": theme.BUTTON_BG}, on_click=see_all)
+            inner.append(Icon("chevron_right", int(title_size * 0.9),
+                              color=theme.TEXT_FG))
+            link = {"id": "%s-more" % row_id,
+                    "hover": {"fill": theme.BUTTON_BG},
+                    "on_click": see_all}
+        heading: object = Box(
+            inner, direction="row", align="center",
+            gap=2, pad=(RING_PAD, 2), radius=6, **link)
         head = [heading]
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
