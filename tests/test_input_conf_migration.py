@@ -179,6 +179,64 @@ class WriteTest(unittest.TestCase):
         self.assertEqual(s.kb_pause, "P")
 
 
+class OwnConfigDirTest(unittest.TestCase):
+    """`mpv_ext_no_ovr` means mpv reads the user's config, not ours.
+
+    `build_mpv_options` stops passing `config_dir` under that pair, so the
+    file this module writes is never loaded. Writing it anyway put the
+    bindings somewhere inert *and* cleared the settings that had been
+    holding them -- the one combination where the migration lost a choice
+    instead of carrying it.
+
+    **[iw]**: "that config basically says 'use my own mpv config, if
+    something breaks it's my problem'."
+    """
+
+    def _run(self, **kw):
+        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        settings = _settings(mpv_ext=True, mpv_ext_no_ovr=True, **kw)
+        written = input_conf.migrate(settings, path, raw={"seek_up": 30})
+        return path, settings, written
+
+    def test_it_writes_nothing(self):
+        path, _s, written = self._run(kb_pause="P")
+        self.assertEqual(written, [])
+        self.assertFalse(os.path.exists(path),
+                         "wrote into a config directory mpv never reads")
+
+    def test_it_keeps_the_settings_it_did_not_carry(self):
+        # The half that made this lose data: clearing a setting is only
+        # right once something else is holding the value.
+        _p, settings, _w = self._run(kb_pause="P")
+        self.assertEqual(settings.kb_pause, "P")
+
+    def test_it_says_what_it_did_not_write(self):
+        # The user can act on a log line; they cannot act on a silent
+        # no-op, and this is the one path where nothing carries the choice.
+        with self.assertLogs("input_conf", level="INFO") as caught:
+            self._run(kb_pause="P")
+        out = "\n".join(caught.output)
+        self.assertIn("your own input.conf", out)
+        self.assertIn("P cycle pause", out)
+        self.assertIn("up seek 30", out)
+
+    def test_mpv_ext_alone_still_migrates(self):
+        # Without no_ovr, external mpv IS pointed at our config directory,
+        # so the file is read and the migration is correct.
+        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        settings = _settings(mpv_ext=True, kb_pause="P")
+        written = input_conf.migrate(settings, path, raw={"seek_up": 30})
+        self.assertTrue(written)
+        self.assertTrue(os.path.exists(path))
+
+    def test_no_ovr_without_mpv_ext_still_migrates(self):
+        # no_ovr only means anything to the external backend; on libmpv the
+        # shim's config directory is used regardless.
+        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        settings = _settings(mpv_ext_no_ovr=True, kb_pause="P")
+        self.assertTrue(input_conf.migrate(settings, path))
+
+
 class FieldsSetSurvivesLoadTest(unittest.TestCase):
     """The record of which keys came from the file has to reach the global
     settings object, or every question above answers "untouched".

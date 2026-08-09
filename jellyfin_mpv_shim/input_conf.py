@@ -204,6 +204,30 @@ def migrate(settings, path, raw=None):
     entries = plan(settings, raw)
     if not entries:
         return []
+    if getattr(settings, "mpv_ext", False) and getattr(
+            settings, "mpv_ext_no_ovr", False):
+        # That pair means "use my own mpv config" -- `build_mpv_options`
+        # stops passing `config_dir`, so external mpv reads the user's
+        # directory and never loads the file this would write. Writing it
+        # anyway put the bindings somewhere inert *and* cleared the
+        # settings that had been holding them, which lost the choice
+        # outright.
+        #
+        # **[iw]**: "that config basically says 'use my own mpv config, if
+        # something breaks it's my problem'... added to deal with picky
+        # users who don't want to copy their config files and are willing
+        # to contort their standalone mpv configs around my app."
+        #
+        # So: do nothing, and say what was not done. Their input.conf is
+        # theirs; the block goes to the log rather than into it, which is
+        # the difference between a choice the user can act on and one that
+        # disappeared.
+        log.info("mpv_ext_no_ovr is set, so mpv reads your own config "
+                 "directory and not this one -- not writing %s. To keep "
+                 "these, add them to your own input.conf:\n%s",
+                 path, "\n".join("%s %s" % (key, cmd)
+                                  for _n, key, cmd in entries))
+        return []
     migrated = [name for name, _k, _c in entries]
     try:
         existing = ""

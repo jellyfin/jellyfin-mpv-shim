@@ -563,10 +563,13 @@ left  seek -10 exact
 If you had any of those settings, they were written there for you the
 first time this version started, and removed from `conf.json`.
 
-**One case cannot be carried across**: with `mpv_ext` and
+**One case is not carried across on purpose**: with `mpv_ext` and
 `mpv_ext_no_ovr` both enabled, external mpv reads *your* mpv config
-directory rather than this client's, so the file written above is never
-loaded. Add the lines to your own `input.conf` instead.
+directory rather than this client's, so the file above is never loaded.
+Nothing is written and nothing is cleared — that combination means "use
+my own mpv config", and this client does not edit it. The lines it would
+have written are printed to the log at startup, so you can paste them
+into your own `input.conf`.
 
 ## Shader Packs
 
