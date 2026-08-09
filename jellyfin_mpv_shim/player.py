@@ -1889,13 +1889,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # 1600x2400 or larger, where it is expensive as well as wrong. The
         # name is kept while suspended, so the menu still shows the profile
         # the user chose and nothing rewrites the remembered setting.
+        #
+        # apply_for_item, not resume_after_still: the profile is resolved
+        # per item now (series -> library -> the global setting), so the
+        # answer for this file is not necessarily the answer for the last
+        # one, and a still having suspended it is only the commonest reason
+        # for that rather than the only one. It takes the client explicitly
+        # because self._video is not this video yet.
         try:
             profiles = self.menu.profile_manager if self.menu else None
             if profiles is not None:
                 if getattr(video, "is_photo", False):
                     profiles.suspend_for_still()
                 else:
-                    profiles.resume_after_still()
+                    profiles.apply_for_item(v_item,
+                                            getattr(video, "client", None))
         except Exception:
             log.debug("could not adjust the shader profile for this item",
                       exc_info=True)

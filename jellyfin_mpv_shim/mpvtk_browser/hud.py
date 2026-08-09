@@ -275,6 +275,12 @@ def _open_hud_menu(b, kind, anchor=None):
         # group discovery hits the server; request it once on open (the
         # result lands in a later build via osc_bridge's cache)
         _hud_action(b, "syncplay-refresh")
+    if kind == "profiles":
+        # Same shape, same reason: which library an item is in takes a
+        # request, and the state blob is built on the render path. Asked
+        # for once on open; the "This Library" row appears in a later
+        # build, and is cached for the rest of the series.
+        _hud_action(b, "profiles-scopes")
     if anchor is not None:
         b.hud.menu_anchor = anchor
     b.hud.menu = kind
@@ -387,7 +393,13 @@ def _menu_rows(b, st, w=None):
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
-    if b.hud.menu_anchor not in ("hud-syncplay", "hud-sub"):
+    if kind.startswith("profiles:"):
+        # Back goes to the scope step, not to the gear root: this list was
+        # reached through it, and returning past it would strand the user
+        # one level further out than they came from.
+        rows.append((_("Back"), "arrow_back",
+                     lambda: _open_hud_menu(b, "profiles")))
+    elif b.hud.menu_anchor not in ("hud-syncplay", "hud-sub"):
         # opened from the gear: submenus can step back to its root. The top
         # bar's SyncPlay button and the subtitle dropdown's Secondary… entry
         # open their sheets standalone (like the lua OSC's drop-downs), so no
@@ -411,7 +423,29 @@ def _menu_rows(b, st, w=None):
                          leaf(lambda v=value: b._ctl(
                              lambda c: c.set_aspect(v)))))
     elif kind == "profiles":
-        option_rows(st.get("profiles"), "set-profile")
+        # The scope step, which is also the report: each row carries the
+        # profile that scope holds and the winning one is marked, so a film
+        # being sharpened differently from the rest of its library has a
+        # visible cause. Scopes that do not apply are absent -- a film has
+        # no series row.
+        scopes = (st.get("profiles") or {}).get("scopes") or []
+        if not scopes:
+            # No scope information (an older state blob, or the library is
+            # still being resolved): the profile list itself, which is what
+            # this menu was before scopes and still does the useful thing.
+            option_rows(st.get("profiles"), "set-profile")
+        for scope in scopes:
+            rows.append((
+                with_current(scope.get("label") or "", scope.get("value")),
+                "check" if scope.get("in_effect") else None,
+                lambda sid=scope.get("id"): _open_hud_menu(
+                    b, "profiles:" + str(sid))))
+    elif kind.startswith("profiles:"):
+        wanted = kind.split(":", 1)[1]
+        for scope in (st.get("profiles") or {}).get("scopes") or []:
+            if scope.get("id") == wanted:
+                option_rows(scope, "set-profile")
+                break
     elif kind in ("sub_size", "sub_position", "sub_color"):
         option_rows(sub_style.get(kind[4:]),
                     "set-" + kind.replace("_", "-"))

@@ -250,7 +250,56 @@ class OscBridge:
         current_label = next(
             (o["label"] for o in options if o["selected"]), _("None (Disabled)")
         )
-        return {"current": current_label, "options": options}
+        return {"current": current_label, "options": options,
+                "scopes": self._profile_scopes(manager, pairs)}
+
+    def _profile_scopes(self, manager, pairs):
+        """One entry per scope that applies to this item, narrowest first.
+
+        Each carries its own option list, with ids of the form
+        ``"<scope>|<profile>"`` -- so the HUD's generic option rows need to
+        know nothing about scopes beyond which sub-list to draw, and the one
+        place that has to agree about the encoding is :meth:`_set_profile`.
+
+        ``force=False``: this runs while the HUD state is being built, and
+        resolving a library is a request. hud.py warms it from the action
+        thread when the menu opens, exactly as it does for SyncPlay group
+        discovery, so the row is there by the time anyone looks.
+        """
+        from .video_profile import SCOPE_LABELS
+        from .shader_overrides import UNSET
+
+        video = self.playerManager.get_video()
+        item = (getattr(video, "item", None) or {}) if video else {}
+        try:
+            rows = manager.scope_rows(item, force=False)
+        except Exception:
+            return []
+        in_effect, _profile = manager.overrides.resolve(
+            {scope: key for scope, key, _p, _s in rows if key},
+            manager._default_profile())
+        scopes = []
+        for scope, _key, profile, is_set in rows:
+            scope_pairs = list(pairs)
+            if scope != "default":
+                # First, and always present: "stop overriding" is the way
+                # out of a scope, and a user who set one by accident should
+                # not have to know the inherited answer to undo it.
+                scope_pairs.insert(0, (_("Use the default"), "unset"))
+            current = "none" if profile is None else profile
+            if scope != "default" and not is_set:
+                current = "unset"
+            scopes.append({
+                "id": scope,
+                "label": SCOPE_LABELS.get(scope, scope),
+                "value": manager.profile_label(profile if is_set else UNSET),
+                "in_effect": scope == in_effect,
+                "options": [
+                    dict(o, id="%s|%s" % (scope, o["id"]))
+                    for o in self._options(scope_pairs, current)
+                ],
+            })
+        return scopes
 
     def _syncplay(self):
         syncplay = self.playerManager.syncplay
@@ -326,6 +375,8 @@ class OscBridge:
                 pm.put_task(self._set_sub_style, verb, arg)
             elif verb == "set-profile":
                 pm.put_task(self._set_profile, arg)
+            elif verb == "profiles-scopes":
+                pm.put_task(self._warm_profile_scopes)
             elif verb == "syncplay-refresh":
                 pm.put_task(self._refresh_syncplay)
             elif verb == "syncplay-join":
@@ -389,21 +440,58 @@ class OscBridge:
         # the same, but from the action thread we always queue it).
         pm.put_task(pm.update_subtitle_visuals)
 
+    def _warm_profile_scopes(self):
+        """Resolve this item's library, on the action thread.
+
+        Called when the profiles menu opens. Everything else about the scope
+        list is free; this one costs a request, so it is not done on the
+        render path -- same shape as syncplay-refresh.
+        """
+        menu = self.playerManager.menu
+        manager = menu.profile_manager if menu is not None else None
+        if manager is None:
+            return
+        video = self.playerManager.get_video()
+        item = (getattr(video, "item", None) or {}) if video else {}
+        try:
+            manager.scope_keys(item, force=True)
+        except Exception:
+            log.debug("could not resolve the profile scopes", exc_info=True)
+
     def _set_profile(self, arg):
         menu = self.playerManager.menu
         manager = menu.profile_manager if menu is not None else None
         if manager is None:
             return
-        if arg == "none":
+        # "<scope>|<profile>" since the scope step; a bare value is the old
+        # spelling and means the default scope, which is what every caller
+        # that predates scopes meant.
+        scope, sep, value = str(arg).partition("|")
+        if not sep:
+            scope, value = "default", str(arg)
+        video = self.playerManager.get_video()
+        item = (getattr(video, "item", None) or {}) if video else {}
+        if scope != "default":
+            if value == "unset":
+                manager.clear_scope(item, scope)
+            else:
+                manager.set_scope_profile(
+                    item, scope, None if value == "none" else value)
+            return
+        if value == "none":
             manager.unload_profile()
             success = True
             profile_name = None
         else:
-            profile_name = arg
+            profile_name = value
             success = manager.load_profile(profile_name)
         if settings.shader_pack_remember and success:
             settings.shader_pack_profile = profile_name
             settings.save()
+        # Re-resolve: setting the default while an override is in force must
+        # not change what is on screen, or the menu lies about which scope
+        # wins.
+        manager.apply_for_item(item)
 
     def _toggle_favorite(self):
         # Runs on the action thread (network I/O).

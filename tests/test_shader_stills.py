@@ -124,7 +124,12 @@ class TheStillPathsAskForItTest(unittest.TestCase):
     def test_photo_playback_suspends_and_video_resumes(self):
         src = self._source("player.py")
         self.assertIn("suspend_for_still()", src)
-        self.assertIn("resume_after_still()", src)
+        # apply_for_item, not resume_after_still: the play path resolves the
+        # profile per item now (series -> library -> the setting), and
+        # putting back a suspension is one of the things that does. The
+        # property is unchanged -- a video after a still gets its profile
+        # back -- so this still names the call that delivers it.
+        self.assertIn("apply_for_item(", src)
 
     def test_the_comic_reader_suspends_and_restores(self):
         src = self._source("player_window.py")

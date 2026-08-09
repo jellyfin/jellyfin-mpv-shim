@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-08 19:21-0400\n"
+"POT-Creation-Date: 2026-08-08 20:05-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4027,6 +4027,10 @@ msgstr ""
 msgid "Transcode"
 msgstr ""
 
+#: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
+msgid "Use the default"
+msgstr ""
+
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "SyncPlay Enabled"
 msgstr ""
@@ -4254,6 +4258,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "Default (all media)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "This Library"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "This Series"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "Not set"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+#, python-brace-format
+msgid "{0}  <-- in effect"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "Video Playback Profile"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
