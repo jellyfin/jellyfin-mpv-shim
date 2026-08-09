@@ -2333,12 +2333,39 @@ would be fighting it, and mpv's own `MBTN_LEFT_DBL cycle fullscreen` is
 precisely the binding #1 arranged to fall *through* to.
 
 That leaves a real gap, and it is pre-existing rather than new: the
-renderer's right-click-to-pause and its wheel-seek issue `cycle pause` and
-`seek` to mpv directly, so neither is reported to a SyncPlay group by the
-direct path — they land on the defensive `pause` observer, with the
-play-then-force-repause flicker that comes with it. The fix belongs in the
-renderer (route those two through the shim), not in a section that would
-compete with it.
+renderer issues `cycle pause` and `seek` to mpv directly, so neither is
+reported to a SyncPlay group by the direct path — they land on the
+defensive `pause` observer, with the play-then-force-repause flicker that
+comes with it.
+
+**The pause half is fixed.** **[iw]**, hand-testing the key claims: "our own
+HUD play/pause click handler does NOT get redirected into syncplay" — the
+keys had been done and the *click* had not. There were four renderer sites
+issuing `cycle pause` (click-to-pause on bare video, right-click in mpv
+modality, the summon key, and the hidden-HUD click binding), and all four
+went straight to mpv.
+
+They now go through `state.pause_now`, which hands over to Python **only
+while a group is on** — the same rule the key claims follow, and for the
+same reason on both sides: `cycle pause` with no round trip is what makes
+click-to-pause feel immediate, and paying for a round trip on every click
+to fix a case that is off almost always would be the wrong trade. Python's
+`toggle_pause` → `set_paused` is SyncPlay-aware at the top, so handing over
+is the whole fix. The flag rides the HUD token beside `click_pauses`, and
+`on_syncplay_change` re-sends it on join and leave so a group entered
+mid-playback takes effect at once.
+
+Two things it cost, both worth recording. `state.pause_now` is a **field on
+`state`, not a file-scope local** — adding one put the chunk over LuaJIT's
+200-local ceiling, which is a load error rather than a warning, exactly as
+CLAUDE.md says. And the first version of its test read a stale `send` from
+the block above, because `last_event` scans the whole log: `fake.reset_events()`
+between blocks, as the textbox tests already do.
+
+**The seek half is still open.** The renderer's wheel-seek has the same
+shape and the same fix; it is not done because nothing in this batch touched
+it and a wheel notch is 60 messages a second where a click is one, so it
+needs the same measurement `mpvtk-vpan` got rather than the same reflex.
 
 ## 26 — Two drop-down items from **[iw]**
 

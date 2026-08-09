@@ -253,6 +253,9 @@ class UserInterface:
         playerManager.notify_update = browser.notify_update
         # SyncPlay chatter surfaces on the status line, same reason.
         playerManager.notify_syncplay = browser.notify_syncplay
+        # Re-send the HUD token when a group is joined or left: it carries
+        # whether the renderer's own pause paths hand over to Python.
+        playerManager.on_syncplay_change = browser.resend_hud_config
         # ...and stopping playback halts the group rather than leaving it,
         # because this UI has a SyncPlay menu to leave it from later.
         playerManager.syncplay_menu_reachable = browser.syncplay_menu_reachable

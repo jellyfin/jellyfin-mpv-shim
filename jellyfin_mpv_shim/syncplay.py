@@ -537,6 +537,14 @@ class SyncPlayManager:
             claim = getattr(self.playerManager, "claim_keys", None)
             if claim is not None:
                 claim("syncplay", {PAUSE, SEEK} if wanted else None)
+            # ...and tell the renderer, whose own pause paths (click-to-pause,
+            # the summon key, right-click in mpv modality) hand over to
+            # Python only while a group is on. Without this a group joined
+            # mid-playback keeps the local `cycle pause`, which is not a
+            # pause at all in a group.
+            notify = getattr(self.playerManager, "on_syncplay_change", None)
+            if notify is not None:
+                notify()
         except Exception:
             log.debug("could not update the SyncPlay key claim",
                       exc_info=True)

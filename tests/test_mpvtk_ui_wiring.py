@@ -212,6 +212,7 @@ PLAYER_CALLBACKS = [
     "on_load_start",
     "on_load_error",
     "on_decorations_changed",
+    "on_syncplay_change",
 ]
 
 
@@ -237,6 +238,22 @@ class TestEveryCallbackIsWired(WiringHarness):
         missing = [n for n in PLAYER_CALLBACKS
                    if getattr(self.player, n) is None]
         self.assertEqual(missing, [], "player callbacks left unwired")
+
+    def test_joining_a_group_re_sends_the_hud_config(self):
+        """The HUD token carries whether the renderer's own pause paths hand
+        over to Python, and a group joined mid-playback would otherwise keep
+        the local `cycle pause` -- which in a group is a desync rather than
+        a pause. [iw] found this by clicking the video in a group."""
+        browser = self._login()
+        engaged = []
+        browser.hud = type("H", (), {"engage": lambda _s: engaged.append(1)})()
+        self.player.on_syncplay_change()
+        self.assertEqual(engaged, [1])
+
+    def test_it_survives_a_browser_with_no_hud(self):
+        browser = self._login()
+        browser.hud = None
+        self.player.on_syncplay_change()      # must not raise
 
     def test_a_late_server_connect_is_subscribed(self):
         self._login()

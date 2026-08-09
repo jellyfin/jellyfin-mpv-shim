@@ -617,6 +617,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
         self.notify_update = None
+        # Called (no args, set by the UI) when SyncPlay is joined or left, so
+        # the renderer's HUD token is re-sent: its `syncplay` flag decides
+        # whether the renderer's own pause paths hand over to Python, and a
+        # group joined mid-playback would otherwise keep the local one.
+        self.on_syncplay_change = None
         # Optional callback (set by the UI) invoked with a SyncPlay message, so
         # "N has joined" and friends land on the browser's status line instead
         # of the MPV OSD. Unset -> SyncPlayManager.player_message falls back to

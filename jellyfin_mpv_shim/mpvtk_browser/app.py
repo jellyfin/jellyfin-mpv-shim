@@ -1899,6 +1899,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_hud = self.hud.on_hud
         if hasattr(app, "on_hud_skip"):
             app.on_hud_skip = self.hud.on_skip
+        if hasattr(app, "on_pause"):
+            # The renderer's own pause paths (click-to-pause, the summon
+            # key, right-click in mpv modality) hand over while a SyncPlay
+            # group is on, because a local `cycle pause` is not a pause
+            # there -- it is a desync the group then corrects.
+            app.on_pause = lambda: self._ctl(lambda c: c.toggle_pause())
         if hasattr(app, "on_clipboard_error"):
             app.on_clipboard_error = self._on_clipboard_error
         if hasattr(app, "on_forward"):
@@ -2739,6 +2745,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
         self._update = {"version": version, "url": url}
         self.invalidate()
+
+    def resend_hud_config(self):
+        """Re-send the renderer's HUD token. Called when SyncPlay is joined
+        or left, because the token carries whether the renderer's own pause
+        paths hand over to Python -- a group joined mid-playback would
+        otherwise keep the local `cycle pause`, which in a group is a desync
+        rather than a pause.
+
+        Called directly from whichever thread SyncPlay is on, as
+        ``notify_syncplay`` beside it is: ``engage`` ends in an mpv command,
+        which is thread-safe, and deferring it would let a group be joined
+        and a click land before the renderer had been told."""
+        try:
+            if self.hud is not None:
+                self.hud.engage()
+        except Exception:
+            log.debug("could not re-send the HUD config", exc_info=True)
 
     def notify_syncplay(self, message):
         """Registered as playerManager.notify_syncplay: SyncPlay's messages

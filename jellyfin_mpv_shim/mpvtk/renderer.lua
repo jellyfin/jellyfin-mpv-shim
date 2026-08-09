@@ -190,6 +190,7 @@ local state = {
              -- does a left click on the hidden HUD pause? off gives mpv's
              -- own modality back (drag with left, pause with right)
              click_pauses = true,
+             syncplay = false,
              -- has the pointer MOVED since this summon? The bar-hover
              -- hold below is meaningless without it: see phud_busy
              moved = false },
@@ -3405,7 +3406,7 @@ local function on_mouse_down()
             -- while `mpvtk_mouse` is enabled it is this branch -- not the
             -- phud binding -- that the click reaches.
             if state.phud.click_pauses then
-                mp.commandv('cycle', 'pause')   -- the lua OSC's click-anywhere
+                state.pause_now()                    -- the lua OSC's click-anywhere
             else
                 -- mpv's modality: the left button drags the window. Same
                 -- command and the same reasoning as the title bar below --
@@ -3861,7 +3862,7 @@ local function on_rclick()
     if not node and not state.phud.click_pauses
         and state.phud.mode and state.phud.shown
         and not modal_active() and not state.dd_open then
-        mp.commandv('cycle', 'pause')
+        state.pause_now()
     end
 end
 
@@ -5274,11 +5275,31 @@ local PHUD_HIDE = { def = 4, min = 0.5 }
 local PHUD_SKIP_S = 10
 local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
 
+-- **How the RENDERER pauses.** Locally by default, because `cycle pause`
+-- with no round trip is what makes click-to-pause feel immediate -- but in
+-- a SyncPlay group a local pause is not a pause at all: mpv stops, the
+-- group does not hear about it, and the next tick drags this player back.
+-- [iw] found this on the click-to-pause path; it applies to all four of
+-- them. Python's toggle_pause -> set_paused is SyncPlay-aware at the top,
+-- so handing it over is the whole fix, and scoping it to when it is needed
+-- is the same rule the key claims follow.
+--
+-- A FIELD on `state`, not a local: this chunk is at LuaJIT's 200-local
+-- ceiling and one more is a load error, not a warning. Resolved at call
+-- time, so the handlers above may use it.
+state.pause_now = function()
+    if state.phud.syncplay then
+        send({ t = 'pause' })
+    else
+        mp.commandv('cycle', 'pause')
+    end
+end
+
 local function phud_summon_enter()
     -- Select/ENTER wakes the HUD AND toggles pause/play (the bar
     -- comes up focused + in adjust mode via the autofocus slider)
     phud_summon('key')
-    mp.commandv('cycle', 'pause')
+    state.pause_now()
 end
 
 local function phud_wake_key()
@@ -5413,7 +5434,7 @@ function phud_bind_summon()
             send({ t = 'hudskip' })
             phud_skip_hide()
         else
-            mp.commandv('cycle', 'pause')
+            state.pause_now()
         end
     end)
     state.kb_summon = true
@@ -5660,6 +5681,9 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         -- Python side sends no `click` and must keep click-to-pause.
         local click = opts and opts.click
         state.phud.click_pauses = click == nil or click and true or false
+        -- Absent means false: an older Python side sends nothing and keeps
+        -- the local fast path, which is the historical behaviour.
+        state.phud.syncplay = (opts and opts.syncplay) and true or false
         if state.phud.hide_s <= 0 then
             -- A zero delay only means anything as "gone the moment the
             -- pointer leaves the controls"; with no pointer test it is a

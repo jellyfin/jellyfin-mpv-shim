@@ -42,7 +42,24 @@ class HudMixin(GatewayCore):
                 # rides this message rather than being read at startup for
                 # the same reason the rest do: engage() re-sends them, which
                 # is what makes the setting apply without a restart.
-                "click": bool(settings.mouse_click_pauses)}
+                "click": bool(settings.mouse_click_pauses),
+                # Whether a pause the RENDERER performs has to go through
+                # Python. Normally it does not -- `cycle pause` locally is
+                # what makes click-to-pause feel immediate -- but in a
+                # SyncPlay group a local pause is not a pause, it is a
+                # desync the group then has to correct. Same shape as
+                # `click` above, and re-sent by engage(), which is what
+                # makes joining a group take effect without a restart.
+                "syncplay": self._syncplay_active()}
+
+    @staticmethod
+    def _syncplay_active():
+        from ...player import playerManager
+
+        try:
+            return bool(playerManager.syncplay.is_enabled())
+        except Exception:
+            return False
 
     def hud_menu_state(self):
         """osc_bridge's menu/track state blob for the HUD's pickers

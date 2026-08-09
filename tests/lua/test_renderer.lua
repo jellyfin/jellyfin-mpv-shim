@@ -2327,6 +2327,40 @@ fake.key("mbtn_right")
 ok(not did("cycle", "pause"),
    "right click on an open dropdown must not pause under it")
 
+-- ------------------------ ...and in a SyncPlay group the pause is Python's
+--
+-- The renderer pauses locally by default, because `cycle pause` with no
+-- round trip is what makes click-to-pause feel immediate. In a group that
+-- is not a pause at all: mpv stops, the group never hears, and the next
+-- tick drags this player back. [iw] found it by clicking the video in a
+-- group -- the keys had been fixed, the click had not.
+
+hud_up({ hide = 4, mode = "hover", click = true, syncplay = true })
+fake.reset_events()
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "in a group, a click on bare video must not pause mpv locally")
+ok(last_event("pause") ~= nil,
+   "...it hands the pause to Python, which knows about the group")
+
+-- ...and out of a group nothing changed: still local, still no round trip.
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.reset_events()
+fake.key("mbtn_left")
+ok(did("cycle", "pause"),
+   "outside a group the click still pauses locally")
+ok(last_event("pause") == nil,
+   "...and does not pay for a round trip to Python")
+
+-- The right-click path in mpv modality is the same decision.
+hud_up({ hide = 4, mode = "hover", click = false, syncplay = true })
+fake.reset_events()
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "in a group, right-click in mpv modality must not pause locally")
+ok(last_event("pause") ~= nil,
+   "...it hands that one over too")
+
 -- The context menu had no test at all, and is the case the dead guard was
 -- most obviously written for.
 hud_up({ hide = 4, mode = "hover", click = false })
