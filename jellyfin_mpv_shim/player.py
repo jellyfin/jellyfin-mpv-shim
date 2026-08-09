@@ -452,6 +452,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._swept_ptr = None
         #: Whether this mpv can run lua, once asked. See lua_works.
         self._lua_works = None
+        #: An OSC style a fallback forced, or None. Survives mpv
+        #: re-creation -- see _init_mpv.
+        self._osc_style_override = None
         self._lua_probe = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
@@ -690,6 +693,30 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.debug("Stopping previous trickplay failed", exc_info=True)
             self.trickplay = None
 
+    def _effective_osc_style(self):
+        """The OSC style this mpv should be built with.
+
+        `resolve_osc_style()` answers from settings, which know nothing
+        about the machine -- so a fallback that discovered something about
+        *this* mpv (no lua, no Pillow) has to be applied on top, and has to
+        keep being applied.
+
+        **The override outlives the mpv it was decided on.** `_init_mpv`
+        runs again on every re-creation -- an idle-quit then a cast,
+        `set_browse_window`, `force_window` -- and re-resolving from
+        settings there put the style back to "mpvtk" with no renderer
+        behind it and `on_hud_menu` still None, so `toggle_settings_menu`
+        went back to refusing: no HUD, no OSD menu, no way to reach either.
+        One idle timeout undid the whole fallback.
+
+        Its answer feeds `mpv_scripts` and `build_mpv_options` as well as
+        `_osc_style_resolved`, because there is no point handing lua
+        scripts to an mpv already known not to run them.
+        """
+        if self._osc_style_override is not None:
+            return self._osc_style_override
+        return resolve_osc_style()
+
     def _construct_mpv(self, mpv_options, **kwargs):
         """``mpv.MPV(...)``, retried without ``--osc`` if mpv has no such
         option -- which means it was built without lua.
@@ -752,7 +779,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                   "re-open" if reopen else "first", player_window._caller())
         self._teardown_player()
 
-        osc_style = resolve_osc_style()
+        osc_style = self._effective_osc_style()
 
         trickplay_started = False
         if settings.thumbnail_enable:
@@ -1509,6 +1536,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         OSD menu unreachable, since ``toggle_settings_menu`` refuses it
         under that style alone.
         """
+        self._osc_style_override = style
         self._osc_style_resolved = style
         self._osc_script_loaded = False
 

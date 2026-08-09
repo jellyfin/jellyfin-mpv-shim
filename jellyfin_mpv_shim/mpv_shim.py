@@ -195,6 +195,14 @@ def main():
                 "Falling back to the command line interface.",
                 exc_info=True,
             )
+            # Same landing place as the no-lua fallback below, and it needs
+            # the same thing: with the browser gone nothing sets
+            # `on_hud_menu`, and `toggle_settings_menu` refuses the OSD
+            # menu while the resolved style is "mpvtk" -- so without this
+            # a machine that merely lacks Pillow has no menu at all.
+            from .player import playerManager as _pm
+
+            _pm.set_osc_style("mpv" if _pm.lua_works() else "none")
 
     if use_gui:
         # ...and the other thing the browser cannot do without: lua.
