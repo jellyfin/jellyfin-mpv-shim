@@ -34,6 +34,14 @@ BINDINGS = [
      "priority": -1},
     {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": -1},
     {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": -1},
+    {"key": "WHEEL_LEFT", "cmd": "seek -10", "is_weak": True,
+     "priority": -1},
+    {"key": "WHEEL_RIGHT", "cmd": "seek 10", "is_weak": True,
+     "priority": -1},
+    {"key": "WHEEL_UP", "cmd": "add volume 2", "is_weak": True,
+     "priority": -1},
+    {"key": "MBTN_LEFT_DBL", "cmd": "cycle fullscreen", "is_weak": True,
+     "priority": -1},
 ]
 
 
@@ -53,6 +61,7 @@ def _pm():
     pm._key_claims = {}
     pm._key_actions = {}
     pm._swept = None
+    pm._swept_ptr = None
     import threading
     pm._lock = threading.RLock()
     return pm
@@ -118,6 +127,51 @@ class ClaimLifecycleTest(unittest.TestCase):
         body = _defined(pm)[-1]
         self.assertIn("SPACE script-message", body,
                       "the claim was dropped by a re-sweep of our own lines")
+
+
+class PointerSuppressionTest(unittest.TestCase):
+    """The pointer is never claimed -- it is the renderer's -- but a seek
+    nobody reports is a desync a group then corrects, and mpv binds
+    WHEEL_LEFT/RIGHT to one.
+
+    [iw]: "should just disable wheel seek during syncplay." Suppressed for
+    the duration rather than routed: a wheel gesture delivers dozens of
+    notches, all to reach an operation the group would refuse anyway.
+    """
+
+    def test_a_seek_claim_suppresses_the_wheel(self):
+        pm = _pm()
+        pm.claim_keys("syncplay", {PAUSE, SEEK})
+        body = _defined(pm)[-1]
+        self.assertIn("WHEEL_LEFT ignore", body)
+        self.assertIn("WHEEL_RIGHT ignore", body)
+
+    def test_it_suppresses_only_what_the_pointer_means_for_seeking(self):
+        pm = _pm()
+        pm.claim_keys("syncplay", {SEEK})
+        body = _defined(pm)[-1]
+        self.assertNotIn("WHEEL_UP", body, "volume is not ours to take")
+        self.assertNotIn("MBTN_LEFT_DBL", body,
+                         "fullscreen on the pointer is the renderer's")
+
+    def test_the_pointer_is_still_never_claimed(self):
+        pm = _pm()
+        pm.claim_keys("syncplay", {PAUSE, SEEK})
+        self.assertNotIn("WHEEL_LEFT", pm._key_actions,
+                         "suppressed is not the same as claimed")
+        body = _defined(pm)[-1]
+        self.assertNotIn("WHEEL_LEFT script-message", body)
+
+    def test_a_fullscreen_only_claim_suppresses_nothing(self):
+        pm = _pm()
+        pm.claim_keys("fullscreen", {FULLSCREEN})
+        self.assertNotIn("ignore", _defined(pm)[-1])
+
+    def test_releasing_gives_the_wheel_back(self):
+        pm = _pm()
+        pm.claim_keys("syncplay", {SEEK})
+        pm.claim_keys("syncplay", None)
+        self.assertFalse(_sections(pm)[PlayerManager.KEY_SECTION])
 
 
 class DispatchTest(unittest.TestCase):

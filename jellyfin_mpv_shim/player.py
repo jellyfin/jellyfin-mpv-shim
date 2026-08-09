@@ -447,6 +447,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._key_claims = {}
         self._key_actions = {}
         self._swept = None
+        self._swept_ptr = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
         # timeline path (time.monotonic seconds); -inf so the first tick fires.
@@ -921,10 +922,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
-        self._bind_key(settings.kb_menu_left, self._on_menu_left)
-        self._bind_key(settings.kb_menu_right, self._on_menu_right)
-        self._bind_key(settings.kb_menu_up, self._on_menu_up)
-        self._bind_key(settings.kb_menu_down, self._on_menu_down)
+        # #16: the arrows are mpv's unless ours still MEAN something
+        # different. In a default configuration they do not -- seek_up /
+        # seek_down / seek_right / seek_left are 60 / -60 / 5 / -5, which is
+        # `seek 60` / `seek -60` / `seek 5` / `seek -5`, character for
+        # character what mpv binds -- so four of the seventeen bindings
+        # existed to reimplement mpv's arrows exactly. Where they are the
+        # same, they are given back; where the user has made them different,
+        # they are kept, because then they are that user's choice rather
+        # than our interception.
+        #
+        # The OSD menu still needs them, and gets them from its own section
+        # for exactly as long as it is on screen (see claim_menu_keys).
+        self._arrows_bound = self._arrows_differ_from_mpv()
+        if self._arrows_bound:
+            self._bind_key(settings.kb_menu_left, self._on_menu_left)
+            self._bind_key(settings.kb_menu_right, self._on_menu_right)
+            self._bind_key(settings.kb_menu_up, self._on_menu_up)
+            self._bind_key(settings.kb_menu_down, self._on_menu_down)
         self._bind_key(settings.kb_pause, self._on_pause_key)
         # #16: `f` is mpv's own key with mpv's own meaning, so it is no
         # longer bound here -- the fullscreen claim below takes whatever key
@@ -1395,6 +1410,78 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._terminate_thread.start()
 
+    #: The seek settings whose defaults are byte-identical to mpv's own
+    #: arrow bindings. Any of them changed, and our arrows mean something
+    #: mpv's do not.
+    _MPV_EQUIVALENT_SEEK = {"seek_up": 60, "seek_down": -60,
+                            "seek_right": 5, "seek_left": -5,
+                            "seek_v_exact": False, "seek_h_exact": False,
+                            "use_web_seek": False,
+                            "skip_intro_on_seek": False}
+
+    def _arrows_differ_from_mpv(self):
+        """Whether our arrow handling still does something mpv's does not.
+
+        Four things can make it so: a changed seek distance, an exact-seek
+        flag, jellyfin-web's variable seek, and skip-intro-on-seek. Any of
+        them and the binding is earning its keep; none of them and it is
+        the "needless interception of MPV's default bindings" #16 exists to
+        remove.
+
+        A `kb_menu_*` the user set explicitly also counts -- that is their
+        key, not our default, and honouring it is the opposite of
+        swallowing one.
+        """
+        for key, default in self._MPV_EQUIVALENT_SEEK.items():
+            if getattr(settings, key, default) != default:
+                return True
+        touched = getattr(settings, "__fields_set__", ())
+        return any(k in touched for k in
+                   ("kb_menu_left", "kb_menu_right", "kb_menu_up",
+                    "kb_menu_down"))
+
+    # ------------------------------------------------------ the OSD menu
+
+    #: Section and message for the OSD menu's own arrow keys.
+    MENU_SECTION = "jms_menu"
+    MENU_MESSAGE = "jms-menu"
+
+    #: ``key setting -> menu action``. ENTER and ESC are deliberately absent:
+    #: they keep their Python bindings, which are already guarded on
+    #: ``is_menu_shown`` and have duties outside the menu.
+    _MENU_KEYS = (("kb_menu_left", "left"), ("kb_menu_right", "right"),
+                  ("kb_menu_up", "up"), ("kb_menu_down", "down"))
+
+    def claim_menu_keys(self, wanted):
+        """Give the arrows to the OSD menu for as long as it is on screen.
+
+        Installed on show and torn down on hide, which is what lets them
+        belong to mpv the rest of the time with no conditional behaviour
+        for the user to notice -- the same lifecycle the renderer runs for
+        its own mouse sections.
+
+        A no-op when the arrows are still bound in Python: then they already
+        reach the menu, and a section as well would drive it twice per
+        press.
+        """
+        if getattr(self, "_arrows_bound", True):
+            return
+        try:
+            if not wanted:
+                self._player.command("disable-section", self.MENU_SECTION)
+                return
+            lines = "\n".join(
+                "%s script-message %s %s" % (getattr(settings, key),
+                                             self.MENU_MESSAGE, act)
+                for key, act in self._MENU_KEYS
+                if getattr(settings, key, None)
+            )
+            self._player.command("define-section", self.MENU_SECTION,
+                                 lines, "force")
+            self._player.command("enable-section", self.MENU_SECTION)
+        except Exception:
+            log.debug("could not update the menu key section", exc_info=True)
+
     # ------------------------------------------------------- key claims
     #
     # #16. Rather than binding `space`, `f` and the arrows for ever, ask mpv
@@ -1450,6 +1537,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log.debug("key sweep: %s", self._swept)
         return self._swept
 
+    def _swept_pointers(self):
+        """Pointer keys meaning seek, cached alongside the sweep and for the
+        same reason -- see :meth:`_swept_keys`."""
+        if self._swept_ptr is None:
+            from . import keysweep
+
+            try:
+                bindings = self._player.input_bindings
+            except Exception:
+                bindings = []
+            self._swept_ptr = keysweep.pointer_keys(bindings,
+                                                    {keysweep.SEEK})
+        return self._swept_ptr
+
     def _refresh_key_section(self):
         """Rebuild and re-enable the section for the current claims. Callers
         hold ``_lock``."""
@@ -1461,13 +1562,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         claims = [c for c in self._swept_keys() if c[1] in wanted]
         self._key_actions = {key: (semantic, arg)
                              for key, semantic, arg in claims}
+        # Pointer keys are never *claimed* -- that is the renderer's ground
+        # -- but a seek nobody reports is a desync a SyncPlay group then
+        # corrects, and mpv binds WHEEL_LEFT/RIGHT to one. Suppressed for
+        # the duration rather than routed: a wheel gesture delivers dozens
+        # of notches, all to reach an operation the group would refuse.
+        suppress = ([] if keysweep.SEEK not in wanted
+                    else self._swept_pointers())
         try:
-            if not claims:
+            if not claims and not suppress:
                 self._player.command("disable-section", self.KEY_SECTION)
                 return
             self._player.command(
                 "define-section", self.KEY_SECTION,
-                keysweep.section_lines(claims, self.KEY_MESSAGE), "force")
+                keysweep.section_lines(claims, self.KEY_MESSAGE, suppress),
+                "force")
             self._player.command("enable-section", self.KEY_SECTION)
         except Exception:
             log.debug("could not update the key section", exc_info=True)
@@ -1522,6 +1631,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.menu.menu_action("back")
             elif args[0] == self.KEY_MESSAGE and len(args) >= 3:
                 self._on_claimed_key(args[1], args[2])
+            elif args[0] == self.MENU_MESSAGE and len(args) >= 2:
+                self.menu.menu_action(args[1])
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 

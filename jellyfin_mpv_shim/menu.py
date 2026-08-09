@@ -145,6 +145,10 @@ class OSDMenu(object):
 
     def show_menu(self):
         self.is_menu_shown = True
+        # #16: the arrows are mpv's while this is not on screen, so the menu
+        # takes them for exactly as long as it is up. A no-op when they are
+        # still bound in Python.
+        self.playerManager.claim_menu_keys(True)
 
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
@@ -223,6 +227,7 @@ class OSDMenu(object):
                 self.playerManager.set_paused(True)
 
     def hide_menu(self):
+        self.playerManager.claim_menu_keys(False)
         if self.is_menu_shown:
             self.playerManager.set_osd_settings(
                 self.original_osd_color,

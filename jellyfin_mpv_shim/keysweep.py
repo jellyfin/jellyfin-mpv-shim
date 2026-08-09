@@ -172,10 +172,9 @@ def _is_pointer(key):
     `MBTN_LEFT_DBL cycle fullscreen` is exactly the binding #1 arranged to
     fall *through* to.
 
-    It does leave a gap: the renderer's own right-click-to-pause and
-    wheel-seek do not go through the shim's SyncPlay-aware operations. That
-    is a pre-existing hole and it belongs in the renderer, not in a section
-    that would compete with it. See #25.
+    It does leave a gap for the pointer's own meanings -- see
+    :func:`pointer_keys`, which suppresses the ones a SyncPlay group cannot
+    tolerate rather than claiming them.
     """
     return key.startswith("MBTN_") or key.startswith("WHEEL_")
 
@@ -207,7 +206,30 @@ def is_mpv_default(bindings, key):
     return bool(entry and entry.get("is_weak"))
 
 
-def section_lines(claims, message):
+def pointer_keys(bindings, wanted):
+    """Pointer keys that currently mean one of ``wanted``.
+
+    These are excluded from a *claim* (see ``_is_pointer``) because the
+    renderer owns the pointer -- but a SyncPlay group still cannot have
+    them. mpv's own ``WHEEL_LEFT``/``WHEEL_RIGHT`` are ``seek -10``/``seek
+    10``, and a seek nobody reports is a desync the group then corrects.
+
+    **[iw]**: "should just disable wheel seek during syncplay." Which is the
+    right trade rather than the lazy one: routing them would mean a message
+    per notch for a gesture that delivers dozens, to reach an operation the
+    group is going to refuse anyway.
+    """
+    out = []
+    for key, entry in winning(bindings).items():
+        if not _is_pointer(key):
+            continue
+        parsed = action(entry.get("cmd"))
+        if parsed is not None and parsed[0] in wanted:
+            out.append(key)
+    return sorted(out)
+
+
+def section_lines(claims, message, suppress=()):
     """The body of a ``define-section``: one line per claimed key, routing
     to ``script-message <message> <semantic> <key>``.
 
@@ -215,8 +237,11 @@ def section_lines(claims, message):
     bound to it, which is what makes a claim preserve meaning instead of
     substituting our own verb.
     """
-    return "\n".join(
-        "%s script-message %s %s %s" % (key, message, semantic,
-                                        shlex.quote(key))
-        for key, semantic, _arg in claims
-    )
+    lines = ["%s script-message %s %s %s" % (key, message, semantic,
+                                             shlex.quote(key))
+             for key, semantic, _arg in claims]
+    # `ignore` rather than a message: these are suppressed for the duration
+    # of the claim, not handled. mpv drops the key and nothing else in the
+    # chain sees it.
+    lines += ["%s ignore" % key for key in suppress]
+    return "\n".join(lines)

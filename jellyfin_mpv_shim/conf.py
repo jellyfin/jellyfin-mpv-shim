@@ -24,7 +24,7 @@ config_path = None
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
 #   2: the four skip_intro/skip_credits booleans become one action per
 #      media segment type (segment_intro and friends).
-CONFIG_VERSION = 3
+CONFIG_VERSION = 4
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -668,6 +668,21 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 4:
+            # #16: the keys the user CHANGED become real mpv bindings, and
+            # the settings are cleared so nothing binds them twice. The
+            # choice moves out of our config and into theirs, where they
+            # can edit it like any other mpv binding.
+            from . import conffile, input_conf
+            from .constants import APP_NAME
+
+            try:
+                if input_conf.migrate(
+                        self, conffile.get(APP_NAME, "input.conf")):
+                    changed = True
+            except Exception:
+                log.warning("Could not migrate key bindings to input.conf",
+                            exc_info=True)
         if self.config_version != CONFIG_VERSION:
             self.config_version = CONFIG_VERSION
             changed = True
@@ -712,6 +727,15 @@ class Settings(SettingsBase):
                 input_params = 0
                 for key in safe_data.__fields_set__:
                     setattr(self, key, getattr(safe_data, key))
+                    # ...and the RECORD of which keys came from the file,
+                    # not only their values. parse_obj builds it on the
+                    # throwaway object and this loop used to leave it there,
+                    # so the global `settings` reported that the user had
+                    # touched nothing, ever. Nothing consulted it until #16,
+                    # which asks exactly that question to tell "this is our
+                    # default, take it back" from "this is the user's
+                    # choice, honour it".
+                    self.__fields_set__.add(key)
                     input_params += 1
 
                 # Print warnings

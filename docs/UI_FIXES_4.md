@@ -2362,10 +2362,15 @@ CLAUDE.md says. And the first version of its test read a stale `send` from
 the block above, because `last_event` scans the whole log: `fake.reset_events()`
 between blocks, as the textbox tests already do.
 
-**The seek half is still open.** The renderer's wheel-seek has the same
-shape and the same fix; it is not done because nothing in this batch touched
-it and a wheel notch is 60 messages a second where a click is one, so it
-needs the same measurement `mpvtk-vpan` got rather than the same reflex.
+**The seek half is suppressed rather than routed.** **[iw]**: "should just
+disable wheel seek during syncplay." Which is the better trade: routing it
+would mean a message per notch for a gesture that delivers dozens, all to
+reach an operation the group is going to refuse anyway. `keysweep.pointer_keys`
+finds whatever the pointer currently means for seeking (mpv binds
+`WHEEL_LEFT`/`WHEEL_RIGHT` to `seek ∓10`) and the SyncPlay claim emits
+`ignore` lines for them — suppressed at the mpv level, for the duration,
+with no round trip and no renderer involvement. `WHEEL_UP`/`WHEEL_DOWN` are
+volume and are not touched.
 
 ## 26 — Two drop-down items from **[iw]**
 
@@ -2377,3 +2382,54 @@ needs the same measurement `mpvtk-vpan` got rather than the same reflex.
    allowed to be wider**, using the same rule the Settings page's audio
    input drop-down already uses. Only those three: they carry the longest
    values in the app and are the ones that ellipsize into uselessness.
+
+## #16 parts B and C
+
+**B. The OSD menu binds its own arrows, while it is open.** `claim_menu_keys`
+installs a section on `show_menu` and tears it down on `hide_menu` — the same
+lifecycle the renderer runs for its own mouse sections, and what lets the
+arrows belong to mpv the rest of the time with no conditional behaviour for
+the user to notice. ENTER and ESC are deliberately *not* in it: they keep
+their Python bindings, which are already guarded on `is_menu_shown` and have
+duties outside the menu.
+
+**...and the arrows are only dropped where they meant what mpv means.**
+`_arrows_differ_from_mpv` is the gate: `seek_up`/`seek_down`/`seek_right`/
+`seek_left` default to 60/-60/5/-5, which is `seek 60`/`seek -60`/`seek 5`/
+`seek -5` character for character, so in a default configuration those four
+bindings existed to reimplement mpv's arrows exactly. Any of the four
+distances changed, either exact-seek flag, `use_web_seek`, `skip_intro_on_seek`,
+or a `kb_menu_*` the user set — and the binding is earning its keep and is
+kept. The menu section is a no-op in that case, or the menu would be driven
+twice per press.
+
+**C. The one-time migration** (`input_conf.py`, `CONFIG_VERSION` 4). The
+settings the user *changed* become real mpv bindings in the shim's own
+`input.conf`, and are then cleared so nothing binds them twice — the choice
+moves out of our config and into theirs, where they can edit it like any
+other mpv binding. Three rules:
+
+* **Cleared stays cleared.** `None`/`""`/`"None"` means they parked our
+  interception on purpose, and re-binding the key would undo the exact thing
+  #16 is for.
+* **It writes above the first `[`.** Everything after a section header
+  belongs to that section until the next, so appending to a file with any
+  section puts the bindings inside it — written, looking right, and never
+  firing. A marker line makes it idempotent even if the config version is
+  lost.
+* **It declines what mpv cannot express.** `use_web_seek` and
+  `skip_intro_on_seek` have no equivalent, so where either is on the arrows
+  are not migrated and keep their binding. A migration that quietly dropped
+  a feature would be worse than none. The `kb_*` that name *shim* actions
+  (watched, next, our menu) are not in scope at all.
+
+### The bug this turned up
+
+**`__fields_set__` never reached the global settings object.** `parse_obj`
+builds it on a throwaway and `load` copied only the *values*, so
+`settings.__fields_set__` was empty however much the user had configured.
+Nothing had ever consulted it — until #16, which asks exactly that question
+to tell "our default, take it back" from "their choice, honour it". So both
+the arrow gate and the migration would have answered "untouched" for
+everyone, silently dropping customised arrow keys and migrating nothing.
+Found by writing the migration rather than by any test.
