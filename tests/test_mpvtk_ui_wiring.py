@@ -239,6 +239,14 @@ class TestEveryCallbackIsWired(WiringHarness):
                    if getattr(self.player, n) is None]
         self.assertEqual(missing, [], "player callbacks left unwired")
 
+    @staticmethod
+    def _fake_hud(engaged, available=True, state=True):
+        return type("H", (), {
+            "engage": lambda _s: engaged.append(1),
+            "available": lambda _s: available,
+            "state": state,
+        })()
+
     def test_joining_a_group_re_sends_the_hud_config(self):
         """The HUD token carries whether the renderer's own pause paths hand
         over to Python, and a group joined mid-playback would otherwise keep
@@ -246,9 +254,34 @@ class TestEveryCallbackIsWired(WiringHarness):
         a pause. [iw] found this by clicking the video in a group."""
         browser = self._login()
         engaged = []
-        browser.hud = type("H", (), {"engage": lambda _s: engaged.append(1)})()
+        browser.hud = self._fake_hud(engaged)
+        browser._browsing = False
         self.player.on_syncplay_change()
         self.assertEqual(engaged, [1])
+
+    def test_it_does_not_engage_while_the_library_is_up(self):
+        """engage() is not a re-send -- it is set_hud(True), which the
+        renderer treats as a MODE CHANGE when the HUD is not already up and
+        answers with ui_suspend(): nav keys, mouse and wheel unbound.
+        Ungated, leaving a group from the library (which is what stop does
+        in a group) froze the library with no way back."""
+        browser = self._login()
+        engaged = []
+        browser.hud = self._fake_hud(engaged)
+        browser._browsing = True
+        self.player.on_syncplay_change()
+        self.assertEqual(engaged, [],
+                         "engaged the HUD over the library and suspended it")
+
+    def test_it_does_not_engage_for_a_user_with_no_mpvtk_hud(self):
+        # A lua-OSC user: engaging switches the mpvtk summon layer on over
+        # their OSC and takes mbtn_left with it.
+        browser = self._login()
+        engaged = []
+        browser.hud = self._fake_hud(engaged, available=False)
+        browser._browsing = False
+        self.player.on_syncplay_change()
+        self.assertEqual(engaged, [])
 
     def test_it_survives_a_browser_with_no_hud(self):
         browser = self._login()

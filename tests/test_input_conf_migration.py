@@ -25,11 +25,41 @@ def _settings(**kw):
 
 
 class PlanTest(unittest.TestCase):
-    def test_only_what_the_user_actually_set(self):
+    def test_only_what_the_user_actually_changed(self):
         # A default is ours to take back; a value they typed is not.
         self.assertEqual(input_conf.plan(_settings()), [])
         self.assertEqual(input_conf.plan(_settings(kb_pause="P")),
-                         [("P", "cycle pause")])
+                         [("kb_pause", "P", "cycle pause")])
+
+    def test_a_saved_all_default_config_migrates_nothing(self):
+        """The regression [iw] found in a real input.conf: `space cycle
+        pause`, `f cycle fullscreen` and the four arrows, every one of them
+        mpv's own default, written back as an explicit binding for nothing.
+
+        __fields_set__ says "this key was in the file", and save() writes
+        all 186 of them — so after one save the whole config reads as
+        deliberately chosen. Comparing to the class default is the honest
+        question."""
+        saved = Settings().dict()
+        self.assertGreater(len(saved), 100, "test premise: save writes all")
+        self.assertEqual(input_conf.plan(_settings(**saved)), [])
+
+    def test_clearing_is_by_name_not_by_value(self):
+        """`written` used to be a set of key STRINGS, and any setting whose
+        value was in it got nulled — so `kb_pause = "right"` cleared
+        `kb_menu_right`, whose binding the plan had deliberately declined to
+        migrate. Dropped feature, arriving by the back door."""
+        import os
+        import tempfile
+
+        s = _settings(**dict(Settings().dict(),
+                             use_web_seek=True, kb_pause="right"))
+        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        self.assertEqual([e[0] for e in input_conf.plan(s)], ["kb_pause"])
+        input_conf.migrate(s, path)
+        self.assertIsNone(s.kb_pause)
+        self.assertEqual(s.kb_menu_right, "right",
+                         "a setting the plan declined must not be cleared")
 
     def test_a_cleared_binding_is_not_re_bound(self):
         """[iw]: setting one to null means they were parking our
@@ -40,25 +70,32 @@ class PlanTest(unittest.TestCase):
                 self.assertEqual(input_conf.plan(_settings(kb_pause=value)),
                                  [])
 
-    def test_a_seek_carries_the_users_own_distance(self):
-        got = input_conf.plan(_settings(kb_menu_up="a", seek_up=30))
-        self.assertEqual(got, [("a", "seek 30")])
+    def test_the_arrows_are_never_migrated(self):
+        """An arrow is not one binding: it seeks during playback AND drives
+        the OSD menu, and input.conf can express the first and not the
+        second.
 
-    def test_exactness_travels_too(self):
-        got = input_conf.plan(
-            _settings(kb_menu_left="z", seek_left=-2, seek_h_exact=True))
-        self.assertEqual(got, [("z", "seek -2 exact")])
+        Migrating one therefore either leaves the shim binding a key mpv now
+        also binds (two seeks per press) or clears the setting and takes the
+        menu's navigation with it — which is what the first version did,
+        permanently, for anyone who had changed a seek distance. They keep
+        their Python binding exactly when they differ from mpv and are given
+        back untouched when they do not, which needs no migration at all.
+        """
+        for kw in ({"kb_menu_up": "a"}, {"seek_up": 30},
+                   {"seek_h_exact": True}, {"kb_menu_left": "z",
+                                            "seek_left": -2}):
+            with self.subTest(**kw):
+                self.assertEqual(input_conf.plan(_settings(**kw)), [])
 
-    def test_the_arrows_are_left_alone_when_something_shim_only_rides_them(self):
-        """use_web_seek and skip_intro_on_seek have no mpv equivalent at
-        all. A migration that quietly dropped a feature would be worse than
-        no migration."""
+    def test_the_pause_key_still_migrates_beside_untouchable_arrows(self):
+        """The arrows are never migrated (see above), and that must not stop
+        the settings that ARE expressible from moving."""
         for extra in ({"use_web_seek": True}, {"skip_intro_on_seek": True}):
             with self.subTest(**extra):
                 got = input_conf.plan(
                     _settings(kb_menu_up="a", kb_pause="P", **extra))
-                # The pause key still migrates -- it is expressible.
-                self.assertEqual(got, [("P", "cycle pause")])
+                self.assertEqual(got, [("kb_pause", "P", "cycle pause")])
 
     def test_a_shim_action_is_never_migrated(self):
         # kb_watched/kb_next/kb_stop name things mpv has no opinion about;
@@ -92,14 +129,14 @@ class WriteTest(unittest.TestCase):
 
     def test_the_settings_are_cleared_so_nothing_binds_twice(self):
         path = self._path()
-        s = _settings(kb_pause="P", kb_menu_up="a", seek_up=30)
+        s = _settings(kb_pause="P", kb_fullscreen="F")
         written = input_conf.migrate(s, path)
         self.assertEqual(len(written), 2)
         self.assertIsNone(s.kb_pause)
-        self.assertIsNone(s.kb_menu_up)
+        self.assertIsNone(s.kb_fullscreen)
         body = open(path, encoding="utf-8").read()
         self.assertIn("P cycle pause", body)
-        self.assertIn("a seek 30", body)
+        self.assertIn("F cycle fullscreen", body)
 
     def test_it_does_not_run_twice(self):
         path = self._path()

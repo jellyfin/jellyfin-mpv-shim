@@ -43,12 +43,22 @@ MARKER = "# --- migrated from jellyfin-mpv-shim key settings ---"
 FIXED = (("kb_pause", "cycle pause"),
          ("kb_fullscreen", "cycle fullscreen"))
 
-#: ``setting -> (seek setting, exactness setting)``. The amount is the
-#: user's, so `kb_menu_up` with `seek_up = 30` migrates to `seek 30`.
-SEEKS = (("kb_menu_up", "seek_up", "seek_v_exact"),
-         ("kb_menu_down", "seek_down", "seek_v_exact"),
-         ("kb_menu_right", "seek_right", "seek_h_exact"),
-         ("kb_menu_left", "seek_left", "seek_h_exact"))
+#: **The arrows are not migrated, and that is the same rule as the rest.**
+#:
+#: They were, and it was wrong twice over. An arrow is not one binding: it
+#: seeks during playback *and* drives the OSD menu, and `input.conf` can
+#: express the first and not the second. Migrating it therefore either
+#: leaves the shim binding a key mpv now also binds (two seeks per press),
+#: or clears the setting and takes the menu's navigation with it -- which is
+#: what the first version did, permanently, for anyone who had changed a
+#: seek distance.
+#:
+#: So this module keeps only the settings whose whole meaning mpv can carry.
+#: The arrows keep their Python binding exactly when they differ from mpv
+#: (see `PlayerManager._arrows_differ_from_mpv`) and are given back
+#: untouched when they do not, which is the whole of #16's benefit for them
+#: and needs no migration at all.
+SEEKS = ()
 
 
 def _cleared(value):
@@ -63,36 +73,40 @@ def _cleared(value):
     return value in (None, "", "None")
 
 
-def plan(settings):
-    """``[(key, command)]`` to write, for the bindings the user changed.
+def _changed(settings, name):
+    """Whether ``name`` holds something other than the shim's own default.
 
-    Only settings they actually set (``__fields_set__``), only ones that
-    are not cleared, and only where mpv can express what the shim did.
+    **Not ``__fields_set__``.** That says "this key was in the file", and
+    ``save()`` writes all 186 of them — so after a single save every key is
+    in the file and the whole config reads as deliberately chosen. The first
+    version of this migrated `space cycle pause`, `f cycle fullscreen` and
+    the four arrows into somebody's input.conf: every one of them mpv's own
+    default, written back as an explicit binding for nothing. **[iw]**:
+    "these are default bindings, we don't need to set them."
+
+    Comparing to the class default is the honest question. It cannot tell a
+    user who deliberately typed the default from one who never touched it —
+    but for these settings those two want the same thing, because our
+    defaults ARE mpv's for every key here.
     """
-    touched = getattr(settings, "__fields_set__", ())
+    return getattr(settings, name, None) != getattr(type(settings), name,
+                                                    None)
+
+
+def plan(settings):
+    """``[(setting, key, command)]`` to write, for the bindings the user
+    changed.
+
+    Only ones that differ from our default, only ones that are not cleared,
+    and only where mpv can express what the shim did.
+    """
     out = []
     for name, command in FIXED:
-        if name not in touched:
+        if not _changed(settings, name):
             continue
         value = getattr(settings, name, None)
         if not _cleared(value):
-            out.append((value, command))
-    # The arrows are only expressible when nothing shim-specific rides on
-    # them. Asked once for the group, not per key: a user with web seek on
-    # has it on for all four.
-    if not (getattr(settings, "use_web_seek", False)
-            or getattr(settings, "skip_intro_on_seek", False)):
-        for name, amount_key, exact_key in SEEKS:
-            if name not in touched:
-                continue
-            value = getattr(settings, name, None)
-            if _cleared(value):
-                continue
-            amount = getattr(settings, amount_key, 0)
-            command = "seek %d%s" % (
-                amount, " exact" if getattr(settings, exact_key, False)
-                else "")
-            out.append((value, command))
+            out.append((name, value, command))
     return out
 
 
@@ -101,7 +115,7 @@ def render(entries):
     lines = [MARKER,
              "# Written once, when this client stopped binding these keys",
              "# itself. Edit or delete them freely -- nothing rewrites this."]
-    lines += ["%s %s" % (key, command) for key, command in entries]
+    lines += ["%s %s" % (key, command) for _n, key, command in entries]
     return "\n".join(lines) + "\n\n"
 
 
@@ -130,6 +144,7 @@ def migrate(settings, path):
     entries = plan(settings)
     if not entries:
         return []
+    migrated = [name for name, _k, _c in entries]
     try:
         existing = ""
         if os.path.isfile(path):
@@ -137,8 +152,17 @@ def migrate(settings, path):
                 existing = fh.read()
         if MARKER in existing:
             return []
-        with open(path, "w", encoding="utf-8") as fh:
+        # Written to a sibling and renamed over, the way Settings.save does
+        # and for the same reason -- this is the user's own mpv config, and
+        # `open(path, "w")` truncates it *before* the write, so a full disk
+        # or a kill in between leaves them with nothing rather than with
+        # what they had. os.replace is atomic within a directory.
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
             fh.write(insert_before_first_section(existing, render(entries)))
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
     except OSError:
         # An unwritable config directory must not cost the user their
         # bindings: leave the settings alone and they keep working the old
@@ -148,11 +172,13 @@ def migrate(settings, path):
         return []
     # Cleared, so nothing binds them twice: the choice has moved from our
     # config into theirs, which is the whole point of the migration.
-    for name, _c in FIXED:
-        if name in getattr(settings, "__fields_set__", ()):
-            setattr(settings, name, None)
-    for name, _a, _e in SEEKS:
-        if any(key == getattr(settings, name, None) for key, _cmd in entries):
-            setattr(settings, name, None)
+    # Cleared by NAME, not by value. Clearing "every setting whose value is
+    # in the written set" nulls a setting that holds the same key string as
+    # a migrated one -- `kb_pause = "right"` cleared `kb_menu_right`, whose
+    # binding the plan had deliberately declined to migrate. That is the
+    # "quietly dropped a feature" this module exists to avoid, arriving by
+    # the back door.
+    for name in migrated:
+        setattr(settings, name, None)
     log.info("Migrated %d key binding(s) to %s", len(entries), path)
     return entries

@@ -266,3 +266,150 @@ class SyncPlayClaimTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ArrowGateTest(unittest.TestCase):
+    """Whether our arrow handling still means something mpv's does not.
+
+    The four seek distances default to 60/-60/5/-5, which is `seek 60` /
+    `seek -60` / `seek 5` / `seek -5` character for character — so in a
+    default configuration those bindings existed to reimplement mpv's
+    arrows exactly.
+    """
+
+    def _differs(self, **kw):
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.conf import Settings
+
+        s = Settings().parse_obj(dict(Settings().dict(), **kw))
+        pm = PlayerManager.__new__(PlayerManager)
+        with mock.patch("jellyfin_mpv_shim.player.settings", s):
+            return pm._arrows_differ_from_mpv()
+
+    def test_a_default_config_gives_the_arrows_back(self):
+        # Against a SAVED config -- every key present -- because that is
+        # what every real install looks like and __fields_set__ cannot tell
+        # it from a deliberate choice.
+        self.assertFalse(self._differs())
+
+    def test_a_changed_distance_keeps_them(self):
+        self.assertTrue(self._differs(seek_up=30))
+
+    def test_an_exact_flag_keeps_them(self):
+        self.assertTrue(self._differs(seek_h_exact=True))
+
+    def test_web_seek_keeps_them(self):
+        self.assertTrue(self._differs(use_web_seek=True))
+
+    def test_skip_intro_on_seek_keeps_them(self):
+        self.assertTrue(self._differs(skip_intro_on_seek=True))
+
+    def test_a_remapped_arrow_keeps_them(self):
+        self.assertTrue(self._differs(kb_menu_up="a"))
+
+
+class AfterMigrationTest(unittest.TestCase):
+    """What the config looks like on the run AFTER the migration.
+
+    The review's worst finding: the migration cleared the arrow settings, so
+    `kb_menu_right` was None (no Python binding) while whatever had made it
+    migratable still differed from mpv (so the gate said "ours") — and
+    `claim_menu_keys` no-ops when the gate says that. The arrow reached
+    neither the menu nor the shim, permanently, for anyone who had changed a
+    seek distance. With all four migrated, the OSD menu had no navigation at
+    all.
+
+    The arrows are no longer migrated, which is what makes this state
+    unreachable; these pin that it stays so.
+    """
+
+    def _settings(self, **kw):
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.conf import Settings
+
+        return Settings().parse_obj(dict(Settings().dict(), **kw))
+
+    def test_a_migration_never_clears_an_arrow(self):
+        import os
+        import tempfile
+
+        from jellyfin_mpv_shim import input_conf
+
+        s = self._settings(seek_right=10, seek_v_exact=True, kb_pause="P")
+        input_conf.migrate(s, os.path.join(tempfile.mkdtemp(), "input.conf"))
+        for key in ("kb_menu_left", "kb_menu_right", "kb_menu_up",
+                    "kb_menu_down"):
+            self.assertIsNotNone(getattr(s, key),
+                                 "%s was cleared, so nothing binds it and "
+                                 "the menu section will not either" % key)
+
+    def test_the_menu_can_always_be_navigated(self):
+        """Either the arrows are bound in Python, or the menu section is
+        installed. Never neither — which is the state the finding was."""
+        import os
+        import tempfile
+
+        from jellyfin_mpv_shim import input_conf
+
+        for kw in ({}, {"seek_right": 10}, {"seek_v_exact": True},
+                   {"use_web_seek": True}, {"kb_menu_up": "a"},
+                   {"kb_pause": "P"}):
+            with self.subTest(**kw):
+                s = self._settings(**kw)
+                input_conf.migrate(
+                    s, os.path.join(tempfile.mkdtemp(), "input.conf"))
+                pm = PlayerManager.__new__(PlayerManager)
+                with mock.patch("jellyfin_mpv_shim.player.settings", s):
+                    bound = pm._arrows_differ_from_mpv()
+                    keys = [getattr(s, k) for k in
+                            ("kb_menu_left", "kb_menu_right",
+                             "kb_menu_up", "kb_menu_down")]
+                    if bound:
+                        self.assertTrue(
+                            all(keys),
+                            "the gate says ours, but a key is cleared so "
+                            "_bind_key installs nothing and claim_menu_keys "
+                            "refuses: the arrow is dead")
+                    else:
+                        self.assertTrue(
+                            all(keys),
+                            "the menu section needs a key to bind")
+
+
+class FullscreenGateTest(unittest.TestCase):
+    """`f` is claimed from mpv's own binding, so the shim binds
+    `kb_fullscreen` only when the user changed it.
+
+    The gate asked `__fields_set__`, which means "this key was in the file"
+    — and save() writes all 186 settings, so it is true for every existing
+    install and the gate could never open. `f` stayed intercepted for
+    everyone, including a user whose own input.conf puts fullscreen on F11
+    and `f` on something else: the sweep claimed F11 correctly and the shim
+    still took `f`.
+    """
+
+    def _bound(self, **kw):
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.conf import Settings
+
+        s = Settings().parse_obj(dict(Settings().dict(), **kw))
+        with mock.patch("jellyfin_mpv_shim.player.settings", s):
+            return s.kb_fullscreen != type(s).kb_fullscreen
+
+    def test_a_saved_default_config_does_not_bind_it(self):
+        self.assertFalse(self._bound())
+
+    def test_a_changed_key_is_still_honoured(self):
+        self.assertTrue(self._bound(kb_fullscreen="F11"))
+
+    def test_a_cleared_key_is_not_bound(self):
+        # Cleared differs from the default, but _bind_key refuses None, so
+        # nothing is installed either way — the point is that it is not an
+        # error.
+        self.assertTrue(self._bound(kb_fullscreen=None))

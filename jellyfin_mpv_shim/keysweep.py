@@ -90,8 +90,14 @@ def classify(cmd):
 #: mpv's seek flags that mean "not relative to where we are". A claim
 #: re-issues the user's intent through the shim's own seek, which is
 #: relative -- so an absolute one is left alone rather than mistranslated.
-_ABSOLUTE_SEEK = ("absolute", "absolute-percent", "absolute+keyframes",
-                  "relative-percent")
+#:
+#: **Components, not whole tokens.** mpv combines flags with `+`, so
+#: `absolute+exact` is one argument meaning two things; matching the token
+#: whole read it as relative and translated `seek 30 absolute+exact` into a
+#: 30-second jump *from wherever the file is*. In a SyncPlay group that
+#: takes everybody with it.
+_ABSOLUTE_SEEK = frozenset(("absolute", "absolute-percent",
+                            "relative-percent"))
 
 
 def action(cmd):
@@ -113,8 +119,10 @@ def action(cmd):
     if verb == "seek":
         if len(parts) < 2:
             return None
-        flags = parts[2:]
-        if any(f in _ABSOLUTE_SEEK for f in flags):
+        flags = set()
+        for token in parts[2:]:
+            flags.update(token.split("+"))
+        if flags & _ABSOLUTE_SEEK:
             # Not translatable into the shim's relative seek. Left alone.
             return None
         try:

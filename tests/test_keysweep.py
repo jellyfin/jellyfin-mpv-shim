@@ -128,6 +128,20 @@ class ActionTest(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(keysweep.action(cmd))
 
+    def test_combined_flags_are_read_component_by_component(self):
+        """mpv joins flags with `+`, so `absolute+exact` is one argument
+        meaning two things. Matching the token whole read it as relative:
+        `seek 30 absolute+exact` became a 30-second jump from wherever the
+        file was — and in a SyncPlay group that takes everybody with it."""
+        for cmd in ("seek 30 absolute+exact", "seek 50 absolute-percent+exact",
+                    "seek 0 absolute+keyframes"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(keysweep.action(cmd))
+        # ...and a combined RELATIVE one keeps its exactness rather than
+        # losing it to the same whole-token comparison.
+        self.assertEqual(keysweep.action("seek 10 relative+exact"),
+                         (SEEK, (10.0, True)))
+
     def test_an_unparseable_amount_is_left_alone(self):
         self.assertIsNone(keysweep.action("seek ${duration}"))
         self.assertIsNone(keysweep.action("seek"))

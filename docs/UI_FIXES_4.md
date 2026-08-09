@@ -2423,7 +2423,37 @@ other mpv binding. Three rules:
   a feature would be worse than none. The `kb_*` that name *shim* actions
   (watched, next, our menu) are not in scope at all.
 
-### The bug this turned up
+### `__fields_set__` is the wrong question anyway
+
+Hand-testing produced a real migrated `input.conf`:
+
+```
+space cycle pause
+f cycle fullscreen
+up seek 60
+down seek -60
+right seek 5
+left seek -5
+```
+
+**[iw]**: "these are default bindings, we don't need to set them." Every one
+of those is mpv's own default, written back as an explicit binding for
+nothing.
+
+The cause is that `__fields_set__` answers "was this key in the file", and
+`save()` writes **all 186 settings** — so after a single save the entire
+config reads as deliberately chosen, and the predicate is true of everything.
+The honest question is whether the value differs from the class **default**,
+which is what both the migration and the arrow gate ask now. It cannot tell
+a user who deliberately typed the default from one who never touched it, and
+that is fine here: our defaults *are* mpv's for every key in scope, so the
+two want the same thing.
+
+(A config already migrated by the first version keeps its block — the marker
+makes this idempotent. Those lines are harmless duplicates of mpv's defaults
+and can be deleted by hand.)
+
+### And the bug underneath it
 
 **`__fields_set__` never reached the global settings object.** `parse_obj`
 builds it on a throwaway and `load` copied only the *values*, so
@@ -2433,3 +2463,87 @@ to tell "our default, take it back" from "their choice, honour it". So both
 the arrow gate and the migration would have answered "untouched" for
 everyone, silently dropping customised arrow keys and migrating nothing.
 Found by writing the migration rather than by any test.
+
+### Confirmed by hand
+
+The arrows really are mpv's now, and **[iw]** noted the proof by structure:
+mpv's own seek OSD appears, which our binding never showed — and it appears
+*only* outside a SyncPlay group, which is the claim being taken and given
+back. Seeing that OSD is fine (**[iw]**); it is mpv's key doing mpv's thing,
+which is the whole point.
+
+---
+
+## Review round 3 — two agents over #16
+
+Both asked to refute their own findings first. **Seven survived, all seven
+real, all verified here.** One was found independently by both. Three of
+them are a *design* error rather than a slip, which is the part worth
+recording.
+
+### The design error: migrating the arrows was never coherent
+
+An arrow is not one binding. It seeks during playback **and** drives the OSD
+menu, and `input.conf` can express the first and not the second. So
+migrating one has no good outcome: either the shim goes on binding a key mpv
+now also binds (two seeks per press), or the setting is cleared and the
+menu's navigation goes with it.
+
+The first version cleared it — and the gate then made it permanent.
+`_arrows_differ_from_mpv` still answered "ours" (the changed `seek_right`
+that made it migratable is still changed, and a cleared `kb_menu_right`
+differs from its default too), so `_bind_key(None, …)` bound nothing *and*
+`claim_menu_keys` refused to install the menu section. **The arrow reached
+neither the menu nor the shim.** With `seek_v_exact` and `seek_h_exact` both
+on, all four went, and the OSD menu had no navigation at all — for anyone on
+the classic OSC or in CLI mode, permanently.
+
+The fix is not a better clearing rule, it is not migrating them: `SEEKS` is
+empty. The arrows keep their Python binding exactly when they differ from
+mpv and are given back untouched when they do not, which is the whole of
+#16's benefit for them and needs no migration.
+
+### The rest
+
+* **`resend_hud_config` engaged the HUD unconditionally.** `engage()` is not
+  a re-send — it is `set_hud(True)`, which the renderer treats as a *mode
+  change* when the HUD is not already up and answers with `ui_suspend()`:
+  nav keys, mouse and wheel unbound. Every other call site is guarded; this
+  one was not. Pressing stop in a SyncPlay group leaves the group, which
+  fired this from the library — and **froze the library with no way back**.
+  For a lua-OSC user it switched the mpvtk summon layer on over their OSC
+  and took `mbtn_left` with it.
+* **Combined seek flags were mistranslated.** mpv joins flags with `+`, so
+  `absolute+exact` is one argument meaning two things; matching the token
+  whole read it as *relative*. `KP3 seek 30 absolute+exact` became a
+  30-second jump from wherever the file was — and in a group, `seek_request`
+  takes everybody with it. Read component by component now, which also stops
+  `relative+exact` losing its exactness.
+* **`kb_fullscreen`'s gate asked `__fields_set__`** — the exact trap the two
+  neighbouring functions document at length and refuse. `save()` writes all
+  186 settings, so it is true for every install that has ever run, `f`
+  stayed intercepted for everyone, and the standing fullscreen claim swept
+  up nothing because `f` was already a non-weak Python binding at sweep
+  time. Found by **both** reviewers.
+* **`_refresh_key_section` was called without the lock its contract
+  requires.** `_bind_mpv_handlers` is reachable from `set_browse_window` /
+  `force_window`, neither `@synchronous`, on the browser loop thread — so a
+  `GroupJoined` on the websocket thread could mutate `_key_claims` mid
+  iteration (out of `_init_mpv`, aborting a window rebuild) or simply win
+  the race and leave the group's claim out of the installed section.
+* **Clearing was by value, not by name.** `kb_pause = "right"` cleared
+  `kb_menu_right`, whose binding the plan had deliberately declined — the
+  "quietly dropped a feature" the module exists to avoid, arriving by the
+  back door.
+* **The write truncated before it wrote.** `open(path, "w")` on the user's
+  own `input.conf`, where `Settings.save` next door goes to lengths to avoid
+  exactly that. Temp-file-then-`os.replace` now.
+
+### And a note on my own mutation testing
+
+The first mutation I wrote for the clear-by-value fix **survived**, and I
+nearly recorded that as the test being weak. It was the mutation that was
+wrong: with `SEEKS` empty there is no second setting in scope to collide
+with, so the mutant was not the bug. Reproducing the bug meant putting an
+arrow back in `SEEKS` as well. A surviving mutant is a claim about the
+mutant as much as about the test.

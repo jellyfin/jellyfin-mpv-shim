@@ -2756,9 +2756,20 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         Called directly from whichever thread SyncPlay is on, as
         ``notify_syncplay`` beside it is: ``engage`` ends in an mpv command,
         which is thread-safe, and deferring it would let a group be joined
-        and a click land before the renderer had been told."""
+        and a click land before the renderer had been told.
+
+        **Guarded exactly as every other engage() call site is.** engage()
+        is not a re-send, it is set_hud(True), and the renderer treats that
+        as a MODE CHANGE when the HUD is not already up: ui_suspend() drops
+        the nav keys, the mouse and the wheel bindings. Ungated, leaving a
+        group from the library -- which is what pressing stop in a group
+        does -- froze the library with no way back. And for a user on a lua
+        OSC it switched the mpvtk summon layer on over their OSC.
+        Un-engaged, the flag does not matter: none of the renderer's pause
+        paths are live, and the next engage() sends the current value."""
         try:
-            if self.hud is not None:
+            if (self.hud is not None and not self._browsing
+                    and self.hud.available() and self.hud.state is not None):
                 self.hud.engage()
         except Exception:
             log.debug("could not re-send the HUD config", exc_info=True)

@@ -947,7 +947,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # user's intent (which is the whole reason we needed the key at
         # all). A value the user explicitly set is still honoured: that is
         # their choice, not our interception.
-        if "kb_fullscreen" in getattr(settings, "__fields_set__", ()):
+        # Compared to the DEFAULT, for the reason input_conf._changed sets
+        # out: __fields_set__ means "this key was in the file", and save()
+        # writes all 186 of them, so it is true for every existing install
+        # and this gate could never open. `f` stayed intercepted for
+        # everyone -- including a user whose own input.conf puts fullscreen
+        # on F11 and `f` on something else, which is the exact interception
+        # the gate exists to prevent.
+        if settings.kb_fullscreen != type(settings).kb_fullscreen:
             self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
         # Standing claim: recording "the user asked for fullscreen" is
@@ -959,7 +966,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         from . import keysweep
 
         self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
-        self._refresh_key_section()
+        # Under the lock, which _refresh_key_section's contract requires and
+        # this path did not hold: _bind_mpv_handlers is reachable from
+        # set_browse_window / force_window, neither of which is
+        # @synchronous, on the browser loop thread -- so a GroupJoined
+        # landing on the websocket thread could mutate _key_claims while
+        # this iterated it ("dictionary changed size during iteration",
+        # out of _init_mpv, aborting the window rebuild), or simply lose
+        # the race and install a section without the group's claim in it.
+        with self._lock:
+            self._refresh_key_section()
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
         if settings.mouse_chapter_nav:
@@ -1435,10 +1451,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         for key, default in self._MPV_EQUIVALENT_SEEK.items():
             if getattr(settings, key, default) != default:
                 return True
-        touched = getattr(settings, "__fields_set__", ())
-        return any(k in touched for k in
-                   ("kb_menu_left", "kb_menu_right", "kb_menu_up",
-                    "kb_menu_down"))
+        # Compared to the DEFAULT, not to __fields_set__: save() writes
+        # every key, so after one save "the user set this" is true of the
+        # whole config and this would never give an arrow back to anybody.
+        return any(getattr(settings, k, None) != getattr(type(settings), k,
+                                                         None)
+                   for k in ("kb_menu_left", "kb_menu_right", "kb_menu_up",
+                             "kb_menu_down"))
 
     # ------------------------------------------------------ the OSD menu
 
