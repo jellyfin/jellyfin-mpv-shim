@@ -2385,16 +2385,38 @@ renderer at all. `WHEEL_UP`/`WHEEL_DOWN` are volume and are not touched.
 
 Both halves are done, so #25 is closed.
 
-## 26 — Two drop-down items from **[iw]**
+## 26 — Two drop-down items from **[iw]** — **done**
 
-1. **Subtitle display titles are missing from the HUD's subtitle selector.**
-   The picker shows the language/codec summary but not the stream's own
-   `DisplayTitle`, which is what distinguishes "Signs & Songs" from "Full"
-   on the releases that carry both.
-2. **The detail page's subtitle / version / audio drop-downs should be
-   allowed to be wider**, using the same rule the Settings page's audio
-   input drop-down already uses. Only those three: they carry the longest
-   values in the app and are the ones that ellipsize into uselessness.
+Both halves turn out to be the same problem seen twice: **the text in these
+lists is not ours.** A subtitle's title is whatever the person who made the
+file called it and a version name is the user's own directory label — so
+composing the label ourselves makes two different tracks identical, and
+drawing it at the control's width makes every row ellipsize to the same
+prefix. Either way the picker offers a choice it cannot express.
+
+1. **`get_sub_display_title` now prefers the server's own `DisplayTitle`**,
+   which is the string jellyfin-web shows and the only one carrying "Signs &
+   Songs" versus "Full". The composed Language/Forced/Codec form stays as the
+   fallback for a stream that has none — an offline item rebuilt from the
+   local catalog, or an older server — and using DisplayTitle also stops
+   "Forced" being appended to a string the server already put it in.
+
+   It fixed a latent crash on the way past: the old code read
+   `stream.get("Language", _("Unkn")).capitalize()`, which returns **None**
+   for a stream that has the key set to null rather than missing, and
+   `.capitalize()` then raised. Any untagged subtitle track.
+
+   Not verified against real data: the QA library has no subtitle streams at
+   all, so `DisplayTitle`'s exact shape here is the documented contract and
+   jellyfin-web's usage, not a measurement.
+
+2. **The three detail-page pickers get `popup_w`**, exactly as the Settings
+   page's audio-device list uses it. The OPEN list widens, up to 640; the
+   control stays 300, because a wider control would put those rows out of
+   line with the rest of the page and it is closed almost all of the time.
+   The popup takes only as much of the allowance as its widest item needs —
+   visible in the regenerated `detail` snapshot, where the fixture's short
+   labels leave it at exactly 300.
 
 ## #16 parts B and C
 

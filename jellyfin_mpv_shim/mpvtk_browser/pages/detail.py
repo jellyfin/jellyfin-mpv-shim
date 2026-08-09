@@ -394,10 +394,32 @@ class DetailPage(Page):
                     "_sid", -1 if i == 0 else subs[i - 1].get("Index"))))
         return rows
 
+    #: How wide the OPEN list of a track picker may get. The control stays
+    #: 300 either way -- see below.
+    PICKER_POPUP_W = 640
+
     @staticmethod
     def _picker_row(label, node_id, names, selected, on_select):
+        """One `Label  [dropdown]` row for a version / audio / subtitle
+        picker.
+
+        ``popup_w``, exactly as the Settings page's audio-device list uses
+        it (**[iw]**), and for the same reason: these three carry the
+        longest text in the app and **none of it is ours**. A track's
+        DisplayTitle comes from whoever made the file -- "Signs & Songs -
+        English - SUBRIP", "Surround 5.1 - English - DTS-HD MA - Default" --
+        and at 300px every row of it ellipsizes to the same prefix, so the
+        picker offers a choice it cannot show. Version names are the same:
+        they are the user's own directory or edition labels.
+
+        The OPEN list widens, not the control. A control wider than 300
+        would put these rows out of line with everything else on the page,
+        and it is closed almost all of the time; the popup takes only as
+        much of the allowance as its widest item needs.
+        """
         return Row([Text(label, w=90, size=16, color=theme.SUBTLE_FG),
                     Dropdown(node_id, names, selected=selected, w=300,
+                             popup_w=DetailPage.PICKER_POPUP_W,
                              on_select=on_select)], gap=8, align="center")
 
     # -- media info --------------------------------------------------------

@@ -333,8 +333,25 @@ def get_profile(
 
 
 def get_sub_display_title(stream: dict):
+    """What to call a subtitle track in a picker.
+
+    **The server's own ``DisplayTitle`` first.** That is the string
+    jellyfin-web shows, and it is the only one carrying the *author's* label
+    for the track -- which is the whole distinction between "Signs & Songs"
+    and "Full" on a release that ships both. Built from Language / Forced /
+    Codec instead, those two tracks come out as the same text and the picker
+    offers a choice it cannot express (**[iw]**).
+
+    The constructed form stays as the fallback, for a stream that has no
+    DisplayTitle: an offline item rebuilt from the local catalog, or an
+    older server. It also keeps ``Forced`` out of the composed label when
+    DisplayTitle is used, since the server has already put it there.
+    """
+    display = (stream.get("DisplayTitle") or "").strip()
+    if display:
+        return display
     return "{0}{1} ({2})".format(
-        stream.get("Language", _("Unkn")).capitalize(),
+        (stream.get("Language") or _("Unkn")).capitalize(),
         _(" Forced") if stream.get("IsForced") else "",
         stream.get("Codec"),
     )

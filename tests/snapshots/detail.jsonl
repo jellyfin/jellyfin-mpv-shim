@@ -36,9 +36,9 @@
 {"c": "e8e8e8", "h": 18.0, "id": "r.1.0.5.3.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 12 2 b 6.48 2 2 6.48 2 12 b 2 17.52 6.48 22 12 22 b 17.52 22 22 17.52 22 12 b 22 6.48 17.52 2 12 2 m 13 17 l 11 17 l 11 11 l 13 11 l 13 17 m 13 9 l 11 9 l 11 7 l 13 7 l 13 9", "sc": "detail", "t": "icon", "w": 18.0, "x": 377.6, "y": 695.2}
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.5.3.1", "sc": "detail", "size": 16, "t": "text", "text": "Media Info", "w": 77.9, "x": 402.6, "y": 694.2}
 {"align": "left", "c": "9aa0a6", "h": 20.0, "id": "r.1.0.6.0", "sc": "detail", "size": 16, "t": "text", "text": "Audio", "w": 90.0, "x": 16.0, "y": 749.2}
-{"h": 38.0, "id": "dt-audio", "items": ["English 5.1"], "sc": "detail", "sel": 0, "size": 20, "t": "dropdown", "w": 300.0, "x": 114.0, "y": 740.2}
+{"h": 38.0, "id": "dt-audio", "items": ["English 5.1"], "pw": 300.0, "sc": "detail", "sel": 0, "size": 20, "t": "dropdown", "w": 300.0, "x": 114.0, "y": 740.2}
 {"align": "left", "c": "9aa0a6", "h": 20.0, "id": "r.1.0.7.0", "sc": "detail", "size": 16, "t": "text", "text": "Subtitle", "w": 90.0, "x": 16.0, "y": 803.2}
-{"h": 38.0, "id": "dt-sub", "items": ["None", "English"], "sc": "detail", "sel": 0, "size": 20, "t": "dropdown", "w": 300.0, "x": 114.0, "y": 794.2}
+{"h": 38.0, "id": "dt-sub", "items": ["None", "English"], "pw": 300.0, "sc": "detail", "sel": 0, "size": 20, "t": "dropdown", "w": 300.0, "x": 114.0, "y": 794.2}
 {"align": "left", "c": "e8e8e8", "h": 22.5, "id": "r.1.0.8", "sc": "detail", "size": 18, "t": "text", "text": "A short overview. A short overview. A short overview. A short overview. A short overview. A short overview. A short overview. A short overview.", "w": 1238.0, "x": 16.0, "y": 848.2}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.9.0", "sc": "detail", "size": 24, "t": "text", "text": "Cast & Crew", "w": 152.7, "x": 16.0, "y": 886.8}
 {"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "detail-people", "sc": "detail", "t": "scroll", "w": 160.0, "x": 16.0, "y": 926.8}
