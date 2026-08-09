@@ -100,33 +100,6 @@ class PlanTest(unittest.TestCase):
             [("seek_right", "right", "seek 5 exact"),
              ("seek_left", "left", "seek -5 exact")])
 
-"""Carrying the user's key choices into input.conf (#16).
-
-The shim expressed "which key pauses" as a setting of its own and bound it
-in Python. #16 gives those keys back to mpv — but a user who *changed* one
-made a real choice, and dropping the binding without carrying it across
-would silently undo it.
-
-Two things are load-bearing and neither is obvious: where in the file it
-writes, and what it declines to write at all.
-"""
-
-import os
-import sys
-import tempfile
-import unittest
-
-sys.argv = [sys.argv[0]]
-
-from jellyfin_mpv_shim import input_conf                       # noqa: E402
-from jellyfin_mpv_shim.conf import Settings                    # noqa: E402
-
-
-def _settings(**kw):
-    return Settings().parse_obj(kw)
-
-
-
     def test_web_seek_stops_the_distances_moving(self):
         """It replaces the distance with jellyfin-web's variable one, which
         mpv cannot express — so those users keep a live CLAIM on whatever
