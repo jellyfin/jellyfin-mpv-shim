@@ -151,5 +151,63 @@ class ConstructRetryTest(unittest.TestCase):
         self.assertIsNone(me._lua_works)
 
 
+class RediscoveryTest(unittest.TestCase):
+    """The answer is learned once, not once per mpv.
+
+    `_init_mpv` runs again on every re-creation -- an idle-quit then a
+    cast, `set_browse_window`, `force_window`. Re-learning "this mpv has no
+    --osc" costs a failed construction each time, and on the external
+    backend a failed construction is the entire start-retry budget
+    (~31s with the shipped defaults) paid before anything plays.
+    """
+
+    def _construct(self, lua_works, factory, options):
+        from jellyfin_mpv_shim import player
+
+        me = mock.Mock()
+        me._lua_works = lua_works
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.side_effect = factory
+            got = player.PlayerManager._construct_mpv(me, options)
+        return got, fake_mpv.MPV.call_args_list, me
+
+    @staticmethod
+    def _rejects_osc():
+        def factory(**kw):
+            if "osc" in kw:
+                raise _libmpv_error()
+            return "player"
+        return factory
+
+    def test_a_known_no_lua_mpv_is_not_probed_again(self):
+        _got, calls, _me = self._construct(False, self._rejects_osc(),
+                                           {"osc": False, "vo": "gpu"})
+        self.assertEqual(len(calls), 1, "it paid the failed construction "
+                         "again on an mpv already known to have no lua")
+        self.assertNotIn("osc", calls[0].kwargs)
+        self.assertEqual(calls[0].kwargs["vo"], "gpu")
+
+    def test_it_still_costs_one_discovery_the_first_time(self):
+        _got, calls, me = self._construct(None, self._rejects_osc(),
+                                          {"osc": False})
+        self.assertEqual(len(calls), 2)
+        self.assertIs(me._lua_works, False)
+
+    def test_a_working_mpv_is_never_shortcut(self):
+        # _lua_works True must not drop --osc: that mpv has an OSC and we
+        # are turning it off on purpose.
+        _got, calls, _me = self._construct(True, lambda **kw: "player",
+                                           {"osc": False})
+        self.assertEqual(len(calls), 1)
+        self.assertIs(calls[0].kwargs["osc"], False)
+
+    def test_the_shortcut_needs_the_option_to_be_present(self):
+        # Nothing to drop, so nothing special to do.
+        _got, calls, _me = self._construct(False, lambda **kw: "player",
+                                           {"vo": "gpu"})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].kwargs["vo"], "gpu")
+
+
 if __name__ == "__main__":
     unittest.main()

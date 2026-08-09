@@ -750,6 +750,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """
         from .mpv_options import OSC_OPTION
 
+        if self._lua_works is False and OSC_OPTION in mpv_options:
+            # Already discovered, on a previous mpv. Re-learning it costs a
+            # failed construction every time, and on the external backend a
+            # failed construction is the whole start-retry budget --
+            # measured at ~31s with the shipped defaults, paid on every
+            # re-open (idle-quit then a cast, set_browse_window,
+            # force_window) before anything plays.
+            mpv_options = {k: v for k, v in mpv_options.items()
+                           if k != OSC_OPTION}
+            return mpv.MPV(**kwargs, **mpv_options)
+
         try:
             return mpv.MPV(**kwargs, **mpv_options)
         except Exception:
