@@ -336,7 +336,7 @@ class GridPage(Page):
         # read once and rarely touched do not earn permanent space on a
         # filter row already carrying a sort, three filters and a shuffle.
         header: list = [Row([
-            Text(route.get("title", ""), size=26, bold=True),
+            Text(route.get("title", ""), size="page", bold=True),
             Spacer(flex=1),
             controls.action_btn("settings", _("View"), "grid-viewcfg",
                                 self._open_view_settings, size=16),
@@ -350,7 +350,7 @@ class GridPage(Page):
         # show what it had not fetched.
         if not self._pages.enabled():
             header.append(Text(_("%d items") % (route.get("_total") or 0),
-                               size=14, color=theme.SUBTLE_FG))
+                               size="caption", color=theme.SUBTLE_FG))
         return header
 
     def _view_controls(self):
@@ -437,7 +437,7 @@ class GridPage(Page):
             # flex + align="center" centres the glyph horizontally; a bare
             # Text is packed at the box's left edge (Box only centres on its
             # cross axis), which left every letter hugging its left border.
-            Box([Text(ch, size=15, align="center", flex=1,
+            Box([Text(ch, size="small", align="center", flex=1,
                       color=theme.ACCENT_FG if cur_letter == ch
                       else theme.SUBTLE_FG)],
                 id="grid-l-" + ch, w=26, h=26, align="center",
@@ -474,7 +474,7 @@ class GridPage(Page):
             self.route, ps, self._page_fetcher(),
             seed=self.route.get("_items"))
         if page_items is None:
-            body = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
+            body = [Text(_("Loading…"), size="large", color=theme.SUBTLE_FG)]
         else:
             body = tiles.grid_of(page_items, "grid", size, geom=geom,
                                  image_type=image_type, labels=labels)
@@ -616,7 +616,7 @@ class GridPage(Page):
         while the list route was being built on top of it.
         """
         return Row([
-            Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
+            Text(_("Sort"), size="small", color=theme.SUBTLE_FG),
             Dropdown("%s-sort" % self.kind, [s[0] for s in self._sorts()],
                      selected=self.route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
@@ -1090,13 +1090,13 @@ class ListPage(GridPage):
         return getattr(self.ctx.art, attr), image_type
 
     def _header(self, items, width=0):
-        header = [Text(self.route.get("title", ""), size=26, bold=True)]
+        header = [Text(self.route.get("title", ""), size="page", bold=True)]
         if self._sortable():
             header.append(self._sort_bar())
         if not self._pages.enabled():
             header.append(
                 Text(_("%d items") % (self.route.get("_total") or 0),
-                     size=14, color=theme.SUBTLE_FG))
+                     size="caption", color=theme.SUBTLE_FG))
         return header
 
 
@@ -1142,6 +1142,6 @@ class PersonPage(GridPage):
         self.route_async(work, done, epoch)
 
     def _header(self, items, width=0):
-        return [Text(self.route.get("title", ""), size=26, bold=True),
+        return [Text(self.route.get("title", ""), size="page", bold=True),
                 self._sort_bar()]
 

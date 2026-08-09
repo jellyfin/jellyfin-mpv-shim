@@ -165,6 +165,29 @@ def heading_size():
     return (_active or {}).get("heading_size") or tk.size("HEADING")
 
 
+def baked_text(physical_px):
+    """A **physical** text size, with the user's multiplier and floor.
+
+    For text Pillow bakes into a bitmap -- the banner heading, the cast
+    screen's lines. Those never pass through a widget, so they received
+    neither the multiplier nor the readability floor, and a floor of 20
+    left a banner's meta line at 19px beside body copy at 20. In
+    `headless` mode the cast screen is the only page there is, so nothing
+    on screen was floored at all.
+
+    Takes and returns physical pixels because that is the space these
+    compositors work in; `theme.text_size` is the logical-space twin.
+    """
+    from ..mpvtk import theme as tk
+    from ..mpvtk.scaling import px
+
+    try:
+        value = int(round(float(physical_px) * tk.text_factor()))
+    except (TypeError, ValueError):
+        return int(physical_px)
+    return max(value, int(px(tk.min_size())), 1)
+
+
 def apply_to_toolkit(glow=False):
     """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so every
     widget default and every control the renderer draws for itself follows

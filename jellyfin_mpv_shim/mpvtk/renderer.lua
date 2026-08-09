@@ -1120,6 +1120,21 @@ local function tb_menu_items(node)
     return { 'Cut', 'Copy', 'Paste', 'Select All' }
 end
 
+-- ui_px for TEXT: the user's multiplier and the readability floor on top.
+-- Chrome composed here never passes through a widget, so without this the
+-- tooltip, the context menu and the scrub preview bubble stayed at their
+-- authored size while every other label moved.
+--
+-- A field on `state` rather than a file-scope local: this chunk is AT
+-- LuaJIT's 200-local ceiling, and one more is a load error rather than a
+-- warning (mpvtk GUIDE; CLAUDE.md says the same).
+function state.text_px(v)
+    return math.max(
+        math.floor(v * (state.scale or 1) * (state.tscale or 1) + 0.5),
+        state.tmin or 0, 1)
+end
+
+
 local function ui_px(v)
     -- Logical -> physical for chrome that is composed HERE and so never
     -- passes through Python's scale_scene: the textbox context menu and
@@ -1132,7 +1147,7 @@ local function tb_menu_geometry(items)
     local n = #items
     local ih = ui_px(34)
     local w = ui_px(40)
-    local fs = ui_px(18)
+    local fs = state.text_px(18)
     for _, item in ipairs(items) do
         w = math.max(w, text_w(item, fs) + ui_px(32))
     end
@@ -1374,7 +1389,7 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local open = state.dd_open == node.id
     if node.ticon then
         local hovered = open or state.hover_id == node.id
-        local isz = math.floor(node.size * 1.2)
+        local isz = math.floor(node.isz or (node.size * 1.2))
         if node.tchip then
             -- Button trigger (the now-playing bar's chapter picker): a
             -- filled rounded square, matching the transport buttons it
@@ -1400,9 +1415,13 @@ local function draw_dropdown(ass, node, ex, ey, clip)
                     clip = clip,
                 })
         end
+        -- on_surface, not on_surface_muted: this trigger is the playback
+        -- HUD's track pickers, drawn over the picture beside flat Buttons
+        -- that pass fg="eeeeee". Muted is an app-chrome token and left
+        -- these four glyphs visibly grey against their white neighbours.
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
-            hovered and state.accent or state.tok.on_surface_muted, clip)
+            hovered and state.accent or state.tok.on_surface, clip)
         return
     end
     draw_rect(ass, ex, ey, node.w, node.h, {
@@ -2024,7 +2043,7 @@ render = function()
     if state.tip then
         local tnode = state.byid[state.tip]
         if tnode and tnode.tip and state.hover_id == state.tip then
-            local tfs = ui_px(15)
+            local tfs = state.text_px(15)
             local tw = text_w(tnode.tip, tfs) + ui_px(18)
             local th = ui_px(26)
             local tx = clamp(state.mouse.x + ui_px(12), 2,
@@ -2298,7 +2317,7 @@ render = function()
     local pv_node = pv_id and state.byid[pv_id]
     if pv_node and pv_secs and (pv_node.max or 0) > 0 then
         local pad, gap = ui_px(8), ui_px(4)
-        local fs = ui_px(14)
+        local fs = state.text_px(14)
         local lh = math.floor(fs * PHUD_SKIP_LINE_H)
         -- Which frame of the tile file, if there is one. BIF data is
         -- evenly spaced (multiplier ms apart); the chapter-image fallback
@@ -5037,10 +5056,20 @@ mp.register_script_message('mpvtk-scale', function(json)
     -- Same rounding as Python's scaling.px(); SLIDER_PAD in particular must
     -- land on the identical value or clicks seek to the wrong time.
     local function sc(v) return math.floor(v * s + 0.5) end
+    -- Text the renderer composes itself takes the user's multiplier and
+    -- the readability floor as well; geometry above takes neither. A
+    -- text scale that resized the slider padding would move where a
+    -- click seeks, and the floor is about legibility, not layout.
+    state.tscale = tonumber(t.t) or 1
+    if state.tscale <= 0 then state.tscale = 1 end
+    state.tmin = math.floor((tonumber(t.m) or 0) * s + 0.5)
+    local function tsc(v)
+        return math.max(math.floor(v * s * state.tscale + 0.5), state.tmin, 1)
+    end
     WHEEL_STEP = sc(_SCALE_BASE.WHEEL_STEP)
     SLIDER_PAD = sc(_SCALE_BASE.SLIDER_PAD)
     PHUD_SKIP_BOTTOM = sc(_SCALE_BASE.PHUD_SKIP_BOTTOM)
-    PHUD_SKIP_FS = sc(_SCALE_BASE.PHUD_SKIP_FS)
+    PHUD_SKIP_FS = tsc(_SCALE_BASE.PHUD_SKIP_FS)
     PHUD_SKIP_PAD = sc(_SCALE_BASE.PHUD_SKIP_PAD)
     PHUD_SKIP_RIGHT = sc(_SCALE_BASE.PHUD_SKIP_RIGHT)
     NAV_LEAD = sc(_SCALE_BASE.NAV_LEAD)

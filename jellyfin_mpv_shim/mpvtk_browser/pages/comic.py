@@ -512,7 +512,7 @@ class ComicPage(Page):
             message = _("The download failed.")
         else:
             message = _("Getting the comic…")
-        return Column([Spacer(), Text(message, size=18,
+        return Column([Spacer(), Text(message, size="large",
                                       color=theme.SUBTLE_FG, align="center"),
                        Spacer()], flex=1, align="center")
 
@@ -522,7 +522,7 @@ class ComicPage(Page):
             Button("", id="cm-back", icon="arrow_back", w=34, h=34, pad=0,
                    justify="center", tip=_("Back"),
                    on_click=self.ctx.nav.go_back),
-            Text(title, size=15, color=theme.TEXT_FG, flex=1),
+            Text(title, size="small", color=theme.TEXT_FG, flex=1),
         ], h=TOP_BAR_H, pad=(10, 4), gap=10, align="center",
             bg=theme.PANEL_BG)
 
@@ -544,31 +544,31 @@ class ComicPage(Page):
                      _("Next page"), index + 1 < total),
         ]
         if total:
-            children.append(Text(_("of %d") % total, size=14,
+            children.append(Text(_("of %d") % total, size="caption",
                                  color=theme.SUBTLE_FG))
             # A box rather than a label: a comic is the one thing in the
             # library people jump around inside by number.
             children.insert(2, TextBox(
-                "cm-page", str(index + 1), w=56, size=14,
+                "cm-page", str(index + 1), w=56, size="caption",
                 on_submit=self._jump))
         children.append(Spacer())
         if not narrow:
             children.append(Dropdown(
                 "cm-mode", [_("Fit Width"), _("Fit Page")],
-                selected=0 if self.mode() == FIT_WIDTH else 1, size=14,
+                selected=0 if self.mode() == FIT_WIDTH else 1, size="caption",
                 w=140, on_select=lambda i, _v=None:
                     self._set_mode(FIT_WIDTH if i == 0 else FIT_PAGE)))
         # Text, not glyphs: the generated Material set has `add` but no
         # `remove`, and one icon beside one character reads as a mistake.
         # The epub reader's type-size buttons made the same call.
         def zoom_btn(label, node_id, cb, tip):
-            return Button(label, id=node_id, w=34, h=34, pad=0, size=19,
+            return Button(label, id=node_id, w=34, h=34, pad=0, size="large",
                           justify="center", tip=tip, on_click=cb)
 
         children += [
             zoom_btn("\u2212", "cm-zoom-out", lambda: self._step_zoom(-1),
                      _("Zoom out")),
-            Text("%d%%" % round(self.zoom() * 100), size=14,
+            Text("%d%%" % round(self.zoom() * 100), size="caption",
                  color=theme.SUBTLE_FG, w=52, align="center"),
             zoom_btn("+", "cm-zoom-in", lambda: self._step_zoom(1),
                      _("Zoom in")),

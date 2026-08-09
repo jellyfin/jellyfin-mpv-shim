@@ -328,7 +328,15 @@ class Icon(Element):
         # Resolved here, not in the signature: a default argument is
         # evaluated once at import, and the type scale is set by the
         # app at startup and again on a theme swap.
-        size = theme.size('NORMAL') if size is None else theme.text_size(size)
+        # An EXPLICIT size is geometry and stays put: scaling the whole
+        # interface -- controls, artwork, spacing -- is what `ui_scale`
+        # does, and having the text multiplier resize icons too would make
+        # it a second, partial copy of that. [iw]: "that would basically
+        # just be the dpi setting which we already have."
+        #
+        # No size at all still resolves to a tier, because an icon with no
+        # opinion is standing in for a line of text and should match it.
+        size = theme.size('NORMAL') if size is None else int(size)
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
@@ -508,9 +516,15 @@ class Checkbox(Row):
         # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         off = bool(kw.get("disabled"))
+        # Sized from the label it sits beside, not a constant. The 20 it
+        # was is what a 20px label needed; once the control default moved
+        # to 17 the square nearly filled its own row (row height 25 -> 21
+        # with an unchanged 20px box inside it). 1.18x is that original
+        # ratio, so the tick keeps its proportions at any type size.
+        _tick = max(12, int(round(size * 1.18)))
         box = Box(
-            w=20,
-            h=20,
+            w=_tick,
+            h=_tick,
             bg=((theme.ACCENT if not off else theme.CONTROL_SUNKEN)
                 if checked else theme.CONTROL_SUNKEN),
             border=(theme.OUTLINE_STRONG
@@ -519,7 +533,7 @@ class Checkbox(Row):
             align="center",
             direction="row",
             children=(
-                [Text("✓", size=15, align="center", flex=1,
+                [Text("✓", size="small", align="center", flex=1,
                       color=(theme.ON_SURFACE_FAINT if off
                              else theme.ON_ACCENT))]
                 if checked
@@ -885,6 +899,12 @@ class Dialog(Element):
         self.on_dismiss = on_dismiss
 
 
+#: Nominal size of an icon-only Dropdown trigger, in logical px. Not a
+#: type size: it is the side of a square button, and it stays put while
+#: the type scale moves.
+ICON_TRIGGER = 20
+
+
 class Dropdown(Element):
     """``trigger_icon`` replaces the boxed control with a bare Material
     icon (translucent hover wash, no border/arrow/label) — the playback
@@ -912,6 +932,7 @@ class Dropdown(Element):
         on_select=None,
         force=False,
         trigger_icon=None,
+        icon_size=None,
         # Draw the icon trigger as a filled, rounded BUTTON rather than the
         # chromeless glyph the playback HUD uses. The HUD's controls float
         # over video, where a bare glyph with a hover wash is right; the
@@ -929,8 +950,32 @@ class Dropdown(Element):
         # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         if trigger_icon:
-            kw.setdefault("w", int(size * 1.9))
-            kw.setdefault("h", int(size * 1.9))
+            # The trigger's BOX, from the icon rather than from the text.
+            #
+            # `size` on a Dropdown means two unrelated things -- the type
+            # size of the popup's rows, and (here) the dimensions of the
+            # control. Only the first belongs on a type scale, and tying
+            # the second to it shrank the playback HUD's Chapters,
+            # Subtitles, Audio and Video-quality buttons when the control
+            # default moved 20 -> 17, while every other HUD button (a real
+            # Icon, sized on its own) stayed put [iw].
+            #
+            # ICON_TRIGGER is the size those buttons were, so the control
+            # is stable under a theme's type choices -- and a user who
+            # wants a bigger touch target has Interface Scale, which is
+            # what scales controls.
+            # Sized from the ICON, not from the type. `size` on a
+            # Dropdown means two unrelated things -- the type size of the
+            # popup's rows and, here, the button -- and only the first
+            # belongs on a type scale.
+            # Geometry, like `Icon`'s explicit size: the trigger is a
+            # control, and controls follow `ui_scale`, not the text
+            # multiplier. This is what keeps it the same size as the HUD
+            # transport buttons beside it at every setting.
+            glyph = int(icon_size or ICON_TRIGGER * 1.2)
+            box = int(glyph / 1.2 * 1.9)
+            kw.setdefault("w", box)
+            kw.setdefault("h", box)
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.selected = selected
@@ -939,6 +984,7 @@ class Dropdown(Element):
         self.on_select = on_select
         self.force = force
         self.trigger_icon = trigger_icon
+        self.icon_size = icon_size
         self.trigger_chip = trigger_chip
         self.popup_w = popup_w
 

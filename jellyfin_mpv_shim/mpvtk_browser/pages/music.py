@@ -71,13 +71,13 @@ class MusicPage(Page):
         scale matrix is what found it -- it was doing this at 1x on any
         window narrower than the overview is long.
         """
-        out = [Text(item.get("Name") or self.route.get("title", ""), size=28,
+        out = [Text(item.get("Name") or self.route.get("title", ""), size="hero",
                     bold=True)]
         meta = [x for x in (detail_components.meta_line(item),
                             (_("%d tracks") % len(tracks)) if tracks else "")
                 if x]
         if meta:
-            out.append(Text("   ·   ".join(meta), size=15,
+            out.append(Text("   ·   ".join(meta), size="small",
                             color=theme.SUBTLE_FG))
         overview = (item.get("Overview") or "").strip()
         if overview:
@@ -329,7 +329,7 @@ class MusicLibraryPage(MusicPage):
         page_items = art.pages.ensure(self.route, ps, self._page_fetcher(),
                                       seed=self.route.get("_data"))
         if page_items is None:
-            rows = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
+            rows = [Text(_("Loading…"), size="large", color=theme.SUBTLE_FG)]
         else:
             rows = art.tiles.grid_of(page_items, "music", size, geom=geom)
         return Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,

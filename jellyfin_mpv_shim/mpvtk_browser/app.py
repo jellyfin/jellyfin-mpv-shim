@@ -1361,7 +1361,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                           on_click=lambda: self._page_go(route, target))
 
         return Row([
-            Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+            Text(_("Page"), size="small", color=theme.SUBTLE_FG),
             # force: the box tracks the current page, so paging with the
             # buttons updates the number rather than leaving a stale edit.
             # on_commit as well as on_submit: ENTER jumps, and so does clicking
@@ -1371,7 +1371,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             TextBox("pg-jump", text=str(cur + 1), w=64, force=True,
                     on_submit=lambda s: self._page_jump(route, s),
                     on_commit=lambda s: self._page_jump(route, s)),
-            Text(_("of %d") % npages, size=15, color=theme.SUBTLE_FG),
+            Text(_("of %d") % npages, size="small", color=theme.SUBTLE_FG),
             Spacer(),
             nav("first_page", "pg-first", 0, _("First page")),
             nav("chevron_left", "pg-prev", cur - 1, _("Previous page")),
@@ -2755,7 +2755,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         return Box([
             Spacer(),
             Row([Spacer(),
-                 Text(route["_error"], size=20, color=theme.SUBTLE_FG),
+                 Text(route["_error"], size="large", color=theme.SUBTLE_FG),
                  Spacer()]),
             Row([Spacer(),
                  Button(_("Retry"), id="route-retry", icon="refresh",

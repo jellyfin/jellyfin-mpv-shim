@@ -73,7 +73,7 @@ class DialogsMixin:
         dialog, and a flat list of every playlist made it unusably tall.
         """
         if not entries:
-            return Text(empty_text, size=15, color=theme.SUBTLE_FG)
+            return Text(empty_text, size="small", color=theme.SUBTLE_FG)
         rows = [Button(e.get("Name", ""), id="%s-%d" % (node_id, i),
                        on_click=lambda eid=e.get("Id"): on_pick(eid))
                 for i, e in enumerate(entries)]
@@ -91,7 +91,7 @@ class DialogsMixin:
         def build():
             named = bool((self._addto_name.get("name") or "").strip())
             rows = [
-                Text(_("Add to Playlist"), size=22, bold=True),
+                Text(_("Add to Playlist"), size="title", bold=True),
                 self._picker_list(
                     "add-pl", playlists,
                     lambda pid: self._add_to(server, pid, item_id),
@@ -172,7 +172,7 @@ class DialogsMixin:
 
         def build():
             rows = [
-                Text(_("Add to Collection"), size=22, bold=True),
+                Text(_("Add to Collection"), size="title", bold=True),
                 self._picker_list(
                     "add-col", collections,
                     lambda cid: self._add_to_col(server, cid, item_id),
@@ -309,15 +309,15 @@ class DialogsMixin:
                 attrs = media_info.stream_attributes(stream, src)
                 if not attrs:
                     continue
-                rows.append(Text(media_info.stream_heading(stream), size=17,
+                rows.append(Text(media_info.stream_heading(stream), size="normal",
                                  bold=True, color=theme.ACCENT))
                 for label, value in attrs:
                     rows.append(self._minfo_row(label, value))
             if not rows:
                 rows.append(Text(_("No media information is available."),
-                                 size=15, color=theme.SUBTLE_FG))
+                                 size="small", color=theme.SUBTLE_FG))
             return Dialog("minfo", self._dialog_shell("minfo", [
-                Text(_("Media Info"), size=22, bold=True),
+                Text(_("Media Info"), size="title", bold=True),
                 chrome.paragraph(item.get("Name") or "", 16,
                                  self.MESSAGE_W, color=theme.SUBTLE_FG),
                 VScroll(Column(rows, gap=6, align="stretch"),
@@ -344,9 +344,9 @@ class DialogsMixin:
     def _minfo_row(self, label, value):
         """One labelled attribute, wrapped rather than ellipsized."""
         return Row([
-            Text(label, size=15, color=theme.SUBTLE_FG,
+            Text(label, size="small", color=theme.SUBTLE_FG,
                  w=self.MINFO_LABEL_W),
-            Text(value, size=15, wrap=True, w=self.MINFO_VALUE_W),
+            Text(value, size="small", wrap=True, w=self.MINFO_VALUE_W),
         ], gap=8, align="start")
 
     def _pick_media_info_source(self, index, _value):
@@ -413,9 +413,9 @@ class DialogsMixin:
         def build():
             est = dl["est"]
             if dl.get("error"):
-                info = Text(dl["error"], size=15, color=theme.FAV_RED)
+                info = Text(dl["error"], size="small", color=theme.FAV_RED)
             elif est is None:
-                info = Text(_("Estimating…"), size=15, color=theme.SUBTLE_FG)
+                info = Text(_("Estimating…"), size="small", color=theme.SUBTLE_FG)
             else:
                 line = _("%(count)d items · %(size)s") % {
                     "count": est.get("count", 0),
@@ -436,13 +436,13 @@ class DialogsMixin:
                                  % est["unsized_count"])
                 if extra:
                     line += "   (" + ", ".join(extra) + ")"
-                info = Text(line, size=15, color=theme.SUBTLE_FG)
+                info = Text(line, size="small", color=theme.SUBTLE_FG)
             return Dialog("download", self._dialog_shell("download", [
                 # The dialog's NOUN heading. The button below it and the
                 # tile menu entry are the verb, and German splits them:
                 # Download vs Herunterladen.
-                Text(_p("dialog heading", "Download"), size=22, bold=True),
-                Text(dl["item"].get("Name", ""), size=17),
+                Text(_p("dialog heading", "Download"), size="title", bold=True),
+                Text(dl["item"].get("Name", ""), size="normal"),
                 info,
             ] + ([Checkbox(_("Include watched"), dl["watched"],
                            id="dl-watched",
@@ -461,7 +461,7 @@ class DialogsMixin:
                     if est is not None and est.get("count", 0) else
                     Text(_("Estimating…") if est is None
                          else _("Nothing left to download."),
-                         size=15, color=theme.SUBTLE_FG)]),
+                         size="small", color=theme.SUBTLE_FG)]),
             ], w=460), on_dismiss=self._close_download)
         self._show_dialog(build)
 
@@ -550,7 +550,7 @@ class DialogsMixin:
                 Text(_("“Auto” shapes the tiles from the artwork itself, "
                        "which usually comes out as posters. Choose "
                        "“Poster” to insist on them."),
-                     size=13, color=theme.SUBTLE_FG, wrap=True),
+                     size="caption", color=theme.SUBTLE_FG, wrap=True),
                 Checkbox(_("Show titles"), bool(current("showTitle")),
                          id="vs-showtitle",
                          on_toggle=lambda: on_set(
@@ -572,7 +572,7 @@ class DialogsMixin:
                              view_prefs.GRID_IMAGE_TYPE if _is_list(current)
                              else view_prefs.LIST_IMAGE_TYPE)),
                 Text(_("These are stored on your server and shared with "
-                       "Jellyfin Web."), size=13, color=theme.SUBTLE_FG,
+                       "Jellyfin Web."), size="caption", color=theme.SUBTLE_FG,
                      wrap=True),
             ]
             device = self._cover_size_row()
@@ -589,7 +589,7 @@ class DialogsMixin:
                              on_toggle=toggle),
                     Text(_("Show one page of tiles at a time instead of "
                            "scrolling. Applies to every library on this "
-                           "device."), size=13, color=theme.SUBTLE_FG,
+                           "device."), size="caption", color=theme.SUBTLE_FG,
                          wrap=True),
                 ]
             if device:
@@ -598,7 +598,7 @@ class DialogsMixin:
                 # on the server, everything under it is this device's.
                 body += [Box(h=1, bg=theme.BORDER)] + device
             return Dialog("viewcfg", self._dialog_shell("viewcfg", [
-                Text(_("View Settings"), size=22, bold=True),
+                Text(_("View Settings"), size="title", bold=True),
                 Column(body, gap=12, align="stretch"),
                 self._dialog_buttons([
                     Button(_("Done"), id="vs-done",
@@ -633,10 +633,10 @@ class DialogsMixin:
                 self.apply_cover_size()
 
         return [
-            Row([Text(_("Cover Size"), w=150, size=16,
+            Row([Text(_("Cover Size"), w=150, size="normal",
                       color=theme.SUBTLE_FG),
                  Dropdown("vs-coversize", [lbl for lbl, _v in opts],
-                          selected=sel, w=200, size=16, force=True,
+                          selected=sel, w=200, size="normal", force=True,
                           on_select=pick)],
                 gap=8, align="center"),
         ]
@@ -679,7 +679,7 @@ class DialogsMixin:
                    "drawn for, and shadows the ones whose own outline is "
                    "white. Off puts the theme's card colour behind them "
                    "instead, with no shadows."),
-                 size=13, color=theme.SUBTLE_FG, wrap=True),
+                 size="caption", color=theme.SUBTLE_FG, wrap=True),
         ]
 
     @staticmethod
@@ -707,7 +707,7 @@ class DialogsMixin:
             from .components import chrome
 
             return Dialog("msg", self._dialog_shell("msg", [
-                Text(title, size=22, bold=True),
+                Text(title, size="title", bold=True),
                 # Wrapped, not a bare Text. A plain one ellipsizes at the
                 # shell's width, which is fine for "Recording scheduled."
                 # and self-defeating for a dialog whose entire content is
@@ -760,7 +760,7 @@ class DialogsMixin:
             from .components import chrome
 
             rows = [
-                Text(title, size=22, bold=True),
+                Text(title, size="title", bold=True),
                 chrome.paragraph(text, 16, self.MESSAGE_W,
                                  color=theme.SUBTLE_FG),
             ]
@@ -840,7 +840,7 @@ class DialogsMixin:
             # this reads as pages throughout rather than branching on a
             # mode that can only have one value.
             if state["busy"]:
-                current = Text(_("Reading the position…"), size=15,
+                current = Text(_("Reading the position…"), size="small",
                                color=theme.SUBTLE_FG)
             else:
                 total_now = state["total"]
@@ -848,17 +848,17 @@ class DialogsMixin:
                     (_("Page %(page)d of %(total)d") % {
                         "page": state["value"], "total": total_now}
                      if total_now else _("Page %d") % state["value"]),
-                    size=17)
+                    size="normal")
             rows = [
-                Text(_("Reading Progress"), size=22, bold=True),
-                Text(item.get("Name", ""), size=17),
+                Text(_("Reading Progress"), size="title", bold=True),
+                Text(item.get("Name", ""), size="normal"),
                 current,
             ]
             if state["note"]:
-                rows.append(Text(state["note"], size=15,
+                rows.append(Text(state["note"], size="small",
                                  color=theme.SUBTLE_FG))
             rows.append(Row([
-                Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+                Text(_("Page"), size="small", color=theme.SUBTLE_FG),
                 # force=True: a Pull has to be able to move this box. The
                 # renderer keeps its own edit state otherwise, which is
                 # right for a field the user is typing in and wrong for one
@@ -870,7 +870,7 @@ class DialogsMixin:
                         on_change=lambda v: state.__setitem__("typed", v),
                         on_submit=lambda v: self._save_book_progress()),
                 Text(_("of %d") % state["total"] if state["total"] else "",
-                     size=15, color=theme.SUBTLE_FG),
+                     size="small", color=theme.SUBTLE_FG),
             ], gap=10, align="center"))
             rows.append(self._dialog_buttons([
                 Button(_("Close"), id="bkprog-close",
@@ -1039,7 +1039,7 @@ class DialogsMixin:
         multi = len({g.get("server_uuid") for g in groups}) > 1
 
         def build():
-            rows = [Text(_("SyncPlay"), size=22, bold=True)]
+            rows = [Text(_("SyncPlay"), size="title", bold=True)]
             if groups:
                 for i, g in enumerate(groups):
                     gid = g.get("id")
@@ -1068,11 +1068,11 @@ class DialogsMixin:
                             on_click=(self._close_dialog if here else
                                       (lambda gid=gid, srv=g.get("server_uuid"):
                                        self._sync_join(srv or server, gid)))),
-                        Text(who, size=13, color=theme.SUBTLE_FG)
+                        Text(who, size="caption", color=theme.SUBTLE_FG)
                         if who else Spacer(h=0),
                     ], gap=2))
             else:
-                rows.append(Text(_("No active groups."), size=15,
+                rows.append(Text(_("No active groups."), size="small",
                                  color=theme.SUBTLE_FG))
             # Two rows, not one: what you can do to the GROUP, and then what
             # you can do to the dialog. Five buttons on one line ran off the

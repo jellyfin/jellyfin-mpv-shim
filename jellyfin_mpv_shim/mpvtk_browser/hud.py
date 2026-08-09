@@ -140,14 +140,21 @@ def _hud_action(b, verb, arg=None):
     b._ctl(lambda c: c.hud_action(verb, arg))
 
 
-def _option_picker(b, node_id, icon, tip, options, verb):
+#: One glyph size for every icon control on the playback HUD, before the
+#: responsive shrink. The transport buttons were already 30; the track
+#: pickers derived theirs from the type size and came out at 24.
+HUD_ICON = 30
+
+
+def _option_picker(b, node_id, icon, tip, options, verb,
+                   icon_size=None):
     """Icon-trigger dropdown over osc_bridge option dicts
     ([{id, label, selected}]); selecting routes through hud_action so
     the change lands exactly like the lua OSC's menus."""
     sel = next((i for i, o in enumerate(options) if o.get("selected")), 0)
     return Dropdown(
         node_id, [o.get("label") or "" for o in options], selected=sel,
-        force=True, trigger_icon=icon, tip=tip,
+        force=True, trigger_icon=icon, tip=tip, icon_size=icon_size,
         on_select=lambda i, v, opts=options: _hud_action(
             b, verb, opts[i]["id"]))
 
@@ -161,7 +168,7 @@ def _secondary_available(st, subs):
     return len(sub2) > 1 and primary_on
 
 
-def _subtitle_picker(b, st, subs):
+def _subtitle_picker(b, st, subs, icon_size=None):
     """The primary subtitle dropdown, with a trailing 'Secondary…' entry that
     opens the secondary-track submenu (see _menu_rows' 'secondary_sub'). Custom
     rather than _option_picker because that last row opens a menu instead of
@@ -186,10 +193,10 @@ def _subtitle_picker(b, st, subs):
 
     return Dropdown("hud-sub", labels, selected=sel, force=True,
                     trigger_icon="closed_caption", tip=_("Subtitle Track"),
-                    on_select=on_select)
+                    icon_size=icon_size, on_select=on_select)
 
 
-def _chapters(b):
+def _chapters(b, icon_size=None):
     if b.controller is None or not hasattr(b.controller, "chapters"):
         return []
     try:
@@ -212,7 +219,7 @@ def _chapter_jump(b, direction):
     b._ctl(lambda c: c.chapter_seek(direction))
 
 
-def _pickers(b, menu_state, pos, chapters, tiers):
+def _pickers(b, menu_state, pos, chapters, tiers, icon_size=None):
     """Right-aligned controls: chapters, audio/subtitle tracks, quality
     — each only when there is a real choice to make (and the viewport
     has room for it)."""
@@ -230,6 +237,7 @@ def _pickers(b, menu_state, pos, chapters, tiers):
         out.append(Dropdown(
             "hud-chapters", labels, selected=cur, force=True,
             trigger_icon="bookmark", tip=_("Chapters"),
+            icon_size=icon_size,
             on_select=lambda i, v, chs=chapters: b._ctl(
                 lambda c: c.seek(chs[i]["time"]))))
     st = menu_state if menu_state and menu_state.get("has_media") else None
@@ -238,15 +246,16 @@ def _pickers(b, menu_state, pos, chapters, tiers):
     audio = st.get("audio") or []
     if len(audio) > 1:
         out.append(_option_picker(b, "hud-audio", "audiotrack",
-                                  _("Audio Track"), audio, "set-audio"))
+                                  _("Audio Track"), audio, "set-audio",
+                                  icon_size=icon_size))
     subs = st.get("subtitles") or []
     if len(subs) > 1:  # more than just "None"
-        out.append(_subtitle_picker(b, st, subs))
+        out.append(_subtitle_picker(b, st, subs, icon_size))
     quality = st.get("quality") or {}
     if quality.get("options") and tiers["quality"]:
         out.append(_option_picker(b, "hud-quality", "hd",
                                   _("Video Quality"), quality["options"],
-                                  "set-quality"))
+                                  "set-quality", icon_size=icon_size))
     return out
 
 
@@ -617,14 +626,14 @@ def _info_dialog(b, size):
     # scroll of two rows inside the window beats a panel whose Close
     # button is off the bottom of the screen.
     body_h = max(60, min(INFO_MAX_H, win_h - 220))
-    blocks = [Text(_("Playback Info"), size=22, bold=True)]
+    blocks = [Text(_("Playback Info"), size="title", bold=True)]
     if info.get("title"):
-        blocks.append(Text(info["title"], size=16, color=theme.SUBTLE_FG,
+        blocks.append(Text(info["title"], size="normal", color=theme.SUBTLE_FG,
                            wrap=True, w=w - 48))
     body = []
     stats = _ctl_get(b, "player_stats", {}) or {}
     for heading, rows in _info_rows(info, stats):
-        body.append(Text(heading, size=17, bold=True, color=theme.ACCENT))
+        body.append(Text(heading, size="normal", bold=True, color=theme.ACCENT))
         for label, value in rows:
             # An explicit value width rather than flex, for the reason
             # DialogsMixin.MINFO_VALUE_W spells out: a wrap=True Text with
@@ -633,12 +642,12 @@ def _info_dialog(b, size):
             # a transcode reason throws away the end of the sentence.
             label_w = min(160, w // 3)
             body.append(Row([
-                Text(label, size=15, color=theme.SUBTLE_FG, w=label_w),
-                Text(value, size=15, wrap=True,
+                Text(label, size="small", color=theme.SUBTLE_FG, w=label_w),
+                Text(value, size="small", wrap=True,
                      w=max(80, w - 48 - label_w - 8)),
             ], gap=8, align="start"))
     if not body:
-        body.append(Text(_("Nothing is playing."), size=15,
+        body.append(Text(_("Nothing is playing."), size="small",
                          color=theme.SUBTLE_FG))
     blocks.append(VScroll(Column(body, gap=6, align="stretch"),
                           id="hud-info-scroll", h=body_h))
@@ -759,8 +768,6 @@ def build_hud(b, size):
     dur = st.get("duration", 0) or 0
     pp = "play_arrow" if st.get("paused") else "pause"
     scrub = b.hud.scrub
-    chapters = _chapters(b)
-
     # Responsive shrink, mirroring the lua OSC's jellyfin layout:
     # everything scales down to 72% as the window narrows, and the
     # less essential controls drop out at breakpoints (in the spirit
@@ -769,6 +776,13 @@ def build_hud(b, size):
 
     def sz(v):
         return int(v * scale + 0.5)
+
+    # One glyph size for every control on the bar. The track pickers used
+    # to take theirs from `size * 1.2` -- 24px beside the buttons' 30 --
+    # which is a mismatch the baseline has always had [iw] and which the
+    # type scale made worse by moving the control default to 17.
+    picker_icon = sz(HUD_ICON)
+    chapters = _chapters(b, picker_icon)
 
     # A still has no timeline and no sound. mpv reports a duration for one
     # -- --image-display-duration, i.e. when the NEXT photo arrives -- and
@@ -792,7 +806,8 @@ def build_hud(b, size):
         "ends_at": w >= 1000 and not photo,    # wall-clock end time
     }
 
-    def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
+    def tbtn(icon, node_id, cb, autofocus=False, icon_size=HUD_ICON,
+             tip=None,
              repeat=False, fg="eeeeee"):
         return Button("", id=node_id, icon=icon, flat=True, fg=fg,
                       icon_size=sz(icon_size), autofocus=autofocus,
@@ -893,7 +908,8 @@ def build_hud(b, size):
             "favorite" if fav else "favorite_border", "hud-fav",
             lambda: _toggle_hud_favorite(b),
             tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee"))
-    right.extend(_pickers(b, menu_state, pos, chapters, tiers))
+    right.extend(_pickers(b, menu_state, pos, chapters, tiers,
+                          picker_icon))
     muted = bool(st.get("muted"))
     vol = st.get("volume", 100) or 0
     if tiers["volume"]:

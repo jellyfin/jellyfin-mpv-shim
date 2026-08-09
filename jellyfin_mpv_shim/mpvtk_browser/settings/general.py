@@ -65,7 +65,7 @@ class GeneralTabMixin:
                         on_toggle=lambda: self._toggle_advanced(route)))
                 if not show_adv:
                     continue
-            rows.append(Text(title, size=20, bold=True))
+            rows.append(Text(title, size="large", bold=True))
             notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))
@@ -78,7 +78,7 @@ class GeneralTabMixin:
                     if note:
                         # An explanatory line under the setting it belongs to;
                         # the settings it qualifies follow directly below.
-                        rows.append(Text(note, size=14,
+                        rows.append(Text(note, size="caption",
                                          color=theme.SUBTLE_FG, wrap=True))
             if title == _("Theme"):
                 # Theme used to be read once at startup like the other two,
@@ -90,9 +90,9 @@ class GeneralTabMixin:
                 # warning about the control you are looking at.
                 rows.append(Text(
                     _("Interface scale requires a restart."),
-                    size=14, color=theme.SUBTLE_FG, wrap=True))
+                    size="caption", color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
-                         size=14, color=theme.SUBTLE_FG))
+                         size="caption", color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings", flex=1)
@@ -161,7 +161,7 @@ class GeneralTabMixin:
                              w=self.FIELD_W,
                              on_submit=lambda v, k=key: self._set_setting(k, v),
                              on_commit=lambda v, k=key: self._set_setting(k, v))
-        return Row([Text(label, w=self.FIELD_W, size=17,
+        return Row([Text(label, w=self.FIELD_W, size="normal",
                          color=theme.SUBTLE_FG),
                     widget], gap=12, align="center")
     def _dynamic_enum(self, key):

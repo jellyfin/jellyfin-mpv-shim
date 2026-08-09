@@ -45,7 +45,7 @@ def error(msg):
     to nothing. ``flex=1`` stays: the message still owns the content area,
     it just no longer hovers in it.
     """
-    return Box([Text(msg, size=20, color=theme.SUBTLE_FG)],
+    return Box([Text(msg, size="large", color=theme.SUBTLE_FG)],
                pad=24, flex=1, align="start", direction="row")
 
 

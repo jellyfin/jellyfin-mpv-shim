@@ -59,9 +59,9 @@ class SeriesPage(Page):
             # `backdrop_node`: a placeholder means "none" or "not yet", and
             # drawing the heading here in the second case shifted the
             # actions row down until the image arrived.
-            blocks.append(Text(item.get("Name", ""), size=30, bold=True))
+            blocks.append(Text(item.get("Name", ""), size="hero", bold=True))
             if meta:
-                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+                blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
         blocks.append(self._series_actions(item, server, route["item_id"],
                                            trailers=data.get("trailers")))
         if item.get("Overview"):

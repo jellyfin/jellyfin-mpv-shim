@@ -208,7 +208,7 @@ class BooksPage(GridPage):
 
     def _header_text(self, folder, tracks, width):
         out = [Text(folder.get("Name") or self.route.get("title", ""),
-                    size=28, bold=True)]
+                    size="hero", bold=True)]
         # The author, which for an audiobook is the album artist. Named
         # rather than folded into the meta line: on a book it is the single
         # most useful thing on the screen after the title.
@@ -222,7 +222,7 @@ class BooksPage(GridPage):
                 sum(t.get("RunTimeTicks") or 0 for t in tracks)),
         ) if x]
         if meta:
-            out.append(Text("   ·   ".join(meta), size=15,
+            out.append(Text("   ·   ".join(meta), size="small",
                             color=theme.SUBTLE_FG))
         overview = self._overview(folder, tracks)
         if overview:
@@ -412,11 +412,11 @@ class AudiobookPage(Page):
             return chrome.error(_("Item not available."))
         art = self.ctx.art
         server = route.get("server") or self.ctx.server
-        text = [Text(item.get("Name") or route.get("title", ""), size=28,
+        text = [Text(item.get("Name") or route.get("title", ""), size="hero",
                      bold=True)]
         meta = self._meta(item)
         if meta:
-            text.append(Text(meta, size=15, color=theme.SUBTLE_FG))
+            text.append(Text(meta, size="small", color=theme.SUBTLE_FG))
         text.append(self._actions(item, server))
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
@@ -519,11 +519,11 @@ class AudiobookPage(Page):
                                                    offset_ticks=offset)),
             })
         return Column([
-            Text(_("Chapters"), size=22, bold=True),
+            Text(_("Chapters"), size="title", bold=True),
             Table([{"label": "#", "w": 46, "align": "right"},
                    {"label": _("Title"), "flex": 1},
                    {"label": _("Start"), "w": 90, "align": "right"}],
-                  rows, size=17, hover_bg=theme.BUTTON_BG),
+                  rows, size="normal", hover_bg=theme.BUTTON_BG),
         ], gap=8, align="stretch")
 
 
@@ -597,14 +597,14 @@ class BookPage(Page):
             return chrome.error(_("Item not available."))
         server = route.get("server") or self.ctx.server
         art = self.ctx.art
-        text = [Text(item.get("Name") or route.get("title", ""), size=28,
+        text = [Text(item.get("Name") or route.get("title", ""), size="hero",
                      bold=True)]
         context = self._context(item)
         if context:
-            text.append(Text(context, size=17, color=theme.SUBTLE_FG))
+            text.append(Text(context, size="normal", color=theme.SUBTLE_FG))
         meta = self._meta(item)
         if meta:
-            text.append(Text(meta, size=15, color=theme.SUBTLE_FG))
+            text.append(Text(meta, size="small", color=theme.SUBTLE_FG))
         text.append(self._buttons(item, server, data.get("state")))
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
@@ -697,7 +697,7 @@ class BookPage(Page):
             # A label, not a button: there is nothing useful to press while
             # it is in flight, and a Download button that re-enqueues an
             # in-flight download reads as one that did nothing.
-            btns.append(Text(_("Downloading…"), size=16,
+            btns.append(Text(_("Downloading…"), size="normal",
                              color=theme.SUBTLE_FG))
         elif not actions.offline:
             # Download, and only download. Read is the button that opens

@@ -3,9 +3,9 @@
 {"c": "e8e8e8", "h": 16.0, "id": "r.0.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 10 20 l 10 14 l 14 14 l 14 20 l 19 20 l 19 12 l 22 12 l 12 3 l 2 12 l 5 12 l 5 20", "t": "icon", "w": 16.0, "x": 22.0, "y": 22.0}
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.0.1", "size": 17, "t": "text", "text": "Home", "w": 42.0, "x": 45.0, "y": 22.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 27.5, "id": "r.0.2", "size": 22, "t": "text", "text": "Home", "w": 60.9, "x": 123.0, "y": 16.2}
-{"h": 32.3, "id": "nav-search", "ph": "Search\u2026", "size": 17, "t": "textbox", "text": "", "w": 220.0, "x": 761.7, "y": 13.9}
-{"click": true, "fill": "2e3138", "h": 36.0, "hover": {"fill": "3a3e46"}, "id": "nav-search-go", "radius": 6, "t": "rect", "tip": "Search", "w": 37.0, "x": 991.7, "y": 12.0}
-{"c": "e8e8e8", "h": 17.0, "id": "r.0.5.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 15.5 14 l 14.71 14 l 14.43 13.73 b 15.44 12.55 16 11.05 16 9.5 b 16 5.91 13.09 3 9.5 3 b 5.91 3 3 5.91 3 9.5 b 3 13.09 5.91 16 9.5 16 b 11.11 16 12.59 15.41 13.73 14.43 l 14 14.71 l 14 15.5 l 19 20.49 l 20.49 19 l 15.5 14 m 9.5 14 b 7.01 14 5 11.99 5 9.5 b 5 7.01 7.01 5 9.5 5 b 11.99 5 14 7.01 14 9.5 b 14 11.99 11.99 14 9.5 14", "t": "icon", "w": 17.0, "x": 1001.7, "y": 21.5}
+{"h": 36.0, "id": "nav-search", "ph": "Search\u2026", "size": 19, "t": "textbox", "text": "", "w": 220.0, "x": 760.7, "y": 12.0}
+{"click": true, "fill": "2e3138", "h": 36.0, "hover": {"fill": "3a3e46"}, "id": "nav-search-go", "radius": 6, "t": "rect", "tip": "Search", "w": 38.0, "x": 990.7, "y": 12.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.0.5.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 15.5 14 l 14.71 14 l 14.43 13.73 b 15.44 12.55 16 11.05 16 9.5 b 16 5.91 13.09 3 9.5 3 b 5.91 3 3 5.91 3 9.5 b 3 13.09 5.91 16 9.5 16 b 11.11 16 12.59 15.41 13.73 14.43 l 14 14.71 l 14 15.5 l 19 20.49 l 20.49 19 l 15.5 14 m 9.5 14 b 7.01 14 5 11.99 5 9.5 b 5 7.01 7.01 5 9.5 5 b 11.99 5 14 7.01 14 9.5 b 14 11.99 11.99 14 9.5 14", "t": "icon", "w": 18.0, "x": 1000.7, "y": 21.0}
 {"click": true, "fill": "2e3138", "h": 36.0, "hover": {"fill": "3a3e46"}, "id": "nav-syncplay", "radius": 6, "t": "rect", "w": 113.0, "x": 1038.7, "y": 12.0}
 {"c": "e8e8e8", "h": 16.0, "id": "r.0.6.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 12 12.75 b 13.63 12.75 15.07 13.14 16.24 13.65 b 17.32 14.13 18 15.21 18 16.38 l 18 18 l 6 18 l 6 16.39 b 6 15.21 6.68 14.13 7.76 13.66 b 8.93 13.14 10.37 12.75 12 12.75 m 4 13 b 5.1 13 6 12.1 6 11 b 6 9.9 5.1 9 4 9 b 2.9 9 2 9.9 2 11 b 2 12.1 2.9 13 4 13 m 5.13 14.1 b 4.76 14.04 4.39 14 4 14 b 3.01 14 2.07 14.21 1.22 14.58 b 0.48 14.9 0 15.62 0 16.43 l 0 18 l 4.5 18 l 4.5 16.39 b 4.5 15.56 4.73 14.78 5.13 14.1 m 20 13 b 21.1 13 22 12.1 22 11 b 22 9.9 21.1 9 20 9 b 18.9 9 18 9.9 18 11 b 18 12.1 18.9 13 20 13 m 24 16.43 b 24 15.62 23.52 14.9 22.78 14.58 b 21.9 14.2 20.96 14 20 14 b 19.61 14 19.24 14.04 18.87 14.1 b 19.27 14.78 19.5 15.56 19.5 16.39 l 19.5 18 l 24 18 l 24 16.43 m 12 6 b 13.66 6 15 7.34 15 9 b 15 10.66 13.66 12 12 12 b 10.34 12 9 10.66 9 9 b 9 7.34 10.34 6 12 6", "t": "icon", "w": 16.0, "x": 1048.7, "y": 22.0}
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.6.1", "size": 17, "t": "text", "text": "SyncPlay", "w": 70.0, "x": 1071.7, "y": 22.0}
@@ -26,50 +26,50 @@
 {"align": "center", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.0.5.0", "size": 17, "t": "text", "text": "Downloads", "w": 84.5, "x": 569.8, "y": 82.0}
 {"click": true, "fill": "2e3138", "h": 41.2, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 56.7, "x": 672.3, "y": 72.0}
 {"align": "center", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.0.6.0", "size": 17, "t": "text", "text": "Logs", "w": 36.7, "x": 682.3, "y": 82.0}
-{"axis": "y", "bar": true, "ch": 600.1, "cw": 1270.0, "h": 594.8, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 125.2}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.0", "sc": "settings", "size": 20, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 141.2}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 179.8}
-{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 174.2}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 214.6}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 215.2}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.2.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 215.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.2.1", "sc": "settings", "size": 17, "t": "text", "text": "Raise MPV", "w": 80.4, "x": 46.0, "y": 214.6}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 243.8}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 244.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.3.1", "sc": "settings", "size": 17, "t": "text", "text": "Show What You're Watching in Discord", "w": 298.7, "x": 46.0, "y": 243.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.4", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 273.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 298.6}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.5.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 299.2}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.5.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 299.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.5.1", "sc": "settings", "size": 17, "t": "text", "text": "Check Updates", "w": 111.9, "x": 46.0, "y": 298.6}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 327.8}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 328.4}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 329.1}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.6.1", "sc": "settings", "size": 17, "t": "text", "text": "Notify Updates", "w": 110.8, "x": 46.0, "y": 327.8}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 25.0, "id": "r.1.1.0.7", "sc": "settings", "size": 20, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 357.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 390.1}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.8.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 390.7}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.8.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 390.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 419.3}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.9.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 419.9}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.9.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 419.3}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 448.6}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.10.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 449.2}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.10.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 449.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.10.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 448.6}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.11.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 483.3}
-{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 477.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops \u2014 GNOME on Wayland in particular \u2014 draw no title bar on the player window, leaving no way to move or close it. This puts minimize, maximize and close in the top bar instead,", "w": 1238.0, "x": 16.0, "y": 518.1}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12.l1", "sc": "settings", "size": 14, "t": "text", "text": "and lets you drag the window by it. Left on \"Only when the window has no title bar\", MPV is asked whether this window got one, so desktops that do decorate it are left alone.", "w": 1238.0, "x": 16.0, "y": 535.6}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 561.1}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 561.7}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.13.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 561.1}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the way, plays fullscreen when something casts to it, and goes back to waiting when the", "w": 1238.0, "x": 16.0, "y": 590.4}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14.l1", "sc": "settings", "size": 14, "t": "text", "text": "video ends or you press Q.", "w": 1238.0, "x": 16.0, "y": 607.9}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 633.4}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 634.0}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.15.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 633.4}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 662.6}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 663.2}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.16.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 662.6}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 691.9}
+{"axis": "y", "bar": true, "ch": 597.6, "cw": 1270.0, "h": 594.8, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 125.2}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 23.8, "id": "r.1.1.0.0", "sc": "settings", "size": 19, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 141.2}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 178.5}
+{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 173.0}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 213.3}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 213.9}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.2.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 214.6}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.2.1", "sc": "settings", "size": 17, "t": "text", "text": "Raise MPV", "w": 80.4, "x": 46.0, "y": 213.3}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 242.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 243.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.3.1", "sc": "settings", "size": 17, "t": "text", "text": "Show What You're Watching in Discord", "w": 298.7, "x": 46.0, "y": 242.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.4", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 1238.0, "x": 16.0, "y": 271.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 297.3}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.5.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 297.9}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.5.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 298.6}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.5.1", "sc": "settings", "size": 17, "t": "text", "text": "Check Updates", "w": 111.9, "x": 46.0, "y": 297.3}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 326.6}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 327.2}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 327.8}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.6.1", "sc": "settings", "size": 17, "t": "text", "text": "Notify Updates", "w": 110.8, "x": 46.0, "y": 326.6}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 23.8, "id": "r.1.1.0.7", "sc": "settings", "size": 19, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 355.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 387.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.8.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 388.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.8.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 387.6}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 416.8}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.9.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 417.4}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.9.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 416.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 446.1}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.10.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 446.7}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.10.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 447.3}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.10.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 446.1}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.11.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 480.8}
+{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 475.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops \u2014 GNOME on Wayland in particular \u2014 draw no title bar on the player window, leaving no way to move or close it. This puts minimize, maximize and close in the top bar instead,", "w": 1238.0, "x": 16.0, "y": 515.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.12.l1", "sc": "settings", "size": 14, "t": "text", "text": "and lets you drag the window by it. Left on \"Only when the window has no title bar\", MPV is asked whether this window got one, so desktops that do decorate it are left alone.", "w": 1238.0, "x": 16.0, "y": 533.1}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 558.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 559.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.13.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 558.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the way, plays fullscreen when something casts to it, and goes back to waiting when the", "w": 1238.0, "x": 16.0, "y": 587.9}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.14.l1", "sc": "settings", "size": 14, "t": "text", "text": "video ends or you press Q.", "w": 1238.0, "x": 16.0, "y": 605.4}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 630.9}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 631.5}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.15.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 630.9}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 660.1}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.16.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 660.7}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.16.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 660.1}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 689.4}

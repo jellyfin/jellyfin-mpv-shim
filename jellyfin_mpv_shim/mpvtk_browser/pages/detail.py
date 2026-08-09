@@ -80,14 +80,14 @@ class DetailPage(Page):
             # image landed. A header that will get artwork bakes its heading
             # into the banner in both states; see `backdrop_node`.
             if context:
-                blocks.append(Text(context, size=17, color=theme.SUBTLE_FG))
-            blocks.append(Text(title, size=26, bold=True, wrap=True,
+                blocks.append(Text(context, size="normal", color=theme.SUBTLE_FG))
+            blocks.append(Text(title, size="page", bold=True, wrap=True,
                                w=tiles.body_w(w)))
             if meta:
-                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+                blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
         info = self._media_info_line(item)
         if info:
-            blocks.append(Text(info, size=15, color=theme.SUBTLE_FG))
+            blocks.append(Text(info, size="small", color=theme.SUBTLE_FG))
         blocks.append(self._play_buttons(item, server,
                                          trailers=data.get("trailers")))
         blocks.append(self._detail_actions(item, server))
@@ -417,7 +417,7 @@ class DetailPage(Page):
         and it is closed almost all of the time; the popup takes only as
         much of the allowance as its widest item needs.
         """
-        return Row([Text(label, w=90, size=16, color=theme.SUBTLE_FG),
+        return Row([Text(label, w=90, size="normal", color=theme.SUBTLE_FG),
                     Dropdown(node_id, names, selected=selected, w=300,
                              popup_w=DetailPage.PICKER_POPUP_W,
                              on_select=on_select)], gap=8, align="center")

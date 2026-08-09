@@ -426,7 +426,7 @@ class LiveTvPage(Page):
                 _("Previous Day")),
             nav("chevron_left", "lt-prevwin", -step, _("Earlier")),
             Text("%s   %s" % (live_tv.fmt_day(start), live_tv.fmt_time(start)),
-                 size=17, bold=True),
+                 size="normal", bold=True),
             nav("chevron_right", "lt-nextwin", step, _("Later")),
             nav("keyboard_double_arrow_right", "lt-nextday", DAY,
                 _("Next Day")),
@@ -440,7 +440,7 @@ class LiveTvPage(Page):
                 Text(_("Channels %(from)d-%(to)d of %(total)d") % {
                     "from": page * CHANNEL_PAGE + 1,
                     "to": min((page + 1) * CHANNEL_PAGE, total),
-                    "total": total}, size=14, color=theme.SUBTLE_FG),
+                    "total": total}, size="caption", color=theme.SUBTLE_FG),
                 Button("", id="lt-chanprev", icon="keyboard_arrow_up", flat=True,
                        icon_size=20, tip=_("Previous Channels"),
                        on_click=lambda: self._channel_page(page - 1, last)),
@@ -555,7 +555,7 @@ class LiveTvPage(Page):
         ]
         total = self.route.get("_total") or 0
         if total:
-            row.append(Text(_("%d channels") % total, size=14,
+            row.append(Text(_("%d channels") % total, size="caption",
                             color=theme.SUBTLE_FG))
         return Row(row, gap=6, align="center", pad=(chrome.CONTENT_PAD, 0))
 
@@ -807,15 +807,15 @@ class ProgramPage(Page):
             # placeholder node means "none" or "not yet", and the second
             # case shifted the Record buttons when the image landed.
             if item.get("ChannelName"):
-                blocks.append(Text(item["ChannelName"], size=17,
+                blocks.append(Text(item["ChannelName"], size="normal",
                                    color=theme.SUBTLE_FG))
-            blocks.append(Text(title, size=26, bold=True, wrap=True,
+            blocks.append(Text(title, size="page", bold=True, wrap=True,
                                w=tiles.body_w(w)))
             if meta:
-                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+                blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
         sub = item.get("EpisodeTitle")
         if sub:
-            blocks.append(Text(sub, size=18))
+            blocks.append(Text(sub, size="large"))
         blocks.append(self._buttons(item))
         state = live_tv.timer_state(item)
         if state:
@@ -823,7 +823,7 @@ class ProgramPage(Page):
                 Icon(live_tv.STATE_ICONS[state], 18,
                      color=(theme.SUBTLE_FG if state == "series_inactive"
                             else theme.FAV_RED)),
-                Text(self.STATE_LABELS[state](), size=15,
+                Text(self.STATE_LABELS[state](), size="small",
                      color=theme.SUBTLE_FG)], gap=6, align="center"))
         if item.get("Overview"):
             blocks.append(chrome.paragraph(item["Overview"], 18,
@@ -1026,7 +1026,7 @@ class ChannelPage(Page):
                 # round number looks like the provider ran out of guide data.
                 blocks.append(Text(
                     _("Showing the next %d programs.") % len(programs),
-                    size=15, color=theme.SUBTLE_FG))
+                    size="small", color=theme.SUBTLE_FG))
         # align="stretch", or the rows take their NATURAL width and the two
         # flex columns inside them have nothing to expand into: a 747px
         # content area drew a 479px row and ellipsized both the programme
@@ -1069,7 +1069,7 @@ class ChannelPage(Page):
         view = max(240.0, float(size[1]))
         out = []
         for day, items in self._groups():
-            heading = Text(day, size=20, bold=True)
+            heading = Text(day, size="large", bold=True)
             out.append(heading)
             y += measure(heading)[1] + self.GAP
             h = len(items) * self.ROW_H + (len(items) - 1) * self.ROW_GAP
@@ -1095,15 +1095,15 @@ class ChannelPage(Page):
         number = live_tv.channel_number(channel)
         lines = []
         if number:
-            lines.append(Text(number, size=16, color=theme.SUBTLE_FG))
-        lines.append(Text(channel.get("Name") or _("Channel"), size=28,
+            lines.append(Text(number, size="normal", color=theme.SUBTLE_FG))
+        lines.append(Text(channel.get("Name") or _("Channel"), size="hero",
                           bold=True, wrap=True, w=tiles.body_w(size[0])
                           - self.LOGO - 16))
         now = self._now_playing_program()
         if now is not None:
             lines.append(Text("%s   ·   %s" % (live_tv.program_title(now),
                                                live_tv.air_time_label(now)),
-                              size=17, color=theme.ACCENT))
+                              size="normal", color=theme.ACCENT))
         return Row([tiles.art_cell(channel, size=self.LOGO),
                     Column(lines, gap=4)], gap=16, align="center")
 
@@ -1155,16 +1155,16 @@ class ChannelPage(Page):
         airing = live_tv.is_airing(program)
         state = live_tv.timer_state(program)
         cells = [
-            Text(live_tv.air_time_label(program), size=16,
+            Text(live_tv.air_time_label(program), size="normal",
                  color=theme.ACCENT if airing else theme.SUBTLE_FG, w=130),
             Icon(live_tv.STATE_ICONS[state], 16,
                  color=(theme.SUBTLE_FG if state == "series_inactive"
                         else theme.FAV_RED)) if state else Spacer(w=16, h=1),
-            Text(live_tv.program_title(program), size=17, flex=1),
+            Text(live_tv.program_title(program), size="normal", flex=1),
         ]
         subtitle = program.get("EpisodeTitle")
         if subtitle:
-            cells.append(Text(subtitle, size=15, color=theme.SUBTLE_FG,
+            cells.append(Text(subtitle, size="small", color=theme.SUBTLE_FG,
                               flex=1))
         return Row(cells, id="ch-pg-" + str(program.get("Id") or ""),
                    h=self.ROW_H, gap=12, pad=(8, 0), align="center",

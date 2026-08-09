@@ -514,7 +514,7 @@ class Demo:
                     Image(src, bw, bh, id="zbadge",
                           anchor="nw", dx=TILE_W - 34, dy=8),
                     Box(
-                        [Text("STACK", size=13, color="101010")],
+                        [Text("STACK", size="caption", color="101010")],
                         id="zocc",
                         bg="ffcc66",
                         radius=4,
@@ -531,7 +531,7 @@ class Demo:
             )
         return Column(
             [
-                Text(heading, size=24, bold=True),
+                Text(heading, size="heading", bold=True),
                 HScroll(
                     im,
                     id=row_id,
@@ -572,7 +572,7 @@ class Demo:
         if end < total_rows:
             rows.append(Spacer(h=(total_rows - end) * pitch - gap))
         return Column(
-            [Text(heading, size=24, bold=True)] + rows, gap=gap
+            [Text(heading, size="heading", bold=True)] + rows, gap=gap
         )
 
     def _grid_image_map(self, entries):
@@ -642,24 +642,24 @@ class Demo:
             [
                 Row(
                     [
-                        Text("Volume", size=18, w=80),
+                        Text("Volume", size="large", w=80),
                         Slider(
                             "vol",
                             value=self.volume,
                             on_change=self._on_volume,
                             w=220,
                         ),
-                        Text("%d%%" % self.volume, size=18, w=60),
+                        Text("%d%%" % self.volume, size="large", w=60),
                     ],
                     gap=10,
                     align="center",
                 ),
                 Row(
                     [
-                        Text("Busy", size=18, w=80),
+                        Text("Busy", size="large", w=80),
                         Busy(),
                         Spacer(w=30),
-                        Text("Progress", size=18),
+                        Text("Progress", size="large"),
                         self._progress_widget(self.progress / 100.0),
                     ],
                     gap=10,
@@ -708,7 +708,7 @@ class Demo:
         icons_row = Row(
             [
                 Box(  # icon+label button
-                    [Icon("play_arrow", 22), Text("Play", size=18)],
+                    [Icon("play_arrow", 22), Text("Play", size="large")],
                     id="btn-play",
                     direction="row",
                     gap=6,
@@ -731,7 +731,7 @@ class Demo:
                 Row(  # label with tinted icon
                     [
                         Icon("favorite", 18, color="e05070"),
-                        Text("Favorites", size=18),
+                        Text("Favorites", size="large"),
                     ],
                     gap=6,
                     align="center",
@@ -771,7 +771,7 @@ class Demo:
                         }
                         for i, r in enumerate(self.table_rows)
                     ],
-                    size=17,
+                    size="normal",
                     row_h=32,
                     selected_bg="335a9e",
                     hover_bg="2e2e2e",
@@ -791,12 +791,12 @@ class Demo:
         )
         page = Column(
             [
-                Text("Widget gallery", size=24, bold=True),
+                Text("Widget gallery", size="heading", bold=True),
                 Row([checks, Spacer(w=60), sliders], gap=10),
                 icons_row,
                 entries,
                 Text("Track table (click / shift-range / ctrl-toggle)",
-                     size=18, bold=True),
+                     size="large", bold=True),
                 table,
                 Text(
                     "Wrapped text: " + " ".join(
@@ -804,14 +804,14 @@ class Demo:
                         .split() * 4
                     ),
                     id="wraptxt",
-                    size=16,
+                    size="normal",
                     color="c8c8c8",
                     wrap=True,
                     max_lines=3,
                     w=420,
                 ),
                 Text("Playback-HUD style: flat controls on a gradient",
-                     size=18, bold=True),
+                     size="large", bold=True),
                 Stack(
                     [
                         Gradient(color="000000", top=0, bottom=215),
@@ -847,7 +847,7 @@ class Demo:
     def _logs_page(self, w):
         lines = Column(
             [
-                Text(line, size=15, color="c8c8c8")
+                Text(line, size="small", color="c8c8c8")
                 for line in self.log_lines
             ],
             pad=16,
@@ -860,7 +860,7 @@ class Demo:
         items = self._filtered()
         header = Row(
             [
-                Text("mpvtk demo", size=28, bold=True),
+                Text("mpvtk demo", size="hero", bold=True),
                 Spacer(),
                 TextBox(
                     "search",
@@ -925,7 +925,7 @@ class Demo:
                 on_scroll=self._on_page_scroll,
             )
         footer = Row(
-            [Text(self.status, id="status", size=18, color="aaaaaa")],
+            [Text(self.status, id="status", size="large", color="aaaaaa")],
             pad=12,
             h=44,
             bg="1d1d1d",
@@ -949,11 +949,11 @@ class Demo:
                     "dlg",
                     Column(
                         [
-                            Text("Confirm action?", size=22, bold=True),
+                            Text("Confirm action?", size="title", bold=True),
                             Text(
                                 "Modal test: grabs input, ESC or "
                                 "click-away dismisses.",
-                                size=16,
+                                size="normal",
                                 color="aaaaaa",
                             ),
                             Row(
@@ -981,7 +981,7 @@ class Demo:
             children.append(
                 Float(
                     Box(
-                        [Text(self.toast, size=17)],
+                        [Text(self.toast, size="normal")],
                         pad=14,
                         bg="2d3f2d",
                         radius=10,

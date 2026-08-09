@@ -114,7 +114,7 @@ class ArtistPage(MusicPage):
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")]
         if albums:
-            rows.append(Text(_("Albums"), size=20, bold=True))
+            rows.append(Text(_("Albums"), size="large", bold=True))
         rows += art.tiles.grid_of(albums, "artist", size,
                                   geom=art.geom_square,
                                   scroll_id="artist", head_h=110)
@@ -166,7 +166,7 @@ class MusicGenrePage(MusicPage):
         songs = data.get("songs") or []
         server = route.get("server") or self.ctx.server
         ids = [s.get("Id") for s in songs]
-        rows: list = [Text(route.get("title", ""), size=26, bold=True),
+        rows: list = [Text(route.get("title", ""), size="page", bold=True),
                       Spacer(h=4),
                       self.action_bar(server, ids, route["item_id"], "gen")]
         # Ask for the rows about to be drawn, from the SAME window the

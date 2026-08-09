@@ -42,7 +42,7 @@ import unittest
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 from tests._scene_snapshot import frozen_clock                # noqa: E402
-from tests._shell_harness import FakeSource                   # noqa: E402
+from tests._shell_harness import build_scene, FakeSource                   # noqa: E402
 
 from jellyfin_mpv_shim.mpvtk import scaling                   # noqa: E402
 from jellyfin_mpv_shim.mpvtk.layout import (                  # noqa: E402
@@ -331,6 +331,56 @@ class DpiMatrixTest(unittest.TestCase):
                 % (lsize[0], "\n".join(
                     "  %s %r spans %s..%s, limit %s" % b for b in bad)))
         self._walk(name, check)
+
+    def test_every_offered_text_scale_still_fits(self):
+        """The ceiling we ship, checked rather than assumed.
+
+        [iw], smoke-testing: "150% is about as high as you can go before
+        things start breaking spectacularly." Measured here, and it agrees
+        -- 1.5 is clean and 1.75 overflows -- which is why the drop-down
+        stops there. `ui_text_min` is the control for going further on
+        readability, because raising a floor moves fewer sizes than
+        multiplying everything does.
+
+        The smaller values matter as much as the larger ones: text that
+        shrinks cannot overflow, so they isolate "does the scale reach
+        this widget" from "does this widget have room", and a regression
+        that stopped the scale reaching something would show up as an
+        unchanged layout rather than a broken one.
+        """
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        from jellyfin_mpv_shim.mpvtk_browser.config import LABELED_ENUMS
+
+        offered = [v for _label, v in LABELED_ENUMS["ui_text_scale"]]
+        self.assertIn(1.5, offered, "the ceiling this pins has moved")
+        was = (settings.ui_text_scale, settings.ui_text_min)
+        try:
+            for factor in offered:
+                settings.ui_text_scale = factor
+                settings.ui_text_min = 0
+                theme.apply_to_toolkit()
+                # EVERY screen, not a hand-picked few. The first version
+                # of this checked four and passed happily at 200%, because
+                # the screens that actually overflow are livetv, genres,
+                # byname, favorites and music -- none of which were in the
+                # list. A subset here is not a cheaper test, it is a test
+                # that cannot fail.
+                for name in sorted(SCREENS):
+                    with self.subTest(scale=factor, screen=name):
+                        b = _loaded(SCREENS[name])
+                        for win in ((1280, 720), (1920, 1080)):
+                            nodes, _h = build_scene(b, win)
+                            bad = overflows(nodes, win[0])
+                            self.assertEqual(
+                                bad, [],
+                                "text scale %s overflows %s at %dx%d:\n%s"
+                                % (factor, name, win[0], win[1],
+                                   "\n".join("  %s %r spans %s..%s, limit %s"
+                                              % b for b in bad)))
+        finally:
+            settings.ui_text_scale, settings.ui_text_min = was
+            theme.apply_to_toolkit()
 
     def test_home(self):
         self._no_overflow("home")

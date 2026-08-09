@@ -59,7 +59,7 @@ class ServersTabMixin:
         active = next((u.get("name") for u in users if u.get("active")), None)
         server_rows = []
         if not servers:
-            server_rows.append(Text(_("No servers configured yet."), size=15,
+            server_rows.append(Text(_("No servers configured yet."), size="small",
                                     color=theme.SUBTLE_FG))
         else:
             server_rows.append(Grid(
@@ -114,8 +114,8 @@ class ServersTabMixin:
             "radius": 6,
             "cells": [
                 Icon("lock" if u.get("locked") else "person", 18),
-                Text(u.get("name", "?"), size=17, bold=True, flex=1),
-                Text(_("active") if u.get("active") else "", size=14,
+                Text(u.get("name", "?"), size="normal", bold=True, flex=1),
+                Text(_("active") if u.get("active") else "", size="caption",
                      color=theme.OK_GREEN),
                 Row(buttons, gap=8),
             ],
@@ -129,20 +129,20 @@ class ServersTabMixin:
             "cells": [
                 Icon("radio", 16,
                      color=theme.OK_GREEN if connected else theme.FAV_RED),
-                Column([Text(sv.get("name", "?"), size=17, bold=True),
-                        Text(sv.get("address", ""), size=13,
+                Column([Text(sv.get("name", "?"), size="normal", bold=True),
+                        Text(sv.get("address", ""), size="caption",
                              color=theme.SUBTLE_FG)], gap=1, flex=1),
-                Text(sv.get("username", ""), size=15,
+                Text(sv.get("username", ""), size="small",
                      color=theme.SUBTLE_FG),
                 Text(_("Connected") if connected else _("Offline"),
-                     size=15,
+                     size="small",
                      color=theme.OK_GREEN if connected else theme.FAV_RED),
                 Checkbox(_("Auto-download"), self._auto_dl_on(sv), 
                          id="sv-auto-%d" % i,
                          on_toggle=lambda u=sv.get("uuid"):
                              self._toggle_auto_server(u)),
                 Button(_("Remove"), id="sv-rm-%d" % i, icon="delete",
-                       size=15,
+                       size="small",
                        on_click=lambda u=sv.get("uuid"), n=sv.get("name"):
                            self._confirm(
                                _("Remove %s and its saved login?") % n,
@@ -249,7 +249,7 @@ class ServersTabMixin:
 
         def build():
             return Dialog("renameuser", self._dialog_shell("renameuser", [
-                Text(_("Rename User"), size=22, bold=True),
+                Text(_("Rename User"), size="title", bold=True),
                 TextBox("ru-name", text=state["name"], w=280, force=True,
                         on_change=lambda v: state.__setitem__("name", v),
                         on_submit=lambda v: save()),

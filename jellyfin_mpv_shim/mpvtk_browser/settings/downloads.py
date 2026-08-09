@@ -31,17 +31,17 @@ class DownloadsTabMixin:
         total = sum(g.get("size", 0) or 0 for g in groups)
         count = sum(g.get("count", 0) or 0 for g in groups)
         head = Row([
-            Text(_("Downloads"), size=20, bold=True),
+            Text(_("Downloads"), size="large", bold=True),
             Text(_("%(count)d items · %(size)s") % {
                 "count": count, "size": self._human_size(total)},
-                size=15, color=theme.SUBTLE_FG),
+                size="small", color=theme.SUBTLE_FG),
             Spacer(),
             Button(_("Refresh"), id="dl-refresh", icon="refresh",
                    on_click=lambda: self._load_downloads(route, force=True)),
         ], gap=12, align="center")
         rows = [head]
         if not groups:
-            rows.append(Text(_("Nothing downloaded yet."), size=16,
+            rows.append(Text(_("Nothing downloaded yet."), size="normal",
                              color=theme.SUBTLE_FG))
         for gi, group in enumerate(groups):
             rows.append(self._dl_group(route, group, gi))
@@ -76,7 +76,7 @@ class DownloadsTabMixin:
         title_cell.append(Text(title, size=17 if bold else 16, bold=bold))
         if count:
             # Collapsed groups (playlists) say how much they stand for.
-            title_cell.append(Text(_("%d items") % count, size=14,
+            title_cell.append(Text(_("%d items") % count, size="caption",
                                    color=theme.SUBTLE_FG))
         title_cell.append(Spacer())
         return {
@@ -85,14 +85,14 @@ class DownloadsTabMixin:
             "radius": 6,
             "cells": [
                 Row(title_cell, gap=10, align="center", flex=1),
-                Text(meta, size=14, color=theme.SUBTLE_FG,
+                Text(meta, size="caption", color=theme.SUBTLE_FG,
                      align="right"),
                 Row(([Button(_("Remove Watched"), id=node_id + "-rmw",
-                             icon="check", size=15,
+                             icon="check", size="small",
                              on_click=on_delete_watched)]
                      if on_delete_watched else []) +
                     [Button(_("Remove"), id=node_id + "-rm", icon="delete",
-                            size=15, on_click=on_delete)],
+                            size="small", on_click=on_delete)],
                     gap=6, align="center"),
             ],
         }

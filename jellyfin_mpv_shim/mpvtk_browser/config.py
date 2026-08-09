@@ -235,13 +235,32 @@ LABELED_ENUMS = {
         (_("MPV built-in default"), "default"),
         (_("No player controls"), "none"),
     ],
+    # Down as well as up. Smaller is useful on a small screen, and it is
+    # also how the scale gets tested in the direction where nothing
+    # overflows -- text that shrinks cannot break a layout, so it isolates
+    # "does the scale reach this widget" from "does this widget have room".
+    #
+    # Stops at 150%, and the reason is CONTENT rather than overflow.
+    # [iw]: "most of the tiles are already using an ellipsis at that
+    # point", and "after 150% most of the UI scaling breaks down and needs
+    # to get bigger, but text scaling is for text only by definition".
+    # So the honest ceiling is where captions stop saying anything useful;
+    # past it the right control is `ui_scale`, which moves the artwork and
+    # the spacing with the words.
+    #
+    # An earlier version of this comment claimed 1.75 overflowed Live TV's
+    # tab strip. That measurement was taken while the multiplier was being
+    # applied twice by every composite widget -- "150%" was really 225% on
+    # buttons -- so it described a bug, not the layout. With that fixed
+    # nothing overflows until 3.0. The cap stays for the reason above.
     "ui_text_scale": [
+        (_("75%"), 0.75),
+        (_("85%"), 0.85),
+        (_("90%"), 0.9),
         (_("100% (no scaling)"), 1.0),
         (_("110%"), 1.1),
         (_("125%"), 1.25),
         (_("150%"), 1.5),
-        (_("175%"), 1.75),
-        (_("200%"), 2.0),
     ],
     "ui_text_min": [
         (_("No minimum"), 0),
@@ -571,7 +590,10 @@ NOTES = {
     "ui_text_scale": _("Scales the text only. Interface Scale above resizes "
                        "everything -- artwork, spacing and controls -- so "
                        "use this one when the words are too small rather "
-                       "than the whole interface."),
+                       "than the whole interface. It stops at 150% "
+                       "because by then most tile captions are ellipsized "
+                       "and it is the whole interface that needs to be "
+                       "bigger -- which is Interface Scale, above."),
     "ui_text_min": _("Nothing renders smaller than this, whatever Text Size "
                      "works out to. Raises the smallest labels without "
                      "enlarging headings, which a percentage cannot do."),

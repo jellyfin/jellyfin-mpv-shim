@@ -1209,7 +1209,7 @@ class TileRenderer:
             else:
                 rows.append(Spacer(h=geom.strip_h))
         if not items:
-            rows.append(Text(_("Nothing here yet."), size=18,
+            rows.append(Text(_("Nothing here yet."), size="large",
                              color=theme.SUBTLE_FG))
         return rows
 
@@ -1656,5 +1656,5 @@ class TileRenderer:
                 row["on_context"] = (
                     lambda x, y, tr=tr: self.on_context(tr, x, y))
             rows.append(row)
-        return Table(columns, rows, size=17, row_h=TRACK_ROW_H,
+        return Table(columns, rows, size="normal", row_h=TRACK_ROW_H,
                      hover_bg=theme.BUTTON_BG, virtual=virtual)

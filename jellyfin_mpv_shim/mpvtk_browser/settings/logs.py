@@ -36,7 +36,7 @@ class LogsTabMixin:
         route["_log_last"] = lines[-1] if lines else None
         self._poll_logs(route)
 
-        head = Row([Text(_("Logs"), size=20, bold=True), Spacer(),
+        head = Row([Text(_("Logs"), size="large", bold=True), Spacer(),
                     Button(_("Copy"), id="log-copy", icon="content_copy",
                            on_click=lambda: self._copy_logs(lines)),
                     Button(_("Refresh"), id="log-refresh", icon="refresh",
@@ -48,7 +48,7 @@ class LogsTabMixin:
         if not lines:
             return Column([head,
                            Column([Text(_("No log output captured yet."),
-                                        size=15, color=theme.SUBTLE_FG)],
+                                        size="small", color=theme.SUBTLE_FG)],
                                   pad=self.CONTENT_PAD)],
                           flex=1, align="stretch")
 
@@ -62,7 +62,7 @@ class LogsTabMixin:
         virtual = {"offset": self._offset("settings-logs"),
                    "height": float(size[1])}
         table = Table([{"flex": 1}], rows, row_h=self.LOG_ROW_H, header_h=0,
-                      size=14, fg=theme.SUBTLE_FG, virtual=virtual)
+                      size="caption", fg=theme.SUBTLE_FG, virtual=virtual)
         return Column([
             head,
             VScroll(Column([table], pad=self.CONTENT_PAD),

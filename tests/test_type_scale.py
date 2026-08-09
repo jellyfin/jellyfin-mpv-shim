@@ -231,13 +231,34 @@ class ReadabilityFloorTest(unittest.TestCase):
         tk.set_type_scale(17, minimum=16)
         self.assertEqual(widgets.Text("x", size=11).size, 16)
 
-    def test_it_cannot_flatten_the_scale(self):
-        # A floor above the top tier would render every size identically,
-        # which is a broken UI rather than a readability aid.
-        tk.set_type_scale(17, minimum=999)
-        got = [tk.size(t) for t in ("MICRO", "NORMAL", "HERO")]
-        self.assertEqual(got, sorted(got))
-        self.assertGreater(tk.size("HERO"), tk.size("MICRO"))
+    def test_it_raises_the_widgets_that_take_a_default(self):
+        """The bug this test exists for.
+
+        The floor was first capped at the BASE, so with a base of 17 a
+        floor of 18 came out as 17 and the setting appeared to do nothing
+        to buttons or body text -- the two things it is most for. [iw]:
+        "Minimum text size seems to not be affecting buttons among other
+        things."
+        """
+        tk.set_type_scale(17, minimum=20)
+        self.assertEqual(tk.min_size(), 20)
+        for name in ("Button", "Checkbox", "Dropdown"):
+            with self.subTest(name):
+                w = (widgets.Button("x") if name == "Button" else
+                     widgets.Checkbox("x", False) if name == "Checkbox" else
+                     widgets.Dropdown("d", ["a"], selected=0))
+                got = getattr(w, "size", None)
+                if got is None:
+                    got = next(c.size for c in w.children
+                               if type(c).__name__ == "Text" and c.text)
+                self.assertEqual(got, 20)
+
+    def test_a_floor_past_the_top_tier_is_capped_there(self):
+        # A hand-edited absurdity is clamped rather than honoured, but the
+        # cap is the LARGEST tier -- capping lower is what broke it.
+        tk.set_type_scale(17, minimum=9999)
+        self.assertLessEqual(tk.size("MICRO"), tk.size("HERO"))
+        self.assertGreater(tk.size("MICRO"), 17)
 
     def test_the_floor_is_measured_against_scaled_text(self):
         # With a 2x multiplier nothing is below 34 anyway, so an 18px floor
@@ -317,6 +338,60 @@ class TileCaptionTest(unittest.TestCase):
         s = g.with_text_scale(1.0)
         self.assertEqual((s.title_size, s.sub_size, s.caption_h),
                          (g.title_size, g.sub_size, g.caption_h))
+
+
+class ControlGeometryTest(unittest.TestCase):
+    """A type scale must not resize the controls.
+
+    `size` on a Dropdown means two unrelated things: the type size of the
+    popup's rows, and -- for an icon-only trigger -- the dimensions of the
+    button. Only the first belongs on a type scale. Tying the second to it
+    shrank the playback HUD's Chapters, Subtitles, Audio and Video-quality
+    buttons from 38px to 32px when the control default moved 20 -> 17,
+    while every other HUD button stayed put, because those are `Icon`s
+    sized on their own. [iw]: "Some of the HUD buttons got smaller but most
+    didn't."
+    """
+
+    def tearDown(self):
+        tk.set_type_scale(None)
+
+    def _trigger(self):
+        return widgets.Dropdown("d", ["a"], selected=0,
+                                trigger_icon="bookmark")
+
+    def test_the_trigger_box_does_not_follow_the_type_scale(self):
+        tk.set_type_scale(None)
+        was = (self._trigger().w, self._trigger().h)
+        for base in (12, 17, 24, 40):
+            with self.subTest(base=base):
+                tk.set_type_scale(base)
+                d = self._trigger()
+                self.assertEqual((d.w, d.h), was)
+
+    def test_nor_the_users_text_multiplier(self):
+        # `ui_scale` resizes the interface; `ui_text_scale` resizes the
+        # words. A control that followed both would be a partial
+        # duplicate of the first. [iw]: "that would basically just be the
+        # dpi setting which we already have."
+        tk.set_type_scale(None)
+        was = self._trigger().w
+        for factor in (1.5, 2.0):
+            with self.subTest(factor=factor):
+                tk.set_type_scale(17, factor=factor)
+                self.assertEqual(self._trigger().w, was)
+
+    def test_the_popup_type_still_does(self):
+        # The half that SHOULD move: the rows in the open list are text.
+        tk.set_type_scale(None)
+        small = self._trigger().size
+        tk.set_type_scale(34)
+        self.assertGreater(self._trigger().size, small)
+
+    def test_an_explicit_size_still_wins(self):
+        d = widgets.Dropdown("d", ["a"], selected=0,
+                             trigger_icon="bookmark", w=50, h=50)
+        self.assertEqual((d.w, d.h), (50, 50))
 
 
 if __name__ == "__main__":

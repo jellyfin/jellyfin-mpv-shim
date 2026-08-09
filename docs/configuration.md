@@ -549,7 +549,10 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
   interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike
   `ui_scale`, which scales the entire interface (artwork, spacing and
   controls along with the type), this moves only the text -- for when the
-  words are too small rather than everything being too small.
+  words are too small rather than everything being too small. Values above
+  `1.5` are not offered in the interface: by then most tile captions are
+  ellipsized, and what is needed is for the *whole* interface to be bigger
+  — which is `ui_scale`. Text scaling is for text, by definition.
   (Default: `1.0`)
 
 - `ui_text_min` - Nothing in the interface renders smaller than this many

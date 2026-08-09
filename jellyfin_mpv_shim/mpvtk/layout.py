@@ -881,6 +881,11 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
             from .vector import icon_ass
 
             node["ticon"] = icon_ass(el.trigger_icon)
+            if getattr(el, "icon_size", None):
+                # An explicit glyph size. Without it the renderer falls
+                # back to size * 1.2, which ties the icon to the type
+                # scale -- see widgets.Dropdown.
+                node["isz"] = int(el.icon_size)
             chip = getattr(el, "trigger_chip", None)
             if chip:
                 node["tchip"] = list(chip)

@@ -416,9 +416,9 @@ class MusicMixin:
         title = np.get("title", "")
         sub = np.get("artist") or np.get("album") or ""
         title_w = self._np_title_w(w)
-        clock = [Text(self._fmt(shown), size=14, w=48,
+        clock = [Text(self._fmt(shown), size="caption", w=48,
                       color=theme.SUBTLE_FG)] if tiers["clock"] else []
-        end = [Text(self._fmt(dur), size=14, w=48,
+        end = [Text(self._fmt(dur), size="caption", w=48,
                     color=theme.SUBTLE_FG)] if tiers["clock"] else []
 
         right = []
@@ -470,8 +470,8 @@ class MusicMixin:
                                       self._open_queue, _("Queue")))
 
         scrub_row = Row(clock + [seek] + end, gap=10, align="center")
-        title_col = Column([Text(title, size=16, bold=True),
-                            Text(sub, size=13, color=theme.SUBTLE_FG)],
+        title_col = Column([Text(title, size="normal", bold=True),
+                            Text(sub, size="caption", color=theme.SUBTLE_FG)],
                            gap=2, w=title_w)
 
         if not self.np_two_row(np, w):

@@ -144,6 +144,26 @@ _min_size = 0
 _text_factor = 1.0
 
 
+class Px(int):
+    """A size that has already been resolved by :func:`text_size`.
+
+    The user's multiplier has to be applied **exactly once**. A composite
+    widget resolves its own size and then hands the number to a child --
+    `Button` builds a `Text` and an `Icon`, `Checkbox` builds a `Text`,
+    `Form` builds a `Grid` which builds a `Text` per cell -- and each of
+    those resolved again. At "150%" a button label came out 39px against
+    body copy at 20 (a Form cell, 76px), which is the size mismatch this
+    scale exists to remove, arriving from inside it.
+
+    An int subclass rather than a flag, so it stores, compares and
+    arithmetics exactly like the number it replaces. **Arithmetic returns
+    a plain int**, which is the right default: `int(size * 0.95)` is a
+    NEW size derived from this one, and deriving is not resolving.
+    """
+
+    __slots__ = ()
+
+
 def set_type_scale(base=None, minimum=None, factor=None):
     """Set the base size every tier derives from. ``None`` restores stock.
 
@@ -174,8 +194,14 @@ def set_type_scale(base=None, minimum=None, factor=None):
     except (TypeError, ValueError):
         mult = 1.0
     _text_factor = mult if mult > 0 else 1.0
-    # Against the SCALED base, so a floor is a floor on what is drawn.
-    _min_size = min(max(floor, 0.0), _base_size * _text_factor)
+    # Capped at the LARGEST tier, not at the base. Capping at the base was
+    # the first version and it quietly swallowed every useful value: with a
+    # base of 17 a floor of 18 came out as 17, so the setting appeared to do
+    # nothing at all to buttons or body text -- which is exactly what it is
+    # for. A floor is allowed to raise everything up to the top of the
+    # scale; beyond that it is a hand-edited value with no meaning.
+    _biggest = _base_size * _text_factor * max(TYPE_SCALE.values())
+    _min_size = min(max(floor, 0.0), _biggest)
     return _base_size
 
 
@@ -183,7 +209,7 @@ def base_size():
     return _base_size
 
 
-def size(tier):
+def size_of_tier(tier):
     """The px size for a named tier. Unknown tiers are an error, not a
     silent default -- a typo'd tier would otherwise render as body text
     and look almost right."""
@@ -196,22 +222,55 @@ def size(tier):
     # gives layout a fractional line height to divide the page by. The
     # logical->physical conversion deliberately does NOT round (see
     # scaling._EXACT_KEYS); this is the other end of that.
-    return text_size(int(round(_base_size * ratio)))
+    # Never below 1: a zero font size divides by zero in layout's line
+    # fitting, and `ui_text_scale` is a documented float, so 0.05 in a
+    # hand-edited config reaches here even though the drop-down stops at
+    # 0.75. The base is guarded the same way, for the same reason.
+    return Px(max(int(round(_base_size * _text_factor * ratio)),
+                  int(_min_size), 1))
+
+
+#: The tier lookup under its short name. `theme.size("caption")` reads
+#: better at a call site than `size_of_tier`, and `size` is what every
+#: widget already calls its parameter.
+size = size_of_tier
 
 
 def text_size(size):
-    """``size`` raised to the readability floor.
+    """A size as the toolkit will actually render it.
 
-    Applied where a widget resolves its size, **before layout measures
+    Accepts a **tier name** (``"caption"``) or a number. The name is the
+    preferred spelling at a call site: an author can tell whether a line
+    is a caption and cannot tell whether it is 13 or 14, and picking
+    between those was the whole of what made the type "feel a little
+    random" [iw]. A number still works, for the genuine one-off that no
+    tier describes.
+
+    Numbers are multiplied and floored;
+
+    applied where a widget resolves its size, **before layout measures
     it**. Flooring later -- at the logical-to-physical boundary, where
     `scaling` already touches every size -- would draw bigger text inside
     boxes measured for the smaller kind, which is overflow everywhere
     rather than a readability setting.
     """
+    if isinstance(size, Px):
+        # Already resolved, by whichever widget owns this subtree.
+        return size
+    if isinstance(size, str):
+        # A tier is already scaled and floored by size().
+        return size_of_tier(size)
     try:
-        return max(int(round(float(size) * _text_factor)), int(_min_size))
+        return Px(max(int(round(float(size) * _text_factor)),
+                      int(_min_size), 1))
     except (TypeError, ValueError):
-        return int(round(_base_size * _text_factor))
+        return Px(max(int(round(_base_size * _text_factor)), 1))
+
+
+def text_factor():
+    """The user's text multiplier, for code that resolves its own sizes --
+    which is the renderer, and nothing else."""
+    return _text_factor
 
 
 def min_size():

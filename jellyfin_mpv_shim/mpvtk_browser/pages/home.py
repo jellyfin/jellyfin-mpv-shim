@@ -202,7 +202,7 @@ class HomePage(Page):
                 [Spacer(),
                  Row([Spacer(), Busy(), Spacer()]),
                  Row([Spacer(),
-                      Text(_("Connecting to your server…"), size=20,
+                      Text(_("Connecting to your server…"), size="large",
                            color=theme.SUBTLE_FG),
                       Spacer()]),
                  Spacer()],
@@ -266,7 +266,7 @@ class HomePage(Page):
                                            see_all=see_all))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
-                             Text(_("Nothing to show yet."), size=20,
+                             Text(_("Nothing to show yet."), size="large",
                                   color=theme.SUBTLE_FG)]))
         # pad=0: home carousels bleed to the window edges so their page
         # arrows sit flush against them (see TileRenderer.hscroll_row).

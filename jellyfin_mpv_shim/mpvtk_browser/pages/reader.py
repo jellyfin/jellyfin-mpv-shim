@@ -426,7 +426,7 @@ class ReaderPage(Page):
             actions.append("para")
         labels.append(_("Copy Page"))
         actions.append("page")
-        return Menu("rd-menu", labels, menu["x"], menu["y"], size=17,
+        return Menu("rd-menu", labels, menu["x"], menu["y"], size="normal",
                     icons=["content_copy"] * len(labels),
                     on_select=lambda i, _v=None: self._menu_pick(actions, i),
                     on_dismiss=self._close_menu)
@@ -502,7 +502,7 @@ class ReaderPage(Page):
         for i, target in enumerate(targets):
             if target <= doc.spine_index:
                 selected = i
-        return Dropdown("rd-toc", labels, selected=selected, size=14,
+        return Dropdown("rd-toc", labels, selected=selected, size="caption",
                         force=True, trigger_icon="menu_book",
                         tip=_("Contents"),
                         # trigger_chip, not the HUD's chromeless glyph: this
@@ -596,7 +596,7 @@ class ReaderPage(Page):
             message = _("The download failed.")
         else:
             message = _("Getting the book…")
-        return Column([Spacer(), Text(message, size=18,
+        return Column([Spacer(), Text(message, size="large",
                                       color=theme.SUBTLE_FG, align="center"),
                        Spacer()], id=self.AREA_ID, flex=1, align="center")
 
@@ -756,13 +756,13 @@ class ReaderPage(Page):
         fraction = doc.fraction() if doc is not None else None
         right = []
         if fraction is not None:
-            right.append(Text("%.0f%%" % (fraction * 100), size=14,
+            right.append(Text("%.0f%%" % (fraction * 100), size="caption",
                               color=theme.SUBTLE_FG))
         return Row([
             Button("", id="rd-back", icon="arrow_back", w=34, h=34, pad=0,
                    justify="center", tip=_("Back"),
                    on_click=self.ctx.nav.go_back),
-            Text(title, size=15, color=theme.TEXT_FG, flex=1),
+            Text(title, size="small", color=theme.TEXT_FG, flex=1),
         ] + right, h=TOP_BAR_H, pad=(10, 4), gap=10, align="center",
             bg=theme.PANEL_BG)
 
@@ -792,7 +792,7 @@ class ReaderPage(Page):
                      _("Next page")),
         ]
         if not narrow and pages:
-            children.append(Text(pages, size=14, color=theme.SUBTLE_FG))
+            children.append(Text(pages, size="caption", color=theme.SUBTLE_FG))
         children.append(Spacer())
         if doc is not None:
             picker = self._chapter_picker(doc)

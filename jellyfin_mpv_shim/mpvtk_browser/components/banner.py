@@ -7,6 +7,7 @@ indirection disappears.
 
 from ...mpvtk import pilfont
 from ...mpvtk.scaling import px
+from .. import theme
 
 
 def wrap_pil(draw, text, font, max_w, max_lines=2):
@@ -116,7 +117,7 @@ def compose_banner(image, box, title=None, meta=None, context=None,
     avail = w - text_left - margin
     # Smaller than it was: the heading has up to three stacked lines to
     # fit inside the gradient now, not one.
-    size = max(px(20), min(px(34), h // 6))
+    size = theme.baked_text(max(px(20), min(px(34), h // 6)))
     y = h - margin
     if meta:
         f = pil_font(int(size * 0.6), text=meta)

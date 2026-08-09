@@ -40,7 +40,7 @@ class SeasonPage(Page):
             (s for s in seasons if s.get("Id") == route["item_id"]), {})
         # Annotated: the picker Dropdown and the To Series button join a list
         # that starts with a Text, so mypy would infer list[Text] from it.
-        title_row: list = [Text(route.get("title", ""), size=26, bold=True)]
+        title_row: list = [Text(route.get("title", ""), size="page", bold=True)]
         if len(seasons) > 1:
             names = [s.get("Name", "") for s in seasons]
             cur = next((i for i, s in enumerate(seasons)

@@ -133,20 +133,20 @@ def _cell(program, width, prefs, airing, on_click, categories=(),
                 color=(theme.SUBTLE_FG if state == "series_inactive"
                        else theme.FAV_RED)))
         if prefs.get("indicators", {}).get("hd") and program.get("IsHD"):
-            title_bits.append(Text(_("HD"), size=11, color=theme.SUBTLE_FG))
-        title_bits.append(Text(live_tv.program_title(program), size=15,
+            title_bits.append(Text(_("HD"), size="micro", color=theme.SUBTLE_FG))
+        title_bits.append(Text(live_tv.program_title(program), size="small",
                                bold=airing))
         children.append(Row(title_bits, gap=4, align="center"))
         if inner_w >= SUBLINE_MIN_W:
             badge = live_tv.program_indicators(program,
                                                prefs.get("indicators"))
             sub = live_tv.program_subtitle(program)
-            line = [Text(live_tv.air_time_label(program, end=False), size=12,
+            line = [Text(live_tv.air_time_label(program, end=False), size="micro",
                          color=theme.SUBTLE_FG)]
             if badge:
-                line.append(Text(badge, size=12, color=theme.ACCENT))
+                line.append(Text(badge, size="micro", color=theme.ACCENT))
             if sub:
-                line.append(Text(sub, size=12, color=theme.SUBTLE_FG))
+                line.append(Text(sub, size="micro", color=theme.SUBTLE_FG))
             children.append(Row(line, gap=6, align="center"))
     return _slot(
         Box(children, w=inner_w, h=ROW_H, bg=bg, radius=4, pad=(8, 6),
@@ -176,9 +176,9 @@ def _channel_cell(channel, tiles, on_channel=None, on_context=None):
     """
     art = tiles.art_cell(channel, size=LOGO)
     number = live_tv.channel_number(channel)
-    label = [Text(channel.get("Name") or "", size=14)]
+    label = [Text(channel.get("Name") or "", size="caption")]
     if number:
-        label.insert(0, Text(number, size=12, color=theme.SUBTLE_FG))
+        label.insert(0, Text(number, size="micro", color=theme.SUBTLE_FG))
     return Row([art, Column(label, gap=1)], w=CHANNEL_W, h=ROW_H, gap=8,
                pad=(6, 6), align="center",
                id=("guide-ch-" + str(channel.get("Id") or "")
@@ -207,7 +207,7 @@ def time_header(start, end, width):
     for i, slot in enumerate(slots):
         left = int(round(width * i / len(slots)))
         right = int(round(width * (i + 1) / len(slots)))
-        cells.append(Box([Text(live_tv.fmt_time(slot), size=13,
+        cells.append(Box([Text(live_tv.fmt_time(slot), size="caption",
                                color=theme.SUBTLE_FG)],
                          w=right - left, h=HEADER_H, direction="row",
                          align="center"))

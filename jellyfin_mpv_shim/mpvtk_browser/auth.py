@@ -70,10 +70,10 @@ class AuthMixin:
         state = {"pin": "", "error": None}
 
         def build():
-            rows = [Text(_("Switch to %s") % user.get("name", ""), size=22,
+            rows = [Text(_("Switch to %s") % user.get("name", ""), size="title",
                          bold=True)]
             if state["error"]:
-                rows.append(Text(state["error"], size=15, color=theme.FAV_RED))
+                rows.append(Text(state["error"], size="small", color=theme.FAV_RED))
             rows += [
                 TextBox("switch-pin", placeholder=_("PIN"), mask=True, w=240,
                         on_change=lambda v: state.__setitem__("pin", v),
@@ -120,10 +120,10 @@ class AuthMixin:
                  "startup": bool(u.get("require_startup")), "error": None}
 
         def build():
-            rows = [Text(_("Set PIN for %s") % u.get("name", ""), size=22,
+            rows = [Text(_("Set PIN for %s") % u.get("name", ""), size="title",
                          bold=True)]
             if state["error"]:
-                rows.append(Text(state["error"], size=15, color=theme.FAV_RED))
+                rows.append(Text(state["error"], size="small", color=theme.FAV_RED))
             if u.get("locked"):
                 rows.append(self._pin_field(_("Current PIN"), "ps-cur", state,
                                             "cur", on_submit=save))
@@ -197,7 +197,7 @@ class AuthMixin:
 
     @staticmethod
     def _pin_field(label, node_id, state, key, on_submit=None):
-        return Row([Text(label, w=140, size=16, color=theme.SUBTLE_FG),
+        return Row([Text(label, w=140, size="normal", color=theme.SUBTLE_FG),
                     TextBox(node_id, placeholder=label, mask=True, w=200,
                             on_change=lambda v: state.__setitem__(key, v),
                             on_submit=(None if on_submit is None
@@ -222,7 +222,7 @@ class AuthMixin:
     def _render_login(self, route, size):
         def field(fid, ph, key, mask=False):
             return Row([
-                Text(ph, w=140, size=17, color=theme.SUBTLE_FG),
+                Text(ph, w=140, size="normal", color=theme.SUBTLE_FG),
                 # Enter submits from any field. Typing a password and
                 # pressing Enter is the reflex on every login form there
                 # is, and here it did nothing at all.
@@ -234,9 +234,9 @@ class AuthMixin:
             ], gap=12, align="center")
 
         qc = route.get("_qc")
-        rows = [Text(_("Connect to Jellyfin"), size=28, bold=True)]
+        rows = [Text(_("Connect to Jellyfin"), size="hero", bold=True)]
         if self._login_error:
-            rows.append(Text(self._login_error, size=15, color=theme.FAV_RED))
+            rows.append(Text(self._login_error, size="small", color=theme.FAV_RED))
 
         known = []
         if self.controller is not None and not qc:
@@ -245,14 +245,14 @@ class AuthMixin:
             except Exception:
                 known = []
         if known:
-            rows.append(Text(_("Previously added servers"), size=15,
+            rows.append(Text(_("Previously added servers"), size="small",
                              color=theme.SUBTLE_FG))
             for i, k in enumerate(known):
                 addr = k.get("address", "")
                 rows.append(Row([
                     Icon("radio", 16, color=theme.SUBTLE_FG),
-                    Text(k.get("name") or addr, size=16, flex=1),
-                    Button(_("Use"), id="login-known-%d" % i, size=15,
+                    Text(k.get("name") or addr, size="normal", flex=1),
+                    Button(_("Use"), id="login-known-%d" % i, size="small",
                            on_click=lambda a=addr: self._use_known_server(a)),
                     # Straight into Quick Connect for THIS server. "Use"
                     # only filled the URL box, so the actual passwordless
@@ -260,7 +260,7 @@ class AuthMixin:
                     # starting over — on the one screen where the point is
                     # not to type anything.
                     Button(_("Quick Connect"), id="login-known-qc-%d" % i,
-                           size=15, icon="radio",
+                           size="small", icon="radio",
                            on_click=lambda a=addr: self._quick_connect_to(
                                route, a)),
                 ], id="login-known-row-%d" % i, pad=8, gap=10, radius=6,
@@ -270,12 +270,12 @@ class AuthMixin:
             # Quick Connect: the user types this code into any signed-in
             # Jellyfin client; we poll until the server authorizes it.
             rows += [
-                Text(_("Quick Connect"), size=20, bold=True),
+                Text(_("Quick Connect"), size="large", bold=True),
                 Text(_("Enter this code in the Jellyfin app or web client:"),
-                     size=15, color=theme.SUBTLE_FG, wrap=True, w=460),
+                     size="small", color=theme.SUBTLE_FG, wrap=True, w=460),
                 Text(qc.get("code") or _("Requesting…"), size=44, bold=True,
                      align="center"),
-                Text(qc.get("status") or "", size=15,
+                Text(qc.get("status") or "", size="small",
                      color=theme.SUBTLE_FG, align="center"),
                 self._dialog_buttons([
                     Button(_("Cancel"), id="login-qc-cancel",
@@ -433,13 +433,13 @@ class AuthMixin:
 
     def _render_connecting(self, route, size):
         rows = [
-            Text(_("Connecting to your server…"), size=26, bold=True),
+            Text(_("Connecting to your server…"), size="page", bold=True),
             Spacer(h=8),
             Row([Spacer(), Busy(), Spacer()]),
         ]
         if route.get("_connect_error"):
             rows.append(Spacer(h=8))
-            rows.append(Text(route["_connect_error"], size=15, color=theme.FAV_RED))
+            rows.append(Text(route["_connect_error"], size="small", color=theme.FAV_RED))
 
         # The escape hatch, and the reason this screen exists: with a server
         # that is down or slow, everything already on disk is still
@@ -530,12 +530,12 @@ class AuthMixin:
         active = next((u.get("name") for u in self._users()
                        if u.get("active")), None)
         rows = [
-            Text(_("Enter your PIN"), size=30, bold=True),
+            Text(_("Enter your PIN"), size="hero", bold=True),
             Text(_("%s is locked.") % active if active else "",
-                 size=16, color=theme.SUBTLE_FG),
+                 size="normal", color=theme.SUBTLE_FG),
         ]
         if self._pin_error:
-            rows.append(Text(self._pin_error, size=15, color=theme.FAV_RED))
+            rows.append(Text(self._pin_error, size="small", color=theme.FAV_RED))
         rows += [
             TextBox("lock-pin", text="", placeholder=_("PIN"), mask=True,
                     w=260, on_change=lambda v: self._pin.__setitem__("pin", v),
@@ -545,13 +545,13 @@ class AuthMixin:
         ]
         if users:
             rows.append(Spacer(h=6))
-            rows.append(Text(_("Or switch to another user"), size=15,
+            rows.append(Text(_("Or switch to another user"), size="small",
                              color=theme.SUBTLE_FG))
             for i, u in enumerate(users):
                 rows.append(Row([
                     Icon("lock" if u.get("locked") else "person", 18),
-                    Text(u.get("name", "?"), size=17, flex=1),
-                    Button(_("Switch"), id="lock-switch-%d" % i, size=15,
+                    Text(u.get("name", "?"), size="normal", flex=1),
+                    Button(_("Switch"), id="lock-switch-%d" % i, size="small",
                            on_click=lambda u=u: self._switch_user(u)),
                 ], id="lock-user-%d" % i, pad=8, gap=10, radius=6,
                    align="center", bg=theme.PANEL_BG,

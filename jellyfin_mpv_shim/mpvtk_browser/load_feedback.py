@@ -210,9 +210,9 @@ class LoadFeedback:
         title = (self.starting or {}).get("title") or ""
         rows = [Busy(w=52, h=52)]
         if title:
-            rows.append(Text(title, size=22, bold=True, wrap=True,
+            rows.append(Text(title, size="title", bold=True, wrap=True,
                              align="center", w=min(760, max(280, w - 160))))
-        rows.append(Text(_("Loading…"), size=16, color=theme.SUBTLE_FG))
+        rows.append(Text(_("Loading…"), size="normal", color=theme.SUBTLE_FG))
         rows.append(Button(_("Cancel"), id="load-cancel-start",
                            on_click=self.cancel_loading))
         return Column(
@@ -236,12 +236,12 @@ class LoadFeedback:
         detail = err.get("detail")
         headline = (_("Timed out loading this item")
                     if err.get("timed_out") else _("Could not play this item"))
-        rows = [Text(headline, size=28, bold=True)]
+        rows = [Text(headline, size="hero", bold=True)]
         if title:
-            rows.append(Text(title, size=20, wrap=True,
+            rows.append(Text(title, size="large", wrap=True,
                              w=min(760, max(280, w - 160))))
         if detail:
-            rows.append(Text(str(detail), size=15, color=theme.SUBTLE_FG,
+            rows.append(Text(str(detail), size="small", color=theme.SUBTLE_FG,
                              wrap=True, w=min(760, max(280, w - 160))))
         buttons = [Button(_("Retry"), id="load-retry",
                           on_click=lambda: self.retry(False))]
