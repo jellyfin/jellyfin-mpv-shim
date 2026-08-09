@@ -431,6 +431,33 @@ class HeaderPosterTest(unittest.TestCase):
         self.assertTrue(composed[-1][1],
                         "the compose must be deferred to a cache miss")
 
+    def test_no_backdrop_draws_the_heading_before_the_poster_lands(self):
+        """The regression the review caught, and the one this method's own
+        docstring says the pending composition exists to prevent.
+
+        header_bakes_heading answers from the SPEC, which is known on the
+        first paint; the poster is a fetch. Gating the banner on the decoded
+        image meant that in between, the caller suppressed its heading and
+        the banner had none — so the page drew no title at all, and if the
+        fetch never succeeded, no title ever.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        from jellyfin_mpv_shim.mpvtk.widgets import Image as ImageNode
+
+        r, composed = self._no_backdrop_renderer()
+        r._request_image = lambda *a, **k: None       # never lands
+        box = TileRenderer.banner_box(r, self.SIZE[0])
+        node = r.backdrop_node({"Id": "m1"}, box, "detail-bd", title="A Film")
+        self.assertTrue(
+            TileRenderer.header_bakes_heading(r, {"Id": "m1"}),
+            "test premise: the caller is suppressing its own heading")
+        self.assertIsInstance(
+            node, ImageNode,
+            "no heading anywhere while the poster is still loading")
+        self.assertIn("nopo", composed[-1][0],
+                      "the waiting composition must be keyed apart, or the "
+                      "cache serves the poster-less one for ever")
+
     def test_no_backdrop_and_no_poster_is_still_a_plain_box(self):
         # The genuinely artwork-less case keeps the placeholder, because
         # then there is no baked heading and the caller draws its own.
@@ -478,7 +505,12 @@ class HeaderPosterTest(unittest.TestCase):
 
         r = TileRenderer.__new__(TileRenderer)
         r.art = SimpleNamespace(server="srv1", source=_Same(), thumbs=None)
-        r._request_image = lambda *a, **k: object()
+        # A real image, not a sentinel: _banner_poster plates the
+        # artwork now (transparent channel logos), so a stand-in
+        # without pixels does not leave that untested -- it makes
+        # this path raise where nothing is looking.
+        r._request_image = lambda *a, **k: PILImage.new(
+            "RGBA", (40, 60), (200, 40, 40, 255))
         box = TileRenderer.banner_box(r, self.SIZE[0])
         img, key = r._banner_poster({"Id": "v1"}, box, ("v1", "Primary",
                                                         "same"))
@@ -515,7 +547,12 @@ class HeaderPosterTest(unittest.TestCase):
         r = TileRenderer.__new__(TileRenderer)
         r.art = SimpleNamespace(server="srv1", source=_Inheriting(),
                                 thumbs=None)
-        r._request_image = lambda *a, **k: object()
+        # A real image, not a sentinel: _banner_poster plates the
+        # artwork now (transparent channel logos), so a stand-in
+        # without pixels does not leave that untested -- it makes
+        # this path raise where nothing is looking.
+        r._request_image = lambda *a, **k: PILImage.new(
+            "RGBA", (40, 60), (200, 40, 40, 255))
         box = TileRenderer.banner_box(r, self.SIZE[0])
         _img, key = r._banner_poster({"Id": "ep1"}, box,
                                      ("series1", "Backdrop", "sbt"))
@@ -586,7 +623,12 @@ class HeaderPosterTest(unittest.TestCase):
 
         r = TileRenderer.__new__(TileRenderer)
         r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
-        r._request_image = lambda *a, **k: object()
+        # A real image, not a sentinel: _banner_poster plates the
+        # artwork now (transparent channel logos), so a stand-in
+        # without pixels does not leave that untested -- it makes
+        # this path raise where nothing is looking.
+        r._request_image = lambda *a, **k: PILImage.new(
+            "RGBA", (40, 60), (200, 40, 40, 255))
         box = TileRenderer.banner_box(r, self.SIZE[0])
         return r._banner_poster({"Id": "m1", "Type": item_type}, box,
                                 ("m1", "Backdrop", "b"))[0]

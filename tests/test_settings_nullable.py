@@ -200,6 +200,32 @@ class KeyBindingsAreNullableTest(unittest.TestCase):
         self.assertNotIn("kb_pause", s.__fields_set__)
         self.assertEqual(s.kb_pause, "space")
 
+    def test_an_old_config_holding_the_string_None_is_migrated(self):
+        """Retyping alone does not reach the users this is for.
+
+        Under the old `str` typing a documented JSON null became the string
+        "None", and save() wrote it back verbatim — so someone who cleared a
+        binding years ago has "None" on disk *now*. That loads as a
+        non-empty string, so the distinction #16's input.conf migration
+        needs would still not exist for exactly the people it is about.
+        """
+        s = self._settings().parse_obj(
+            {"kb_stop": "None", "kb_next": "x", "config_version": 2})
+        self.assertEqual(s.kb_stop, "None", "test premise")
+        s._migrate({})
+        self.assertIsNone(s.kb_stop)
+        self.assertEqual(s.kb_next, "x", "a real binding must survive")
+
+    def test_the_migration_does_not_run_twice_or_touch_a_fresh_install(self):
+        from jellyfin_mpv_shim.conf import CONFIG_VERSION
+
+        s = self._settings().parse_obj(
+            {"kb_stop": "None", "config_version": CONFIG_VERSION})
+        s._migrate({})
+        self.assertEqual(
+            s.kb_stop, "None",
+            "a config already at this version must not be re-migrated")
+
     def test_the_binder_refuses_every_spelling_of_cleared(self):
         # A config written under the old typing holds the string "None".
         import sys

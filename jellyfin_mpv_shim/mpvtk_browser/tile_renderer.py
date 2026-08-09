@@ -798,6 +798,7 @@ class TileRenderer:
         feature.
         """
         from ..conf import settings
+        from . import live_tv
 
         # Two settings, chosen by what the artwork *is*. An episode's is a
         # still -- a frame of something the user may not have watched --
@@ -825,7 +826,20 @@ class TileRenderer:
         key = make_key(item_id, itype, itag, pw, ph, fit="fit")
         url = self.art.source.image_url(self.art.server, item_id, itype,
                                         itag, pw, ph, fill=False)
-        return self._request_image(key, url, (pw, ph)), key
+        img = self._request_image(key, url, (pw, ph))
+        if img is None:
+            return None, key
+        # Plated like every other transparent logo in the app. This used to
+        # be reachable only beside a backdrop, where the artwork is a poster
+        # or a still; the no-backdrop fallback opened it to a *Program*,
+        # whose own `image_spec` last step resolves ChannelId +
+        # ChannelPrimaryImageTag -- the channel logo, which is dark ink on
+        # transparency by broadcaster convention and is invisible composited
+        # straight onto PLACEHOLDER_BG. The guide's channel column and the
+        # Schedule tab plate the same file through `_plated`; without this
+        # the two screens disagree about it. `logo_plate` stays the single
+        # decision point, so #637's two settings are answered once.
+        return self._plated(img, live_tv.is_channel_artwork(item)), key
 
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
@@ -945,20 +959,30 @@ class TileRenderer:
         # which is the one shape that shows the poster without distorting
         # it. Same call, same geometry, so a header cannot move depending
         # on which of the two it got.
-        if title:
+        if title and self._header_poster_spec(item) is not None:
+            # **Gated on the SPEC, not on the decoded poster**, and keyed on
+            # whether the poster is there yet -- exactly as the backdrop
+            # branch above is, and for the reason its docstring gives.
+            # header_bakes_heading answers from the spec, which is known on
+            # the first paint; the poster is a fetch. Gating this on the
+            # image meant that between the two the caller suppressed its
+            # heading and the banner had none, so the page drew no title at
+            # all -- and if the fetch never succeeded (_request_image gives
+            # up after IMG_MAX_ATTEMPTS), no title *ever*. The two questions
+            # have to be answered from the same thing.
             pbox = raster(*box)
             poster, poster_key = self._banner_poster(item, pbox, None)
-            if poster is not None:
-                key = "noart|" + make_key(title, meta or "", context or "",
-                                          pbox[0], pbox[1]) + "|" + poster_key
-                b = self.art.strips.bitmap(
-                    key,
-                    lambda: components.compose_banner(
-                        _flat_image(pbox, theme.PLACEHOLDER_BG),
-                        pbox, title, meta, context, poster=poster),
-                    lsize=box)
-                return Image(b["src"], b["iw"], b["ih"], id=node_id,
-                             v=b.get("v", 0), w=b["lw"], h=b["lh"])
+            key = ("noart|" + make_key(title, meta or "", context or "",
+                                       pbox[0], pbox[1])
+                   + "|" + (poster_key if poster is not None else "nopo"))
+            b = self.art.strips.bitmap(
+                key,
+                lambda: components.compose_banner(
+                    _flat_image(pbox, theme.PLACEHOLDER_BG),
+                    pbox, title, meta, context, poster=poster),
+                lsize=box)
+            return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                         v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
     def _tile(self, item, geom, image_type="Primary", parent_item=False,

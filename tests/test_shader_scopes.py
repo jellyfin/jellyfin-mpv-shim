@@ -73,6 +73,8 @@ def make_manager(item=EPISODE, library="lib1", path=None):
     mgr.active_scope = "default"
     mgr._library_ids = {}
     mgr._menu_scope = "default"
+    mgr.session_default = None
+    mgr.suppressed = False
     mgr.api = api
     return mgr
 
@@ -191,10 +193,9 @@ class ApplyTest(unittest.TestCase):
     def test_the_series_override_is_what_plays(self):
         m = make_manager()
         m.overrides.set("series", "srv/show1", "b")
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"), \
-                mock.patch.object(m, "load_profile",
-                                  return_value=True) as load:
+        m.session_default = "a"
+        with mock.patch.object(m, "load_profile",
+                               return_value=True) as load:
             m.apply_for_item(EPISODE)
         load.assert_called_once_with("b")
         self.assertEqual(m.active_scope, "series")
@@ -210,10 +211,9 @@ class ApplyTest(unittest.TestCase):
     def test_an_override_of_none_turns_shaders_off_for_it(self):
         m = make_manager()
         m.current_profile = "a"
+        m.session_default = "a"
         m.overrides.set("series", "srv/show1", None)
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"), \
-                mock.patch.object(m, "unload_profile") as unload:
+        with mock.patch.object(m, "unload_profile") as unload:
             m.apply_for_item(EPISODE)
         unload.assert_called_once_with()
 
@@ -223,9 +223,8 @@ class ApplyTest(unittest.TestCase):
         nothing, and a one-step test cannot see it."""
         m = make_manager()
         m.current_profile = "a"
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"), \
-                mock.patch.object(m, "load_profile") as load, \
+        m.session_default = "a"
+        with mock.patch.object(m, "load_profile") as load, \
                 mock.patch.object(m, "unload_profile") as unload:
             for _n in range(3):
                 m.apply_for_item(EPISODE)
@@ -238,8 +237,8 @@ class ApplyTest(unittest.TestCase):
         second one wearing the profile again."""
         m = make_manager()
         m.current_profile = "a"
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"):
+        m.session_default = "a"
+        if True:
             m.suspend_for_still()
             self.assertIsNotNone(m._suspended)
             with mock.patch.object(m, "load_profile",
@@ -253,9 +252,8 @@ class MenuTest(unittest.TestCase):
     def test_the_scope_rows_report_each_scope_and_who_wins(self):
         m = make_manager()
         m.overrides.set("series", "srv/show1", "b")
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"):
-            rows = m.scope_rows(EPISODE)
+        m.session_default = "a"
+        rows = m.scope_rows(EPISODE)
         self.assertEqual([r[0] for r in rows],
                          ["series", "library", "default"])
         self.assertEqual([(r[2], r[3]) for r in rows],
@@ -266,9 +264,7 @@ class MenuTest(unittest.TestCase):
         changed what is on screen, the menu would be lying."""
         m = make_manager()
         m.overrides.set("series", "srv/show1", "b")
-        with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", "a"), \
-                mock.patch.object(video_profile.settings, "save"), \
+        with mock.patch.object(video_profile.settings, "save"), \
                 mock.patch.object(m, "load_profile",
                                   return_value=True) as load:
             m.set_scope_profile(EPISODE, "default", "a")
@@ -286,21 +282,52 @@ class MenuTest(unittest.TestCase):
         self.assertEqual(load.call_args[0][0], "a")
         self.assertIs(m.overrides.get("series", "srv/show1"), UNSET)
 
-    def test_the_default_row_says_what_is_loaded_when_nothing_is_remembered(self):
-        """With "Remember Last Used Profile" off, shader_pack_profile stays
-        None while a profile is visibly running -- so reading the setting
-        alone would report the default as "None (Disabled)" to somebody
-        looking straight at its output."""
+    def test_remember_off_still_means_for_this_session(self):
+        """The regression the review caught.
+
+        `menu_handle` loaded the profile, skipped the settings write because
+        "Remember Last Used Profile" was off, then re-resolved the default
+        scope from `shader_pack_profile` -- the value that had deliberately
+        not been written. It was None, so the re-resolve unloaded what had
+        just been loaded and the user watched their pick revert. `remember`
+        off meant "for zero items" rather than "for this session".
+        """
         m = make_manager()
-        m.current_profile = "a"
-        m.active_scope = "default"
         with mock.patch.object(video_profile.settings,
-                               "shader_pack_profile", None):
-            self.assertEqual(m._default_profile(), "a")
-            # ...but once an override is what is playing, "what is loaded"
-            # is not the default's value any more.
-            m.active_scope = "series"
-            self.assertIsNone(m._default_profile())
+                               "shader_pack_remember", False), \
+                mock.patch.object(video_profile.settings, "save") as save, \
+                mock.patch.object(m, "unload_profile") as unload, \
+                mock.patch.object(m, "load_profile",
+                                  side_effect=lambda n, **k: (
+                                      setattr(m, "current_profile", n)
+                                      or True)) as load:
+            m.set_scope_profile(EPISODE, "default", "a")
+        load.assert_called_once_with("a")
+        unload.assert_not_called()
+        self.assertEqual(m.current_profile, "a")
+        save.assert_not_called()          # ...and still not persisted
+
+    def test_the_escape_hatch_survives_an_item_boundary(self):
+        """`k` unloaded the profile, and the next episode's resolve put the
+        override's profile straight back -- on the one key whose entire
+        purpose is recovering from a profile that breaks playback."""
+        m = make_manager()
+        m.overrides.set("series", "srv/show1", "b")
+        m.current_profile = "b"
+        m.suppressed = True               # what _on_kill_shader_key sets
+        with mock.patch.object(m, "load_profile") as load, \
+                mock.patch.object(m, "unload_profile") as unload:
+            for _n in range(3):           # three episodes, not one
+                m.apply_for_item(EPISODE)
+        load.assert_not_called()
+        # ...and a deliberate pick brings it back.
+        m.current_profile = None
+        with mock.patch.object(video_profile.settings, "save"), \
+                mock.patch.object(m, "load_profile",
+                                  return_value=True) as load:
+            m.set_scope_profile(EPISODE, "series", "b")
+        self.assertFalse(m.suppressed)
+        load.assert_called_once_with("b")
 
 
 if __name__ == "__main__":

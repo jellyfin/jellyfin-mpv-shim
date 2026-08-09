@@ -24,7 +24,7 @@ config_path = None
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
 #   2: the four skip_intro/skip_credits booleans become one action per
 #      media segment type (segment_intro and friends).
-CONFIG_VERSION = 2
+CONFIG_VERSION = 3
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -609,6 +609,28 @@ class Settings(SettingsBase):
         """
         changed = False
         data = data or {}
+        if self.config_version < 3:
+            # The kb_* settings were `str` while the documentation said you
+            # could set them to null to disable a shortcut -- so a JSON null
+            # coerced to the STRING "None", and save() wrote that back
+            # verbatim. A user who cleared a binding years ago has "None" on
+            # disk *now*, and merely retyping the fields to Optional[str]
+            # does not reach them: it loads as a non-empty string, so
+            # `settings.kb_stop is None` is still False.
+            #
+            # This is a RENAME-shaped step, not a changed default: it is
+            # carrying a real choice across, and the choice is unreadable
+            # without it. #16's migration of these bindings to input.conf
+            # turns on exactly this distinction -- someone who parked our
+            # interception on purpose must not have the key re-bound for
+            # them.
+            for key in [k for k in self.__fields__ if k.startswith("kb_")]:
+                if getattr(self, key, None) == "None":
+                    log.info("Config migration: %s = null (was the string "
+                             "\"None\", which is what a cleared binding "
+                             "used to be written as).", key)
+                    setattr(self, key, None)
+                    changed = True
         if self.config_version < 2:
             # The four booleans become one action per segment type. Read from
             # the raw config rather than from self: the old keys are gone from

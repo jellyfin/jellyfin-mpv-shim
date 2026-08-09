@@ -1715,23 +1715,83 @@ reason. An unknown key left behind in someone's `config.json` is ignored by
 `SettingsBase.from_dict` (it iterates the declared fields) and disappears on
 the next save, so no migration is needed.
 
-**The arrows and `f` are agreed and unstarted.** **[iw]**: "agree arrow keys,
-ENTER, and fullscreen removal from default bindings are a huge improvement
-for end users, a lot of people get annoyed by those bindings." Both need the
-claim mechanism rather than a deletion, and that is the part with the real
-regression surface:
+**The arrows and `f` are agreed and unstarted**, and **[iw]** has settled
+the shape. "Agree arrow keys, ENTER, and fullscreen removal from default
+bindings are a huge improvement for end users, a lot of people get annoyed by
+those bindings."
 
-* the **arrows** are claimed by three separate things — the OSD menu,
-  `skip_intro_on_seek`, and SyncPlay (a seek in a group has to be broadcast
-  exactly as a pause does, and unlike `pause` there is no defensive observer
-  to catch one we did not initiate) — so dropping them outright breaks
-  SyncPlay seeking. They need an input section enabled while a claimant
-  wants them, plus `__fields_set__` to keep honouring a customised
-  `seek_left`;
-* **`f`** needs the `fullscreen` observer described above *and* an ignore
-  flag in the `pause_ignore` shape, because `set_fullscreen(persist=False)`
-  exists precisely to make changes the app itself makes not count, and a
-  naive observer would record those too.
+They are not deletions. Three mechanisms, and the first is the one the other
+two lean on.
+
+#### A. The semantic key sweep — one mechanism, not three
+
+**[iw]**: "that becomes a generic case of *the app needs to sweep the user's
+keybinds and temp-intercept them when syncplay is enabled*."
+
+So: ask `input-bindings` which keys are currently bound to the commands we
+care about (`cycle pause`, `seek …`, `cycle fullscreen`), install forced
+bindings on **those keys, whatever they are**, and have each one do our thing
+*and then run the command the user had bound*. Claimed as a group, released
+as a group.
+
+That is strictly better than hard-coding `space`/`f`/arrows, and it is why it
+generalises:
+
+* it follows a **remapped** key. Somebody who moved pause to `p` gets
+  SyncPlay-aware pause on `p`, which our fixed `kb_pause` never gave them;
+* it **preserves meaning**, because we re-issue the command they bound rather
+  than substituting ours. That is the whole complaint behind PR #547 answered
+  — we intercept only where we genuinely need to, and even there the key
+  still does what their config says;
+* it needs **no precedence model of our own**. `input-bindings` is the
+  *resolved* set, so mpv has already decided.
+
+**SyncPlay claims seek and pause while a group is active** and releases when
+it is not, which is what makes dropping the permanent arrow bindings safe: a
+seek in a group has to be broadcast exactly as a pause does, and unlike
+`pause` there is no defensive observer to catch one we did not initiate.
+
+**Fullscreen uses the same shape rather than an observer.** **[iw]**:
+"`set_fullscreen(persist=False)` exists precisely so the app's own changes
+don't count — yeah that makes sense… Might be best to just intercept it in
+the same shape as the keyboard nav in syncplay, `pause_ignore`-shaped things
+are bug factories." Which is right: an ignore flag is a second piece of state
+that has to be set and cleared around every self-initiated change, and every
+path that forgets is a silent mis-record. Interception has no such state —
+**a fullscreen change that came through our binding is user-initiated by
+construction**, and one that did not is ours. Nothing to reset, nothing to
+race.
+
+#### B. The OSD menu binds its own keys, while it is open
+
+**[iw]**: "ideally we use listeners bound only while the menu is up that uses
+the arrow keys, and it tears down the intercepts when the menu is closed."
+
+Installed on show, removed on hide. That is what lets the arrows, ENTER and
+ESC belong to mpv for the whole of the time the menu is not up, with no
+conditional behaviour for the user to notice — and it is the same lifecycle
+the renderer already runs for `mpvtk_mouse` / `mpvtk_thumb`.
+
+#### C. A one-time migration to input.conf, minus the ones they parked
+
+**[iw]**: "we wanted to do a one-time migration of the user's old mpv shim
+settings to input.conf before we drop the config options, unless of course
+they set the config options to null, that means they were probably parking
+our nav interception away and eating the penalty."
+
+So the rule is `__fields_set__` **and** a non-empty value: touched *and* not
+cleared. Someone who set `kb_menu_left` to null was giving the key back to
+mpv the only way we offered, and re-binding it during a migration would undo
+the exact thing this change is for.
+
+That rule needed #22 first — until the settings became `Optional[str]`, a
+`null` in the config arrived as the string `"None"` and the value could not
+say what the user meant.
+
+Two hazards already established: the migration writes **before the first
+`[`**, never at the end, because everything after a section header belongs to
+it (`mpv_options.hwdec_pinned_by_config` reads the same rule for `hwdec`);
+and `CONFIG_VERSION` is the existing one-time mechanism.
 
 ---
 
@@ -2103,3 +2163,112 @@ All fifteen are `Optional[str]` now, and `_bind_key` refuses `None`, `""` and
 the literal `"None"` — the last because a config written under the old typing
 holds it. `__fields_set__` plus the value is now a real answer to "did they
 park this on purpose?", which is what the migration needs.
+
+---
+
+## Review round 2 — three agents over the 1,940 lines since the last one
+
+Three reviewers by angle (the shader-override feature, input/renderer, browser
+drawing), each asked to refute its own findings before reporting. **Seven
+survived and all seven were real**; every one was verified here before being
+acted on. Notably, three of them are defects *this batch introduced while
+fixing something else*, which is the pattern worth naming.
+
+### The one that invalidated my own test
+
+`on_dbl`'s new guards were **dead code, and the file said so 140 lines
+above them.** mpv delivers a double click as `mbtn_left`, `mbtn_left_dbl`,
+`mbtn_left` — measured against a real mpv and written down in
+`tests/lua/test_renderer.lua` — and that leading `mbtn_left` runs
+`on_mouse_down`, which dismisses the textbox menu, the context menu and the
+dropdown popup before returning. So by the time `on_dbl` ran, asking "is one
+open?" always answered no. Only `modal_active()` survived, because clicking
+inside a modal body dismisses nothing.
+
+My tests fired `mbtn_left_dbl` **alone** — one event where the real device
+sends three — so they passed against a guard that did nothing for two of the
+three cases the commit message named. The fix is `state.pop_press`, recorded
+on the press and read by the double click, because the question is "did a
+popup consume this press?", not "is one open now?". The tests drive the real
+three-event sequence, and the context-menu case (which had no test at all)
+is covered.
+
+### The shader feature, three ways
+
+* **"Remember Last Used Profile" off made a pick last for zero items.**
+  `menu_handle` loaded the profile, skipped the settings write because
+  `remember` was off, then re-resolved the default scope from
+  `shader_pack_profile` — the value it had deliberately not written. It was
+  None, so the re-resolve unloaded what had just been loaded. Fixed with
+  `session_default`: the default scope's value for this session, seeded from
+  the setting and persisted only when asked. There is now one writer per
+  scope (`set_scope_profile`), which is what the two menus had been
+  duplicating badly.
+* **`k` stopped working across an item boundary.** The escape hatch unloaded
+  the profile; the next episode's resolve found the override and put it
+  straight back. On the one key whose entire purpose is recovering from a
+  profile that breaks playback. Now `suppressed` until the user picks again.
+* **The scope menu was stale after a pick** — `back` popped the snapshot
+  built before the change, so the per-scope values and the "in effect"
+  marker were the old ones on the one screen where they had just moved.
+  Both levels are rebuilt.
+
+### The two costs that were not bounded
+
+* **An offline play path could aim the Ancestors lookup at a dead server.**
+  `OfflineVideo.client` is documented as possibly None, and `_client` could
+  not tell "the caller passed nothing" from "the caller knows there is no
+  client" — so it fell back to the *previous* item's client, which is
+  precisely the wrong-server lookup the explicit hand-in exists to prevent,
+  from inside `_play_media`, holding the player lock, with the apiclient's
+  30s x 5 retry behind it. `ASK_PLAYER` is now the default and `None` is an
+  answer.
+* **A transient failure was cached as a permanent one.** One timeout meant
+  the "This Library" row never appeared again for that series, and `force=True`
+  could not retry it — so the user's natural retry (reopening the menu) could
+  not work. A positive answer is still permanent; a negative one is retried
+  when the menu asks.
+
+### The browser, two ways
+
+* **The no-backdrop fallback had no pending state.** `header_bakes_heading`
+  answers from the *spec*, known on the first paint; the banner was gated on
+  the decoded *image*. In between, the caller suppressed its heading and the
+  banner had none — so the page drew no title at all, and if the fetch never
+  succeeded, no title ever. Exactly what `backdrop_node`'s docstring says the
+  pending composition exists to prevent, reintroduced one branch over. The
+  two questions are answered from the same thing now.
+* **Transparent channel logos were inset unplated.** The fallback made the
+  header reachable for a `Program`, whose `image_spec` resolves to the
+  channel logo — dark ink on transparency by broadcaster convention, invisible
+  on `PLACEHOLDER_BG`. The guide's channel column plates the same file, so
+  the two screens disagreed about it. `_banner_poster` goes through
+  `logo_plate` now, which keeps #637's settings answered in one place.
+
+### And one the reviewers found in my tests, not my code
+
+Three poster stubs returned a bare `object()` as a "decoded image". That is
+the fake-omits-a-field trap in CLAUDE.md almost verbatim: the moment
+`_banner_poster` had to *look at* the artwork, those tests raised rather than
+covering the new path. Real images now.
+
+### Refuted, and worth recording
+
+`_library_ids`' unsynchronised cross-thread mutation — the concern I flagged
+going in — is genuinely harmless: reads and `d[k] = v` only, no deletes, so
+the worst case is two threads making the same request once. `_profile_scopes`
+cannot issue a request from the render path (`_build_state` returns early for
+anything without a media source, and the play path has already warmed
+everything else). `apply_for_item`'s early return is correct in every
+combination. The file format round-trips and the two scope tables cannot be
+confused. And the ENTER change lost no reachable path to the OSD menu.
+
+## 23 — Migrate the string `"None"` in old configs
+
+Found by the input reviewer, and it is the half of #22 that actually reaches
+the affected users. Retyping `kb_*` to `Optional[str]` fixes *new* nulls; a
+user who cleared a binding years ago has the string `"None"` on disk right
+now, because that is what the old coercion produced and `save()` wrote it
+back verbatim. That loads as a non-empty string, so the distinction #16's
+input.conf migration turns on would still not exist for exactly the people it
+is about. `CONFIG_VERSION` 3 normalises it.

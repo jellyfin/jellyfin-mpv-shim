@@ -2269,13 +2269,25 @@ ok(not did("cycle", "pause"),
 local MODAL = { id = "dlg", t = "layer", kind = "modal",
                 x = 340, y = 200, w = 600, h = 320 }
 
+-- **The real sequence, not one event.** mpv delivers a double click as
+-- mbtn_left, mbtn_left_dbl, mbtn_left -- measured, and written down 140
+-- lines above this. Firing mbtn_left_dbl alone is what let the first
+-- version of these tests pass while three of the four guards were dead:
+-- the leading mbtn_left dismisses the dropdown, the context menu and the
+-- textbox menu, so on_dbl asking "is one open?" always answered no.
+local function dbl()
+    fake.key("mbtn_left")
+    fake.key("mbtn_left_dbl")
+    fake.key("mbtn_left")
+end
+
 for _, mode in ipairs({ true, false }) do
     hud_up({ hide = 4, mode = "hover", click = mode })
     scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
             MODAL })
     repaint()
     fake.log.commands = {}
-    fake.key("mbtn_left_dbl")
+    dbl()
     ok(not did("cycle", "fullscreen"),
        "double click inside an open modal must not full-screen the window",
        "click_pauses=" .. tostring(mode))
@@ -2292,25 +2304,46 @@ ok(not did("cycle", "pause"),
 
 -- The dropdown popup has the same shape: its rows are popup geometry, not
 -- scene nodes, so a double click on the audio-track picker landed here too.
-hud_up({ hide = 4, mode = "hover", click = false })
-scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
-        { id = "dd", t = "dropdown", x = 500, y = 300, w = 200, h = 30,
-          size = 18, items = { "One", "Two", "Three" }, sel = 0 } })
-repaint()
-click("dd")                          -- open it
-fake.mouse(640, 360)                 -- pointer over a popup row
-fake.log.commands = {}
-fake.key("mbtn_left_dbl")
+local function dd_open()
+    hud_up({ hide = 4, mode = "hover", click = false })
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            { id = "dd", t = "dropdown", x = 500, y = 300, w = 200, h = 30,
+              size = 18, items = { "One", "Two", "Three" }, sel = 0 } })
+    repaint()
+    click("dd")                      -- open it
+    fake.mouse(640, 360)             -- pointer over a popup row
+    fake.log.commands = {}
+end
+
+dd_open()
+dbl()
 ok(not did("cycle", "fullscreen"),
    "double click on an open dropdown's row must not full-screen")
+
+-- Re-opened, because dbl() ends in an mbtn_left that closes the popup --
+-- the reason the first version of this pair passed for the wrong reason.
+dd_open()
 fake.key("mbtn_right")
 ok(not did("cycle", "pause"),
    "right click on an open dropdown must not pause under it")
 
+-- The context menu had no test at all, and is the case the dead guard was
+-- most obviously written for.
+hud_up({ hide = 4, mode = "hover", click = false })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "cm", t = "menu", x = 500, y = 260, w = 220, rh = 30,
+          size = 18, items = { "Play", "Queue", "Mark Watched" } } })
+repaint()
+fake.mouse(560, 300)
+fake.log.commands = {}
+dbl()
+ok(not did("cycle", "fullscreen"),
+   "double click on an open context menu must not full-screen")
+
 -- ...and the guard must not have cost the thing it guards: with nothing
 -- floating, both still do what mpv would.
 hud_up({ hide = 4, mode = "hover", click = false })
-fake.key("mbtn_left_dbl")
+dbl()
 ok(did("cycle", "fullscreen"),
    "with nothing open, double click on bare video still full-screens")
 fake.key("mbtn_right")

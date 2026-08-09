@@ -45,6 +45,12 @@ profile_name_translation = {
     "ArtCNN High (C4F32)": _("ArtCNN High (C4F32)"),
 }
 
+#: Default for the ``client`` arguments below, meaning "ask the player".
+#: Distinct from None, which means "the caller knows there is no client" --
+#: the offline play path, where falling back to the player would aim the
+#: lookup at the PREVIOUS item's server.
+ASK_PLAYER = object()
+
 #: What each scope is called on screen. Kept beside the profile names
 #: rather than inside the menu code because both menus draw them -- the OSD
 #: one and the in-window HUD -- and two spellings of "This Series" is two
@@ -148,6 +154,22 @@ class VideoProfileManager:
         self._library_ids = {}
         #: The scope the next profile pick writes to. Set by the scope menu.
         self._menu_scope = "default"
+        #: The default scope's value **for this session**, which is not the
+        #: same thing as the remembered setting. "Remember Last Used
+        #: Profile" off means shader_pack_profile is never written -- so
+        #: resolving the default scope from the setting made a pick at that
+        #: scope load the profile and then immediately unload it, because
+        #: the re-resolve that follows found None. `remember` off used to
+        #: mean "for this session"; it must not come to mean "for zero
+        #: items".
+        self.session_default = settings.shader_pack_profile
+        #: Set by the `k` escape hatch, cleared by the next deliberate pick.
+        #: Without it, `k` stopped working across an item boundary the
+        #: moment any override existed: apply_for_item would resolve the
+        #: override and put the profile straight back on the next episode
+        #: -- on the one key whose entire purpose is recovering from a
+        #: profile that breaks playback.
+        self.suppressed = False
 
         shader_pack_builtin = get_resource("default_shader_pack")
 
@@ -399,7 +421,7 @@ class VideoProfileManager:
 
     # ------------------------------------------------ per-item overrides
 
-    def _client(self, client=None):
+    def _client(self, client=ASK_PLAYER):
         """The server connection to ask about ``item``.
 
         The menus can take it from the player, because the item they are
@@ -407,14 +429,21 @@ class VideoProfileManager:
         profile before ``_play_media`` assigns ``self._video``, so asking
         the player there answers with the PREVIOUS item's client -- which on
         a multi-server setup is a lookup against the wrong server. So it
-        hands one in.
+        hands one in, and ``None`` from it is an answer ("there is no
+        client") rather than an absence.
         """
-        if client is not None:
+        if client is not ASK_PLAYER:
+            # Including None. OfflineVideo.client is documented as possibly
+            # None when fully offline, and treating that as "not supplied"
+            # sent the lookup to the previous item's client -- a request to
+            # a server we already know is unreachable, from inside
+            # _play_media, holding the player lock, with the apiclient's
+            # 30s x 5 retry behind it.
             return client
         video = self.playerManager.get_video()
         return getattr(video, "client", None) if video is not None else None
 
-    def _library_id(self, item, client=None):
+    def _library_id(self, item, client=ASK_PLAYER, force=False):
         """The CollectionFolder ``item`` lives in, or None.
 
         ``/Items/{id}/Ancestors`` is the only thing that answers this: an
@@ -432,8 +461,16 @@ class VideoProfileManager:
         lookup = item.get("SeriesId") or item.get("Id")
         if not lookup:
             return None
-        if lookup in self._library_ids:
-            return self._library_ids[lookup]
+        cached = self._library_ids.get(lookup, ASK_PLAYER)
+        if cached is not ASK_PLAYER and (cached is not None or not force):
+            # A positive answer is permanent. A NEGATIVE one is only cached
+            # to keep the read path from asking once per playback -- it may
+            # have been one timeout or one 502, and the docstring's "a
+            # server that cannot answer this will not answer it next time"
+            # is true of a server that structurally cannot, not of a blip.
+            # So the menu (force=True), which is the user's natural retry,
+            # gets to ask again.
+            return cached
         found = None
         try:
             client = self._client(client)
@@ -451,7 +488,7 @@ class VideoProfileManager:
         self._library_ids[lookup] = found
         return found
 
-    def scope_keys(self, item, force=False, client=None):
+    def scope_keys(self, item, force=False, client=ASK_PLAYER):
         """``{scope: storage key}`` for ``item``, for scopes that apply.
 
         A film has no series, so it has no ``"series"`` entry and the menu
@@ -480,17 +517,20 @@ class VideoProfileManager:
             keys["series"] = key_for(server, series_id)
         known = (item.get("SeriesId") or item.get("Id")) in self._library_ids
         if force or known or self.overrides.has_any("library"):
-            library_id = self._library_id(item, client)
+            library_id = self._library_id(item, client, force)
             if library_id:
                 keys["library"] = key_for(server, library_id)
         return keys
 
-    def resolve_for(self, item, client=None):
+    def resolve_for(self, item, client=ASK_PLAYER):
         """``(scope, profile)`` this item should play with."""
+        # _default_profile(), not the setting: with "remember" off the
+        # setting is never written, and resolving from it is what unloaded
+        # a profile the user had just picked.
         return self.overrides.resolve(self.scope_keys(item, client=client),
-                                      settings.shader_pack_profile)
+                                      self._default_profile())
 
-    def apply_for_item(self, item, client=None):
+    def apply_for_item(self, item, client=ASK_PLAYER):
         """Put on whatever profile ``item`` resolves to.
 
         Replaces the bare :meth:`resume_after_still` on the play path: the
@@ -498,6 +538,14 @@ class VideoProfileManager:
         one, and a still that suspended the profile is only the commonest
         reason for that rather than the only one.
         """
+        if self.suppressed:
+            # `k` was pressed. Nothing resolves until the user picks again:
+            # an override that reloads the profile on the next episode is
+            # the escape hatch not working.
+            if self.current_profile is not None:
+                self.unload_profile()
+            self._suspended = None
+            return True
         scope, profile = self.resolve_for(item, client)
         self.active_scope = scope
         if self._suspended is None and profile == self.current_profile:
@@ -541,23 +589,14 @@ class VideoProfileManager:
     def _default_profile(self):
         """What the default scope holds.
 
-        The remembered setting -- falling back, when there is none, to
-        whatever is loaded *if the default scope is the one in force*.
-
-        Both halves earn their place. With "Remember Last Used Profile"
-        off, ``shader_pack_profile`` is permanently None while a profile is
-        visibly running, so reading the setting alone reports the default
-        as "None (Disabled)" to somebody looking straight at its output.
-        And the loaded profile is only the default's value while the
-        default is what chose it: under a series override it is the
-        override's, and reporting that as the default would make every
-        scope row say the same thing.
+        ``session_default``, which is seeded from the remembered setting and
+        then tracks what the user picks at that scope whether or not it is
+        being persisted. Reading ``shader_pack_profile`` directly is what
+        made "Remember Last Used Profile" off mean "the default scope is
+        permanently None" -- misreported in the menu, and, worse, acted on
+        by the re-resolve after a pick.
         """
-        if settings.shader_pack_profile is not None:
-            return settings.shader_pack_profile
-        if self.active_scope == "default":
-            return self.current_profile
-        return None
+        return self.session_default
 
     def set_scope_profile(self, item, scope, profile):
         """Write ``profile`` at ``scope``, then re-resolve and apply.
@@ -566,9 +605,12 @@ class VideoProfileManager:
         *library* while a *series* override is in force must not change what
         is on screen, or the menu lies about which scope wins.
         """
+        self.suppressed = False
         if scope == "default":
-            settings.shader_pack_profile = profile
-            settings.save()
+            self.session_default = profile
+            if settings.shader_pack_remember:
+                settings.shader_pack_profile = profile
+                settings.save()
         else:
             keys = self.scope_keys(item, force=True)
             self.overrides.set(scope, keys.get(scope), profile)
@@ -576,6 +618,7 @@ class VideoProfileManager:
 
     def clear_scope(self, item, scope):
         """Drop ``scope``'s override so the item inherits again."""
+        self.suppressed = False
         if scope == "default":
             return False
         keys = self.scope_keys(item, force=True)
@@ -684,24 +727,20 @@ class VideoProfileManager:
         scope = self._menu_scope
         if profile_name is UNSET:
             self.clear_scope(item, scope)
-        elif scope == "default":
-            # The one scope with a "remember" setting in front of it. An
-            # override is *explicitly* per-item and is always written; the
-            # global one is what the user may have asked us not to keep.
-            settings_were_successful = True
-            if profile_name is None:
-                self.unload_profile()
-            else:
-                settings_were_successful = self.load_profile(profile_name)
-            if settings.shader_pack_remember and settings_were_successful:
-                settings.shader_pack_profile = profile_name
-                settings.save()
-            self.apply_for_item(item)
         else:
+            # One writer for every scope, the default included. It used to
+            # load the profile here and then re-resolve, which with
+            # "remember" off unloaded it again in the same handler.
             self.set_scope_profile(item, scope, profile_name)
 
-        # Need to re-render menu.
+        # Re-render, BOTH levels. `back` pops the scope menu that was built
+        # before this change, so redrawing only the profile list left the
+        # stale one on the stack -- with the old per-scope values and the
+        # old "in effect" marker, on the one screen where the user has just
+        # changed them.
         self.menu.menu_action("back")
+        self.menu.menu_action("back")
+        self.menu_action()
         self.profile_menu(scope)
 
     def scope_handle(self):

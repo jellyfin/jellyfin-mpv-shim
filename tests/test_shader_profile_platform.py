@@ -73,6 +73,10 @@ def make_manager(current=None, item=None):
     mgr.active_scope = "default"
     mgr._library_ids = {}
     mgr._menu_scope = "default"
+    # The default scope's value IS the loaded one here: these tests
+    # have no overrides, so the two cannot differ.
+    mgr.session_default = current
+    mgr.suppressed = False
     return mgr
 
 

@@ -3254,6 +3254,18 @@ local function on_mouse_down()
         state.nav_mode = false
         send({ t = 'nav', active = false })
     end
+    -- **Whether a popup consumed this press**, remembered for on_dbl.
+    --
+    -- mpv delivers a double click as mbtn_left, mbtn_left_dbl, mbtn_left
+    -- (measured against a real mpv under Xvfb -- see the note above the
+    -- mouse-modality tests). The first mbtn_left runs THIS function, which
+    -- dismisses the textbox menu, the context menu and the dropdown popup
+    -- before returning -- so by the time on_dbl runs, asking "is one open?"
+    -- always answers no and a guard written that way is dead code. Only a
+    -- modal survives, because clicking inside its body dismisses nothing.
+    --
+    -- So the press records it and the double click reads the record.
+    state.pop_press = false
     -- textbox copy/paste menu eats the click first
     if state.tb_menu then
         local idx = item_at(state.tb_menu_geo, x, y)
@@ -3262,12 +3274,14 @@ local function on_mouse_down()
         if idx ~= nil and tbn then
             tb_menu_action(tbn, tb_menu_items(tbn)[idx + 1])
         end
+        state.pop_press = true
         request_render()
         return
     end
     -- an open context menu eats the click next
     if active_menu() then
         dismiss_menu(item_at(state.menu_geo, x, y))
+        state.pop_press = true
         return
     end
     -- open popup eats the click first
@@ -3283,6 +3297,7 @@ local function on_mouse_down()
                 t = popup_thumb(g)
             end
             state.dd_bar_drag = { grab = y - t.y }
+            state.pop_press = true
             request_render()
             return
         end
@@ -3295,6 +3310,7 @@ local function on_mouse_down()
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
         end
+        state.pop_press = true
         request_render()
         return
     end
@@ -3765,13 +3781,15 @@ local function on_dbl()
         -- and the textbox copy menu are all popup geometry rather than
         -- scene nodes, so node_at is nil ON them -- and this branch would
         -- full-screen the window from a double click inside the Playback
-        -- Info panel or on a track picker's row. on_mouse_down handles all
-        -- four above its own bare-video branch; these two did not.
-        -- Inlined rather than given a helper: this chunk is at Lua's
-        -- 200-local ceiling.
+        -- Info panel or on a track picker's row.
+        --
+        -- Two different questions, because a double click is three events:
+        -- a modal is still up when this runs, but the popups were all
+        -- dismissed by the leading mbtn_left (see state.pop_press, set in
+        -- on_mouse_down). Re-asking "is one open?" for those was dead code
+        -- that tested true only when nothing had been clicked.
         if state.phud.mode and state.phud.shown
-            and not modal_active() and not state.dd_open
-            and not active_menu() and not state.tb_menu then
+            and not modal_active() and not state.pop_press then
             mp.commandv('cycle', 'fullscreen')
         end
         return

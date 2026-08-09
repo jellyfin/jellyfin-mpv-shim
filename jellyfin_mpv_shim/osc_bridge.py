@@ -471,27 +471,16 @@ class OscBridge:
             scope, value = "default", str(arg)
         video = self.playerManager.get_video()
         item = (getattr(video, "item", None) or {}) if video else {}
-        if scope != "default":
-            if value == "unset":
-                manager.clear_scope(item, scope)
-            else:
-                manager.set_scope_profile(
-                    item, scope, None if value == "none" else value)
-            return
-        if value == "none":
-            manager.unload_profile()
-            success = True
-            profile_name = None
+        # One writer for every scope, the default included -- set_scope_profile
+        # updates the session value, persists it only when "remember" is on,
+        # and re-resolves. Doing the default by hand here loaded the profile
+        # and then unloaded it again with "remember" off, because the
+        # re-resolve read a setting that had deliberately not been written.
+        if value == "unset":
+            manager.clear_scope(item, scope)
         else:
-            profile_name = value
-            success = manager.load_profile(profile_name)
-        if settings.shader_pack_remember and success:
-            settings.shader_pack_profile = profile_name
-            settings.save()
-        # Re-resolve: setting the default while an override is in force must
-        # not change what is on screen, or the menu lies about which scope
-        # wins.
-        manager.apply_for_item(item)
+            manager.set_scope_profile(
+                item, scope, None if value == "none" else value)
 
     def _toggle_favorite(self):
         # Runs on the action thread (network I/O).

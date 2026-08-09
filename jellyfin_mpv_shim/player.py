@@ -1140,6 +1140,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     # Kill shader packs (useful for breakage)
     def _on_kill_shader_key(self):
+        # Suppressed until the user picks again, not merely unloaded. Since
+        # profiles resolve per item (series -> library -> default), an
+        # unload alone lasted until the next episode, which then put the
+        # override's profile straight back -- on the one key whose entire
+        # purpose is recovering from a profile that breaks playback.
+        if self.menu is not None and self.menu.profile_manager is not None:
+            self.menu.profile_manager.suppressed = True
         if settings.shader_pack_remember:
             settings.shader_pack_profile = None
             settings.save()
