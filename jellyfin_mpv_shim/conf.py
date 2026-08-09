@@ -398,12 +398,14 @@ class Settings(SettingsBase):
     kb_pause: Optional[str] = "space"
     kb_fullscreen: Optional[str] = "f"
     kb_kill_shader: Optional[str] = "k"
-    seek_up: int = 60
-    seek_down: int = -60
-    seek_right: int = 5
-    seek_left: int = -5
-    seek_v_exact: bool = False
-    seek_h_exact: bool = False
+    # seek_up / seek_down / seek_right / seek_left / seek_v_exact /
+    # seek_h_exact were removed in config version 4. #16 gave the arrow
+    # keys back to mpv, so a seek distance lives in the user's input.conf
+    # now; the settings could not work after that (a changed distance made
+    # the shim CLAIM the key, and the claim seeks by mpv's own amount) and
+    # were never in the settings UI or the README to begin with. The
+    # migration carries an old value across by reading the raw config --
+    # see input_conf.LEGACY_SEEK_DEFAULTS.
     shader_pack_enable: bool = True
     shader_pack_custom: bool = False
     shader_pack_remember: bool = True
@@ -678,7 +680,8 @@ class Settings(SettingsBase):
 
             try:
                 if input_conf.migrate(
-                        self, conffile.get(APP_NAME, "input.conf")):
+                        self, conffile.get(APP_NAME, "input.conf"),
+                        raw=data):
                     changed = True
             except Exception:
                 log.warning("Could not migrate key bindings to input.conf",

@@ -543,13 +543,30 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_pause` - Pause. Also "ok" for menu. (Default: `space`)
 - `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
 - `kb_kill_shader` - Disable shader packs. (Default: `k`)
-- `seek_up` - Time to seek for "up" key. (Default: `60`)
-- `seek_down` - Time to seek for "down" key. (Default: `-60`)
-- `seek_right` - Time to seek for "right" key. (Default: `5`)
-- `seek_left` - Time to seek for "left" key. (Default: `-5`)
 - `media_keys` - Enable binding of MPV to media keys. Default: `true`
-- `seek_v_exact` - Use exact seek for up/down keys. Default: `false`
-- `seek_h_exact` - Use exact seek for left/right keys. Default: `false`
+
+### Seek distances moved to `input.conf`
+
+`seek_up`, `seek_down`, `seek_right`, `seek_left`, `seek_v_exact` and
+`seek_h_exact` were **removed in config version 4**. The arrow keys are
+mpv's own again, so a seek distance is an ordinary mpv binding and lives
+in `input.conf` in this client's config directory, where it can be edited
+like any other:
+
+```
+up    seek 30
+down  seek -30
+right seek 10 exact
+left  seek -10 exact
+```
+
+If you had any of those settings, they were written there for you the
+first time this version started, and removed from `conf.json`.
+
+**One case cannot be carried across**: with `mpv_ext` and
+`mpv_ext_no_ovr` both enabled, external mpv reads *your* mpv config
+directory rather than this client's, so the file written above is never
+loaded. Add the lines to your own `input.conf` instead.
 
 ## Shader Packs
 

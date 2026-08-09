@@ -294,11 +294,17 @@ class SeekClaimGateTest(unittest.TestCase):
         # what every real install looks like.
         self.assertFalse(self._differs())
 
-    def test_a_changed_distance_claims_until_it_is_migrated(self):
-        self.assertTrue(self._differs(seek_up=30))
+    def test_a_distance_left_in_an_old_config_cannot_claim(self):
+        """The seek settings left the schema in config version 4.
 
-    def test_an_exact_flag_claims(self):
-        self.assertTrue(self._differs(seek_h_exact=True))
+        While they existed this was the bug rather than the feature: a
+        changed distance made this answer True, and the claim it bought
+        then seeks by the amount in *mpv's* binding, not by the setting --
+        so the number the user typed was never used by anything. A stale
+        `seek_up` in someone's conf.json is now simply not read.
+        """
+        self.assertFalse(self._differs(seek_up=30))
+        self.assertFalse(self._differs(seek_h_exact=True))
 
     def test_web_seek_claims(self):
         self.assertTrue(self._differs(use_web_seek=True))
@@ -336,18 +342,26 @@ class AfterMigrationTest(unittest.TestCase):
 
         return Settings().parse_obj(dict(Settings().dict(), **kw))
 
-    def _migrated(self, **kw):
+    def _migrated(self, raw=None, **kw):
+        """Run the migration and return ``(settings, written)``.
+
+        ``raw`` is the config file's own dict, which is where the seek
+        distances live now -- they left the schema in config version 4, so
+        `plan` reads them from the raw config rather than from Settings.
+        """
         import os
         import tempfile
 
         from jellyfin_mpv_shim import input_conf
 
         s = self._settings(**kw)
-        input_conf.migrate(s, os.path.join(tempfile.mkdtemp(), "input.conf"))
-        return s
+        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        written = input_conf.migrate(s, path, raw=raw)
+        return s, written
 
     def test_a_migration_never_touches_a_menu_key(self):
-        s = self._migrated(seek_up=30, seek_h_exact=True, kb_pause="P")
+        s, _w = self._migrated({"seek_up": 30, "seek_h_exact": True},
+                               kb_pause="P")
         for key in ("kb_menu_left", "kb_menu_right", "kb_menu_up",
                     "kb_menu_down"):
             self.assertEqual(getattr(s, key), getattr(type(s), key),
@@ -359,16 +373,22 @@ class AfterMigrationTest(unittest.TestCase):
         """Otherwise the keys stay claimed and the handler uses the
         binding's amount, so the distance the user configured would be
         migrated into input.conf and then ignored."""
-        s = self._migrated(seek_up=30)
+        s, written = self._migrated({"seek_up": 30})
+        self.assertIn("seek_up", [name for name, _k, _c in written],
+                      "the distance never reached input.conf")
         pm = PlayerManager.__new__(PlayerManager)
         with mock.patch("jellyfin_mpv_shim.player.settings", s):
             self.assertFalse(pm._seek_is_ours())
 
     def test_an_inexpressible_feature_keeps_its_claim(self):
-        # web seek has no mpv equivalent, so nothing is migrated and the
-        # claim is what delivers it -- on whatever key actually seeks.
-        s = self._migrated(use_web_seek=True, seek_up=30)
-        self.assertEqual(s.seek_up, 30, "nothing should have been migrated")
+        # web seek has no mpv equivalent, so no distance is migrated -- a
+        # number in input.conf would be ignored by the handler, which uses
+        # the binding's own amount -- and the claim is what delivers it, on
+        # whatever key actually seeks.
+        s, written = self._migrated({"seek_up": 30}, use_web_seek=True)
+        self.assertEqual([name for name, _k, _c in written], [],
+                         "a distance was migrated even though web seek "
+                         "replaces it")
         pm = PlayerManager.__new__(PlayerManager)
         with mock.patch("jellyfin_mpv_shim.player.settings", s):
             self.assertTrue(pm._seek_is_ours())

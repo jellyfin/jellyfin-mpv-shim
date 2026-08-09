@@ -63,6 +63,26 @@ SEEKS = (("up", "seek_up", "seek_v_exact"),
          ("right", "seek_right", "seek_h_exact"),
          ("left", "seek_left", "seek_h_exact"))
 
+#: The seek settings' old defaults, kept here because the settings
+#: themselves are **gone** from ``conf.Settings``.
+#:
+#: They were never in the settings UI or the README -- hand-edited config
+#: only -- and once #16 gave the arrows back to mpv they could not work
+#: anyway: a changed distance made `_seek_is_ours` claim the key, and the
+#: claim then seeks by the amount in *mpv's* binding, not by the setting.
+#: So they were dead the moment the migration landed. **[iw]**: "should
+#: drop the dead settings post-migration."
+#:
+#: Dropped from the schema, kept readable here: an upgrading user's value
+#: still has to be carried into their input.conf, and by the time
+#: `_migrate` runs, `parse_obj` has already discarded every key the schema
+#: no longer declares. So the migration reads the **raw config dict**, not
+#: the parsed Settings -- which is what a migration should do anyway, since
+#: it is the only code that has to know what the config used to look like.
+LEGACY_SEEK_DEFAULTS = {"seek_up": 60, "seek_down": -60,
+                        "seek_right": 5, "seek_left": -5,
+                        "seek_v_exact": False, "seek_h_exact": False}
+
 
 def _cleared(value):
     """Whether the user turned this binding off.
@@ -96,12 +116,27 @@ def _changed(settings, name):
                                                     None)
 
 
-def plan(settings):
+def _legacy(raw, name):
+    """A dropped seek setting's value from the raw config, or its default."""
+    return (raw or {}).get(name, LEGACY_SEEK_DEFAULTS[name])
+
+
+def _legacy_changed(raw, name):
+    """Whether the raw config holds something other than the old default."""
+    return _legacy(raw, name) != LEGACY_SEEK_DEFAULTS[name]
+
+
+def plan(settings, raw=None):
     """``[(setting, key, command)]`` to write, for the bindings the user
     changed.
 
     Only ones that differ from our default, only ones that are not cleared,
     and only where mpv can express what the shim did.
+
+    ``raw`` is the config file's own dict. The seek distances are read from
+    it rather than from ``settings`` because they are no longer part of the
+    schema -- see LEGACY_SEEK_DEFAULTS. Absent, only the `kb_*` half runs,
+    which is what a caller with no file to offer should get.
     """
     out = []
     for name, command in FIXED:
@@ -122,14 +157,16 @@ def plan(settings):
     if getattr(settings, "use_web_seek", False):
         return out
     for key, amount_key, exact_key in SEEKS:
-        if not (_changed(settings, amount_key) or _changed(settings,
-                                                           exact_key)):
+        if not (_legacy_changed(raw, amount_key)
+                or _legacy_changed(raw, exact_key)):
             continue
-        amount = getattr(settings, amount_key, 0)
+        amount = _legacy(raw, amount_key)
+        if _cleared(amount):
+            continue
         out.append((amount_key, key,
                     "seek %d%s" % (amount,
-                                   " exact" if getattr(settings, exact_key,
-                                                       False) else "")))
+                                   " exact" if _legacy(raw, exact_key)
+                                   else "")))
     return out
 
 
@@ -158,13 +195,13 @@ def insert_before_first_section(existing, block):
     return existing + block
 
 
-def migrate(settings, path):
+def migrate(settings, path, raw=None):
     """Write the plan into ``path`` and clear the settings it carried.
 
     Returns the entries written (empty if there was nothing to do), so the
     caller can decide whether the config needs saving.
     """
-    entries = plan(settings)
+    entries = plan(settings, raw)
     if not entries:
         return []
     migrated = [name for name, _k, _c in entries]
@@ -202,14 +239,14 @@ def migrate(settings, path):
     # "quietly dropped a feature" this module exists to avoid, arriving by
     # the back door.
     for name in migrated:
-        # The key settings are cleared; a distance goes back to its DEFAULT,
-        # because "no seek distance" is not a thing -- and because
-        # _seek_is_ours reads exactly these, so leaving them changed would
-        # keep claiming keys whose distance now lives in input.conf.
-        setattr(settings, name, None if name.startswith("kb_")
-                else getattr(type(settings), name))
-    for _key, _amount_key, exact_key in SEEKS:
-        if any(n.startswith("seek_") for n in migrated):
-            setattr(settings, exact_key, getattr(type(settings), exact_key))
+        if not name.startswith("kb_"):
+            # A seek distance has no setting to clear. They left the schema
+            # in config version 4 (see LEGACY_SEEK_DEFAULTS) and `plan` read
+            # this one out of the raw config, so there is no attribute here
+            # -- and nothing consults one either: `_seek_is_ours` used to
+            # read exactly these, which is why they had to be reset, and it
+            # no longer does.
+            continue
+        setattr(settings, name, None)
     log.info("Migrated %d key binding(s) to %s", len(entries), path)
     return entries

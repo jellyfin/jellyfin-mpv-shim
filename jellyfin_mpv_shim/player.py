@@ -1473,10 +1473,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     #: which is what its comment there has always said. Claiming a key for
     #: it would double-handle, since the claim's own `self.seek()` raises
     #: that same observer.
-    _MPV_EQUIVALENT_SEEK = {"seek_up": 60, "seek_down": -60,
-                            "seek_right": 5, "seek_left": -5,
-                            "seek_v_exact": False, "seek_h_exact": False,
-                            "use_web_seek": False}
+    #: Only `use_web_seek` now. The six seek settings that used to be here
+    #: are gone from the config entirely (see conf.Settings): a distance
+    #: lives in the user's input.conf since #16, and while they existed
+    #: they were actively misleading -- a changed distance made this return
+    #: True, and the resulting claim then seeks by the amount in *mpv's*
+    #: binding rather than by the setting. Web seek is the one thing left
+    #: that mpv cannot express, so it is the one thing that still claims.
+    _MPV_EQUIVALENT_SEEK = {"use_web_seek": False}
 
     def _seek_is_ours(self):
         """Whether the shim's seek does something mpv's cannot.
@@ -3956,23 +3960,49 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def set_speed(self, speed: float):
         self._player.speed = speed
 
+    #: What mpv's own arrows do, for a remote seek on an mpv that answered
+    #: nothing. mpv's documented defaults, character for character.
+    _DEFAULT_SEEK = {"up": (60, False), "down": (-60, False),
+                     "right": (5, False), "left": (-5, False)}
+
+    def _seek_like_the_keyboard(self, action):
+        """``(amount, exact)`` that pressing ``action`` on the keyboard
+        would seek by, right now, on this mpv.
+
+        **Asked of mpv, not of a setting.** The seek distances left the
+        config in version 4, so the only place a distance lives is the
+        user's input.conf -- and the keyboard reads it from there whether
+        the key is mpv's own or one the shim claimed. A remote that kept
+        its own number would seek a different distance from the arrow key
+        beside it on the same machine, which is what it did while
+        `settings.seek_*` still existed and the keyboard had stopped
+        reading them.
+        """
+        from . import keysweep
+
+        try:
+            for key, semantic, cmd in self._swept_keys():
+                if semantic != "seek" or key != action:
+                    continue
+                got = keysweep.action(cmd)
+                if got is not None:
+                    return got[1]
+        except Exception:
+            log.debug("could not read mpv's seek binding for %r", action,
+                      exc_info=True)
+        return self._DEFAULT_SEEK[action]
+
     def kb_seek(self, action):
-        if action == "up":
-            self.seek(settings.seek_up, exact=settings.seek_v_exact)
-        elif action == "down":
-            self.seek(settings.seek_down, exact=settings.seek_v_exact)
-        elif action == "left":
-            seektime = settings.seek_left
-            if settings.use_web_seek:
-                seektime, _x = self.get_seek_times()
-            self.seek(seektime, exact=settings.seek_h_exact)
-        elif action == "right":
-            seektime = settings.seek_right
-            if settings.use_web_seek:
-                _x, seektime = self.get_seek_times()
-            self.seek(seektime, exact=settings.seek_h_exact)
-        else:
+        if action not in self._DEFAULT_SEEK:
             self.menu.menu_action(action)
+            return
+        amount, exact = self._seek_like_the_keyboard(action)
+        if settings.use_web_seek:
+            # Routed by sign, as the claimed-key path does: a binding says
+            # which way it goes, never which arrow it was.
+            back, forward = self.get_seek_times()
+            amount = forward if amount > 0 else back
+        self.seek(amount, exact=exact)
 
     # Jellyfin remote navigation (MoveUp/Select/… from a phone or web
     # client) -> mpv key names. While the mpvtk browser owns input its

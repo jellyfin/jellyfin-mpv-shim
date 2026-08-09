@@ -89,14 +89,14 @@ class PlanTest(unittest.TestCase):
     def test_a_seek_distance_migrates_onto_mpvs_own_arrow(self):
         # Expressible, and no longer entangled with the menu — which is
         # what makes migrating it coherent at all.
-        self.assertEqual(input_conf.plan(_settings(seek_up=30)),
+        self.assertEqual(input_conf.plan(_settings(), {"seek_up": 30}),
                          [("seek_up", "up", "seek 30")])
 
     def test_exactness_moves_both_keys_of_its_pair(self):
         # seek_h_exact is shared, so leaving one behind would drop the
         # exactness on half a pair.
         self.assertEqual(
-            input_conf.plan(_settings(seek_h_exact=True)),
+            input_conf.plan(_settings(), {"seek_h_exact": True}),
             [("seek_right", "right", "seek 5 exact"),
              ("seek_left", "left", "seek -5 exact")])
 
@@ -107,7 +107,7 @@ class PlanTest(unittest.TestCase):
         the handler, which uses the binding's own amount. The pause key
         still moves; it is unrelated."""
         got = input_conf.plan(
-            _settings(seek_up=30, kb_pause="P", use_web_seek=True))
+            _settings(kb_pause="P", use_web_seek=True), {"seek_up": 30})
         self.assertEqual(got, [("kb_pause", "P", "cycle pause")])
 
     def test_skip_intro_on_seek_does_not_stop_them(self):
@@ -115,7 +115,7 @@ class PlanTest(unittest.TestCase):
         and applies it, mpv's own bindings included, so it works perfectly
         well on a migrated distance."""
         got = input_conf.plan(
-            _settings(seek_up=30, skip_intro_on_seek=True))
+            _settings(skip_intro_on_seek=True), {"seek_up": 30})
         self.assertEqual(got, [("seek_up", "up", "seek 30")])
 
     def test_a_shim_action_is_never_migrated(self):
