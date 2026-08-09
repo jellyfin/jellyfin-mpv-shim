@@ -1,49 +1,52 @@
 """Collections (box sets) against a real server.
 
 A collection is the one container in this library whose **shape the server
-gets wrong in a way no fake would ever reproduce**, and stdjflib now ships
-fixtures for every variant of it. Three claims are pinned here, each of which
-is invisible to `tests/_shell_harness.FakeSource`:
+gets wrong in a way no fake would ever reproduce**, and stdjflib ships
+fixtures for every variant of it. Two claims are pinned here, both
+invisible to `tests/_shell_harness.FakeSource`:
 
-**`ChildCount` is a lie for a collection read off disk.** A `collection.xml`
-is parsed into the in-memory item and its members are never written to the
-`LinkedChildren` table, so `ChildCount` reports **0** for the whole life of
-the server while `GET /Items?parentId=` on the same item returns every
-member. (Measured on 12.0; stdjflib's `docs/COLLECTION_XML_BUGS.md` has the
-reproduction and the source reading.) The browser happens not to read
-`ChildCount` anywhere — this suite is what keeps it that way, because
-"collections show as empty" is the exact bug that follows from the obvious
-optimisation, and it would show up on real libraries and on no fake.
-
-**A collection holds items of any type, from any library.** A linked child is
-an arbitrary item: `Two Libraries, One Collection` is a series from Shows and
-a film from Movies. So the listing must go out **untyped and non-recursive**
-— which is what `_open_item` arranges by passing the BoxSet's own
-`CollectionType` (there is none) to the grid. Send `LIBRARY_ITEM_TYPES`'
-`"movies"` instead, the way a library grid does, and the series silently
-vanishes; the test below asserts both halves so the untyped query is not
-"simplified" into the typed one.
+**A collection holds items of any type, from any library.** A linked child
+is an arbitrary item: `Api Mixed Types` is a series and a film. So the
+listing must go out **untyped and non-recursive** -- which is what
+`_open_item` arranges by passing the BoxSet's own `CollectionType` (there
+is none) to the grid. Send `LIBRARY_ITEM_TYPES`' `"movies"` instead, the
+way a library grid does, and the series silently vanishes; the test below
+asserts both halves so the untyped query cannot be "simplified" into the
+typed one.
 
 **Editing a collection needs a permission a new account does not have.**
 The whole of `CollectionController` is behind
-`EnableCollectionManagement` — the `[Authorize]` is on the controller, not
-its routes — and it is off for a newly created account with no administrator
-bypass, the same shape as `EnableLiveTvManagement` (see
+`EnableCollectionManagement` -- the `[Authorize]` is on the controller, not
+its routes -- and it is off for a newly created account with no
+administrator bypass, the same shape as `EnableLiveTvManagement` (see
 `docs/PERMISSION_GAPS.md` §5). So the shim hides the affordances for an
-account that lacks it, and this is where the *field name* is checked: a unit
-test builds the policy dict it then reads and would pass against a misspelt
-key. The refusal itself is asserted too, because hiding a button is only
-right for as long as pressing it would have failed.
+account that lacks it, and this is where the *field name* is checked: a
+unit test builds the policy dict it then reads and would pass against a
+misspelt key. The refusal itself is asserted too, because hiding a button
+is only right for as long as pressing it would have failed.
 
-And the three edit endpoints — `new_collection`, `add_collection_items`,
-`remove_collection_items` — are exercised end to end through the real
-`PlayerGateway`, because nothing else in the project ever calls them against
-a server. That is `b97dd523`'s shape: an apiclient argument the fake accepts
-and the server does not.
+And the three edit endpoints -- `new_collection`, `add_collection_items`,
+`remove_collection_items` -- are exercised end to end through the real
+`PlayerGateway`, because nothing else in the project ever calls them
+against a server. That is `b97dd523`'s shape: an apiclient argument the
+fake accepts and the server does not.
 
-**Fixtures.** From stdjflib's `Box Sets` / `Auto Collections` libraries. Every
-lookup skips rather than fails when a fixture is absent, so a library built
-before collections existed does not report a defect it cannot have.
+**A third claim used to live here and no longer can.** `ChildCount` is 0
+for the whole life of a collection read off a `collection.xml`, while
+listing the same item returns every member -- so a client that drew
+containers from the count would show every collection empty. This suite
+pinned that by browsing a file-made collection and finding the contrast.
+It cannot now: those members are never written to `LinkedChildren` at all,
+so the fixture is **empty after the first server restart** and there is no
+contrast left to observe (stdjflib's `docs/COLLECTION_XML_BUGS.md` bug 1).
+Upstream will not fix it -- collection.xml is deprecated [iw] -- so the
+property moved to `tests/test_no_childcount_reads.py`, which reads the
+source, needs no server, and covers every call site rather than one screen.
+
+**Fixtures.** From stdjflib's `Box Sets` / `Auto Collections` libraries,
+and **API-made only** for the reason above. Every lookup skips rather than
+fails when a fixture is absent, so a library built before collections
+existed does not report a defect it cannot have.
 """
 
 import os
@@ -59,10 +62,21 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 #: Collections built by stdjflib, and the one thing each is here to prove.
-LINKED = "The Linked Collection"           # 3 films, from a collection.xml
-API_MADE = "Api Made Collection"           # the same 3, via POST /Collections
-CROSS_LIBRARY = "Two Libraries, One Collection"   # a Series and a Movie
-SHORT_ONE = "One Member Is Missing"        # a member that names no file
+# **Both of these are made through `POST /Collections`.** stdjflib also
+# ships collection.xml ones -- `The Linked Collection`, `Two Libraries, One
+# Collection`, `One Member Is Missing` -- and this suite used to browse
+# those. It cannot any more: a `collection.xml`'s members are applied to the
+# in-memory item and never written to `LinkedChildren`, so every one of them
+# is **empty after the first server restart** (stdjflib's
+# `docs/COLLECTION_XML_BUGS.md` bug 1, measured on 12.0). Upstream is not
+# interested, collection.xml being deprecated [iw], so that fixture reports
+# a defect the shim cannot have and cannot fix.
+#
+# Nothing asserted below ever needed a file-made collection. The claims are
+# about the query the *client* sends; an API-made collection is the same DTO
+# shape with members that survive a restart.
+COLLECTION = "Api Made Collection"         # 3 films
+CROSS_LIBRARY = "Api Mixed Types"          # a Series and a Movie
 
 SIZE = (1280, 720)
 
@@ -161,43 +175,25 @@ class CollectionBrowseTest(_CollectionCase):
             "the toggle's own query does not see every collection the server "
             "has — it is scoped to something")
 
-    def test_a_collection_lists_members_the_server_counts_as_none(self):
-        """The wart, pinned: browse by listing, never by `ChildCount`.
+    def test_a_collection_lists_its_members(self):
+        """The floor: a collection browses to what is in it.
 
-        A collection read from a `collection.xml` reports `ChildCount` 0 for
-        ever — the members are applied to the in-memory item and never
-        written to the table the count is read from. Nothing in the browser
-        reads `ChildCount`; this is what keeps it that way, because the
-        failure it buys ("all my collections are empty") reproduces on real
-        libraries and on no fake.
+        This is what is left of a test that pinned a `collection.xml` wart --
+        `ChildCount` reporting 0 while the listing returned every member, so
+        a client reading the count would draw every collection empty. That
+        fixture no longer lists anything either (see the note by the
+        constants), so the defect cannot be observed from here at all, and
+        asserting it would only re-report a dead fixture.
+
+        The property it was protecting is real and is now held where it
+        costs nothing: `tests/test_no_childcount_reads.py` asserts the
+        browser never reads `ChildCount` off a server DTO, which needs
+        neither a server nor a fixture.
         """
-        linked = self.collection(LINKED)
-        members = self.members(linked)
+        members = self.members(self.collection(COLLECTION))
         self.assertEqual(
             len(members), 3,
-            "%s should list its three films; the listing is the only place "
-            "its membership is visible" % LINKED)
-        self.assertEqual(
-            linked.get("ChildCount") or 0, 0,
-            "this server now persists a collection.xml's members — the "
-            "12.0 defect this test documents has been fixed, and the note "
-            "above should say so rather than being deleted")
-
-    def test_a_disk_made_and_an_api_made_collection_browse_identically(self):
-        """stdjflib's controlled pair: same three films, two mechanisms.
-
-        `Api Made Collection` holds exactly what `The Linked Collection`
-        holds and was created through `POST /Collections` instead of from a
-        file. If the shim can tell them apart, it is reading something it
-        should not be — which is how "empty on disk, fine over the API" gets
-        misread as a client bug.
-        """
-        linked = {i["Name"] for i in self.members(self.collection(LINKED))}
-        api_made = {i["Name"] for i in self.members(self.collection(API_MADE))}
-        self.assertEqual(
-            linked, api_made,
-            "the two collections built from the same three films do not "
-            "browse the same")
+            "%s should list its three films" % COLLECTION)
 
     def test_a_collection_is_listed_untyped_so_a_series_member_survives(self):
         """Both halves: what the shim sends, and what the other query costs.
@@ -224,19 +220,6 @@ class CollectionBrowseTest(_CollectionCase):
             "the typed movies query keeps the series member here, so this "
             "test can no longer tell which query the shim sent")
 
-    def test_a_collection_short_a_member_still_opens(self):
-        """A member naming a file that does not exist is dropped silently.
-
-        On 12.0 it is dropped for good (a linked child lives in a table whose
-        child column is a non-nullable id). A client cannot distinguish that
-        from a collection that was built with one item, and must not try —
-        what it must do is open.
-        """
-        members = self.members(self.collection(SHORT_ONE))
-        self.assertEqual(
-            len(members), 1,
-            "%s should list the one member that resolves" % SHORT_ONE)
-
     def test_the_add_to_collection_picker_lists_collections(self):
         """`get_collections` is its own endpoint and its own request.
 
@@ -250,8 +233,8 @@ class CollectionBrowseTest(_CollectionCase):
             {c.get("Type") for c in collections}, {"BoxSet"},
             "the picker offered something that is not a collection")
         self.assertIn(
-            LINKED, {c["Name"] for c in collections},
-            "a collection made from a file is missing from the picker")
+            COLLECTION, {c["Name"] for c in collections},
+            "a known collection is missing from the picker")
 
 
 @_e2e.require_server
@@ -315,7 +298,7 @@ class CollectionRouteTest(_CollectionCase):
             "way through the browser" % (names,))
 
     def test_the_tile_menu_inside_a_collection_offers_removal(self):
-        route = self._open(LINKED)
+        route = self._open(COLLECTION)
         items = route.get("_items") or []
         self.assertTrue(items, "nothing to right-click")
         entries = self.browser._tile_menu_entries(items[0])
