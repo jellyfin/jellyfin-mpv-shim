@@ -1837,8 +1837,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         elif t in SERIES_TYPES:
             self.navigate(dict(base, kind="series"))
         elif t == "Season":
+            # bar_title: the top bar says which *show* this is. Without it
+            # every part of the screen says "Season 1" and none of them
+            # says what it is a season of. Absent SeriesName it stays
+            # unset and the bar falls back to the season name.
             self.navigate(dict(base, kind="season",
-                               series_id=item.get("SeriesId")))
+                               series_id=item.get("SeriesId"),
+                               bar_title=item.get("SeriesName") or None))
         elif t in PLAYABLE_TYPES:
             self.navigate(dict(base, kind="detail"))
         elif t in ("Person", "Actor", "Director", "Writer"):

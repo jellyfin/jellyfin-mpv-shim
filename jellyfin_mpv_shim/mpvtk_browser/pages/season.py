@@ -100,4 +100,10 @@ class SeasonPage(Page):
             "item_id": season.get("Id"),
             "series_id": self.route.get("series_id"),
             "title": season.get("Name", ""),
+            # Read from the season being switched *to*, then from the route
+            # we are on: the picker's DTOs come from `get_seasons` and carry
+            # SeriesName, but a season that is short the field must not
+            # blank a bar that was correct a moment ago.
+            "bar_title": (season.get("SeriesName")
+                          or self.route.get("bar_title")),
         })

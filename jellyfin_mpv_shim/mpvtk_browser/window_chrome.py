@@ -209,7 +209,14 @@ def resize_grip(b, w, h):
 
 def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
-    title = "" if probe else (b.route.get("title") or _("Home"))
+    # `bar_title` where a route sets one, because the bar and the page
+    # heading are answering different questions. A season is the case that
+    # forced it: the bar said "Season 1", the heading said "Season 1" and
+    # the picker beside it said "Season 1", so the one thing the screen
+    # never told you was *which show*. The bar is the outer context, so it
+    # carries the series; the heading stays the season.
+    title = "" if probe else (b.route.get("bar_title")
+                              or b.route.get("title") or _("Home"))
 
     # A theme may give the top bar accent-bordered buttons; the stock look
     # leaves the Button defaults alone.
