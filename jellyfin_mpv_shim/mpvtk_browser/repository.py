@@ -404,6 +404,36 @@ FEATURE_FILTERS = (
     ("has_theme_video", "HasThemeVideo"),
 )
 
+#: Video "standard" filters -- each its own boolean parameter, and each
+#: measured on a real 12.0 server rather than taken from the SDK's
+#: spelling. The parameters are case-insensitive (`Is4K` and `is4K` both
+#: answered identically), so the casing here is only for readability.
+#:
+#: They UNION rather than intersect: `IsHd=true` answered 49 and
+#: `IsHd=true&Is4K=true` answered 54, which is 49 + the 5 the 4K filter
+#: matches on its own. That is the useful reading for a quality filter
+#: and is how web sends them, so it is left alone -- but it is the
+#: opposite of how every other filter on the panel composes, which is
+#: worth knowing before someone "fixes" it.
+VIDEO_FLAG_FILTERS = (
+    ("is_4k", "Is4K"),
+    ("is_3d", "Is3D"),
+)
+
+#: The `VideoType` enum, one checkbox each, joined into `VideoTypes`.
+#:
+#: The spellings are measured, and they have to be: an unparseable value
+#: is **silently ignored**, not rejected. `VideoTypes=Nonsense` answered
+#: with the whole library (1131 items), exactly as sending nothing does,
+#: while `VideoTypes=BluRay` answered 0 and `VideoTypes=VideoFile` 1131 --
+#: which is how these three are known to parse rather than to be quietly
+#: dropped. A typo here would not break the filter, it would turn it off.
+VIDEO_TYPE_FILTERS = (
+    ("vt_dvd", "Dvd"),
+    ("vt_bluray", "BluRay"),
+    ("vt_iso", "Iso"),
+)
+
 #: Filters whose value is a LIST of chosen options.
 #:
 #: `audio_languages` / `subtitle_languages` exist only on Jellyfin 12 and
@@ -1473,6 +1503,17 @@ class LibrarySource:
         # Status. web's `Filters` enum, sent as one comma-joined value --
         # `is_favorite` is the exception, because it has its own parameter
         # and the enum member is redundant with it.
+        # `IsUnplayed,IsPlayed` is answered with **HTTP 400** (measured,
+        # 12.0) rather than with nothing, so a filters dict holding both
+        # does not return an empty grid -- it fails the load and puts an
+        # error banner over a library that works. That it cannot hold
+        # both is enforced once, where the boxes are ticked
+        # (dialogs.MUTUALLY_EXCLUSIVE, applied by
+        # GridPage._toggle_filter), rather than a second time here: two
+        # copies of a rule are two things to diverge, and this layer
+        # cannot un-tick the box the user is looking at. Anything that
+        # learns to set filters WITHOUT going through that toggle owes
+        # the same check.
         active = [name for key, name in STATUS_FILTERS
                   if filters.get(key)]
         if active:
@@ -1498,6 +1539,23 @@ class LibrarySource:
         for key, param in FEATURE_FILTERS:
             if filters.get(key):
                 extra[param] = "true"
+        for key, param in VIDEO_FLAG_FILTERS:
+            if filters.get(key):
+                extra[param] = "true"
+        # SD and HD are one tri-state parameter, not two flags -- there is
+        # no `IsSd`. The panel makes them mutually exclusive so this can
+        # never be asked to send both; jellyfin-web does not, and there
+        # the second check silently wins (its handler assigns `isHd`
+        # twice, SD last), so ticking both shows two ticks and filters by
+        # one of them.
+        if filters.get("hd"):
+            extra["IsHd"] = "true"
+        elif filters.get("sd"):
+            extra["IsHd"] = "false"
+        chosen = [param for key, param in VIDEO_TYPE_FILTERS
+                  if filters.get(key)]
+        if chosen:
+            extra["VideoTypes"] = ",".join(chosen)
         for key, param in LIST_FILTERS:
             value = filters.get(key)
             if value:

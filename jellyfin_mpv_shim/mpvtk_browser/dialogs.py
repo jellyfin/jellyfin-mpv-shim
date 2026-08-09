@@ -120,7 +120,44 @@ FILTER_SECTIONS = (
      _LANGUAGE_LIBRARIES),
     (_("Subtitle Language"), "pick",
      ("subtitle_languages", "subtitle_languages"), _LANGUAGE_LIBRARIES),
+    # Last, out of web's order. Seven checkboxes is the longest section
+    # in the panel and the least often wanted, and everything above it is
+    # one control -- putting it in web's position (straight after
+    # Features) pushed every picker below the fold. **[iw]**: "we can put
+    # those at the end since it'll be a lot of checkboxes".
+    (_("Video Types"), "checks", (
+        ("sd", _("SD"), None),
+        ("hd", _("HD"), None),
+        ("is_4k", _("4K"), None),
+        ("is_3d", _("3D"), None),
+        ("vt_dvd", _("DVD"), None),
+        ("vt_bluray", _("Blu-ray"), None),
+        ("vt_iso", _("ISO"), None),
+    ), _FEATURE_LIBRARIES),
 )
+
+#: Checkboxes that cannot both be on, as ``key -> the key it clears``.
+#: Symmetric: listed both ways round, so whichever is ticked clears the
+#: other.
+#:
+#: Played/Unplayed is jellyfin-web's own ``mutuallyExclusiveFilters``,
+#: and skipping it is not cosmetic here -- the two go into one
+#: comma-joined `Filters` parameter and the server answers
+#: `Filters=IsUnplayed,IsPlayed` with **HTTP 400** (measured, 12.0). So
+#: ticking both did not return an empty grid, it failed the load and put
+#: the "Failed to load. Check the connection." banner over a library that
+#: was working perfectly.
+#:
+#: SD/HD is the same shape for a different reason: there is no `IsSd`,
+#: only a tri-state `IsHd`, so the pair cannot be expressed at all. Web
+#: does NOT make these exclusive and its handler simply assigns twice,
+#: so there both boxes tick and only SD applies.
+MUTUALLY_EXCLUSIVE = {
+    "played": "unplayed",
+    "unplayed": "played",
+    "hd": "sd",
+    "sd": "hd",
+}
 
 
 class DialogsMixin:

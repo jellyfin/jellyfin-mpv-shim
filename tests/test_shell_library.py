@@ -2872,3 +2872,145 @@ class TestFilterPanelSide(unittest.TestCase):
                     "the spinner is hidden behind the filter panel")
                 b._pool = _SyncPool()
                 b._close_dialog()
+
+
+class TestVideoTypeFilters(unittest.TestCase):
+    """The Video Types section: seven checkboxes over three different
+    kinds of query parameter.
+
+    Only DVD/Blu-ray/ISO is a list (`VideoTypes`). 4K and 3D are their own
+    booleans, and SD/HD are ONE tri-state `IsHd` -- there is no `IsSd`.
+    Every spelling here was measured against a real 12.0 server rather
+    than taken from the SDK, because an unparseable `VideoTypes` value is
+    silently ignored: `VideoTypes=Nonsense` answers with the whole
+    library, so a typo would not break the filter, it would turn it off.
+    """
+
+    def _panel(self, ctype="movies"):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": ctype, "title": "Lib"})
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        return b, build_scene(b)
+
+    BOXES = ("sd", "hd", "is_4k", "is_3d", "vt_dvd", "vt_bluray", "vt_iso")
+
+    def test_the_boxes_are_offered_on_a_movies_library(self):
+        _b, (nodes, _h) = self._panel()
+        found = ids(nodes)
+        for key in self.BOXES:
+            self.assertIn("flt-" + key, found)
+
+    def test_and_not_where_there_is_no_video(self):
+        """Same gate as Features -- web's isFiltersFeaturesEnabled covers
+        both sections."""
+        for ctype in ("music", "books"):
+            with self.subTest(ctype=ctype):
+                _b, (nodes, _h) = self._panel(ctype)
+                found = ids(nodes)
+                for key in self.BOXES:
+                    self.assertNotIn("flt-" + key, found)
+
+    def test_they_come_last_in_the_panel(self):
+        """Seven checkboxes is the longest section and the least often
+        wanted; in web's position it pushed every picker below the fold."""
+        _b, (nodes, _h) = self._panel()
+        pos = {n["id"]: n["y"] for n in nodes if n.get("id")}
+        last_other = max(pos[i] for i in pos
+                         if i.startswith("flt-")
+                         and i[4:] not in self.BOXES
+                         and i not in ("flt-body", "flt-clear", "flt-done"))
+        first_vt = min(pos["flt-" + k] for k in self.BOXES if "flt-" + k in pos)
+        self.assertGreater(first_vt, last_other)
+
+    def test_each_kind_of_box_reaches_the_query_as_its_own_shape(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        kw = LibrarySource._filter_kwargs(
+            {"hd": True, "is_4k": True, "is_3d": True,
+             "vt_dvd": True, "vt_bluray": True, "vt_iso": True})
+        self.assertEqual(kw["params"]["IsHd"], "true")
+        self.assertEqual(kw["params"]["Is4K"], "true")
+        self.assertEqual(kw["params"]["Is3D"], "true")
+        # One parameter, comma-joined, in the table's order.
+        self.assertEqual(kw["params"]["VideoTypes"], "Dvd,BluRay,Iso")
+
+    def test_sd_is_the_same_parameter_saying_false(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        kw = LibrarySource._filter_kwargs({"sd": True})
+        self.assertEqual(kw["params"]["IsHd"], "false")
+        self.assertNotIn("IsSd", kw["params"])
+
+    def test_nothing_ticked_sends_nothing(self):
+        """An off checkbox must be absent, not `false` -- `IsHd=false` is
+        the SD filter, so sending it for an unticked HD box would filter
+        the library to standard definition."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        self.assertEqual(LibrarySource._filter_kwargs(
+            {"hd": False, "sd": False, "is_4k": False, "vt_dvd": False}), {})
+
+
+class TestMutuallyExclusiveFilters(unittest.TestCase):
+    """Two pairs of boxes cannot both be on, and not merely for tidiness.
+
+    `Filters=IsUnplayed,IsPlayed` is answered with **HTTP 400** (measured,
+    12.0), so ticking both did not show an empty grid -- it failed the
+    load and put "Failed to load. Check the connection." over a library
+    that was working. And SD/HD share one tri-state `IsHd`, so the pair
+    cannot be expressed at all.
+
+    jellyfin-web has this for Played/Unplayed (`mutuallyExclusiveFilters`)
+    and NOT for SD/HD, where its handler assigns `isHd` twice and the
+    second silently wins -- two ticks, one filter.
+    """
+
+    def _panel(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        return b
+
+    def _tick(self, b, key):
+        _n, panel = build_scene(b)
+        panel["flt-" + key]["click"]()
+
+    def test_ticking_one_clears_its_opposite(self):
+        for first, second in (("played", "unplayed"), ("unplayed", "played"),
+                              ("hd", "sd"), ("sd", "hd")):
+            with self.subTest(first=first, second=second):
+                b = self._panel()
+                self._tick(b, first)
+                self._tick(b, second)
+                filters = b.route.get("_filters") or {}
+                self.assertTrue(filters.get(second))
+                self.assertFalse(filters.get(first),
+                                 "%s survived %s" % (first, second))
+
+    def test_so_the_query_can_never_be_the_one_the_server_rejects(self):
+        """The property, stated where it bites: whatever sequence of
+        clicks, `filters` never carries both members of a pair."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        b = self._panel()
+        for key in ("played", "unplayed", "played", "hd", "sd", "hd",
+                    "unplayed", "sd"):
+            with self.subTest(clicked=key):
+                self._tick(b, key)
+                sent = LibrarySource._filter_kwargs(
+                    b.route.get("_filters") or {})
+                status = set((sent.get("filters") or "").split(","))
+                self.assertFalse(
+                    {"IsPlayed", "IsUnplayed"} <= status,
+                    "sent the pair the server answers with HTTP 400")
+                # ...and the other pair, which shares one parameter and so
+                # cannot show up as a conflict in the query at all -- only
+                # as the wrong one silently winning.
+                filters = b.route.get("_filters") or {}
+                self.assertFalse(filters.get("hd") and filters.get("sd"))

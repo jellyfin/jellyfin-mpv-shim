@@ -3451,8 +3451,67 @@ collections toggle were ever given the same stale-while-revalidate
 treatment. Fixing it means adding `_collections` to `_bound_query`, whose
 arity two subclasses implement.
 
-**Still open:** `Video Types` is translated in `LIST_FILTERS` but has no
-UI. It is not a picker driven by server-returned options like the others
--- web draws it as fixed checkboxes over two enums (SD/HD/4K/3D and
-DVD/Blu-ray/ISO) -- so it needs a section kind the panel does not have.
-Its gate is the same as Features.
+### Video Types, and the pair that returned HTTP 400
+
+**Video Types needed no new section kind** -- **[iw]**: "would be a loop
+over checkboxes, no?" Yes. What is different is not the drawing but the
+*write*, and it is different three ways, which is only visible from the
+source rather than from the screen (`FiltersVideoTypes.tsx` plus
+`utils/items.ts:getVideoBasicFilter`):
+
+- **DVD / Blu-ray / ISO** are the `VideoType` enum, joined into one
+  `VideoTypes` parameter.
+- **4K / 3D** are their own booleans, `Is4K` and `Is3D`, only ever sent
+  as true.
+- **SD / HD** are not two flags. There is no `IsSd`: they are one
+  tri-state `IsHd`, so the pair cannot be expressed at all.
+
+The route's `_filters` stays a flat dict of booleans and
+`_filter_kwargs` assembles the three shapes, so the panel's existing
+"checks" kind draws it unchanged. It is placed **last**, out of web's
+order -- **[iw]**: "we can put those at the end since it'll be a lot of
+checkboxes". Seven boxes is the longest section and the least often
+wanted; in web's position it pushed every picker below the fold.
+
+Every spelling is measured against a real 12.0 server, and had to be:
+**an unparseable `VideoTypes` value is silently ignored.**
+`VideoTypes=Nonsense` answered with the whole library (1131 items),
+exactly as sending nothing does, while `VideoTypes=BluRay` answered 0 and
+`VideoTypes=VideoFile` 1131 -- which is how the three are known to parse
+rather than to be quietly dropped. A typo would not break the filter, it
+would turn it off.
+
+Two other measurements worth keeping. The video flags **union** rather
+than intersect: `IsHd=true` is 49 and `IsHd=true&Is4K=true` is 54, which
+is 49 plus the 5 that 4K matches alone -- the opposite of how every other
+filter on the panel composes, and the useful reading for a quality
+filter. And `Is3D=true` answers 0 here because nothing in the fixture
+library carries a 3D format, not because the parameter is wrong.
+
+**Played + Unplayed was returning HTTP 400.** Found while wiring SD/HD,
+which needs the same mechanism. The two go into one comma-joined
+`Filters` parameter and the server rejects
+`Filters=IsUnplayed,IsPlayed` outright -- so ticking both did not show an
+empty grid, it failed the load and put "Failed to load. Check the
+connection." over a library that was working perfectly. jellyfin-web has
+`mutuallyExclusiveFilters` for exactly this; the panel had nothing.
+
+`MUTUALLY_EXCLUSIVE` now covers both pairs, applied once in
+`_toggle_filter`. Not a second time in `_filter_kwargs`: two copies of a
+rule are two things to diverge, and the query layer cannot un-tick the
+box the user is looking at. The invariant is named there instead, so
+anything that learns to set filters without going through the toggle
+knows what it owes.
+
+Web is worth contrasting on SD/HD, because it does *not* make that pair
+exclusive: its handler assigns `isHd` twice and the second assignment
+wins, so both boxes tick and only SD applies.
+
+**`_collections` is bound into `_bound_query`.** `_fetch_at` read it live
+off the route, which is precisely what the sort and filters are bound to
+avoid -- a page-in submitted before the Collections toggle and landing
+after it would answer from whichever endpoint the flag named by then.
+Unreachable today, because `_toggle_collections` drops `_items` and the
+loading shell is drawn before any window is computed; bound so that stays
+a property of the tuple rather than of what render happens to do.
+`ListPage` carries the arity without the meaning.

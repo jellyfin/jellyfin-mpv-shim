@@ -19,7 +19,7 @@ from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Column, Dropdown, Row, Spacer, Text, VScroll,
 )
-from .. import pagination, theme, view_prefs
+from .. import dialogs, pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -529,24 +529,36 @@ class GridPage(Page):
         return sorts_for(self.route.get("collection_type"))
 
     def _bound_query(self):
-        """``(sort_by, sort_order, filters, person, srv, image_type)`` read
-        NOW, on the loop thread. The sort/filters a page is fetched with must
-        be the ones it was asked for, not whatever they are when it lands --
-        and the artwork it asks the server for must be the one the grid is
-        being drawn with, or page two of a Banner view arrives with no
-        banners."""
+        """``(sort_by, sort_order, filters, person, srv, image_type,
+        collections)`` read NOW, on the loop thread. The sort/filters a page
+        is fetched with must be the ones it was asked for, not whatever they
+        are when it lands -- and the artwork it asks the server for must be
+        the one the grid is being drawn with, or page two of a Banner view
+        arrives with no banners.
+
+        ``collections`` for the same reason as the rest, and it was the one
+        thing missing: `_fetch_at` read it live off the route, so a page-in
+        submitted before the Collections toggle and landing after it would
+        answer from whichever endpoint the flag named by then -- the movies
+        query spliced into a list of collections or the reverse. Not
+        reachable today, because `_toggle_collections` drops `_items` and
+        the loading shell is drawn before any window is computed; bound
+        here so that stays a property of this tuple rather than of what
+        render happens to do.
+        """
         _n, sort_by, sort_order = self._sorts()[self.route.get("_sort", 0)]
         return (sort_by, sort_order,
                 self.route.get("_filters") or {},
                 self.route.get("person_id"),
                 self.route.get("server") or self.ctx.server,
-                _image_type_of(self.route.get("_view")))
+                _image_type_of(self.route.get("_view")),
+                bool(self.route.get("_collections")))
 
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
         (sort_by, sort_order, filters, person, srv,
-         image_type) = bound or self._bound_query()
+         image_type, collections) = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -557,7 +569,7 @@ class GridPage(Page):
             return source.get_person_items(
                 srv, person, start_index=start,
                 sort_by=sort_by, sort_order=sort_order, **kw)
-        if self.route.get("_collections"):
+        if collections:
             return source.get_movie_collections(
                 srv, start_index=start, sort_by=sort_by,
                 sort_order=sort_order, filters=filters,
@@ -1025,7 +1037,24 @@ class GridPage(Page):
 
     def _toggle_filter(self, key):
         f = self.route.setdefault("_filters", {})
-        f[key] = not f.get(key)
+        on = not f.get(key)
+        f[key] = on
+        if on:
+            # Turning one on turns its opposite off. Two of these pairs
+            # cannot be sent at all rather than merely being pointless:
+            # Played+Unplayed share one comma-joined `Filters` parameter
+            # and the server answers that with HTTP 400, and SD+HD share
+            # one tri-state `IsHd`. See dialogs.MUTUALLY_EXCLUSIVE.
+            #
+            # `if on` is the correct spelling and is not observable:
+            # clearing the partner while switching a box OFF could only
+            # matter if the partner were on, and this is the one thing
+            # that lets it be. It is written this way because it says what
+            # it means, not because a test can tell -- a test that pinned
+            # it would be asserting nothing.
+            other = dialogs.MUTUALLY_EXCLUSIVE.get(key)
+            if other:
+                f[other] = False
         self._reload()
 
     def _toggle_collections(self):
@@ -1183,13 +1212,16 @@ class ListPage(GridPage):
 
     def _bound_query(self):
         # No image type: a list route's shape comes from its spec, not from
-        # a library's view settings (see SHAPES below).
+        # a library's view settings (see SHAPES below). No collections
+        # either -- that toggle belongs to a library grid -- but the arity
+        # is the base class's, because `_window` and `_page_fetcher` are
+        # inherited and unpack what this returns.
         sort_by, sort_order = self._sort_args()
         return (sort_by, sort_order, self.route.get("_filters") or {}, None,
-                self.route.get("server") or self.ctx.server, None)
+                self.route.get("server") or self.ctx.server, None, False)
 
     def _fetch_at(self, start, limit=None, bound=None):
-        sort_by, sort_order, filters, _person, srv, _itype = (
+        sort_by, sort_order, filters, _person, srv, _itype, _coll = (
             bound or self._bound_query())
         kw = {} if limit is None else {"limit": limit}
         return self.ctx.source.get_list(
