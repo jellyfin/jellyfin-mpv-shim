@@ -236,6 +236,20 @@ def mpv_binary_location():
     return mpv_location
 
 
+#: The option mpv only registers when it was built with lua.
+#:
+#: A build without lua does not ignore ``--osc``, it refuses to start.
+#: Measured against a `-Dlua=disabled` mpv 0.41, on both backends: libmpv
+#: raises ``AttributeError('mpv option does not exist', ...)`` from the
+#: constructor, and the external binary prints "Error parsing option osc
+#: (option not found)" and exits, which reaches the shim as
+#: ``MPVError("MPV process retry limit reached.")`` after burning every
+#: start retry on it.
+#:
+#: That made the lua fallback unreachable: `lua_works` needs a live mpv to
+#: probe, and the app died constructing one.
+OSC_OPTION = "osc"
+
 def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     """The full option set to construct mpv with.
 

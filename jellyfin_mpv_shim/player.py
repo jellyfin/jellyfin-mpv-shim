@@ -690,6 +690,55 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.debug("Stopping previous trickplay failed", exc_info=True)
             self.trickplay = None
 
+    def _construct_mpv(self, mpv_options, **kwargs):
+        """``mpv.MPV(...)``, retried without ``--osc`` if mpv has no such
+        option -- which means it was built without lua.
+
+        **A build without lua does not ignore ``--osc``, it refuses to
+        start**, and that made the whole lua fallback unreachable:
+        `lua_works` needs a live mpv to probe, and the app died
+        constructing one. Measured against a `-Dlua=disabled` mpv 0.41, on
+        both backends: libmpv raises ``AttributeError`` from the
+        constructor, and the external binary exits with "Error parsing
+        option osc (option not found)", arriving here as
+        ``MPVError("MPV process retry limit reached.")``.
+
+        The two backends report entirely different things, and none of that
+        has to be parsed, because **there is only one option this can be**.
+        ``--osc`` is the single lua-gated option the shim sets, so failing
+        to construct *with* it and succeeding *without* it is not evidence
+        that needs interpreting -- it is the answer. [iw]: "we don't even
+        need the detector, osc not being available means lua wasn't
+        compiled in."
+
+        So the answer is recorded rather than rediscovered: `lua_works`
+        skips its probe and its timeout. It is recorded only in this
+        direction. mpv having ``--osc`` says lua was *compiled in*, not that
+        it runs -- lua that loads and then errors is exactly what the probe
+        is for -- so the ordinary path is left to ask.
+
+        Dropping the option is also the right answer rather than a
+        workaround: the OSC being turned off is itself lua, so a build
+        without it has none to turn off.
+        """
+        from .mpv_options import OSC_OPTION
+
+        try:
+            return mpv.MPV(**kwargs, **mpv_options)
+        except Exception:
+            if OSC_OPTION not in mpv_options:
+                raise
+            log.warning("This mpv has no --%s option, so it was built "
+                        "without lua. The library browser, the playback HUD "
+                        "and the on-screen controls all need it; falling "
+                        "back to the command line and the OSD menu.",
+                        OSC_OPTION)
+            options = {k: v for k, v in mpv_options.items()
+                       if k != OSC_OPTION}
+            player = mpv.MPV(**kwargs, **options)
+            self._lua_works = False
+            return player
+
     def _init_mpv(self):
         # Re-open reuses this method; drop the previous instance's trickplay
         # thread first so recovery/idle cycles don't leak it.
@@ -743,13 +792,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._geometry_armed = mpv_options["geometry"]
 
-        self._player = mpv.MPV(
+        self._player = self._construct_mpv(
+            mpv_options,
             input_default_bindings=True,
             input_vo_keyboard=True,
             input_media_keys=settings.media_keys,
             log_handler=mpv_log_handler,
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
-            **mpv_options,
         )
 
         try:
