@@ -2126,6 +2126,29 @@ got reported.
 worth 36–68%, and it is the only measure that touches them without
 windowing. It just is not the fix for #18.
 
+**[iw] on the numbers**, and this is the design the measurement points at:
+"our test library is synthetic, genres very likely *does* have a lot of
+content outside of the visible rows on real servers. That being said, the
+test library still being over makes a very strong argument for lazy loading
+and garbage collection on the same page, but **only when ram is
+constrained**."
+
+Worth being precise about which axis a real server moves, because it is not
+the one a width cap addresses: `get_genre_sections` fetches `limit=10` per
+genre regardless of library size, so a real genre *row* is still ten tiles.
+What a real library has more of is **genres** — up to the `max_genres=40`
+cap, against the 25 measured here, which is 40/25 more of exactly the term
+that is already the problem. Real servers are worse vertically and
+identical horizontally.
+
+Gating on memory pressure also has its hook already: `set_memory_pressure`
+is asked per screen change, and `TIGHT_MAX_BYTES` (32 MB) is the budget a
+constrained machine gets. So "paint everything until RAM says otherwise"
+is a state this cache already tracks — what is missing is the page
+consenting to drop rows, which is what makes `_protected` able to free
+anything (today every row is touched by every build, so nothing is
+evictable and the bound is unreachable, not merely exceeded).
+
 Neither the cap nor windowing is landed here. The cap does not move the
 reported screen, and windowing is the approach [iw] steered away from, so
 which of the two to build (or both) is [iw]'s call with the numbers above
@@ -2196,6 +2219,21 @@ lacks the query parameter also returns no options: measured above, 10.11
 answers `Filters2` with `{Genres, Tags}` and v12 adds both language lists
 (`English (eng)`, `Undetermined (und)` for our Movies view; 24 subtitle
 languages). Copy that: **offer the control iff the server offered options.**
+
+**No apiclient change is needed**, which is worth knowing before anyone
+opens a PR against it. Both halves are reachable through the generic
+method that is already there, and both were checked against the live
+server through an unmodified client:
+
+    api.items(params={..., "AudioLanguages": "eng"})   # -> GET /Items
+    api.items("/Filters2", params={...})               # -> GET /Items/Filters2
+
+`API.items(handler)` is `self._get("Items%s" % handler, params)`, so the
+handler argument covers `Filters2` for free. The trap is the *named*
+helper: `get_filters()` calls `Items/Filters` and its own docstring cites
+`GetQueryFiltersLegacy` — there is a convenience method for the wrong
+endpoint and none for the right one. Adding `get_filters2()` upstream
+would be a nicety, not a blocker.
 
 The remaining work is therefore known and unblocked: move the filtered
 query off `Users/{id}/Items` onto `/Items` (which takes `userId` as a query
@@ -2902,6 +2940,27 @@ its script load and its 2s timeout. **Only in that direction.** mpv having
 and then errors is exactly what the probe exists for, so the ordinary path
 still asks. `test_a_clean_start_leaves_the_lua_question_open` is what holds
 that; getting it backwards would skip the probe on every normal machine.
+
+### How long this has been broken: since 2023-02-16
+
+**[iw]**: "the lua gap means non-osc builds of MPV have been broken for
+years now." Traced, and it is more specific than that — the shim used to
+handle this case correctly, by accident:
+
+| when | how `osc` was set | a no-lua mpv |
+|---|---|---|
+| 2020-02 `4aff3bf2` | `if hasattr(self._player, "osc"): self._player.osc = ...` — **after** construction | fine. libmpv turns an unknown attribute into a property read, so `hasattr` is False and the line is skipped |
+| 2023-02 `b6eb3b0b` | `mpv_options["osc"] = False`, inside `if settings.thumbnail_enable:` | **dies at construction** — and `thumbnail_enable` defaults True |
+| 2026-07 `bc1caf0f` | gated on `osc_style in _REPLACES_OSC`, default `mpvtk` | dies unconditionally |
+
+So the regression is `b6eb3b0b "Fix regression where trickplay broke
+external MPV."`, which moved the option from a post-construction attribute
+(where `hasattr` guarded it) into the constructor (where nothing could).
+Broken on default settings since then; the mpvtk work only removed the last
+way to avoid it (turning thumbnails off).
+
+That it went unreported for three years is itself a data point about how
+many people build mpv without luajit.
 
 ### Where the tests live, and why not together
 
