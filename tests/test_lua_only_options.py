@@ -25,6 +25,7 @@ proves only that lua was *compiled in*. Lua that loads and then errors is
 exactly what the probe exists for, so the ordinary path must still ask.
 """
 
+import logging
 import sys
 import unittest
 from unittest import mock
@@ -104,12 +105,30 @@ class ConstructRetryTest(unittest.TestCase):
 
     def test_the_second_failure_surfaces(self):
         # Retrying must not swallow the real error when --osc was not the
-        # problem after all.
+        # problem after all -- and must not have claimed a cause on the way
+        # there. The warning is logged only once the retry has worked.
         def factory(**kw):
             raise RuntimeError("something else entirely")
 
-        with self.assertRaises(RuntimeError):
-            self._construct(factory, {"osc": False})
+        with self.assertLogs("player", level="WARNING") as caught:
+            logging.getLogger("player").warning("nothing to see")
+            with self.assertRaises(RuntimeError):
+                self._construct(factory, {"osc": False})
+        self.assertNotIn("without lua", "\n".join(caught.output))
+
+    def test_a_failed_retry_does_not_claim_lua_is_absent(self):
+        def factory(**kw):
+            raise RuntimeError("something else entirely")
+
+        from jellyfin_mpv_shim import player
+
+        me = mock.Mock()
+        me._lua_works = None
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.side_effect = factory
+            with self.assertRaises(RuntimeError):
+                player.PlayerManager._construct_mpv(me, {"osc": False})
+        self.assertIsNone(me._lua_works)
 
     def test_dropping_osc_records_that_lua_is_absent(self):
         # The point of the whole change: `lua_works` then answers without

@@ -728,14 +728,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             if OSC_OPTION not in mpv_options:
                 raise
+            options = {k: v for k, v in mpv_options.items()
+                       if k != OSC_OPTION}
+            # Retry first, log second. If --osc was not the problem this
+            # raises the real error (chained to the first), and saying
+            # "built without lua" on the way to an unrelated failure would
+            # send the next person reading the log somewhere else entirely.
+            player = mpv.MPV(**kwargs, **options)
             log.warning("This mpv has no --%s option, so it was built "
                         "without lua. The library browser, the playback HUD "
                         "and the on-screen controls all need it; falling "
                         "back to the command line and the OSD menu.",
                         OSC_OPTION)
-            options = {k: v for k, v in mpv_options.items()
-                       if k != OSC_OPTION}
-            player = mpv.MPV(**kwargs, **options)
             self._lua_works = False
             return player
 
