@@ -759,11 +759,24 @@ class FilterBarOverflowTest(unittest.TestCase):
 
     def test_and_move_ABOVE_it_when_there_is_not(self):
         """Above, not below: a row of doors under the filters reads as more
-        filtering."""
-        narrow = self._bar(760)
-        self.assertLess(narrow["grid-genres"]["y"],
-                        narrow["grid-sort"]["y"] - 20,
-                        "the doors did not move above the filter row")
+        filtering.
+
+        The width is *searched for* rather than pinned. This test pinned
+        760, and the filter panel -- which took five controls off the bar
+        -- moved the split to somewhere below 760 without breaking the
+        behaviour at all: the assertion failed while the feature worked.
+        A pinned width can only ever go stale in that direction, silently
+        if the number is generous.
+        """
+        def splits(w):
+            f = self._bar(w)
+            return f["grid-genres"]["y"] < f["grid-sort"]["y"] - 20
+
+        split = next((w for w in range(1920, 400, -40) if splits(w)), None)
+        self.assertIsNotNone(
+            split, "the doors never moved above the filter row at any width")
+        self.assertLess(split, 1280,
+                        "the bar split on a window it comfortably fits in")
 
     def test_a_library_with_no_view_controls_keeps_one_row(self):
         """Nothing to fit, so nothing to split -- and no empty second row."""
@@ -800,15 +813,22 @@ class FavoritesInTheTopBarTest(unittest.TestCase):
 
     def test_the_library_still_has_its_own_favorites_filter(self):
         """Which is the point -- the function is not lost, it is the one
-        that was already better."""
+        that was already better.
+
+        It sits in the filter panel now rather than on the bar, which
+        does not change the argument: it is still this library's own
+        favorites, one click away, next to the rest of the filtering.
+        """
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
         b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
                     "title": "Movies"})
+        _nodes, handlers = build_scene(b)
+        handlers["grid-filter"]["click"]()
         nodes, _h = build_scene(b)
-        self.assertIn("grid-fav", ids(nodes))
+        self.assertIn("flt-favorite", ids(nodes))
 
 
 class FilterOrderTest(unittest.TestCase):
@@ -828,14 +848,75 @@ class FilterOrderTest(unittest.TestCase):
             (n.get("x", 0), n["id"]) for n in nodes
             if n.get("id") in want)]
 
-    def test_collections_sits_last_among_the_filters(self):
-        """It is a filter -- it swaps the grid for this library's
-        collections -- so it belongs with the checkboxes, not with the
-        buttons that leave, and after the two that filter the grid it is
-        replacing."""
-        want = ("grid-genres", "grid-sort", "grid-unplayed", "grid-fav",
-                "grid-collections", "grid-playall", "grid-shuffle")
+    def test_collections_sits_with_the_doors_not_the_filters(self):
+        """It was argued as a filter -- it swaps the grid for this
+        library's collections -- and that reading did not survive.
+
+        **[iw]**: "we should honestly treat collections as a door". A
+        filter narrows the set on screen; Collections replaces it with a
+        different kind of thing entirely, which is what every other door
+        on this row does. So it leads the row with Genres rather than
+        trailing the controls that filter.
+        """
+        want = ("grid-genres", "grid-collections", "grid-sort",
+                "grid-filter", "grid-playall", "grid-shuffle")
         self.assertEqual(self._row(want), list(want))
+
+    def test_every_control_on_the_row_shares_one_height(self):
+        """One row of buttons, one baseline.
+
+        The rule is action_btn's own docstring -- "every button in an
+        action row must come from here" -- and the bar broke it: Play All
+        and Shuffle were plain Buttons, which resolve their label from the
+        type scale and came out 1.2px taller than the Filter button.
+
+        It was invisible until the panel moved them next to it. Across the
+        bar from each other there was nothing to be uneven WITH, which is
+        why a height assertion is worth more here than an eyeball: the
+        symptom appears when the layout changes, not when the bug is made.
+        """
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        b.route["_collection_capable"] = True
+        nodes, _h = build_scene(b, size=(1920, 720))
+        found = {n["id"]: n for n in nodes if n.get("id")}
+        want = ("grid-genres", "grid-collections", "grid-filter",
+                "grid-playall", "grid-shuffle")
+        heights = {i: found[i]["h"] for i in want if i in found}
+        self.assertEqual(len(heights), len(want), heights)
+        self.assertEqual(len(set(heights.values())), 1, heights)
+        # ...and on one baseline, or equal heights still stagger.
+        self.assertEqual(len({found[i]["y"] for i in want}), 1,
+                         {i: found[i]["y"] for i in want})
+
+    def test_collections_looks_different_when_it_is_on(self):
+        """It is the one toggle left on this row, and it had no visible
+        active state at all on the stock theme.
+
+        It was styled with ``theme.chrome_button_style()``, which returns
+        an EMPTY dict for any theme that did not ask for accented chrome --
+        so "on" and "off" rendered byte-identical and the only clue you
+        were in collections view was that the tiles had changed.
+        """
+        def coll(on):
+            b = MpvtkBrowser(app=None, source=FakeSource(),
+                             controller=FakeController())
+            b._pool = _SyncPool()
+            b.server = "srv1"
+            b.navigate({"kind": "grid", "server": "srv1",
+                        "parent_id": "lib1", "collection_type": "movies",
+                        "title": "Movies"})
+            b.route["_collection_capable"] = True
+            b.route["_collections"] = on
+            nodes, _h = build_scene(b, size=(1920, 720))
+            return [n for n in nodes if n.get("id") == "grid-collections"][0]
+
+        self.assertNotEqual(coll(True).get("fill"), coll(False).get("fill"),
+                            "the collections toggle looks the same on as off")
 
     def test_play_all_leads_shuffle(self):
         """Paired, and in web's order."""

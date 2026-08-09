@@ -2043,10 +2043,15 @@ class LibrarySource:
 
     def get_filter_values(self, server_uuid, parent_id=None,
                           collection_type=None):
-        """Filter-picker values: {"genres": [...], "years": [...]}.
+        """Filter-picker values: one option list per picker section --
+        ``genres``, ``years``, ``official_ratings``, ``tags``.
 
-        Years come from Items/Filters; where that is unavailable the year
-        picker is simply empty and only the genre list is offered.
+        All four keys are always present, empty where the server said
+        nothing: the panel builds a section per key and a missing one
+        would raise where an empty one simply draws no options.
+
+        Only genres and years come from the pre-Items/Filters fallback;
+        against those servers the other two pickers are always empty.
 
         ``collection_type`` scopes the scan to the type the grid lists, which
         is what web's filter menu does. Untyped, the endpoint walks every
@@ -3037,10 +3042,21 @@ class OfflineLibrarySource:
 
     def get_filter_values(self, server_uuid, parent_id=None,
                           collection_type=None):
-        years = {i.get("ProductionYear") for i in self._snap.items
-                 if i.get("ProductionYear")}
+        # Derived from the catalog rather than an endpoint. Ratings and
+        # tags are only as complete as the Fields the downloader asked
+        # for -- an absent one leaves that picker empty, which is the
+        # same thing the pre-Items/Filters fallback does online.
+        years, ratings, tags = set(), set(), set()
+        for i in self._snap.items:
+            if i.get("ProductionYear"):
+                years.add(i["ProductionYear"])
+            if i.get("OfficialRating"):
+                ratings.add(i["OfficialRating"])
+            tags.update(i.get("Tags") or ())
         return {"genres": self.get_genres(server_uuid, parent_id),
-                "years": sorted(years, reverse=True)}
+                "years": sorted(years, reverse=True),
+                "official_ratings": sorted(ratings),
+                "tags": sorted(tags)}
 
     def get_similar(self, server_uuid, item_id, limit=12):
         return []  # no similarity data in the offline catalog

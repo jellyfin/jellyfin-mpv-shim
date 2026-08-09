@@ -118,10 +118,23 @@ class ApiVersionGatingTest(unittest.TestCase):
     def test_filter_values_use_items_filters_when_available(self):
         api = mock.Mock(spec=["get_filters"])
         api.get_filters.return_value = {"Genres": ["Drama"],
-                                        "Years": [2001, 1999]}
+                                        "Years": [2001, 1999],
+                                        "OfficialRatings": ["PG-13"],
+                                        "Tags": ["Heist"]}
         src = self._src_with_api(api)
         self.assertEqual(src.get_filter_values("srv"),
-                         {"genres": ["Drama"], "years": [2001, 1999]})
+                         {"genres": ["Drama"], "years": [2001, 1999],
+                          "official_ratings": ["PG-13"], "tags": ["Heist"]})
+
+    def test_a_picker_the_server_did_not_answer_for_is_empty_not_absent(self):
+        """The panel builds a section per key; a missing one would
+        raise where an empty one simply draws no options."""
+        api = mock.Mock(spec=["get_filters"])
+        api.get_filters.return_value = {"Genres": ["Drama"]}
+        src = self._src_with_api(api)
+        values = src.get_filter_values("srv")
+        for key in ("genres", "years", "official_ratings", "tags"):
+            self.assertEqual(values[key], [] if key != "genres" else ["Drama"])
 
     def test_offline_filter_values_derive_years(self):
         src = _offline_source([

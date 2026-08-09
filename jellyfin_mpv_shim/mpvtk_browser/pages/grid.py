@@ -17,7 +17,7 @@ import logging
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll, Dialog,
+    Box, Column, Dropdown, Row, Spacer, Text, VScroll,
 )
 from .. import pagination, theme, view_prefs
 from ..components import chrome, controls
@@ -381,17 +381,21 @@ class GridPage(Page):
         if route.get("collection_type") in STUDIO_LIBRARIES:
             # Web calls this "Networks" on a TV library and offers it only
             # there, which is where studio metadata actually is.
-            out.append(Button(_("Networks"), id="grid-studios",
-                              icon="apartment", on_click=self._open_studios))
+            out.append(controls.action_btn("apartment", _("Networks"),
+                                           "grid-studios", self._open_studios))
         if route.get("collection_type") in GENRE_LIBRARIES:
-            out.append(Button(_("Genres"), id="grid-genres", icon="label",
-                              on_click=self._open_genres))
+            out.append(controls.action_btn("label", _("Genres"),
+                                           "grid-genres", self._open_genres))
         if route.get("_collection_capable"):
-            out.append(Button(
-                _("Collections"), id="grid-collections", icon="video_library",
-                on_click=self._toggle_collections,
-                **(theme.chrome_button_style()
-                   if route.get("_collections") else {})))
+            # ``on``, not chrome_button_style: that helper is empty for any
+            # theme that did not ask for accented chrome -- which is the
+            # stock one -- so the only toggle on this bar had NO visible
+            # active state on the default theme. Same fill every other
+            # toggle in the app uses (Watched, Favorite), and the accent is
+            # the whole signal that this grid is showing something else.
+            out.append(controls.action_btn(
+                "video_library", _("Collections"), "grid-collections",
+                self._toggle_collections, on=bool(route.get("_collections"))))
         return out
 
     def _filter_bar(self, width=0):
@@ -434,12 +438,19 @@ class GridPage(Page):
             # the bar used to be five filter controls wide and they had to
             # go somewhere; with one Filter button there is nothing to be
             # on the other side OF. **[iw]**: "we should put shuffle next
-            # to Filter. It doesn'''t make sense to put it on the other side
+            # to Filter. It doesn't make sense to put it on the other side
             # of the UI anymore."
-        ]) + ([
-            Button(_("Play All"), id="grid-playall", on_click=self._play_all),
+            #
+            # action_btn, not Button, and that is the rule its own
+            # docstring states: a plain Button resolves its label from the
+            # type scale and comes out taller than the icon buttons beside
+            # it. Moving these inline is what made it visible -- across the
+            # bar from Filter, nothing was next to them to be uneven with.
+            controls.action_btn("play_arrow", _("Play All"), "grid-playall",
+                                self._play_all),
         ] if self._play_all_capable() else []) + ([
-            Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
+            controls.action_btn("shuffle", _("Shuffle"), "grid-shuffle",
+                                self._shuffle),
         ] if self._shuffle_capable() else []) + [Spacer(flex=1)],
             gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
