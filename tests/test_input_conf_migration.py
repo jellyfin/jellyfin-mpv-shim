@@ -5,8 +5,10 @@ in Python. #16 gives those keys back to mpv — but a user who *changed* one
 made a real choice, and dropping the binding without carrying it across
 would silently undo it.
 
-Two things are load-bearing and neither is obvious: where in the file it
-writes, and what it declines to write at all.
+Three things are load-bearing and none is obvious: where in the file it
+writes, what it declines to write at all, and the split between a MENU key
+(never migrated — it is not expressible) and a seek DISTANCE (migrated onto
+mpv's own arrow, because it is).
 """
 
 import os
@@ -70,32 +72,78 @@ class PlanTest(unittest.TestCase):
                 self.assertEqual(input_conf.plan(_settings(kb_pause=value)),
                                  [])
 
-    def test_the_arrows_are_never_migrated(self):
-        """An arrow is not one binding: it seeks during playback AND drives
-        the OSD menu, and input.conf can express the first and not the
-        second.
+    def test_a_menu_key_is_kept_and_reinterpreted_never_migrated(self):
+        """`kb_menu_*` is the MENU's key now, and only the menu's.
 
-        Migrating one therefore either leaves the shim binding a key mpv now
-        also binds (two seeks per press) or clears the setting and takes the
-        menu's navigation with it — which is what the first version did,
-        permanently, for anyone who had changed a seek distance. They keep
-        their Python binding exactly when they differ from mpv and are given
-        back untouched when they do not, which needs no migration at all.
+        It used to mean two things — which key drives the menu, and which
+        key seeks — and migrating it took the menu's navigation with it,
+        because input.conf can carry the second and not the first. Split,
+        the setting keeps its value and is simply read as what its name
+        always said; the config version bump is what records that the
+        reinterpretation has happened ([iw]).
         """
-        for kw in ({"kb_menu_up": "a"}, {"seek_up": 30},
-                   {"seek_h_exact": True}, {"kb_menu_left": "z",
-                                            "seek_left": -2}):
+        for kw in ({"kb_menu_up": "w"}, {"kb_menu_left": "a"}):
             with self.subTest(**kw):
                 self.assertEqual(input_conf.plan(_settings(**kw)), [])
 
-    def test_the_pause_key_still_migrates_beside_untouchable_arrows(self):
-        """The arrows are never migrated (see above), and that must not stop
-        the settings that ARE expressible from moving."""
-        for extra in ({"use_web_seek": True}, {"skip_intro_on_seek": True}):
-            with self.subTest(**extra):
-                got = input_conf.plan(
-                    _settings(kb_menu_up="a", kb_pause="P", **extra))
-                self.assertEqual(got, [("kb_pause", "P", "cycle pause")])
+    def test_a_seek_distance_migrates_onto_mpvs_own_arrow(self):
+        # Expressible, and no longer entangled with the menu — which is
+        # what makes migrating it coherent at all.
+        self.assertEqual(input_conf.plan(_settings(seek_up=30)),
+                         [("seek_up", "up", "seek 30")])
+
+    def test_exactness_moves_both_keys_of_its_pair(self):
+        # seek_h_exact is shared, so leaving one behind would drop the
+        # exactness on half a pair.
+        self.assertEqual(
+            input_conf.plan(_settings(seek_h_exact=True)),
+            [("seek_right", "right", "seek 5 exact"),
+             ("seek_left", "left", "seek -5 exact")])
+
+"""Carrying the user's key choices into input.conf (#16).
+
+The shim expressed "which key pauses" as a setting of its own and bound it
+in Python. #16 gives those keys back to mpv — but a user who *changed* one
+made a real choice, and dropping the binding without carrying it across
+would silently undo it.
+
+Two things are load-bearing and neither is obvious: where in the file it
+writes, and what it declines to write at all.
+"""
+
+import os
+import sys
+import tempfile
+import unittest
+
+sys.argv = [sys.argv[0]]
+
+from jellyfin_mpv_shim import input_conf                       # noqa: E402
+from jellyfin_mpv_shim.conf import Settings                    # noqa: E402
+
+
+def _settings(**kw):
+    return Settings().parse_obj(kw)
+
+
+
+    def test_web_seek_stops_the_distances_moving(self):
+        """It replaces the distance with jellyfin-web's variable one, which
+        mpv cannot express — so those users keep a live CLAIM on whatever
+        seeks, and a distance written into input.conf would be ignored by
+        the handler, which uses the binding's own amount. The pause key
+        still moves; it is unrelated."""
+        got = input_conf.plan(
+            _settings(seek_up=30, kb_pause="P", use_web_seek=True))
+        self.assertEqual(got, [("kb_pause", "P", "cycle pause")])
+
+    def test_skip_intro_on_seek_does_not_stop_them(self):
+        """It is not a reason to decline: `_on_seeking` observes every seek
+        and applies it, mpv's own bindings included, so it works perfectly
+        well on a migrated distance."""
+        got = input_conf.plan(
+            _settings(seek_up=30, skip_intro_on_seek=True))
+        self.assertEqual(got, [("seek_up", "up", "seek 30")])
 
     def test_a_shim_action_is_never_migrated(self):
         # kb_watched/kb_next/kb_stop name things mpv has no opinion about;

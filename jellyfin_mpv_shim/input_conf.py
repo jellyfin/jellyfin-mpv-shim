@@ -43,22 +43,25 @@ MARKER = "# --- migrated from jellyfin-mpv-shim key settings ---"
 FIXED = (("kb_pause", "cycle pause"),
          ("kb_fullscreen", "cycle fullscreen"))
 
-#: **The arrows are not migrated, and that is the same rule as the rest.**
+#: ``(mpv key, distance setting, exactness setting)`` -- the seek DISTANCES,
+#: written onto mpv's own arrow keys.
 #:
-#: They were, and it was wrong twice over. An arrow is not one binding: it
-#: seeks during playback *and* drives the OSD menu, and `input.conf` can
-#: express the first and not the second. Migrating it therefore either
-#: leaves the shim binding a key mpv now also binds (two seeks per press),
-#: or clears the setting and takes the menu's navigation with it -- which is
-#: what the first version did, permanently, for anyone who had changed a
-#: seek distance.
+#: This was removed once, because migrating an arrow also took the OSD
+#: menu's navigation with it: one setting meant both "which key drives the
+#: menu" and "which key seeks", and `input.conf` can carry the second and
+#: not the first. Splitting those apart (`kb_menu_*` is the menu's, and only
+#: the menu's) is what makes this coherent -- **[iw]**: "people probably
+#: configured arrow keys to something else so that our seek bindings
+#: weren't messing with the mpv defaults." The distance is expressible, the
+#: menu is not, and now they are separate questions.
 #:
-#: So this module keeps only the settings whose whole meaning mpv can carry.
-#: The arrows keep their Python binding exactly when they differ from mpv
-#: (see `PlayerManager._arrows_differ_from_mpv`) and are given back
-#: untouched when they do not, which is the whole of #16's benefit for them
-#: and needs no migration at all.
-SEEKS = ()
+#: Keyed on mpv's arrows rather than on any shim setting: after the split
+#: there is no shim setting for "the seek key" at all. It is mpv's key,
+#: carrying the user's distance.
+SEEKS = (("up", "seek_up", "seek_v_exact"),
+         ("down", "seek_down", "seek_v_exact"),
+         ("right", "seek_right", "seek_h_exact"),
+         ("left", "seek_left", "seek_h_exact"))
 
 
 def _cleared(value):
@@ -107,6 +110,26 @@ def plan(settings):
         value = getattr(settings, name, None)
         if not _cleared(value):
             out.append((name, value, command))
+    # The distances are only expressible when nothing shim-only rides on
+    # the seek keys. That is `use_web_seek` alone: it replaces the distance
+    # with jellyfin-web's variable one, which mpv cannot express, so those
+    # users keep a *claim* on whatever seeks instead
+    # (PlayerManager._seek_is_ours).
+    #
+    # `skip_intro_on_seek` is NOT a reason to decline: `_on_seeking`
+    # observes every seek and applies it, mpv's own bindings included, so
+    # it works perfectly well on a migrated distance.
+    if getattr(settings, "use_web_seek", False):
+        return out
+    for key, amount_key, exact_key in SEEKS:
+        if not (_changed(settings, amount_key) or _changed(settings,
+                                                           exact_key)):
+            continue
+        amount = getattr(settings, amount_key, 0)
+        out.append((amount_key, key,
+                    "seek %d%s" % (amount,
+                                   " exact" if getattr(settings, exact_key,
+                                                       False) else "")))
     return out
 
 
@@ -179,6 +202,14 @@ def migrate(settings, path):
     # "quietly dropped a feature" this module exists to avoid, arriving by
     # the back door.
     for name in migrated:
-        setattr(settings, name, None)
+        # The key settings are cleared; a distance goes back to its DEFAULT,
+        # because "no seek distance" is not a thing -- and because
+        # _seek_is_ours reads exactly these, so leaving them changed would
+        # keep claiming keys whose distance now lives in input.conf.
+        setattr(settings, name, None if name.startswith("kb_")
+                else getattr(type(settings), name))
+    for _key, _amount_key, exact_key in SEEKS:
+        if any(n.startswith("seek_") for n in migrated):
+            setattr(settings, exact_key, getattr(type(settings), exact_key))
     log.info("Migrated %d key binding(s) to %s", len(entries), path)
     return entries

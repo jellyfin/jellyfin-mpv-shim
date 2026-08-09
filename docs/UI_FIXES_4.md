@@ -2547,3 +2547,50 @@ wrong: with `SEEKS` empty there is no second setting in scope to collide
 with, so the mutant was not the bug. Reproducing the bug meant putting an
 arrow back in `SEEKS` as well. A surviving mutant is a claim about the
 mutant as much as about the test.
+
+---
+
+## #16, resolved properly: one setting was two settings
+
+The review's worst finding was that migrating an arrow took the OSD menu's
+navigation with it. I fixed that by not migrating the arrows — which worked,
+and was treating the symptom.
+
+**[iw]** named the actual cause: *"people probably configured arrow keys to
+something else **so that our seek bindings weren't messing with the mpv
+defaults**; the menu logically uses arrow keys and the only other thing I
+could see someone binding those to are wasd."*
+
+`kb_menu_*` meant two things at once — *which key drives the menu* and
+*which key seeks* — and almost everybody who ever touched one was reaching
+for the second, to get rid of it. `input.conf` can carry the second and not
+the first, which is why migrating it was incoherent. Split, everything falls
+out:
+
+* **`kb_menu_*` is the menu's key, and only the menu's.** Never bound in
+  Python at all; the OSD menu installs its own section for exactly as long
+  as it is on screen. The setting keeps its value and is simply read as what
+  its name always said — **[iw]**: "those configs keep their values, and we
+  let the config version bump determine the migration."
+* **The seek distances migrate onto mpv's own arrows** (`up seek 30`), which
+  is coherent now that nothing about the menu rides on them, and reset to
+  their defaults afterwards so nothing claims a key whose distance has
+  moved.
+* **What is left is claimed, not bound.** `use_web_seek` is the one seek
+  feature mpv cannot express, so those users keep a live claim on whatever
+  currently seeks — which follows a remapped key, where four fixed bindings
+  never did. Routed by sign, because that is all a binding can tell us, and
+  all web seek needs.
+
+### ...and one claimant that was never needed
+
+**[iw]**: "doesn't seek to skip intro listen for seeks too?" It does.
+`_on_seeking` observes the `seeking` property and applies `skip_intro_on_seek`
+to any forward seek — *"including custom key bindings"*, as its own comment
+has said all along. So it needs no key claim, it is not a reason to decline
+a migration, and the branch I had added to `_on_claimed_key` was
+double-handling: the claim's own `self.seek()` raises that same observer.
+
+With that, `_on_menu_left` / `_right` / `_up` / `_down` had no callers left
+and are gone. Nothing binds them, and the menu's section talks to
+`menu_action` directly.

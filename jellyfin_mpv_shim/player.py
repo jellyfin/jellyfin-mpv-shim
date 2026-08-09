@@ -922,24 +922,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
-        # #16: the arrows are mpv's unless ours still MEAN something
-        # different. In a default configuration they do not -- seek_up /
-        # seek_down / seek_right / seek_left are 60 / -60 / 5 / -5, which is
-        # `seek 60` / `seek -60` / `seek 5` / `seek -5`, character for
-        # character what mpv binds -- so four of the seventeen bindings
-        # existed to reimplement mpv's arrows exactly. Where they are the
-        # same, they are given back; where the user has made them different,
-        # they are kept, because then they are that user's choice rather
-        # than our interception.
+        # #16: `kb_menu_*` are MENU keys. They are not bound here at all --
+        # the OSD menu installs them itself for exactly as long as it is on
+        # screen (claim_menu_keys), and the rest of the time the key is
+        # mpv's.
         #
-        # The OSD menu still needs them, and gets them from its own section
-        # for exactly as long as it is on screen (see claim_menu_keys).
-        self._arrows_bound = self._arrows_differ_from_mpv()
-        if self._arrows_bound:
-            self._bind_key(settings.kb_menu_left, self._on_menu_left)
-            self._bind_key(settings.kb_menu_right, self._on_menu_right)
-            self._bind_key(settings.kb_menu_up, self._on_menu_up)
-            self._bind_key(settings.kb_menu_down, self._on_menu_down)
+        # **[iw]** on why that is the right split rather than a smaller one:
+        # "people probably configured arrow keys to something else *so that
+        # our seek bindings weren't messing with the mpv defaults*; the menu
+        # logically uses arrow keys and the only other thing I could see
+        # someone binding those to are wasd." One setting meant two things
+        # -- which key drives the menu, and which key seeks -- and almost
+        # everybody who ever touched it was reaching for the second to get
+        # rid of it. Split, the name it has always had is finally the whole
+        # truth.
+        #
+        # Seeking is mpv's too, unless the shim's own seek does something
+        # mpv's cannot; then it is *claimed*, which follows a remapped key
+        # where the fixed binding never did. See _seek_is_ours.
         self._bind_key(settings.kb_pause, self._on_pause_key)
         # #16: `f` is mpv's own key with mpv's own meaning, so it is no
         # longer bound here -- the fullscreen claim below takes whatever key
@@ -966,6 +966,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         from . import keysweep
 
         self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
+        if self._seek_is_ours():
+            self._key_claims["seek"] = {keysweep.SEEK}
         # Under the lock, which _refresh_key_section's contract requires and
         # this path did not hold: _bind_mpv_handlers is reachable from
         # set_browse_window / force_window, neither of which is
@@ -1156,35 +1158,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if self.menu.is_menu_shown:
             self.menu.menu_action("ok")
 
-    def _on_menu_left(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("left")
-        else:
-            self.kb_seek("left")
-
-    def _on_menu_right(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("right")
-        else:
-            if self.is_in_intro and settings.skip_intro_on_seek:
-                self.skip_intro()
-            else:
-                self.kb_seek("right")
-
-    def _on_menu_up(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("up")
-        else:
-            if self.is_in_intro and settings.skip_intro_on_seek:
-                self.skip_intro()
-            else:
-                self.kb_seek("up")
-
-    def _on_menu_down(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("down")
-        else:
-            self.kb_seek("down")
+    # _on_menu_left / _right / _up / _down are gone with #16. Nothing bound
+    # them once `kb_menu_*` became the MENU's keys: the menu's own section
+    # sends `jms-menu <action>` straight to `menu_action`, and seeking is
+    # mpv's (or a claim). Their skip-intro and web-seek branches live in
+    # `_on_seeking` and `_on_claimed_key` respectively.
 
     def _on_pause_key(self):
         if self.menu.is_menu_shown:
@@ -1426,38 +1404,39 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._terminate_thread.start()
 
-    #: The seek settings whose defaults are byte-identical to mpv's own
-    #: arrow bindings. Any of them changed, and our arrows mean something
-    #: mpv's do not.
+    #: What makes the shim's seek different from mpv's. The distances and
+    #: exactness are here for the run BEFORE the migration carries them into
+    #: input.conf; afterwards they are back at their defaults and only
+    #: ``use_web_seek`` can keep a claim alive.
+    #:
+    #: **`skip_intro_on_seek` is deliberately absent** ([iw] asked). It does
+    #: not need a key at all: `_on_seeking` observes the `seeking` property
+    #: and applies it to *any* forward seek, mpv's own bindings included --
+    #: which is what its comment there has always said. Claiming a key for
+    #: it would double-handle, since the claim's own `self.seek()` raises
+    #: that same observer.
     _MPV_EQUIVALENT_SEEK = {"seek_up": 60, "seek_down": -60,
                             "seek_right": 5, "seek_left": -5,
                             "seek_v_exact": False, "seek_h_exact": False,
-                            "use_web_seek": False,
-                            "skip_intro_on_seek": False}
+                            "use_web_seek": False}
 
-    def _arrows_differ_from_mpv(self):
-        """Whether our arrow handling still does something mpv's does not.
+    def _seek_is_ours(self):
+        """Whether the shim's seek does something mpv's cannot.
 
-        Four things can make it so: a changed seek distance, an exact-seek
-        flag, jellyfin-web's variable seek, and skip-intro-on-seek. Any of
-        them and the binding is earning its keep; none of them and it is
-        the "needless interception of MPV's default bindings" #16 exists to
-        remove.
+        Four things can: a changed distance, an exact-seek flag,
+        jellyfin-web's variable seek, and skip-intro-on-seek. None of them
+        and seeking is mpv's outright -- the defaults here are `seek 60` /
+        `seek -60` / `seek 5` / `seek -5`, character for character what mpv
+        binds, so the old arrow bindings existed to reimplement mpv's
+        arrows exactly.
 
-        A `kb_menu_*` the user set explicitly also counts -- that is their
-        key, not our default, and honouring it is the opposite of
-        swallowing one.
+        Any of them and the keys are *claimed* rather than bound: the claim
+        follows whatever currently means seek, so somebody who moved seeking
+        onto other keys gets their features there too, which four fixed
+        bindings never gave them.
         """
-        for key, default in self._MPV_EQUIVALENT_SEEK.items():
-            if getattr(settings, key, default) != default:
-                return True
-        # Compared to the DEFAULT, not to __fields_set__: save() writes
-        # every key, so after one save "the user set this" is true of the
-        # whole config and this would never give an arrow back to anybody.
-        return any(getattr(settings, k, None) != getattr(type(settings), k,
-                                                         None)
-                   for k in ("kb_menu_left", "kb_menu_right", "kb_menu_up",
-                             "kb_menu_down"))
+        return any(getattr(settings, key, default) != default
+                   for key, default in self._MPV_EQUIVALENT_SEEK.items())
 
     # ------------------------------------------------------ the OSD menu
 
@@ -1479,12 +1458,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         for the user to notice -- the same lifecycle the renderer runs for
         its own mouse sections.
 
-        A no-op when the arrows are still bound in Python: then they already
-        reach the menu, and a section as well would drive it twice per
-        press.
+        Unconditional since the arrows stopped being bound in Python: this
+        is the only thing that gives the menu its navigation, so a gate here
+        is a menu that cannot be driven.
         """
-        if getattr(self, "_arrows_bound", True):
-            return
         try:
             if not wanted:
                 self._player.command("disable-section", self.MENU_SECTION)
@@ -1618,6 +1595,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.set_paused(bool(arg))
         elif semantic == "seek":
             amount, exact = arg
+            # jellyfin-web's variable seek, applied to whatever key the
+            # user actually seeks with -- which four fixed arrow bindings
+            # never managed. Routed by SIGN, because that is all a binding
+            # can tell us: `seek -5` and `seek -60` are both "backwards",
+            # and which of them was the "left" key is neither recoverable
+            # nor needed, since web seek replaces the distance anyway.
+            #
+            # Nothing here for skip-intro: `_on_seeking` catches the seek
+            # this is about to make, exactly as it catches mpv's own.
+            if settings.use_web_seek:
+                back, forward = self.get_seek_times()
+                amount = forward if amount > 0 else back
             self.seek(amount, exact=exact)
         elif semantic == "fullscreen":
             want = (not self._player.fs) if arg is None else bool(arg)
