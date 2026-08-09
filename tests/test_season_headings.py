@@ -128,5 +128,82 @@ class SeasonHeadingTest(unittest.TestCase):
         self.assertEqual(b.route.get("bar_title"), "Another Show")
 
 
+class OpeningASeasonTest(unittest.TestCase):
+    """The only production path that sets `bar_title`.
+
+    It was untested until the harness's Season DTOs grew `SeriesName`:
+    every stand-in omitted it, so `_open_item` had nothing to read and the
+    field the feature is named about had nowhere to live. A test written
+    against those fakes would have passed against code that never set
+    bar_title at all.
+    """
+
+    def test_opening_a_season_carries_the_show_name(self):
+        b = _browser({"kind": "series", "item_id": "sh1", "server": "s1",
+                      "title": "A Show"})
+        seasons = b.source.get_seasons("s1", "sh1")
+        b._open_item(seasons[0])
+        self.assertEqual(b.route.get("kind"), "season")
+        self.assertEqual(b.route.get("bar_title"), "A Show")
+
+    def test_a_season_with_no_series_name_leaves_it_unset(self):
+        # Rather than an empty string, which would blank the bar instead of
+        # falling back to the season name.
+        b = _browser({"kind": "series", "item_id": "sh1", "server": "s1",
+                      "title": "A Show"})
+        b._open_item({"Id": "se9", "Name": "Season 9", "Type": "Season",
+                      "SeriesId": "sh1"})
+        self.assertIsNone(b.route.get("bar_title"))
+
+
+class ToSeriesTest(unittest.TestCase):
+    def test_it_navigates_with_the_show_name(self):
+        b = _browser(SEASON)
+        page = b._page_for(b.route)
+        page.render((1280, 720))
+        b._nav_to_series = None
+        from tests._shell_harness import build_scene
+        nodes, handlers = build_scene(b, (1280, 720))
+        handlers["season-to-series"]["click"]()
+        self.assertEqual(b.route.get("kind"), "series")
+        self.assertEqual(b.route.get("title"), "A Show",
+                         "To Series navigated with an empty title, so the "
+                         "series page's bar falls back to Home")
+
+    def test_it_falls_back_to_the_bar_title(self):
+        """A season DTO short of SeriesName must not blank the title.
+
+        `bar_title` is the same show name and is already on the route, so
+        it is the honest fallback.
+        """
+        b = _browser(SEASON)
+        page = b._page_for(b.route)
+        for season in (b.route.get("_data") or {}).get("seasons", []):
+            season.pop("SeriesName", None)
+        from tests._shell_harness import build_scene
+        _nodes, handlers = build_scene(b, (1280, 720))
+        handlers["season-to-series"]["click"]()
+        self.assertEqual(b.route.get("title"), "A Show")
+
+
+class OfflineSeasonTest(unittest.TestCase):
+    def test_a_synthesized_season_carries_the_show_name(self):
+        """Offline there is no server Season DTO -- it is built from the
+        downloaded episodes, and it has to be told what the live one gets
+        for free."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            OfflineLibrarySource)
+
+        src = OfflineLibrarySource.__new__(OfflineLibrarySource)
+        src._snap = type("S", (), {"items": [
+            {"Type": "Episode", "SeriesId": "sh1", "SeasonId": "se1",
+             "SeriesName": "A Show", "ParentIndexNumber": 1,
+             "SeasonName": "Season 1"},
+        ]})()
+        src._aggregate_userdata = staticmethod(lambda items: {})
+        (season,) = src.get_seasons("s1", "sh1")
+        self.assertEqual(season["SeriesName"], "A Show")
+
+
 if __name__ == "__main__":
     unittest.main()

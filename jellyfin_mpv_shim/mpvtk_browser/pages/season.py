@@ -54,7 +54,13 @@ class SeasonPage(Page):
                 lambda: self.ctx.nav.navigate({
                     "kind": "series", "server": server,
                     "item_id": route["series_id"],
-                    "title": season_item.get("SeriesName", "")})))
+                    # `bar_title` is the same show name, and it is set from
+                    # the item that got us here -- so it survives a season
+                    # DTO that has no SeriesName, which would otherwise
+                    # navigate with an empty title and leave the series
+                    # page's bar reading "Home".
+                    "title": (season_item.get("SeriesName")
+                              or route.get("bar_title") or "")})))
         acts = []
         if route.get("series_id"):
             # Tk had Play Next Up here too. Landing on a season and being able

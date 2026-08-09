@@ -3019,9 +3019,15 @@ class OfflineLibrarySource:
                 # every episode was discarded and the season read "Nothing
                 # here yet." The live source gets this for free from the
                 # server's own Season DTO.
+                # SeriesName for the same reason as SeriesId, one screen
+                # further on: the season page puts it in the title bar, so
+                # without it an offline season says "Season 1" and never
+                # what it is a season of. The live server's Season DTO
+                # carries it; a synthesized one has to be told.
                 seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
                              "Type": "Season", "ImageTags": {},
                              "SeriesId": series_id,
+                             "SeriesName": item.get("SeriesName"),
                              "IndexNumber": pidx}
                 episodes_by_key[key] = []
                 order.append(key)

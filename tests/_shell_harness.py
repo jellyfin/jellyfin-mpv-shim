@@ -333,10 +333,13 @@ class FakeSource:
         return [{"Id": "e%d" % i} for i in range(3)]
 
     def get_seasons(self, server_uuid, series_id):
+        # SeriesName, because the season screen puts it in the title bar
+        # and every Season stand-in omitting it left that path untestable
+        # -- the field the feature is named after had nowhere to live.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
-                 "SeriesId": series_id},
+                 "SeriesId": series_id, "SeriesName": "A Show"},
                 {"Id": "se2", "Name": "Season 2", "Type": "Season",
-                 "SeriesId": series_id}]
+                 "SeriesId": series_id, "SeriesName": "A Show"}]
 
     def get_episodes(self, server_uuid, series_id, season_id):
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
