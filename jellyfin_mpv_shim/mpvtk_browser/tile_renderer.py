@@ -36,6 +36,7 @@ a new name.
 """
 
 import logging
+from collections import Counter
 import time
 
 from ..i18n import _
@@ -1216,10 +1217,30 @@ class TileRenderer:
         regions = []
         act = on_click or self.on_open
         chip = None
+        # **An item can legitimately appear twice in one row**, and the id is
+        # built from its item id -- so two tiles got one id, and `layout`'s
+        # duplicate-id warning says what that costs: "renderer state and
+        # events will target only the last occurrence". Hovering or clicking
+        # the FIRST of the pair drove the second.
+        #
+        # The Cast & Crew row is where [iw] saw it (a person credited as
+        # both Actor and Director is two credits and two tiles -- confirmed
+        # on a real server), but it is not people-specific: a playlist can
+        # hold the same track twice and so can a queue.
+        #
+        # Disambiguated by position, and ONLY for a key that really repeats.
+        # Suffixing everything would be simpler to read and would rename
+        # every hit region in the app for a case that almost never happens;
+        # the id is internal (nothing parses it, nothing persists it), but
+        # it is also what hover and spatial focus are tracked by, and this
+        # keeps that churn to the rows that are actually broken.
+        repeated = Counter(r["key"] for r in s["regions"])
         for i, (r, it) in enumerate(zip(s["regions"], items)):
             if not it:
                 continue        # nothing to open, nothing to hover
             rid = "%s-%s" % (prefix, r["key"])
+            if repeated[r["key"]] > 1:
+                rid = "%s-%d" % (rid, i)
             playable = self.on_play is not None and self.can_play(it)
             regions.append(dict(
                 r,
