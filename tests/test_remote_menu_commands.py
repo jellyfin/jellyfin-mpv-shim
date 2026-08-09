@@ -349,5 +349,52 @@ class TestTheOtherCommandsAreUnchanged(RemoteCommandBase):
         self.assertEqual(pm.menu.actions, ["up"])
 
 
+class EnterKeyTest(RemoteCommandBase):
+    """The physical ENTER key, which is not the remote's Select.
+
+    Select routes through ``menu_action`` (above) and has always known what
+    is on screen. ENTER goes straight to ``_on_menu_ok``, which was the one
+    handler in its group with no ``is_menu_shown`` guard -- so it did not
+    mean "confirm", it meant *open the OSD menu*, because
+    ``menu_action("ok")`` on a hidden menu is ``show_menu()``.
+    """
+
+    def test_it_confirms_while_the_menu_is_up(self):
+        for osc in ("mpvtk", "classic"):
+            with self.subTest(osc=osc):
+                pm = self._pm(playing=True, osc=osc, menu_shown=True)
+                pm._on_menu_ok()
+                self.assertEqual(pm.menu.actions, ["ok"])
+
+    def test_it_does_not_open_the_osd_menu_under_mpvtk(self):
+        # The exact thing toggle_settings_menu refuses, by the other door:
+        # the OSD menu draws as mpv OSD text, lands under the overlay
+        # bitmaps, and takes the arrow keys with it.
+        pm = self._pm(playing=True, osc="mpvtk")
+        pm._on_menu_ok()
+        self.assertFalse(pm.menu.is_menu_shown)
+        self.assertEqual(pm.menu.actions, [])
+
+    def test_it_does_not_become_a_second_door_to_the_gear(self):
+        # Swallowed, not rerouted. mpv binds ENTER to playlist-next and we
+        # mean nothing by it during playback; inventing a new gesture is
+        # not what removing a hazard looks like.
+        pm = self._pm(playing=True, osc="mpvtk")
+        pm._on_menu_ok()
+        self.assertEqual(pm.hud_menus, 0)
+
+    def test_the_classic_osc_keeps_what_it_had(self):
+        pm = self._pm(playing=True, osc="classic")
+        pm._on_menu_ok()
+        self.assertEqual(pm.menu.actions, ["ok"])
+
+    def test_browsing_under_mpvtk_is_also_refused(self):
+        # Not only during playback: the library is the case where the OSD
+        # menu stealing the arrow keys is most visible.
+        pm = self._pm(browsing=True, osc="mpvtk")
+        pm._on_menu_ok()
+        self.assertFalse(pm.menu.is_menu_shown)
+
+
 if __name__ == "__main__":
     unittest.main()

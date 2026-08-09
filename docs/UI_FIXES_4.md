@@ -1694,11 +1694,20 @@ it, only the audit noticing it.
 
 ### What is left to decide
 
-Nothing blocking, but the order matters: **(2) first** — it is a one-line
-guard with no design content — then **(3)**, which is self-contained, and
-only then the claimed-section work for the arrows and ESC, which is the part
-with the real regression surface and needs the no-lua fallback kept and
-tested rather than assumed dead.
+Nothing blocking, but the order matters: **(2) first**, then **(3)**, which
+is self-contained, and only then the claimed-section work for the arrows and
+ESC, which is the part with the real regression surface and needs the no-lua
+fallback kept and tested rather than assumed dead.
+
+**(2) is done.** It was not quite the one-line guard it looked like: the
+guard is easy, but *what ENTER should do instead* has design content, and
+two answers were available. It is swallowed under mpvtk rather than routed
+to the HUD's gear — mpv binds ENTER to `playlist-next`, we mean nothing by
+it during playback, and adding a second door to the gear menu would be a new
+gesture rather than the removal of a hazard. The classic OSC keeps exactly
+what it had. `tests/test_remote_menu_commands.py:EnterKeyTest`.
+
+The rest of #16 is unstarted, by the sequencing above.
 
 ---
 
