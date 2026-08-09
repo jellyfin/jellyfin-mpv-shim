@@ -545,6 +545,13 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_kill_shader` - Disable shader packs. (Default: `k`)
 - `media_keys` - Enable binding of MPV to media keys. Default: `true`
 
+- `ui_text_scale` - Multiply the size of every piece of text in the
+  interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike
+  `ui_scale`, which scales the entire interface (artwork, spacing and
+  controls along with the type), this moves only the text -- for when the
+  words are too small rather than everything being too small.
+  (Default: `1.0`)
+
 ### Seek distances moved to `input.conf`
 
 `seek_up`, `seek_down`, `seek_right`, `seek_left`, `seek_v_exact` and

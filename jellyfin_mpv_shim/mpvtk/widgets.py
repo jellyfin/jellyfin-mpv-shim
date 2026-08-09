@@ -162,7 +162,7 @@ class Text(Element):
     def __init__(
         self,
         text,
-        size=22,
+        size=None,
         color=None,
         bold=False,
         align="left",
@@ -172,6 +172,10 @@ class Text(Element):
         max_lines=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('TITLE') if size is None else size
         super().__init__(**kw)
         self.text = text
         self.size = size
@@ -319,8 +323,12 @@ class Icon(Element):
     in a Row for labelled buttons; Dropdown/Menu take per-item icons
     directly."""
 
-    def __init__(self, name, size=20, color=None, on_click=None,
+    def __init__(self, name, size=None, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
@@ -341,11 +349,15 @@ class Button(Box):
     colour so accented/active buttons stay legible. An icon-only button is
     just ``label=""``."""
 
-    def __init__(self, label, on_click=None, size=20, fg=None, icon=None,
+    def __init__(self, label, on_click=None, size=None, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
         # Resolved here rather than as a default argument: a default is
         # evaluated once at import, so it could never follow a theme
         # applied later -- let alone one swapped at runtime.
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
         if kw.get("disabled"):
@@ -394,7 +406,7 @@ class TextBox(Element):
         id,
         text="",
         placeholder="",
-        size=20,
+        size=None,
         mask=False,  # password entry: render bullets, value unchanged
         on_change=None,
         on_submit=None,
@@ -405,6 +417,10 @@ class TextBox(Element):
         force=False,  # override renderer-local edit state with ``text``
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         kw.setdefault("w", 240)
         super().__init__(id=id, **kw)
         self.text = text
@@ -482,11 +498,15 @@ class Busy(Element):
 class Checkbox(Row):
     """Labelled toggle — pure composite sugar over Row/Box/Text."""
 
-    def __init__(self, label, checked, on_toggle=None, size=20, **kw):
+    def __init__(self, label, checked, on_toggle=None, size=None, **kw):
         # Muted here rather than in the renderer, and the handler dropped:
         # see Button for why a composite cannot leave this to the draw side.
         # The check itself still shows -- a disabled setting has a value, and
         # hiding it would say the opposite of what it is.
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         off = bool(kw.get("disabled"))
         box = Box(
             w=20,
@@ -544,7 +564,11 @@ class Grid(Element):
     """
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
-                 row_pad=0, size=18, fg=None, **kw):
+                 row_pad=0, size=None, fg=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else size
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
@@ -562,8 +586,12 @@ class Form(Grid):
     ``(label, element)`` pairs (label may be a str or an Element; a
     None element leaves the row's value cell empty)."""
 
-    def __init__(self, rows, label_w=None, size=18,
+    def __init__(self, rows, label_w=None, size=None,
                  label_fg=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else size
         label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
             {"w": label_w} if label_w else {},
@@ -716,8 +744,8 @@ class Table(Column):
         rows,
         row_h=36,
         header_h=30,
-        size=18,
-        header_size=15,
+        size=None,
+        header_size=None,
         header_fg=None,
         fg=None,
         selected_bg=None,
@@ -727,6 +755,12 @@ class Table(Column):
         virtual=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else size
+        header_size = (theme.size('SMALL')
+                       if header_size is None else header_size)
         selected_bg = selected_bg or theme.SOFT
         header_fg = header_fg or theme.ON_SURFACE_MUTED
         fg = fg or theme.ON_SURFACE
@@ -873,7 +907,7 @@ class Dropdown(Element):
         id,
         items,
         selected=0,
-        size=20,
+        size=None,
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         force=False,
@@ -890,6 +924,10 @@ class Dropdown(Element):
         popup_w=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         if trigger_icon:
             kw.setdefault("w", int(size * 1.9))
             kw.setdefault("h", int(size * 1.9))
@@ -920,12 +958,16 @@ class Menu(Element):
         items,
         x,
         y,
-        size=20,
+        size=None,
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         on_dismiss=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else size
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.x = x

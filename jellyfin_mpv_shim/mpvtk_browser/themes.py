@@ -97,7 +97,17 @@ DEFAULT = {
     "window_gradient": None,
     "topbar_gradient": None,
     "poster_scale": 1.0,  # tile-geometry multiplier
-    "heading_size": 24,   # carousel section-title font size
+    # The base every text size derives from (mpvtk.theme.TYPE_SCALE). A
+    # theme that wants larger type moves this one number and the whole
+    # scale follows -- headings, controls, captions, all of it, in
+    # proportion. null = the toolkit's own default (17).
+    "base_size": None,
+    # null = the HEADING tier of the type scale (24 at the stock base,
+    # which is what this was). A number here pins it, which a theme
+    # with larger covers may want -- but pinning it also opts the
+    # headings out of the user's text-size multiplier, so null is the
+    # better default.
+    "heading_size": None,
     "tile_landscape": (240, 135),  # (w, h) of the library/landscape tile
     "tile_title_size": None,  # tile caption font; None = stock (scales w/ cover)
     "tile_sub_size": None,

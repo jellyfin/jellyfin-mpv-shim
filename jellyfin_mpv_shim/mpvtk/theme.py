@@ -84,6 +84,83 @@ TOKENS = {
     "CHIP_FG": "ffffff",
 }
 
+#: The type scale, as multiples of the base size.
+#:
+#: **Surveyed, not invented.** Every explicit ``size=`` in the app was
+#: counted (237 call sites) and grouped by what the text actually is, and
+#: these ratios are the result: with a base of 17 they reproduce 236 of
+#: those 237 to within a pixel. ``HEADING`` landing on 24 -- which is what
+#: ``heading_size`` has always been -- is the check that the ratios are
+#: real rather than fitted.
+#:
+#: The tiers are named for the JOB, like the colour tokens above and for
+#: the same reason: an author can pick "this is a caption" and cannot pick
+#: between 13 and 14. That was the actual problem -- 161 of the 237 sizes
+#: sat in the 3px band 14-18 with no rule saying which.
+TYPE_SCALE = {
+    "MICRO": 0.70,     # guide badges ("HD"), the densest chrome
+    "CAPTION": 0.80,   # help text under a settings row
+    "SMALL": 0.88,     # dense body: guide, music, comic, reader
+    "NORMAL": 1.00,    # body text, and every control label
+    "LARGE": 1.12,     # meta and secondary lines on a detail page
+    "TITLE": 1.30,     # dialog titles
+    "HEADING": 1.42,   # carousel section headings
+    "PAGE": 1.53,      # page titles
+    "HERO": 1.70,      # onboarding: "Connect to Jellyfin"
+}
+
+#: The base every tier is a multiple of, in logical px.
+#:
+#: 17 because that is what the app was already written at: the survey's
+#: best fit, and the size six of the shim's own buttons pass explicitly
+#: when their author bothered to pick one. The widget defaults were 20 --
+#: a value **no call site ever chose**, arrived at 194 times by not
+#: passing one -- which is why unstyled controls read a whole tier larger
+#: than the text beside them. **[iw]**: "I'd probably default to the size
+#: we use for buttons as Normal."
+DEFAULT_BASE_SIZE = 17
+
+_base_size = DEFAULT_BASE_SIZE
+
+
+def set_type_scale(base=None):
+    """Set the base size every tier derives from. ``None`` restores stock.
+
+    Wholesale like :func:`set_tokens`, and for the same reason: a theme
+    that says nothing about type must get the default back rather than
+    keep the last theme's.
+    """
+    global _base_size
+    try:
+        value = float(DEFAULT_BASE_SIZE if base is None else base)
+    except (TypeError, ValueError):
+        value = float(DEFAULT_BASE_SIZE)
+    # A base of 0 would render the whole UI invisible and a negative one is
+    # meaningless; both are reachable from a hand-edited theme file.
+    _base_size = value if value > 0 else float(DEFAULT_BASE_SIZE)
+    return _base_size
+
+
+def base_size():
+    return _base_size
+
+
+def size(tier):
+    """The px size for a named tier. Unknown tiers are an error, not a
+    silent default -- a typo'd tier would otherwise render as body text
+    and look almost right."""
+    try:
+        ratio = TYPE_SCALE[str(tier).upper()]
+    except KeyError:
+        raise KeyError("unknown type tier %r. Tiers are %s"
+                       % (tier, ", ".join(TYPE_SCALE))) from None
+    # Rounded, because a font size that is not a whole number of logical px
+    # gives layout a fractional line height to divide the page by. The
+    # logical->physical conversion deliberately does NOT round (see
+    # scaling._EXACT_KEYS); this is the other end of that.
+    return int(round(_base_size * ratio))
+
+
 #: Aliases kept so existing reads (``theme.HOVER``, ``theme.SOFT``) keep
 #: working; they were the accent's derived pair before tokens existed.
 _ALIASES = {"HOVER": "ACCENT_HOVER", "SOFT": "ACCENT_SOFT"}

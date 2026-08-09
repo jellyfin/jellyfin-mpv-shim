@@ -296,8 +296,7 @@ class HomePage(Page):
 
         return Row(
             [Spacer(w=chrome.CONTENT_PAD),
-             Text(_("Live TV"), size=(theme.active() or {}).get(
-                 "heading_size", 24), bold=True)]
+             Text(_("Live TV"), size=theme.heading_size(), bold=True)]
             + [Button(label, id="home-lt-" + key,
                       on_click=lambda k=key: self.ctx.nav.navigate({
                           "kind": "livetv", "server": self.ctx.server,

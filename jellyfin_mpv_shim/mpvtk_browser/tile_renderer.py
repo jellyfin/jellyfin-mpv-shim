@@ -1074,7 +1074,7 @@ class TileRenderer:
         geom = geom or self.art.geom
         # Section-title size is theme-controlled (24 = the stock value), so a
         # theme with larger covers can size its headings to match.
-        title_size = (theme.active() or {}).get("heading_size", 24)
+        title_size = theme.heading_size()
         # Both spellings of the heading are the SAME box, and only its
         # contents and handlers differ. They used to be a bare Text and a
         # padded Box, which meant a linked row's title sat 6px right and 2px

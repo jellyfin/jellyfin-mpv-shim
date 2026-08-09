@@ -537,6 +537,11 @@ class Settings(SettingsBase):
     # because rescaling live means dropping every cached bitmap and that
     # is only safe on the libmpv path once mpv is gone.
     ui_scale: Optional[float] = None
+    #: Multiplier on the UI's base text size, for readability. Separate
+    #: from ui_scale, which scales the whole interface (boxes, artwork,
+    #: spacing) -- this moves only the type, so a user who wants bigger
+    #: words without bigger posters has a control that says so.
+    ui_text_scale: float = 1.0
     # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"

@@ -153,13 +153,36 @@ def toolkit_tokens():
     }
 
 
+def heading_size():
+    """The carousel section-heading size.
+
+    The theme's ``heading_size`` if it pins one, else the scale's HEADING
+    tier -- so a heading follows the user's text-size multiplier unless a
+    theme has deliberately taken it over.
+    """
+    from ..mpvtk import theme as tk
+
+    return (_active or {}).get("heading_size") or tk.size("HEADING")
+
+
 def apply_to_toolkit(glow=False):
     """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so every
     widget default and every control the renderer draws for itself follows
     the app's theme rather than a hardcoded dark palette."""
+    from ..conf import settings
     from ..mpvtk import theme as tk
 
     tk.set_tokens(glow=glow, **toolkit_tokens())
+    # Type scale as well as palette. The user's multiplier rides on the
+    # theme's base rather than being applied per-size later, so every tier
+    # keeps its proportion to every other -- which is the property that
+    # makes a scale a scale.
+    base = (_active or {}).get("base_size") or tk.DEFAULT_BASE_SIZE
+    try:
+        factor = float(getattr(settings, "ui_text_scale", 1.0) or 1.0)
+    except (TypeError, ValueError):
+        factor = 1.0
+    tk.set_type_scale(base * (factor if factor > 0 else 1.0))
 
 
 def mix(a, b, t):
