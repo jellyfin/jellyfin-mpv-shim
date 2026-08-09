@@ -115,6 +115,19 @@ ICON_NAMES = [
     "refresh",
     "folder",
     "content_copy",
+    # Tile placeholders, for an item with no artwork. jellyfin-web's
+    # `getItemTypeIcon` and `getLibraryIcon` (src/utils/image.ts) --
+    # taken from there rather than chosen, so a library with no posters
+    # looks like the same library does in every other client.
+    "tv",
+    "live_tv",
+    "theaters",
+    "music_video",
+    "book",
+    "video_library",
+    "queue",
+    "album",
+    "quiz",
     # live tv / recordings
     "fiber_manual_record",
     "fiber_smart_record",

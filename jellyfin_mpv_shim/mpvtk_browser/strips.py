@@ -716,11 +716,28 @@ class StripStore:
                 img.paste(poster, (px, py),
                           poster if poster.mode == "RGBA" else None)
         elif t.glyph:
-            # A muted centered glyph (first initial / ♪) so blank tiles read.
+            # A muted centred mark so a blank tile still reads. Usually a
+            # Material icon -- jellyfin-web's own per-type default, so a
+            # library with no artwork looks like it does in every other
+            # client -- and a letter only where no icon fits (see
+            # components.labels.placeholder_glyph).
+            #
+            # Told apart by looking the name up, not by length: "?" and a
+            # one-letter initial are both legitimate answers, and an icon
+            # name is never one character.
+            from ..mpvtk import vector
+
             gsize = max(_px(24), g.tile_h // 4)
-            dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
-                    font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
-                    fill=theme.rgb(theme.SUBTLE_FG))
+            if t.glyph in vector.ICON_PATHS:
+                glyph = vector.icon_image(
+                    t.glyph, gsize, theme.rgb(theme.SUBTLE_FG))
+                img.paste(glyph,
+                          (int(x + (g.tile_w - gsize) // 2),
+                           int((g.tile_h - gsize) // 2)), glyph)
+            else:
+                dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
+                        font=_font(gsize, bold=True, text=t.glyph),
+                        anchor="mm", fill=theme.rgb(theme.SUBTLE_FG))
         if rounded:
             dr.rounded_rectangle(box, radius=r,
                                  outline=theme.rgb("101012", 255))

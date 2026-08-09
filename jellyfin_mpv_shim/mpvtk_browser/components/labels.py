@@ -103,11 +103,21 @@ def is_watched(item):
 
 
 def placeholder_glyph(item):
-    """The character drawn on a tile with no artwork.
+    """What to draw on a tile with no artwork.
 
-    Was ``TilesMixin._glyph``.
+    A **Material icon name** where one fits, else the title's first
+    initial. The compositor tells them apart by looking the name up
+    (`strips._paint_poster`), so a one-character answer can never be
+    mistaken for an icon and vice versa.
+
+    Library tiles are asked by collection type first: a UserView's `Type`
+    is "CollectionFolder" for every library there is, so answering from
+    the type map alone drew a folder on all of them.
     """
-    glyph = _TYPE_GLYPHS.get(item.get("Type"))
+    ctype = (item.get("CollectionType") or "").lower()
+    glyph = _LIBRARY_GLYPHS.get(ctype) if ctype else None
+    if glyph is None:
+        glyph = _TYPE_GLYPHS.get(item.get("Type"))
     if glyph:
         return glyph
     name = (item.get("Name") or "").strip()
@@ -154,29 +164,98 @@ def type_indicator_icon(item):
 #: playing. jellyfin-web draws an icon for exactly these
 #: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
 #:
-#: Glyphs rather than the Material icons used elsewhere in the chrome because
-#: this is baked into the tile bitmap by the strip compositor, which draws
-#: text, not icon fonts.
+#: **Material icon names**, drawn by the strip compositor.
+#:
+#: A comment here used to say these had to be characters "because this is
+#: baked into the tile bitmap by the strip compositor, which draws text,
+#: not icon fonts". That was never true -- `strips._paint_glyph_badge` has
+#: rasterized icon paths through `vector.icon_image` since the home-video
+#: type badges landed. **[iw]**: "that comment is a lie."
+#:
+#: Taken from jellyfin-web rather than chosen, so a library with no
+#: artwork looks like the same library does in every other client:
+#: `getItemTypeIcon` for an item, `getLibraryIcon` for a library tile
+#: (both `src/utils/image.ts`).
 _TYPE_GLYPHS = {
-    "Audio": "♪",
-    # An AudioBook is an Audio item, and it hits the case this table is FOR:
-    # an author folder of three books called "The ..." drew three tiles all
-    # reading "T". Books deliberately keep their initial -- a title is what
-    # tells one from another, and a shelf of identical marks would be worse.
-    "AudioBook": "♪",
-    "MusicAlbum": "♪",
-    "MusicArtist": "♪",
-    # NOT a triangle. "▸" is the play shape, and drawn large and centred on
-    # an artless tile that is exactly what it reads as -- a grid of folders
-    # came out looking like a grid of play buttons, which was reported as
-    # "floating play buttons on folders". The tile already carries a small
-    # folder icon in its corner (TYPE_INDICATOR_ICONS), so this only has to
-    # be a mark that is not something else's.
-    "Folder": "▤",
-    "CollectionFolder": "▤",
-    "PhotoAlbum": "▣",
-    "Photo": "▣",
+    "MusicAlbum": "album",
+    "MusicArtist": "person",
+    "Person": "person",
+    "Audio": "audiotrack",
+    "Movie": "movie",
+    "Series": "tv",
+    "Episode": "tv",
+    "Season": "tv",
+    "Program": "live_tv",
+    "TvChannel": "live_tv",
+    "Book": "book",
+    "Folder": "folder",
+    "CollectionFolder": "folder",
+    "BoxSet": "video_library",
+    "Playlist": "queue",
+    "Photo": "photo",
+    "PhotoAlbum": "photo_album",
+    # Beyond web's list, and consistent with it: a Trailer is a video and
+    # a MusicVideo has its own icon in the library map.
+    "Trailer": "theaters",
+    "MusicVideo": "music_video",
+    # web has no AudioBook arm, but one IS an Audio item, and this is the
+    # case the table was originally written for: an author folder of three
+    # books called "The ..." drew three tiles all reading "T".
+    "AudioBook": "audiotrack",
 }
+
+
+def type_indicator_icon(item):
+    """The corner type marker for a tile, or "" for types that get none."""
+    return TYPE_INDICATOR_ICONS.get(item.get("Type"), "")
+
+
+#: Types whose placeholder says *what it is* rather than what it is called.
+#:
+#: A first initial is a decent label when the name distinguishes things --
+#: films, shows, people. It is useless where the name does not: a Home Videos
+#: library is folders and albums named "2019", "2020", "Holiday", and a wall
+#: of digits says nothing about which tiles you can open and which will start
+#: playing. jellyfin-web draws an icon for exactly these
+#: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
+#:
+#: **Material icon names**, drawn by the strip compositor.
+#:
+#: A comment here used to say these had to be characters "because this is
+#: baked into the tile bitmap by the strip compositor, which draws text,
+#: not icon fonts". That was never true -- `strips._paint_glyph_badge` has
+#: rasterized icon paths through `vector.icon_image` since the home-video
+#: type badges landed. **[iw]**: "that comment is a lie."
+#:
+#: Taken from jellyfin-web rather than chosen, so a library with no
+#: artwork looks like the same library does in every other client:
+#: `getItemTypeIcon` for an item, `getLibraryIcon` for a library tile
+#: (both `src/utils/image.ts`).
+
+#: A library tile, by its collection type -- web's `getLibraryIcon`. A
+#: UserView carries no useful `Type`, so it is answered from here first.
+_LIBRARY_GLYPHS = {
+    "movies": "movie",
+    "music": "music_note",
+    "homevideos": "photo",
+    "photos": "photo",
+    "livetv": "live_tv",
+    "tvshows": "tv",
+    "trailers": "theaters",
+    "musicvideos": "music_video",
+    "books": "book",
+    "boxsets": "video_library",
+    "playlists": "queue",
+    "channels": "videocam",
+}
+
+#: **AudioBook is deliberately absent** from `_TYPE_GLYPHS`, and keeps the
+#: title's first initial. It is the case that table was written for: an
+#: author folder of three books called "The ..." drew three tiles reading
+#: "T" -- but a shelf of identical audiotrack icons is no better, and the
+#: title is the only thing that tells one recording from another. web has
+#: no AudioBook arm either, so this matches it by omission rather than in
+#: spite of it.
 
 
 def heading_for(item):

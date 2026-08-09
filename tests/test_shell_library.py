@@ -666,10 +666,12 @@ class TestTileShapes(unittest.TestCase):
         t = self.b.tiles._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
                          self.b.geom)
         self.assertTrue(t.downloaded)
-        self.assertEqual(t.glyph, "A")
+        # Material icon names now, not characters -- jellyfin-web's map.
+        # See test_photos.PhotoGlyphTest for why the rule changed.
+        self.assertEqual(t.glyph, "movie")
         t2 = self.b.tiles._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
                           self.b.geom)
-        self.assertEqual(t2.glyph, "♪")
+        self.assertEqual(t2.glyph, "audiotrack")
 
     def test_watched_series_fallback(self):
         t = self.b.tiles._tile({"Id": "s1", "Type": "Series",
