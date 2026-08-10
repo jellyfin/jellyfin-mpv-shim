@@ -21,6 +21,7 @@ Contents:
 
 import functools
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -92,6 +93,28 @@ class ShutdownError(Exception):
     as the ``mpv`` module."""
 
 
+#: What mpv itself binds, in the shape ``input-bindings`` reports it —
+#: enough of it for a key sweep to have something to find. Weak, because
+#: that is what mpv marks its own builtins with and what tells them from a
+#: line the user wrote; the seek distances and the fullscreen toggle are
+#: mpv's real defaults, character for character, because ``_seek_is_ours``
+#: compares against exactly those.
+DEFAULT_BINDINGS = [
+    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": -1},
+    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": -1},
+    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": -1},
+    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": -1},
+    {"key": "RIGHT", "cmd": "seek 5", "is_weak": True, "priority": -1},
+    {"key": "UP", "cmd": "seek 60", "is_weak": True, "priority": -1},
+    {"key": "DOWN", "cmd": "seek -60", "is_weak": True, "priority": -1},
+    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": -1},
+    {"key": "WHEEL_LEFT", "cmd": "seek -10", "is_weak": True,
+     "priority": -1},
+    {"key": "WHEEL_RIGHT", "cmd": "seek 10", "is_weak": True,
+     "priority": -1},
+]
+
+
 class FakeMPV:
     """A stand-in for an mpv backend object.
 
@@ -101,6 +124,10 @@ class FakeMPV:
       ``event_callback`` decorators used in ``_init_mpv``. Registered callbacks
       are stored so a test can fire them later (``fire_property`` / ``fire_event``),
       optionally from another thread, to reproduce observer-ordering races.
+    * *input sections* — ``define-section`` / ``enable-section`` /
+      ``disable-section`` are kept as state, and ``press_key`` consults them
+      before the script bindings, so a #16 key *claim* can be exercised
+      rather than merely recorded.
     * *control / property* access — ``command``, ``play``, ``show_text`` etc. are
       recorded; the many scalar properties (``pause``, ``playback_abort``,
       ``playback_time`` …) are plain attributes tests can set to script state.
@@ -150,6 +177,21 @@ class FakeMPV:
         self._property_observers = {}   # name -> [callbacks]
         self._event_callbacks = {}      # name -> [callbacks]
         self._key_bindings = {}         # key -> callback
+
+        # What `input-bindings` answers, which is what a key sweep reads
+        # (#16). A fake without it is not a player with no bindings -- the
+        # sweep's read raises, player.py logs it and carries on with an
+        # EMPTY sweep, so every claim installs nothing and every claimed
+        # key silently does nothing. That is what it was, and it is why
+        # five keyboard tests failed pointing at innocent code.
+        self.input_bindings = [dict(b) for b in DEFAULT_BINDINGS]
+
+        # Input sections: `name -> {key: command}`, plus the enable order.
+        # A claim is a SECTION rather than per-key bindings (the one
+        # mechanism both backends have), so a fake that models only
+        # on_key_press cannot see a claimed key at all.
+        self._sections = {}
+        self._enabled = []
 
         # Records for assertions.
         self.commands = []
@@ -208,9 +250,45 @@ class FakeMPV:
             cb(event)
 
     def press_key(self, key):
+        """Deliver a key the way mpv would: enabled sections first, then the
+        script bindings ``on_key_press`` registered.
+
+        Both sections the shim installs are defined ``force``, which in mpv
+        outranks everything else, and the later-enabled section wins -- so
+        the menu's arrows beat a standing seek claim while the menu is up,
+        which is the ordering the two claimants were designed around.
+
+        Key names match **exactly**, where mpv compares named keys without
+        case. So press the spelling the thing under test used: a claim
+        carries whatever ``input-bindings`` reported (``SPACE``, ``LEFT``),
+        a Python binding whatever the setting holds (``space``, ``left``).
+        Not worth emulating -- the alternative is a fake that quietly
+        answers a question about mpv's parser that no test here is asking.
+        """
+        for name in reversed(self._enabled):
+            cmd = self._sections.get(name, {}).get(key)
+            if cmd is None:
+                continue
+            self._run_section_command(cmd)
+            return
         cb = self._key_bindings.get(key)
         if cb is not None:
             cb()
+
+    def _run_section_command(self, cmd):
+        """What a section line does when its key is pressed. shlex, because
+        ``keysweep.section_lines`` quotes the key it passes along."""
+        parts = shlex.split(cmd)
+        if not parts or parts[0] == "ignore":
+            # `ignore` is mpv dropping the key. Recorded nowhere on
+            # purpose: the point of a suppression is that nothing sees it.
+            return
+        if parts[0] == "script-message":
+            # Which is how a claimed key reaches Python: as a client
+            # message carrying the semantic and the key it came from.
+            self.fire_event("client-message", {"args": parts[1:]})
+            return
+        self.commands.append(tuple(parts))
 
     # -- control surface ----------------------------------------------------
 
@@ -218,6 +296,33 @@ class FakeMPV:
         if self.fail_with is not None:
             raise self.fail_with
         self.commands.append(args)
+        self._section_command(args)
+
+    def _section_command(self, args):
+        """define/enable/disable-section, kept as state rather than only as
+        a recorded call -- otherwise a test can assert that a claim was
+        INSTALLED and never that it does anything."""
+        if not args:
+            return
+        verb = args[0]
+        if verb == "define-section" and len(args) >= 3:
+            lines = {}
+            for line in (args[2] or "").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                key, _sp, cmd = line.partition(" ")
+                lines[key] = cmd.strip()
+            self._sections[args[1]] = lines
+        elif verb == "enable-section" and len(args) >= 2:
+            # Re-enabling moves a section to the top, as mpv does.
+            self._disable_section(args[1])
+            self._enabled.append(args[1])
+        elif verb == "disable-section" and len(args) >= 2:
+            self._disable_section(args[1])
+
+    def _disable_section(self, name):
+        self._enabled = [n for n in self._enabled if n != name]
 
     def play(self, url):
         self.played.append(url)
@@ -447,6 +552,21 @@ def build_player(player_module, video=None):
     pm._stall_since = 0.0
     pm._last_intro_msg_time = 0.0
 
+    # #16 key claims. `_swept`/`_swept_ptr` are None -- the *uncached*
+    # state -- so a claim really does sweep FakeMPV.input_bindings rather
+    # than being handed a prepared answer: that sweep is the half of the
+    # feature a fake can get wrong without anything noticing.
+    pm._key_claims = {}
+    pm._key_actions = {}
+    pm._swept = None
+    pm._swept_ptr = None
+    # The lua probe, unanswered. None means "not asked yet" for both, which
+    # is what the constructor sets; _effective_osc_style reads the override
+    # on every _init_mpv, so a missing one aborts mpv creation outright.
+    pm._lua_works = None
+    pm._lua_probe = None
+    pm._osc_style_override = None
+
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
     pm.mpvtk_active = False
@@ -481,6 +601,7 @@ def build_player(player_module, video=None):
     pm.on_nav_command = None
     pm.on_hud_menu = None
     pm.on_playstate = None
+    pm.on_syncplay_change = None
     pm.notify_update = None
     pm.notify_syncplay = None
     pm.syncplay_menu_reachable = None

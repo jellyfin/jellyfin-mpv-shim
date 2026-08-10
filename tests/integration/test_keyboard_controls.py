@@ -7,6 +7,16 @@ these tests drive the **module-level singleton** ``player.playerManager`` — it
 ``_player`` is a :class:`FakeMPV` whose ``_key_bindings`` were populated at
 construction, and its ``menu`` is a real ``OSDMenu``.
 
+Since #16 that is only half of how a key arrives. The keys the shim *claims*
+-- fullscreen always, seek when the shim's seek differs from mpv's, pause and
+seek while a SyncPlay group lasts -- and the OSD menu's arrows are installed
+as mpv input **sections**, not bindings, and come back as a
+``script-message`` client message. ``FakeMPV`` models sections and answers
+``input_bindings``, so ``press_key`` routes through a claim exactly as mpv
+would; without that the sweep finds nothing, every claim installs nothing,
+and a claimed key silently does nothing while the tests point at innocent
+code.
+
 A key is fired with ``pm._player.press_key(key)``. Most handlers ``put_task(...)``
 onto ``pm.evt_queue`` (the action thread would drain them); we assert the queued
 task without executing it. The handlers that call a collaborator directly
@@ -80,6 +90,12 @@ class KeyboardRoutingTest(unittest.TestCase):
     def tearDown(self):
         _drain(self.pm)
         self.pm.menu.is_menu_shown = False
+        # The singleton's backend is shared too, and a driven seek leaves a
+        # position behind it: an idle player reports None, and a test that
+        # inherited 40.0 from the one before would be reading a state that
+        # never happens.
+        self.pm._player.playback_time = None
+        self.pm.playback_time_before_seek = None
 
     # -- stop / next / prev (queued) ---------------------------------------
 
@@ -246,65 +262,100 @@ class KeyboardRoutingTest(unittest.TestCase):
 
     # -- nav keys: menu action when shown, seek when hidden ----------------
 
-    def test_nav_keys_drive_menu_when_shown(self):
+    # #16 changed all three of these. The arrows are no longer bound in
+    # Python at all: the OSD menu installs them as an input SECTION for as
+    # long as it is on screen, seeking is mpv's own unless the shim's seek
+    # does something mpv's cannot (then it is claimed, on whatever key
+    # currently means seek), and skip-intro-on-seek moved off the keys
+    # entirely onto the `seeking` property -- so it now applies to every
+    # seek, including the ones mpv makes for itself.
+    #
+    # These drive the real mechanism rather than the old bindings, which is
+    # only possible because FakeMPV models input sections; a fake that knows
+    # about `on_key_press` alone cannot see a claimed key at all.
+
+    def test_nav_keys_drive_the_menu_only_while_it_is_shown(self):
+        """Through the real ``show_menu`` / ``hide_menu``, because the claim
+        is installed BY those and nothing else calls ``claim_menu_keys``.
+        Setting ``is_menu_shown`` by hand -- which is what this test used to
+        do -- now leaves the section uninstalled, so the arrows stay mpv's
+        and the menu on screen cannot be navigated at all.
+        """
         cases = {
             settings.kb_menu_left: "left",
             settings.kb_menu_right: "right",
             settings.kb_menu_up: "up",
             settings.kb_menu_down: "down",
         }
-        with mock.patch.object(self.pm.menu, "menu_action") as menu_action, \
-                mock.patch.object(self.pm, "kb_seek") as kb_seek:
-            self.pm.menu.is_menu_shown = True
-            for key, action in cases.items():
-                menu_action.reset_mock()
+        with mock.patch.object(self.pm.menu, "menu_action") as menu_action:
+            self.pm.menu.show_menu()
+            try:
+                for key, action in cases.items():
+                    menu_action.reset_mock()
+                    self.pm._player.press_key(key)
+                    menu_action.assert_called_once_with(action)
+            finally:
+                self.pm.menu.hide_menu()
+            menu_action.reset_mock()
+            for key in cases:
                 self.pm._player.press_key(key)
-                menu_action.assert_called_once_with(action)
-            kb_seek.assert_not_called()
-
-    def test_nav_keys_seek_when_menu_hidden(self):
-        with mock.patch.object(self.pm, "kb_seek") as kb_seek, \
-                mock.patch.object(self.pm.menu, "menu_action") as menu_action:
-            self.pm.menu.is_menu_shown = False
-            self.pm.is_in_intro = False
-            for key, action in ((settings.kb_menu_left, "left"),
-                                (settings.kb_menu_right, "right"),
-                                (settings.kb_menu_up, "up"),
-                                (settings.kb_menu_down, "down")):
-                kb_seek.reset_mock()
-                self.pm._player.press_key(key)
-                kb_seek.assert_called_once_with(action)
             menu_action.assert_not_called()
 
-    def test_right_and_up_skip_intro_when_in_intro_and_menu_hidden(self):
-        """Opt-in -- see the media-key pair above for why the patch is here."""
-        with mock.patch.object(settings, "skip_intro_on_seek", True), \
-                mock.patch.object(self.pm, "skip_intro") as skip, \
-                mock.patch.object(self.pm, "kb_seek") as kb_seek:
-            self.pm.menu.is_menu_shown = False
-            self.pm.is_in_intro = True
-            for key in (settings.kb_menu_right, settings.kb_menu_up):
-                skip.reset_mock()
-                self.pm._player.press_key(key)
-                skip.assert_called_once_with()
+    def test_the_arrows_are_mpvs_own_until_the_shim_seek_differs(self):
+        """The whole point of #16: with a default config the shim's seek IS
+        mpv's (`seek 5` / `seek 60`, character for character), so the keys
+        are left alone and the press never reaches Python. Change one of the
+        seek settings and they are claimed instead -- on whatever key means
+        seek, which four fixed arrow bindings never managed.
+
+        The gate itself (`_seek_is_ours`) is pinned by
+        ``tests/test_key_claims.py:SeekClaimGateTest``; what is checked here
+        is that a claimed key really arrives, through a real backend
+        object's section dispatch.
+        """
+        from jellyfin_mpv_shim import keysweep
+
+        pm = self.pm
+        self.assertFalse(pm._seek_is_ours(), "the default config claims seek")
+        with mock.patch.object(pm, "seek") as seek, \
+                mock.patch.object(pm, "kb_seek") as kb_seek:
+            for key in ("LEFT", "RIGHT", "UP", "DOWN"):
+                pm._player.press_key(key)
+            seek.assert_not_called()
             kb_seek.assert_not_called()
 
-    def test_right_and_up_seek_through_an_intro_when_the_setting_is_off(self):
-        """The default: an intro does not make the seek keys mean something
-        else. Both keys, because they route through separate handlers
-        (_on_menu_right / _on_menu_up) that each carry their own copy of the
-        condition."""
-        with mock.patch.object(settings, "skip_intro_on_seek", False), \
-                mock.patch.object(self.pm, "skip_intro") as skip, \
-                mock.patch.object(self.pm, "kb_seek") as kb_seek:
-            self.pm.menu.is_menu_shown = False
-            self.pm.is_in_intro = True
-            for key, action in ((settings.kb_menu_right, "right"),
-                                (settings.kb_menu_up, "up")):
-                kb_seek.reset_mock()
-                self.pm._player.press_key(key)
-                kb_seek.assert_called_once_with(action)
-            skip.assert_not_called()
+        pm.claim_keys("seek", {keysweep.SEEK})
+        try:
+            with mock.patch.object(pm, "seek") as seek:
+                pm._player.press_key("LEFT")
+                # The user's own amount and exactness, carried by the claim
+                # rather than replaced with a verb of ours.
+                seek.assert_called_once_with(-5.0, exact=False)
+        finally:
+            pm.claim_keys("seek", None)
+
+    def test_a_forward_seek_inside_an_intro_skips_it_when_asked(self):
+        """Skip-intro-on-seek, where it lives now: on the `seeking`
+        property, so it follows mpv's own arrows.
+
+        It used to hang off ``_on_menu_right`` / ``_on_menu_up``, which
+        meant it applied to two keys and only while the menu was hidden. Now
+        that seeking is mpv's, that version would never fire at all.
+        """
+        pm = self.pm
+        for on, expected in ((True, 1), (False, 0)):
+            with self.subTest(skip_intro_on_seek=on):
+                with mock.patch.object(settings, "skip_intro_on_seek", on), \
+                        mock.patch.object(pm, "skip_intro") as skip:
+                    pm.is_in_intro = True
+                    # The OSC's own scrubbing is exempt for two seconds; this
+                    # seek is not from it.
+                    pm._last_ui_seek_time = 0.0
+                    pm._player.playback_time = 10.0
+                    pm._player.fire_property("seeking", True)
+                    pm._player.playback_time = 40.0
+                    pm._player.fire_property("seeking", False)
+                    self.assertEqual(skip.call_count, expected)
 
     def test_ok_key_confirms_a_shown_menu_and_opens_nothing(self):
         # It used to forward regardless of menu state, and menu_action("ok")
@@ -334,10 +385,20 @@ class KeyboardRoutingTest(unittest.TestCase):
 
     # -- fullscreen ---------------------------------------------------------
 
-    def test_fullscreen_key_toggles_fullscreen(self):
-        with mock.patch.object(self.pm, "toggle_fullscreen") as toggle:
-            self.pm._player.press_key(settings.kb_fullscreen)
-            toggle.assert_called_once_with()
+    def test_the_fullscreen_key_is_claimed_rather_than_bound(self):
+        """#16: `f` is mpv's key with mpv's meaning, so it is no longer
+        bound in Python unless the user set one of their own. The standing
+        fullscreen claim takes whatever currently means `cycle fullscreen`
+        and re-issues it through ``set_fullscreen``, which is what records
+        the intent -- the only reason the shim wanted the key at all.
+        """
+        pm = self.pm
+        self.assertNotIn(settings.kb_fullscreen, pm._player._key_bindings,
+                         "the default fullscreen key is bound again")
+        with mock.patch.object(pm, "set_fullscreen") as set_fs:
+            pm._player.fs = False
+            pm._player.press_key("f")
+            set_fs.assert_called_once_with(True, persist=True)
 
     # -- mis-wiring / crash sweep ------------------------------------------
 
