@@ -5,7 +5,7 @@ family — the grid's sort/filter bar, the music action bar — is that page's
 own method; moving it here would trade a mixin for a components dumping
 ground, which is the same coupling with a nicer directory name.
 
-See ``docs/ARCHITECTURE_TARGET.md`` §1.4 for the test: a component may take
+See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the test: a component may take
 render resources and callbacks, never ``nav``, ``source`` or ``route``.
 """
 

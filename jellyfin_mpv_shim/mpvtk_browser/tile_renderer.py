@@ -1,6 +1,6 @@
 """``TileRenderer`` — artwork plumbing and tile/row/grid construction.
 
-Step 6b of ``docs/ARCHITECTURE_TARGET.md`` §3.1, the larger half. These are
+Step 6b of ``docs/archive/ARCHITECTURE_TARGET.md`` §3.1, the larger half. These are
 the helpers that made page conversion impossible: measuring the five
 remaining ``ViewsMixin`` renderers against ``PageContext`` gave 50 uses of
 the ``ctx.shell`` escape hatch against a budget of 9, and this class is what

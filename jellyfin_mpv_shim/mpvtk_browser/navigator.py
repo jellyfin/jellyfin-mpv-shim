@@ -1,6 +1,6 @@
 """The route stack, and the headless lockdown that guards it.
 
-Extracted from ``MpvtkBrowser`` (step 3 of ``docs/ARCHITECTURE_TARGET.md``
+Extracted from ``MpvtkBrowser`` (step 3 of ``docs/archive/ARCHITECTURE_TARGET.md``
 §3). The browser kept ``nav_stack`` as a plain list attribute, which meant
 the lockdown could be — and was — bypassed by assigning it.
 

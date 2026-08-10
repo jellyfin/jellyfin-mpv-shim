@@ -4,7 +4,7 @@
 by detail and series. That cross-family reach is what makes them components
 rather than methods on a page.
 
-See ``docs/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
+See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
 """
 
 from ...i18n import _

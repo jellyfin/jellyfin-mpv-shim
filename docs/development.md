@@ -146,12 +146,12 @@ and hand-testing miss:
   (lambda receivers, `self.controller.X`, `ROUTES` loader/renderer strings,
   `_start_daemon` slots) must exist and match the signature. This is the one
   that catches a forgotten call site after a method moves; mypy does not, see
-  `docs/REFACTORING_METHOD.md` §1.4.
+  `docs/archive/REFACTORING_METHOD.md` §1.4.
 - `tests/integration/test_harness_isolation.py` — fails when the test harness
   drifts from `PlayerManager.__init__`.
 
-`docs/REFACTORING_METHOD.md` explains how these are meant to be used together
-during the decomposition described in `docs/ARCHITECTURE_TARGET.md`.
+`docs/archive/REFACTORING_METHOD.md` explains how these are meant to be used together
+during the decomposition described in `docs/archive/ARCHITECTURE_TARGET.md`.
 
 
 ## Tracing the mpv window

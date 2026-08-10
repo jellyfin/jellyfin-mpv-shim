@@ -24,6 +24,10 @@ config_path = None
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
 #   2: the four skip_intro/skip_credits booleans become one action per
 #      media segment type (segment_intro and friends).
+#   3: a kb_* binding cleared to JSON null had coerced to the STRING
+#      "None" and been saved back verbatim; those become real nulls.
+#   4: the seek_* settings leave conf.json -- the keys the user CHANGED
+#      become real bindings in their input.conf (see input_conf.py).
 CONFIG_VERSION = 4
 
 # Media segment types the server publishes, and the setting that decides what

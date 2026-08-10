@@ -14,7 +14,7 @@ This module is the *core*: ``__init__``, the nav stack, the epoch and
 the browse<->playback lifecycle and HUD glue, and ``shutdown``.
 
 Around it are two things, and the split is a **migration in progress**
-(``docs/ARCHITECTURE_TARGET.md`` §3.2), not a design:
+(``docs/archive/ARCHITECTURE_TARGET.md`` §3.2), not a design:
 
 *Pages* (``pages/``) own a route each — a class with ``load`` and ``build``
 and its own state, registered in ``pages/PAGES``. This is where a route
@@ -268,8 +268,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._cast_size = None
         self._cast_lock = threading.Lock()
         # Locked-down cast-target mode: the cast screen is the ONLY page.
-        # See navigate() and mpvtk/HEADLESS.md for what this does and does
-        # not protect against.
+        # See navigate() and tests/test_mpvtk_headless.py for what this
+        # does and does not protect against. (That test is the live
+        # substitute; the mpvtk/HEADLESS.md this used to cite has never
+        # existed in any commit.)
         self.headless = bool(self._cfg_headless())
         # Wires on_hud/on_hud_skip (and re-wires on_nav) on the app —
         # shared with mpv re-creation, which attaches a fresh app.

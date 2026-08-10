@@ -129,7 +129,6 @@ ICON_NAMES = [
     "video_library",
     "queue",
     "album",
-    "quiz",
     # live tv / recordings
     "fiber_manual_record",
     "fiber_smart_record",

@@ -7,7 +7,7 @@ suite, not even a coverage report, because **a lambda body only counts as
 covered when it runs**. It fails the first time a user presses that button.
 
 That is the single sharpest hazard in the decomposition described in
-``docs/ARCHITECTURE_TARGET.md``, because moving methods is precisely what it
+``docs/archive/ARCHITECTURE_TARGET.md``, because moving methods is precisely what it
 consists of. So the names are checked statically, here, before anything is
 moved.
 

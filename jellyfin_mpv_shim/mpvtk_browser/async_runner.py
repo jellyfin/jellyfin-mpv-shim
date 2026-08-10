@@ -1,6 +1,6 @@
 """Off-thread work with epoch-guarded staleness.
 
-Extracted from ``MpvtkBrowser`` (step 2 of ``docs/ARCHITECTURE_TARGET.md``
+Extracted from ``MpvtkBrowser`` (step 2 of ``docs/archive/ARCHITECTURE_TARGET.md``
 §3). The browser previously owned the epoch counter, its lock, and the
 worker pool as three attributes among seventy-three; they are one mechanism
 and now have one owner.

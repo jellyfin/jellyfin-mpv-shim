@@ -1,7 +1,7 @@
 """``Page`` and ``PageContext`` — one class per screen instead of two methods
 on a 358-method object.
 
-Step 6 of ``docs/ARCHITECTURE_TARGET.md`` §3, and the one the earlier steps
+Step 6 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3, and the one the earlier steps
 existed to make safe. A route kind is currently a ``(loader, renderer)`` pair
 of method *names* on ``MpvtkBrowser``, resolved with ``getattr``, operating on
 a shared mutable ``route`` dict that navigation and five mixins can all reach

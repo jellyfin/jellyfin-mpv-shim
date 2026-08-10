@@ -205,9 +205,6 @@ def set_type_scale(base=None, minimum=None, factor=None):
     return _base_size
 
 
-def base_size():
-    return _base_size
-
 
 def size_of_tier(tier):
     """The px size for a named tier. Unknown tiers are an error, not a

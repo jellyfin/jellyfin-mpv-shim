@@ -3,7 +3,7 @@
 Every kind this mixin owned is a Page now (``pages/``). What remains is a
 handful of forwarders that unconverted callers and the tests still reach as
 methods on the browser, plus the SORTS re-export. It shrinks to nothing as
-those callers move; see ``docs/ARCHITECTURE_TARGET.md`` §3.2.
+those callers move; see ``docs/archive/ARCHITECTURE_TARGET.md`` §3.2.
 """
 
 from ..i18n import _

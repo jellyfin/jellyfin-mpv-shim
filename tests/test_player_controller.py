@@ -1,6 +1,6 @@
 """``PlayerGateway`` — the browser's boundary to everything else.
 
-Step 4 of ``docs/ARCHITECTURE_TARGET.md`` §3, and a hard prerequisite for
+Step 4 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3, and a hard prerequisite for
 steps 5+. Coverage put ``ui.py`` at **41.6%**, the lowest of any module the
 refactor touches, and this class is most of it: 99 methods, and the ones
 with the least coverage are ``_connect``, ``on_mpv_recreated``,

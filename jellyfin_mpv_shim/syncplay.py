@@ -922,7 +922,7 @@ class SyncPlayManager:
         and stop() takes the player lock and then the timeline lock. Doing
         that here would block every other message from this server behind it,
         and would add a fresh path into the lock inversion in finding 1 of
-        docs/SYNCPLAY_FINDINGS.md.
+        docs/archive/SYNCPLAY_FINDINGS.md.
         """
         self.clear_scheduled_command()
         self.playerManager.put_task(self.playerManager.stop, False)

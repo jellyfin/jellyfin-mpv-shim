@@ -1,4 +1,4 @@
-"""Unit tests for the framework features added to close the MIGRATION.md
+"""Unit tests for the framework features added to close the migration
 "Framework deficits" list: Stack (+occlude markers), Text wrap,
 Table, hold-repeat flags, click modifier dispatch, and the synchronous
 scroll-offset query. Renderer-side behavior (overlay slot ordering,

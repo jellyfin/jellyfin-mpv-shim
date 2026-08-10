@@ -2,7 +2,7 @@
 
 Pure functions — data in, widget tree out — so every page can reach them
 through ``PageContext`` instead of the shell. See
-``docs/ARCHITECTURE_TARGET.md`` §1.4 for the test being applied: a component
+``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the test being applied: a component
 may need render resources and callbacks, never ``nav``, ``source`` or
 ``route``.
 

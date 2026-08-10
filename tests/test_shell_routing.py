@@ -703,7 +703,8 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
     Those tests stub FakeController, so they prove the *browser* reacts to a
     raising controller — and nothing at all about whether the real controller
     raises. Restoring the swallows in ui.py leaves every one of them green.
-    That is precisely the shape MIGRATION.md records: "a delete-rollback whose
+    That is precisely the shape the migration write-up recorded (deleted in
+    c37bfc3e; jellyfin_mpv_shim/mpvtk/GUIDE.md keeps the surviving section): "a delete-rollback whose
     test passed because it stubbed the controller and bypassed _edit
     entirely." These drive the real PlayerGateway.
     """

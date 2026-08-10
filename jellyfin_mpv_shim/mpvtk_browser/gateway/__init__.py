@@ -11,7 +11,7 @@ This was ``ui.py``'s private ``_PlayerController``, which is where 61 of the
 browser's 68 cross-package imports lived. It was already the boundary in
 practice; extracting it made that a fact about the module graph rather than a
 convention, which is what lets the page objects be constructed (and tested)
-without dragging ``player.py`` in. See ``docs/ARCHITECTURE_TARGET.md`` §1.2.
+without dragging ``player.py`` in. See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.2.
 
 **Why this is a package now.** One class had grown to 102 methods and 1,154
 lines. It was never one responsibility — its own section banners named ten
