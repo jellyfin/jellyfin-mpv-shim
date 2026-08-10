@@ -292,7 +292,6 @@ class Settings(SettingsBase):
     # is a bug, and libraries differ.
     logo_legibility_live_tv: bool = True
     logo_legibility_library: bool = False
-    library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
     work_offline: bool = False
     prefer_downloaded: bool = True
@@ -434,7 +433,6 @@ class Settings(SettingsBase):
     sync_speed_time: int = 1000
     sync_speed_attempts: int = 3
     sync_attempts: int = 5
-    sync_revert_seek: bool = True
     sync_osd_message: bool = True
     screenshot_menu: bool = True
     check_updates: bool = True

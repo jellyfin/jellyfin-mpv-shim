@@ -1,8 +1,8 @@
 """Every doc path cited in the tree points at a file that exists.
 
-A comment saying "see docs/X.md" costs nothing to write and silently
-stops being true the moment X moves. `docs/archive/` collected three
-files and left **eighteen** citations of the old paths behind, thirteen
+A comment pointing at a document costs nothing to write and silently
+stops being true the moment that document moves. `docs/archive/` collected three files and left **eighteen** citations of
+the old paths behind, thirteen
 of them in shipped package code and two inside assertion messages, so a
 failing test told you to read a file that was not there.
 
@@ -19,7 +19,11 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#: `word/word.md` or `word.md` with at least one directory-ish prefix.
+#: A path-shaped reference: at least one directory segment, then a
+#: `.md` file. Written here with angle brackets so this comment is not
+#: itself a citation -- the guard reads every tracked file INCLUDING
+#: this one, which it could not do while it was still untracked (that is
+#: why it passed before it was committed and failed straight after).
 #: Anchored to a path separator so bare prose like "the MIGRATION.md
 #: write-up" is not a citation -- those are handled by NAMED_AS_GONE.
 CITE = re.compile(r'(?<![\w./-])((?:[A-Za-z_][\w-]*/)+[A-Za-z_][\w.-]*\.md)')
@@ -60,10 +64,10 @@ class DocPointersTest(unittest.TestCase):
                     continue
                 # Resolved against the repo root, against the citing
                 # file's directory, and against every directory ABOVE it
-                # -- `mpvtk/GUIDE.md` cited from
-                # `jellyfin_mpv_shim/mpvtk_browser/app.py` means the
-                # sibling package, which is how the tree already writes
-                # it and is perfectly legible to a reader.
+                # -- a GUIDE.md cited from inside `mpvtk_browser` as
+                # `<sibling-package>/GUIDE.md` means exactly that, which
+                # is how the tree already writes it and is perfectly
+                # legible to a reader.
                 here = os.path.dirname(path)
                 bases = [ROOT]
                 while here.startswith(ROOT):
