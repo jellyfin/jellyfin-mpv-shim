@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-07-31 22:01+0000\n"
-"Last-Translator: Knockspoke <mezhogskikharseniy0@gmail.com>\n"
+"PO-Revision-Date: 2026-08-10 10:46+0000\n"
+"Last-Translator: Dan Tsivinsky <daniil@tsivinsky.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
 "Language: ru\n"
@@ -133,13 +133,13 @@ msgstr "Пропустить титры"
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 msgid "Skip Commercial"
-msgstr "Спецэпизоды"
+msgstr "Пропустить рекламу"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Пропущенные титры"
+msgstr "Пропущенная реклама"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -166,14 +166,15 @@ msgid "Seek to Skip Preview"
 msgstr "Пропустить титры"
 
 #: jellyfin_mpv_shim/media.py
+#, fuzzy
 msgid "Skip Recap"
-msgstr ""
+msgstr "Пропустить повтор"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
 #| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Пропущенные титры"
+msgstr "Пропущенный повтор"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -185,7 +186,7 @@ msgstr "Пропустить титры"
 #, fuzzy
 #| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Пропущенное вступление"
+msgstr "Пропустить вступление"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -362,7 +363,6 @@ msgstr "Вручную по перечню дорожек (менее надеж
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "Никогда"
 
@@ -372,7 +372,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Всегда"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -486,16 +486,13 @@ msgid "Skip Intros"
 msgstr "Пропущенное вступление"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Пропущенные титры"
+msgstr "Пропустить титры"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Спецэпизоды"
+msgstr "Пропустить рекламу"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -504,10 +501,8 @@ msgid "Skip Previews"
 msgstr "Пропущенные титры"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "Пропущенные титры"
+msgstr "Пропустить повтор"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -611,14 +606,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Cancel"
 msgstr "Отменить"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Переключить"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
@@ -641,7 +635,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Подтвердить"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
@@ -656,7 +650,6 @@ msgstr "Убрать сервер"
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Save"
 msgstr "Сохранить"
 
@@ -690,24 +683,21 @@ msgid "Connect to Jellyfin"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previously added servers"
-msgstr "Сервер добавлен успешно."
+msgstr "Ранее добавленные серверы"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Использовать"
 
 # seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Quick Connect"
 msgstr "Быстрое подключение"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Введите этот код в приложении Jellyfin или веб клиенте:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -716,22 +706,16 @@ msgid "Requesting…"
 msgstr "Параметры SVP"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL сервера: "
+msgstr "URL сервера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Username"
-msgstr "Имя пользователя:"
+msgstr "Имя пользователя"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Password:"
 msgid "Password"
-msgstr "Пароль:"
+msgstr "Пароль"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -750,26 +734,20 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"Не удалось добавить сервер.\n"
-"Проверьте информацию о подключении."
+msgstr "Связываюсь с сервером…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
-msgstr ""
+msgstr "Ожидаю одобрения…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect was not approved."
-msgstr ""
+msgstr "Быстрое подключение не было одобрено."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connecting…"
-msgstr ""
+msgstr "Подключаюсь…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -788,7 +766,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
-msgstr ""
+msgstr "Подключаюсь к вашему серверу…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
@@ -796,7 +774,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Sign In"
 msgstr "Войти"
 
@@ -810,7 +787,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Введите ваш ПИН"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -830,10 +807,8 @@ msgid "Ready to cast"
 msgstr "Готово к вещанию"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
-#, fuzzy
-#| msgid "Select your media in Jellyfin and play it here"
 msgid "Select your media in Jellyfin and play it here."
-msgstr "Выберите медиафайлы в Jellyfin и воспроизведите их здесь"
+msgstr "Выберите медиафайлы в Jellyfin и воспроизведите их здесь."
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -845,7 +820,6 @@ msgstr "Снимались и снимали"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Download"
 msgstr "Загрузить"
 
@@ -856,10 +830,8 @@ msgid "Remove Download"
 msgstr "Убрать сервер"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watched"
-msgstr "Выйти и отметить как непросмотренное"
+msgstr "Просмотренное"
 
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
@@ -881,14 +853,12 @@ msgstr "Оформление"
 
 # seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Playback"
 msgstr "Воспроизведение"
 
 # seeded from jellyfin-web: Audio
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Audio"
 msgstr "Аудио"
 
@@ -920,7 +890,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Downloads"
 msgstr "Загрузки"
 
