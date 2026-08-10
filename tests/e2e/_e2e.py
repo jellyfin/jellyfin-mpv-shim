@@ -359,7 +359,7 @@ class Session:
     """
 
     def __init__(self, account="qa-user", password=PASSWORD, device_id=None,
-                 websocket=False):
+                 websocket=False, address=None):
         from jellyfin_apiclient_python import JellyfinClient
         from jellyfin_mpv_shim.constants import (
             CLIENT_VERSION, USER_APP_NAME, USER_AGENT,
@@ -382,6 +382,12 @@ class Session:
                 "cannot clean it up and it becomes permanent litter on the "
                 "server" % (self.device_id, DEVICE_PREFIX))
         self.account = account
+        # Defaults to the module-level SERVER, which is every existing
+        # caller. Named so a test can hold sessions to TWO servers at once
+        # -- the filter matrix runs against 12.0 and 10.11 in one process,
+        # and the differences between them (the language pickers exist on
+        # one and not the other) are the reason it is worth doing.
+        self.address = (address or SERVER).rstrip("/")
 
         client = JellyfinClient(allow_multiple_clients=True)
         client.config.data["app.default"] = True
@@ -389,15 +395,15 @@ class Session:
         client.config.data["http.user_agent"] = USER_AGENT
         client.config.data["auth.ssl"] = False
 
-        client.auth.connect_to_address(SERVER)
-        result = client.auth.login(SERVER, account, password or "")
+        client.auth.connect_to_address(self.address)
+        result = client.auth.login(self.address, account, password or "")
         if "AccessToken" not in result:
             raise AssertionError(
                 "login failed for %s: %r" % (account, result))
         self.token = result["AccessToken"]
         self.user_id = result["User"]["Id"]
 
-        client.config.auth(SERVER, self.user_id, self.token, False)
+        client.config.auth(self.address, self.user_id, self.token, False)
         client.logged_in = True
 
         #: Every (event_name, data) the websocket delivered, when there is one.
@@ -478,7 +484,7 @@ class Session:
         if body is not None:
             data = json.dumps(body).encode()
             headers["Content-Type"] = "application/json"
-        req = urllib.request.Request(SERVER + path, method=method,
+        req = urllib.request.Request(self.address + path, method=method,
                                      data=data, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
             payload = resp.read()
@@ -541,6 +547,11 @@ class Session:
             except Exception:
                 pass
 
+    def server_version(self):
+        """The server's reported version, for a skip or a message."""
+        info = self._request("/System/Info/Public") or {}
+        return info.get("Version") or "?"
+
     def library_source(self):
         """A real `LibrarySource` over this session's credentials.
 
@@ -550,7 +561,7 @@ class Session:
         """
         from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
         source = LibrarySource(
-            [{"uuid": SOURCE_UUID, "name": "e2e", "address": SERVER,
+            [{"uuid": SOURCE_UUID, "name": "e2e", "address": self.address,
               "user_id": self.user_id, "token": self.token}],
             self.device_id, "jms-e2e", False)
         return source

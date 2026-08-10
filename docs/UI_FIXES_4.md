@@ -3515,3 +3515,76 @@ Unreachable today, because `_toggle_collections` drops `_items` and the
 loading shell is drawn before any window is computed; bound so that stays
 a property of the tuple rather than of what render happens to do.
 `ListPage` carries the arity without the meaning.
+
+### The filter matrix, against both major versions
+
+**[iw]**: "this means we have a strong argument for adding exhaustive e2e
+tests that exercise the different options and listen for errors. We
+should do it against 12.0 and 10.11."
+
+`tests/e2e/test_filter_matrix.py`. The panel grew eight categories and
+about twenty controls, and the only thing checking any of it was unit
+tests against a fake source that accepts whatever it is handed. That fake
+cannot answer either question that matters about a filter, and both
+failures had already shipped:
+
+- **Does the server accept it?** `Filters=IsUnplayed,IsPlayed` is HTTP
+  400, so ticking both threw an error banner over a working library.
+- **Does the server understand it?** An unrecognised parameter or an
+  unparseable enum value is *dropped*, so the grid shows everything and
+  looks entirely normal.
+
+**Exhaustive by derivation.** The checkbox keys come from
+`dialogs.FILTER_SECTIONS` and the picker values from the server's own
+`get_filter_values`, so a category added to the panel is swept without
+anyone remembering, and one the server does not offer is skipped rather
+than failed — the panel's own gate, expressed as a test. Measured
+coverage per server: **17 checkboxes, all 134 reachable pairs, and every
+value of six pickers, against a 1000-item library.** Pairs, because that
+is the size at which the 400 lived; reachability is asked of the same
+`MUTUALLY_EXCLUSIVE` table the UI enforces.
+
+**Two seams, deliberately.** The acceptance sweep goes through
+`_filter_kwargs`, because that is what ships. The "is this parameter
+understood" checks go to the wire, because that question is about the
+parameter and not about our dict — there is no way to spell `Is4K=false`
+in a filters dict, and the negative direction is half the evidence.
+
+**The discriminator had to be weakened twice, and the measurements are
+why.** "Does the filter narrow the library" is fixture-dependent, and the
+first version of this test picked the four-item curated Movies library
+where every assertion was true by accident. "Do `true` and `false`
+partition" is wrong too: `Is4K=true` is 5 and `Is4K=false` is **0**
+against 1131, so a partition test fails on a parameter that works, while
+`Is3D`, `HasSubtitles` and `HasTrailer` all partition cleanly. What
+survives is "`true` and `false` do not *both* answer the unfiltered
+total", which an ignored parameter always does and a real one cannot —
+and there is a control test proving an invented parameter name behaves
+exactly that way, so the discriminator is measured rather than assumed.
+
+**Running it against both versions is the point, not a nicety.** Two
+differences showed up immediately:
+
+| | 12.0 | 10.11 |
+|---|---|---|
+| `Filters=IsUnplayed,IsPlayed` | HTTP 400 | returns 0 |
+| audio language picker | 1 option | not offered |
+
+The contradictory-pair test is written as "refused, **or** empty" for
+exactly that reason: asserting the 400 would fail on 10.11 and asserting
+the empty result would fail on 12.0, while "never a non-empty answer" is
+true on both and still catches the thing worth catching (a server that
+ORed them, which would mean the exclusion is discarding a usable query).
+
+`_e2e.Session` gained an `address` parameter so one process can hold
+sessions to two servers; every existing caller defaults to
+`JMS_E2E_SERVER` unchanged.
+
+**Mutation-tested, and one survivor was a true negative.** Removing the
+Played/Unplayed exclusion fails three tests including the pair sweep —
+the original bug, now caught. A wrong parameter name fails the
+understanding test. A wrong `VideoTypes` spelling did *not* fail, and
+that turned out to be correct: the server parses those enums
+case-insensitively (`BluRay`, `Bluray`, `bluray`, `BLURAY` all match),
+so only a genuinely different string (`Blu-ray`, `Nonsense`) is ignored —
+and with one of those the test fails as intended.

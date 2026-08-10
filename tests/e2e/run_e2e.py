@@ -11,6 +11,20 @@ into it and never needs a server.
     JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
     python3 tests/e2e/run_e2e.py --list
 
+`JMS_E2E_SERVER_ALT` names a **second** server, and only
+`test_filter_matrix` reads it: that module's whole point is the API
+differences between major versions, so it runs its sweep against both.
+A 10.11 container alongside a 12.0 source build is two commands —
+
+    ./stdjflib.py serve ~/Desktop/std-jf-lib --live-tv            # 12.0
+    ./stdjflib.py container ~/Desktop/std-jf-lib --port 8097 \
+        --keep-running --server-name "stdjflib QA 10.11"          # 10.11
+
+and the differences are not hypothetical: `Filters=IsUnplayed,IsPlayed`
+is **HTTP 400 on 12.0 and an empty result on 10.11**, and the audio
+language picker has options on 12.0 and none on 10.11. Unset, that leg
+skips and everything else is unchanged.
+
 Every module runs once per mpv backend, in a fresh interpreter with
 `JMS_TEST_BACKEND` set — player.py picks its backend at import time and wires
 interdependent module-level singletons, so a subprocess is the only clean way
@@ -56,6 +70,15 @@ CONTRACT = [
     # every member), plus the three edit endpoints nothing else calls.
     "tests.e2e.test_collections",
     "tests.e2e.test_items_endpoint",
+    # Every filter the panel can offer, swept against a real server: 17
+    # checkboxes, all 134 reachable pairs, and every picker value the
+    # server itself returns. The two failures it exists for are both
+    # invisible to a fake source -- a combination the server REFUSES
+    # (Played+Unplayed is HTTP 400 on 12.0), and one it silently IGNORES
+    # (an unparseable VideoTypes value answers with the whole library).
+    # Set JMS_E2E_SERVER_ALT to a second server and the whole matrix runs
+    # against both versions; the differences are real (see its docstring).
+    "tests.e2e.test_filter_matrix",
     # Two real clients on one real group. No mpv: SyncPlay drives a player
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.
