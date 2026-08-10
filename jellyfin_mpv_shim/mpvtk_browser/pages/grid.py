@@ -357,7 +357,7 @@ class GridPage(Page):
             Text(route.get("title", ""), size="page", bold=True),
             Spacer(flex=1),
             controls.action_btn("settings", _("View"), "grid-viewcfg",
-                                self._open_view_settings, size=16),
+                                self._open_view_settings),
         ], align="center", w=max(0, (width or 0) - 2 * chrome.CONTENT_PAD))]
         header.append(self._filter_bar(width))
         # The count line is redundant with the pagination bar's "of N".

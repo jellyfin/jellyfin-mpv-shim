@@ -16,7 +16,30 @@ from ...mpvtk.widgets import Button, Icon, Row, Text
 from .. import theme
 
 
-def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16,
+#: The label size of a **primary action row** -- the buttons across the
+#: top of a detail, series, season, book or Live TV page.
+#:
+#: Named because it was a bare `18` at twenty-five call sites: a rule
+#: about a ROW, restated once per button in it, so adding a button and
+#: forgetting the argument gave you one button a size out. That is
+#: exactly what happened on the AudioBook page, where the appended
+#: Download button came out at the default and the row measured 42.5
+#: against 40.0. `tests/test_action_rows.py` measures the rows; this
+#: makes the rule greppable and gives it one value.
+#:
+#: **Both of these are off the type scale** (the tiers either side are
+#: SMALL 15, NORMAL 17, LARGE 19), which is deliberate only in the sense
+#: that nobody has decided otherwise: a theme changing `base_size` moves
+#: every tokenized size and leaves these two behind. Moving them onto
+#: NORMAL/LARGE would fix that and resize every action button in the app
+#: by a pixel, so it wants a smoke test rather than a quiet edit.
+PRIMARY_ROW = 18
+
+#: The default, for secondary rows -- tile menus, dialogs, the grid bar.
+ROW = 16
+
+
+def action_btn(icon, text, node_id, cb, on=False, primary=False, size=ROW,
                autofocus=False):
     """An icon+label action button.
 

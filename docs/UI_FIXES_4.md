@@ -21,8 +21,8 @@ formatter landing as its own commit before the two items that need it.
 | [2](#2--the-reader-should-dismiss-the-downloading-toast) | Reader dismisses the downloading toast | done |
 | [12](#12--a-hardware-decoding-setting) | A hardware-decoding setting | done |
 | [13](#13--shader-packs-must-not-reach-stills) | Shader packs must not reach stills | done |
-| [15](#15--per-library--per-series-shader-profiles) | Per-library / per-series shader profiles | todo |
-| [16](#16--how-many-key-bindings-do-we-still-need) | How many key bindings do we still need? | investigation, not started |
+| [15](#15--per-library--per-series-shader-profiles) | Per-library / per-series shader profiles | done `72b26b3f` |
+| [16](#16--how-many-key-bindings-do-we-still-need) | How many key bindings do we still need? | done — see also *#16 parts B and C* |
 | [14](#14--search-asks-for-no-fields) | Search asks for no fields | done |
 | [3](#3--dropped-zoom-and-drag-for-photos) | ~~Zoom/drag for photos~~ | **dropped [iw]** |
 | [4](#4--delete-from-disk) | Delete from Disk | done `798edee0` |
@@ -1079,6 +1079,13 @@ The `PlayMethod` reporting change is deferred out of the batch entirely (see
 #10).
 
 ## Open questions
+
+**Status note.** This list is as it stood when the batch was planned;
+several entries were settled by later rounds and are kept because the
+reasoning is still the record of *why*. The numbering below refers to
+the first block (1–27) — the round-3 sections were renumbered to 28–33
+after they collided with it, so a bare "#21" in a commit message written
+before that points at the FIRST #21 (a header with no backdrop).
 
 - **#1** — dragging itself, which needs a window manager: **[iw]** on X11, the
   VM on Wayland. Everything else about it was settled by measurement (above).
@@ -2899,7 +2906,7 @@ and the wheel and listing their contents — all five scripts in both.
 
 ---
 
-## 21 — An mpv built without lua could not start at all
+## 28 — An mpv built without lua could not start at all
 
 **[iw]**: "we should build a matrix of different mpv configs to test
 against." `~/Desktop/mpv-matrix/build-one.sh <name> <ref> [meson args]`
@@ -2991,7 +2998,7 @@ their own era built first — the expensive half of a full `mpv-build` run.
 
 ---
 
-## 22 — Carousel headings jogged sideways row to row
+## 29 — Carousel headings jogged sideways row to row
 
 **[iw]**: "the titles with a link in them have different margins than the
 non-link items." Measured, at 1280x720:
@@ -3021,7 +3028,7 @@ identical did not make the plain one a nav target.
 
 ---
 
-## 23 — HiDPI and type sizing audit
+## 30 — HiDPI and type sizing audit
 
 **[iw]**, three questions. Measured on the real scene, not read off the
 source.
@@ -3095,7 +3102,7 @@ let a large-text theme move all of it together.
 
 ---
 
-## 24 — Off `GET /Users/{userId}/Items` entirely
+## 31 — Off `GET /Users/{userId}/Items` entirely
 
 **[iw]**: "we should migrate off of that wholesale then, Jellyfin upstream
 plans to break those old legacy endpoints eventually and they're already
@@ -3184,7 +3191,7 @@ would have shipped silently broken.
 
 ---
 
-## 25 — Review round 3, and what a passing suite could not see
+## 32 — Review round 3, and what a passing suite could not see
 
 **[iw]** asked for an adversarial review of everything since `771c976d`
 (18 commits, ~480 production lines): seven dimensions in parallel, each
@@ -3278,7 +3285,7 @@ a commit message first:
 
 ---
 
-## 26 — The filter panel
+## 33 — The filter panel
 
 **[iw]**, following #19's survey. The bar carried three drop-downs and two
 checkboxes and had **277px spare at 1280** — one control's width, against

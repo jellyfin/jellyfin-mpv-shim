@@ -204,16 +204,16 @@ class DetailPage(Page):
                 _("Resume") + "  " + detail_components.fmt_ticks(pos),
                 "btn-resume",
                 lambda: self._start(item, server, offset_ticks=pos),
-                primary=True, size=18, autofocus=True))
+                primary=True, size=controls.PRIMARY_ROW, autofocus=True))
         buttons.append(controls.action_btn(
             "play_arrow", _("Play"), "btn-play",
             lambda: self._start(item, server),
-            primary=(pos <= 0), size=18, autofocus=(pos <= 0)))
+            primary=(pos <= 0), size=controls.PRIMARY_ROW, autofocus=(pos <= 0)))
         tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
         if tids:
             buttons.append(controls.action_btn(
                 "movie", _("Trailer"), "btn-trailer",
-                lambda: actions.play_list(tids, server, 0), size=18))
+                lambda: actions.play_list(tids, server, 0), size=controls.PRIMARY_ROW))
         return Row(buttons, gap=10)
 
     def _scenes_row(self, item, server):

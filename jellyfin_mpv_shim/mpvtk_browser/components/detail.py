@@ -83,7 +83,8 @@ def people_row(tiles, people):
                           geom=tiles.art.geom)
 
 
-def download_button(actions, tiles, item, server, prefix, size=16):
+def download_button(actions, tiles, item, server, prefix,
+                    size=controls.ROW):
     """Download, or Remove when it's already downloaded.
 
     ``size`` because this is the one button in the set that a caller

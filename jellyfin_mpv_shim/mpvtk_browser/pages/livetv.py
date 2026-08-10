@@ -549,9 +549,9 @@ class LiveTvPage(Page):
         row = [
             controls.action_btn("favorite", _("Favorites"), "lt-chanfav",
                                 self._toggle_channel_favorites,
-                                on=favorites, size=16),
+                                on=favorites),
             controls.action_btn("settings", _("Guide Settings"), "lt-chancfg",
-                                self._open_guide_settings, size=16),
+                                self._open_guide_settings),
         ]
         total = self.route.get("_total") or 0
         if total:
@@ -878,7 +878,7 @@ class ProgramPage(Page):
                 _("Watch") if live_tv.is_airing(item) else _("Watch Channel"),
                 "pg-watch",
                 lambda: actions.play_list([channel], server, 0),
-                primary=live_tv.is_airing(item), size=18))
+                primary=live_tv.is_airing(item), size=controls.PRIMARY_ROW))
         if not actions.can_record(server):
             return Row(btns, gap=10)
         if single:
@@ -889,13 +889,13 @@ class ProgramPage(Page):
                 "pg-cancel",
                 lambda: actions.cancel_timer(item.get("TimerId"), server,
                                              on_done=self._refresh),
-                size=18))
+                size=controls.PRIMARY_ROW))
         else:
             btns.append(controls.action_btn(
                 "fiber_manual_record", _("Record"), "pg-record",
                 lambda: actions.schedule_recording(item, server,
                                                    on_done=self._refresh),
-                size=18))
+                size=controls.PRIMARY_ROW))
         if item.get("IsSeries"):
             if item.get("SeriesTimerId"):
                 btns.append(controls.action_btn(
@@ -903,20 +903,20 @@ class ProgramPage(Page):
                     lambda: actions.cancel_series_timer(
                         item.get("SeriesTimerId"), server,
                         on_done=self._refresh),
-                    size=18))
+                    size=controls.PRIMARY_ROW))
                 btns.append(controls.action_btn(
                     "settings", _("Series Options"), "pg-seriesopts",
                     lambda: self.ctx.dialogs.timer_editor(
                         server, {"Id": item.get("SeriesTimerId")}, series=True,
                         on_change=self._refresh),
-                    size=18))
+                    size=controls.PRIMARY_ROW))
             else:
                 btns.append(controls.action_btn(
                     "fiber_smart_record", _("Record Series"), "pg-recseries",
                     lambda: actions.schedule_recording(item, server,
                                                        series=True,
                                                        on_done=self._refresh),
-                    size=18))
+                    size=controls.PRIMARY_ROW))
         return Row(btns, gap=10)
 
     def _refresh(self):
@@ -1131,7 +1131,7 @@ class ChannelPage(Page):
         btns = [controls.action_btn(
             "play_arrow", _("Watch"), "ch-watch",
             lambda: actions.play_list([channel_id], server, 0),
-            primary=True, size=18)]
+            primary=True, size=controls.PRIMARY_ROW)]
         if channel.get("Id"):
             # Favourites float to the top of both the guide and the channel
             # list (live_tv.channel_sort_kwargs), so this is the one piece of
@@ -1145,7 +1145,7 @@ class ChannelPage(Page):
                 "favorite",
                 _("Remove from Favorites") if fav else _("Add to Favorites"),
                 "ch-fav", lambda: actions.toggle_favorite(channel, server),
-                on=fav, size=18))
+                on=fav, size=controls.PRIMARY_ROW))
         return Row(btns, gap=10)
 
     def _program_row(self, program):
