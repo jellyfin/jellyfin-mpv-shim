@@ -3014,3 +3014,96 @@ class TestMutuallyExclusiveFilters(unittest.TestCase):
                 # as the wrong one silently winning.
                 filters = b.route.get("_filters") or {}
                 self.assertFalse(filters.get("hd") and filters.get("sd"))
+
+
+class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
+    """A downloaded library gets no Filter button.
+
+    `OfflineLibrarySource._apply_filters` honours four of the twenty-six
+    keys the panel can produce, so the panel drew fifteen checkboxes and
+    four pickers that silently did nothing -- and every one counted on the
+    `Filter (N)` badge, so the button reported filtering that was not
+    happening and the grid did not change.
+
+    **[iw]**: "filter panel should be disabled offline, people generally
+    will know what they want to watch offline or not have that much
+    downloaded."
+
+    Asked of the SOURCE (`supported_filters`) rather than of an "are we
+    offline" flag: `PageContext` says a page "must not care which" source
+    it has, and the honest question is what the source can apply.
+    """
+
+    def _bar(self, source):
+        b = MpvtkBrowser(app=None, source=source, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        nodes, _h = build_scene(b, size=(1280, 720))
+        return ids(nodes)
+
+    def test_the_online_source_still_offers_it(self):
+        self.assertIn("grid-filter", self._bar(FakeSource()))
+
+    def test_a_source_that_applies_nothing_does_not(self):
+        src = FakeSource()
+        src.supported_filters = frozenset()
+        found = self._bar(src)
+        self.assertNotIn("grid-filter", found)
+        # ...and the rest of the bar is untouched: sort, the A-Z rail and
+        # the doors all work offline.
+        for nid in ("grid-sort", "grid-l-A", "grid-shuffle"):
+            self.assertIn(nid, found)
+
+    def test_the_real_offline_source_applies_nothing(self):
+        """The capability is on the class, so this is the actual claim
+        rather than a stand-in agreeing with the test."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            LibrarySource, OfflineLibrarySource)
+        self.assertEqual(OfflineLibrarySource.supported_filters, frozenset())
+        self.assertTrue(LibrarySource.supported_filters)
+
+    def test_a_source_that_says_nothing_keeps_its_filters(self):
+        """A third source, or a stand-in written before the capability,
+        must not silently lose the panel."""
+        src = FakeSource()
+        if hasattr(src, "supported_filters"):
+            del src.supported_filters
+        self.assertIn("grid-filter", self._bar(src))
+
+    def test_the_badge_counts_only_what_the_source_applies(self):
+        """A key the source ignores is not a filter that is on."""
+        src = FakeSource()
+        src.supported_filters = frozenset({"genre"})
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        page = b._page_for(b.route)
+        b.route["_filters"] = {"genre": "Action", "has_subtitles": True,
+                               "vt_dvd": True}
+        self.assertEqual(page._active_filters(), 1)
+
+    def test_every_panel_key_is_one_the_online_source_applies(self):
+        """The derivation the offline gap came from not having.
+
+        A category added to FILTER_SECTIONS that `_filter_kwargs` does not
+        translate is a control that does nothing -- the same defect, on
+        the other source. This is the check that would have caught it on
+        the commit that introduced it.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        keys = set()
+        for _label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
+            if kind == "checks":
+                keys |= {k for k, _t, _l in spec}
+            else:
+                keys.add(spec[0])
+        unapplied = sorted(keys - set(LibrarySource.supported_filters))
+        self.assertEqual(
+            unapplied, [],
+            "the panel offers filters the source cannot apply: %r"
+            % unapplied)

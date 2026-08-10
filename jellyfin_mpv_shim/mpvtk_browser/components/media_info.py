@@ -34,7 +34,7 @@ Two deliberate departures, both recorded in ``docs/UI_FIXES_4.md``:
   :func:`stream_attributes`.
 """
 
-from ...i18n import _
+from ...i18n import _, _p
 
 
 #: Streams with nothing to say about the file itself. ``Data`` is
@@ -163,7 +163,7 @@ def stream_attributes(stream, source=None):
     if stream.get("ChannelLayout"):
         add(_("Layout"), stream["ChannelLayout"])
     if stream.get("Channels"):
-        add(_("Channels"), _("%d ch") % stream["Channels"])
+        add(_p("audio channel count", "Channels"), _("%d ch") % stream["Channels"])
     if stream.get("BitRate"):
         add(_("Bitrate"), _("%d kbps") % (int(stream["BitRate"]) // 1000))
     if stream.get("SampleRate"):

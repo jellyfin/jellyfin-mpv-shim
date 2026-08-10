@@ -70,6 +70,13 @@ CONTRACT = [
     # every member), plus the three edit endpoints nothing else calls.
     "tests.e2e.test_collections",
     "tests.e2e.test_items_endpoint",
+    # The server-truth backing for batch 4 -- CanDelete absent unless
+    # asked, TranscodeReasons in the TranscodingUrl, StartItemId
+    # inclusive, the shader library-scope lookup. It was added to
+    # tests/e2e/README.md's table and never here, so it LOOKED registered
+    # and had never run. `tests/test_e2e_registry.py` now makes that
+    # impossible rather than relying on the next person noticing.
+    "tests.e2e.test_batch4_contracts",
     # Every filter the panel can offer, swept against a real server: 17
     # checkboxes, all 134 reachable pairs, and every picker value the
     # server itself returns. The two failures it exists for are both

@@ -11,6 +11,7 @@ render resources and callbacks, never ``nav``, ``source`` or ``route``.
 
 from typing import Any, List
 
+from ...mpvtk import theme as toolkit_theme
 from ...mpvtk.widgets import Button, Icon, Row, Text
 from .. import theme
 
@@ -42,7 +43,24 @@ def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16,
     # infer list[Icon] from it and reject the Text that always follows.
     children: List[Any] = []
     if icon:
-        children.append(Icon(icon, size + 2, color=fg))
+        # Sized to the label as it will actually RENDER, not to the
+        # authored number -- so the glyph tracks the text multiplier
+        # instead of staying frozen beside a label that grows.
+        #
+        # This is `Icon`'s own rule, not an exception to it: an explicit
+        # size is geometry and stays put, and "an icon with no opinion is
+        # standing in for a line of text and should match it". A glyph
+        # inline beside a label is the second case wearing the first
+        # case's spelling. **[iw]**: "the glyphs being unscaled is fine in
+        # most cases, it does start to look a little odd though at 150%
+        # for buttons where a glyph is right next to text, because the
+        # glyphs are used like an icon font would be used."
+        #
+        # A standalone icon button is untouched and still frozen: there is
+        # no text next to it for it to disagree with, and resizing those
+        # is `ui_scale`'s job.
+        children.append(
+            Icon(icon, toolkit_theme.text_size(size) + 2, color=fg))
     children.append(Text(text, size=size, color=fg))
     return Row(children,
                id=node_id, gap=7, pad=10,

@@ -160,8 +160,22 @@ class SectionTest(unittest.TestCase):
         self.assertEqual(line, "SPACE script-message jms-key pause SPACE")
 
     def test_a_key_name_with_a_space_survives(self):
-        claims = [("Shift+LEFT", SEEK, (-5.0, False))]
-        self.assertIn("Shift+LEFT", keysweep.section_lines(claims, "jms-key"))
+        """The key travels in the message so the handler can re-issue it,
+        which means it has to survive mpv's word-splitting.
+
+        The fixture was `Shift+LEFT`, which has **no space in it** -- so
+        `shlex.quote` was a no-op and the test named for the property
+        never exercised it. Deleting the quoting left it green. mpv's own
+        binding names for the mouse wheel are the real case: `WHEEL_UP`
+        has none, but a user's input.conf can bind any string, and the
+        message is rebuilt by splitting on whitespace at the other end.
+        """
+        claims = [("Ctrl+A B", SEEK, (-5.0, False))]
+        line = keysweep.section_lines(claims, "jms-key").splitlines()[0]
+        # Quoted where it is the ARGUMENT -- the trailing copy the handler
+        # reads back -- so the far side sees one word, not two.
+        self.assertTrue(line.endswith("'Ctrl+A B'"), line)
+        self.assertEqual(len(line.rsplit(" ", 1)), 2)
 
     def test_it_is_stable_across_calls(self):
         # The section is redefined whenever a claim changes; an unstable

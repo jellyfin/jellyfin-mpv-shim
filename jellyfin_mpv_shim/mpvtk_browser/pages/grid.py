@@ -445,12 +445,13 @@ class GridPage(Page):
             # "something is on" and a number says how much of what you
             # are looking at has been hidden, which is the question you
             # ask when a library looks short.
+        ] + ([
             controls.action_btn(
                 "filter_alt",
                 _("Filter (%d)") % active if active else _("Filter"),
                 "grid-filter", self._open_filters,
                 primary=bool(active)),
-        ] + ([
+        ] if self._filters_offered() else []) + ([
             # Inline, not pushed to the far edge. They sat there because
             # the bar used to be five filter controls wide and they had to
             # go somewhere; with one Filter button there is nothing to be
@@ -846,11 +847,38 @@ class GridPage(Page):
     #: rail down the side of the grid, which is a control of its own.
     _NOT_IN_PANEL = ("letter",)
 
+    def _panel_keys(self):
+        """Filter keys this source can actually apply.
+
+        Asked of the SOURCE rather than tested as "are we offline": a
+        page is not supposed to care which source it has, and the honest
+        question is what the source can do. Empty on a downloaded
+        library, which is what takes the Filter button off the bar.
+
+        `getattr` with a default because the shell's stand-ins and any
+        third source predate the capability; the default is the online
+        set, so a source that says nothing keeps today's behaviour rather
+        than silently losing its filters.
+        """
+        from ..repository import SUPPORTED_FILTERS
+        return getattr(self.ctx.source, "supported_filters",
+                       SUPPORTED_FILTERS)
+
+    def _filters_offered(self):
+        """Whether to draw the Filter button at all."""
+        return bool(set(self._panel_keys()) - set(self._NOT_IN_PANEL))
+
     def _active_filters(self):
-        """How many filters are on. Drives the button's dot."""
+        """How many filters are on. Drives the button's dot.
+
+        Counts only what this source can APPLY -- a key it ignores is not
+        a filter that is on, and counting it made the badge report
+        filtering that was not happening.
+        """
         f = self.route.get("_filters") or {}
+        keys = self._panel_keys()
         return sum(1 for k, v in f.items()
-                   if v and k not in self._NOT_IN_PANEL)
+                   if v and k not in self._NOT_IN_PANEL and k in keys)
 
     def _open_filters(self):
         """The filter panel: a modal, because it is a page of controls."""

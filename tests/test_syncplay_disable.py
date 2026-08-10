@@ -20,6 +20,10 @@ class FakePlayer:
         self.seeks = []
         self.video = None
         self.stopped = []
+        #: (owner, semantics) per claim_keys call; None semantics is a
+        #: release. See claim_keys below.
+        self.key_claims = []
+        self.syncplay_notices = 0
 
     def get_speed(self):
         return self.speed
@@ -73,6 +77,25 @@ class FakePlayer:
 
     def upd_player_hide(self):
         pass
+
+    # --- the key claim (tests/test_syncplay_player_contract.py) ---
+    #
+    # Reached through `getattr(self.playerManager, "...", None)` in
+    # syncplay.py, so until the contract extractor learned that spelling
+    # these three were invisible: no stand-in had them, getattr answered
+    # None on every test player, and replacing both `_claim_keys` call
+    # sites with `pass` -- deleting the feature -- left 34 tests green.
+    #
+    # Recorders rather than no-ops, so a test can assert the claim
+    # HAPPENED and not merely that it did not raise.
+    def claim_keys(self, owner, semantics=None):
+        self.key_claims.append((owner, semantics))
+
+    def on_syncplay_change(self):
+        self.syncplay_notices += 1
+
+    def notify_syncplay(self, *args, **kwargs):
+        self.syncplay_notices += 1
 
 
 class FakeTimesync:
@@ -244,3 +267,94 @@ class LeavingReturnsToAFreshState(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KeyClaimLifecycleTest(unittest.TestCase):
+    """Joining a group claims pause+seek; leaving gives them back.
+
+    The existence half is `tests/test_syncplay_player_contract.py`. This
+    is the other half, and it is the one that was missing: the contract
+    proves `claim_keys` EXISTS on every player, not that SyncPlay ever
+    calls it. Replacing both `_claim_keys` call sites with `pass` --
+    deleting the feature outright -- left every SyncPlay suite green,
+    because the calls go through `getattr(..., None)` and each fake
+    answered None.
+
+    Without the claim, a group joined mid-playback keeps mpv's local
+    `cycle pause`, which in a group is not a pause at all: it desyncs the
+    member instead of asking the server to pause everyone.
+    """
+
+    class _Timesync(FakeTimesync):
+        def subscribe_time_offset(self, _cb):
+            pass
+
+        def force_update(self):
+            pass
+
+        def remove_subscriber(self, _cb):
+            pass
+
+        def stop_ping(self):
+            pass
+
+    class _Client:
+        pass
+
+    def _joined(self, player=None):
+        """A manager that has been through the REAL enable path.
+
+        The other tests in this file set `enabled_at` by hand and say why
+        ("without going through the client-heavy enable_sync_play path").
+        That shortcut is exactly what this class cannot take: the claim is
+        made *by* enable_sync_play, so a test that skips it would assert
+        against a group nobody joined.
+        """
+        sp = SyncPlayManager(player or FakePlayer())
+        client = self._Client()
+        client.timesync = self._Timesync()
+        sp.client = client
+        sp.enable_sync_play(from_server=True)
+        return sp
+
+    def test_joining_claims_pause_and_seek(self):
+        from jellyfin_mpv_shim.keysweep import PAUSE, SEEK
+
+        sp = self._joined()
+        claims = sp.playerManager.key_claims
+        self.assertTrue(claims, "joining a group claimed no keys")
+        owner, semantics = claims[-1]
+        self.assertEqual(owner, "syncplay")
+        self.assertEqual(semantics, {PAUSE, SEEK})
+
+    def test_leaving_releases_them(self):
+        sp = self._joined()
+        sp.disable_sync_play(from_server=True)
+        owner, semantics = sp.playerManager.key_claims[-1]
+        self.assertEqual(owner, "syncplay")
+        self.assertIsNone(semantics, "left the group still holding the keys")
+
+    def test_the_renderer_is_told_both_times(self):
+        """Its own pause paths -- click-to-pause, the summon key,
+        right-click in mpv modality -- hand over to Python only while a
+        group is on, so they have to be told when that changes."""
+        sp = self._joined()
+        after_join = sp.playerManager.syncplay_notices
+        self.assertGreater(after_join, 0)
+        sp.disable_sync_play(from_server=True)
+        self.assertGreater(sp.playerManager.syncplay_notices, after_join)
+
+    def test_a_player_that_cannot_claim_still_joins(self):
+        """Best effort by design: an old mpv or a stand-in must not stop a
+        group being joined. The `getattr` default is what makes that true,
+        and it is also what hid the feature -- so it is worth pinning that
+        the tolerance is deliberate rather than accidental."""
+        class Older(FakePlayer):
+            # None rather than absent, which is the same thing to the
+            # `getattr(..., None)` guard and does not need the attribute
+            # deleted off an instance.
+            claim_keys = None
+            on_syncplay_change = None
+
+        sp = self._joined(Older())                 # must not raise
+        self.assertTrue(sp.is_enabled())

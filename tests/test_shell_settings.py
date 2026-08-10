@@ -1538,10 +1538,30 @@ class TestAdvancedGroupMembership(unittest.TestCase):
         # _config() hands back a shared object, so anything overwritten
         # here leaks into every later test in the file. (Found exactly that
         # way: five unrelated settings tests started erroring.)
+        #
+        # Asserted, not `if hasattr`. These tests OVERWRITE both names, so
+        # a rename made the guard register no cleanup and the assignment
+        # simply invent the attribute -- all three passed while
+        # `settings/general.py`'s `getattr(cfg, "ADVANCED_GROUPS", ())`
+        # answered empty, the disclosure vanished and every advanced key
+        # became permanently visible. A test that creates the thing it is
+        # testing cannot fail.
         for attr in ("sections", "ADVANCED_GROUPS"):
-            if hasattr(self.cfg, attr):
-                self.addCleanup(setattr, self.cfg, attr,
-                                getattr(self.cfg, attr))
+            self.assertTrue(
+                hasattr(self.cfg, attr),
+                "config has no %r -- these tests would otherwise invent it "
+                "and pass against a renamed or deleted attribute" % attr)
+            self.addCleanup(setattr, self.cfg, attr,
+                            getattr(self.cfg, attr))
+
+    def test_production_reads_the_name_these_tests_override(self):
+        """The other half: the attribute existing is not enough if the
+        reader has moved on to a different one."""
+        import inspect
+        from jellyfin_mpv_shim.mpvtk_browser.settings import general
+        self.assertIn("ADVANCED_GROUPS", inspect.getsource(general),
+                      "settings/general.py no longer reads ADVANCED_GROUPS, "
+                      "so overriding it here proves nothing")
 
     def _ids(self):
         self.b._open_settings()

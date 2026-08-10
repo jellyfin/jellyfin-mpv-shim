@@ -205,33 +205,6 @@ _TYPE_GLYPHS = {
 }
 
 
-def type_indicator_icon(item):
-    """The corner type marker for a tile, or "" for types that get none."""
-    return TYPE_INDICATOR_ICONS.get(item.get("Type"), "")
-
-
-#: Types whose placeholder says *what it is* rather than what it is called.
-#:
-#: A first initial is a decent label when the name distinguishes things --
-#: films, shows, people. It is useless where the name does not: a Home Videos
-#: library is folders and albums named "2019", "2020", "Holiday", and a wall
-#: of digits says nothing about which tiles you can open and which will start
-#: playing. jellyfin-web draws an icon for exactly these
-#: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
-#:
-#: **Material icon names**, drawn by the strip compositor.
-#:
-#: A comment here used to say these had to be characters "because this is
-#: baked into the tile bitmap by the strip compositor, which draws text,
-#: not icon fonts". That was never true -- `strips._paint_glyph_badge` has
-#: rasterized icon paths through `vector.icon_image` since the home-video
-#: type badges landed. **[iw]**: "that comment is a lie."
-#:
-#: Taken from jellyfin-web rather than chosen, so a library with no
-#: artwork looks like the same library does in every other client:
-#: `getItemTypeIcon` for an item, `getLibraryIcon` for a library tile
-#: (both `src/utils/image.ts`).
-
 #: A library tile, by its collection type -- web's `getLibraryIcon`. A
 #: UserView carries no useful `Type`, so it is answered from here first.
 _LIBRARY_GLYPHS = {
@@ -249,13 +222,6 @@ _LIBRARY_GLYPHS = {
     "channels": "videocam",
 }
 
-#: **AudioBook is deliberately absent** from `_TYPE_GLYPHS`, and keeps the
-#: title's first initial. It is the case that table was written for: an
-#: author folder of three books called "The ..." drew three tiles reading
-#: "T" -- but a shelf of identical audiotrack icons is no better, and the
-#: title is the only thing that tells one recording from another. web has
-#: no AudioBook arm either, so this matches it by omission rather than in
-#: spite of it.
 
 
 def heading_for(item):

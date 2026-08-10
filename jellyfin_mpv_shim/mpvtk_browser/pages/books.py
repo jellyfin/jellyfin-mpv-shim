@@ -490,7 +490,7 @@ class AudiobookPage(Page):
             on=bool((item.get("UserData") or {}).get("IsFavorite")),
             size=18))
         download = detail_components.download_button(
-            actions, tiles, item, server, "ab")
+            actions, tiles, item, server, "ab", size=18)
         if download is not None:
             btns.append(download)
         return Row(btns, gap=8, align="center")

@@ -80,7 +80,7 @@ _LANDSCAPE_ART = 0.8
 # MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
 GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount,CanDelete"
 
-#: CanDelete is in all three sets, and it has to be ASKED FOR: a list query
+#: CanDelete is in all four field sets, and it has to be ASKED FOR: a list query
 #: omits it entirely (measured -- the key is absent, not False), so a Delete
 #: from Disk entry keyed off it would simply never appear. A single-item
 #: fetch returns it whatever Fields says, but relying on that would make the
@@ -182,7 +182,12 @@ OFFLINE_ROW_KIND = "downloaded"
 # Fields for music browse (albums/artists/tracks). ItemCounts is what fills in
 # the track/album totals on artist tiles. The artist/album labels and track
 # runtimes these views also draw need no field at all — see LIST_FIELDS.
-MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts"
+#: CanDelete for the same reason as the other three sets -- it is absent
+#: unless asked for, and `item_actions.can_delete` reads absent as "no".
+#: Without it a music album offered Delete from Disk on its detail page
+#: (which uses DETAIL_FIELDS) and never from its tile menu, with nothing
+#: to suggest the two disagreed.
+MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts,CanDelete"
 
 # Fields requested for the detail view. Intentionally a superset (MediaSources,
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
@@ -445,11 +450,33 @@ VIDEO_TYPE_FILTERS = (
 LIST_FILTERS = (
     ("official_ratings", "OfficialRatings"),
     ("tags", "Tags"),
-    ("video_types", "VideoTypes"),
+    # `video_types` is NOT here. It was, before the panel drew the
+    # VideoType boxes, and it built `VideoTypes` a second time -- from a
+    # key nothing sets, in a loop that runs after VIDEO_TYPE_FILTERS and
+    # would therefore have overwritten the real answer. Dead rather than
+    # wrong, which is why it survived: the only way to notice was to read
+    # both loops.
     ("audio_languages", "AudioLanguages"),
     ("subtitle_languages", "SubtitleLanguages"),
     ("studio_ids", "StudioIds"),
 )
+
+
+#: Every filter key ``LibrarySource._filter_kwargs`` actually turns into a
+#: query parameter, derived from the tables above rather than listed.
+#:
+#: Derived because a list would be a second place to state the same fact,
+#: and the offline gap this exists to close was exactly that: the panel
+#: grew from five categories to eight while `OfflineLibrarySource` stayed
+#: at five keys, so a downloaded library drew fifteen checkboxes that did
+#: nothing and counted every one of them on the Filter button.
+SUPPORTED_FILTERS = frozenset(
+    [key for key, _param in STATUS_FILTERS]
+    + [key for key, _param in FEATURE_FILTERS]
+    + [key for key, _param in VIDEO_FLAG_FILTERS]
+    + [key for key, _param in VIDEO_TYPE_FILTERS]
+    + [key for key, _param in LIST_FILTERS]
+    + ["favorite", "genre", "year", "hd", "sd", "letter"])
 
 
 class LibrarySource:
@@ -459,6 +486,13 @@ class LibrarySource:
     raise on network errors; callers run them off the UI thread and surface
     failures in the view.
     """
+
+    #: Which filter keys this source honours -- asked by the grid so it
+    #: can offer only what it can apply. A capability on the SOURCE and
+    #: not an "are we offline" test on the page, because `PageContext`
+    #: says a page "must not care which" source it has, and because the
+    #: honest question is not which source this is but what it can do.
+    supported_filters = SUPPORTED_FILTERS
 
     def __init__(self, servers, device_id: str, player_name: str, verify_ssl: bool):
         self._conns = {}
@@ -2702,6 +2736,23 @@ class OfflineLibrarySource:
     episodes) filtered to downloaded content, with artwork from local files.
     Reads the catalog read-only and caches rows in memory.
     """
+
+    #: **None.** The panel is not offered on a downloaded library.
+    #:
+    #: `_apply_filters` honours four of the twenty-six keys the panel can
+    #: produce, so offering it meant fifteen checkboxes and four pickers
+    #: that silently did nothing -- and every one of them counted on the
+    #: `Filter (N)` badge, so the button reported filtering that was not
+    #: happening. The alternative was reimplementing two dozen server
+    #: predicates against the catalog, which is a lot of surface for a
+    #: screen nobody needs it on. **[iw]**: "filter panel should be
+    #: disabled offline, people generally will know what they want to
+    #: watch offline or not have that much downloaded."
+    #:
+    #: `_apply_filters` stays, and the four keys it honours still work --
+    #: the A-Z rail writes `letter`, and Genres is a door rather than a
+    #: filter. What goes is the panel.
+    supported_filters = frozenset()
 
     def __init__(self, catalog_path):
         self.catalog_path = catalog_path
