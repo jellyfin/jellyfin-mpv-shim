@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-02 01:33-0400\n"
-"PO-Revision-Date: 2026-08-05 14:32+0000\n"
+"PO-Revision-Date: 2026-08-10 10:46+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -2496,10 +2496,8 @@ msgstr "Guarda"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch Channel"
-msgstr "Esci e segna come Non visto"
+msgstr "Guarda canale"
 
 # seeded from jellyfin-web: HeaderStopRecording
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2902,10 +2900,8 @@ msgid "Remove Watched"
 msgstr "Esci e segna come Non visto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "watched"
-msgstr "Esci e segna come Non visto"
+msgstr "visto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
@@ -3028,7 +3024,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr ""
+msgstr "Disposizione della schermata principale salvata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not save the home screen layout."
@@ -3068,7 +3064,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
-msgstr ""
+msgstr "Ancora niente da copiare."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Could not copy the log."
