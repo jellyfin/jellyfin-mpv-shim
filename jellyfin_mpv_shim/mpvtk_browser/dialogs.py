@@ -15,6 +15,7 @@ info dialog). All are loop-thread only.
 from ..i18n import _, _p
 from ..mpvtk.widgets import (
     Box,
+    Busy,
     Button,
     Checkbox,
     Column,
@@ -631,8 +632,8 @@ class DialogsMixin:
 
     # ---------------------------------------------------------- view settings
 
-    def filter_panel(self, get_vals, get_filters, on_set, on_toggle,
-                     on_clear, collection_type=None):
+    def filter_panel(self, get_vals, get_filters, get_count, on_set,
+                     on_toggle, on_clear, collection_type=None):
         """The filter panel: a modal, because it is a page of controls.
 
         Not accordions, which is what jellyfin-web uses to keep the height
@@ -643,13 +644,25 @@ class DialogsMixin:
 
         ``collection_type`` gates the categories to the ones this library
         can match (see FILTER_SECTIONS). A plain value rather than a
-        getter, unlike the other three: it is part of the route's
+        getter, unlike the three above it: it is part of the route's
         identity, so it cannot change while this panel is open -- which
         is the one kind of capture the stale-capture audit accepts.
+
+        ``get_count`` answers ``(matches, pending)`` -- the count the page
+        header would be showing, and whether the query behind it is still
+        in flight. **[iw]**: "the filters modal obscures the match count
+        on the nav, so we should probably show it in the modal". It is
+        the number every tick in here is aimed at, and this panel covers
+        the one place it was written.
+
+        A getter for the same reason the other two are, and more so: the
+        whole point is that it changes *while the panel is open*, one
+        repaint after each query lands.
         """
         def build():
             vals = get_vals()
             filters = get_filters()
+            matches, pending = get_count()
             rows: list = []
             for label, kind, spec, libs in FILTER_SECTIONS:
                 if not _applies(libs, collection_type):
@@ -682,10 +695,33 @@ class DialogsMixin:
             if not rows:
                 rows = [Text(_("This library offers no filters."),
                              size="small", color=theme.SUBTLE_FG)]
+            # The count the grid header draws, in the string it draws it
+            # with -- the same fact, seen from behind the thing covering
+            # it. Trailing on the title row rather than under the buttons:
+            # it is a caption on this panel, not one of its controls.
+            #
+            # `filters-`, not the `flt-` the rest of this panel uses:
+            # that prefix means "a control for the filter key after the
+            # dash" -- tests enumerate the panel's categories by stripping
+            # it -- and a caption is not one.
+            head = [Text(_("Filters"), size="title", bold=True),
+                    Spacer(flex=1),
+                    Text(_("%d items") % matches, size="caption",
+                         id="filters-count", color=theme.SUBTLE_FG)]
+            if pending:
+                # A spinner while the query that number belongs to is
+                # still out, because until it lands the number is the
+                # PREVIOUS filter's answer. `_reload` keeps it there
+                # deliberately -- zeroing it reads as "your filter matched
+                # nothing" before the server has said anything -- so
+                # something has to say it is one query out of date. The
+                # page says that with the spinner over its blanked tiles,
+                # and this panel is what is covering that.
+                head.append(Busy(w=14, h=14, id="filters-pending"))
             return Dialog(
                 "filters",
                 self._dialog_shell("filters", [
-                    Text(_("Filters"), size="title", bold=True),
+                    Row(head, gap=8, align="center"),
                     VScroll(Column(rows, gap=10, align="stretch"),
                             id="flt-body", h=380),
                     self._dialog_buttons([

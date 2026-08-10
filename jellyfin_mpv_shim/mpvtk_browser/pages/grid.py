@@ -894,8 +894,30 @@ class GridPage(Page):
         self.ctx.dialogs.filter_panel(
             lambda: self.route.get("_filtervals") or {},
             lambda: self.route.get("_filters") or {},
+            self._match_count,
             self._set_filter, self._panel_toggle, self._clear_filters,
             collection_type=self.route.get("collection_type"))
+
+    def _match_count(self):
+        """``(matches, pending)`` for the filter panel's count.
+
+        The same pair the header draws with: ``_total`` (which ``_reload``
+        keeps across a re-query on purpose) and whether the query behind
+        it has answered yet. A missing ``_items`` is exactly that test --
+        it is what ``render`` blanks the tiles on.
+
+        Only the panel asks; the header shows the count *conditionally*
+        (a paginated grid says "of N" on the pagination bar instead) and
+        the panel covers both of those, so it shows it unconditionally.
+
+        A failed load is not pending. Its ``_items`` stays None for good
+        -- the page swaps itself for the retry screen -- so testing that
+        alone leaves a spinner turning in here over a query that is never
+        coming back.
+        """
+        return (self.route.get("_total") or 0,
+                self.route.get("_items") is None
+                and not self.route.get("_error"))
 
     def _panel_toggle(self, key):
         """A panel checkbox. Repaints the dialog as well as reloading.

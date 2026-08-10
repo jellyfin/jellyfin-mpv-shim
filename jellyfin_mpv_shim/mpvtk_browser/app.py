@@ -411,10 +411,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 self._open_book_progress(item, server),
             media_info=lambda item, server=None:
                 self._open_media_info(item, server),
-            filter_panel=lambda get_vals, get_filters, on_set, on_toggle,
-                on_clear, collection_type=None: self.filter_panel(
-                    get_vals, get_filters, on_set, on_toggle, on_clear,
-                    collection_type=collection_type))
+            filter_panel=lambda get_vals, get_filters, get_count, on_set,
+                on_toggle, on_clear, collection_type=None: self.filter_panel(
+                    get_vals, get_filters, get_count, on_set, on_toggle,
+                    on_clear, collection_type=collection_type))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,

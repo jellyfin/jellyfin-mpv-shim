@@ -2627,8 +2627,13 @@ class TestFilterRevalidation(unittest.TestCase):
             "tiles": sum(1 for i in found
                          if str(i).startswith("grid-0-g")),
             "busy": any(n.get("t") == "busy" for n in nodes),
+            # The HEADER's count. These frames are taken with the filter
+            # panel open, and the panel now draws the same count itself
+            # (`filters-count`) -- which is a different claim about a
+            # different node, asserted by TestFilterPanelMatchCount.
             "count": [n.get("text") for n in nodes
-                      if str(n.get("text", "")).endswith("items")],
+                      if str(n.get("text", "")).endswith("items")
+                      and n.get("id") != "filters-count"],
         }
 
     def test_the_shell_stays_while_the_tiles_blank(self):
@@ -2776,6 +2781,151 @@ class TestFilterRevalidation(unittest.TestCase):
                 self.assertFalse(wrong,
                                  "round %d left items from the other "
                                  "filter: %r" % (i, wrong))
+
+
+class _CountedSource(FakeSource):
+    """A library whose match count really changes with the filter: 30
+    items, 7 of them unplayed.
+
+    ``_ShrinkingSource`` above deliberately answers the same TOTAL either
+    way -- it is about the item list, not the count -- so a test written
+    against it could not tell a live count from a frozen one.
+    """
+
+    PAGE = 20
+    TOTAL = 30
+    FILTERED = 7
+
+    #: Raise on the next query instead of answering it.
+    fail = False
+
+    def get_library_items(self, server_uuid, parent_id, start_index=0,
+                          sort_by="SortName", sort_order="Ascending",
+                          limit=100, filters=None, image_type=None,
+                          collection_type=None):
+        if self.fail:
+            raise RuntimeError("server is down")
+        on = bool((filters or {}).get("unplayed"))
+        total = self.FILTERED if on else self.TOTAL
+        tag = "Filtered" if on else "All"
+        items = [{"Id": "%s%d" % (tag, i), "Name": "%s %d" % (tag, i),
+                  "Type": "Movie"} for i in range(total)]
+        return items[start_index:start_index + self.PAGE], total
+
+
+class TestFilterPanelMatchCount(unittest.TestCase):
+    """The panel carries the match count, because it covers the one on
+    the page.
+
+    **[iw]**: "the filters modal obscures the match count on the nav, so
+    we should probably show it in the modal". The count is what every
+    tick in here is aimed at -- and the panel is left-aligned precisely
+    so the page behind stays readable, which is an argument that reading
+    the *result* while filtering is the point.
+    """
+
+    def _grid(self, source=None, pool=None):
+        b = MpvtkBrowser(app=None, source=source or _CountedSource(),
+                         controller=FakeController())
+        b._pool = pool or _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b
+
+    @staticmethod
+    def _open(b):
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+
+    @staticmethod
+    def _panel(b):
+        """(count text or None, is the spinner up, handlers)."""
+        nodes, handlers = build_scene(b, size=(1280, 720))
+        count = [n.get("text") for n in nodes
+                 if n.get("id") == "filters-count"]
+        return (count[0] if count else None,
+                any(n.get("id") == "filters-pending" for n in nodes),
+                handlers)
+
+    def test_the_panel_says_how_many_match(self):
+        b = self._grid()
+        nodes, _h = build_scene(b, size=(1280, 720))
+        header = [n.get("text") for n in nodes
+                  if str(n.get("text", "")).endswith("items")]
+        self.assertTrue(header, "the page does not draw a count to hide")
+
+        self._open(b)
+        count, pending, _h = self._panel(b)
+        self.assertEqual(count, header[0],
+                         "the panel says something other than what it "
+                         "is covering")
+        self.assertFalse(pending, "a spinner over a settled query")
+
+    def test_the_count_follows_the_filter_over_several_ticks(self):
+        """Several, not one. The count is written by the query the tick
+        starts, so a version that showed the *previous* answer -- a value
+        captured when the panel opened, or a count read before the
+        install -- is right on the frame the panel opens and one behind
+        for the rest of the session. One toggle cannot tell those apart.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        expected = ["%d items" % src.FILTERED, "%d items" % src.TOTAL]
+        for i in range(4):
+            with self.subTest(round=i):
+                _c, _p, handlers = self._panel(b)
+                handlers["flt-unplayed"]["click"]()
+                count, pending, _h = self._panel(b)
+                self.assertEqual(count, expected[i % 2])
+                self.assertFalse(pending, "the query has already landed")
+
+    def test_it_does_not_flash_to_zero_while_the_query_is_out(self):
+        """The same rule the header follows -- ``_reload`` keeps
+        ``_total`` on purpose, because "0 items" before the server has
+        answered reads as "your filter matched nothing".
+
+        Which leaves the number one query out of date, so the panel says
+        so: the page says it with the spinner over its blanked tiles, and
+        this panel is what is covering that.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        before, _p, handlers = self._panel(b)
+        self.assertEqual(before, "%d items" % src.TOTAL)
+
+        b._pool = _DeferredPool()
+        handlers["flt-unplayed"]["click"]()
+        mid, pending, _h = self._panel(b)
+        self.assertEqual(mid, before, "the count flashed while re-querying")
+        self.assertTrue(pending, "nothing said the count was out of date")
+
+        b._pool.drain()
+        after, pending, _h = self._panel(b)
+        self.assertEqual(after, "%d items" % src.FILTERED)
+        self.assertFalse(pending, "the spinner outlived the query")
+
+    def test_a_failed_query_does_not_leave_it_spinning(self):
+        """A failure leaves ``_items`` None for good -- the page swaps
+        itself for the retry screen and nothing refills it -- so testing
+        that alone spins forever over a query that is never coming back.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        _c, _p, handlers = self._panel(b)
+        src.fail = True
+        handlers["flt-unplayed"]["click"]()
+        self.assertTrue(b.route.get("_error"),
+                        "the query did not fail -- this test cannot see "
+                        "what it is asserting")
+
+        count, pending, _h = self._panel(b)
+        self.assertFalse(pending, "still spinning over a dead query")
+        self.assertEqual(count, "%d items" % src.TOTAL,
+                         "the last known count went with the failure")
 
 
 class TestFilterPanelSide(unittest.TestCase):
