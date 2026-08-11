@@ -590,6 +590,121 @@ class WindowLifecycleTest(unittest.TestCase):
         self.assertEqual(self._stops(pm), [], "stopped the music")
 
 
+class BrowseHandoffTest(unittest.TestCase):
+    """What ``browse_yield`` has to undo when video takes the window back.
+
+    ``set_browse_window`` paints the browser's own window instead of
+    decoding a file to hold it open, and the two properties it paints with
+    are **global VO options that outlive the file change**. That is what
+    makes them work for music -- and it is why handing the window to video
+    without putting them back gave every letterboxed film #141414 bars
+    instead of black, *for the rest of the mpv process's life* (dde0f2a1).
+    Reported as "a grey background", which is not what it looks like.
+
+    None of this could be asserted before the fake modelled ``background``,
+    ``background_color`` and ``keepaspect``: the writes conjured the
+    attributes, so the only readable state was the one the shim had just
+    written, and there was no starting value for a restore to return to.
+    """
+
+    def _player(self):
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        pm._video = None
+        pm.mpvtk_active = True
+        pm._player.force_window = True
+        return pm
+
+    def test_video_taking_the_window_back_restores_mpvs_own_background(self):
+        pm = self._player()
+        pm.set_browse_window(True)
+        self.assertEqual(pm._player.background_color, "#141414")
+
+        pm.browse_yield()
+
+        self.assertEqual(pm._player.background, "tiles")
+        self.assertEqual(pm._player.background_color, "#000000",
+                         "video took the window back with the browser's "
+                         "grey still armed, so every letterbox bar is grey")
+
+    def test_the_browse_background_does_not_leak_over_several_handoffs(self):
+        """One handoff cannot see this, and the bug it hides is precisely a
+        leak: the options survive the file change, so what matters is the
+        state after browsing and playing repeatedly -- which is what a
+        session actually is."""
+        pm = self._player()
+        seen = []
+        for _ in range(3):
+            pm.set_browse_window(True)
+            pm.browse_yield()
+            seen.append(pm._player.background_color)
+        self.assertEqual(seen, ["#000000", "#000000", "#000000"])
+
+    def test_the_aspect_ratio_comes_back_with_the_video(self):
+        """``set_browse_window`` turns ``keepaspect`` off so the library
+        window resizes freely rather than snapping to the last video's
+        shape. Left off, mpv stretches whatever is loaded to fill the
+        window -- the film plays distorted and ``video-zoom`` does nothing,
+        both from one property."""
+        pm = self._player()
+        pm.set_browse_window(True)
+        self.assertFalse(pm._player.keepaspect)
+        pm.browse_yield()
+        self.assertTrue(pm._player.keepaspect,
+                        "video took the window back stretched")
+
+    def test_a_dead_mpv_is_not_written_to(self):
+        pm = self._player()
+        pm.set_browse_window(True)
+        pm._mpv_alive = False
+        pm.browse_yield()
+        self.assertEqual(pm._player.background_color, "#141414",
+                         "browse_yield wrote to a handle that is being "
+                         "torn down")
+
+
+class DyingMpvTest(unittest.TestCase):
+    """Closing the window makes mpv end the file **and** shut down, so the
+    end-file callback runs on the action thread while the terminate thread
+    is already inside ``player.terminate()``.
+
+    ``except _mpv_errors`` is genuinely enough on the external backend --
+    the command is a socket write and the race surfaces as BrokenPipeError.
+    On in-process libmpv the handle has been freed underneath us and the
+    command is a use-after-free: SIGSEGV, which no except clause can see,
+    and which took two runs in three against a real server (b3b3687f). The
+    guard is ``_mpv_alive``, cleared by ``_terminate_mpv`` *before* it calls
+    terminate, and it is worth a permanent test because the failure mode is
+    a crash rather than an assertion.
+    """
+
+    def _player(self):
+        from tests.integration.test_player_state_machine import FakeVideo
+
+        pm = h.build_player(player_module)
+        pm._video = FakeVideo(has_next=False)
+        pm.should_send_timeline = True
+        pm.send_timeline_stopped = lambda *a, **kw: None
+        return pm
+
+    def test_a_finish_on_a_dying_mpv_issues_no_command(self):
+        pm = self._player()
+        pm._mpv_alive = False
+        before = len(pm._player.commands)
+        pm.finished_callback(has_lock=False)
+        self.assertEqual(
+            [c for c in pm._player.commands[before:] if c and c[0] == "stop"],
+            [], "commanded a handle that is being freed")
+
+    def test_a_finish_on_a_live_mpv_still_stops_it(self):
+        """The other half. A guard that is simply always on leaves the
+        ended file on screen, paused on its last frame."""
+        pm = self._player()
+        pm._mpv_alive = True
+        pm.finished_callback(has_lock=False)
+        self.assertIn(("stop",), pm._player.commands)
+
+
 class FullscreenPersistTest(unittest.TestCase):
     """A fullscreen toggle the *user* made should be remembered; one the app
     made for its own reasons (the update notice, the browser opening

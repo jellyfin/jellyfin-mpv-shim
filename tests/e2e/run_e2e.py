@@ -56,6 +56,13 @@ CONTRACT = [
     "tests.e2e.test_source_conformance",
     "tests.e2e.test_strm_source",
     "tests.e2e.test_live_tv",
+    # The home screen's layout, which lives in jellyfin-web's own
+    # DisplayPreferences document. Pure interop, so the fast suite cannot
+    # help: it is written from the same reading of the API the code is, and
+    # the two are wrong together. Plus LatestItemsExcludes, whose two halves
+    # (the server applies it for Continue Watching, we apply it for the
+    # per-library Latest rows) are only distinguishable on the wire.
+    "tests.e2e.test_home_layout",
     "tests.e2e.test_route_walk",
     "tests.e2e.test_paging",
     "tests.e2e.test_keyboard_nav",
@@ -110,6 +117,13 @@ PER_BACKEND = [
     "tests.e2e.test_playback_failure",
     "tests.e2e.test_strm_playback",
     "tests.e2e.test_track_selection",
+    # Chapter navigation, which the fast suite covers only as a pure
+    # function. The list comes out of MPV and the answer goes back through
+    # seek(), and both ends are where the two chapter bugs lived -- the
+    # half-second dead zone before every boundary, and a negative first
+    # timestamp that made "previous" an absolute seek to the END of the
+    # file. Only a real container has a boundary mpv chose.
+    "tests.e2e.test_chapters",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     "tests.e2e.test_input_routing",
