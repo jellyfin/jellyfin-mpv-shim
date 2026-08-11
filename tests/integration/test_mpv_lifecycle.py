@@ -640,6 +640,33 @@ class BrowseHandoffTest(unittest.TestCase):
             seen.append(pm._player.background_color)
         self.assertEqual(seen, ["#000000", "#000000", "#000000"])
 
+    def test_the_handoff_undoes_the_browse_window_in_order(self):
+        """The same claim as the three above, made as a sequence.
+
+        Those assert the *end state*, which is what a reader of the code
+        would check. What they cannot see is a handoff that reaches the
+        right state by the wrong route -- the browse window being re-armed
+        after the yield, say, which ends with mpv configured correctly and
+        the window torn down and rebuilt in front of the user on the way.
+        The mark is what names "the moment I handed it over": nothing the
+        fakes record identifies it, because `browse_yield` is the first
+        thing that happens afterwards.
+        """
+        pm = self._player()
+        pm.set_browse_window(True)
+        pm.journal.mark("handing over")
+        pm.browse_yield()
+
+        pm.journal.order("mpv.set:keepaspect=False",
+                         "mpv.set:background_color='#141414'",
+                         "test:handing over",
+                         "mpv.set:keepaspect=True",
+                         "mpv.set:background_color='#000000'")
+        pm.journal.since("test:handing over").never(
+            "mpv.set:background_color='#141414'",
+            msg="the browse background was re-armed after the window had "
+                "been handed to video")
+
     def test_the_aspect_ratio_comes_back_with_the_video(self):
         """``set_browse_window`` turns ``keepaspect`` off so the library
         window resizes freely rather than snapping to the last video's

@@ -7,6 +7,10 @@ cheap and side-effect free (the fast suite never touches it).
 
 Contents:
 
+* ``Journal`` — one ordered record of what every stand-in was asked to do.
+  The fakes could already say *whether*; this is what says **in which order**,
+  across collaborators, which is the question the ordering bugs turn on.
+  Assertions are subsequences, so a new event cannot fail an old assertion.
 * Capability probes (``HAVE_*``) + ``require_*`` skip helpers.
 * ``FakeMPV`` — a scriptable stand-in for an mpv backend that records the
   observer/event/key callbacks ``PlayerManager`` registers and lets a test fire
@@ -86,6 +90,190 @@ def require_real_mpv(obj):
 
 
 # --------------------------------------------------------------------------
+# Journal — an ordered record of what the fakes were asked to do
+# --------------------------------------------------------------------------
+
+class _Unset:
+    """Distinguishes "no value" from a recorded ``None``, which is a real
+    mpv property value."""
+
+    def __repr__(self):
+        return "<unset>"
+
+
+_UNSET = _Unset()
+
+
+class Journal:
+    """What happened, in the order it happened, across every stand-in.
+
+    The fakes already record *whether* something was asked for -- a list of
+    commands, a list of played urls, an attribute holding the last value
+    written. What none of that can answer is **in which order**, and that is
+    the question this codebase's worst bugs turn on: a reset landing after
+    the yield it was meant to precede, a volume applied after the file
+    started, a stop commanded after the handle was freed. Two recorders on
+    two objects cannot be compared at all.
+
+    So every fake writes into one journal, and a test asserts on the
+    sequence.
+
+    **Assertions are subsequence assertions, never equality**, and that is
+    the whole design. A log compared as a whole is a test that fails the day
+    somebody adds an event -- which would make the journal a tax on every
+    change instead of a tool, and would be paid by deleting assertions. Ask
+    only for the events you mean, in the order you mean them; anything else
+    may appear between, before or after.
+
+    Events render as ``source.kind:name=value`` and a pattern matches at any
+    component boundary, so ``"mpv"``, ``"mpv.set"``, ``"mpv.set:keepaspect"``
+    and ``"mpv.set:keepaspect=True"`` are four sieves over the same event,
+    from coarse to exact. Pick the coarsest one that still says what you
+    mean: a pattern that pins a value it does not care about is the other
+    way to make the journal brittle.
+
+    Two things are deliberately kept apart. ``set:`` is the **shim writing**
+    a property; ``prop:`` is **mpv reporting** one (``fire_property``). They
+    are opposite directions through the same name, and a test about one must
+    not match the other.
+
+    ``mark()`` puts the test's own events in the stream, which is what lets
+    an ordering claim be made about a moment nothing else names -- "the
+    browse background went back *after* I started playback", where the only
+    thing that identifies "when I started playback" is the test.
+    """
+
+    #: Boundaries a pattern may stop at. A pattern is a prefix of the
+    #: rendered event, cut at one of these -- so "mpv.set:sub" does NOT
+    #: match "mpv.set:sub_scale=1.0", which a bare startswith would.
+    _BOUNDARIES = (".", ":", "=")
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._entries = []
+
+    # -- writing -----------------------------------------------------------
+
+    def record(self, source, kind, name=None, value=_UNSET):
+        """Append one event. Called by the fakes; tests use ``mark``."""
+        text = "%s.%s" % (source, kind) if kind else source
+        if name is not None:
+            text += ":" + str(name)
+        if value is not _UNSET:
+            text += "=" + repr(value)
+        with self._lock:
+            self._entries.append(text)
+        return text
+
+    def mark(self, label):
+        """The test's own event, so an ordering claim can name a moment that
+        only the test knows about."""
+        return self.record("test", "", label)
+
+    def reset(self):
+        with self._lock:
+            del self._entries[:]
+
+    # -- reading -----------------------------------------------------------
+
+    def entries(self, pattern=None):
+        with self._lock:
+            entries = list(self._entries)
+        if pattern is None:
+            return entries
+        return [e for e in entries if self._matches(e, pattern)]
+
+    def count(self, pattern):
+        return len(self.entries(pattern))
+
+    def since(self, pattern):
+        """Everything after the first event matching ``pattern``, as a
+        journal of its own.
+
+        What makes "and then it never happened again" sayable. `never` over
+        the whole log cannot say it -- the event usually *did* happen, which
+        is why there is something to be after.
+
+        **Raises if the marker never happened**, rather than answering an
+        empty journal: every assertion on a view of nothing passes, so the
+        vacuous version is a test that cannot fail and reads exactly like
+        one that does.
+        """
+        entries = self.entries()
+        for index, entry in enumerate(entries):
+            if self._matches(entry, pattern):
+                view = Journal()
+                view._entries = entries[index + 1:]
+                return view
+        raise AssertionError(
+            "nothing matched %r, so there is no point to be after it. The "
+            "journal was:\n%s" % (pattern, self.render()))
+
+    def render(self):
+        return "\n".join("  %3d  %s" % (i, e)
+                          for i, e in enumerate(self.entries())) or "  (empty)"
+
+    @classmethod
+    def _matches(cls, entry, pattern):
+        if entry == pattern:
+            return True
+        if not entry.startswith(pattern):
+            return False
+        return entry[len(pattern)] in cls._BOUNDARIES
+
+    # -- assertions --------------------------------------------------------
+    #
+    # On the journal rather than in a TestCase mixin, so any test that can
+    # reach a fake can reach these without inheriting from anything.
+
+    def happened(self, pattern, msg=""):
+        if not self.entries(pattern):
+            raise AssertionError(
+                "%snothing matched %r. The journal was:\n%s"
+                % (msg and msg + "\n", pattern, self.render()))
+
+    def never(self, pattern, msg=""):
+        found = self.entries(pattern)
+        if found:
+            raise AssertionError(
+                "%s%r happened %d time(s): %r. The journal was:\n%s"
+                % (msg and msg + "\n", pattern, len(found), found,
+                   self.render()))
+
+    def order(self, *patterns, **kw):
+        """Assert the patterns occur in this relative order.
+
+        A **subsequence**: other events may sit between them, before the
+        first and after the last. That is what keeps an assertion written
+        today from failing when an unrelated event is added tomorrow.
+
+        Matched greedily left to right, so a repeated pattern means "and
+        then another one of these", which is what it reads as.
+        """
+        msg = kw.pop("msg", "")
+        assert not kw, kw
+        if len(patterns) < 2:
+            # An "ordering" of one is satisfied by anything that happened at
+            # all, which is a test that cannot fail. `happened` says that.
+            raise AssertionError(
+                "order() needs at least two patterns; one of them is not an "
+                "ordering. Use happened() for existence.")
+        entries = self.entries()
+        index = 0
+        for pattern in patterns:
+            while index < len(entries) and not self._matches(entries[index],
+                                                             pattern):
+                index += 1
+            if index == len(entries):
+                raise AssertionError(
+                    "%s%r never happened after the events before it in %r.\n"
+                    "The journal was:\n%s"
+                    % (msg and msg + "\n", pattern, list(patterns),
+                       self.render()))
+            index += 1
+
+
+# --------------------------------------------------------------------------
 # FakeMPV — scriptable player backend
 # --------------------------------------------------------------------------
 
@@ -147,7 +335,14 @@ class FakeMPV:
     # Class attr so ``hasattr(mpv, "ShutdownError")`` is true on the module.
     ShutdownError = ShutdownError
 
-    def __init__(self, **options):
+    def __init__(self, journal=None, **options):
+        # Armed at the END of __init__, so the constructor's own defaults
+        # are not two dozen events every test has to read past. `_journal`
+        # being None is also what makes __setattr__ safe here: it runs for
+        # every assignment below, including the ones that build the dicts it
+        # would otherwise want to write to.
+        self._journal = None
+        self._pending_journal = journal
         # What _init_mpv asked mpv to start with. Most option plumbing is not
         # worth re-testing here, but options that must be set *at startup*
         # are: mpv before 0.41 ignores a runtime force-window while idle, so
@@ -269,7 +464,42 @@ class FakeMPV:
         # simulate an mpv that died under us).
         self.fail_with = None
 
+        # Recording starts here. Shared with the other stand-ins when
+        # build_player hands one in, so the ordering ACROSS collaborators is
+        # readable -- which is the half no per-object recorder can show.
+        self._journal = self._pending_journal or Journal()
+
+    # -- the journal --------------------------------------------------------
+
+    @property
+    def journal(self):
+        return self._journal
+
+    def __setattr__(self, name, value):
+        """Every property write the shim makes, in order.
+
+        Private names are skipped: they are this fake's own bookkeeping, not
+        anything mpv has. ``_suppress_set`` is for ``fire_property``, which
+        writes the attribute on mpv's behalf -- that is a `prop:` event, the
+        opposite direction, and recording it as a `set:` would let a test
+        about "the shim wrote this" match mpv reporting it.
+        """
+        object.__setattr__(self, name, value)
+        if name.startswith("_") or name in self._ALIASES:
+            # An alias is not a second property. `fs` writes `fullscreen`
+            # through its own setter, which records under that name; letting
+            # the alias record as well puts two events on the stream for one
+            # thing mpv did, and invites a test to assert on the spelling
+            # rather than on the write.
+            return
+        journal = self.__dict__.get("_journal")
+        if journal is not None and not self.__dict__.get("_suppress_set"):
+            journal.record("mpv", "set", name, value)
+
     # -- properties ---------------------------------------------------------
+
+    #: Property names that are another property under a second spelling.
+    _ALIASES = {"fs": "fullscreen"}
 
     @property
     def fs(self):
@@ -328,11 +558,17 @@ class FakeMPV:
         """Invoke every observer registered for ``name`` with (name, value),
         mirroring an mpv property-change notification. Run this from a spawned
         thread to reproduce an observer firing off the player thread."""
-        setattr(self, name.replace("-", "_"), value)
+        self._suppress_set = True
+        try:
+            setattr(self, name.replace("-", "_"), value)
+        finally:
+            self._suppress_set = False
+        self._journal.record("mpv", "prop", name, value)
         for cb in list(self._property_observers.get(name, [])):
             cb(name, value)
 
     def fire_event(self, name, event=None):
+        self._journal.record("mpv", "event", name)
         for cb in list(self._event_callbacks.get(name, [])):
             cb(event)
 
@@ -352,6 +588,7 @@ class FakeMPV:
         Not worth emulating -- the alternative is a fake that quietly
         answers a question about mpv's parser that no test here is asking.
         """
+        self._journal.record("mpv", "key", key)
         for name in reversed(self._enabled):
             cmd = self._sections.get(name, {}).get(key)
             if cmd is None:
@@ -383,6 +620,8 @@ class FakeMPV:
         if self.fail_with is not None:
             raise self.fail_with
         self.commands.append(args)
+        self._journal.record("mpv", "cmd", args[0] if args else "",
+                             " ".join(str(a) for a in args[1:]) or _UNSET)
         self._section_command(args)
         if len(args) == 2 and args[0] == "get_property":
             # jsonipc's spelling of _get_property, and it has to answer
@@ -418,12 +657,14 @@ class FakeMPV:
         self._enabled = [n for n in self._enabled if n != name]
 
     def play(self, url):
+        self._journal.record("mpv", "play", url)
         self.played.append(url)
         # A real play() clears the aborted/idle state; duration becomes known
         # shortly after. Tests that use wait_property drive that separately.
         self.playback_abort = False
 
     def show_text(self, text, duration=None, level=None):
+        self._journal.record("mpv", "text", text)
         self.texts.append((text, duration, level))
 
     def sub_add(self, url):
@@ -435,6 +676,7 @@ class FakeMPV:
         self.commands.append(("screenshot",))
 
     def terminate(self):
+        self._journal.record("mpv", "terminate")
         self.terminated = True
 
     # Property access hook for the fail_with paths. We can't intercept normal
@@ -456,9 +698,11 @@ class FakeMPVLibmpv(FakeMPV):
     """
 
     def observe_property(self, name, handler):
+        self._journal.record("mpv", "observe", name)
         self._property_observers.setdefault(name, []).append(handler)
 
     def unobserve_property(self, name, handler):
+        self._journal.record("mpv", "unobserve", name)
         obs = self._property_observers.get(name, [])
         if handler in obs:
             obs.remove(handler)
@@ -502,6 +746,7 @@ class FakeMPVJsonIPC(FakeMPV):
         self._next_observer_id = 1
 
     def bind_property_observer(self, name, func):
+        self._journal.record("mpv", "observe", name)
         observer_id = self._next_observer_id
         self._next_observer_id += 1
         self._observer_ids[observer_id] = (name, func)
@@ -510,6 +755,7 @@ class FakeMPVJsonIPC(FakeMPV):
 
     def unbind_property_observer(self, observer_id):
         name, func = self._observer_ids.pop(observer_id, (None, None))
+        self._journal.record("mpv", "unobserve", name)
         obs = self._property_observers.get(name, [])
         if func in obs:
             obs.remove(func)
@@ -694,7 +940,12 @@ def build_player(player_module, video=None):
     PlayerManager = player_module.PlayerManager
     pm = PlayerManager.__new__(PlayerManager)
 
-    pm._player = fake_mpv_class()()
+    # ONE journal across every stand-in, so the order of what the player
+    # did to mpv, to the menu and to SyncPlay is readable as a single
+    # sequence. That is the half a per-object recorder cannot show, and the
+    # half this codebase's ordering bugs live in.
+    pm.journal = Journal()
+    pm._player = fake_mpv_class()(journal=pm.journal)
     pm._video = video
     pm.evt_queue = Queue()
     pm._lock = RLock()
@@ -808,8 +1059,8 @@ def build_player(player_module, video=None):
     pm._geometry_armed = None
     pm._stats_shown = False
 
-    pm.menu = _FakeMenu()
-    pm.syncplay = _FakeSyncplay()
+    pm.menu = _FakeMenu(journal=pm.journal)
+    pm.syncplay = _FakeSyncplay(journal=pm.journal)
     pm.update_check = _FakeUpdateCheck()
     from jellyfin_mpv_shim.osc_bridge import OscBridge
     pm.osc_bridge = OscBridge(pm)
@@ -819,7 +1070,11 @@ def build_player(player_module, video=None):
 class _FakeMenu:
     is_menu_shown = False
 
-    def __init__(self):
+    def __init__(self, journal=None):
+        # Shared with the player's fake when build_player made it, so "the
+        # menu was hidden before the file was handed to mpv" is one
+        # assertion rather than two recorders nobody can line up.
+        self.journal = journal or Journal()
         self.actions = []
         # The drawing surface OSDMenu carries. The player reads these back
         # (mouse_select resolves a click against menu_list, and the shader
@@ -831,9 +1086,11 @@ class _FakeMenu:
         self.profile_manager = None
 
     def menu_action(self, action):
+        self.journal.record("menu", "action", action)
         self.actions.append(action)
 
     def put_menu(self, title, entries=None, selected=0):
+        self.journal.record("menu", "put", title)
         self.menu_list = entries if entries is not None else []
         self.menu_selection = selected
 
@@ -841,9 +1098,11 @@ class _FakeMenu:
         pass
 
     def show_menu(self):
+        self.journal.record("menu", "show")
         self.is_menu_shown = True
 
     def hide_menu(self):
+        self.journal.record("menu", "hide")
         self.is_menu_shown = False
 
     def update_player(self, player):
@@ -866,7 +1125,11 @@ class _FakeSyncplay:
     property of the mpv handle.
     """
 
-    def __init__(self):
+    def __init__(self, journal=None):
+        # Shared with the player's fake when build_player made it -- the
+        # bugs here are orderings between the two ("halted before the
+        # re-create", "stop reported before we left").
+        self.journal = journal or Journal()
         self._enabled = False
         self._following = True
         self.client = None
@@ -876,6 +1139,10 @@ class _FakeSyncplay:
         #: answers questions cannot show a command being sent twice, in the
         #: wrong order, or to a session that has been left.
         self.calls = []
+
+    def _note(self, name, args=()):
+        self.journal.record("syncplay", name)
+        self.calls.append((name, args))
 
     def is_enabled(self):
         return self._enabled and self._following
@@ -888,21 +1155,21 @@ class _FakeSyncplay:
 
     def halt_group_playback(self, *_a, **_kw):
         self._following = False
-        self.calls.append(("halt_group_playback", ()))
+        self._note("halt_group_playback")
 
     def resume_group_playback(self, *_a, **_kw):
         self._following = True
-        self.calls.append(("resume_group_playback", ()))
+        self._note("resume_group_playback")
 
     def join_group(self, *a, **_kw):
         self._enabled = True
         self._following = True
-        self.calls.append(("join_group", a))
+        self._note("join_group", a)
 
     def disable_sync_play(self, *_a):
         self._enabled = False
         self._following = True
-        self.calls.append(("disable_sync_play", ()))
+        self._note("disable_sync_play")
 
     def sync_playback_time(self):
         pass
@@ -914,7 +1181,7 @@ class _FakeSyncplay:
     # tools/audit_fake_contracts.py is what keeps this list complete.
     def _record(name):
         def call(self, *a, **_kw):
-            self.calls.append((name, a))
+            self._note(name, a)
         call.__name__ = name
         return call
 

@@ -205,6 +205,62 @@ class LoadOutcomeTest(unittest.TestCase):
                       "a cancelled start poisoned the next one")
 
 
+class StartOrderTest(unittest.TestCase):
+    """The order `_play_media` does things in, which is stated in its own
+    comments and checked by nothing.
+
+    Every one of these is a *sequence* claim, and until the fakes shared a
+    journal there was no way to make one: the volume write and the play call
+    landed in two different recorders on the same object, the menu's hide
+    landed in a third on another object, and nothing could line them up.
+    Asserted as subsequences, so adding a step to the start path cannot fail
+    them -- see `tests/test_fake_journal.py`.
+    """
+
+    def _start(self):
+        pm = build()
+        timer = threading.Timer(
+            0.05, lambda: pm._player.fire_property("duration", 100.0))
+        timer.daemon = True
+        timer.start()
+        self.addCleanup(timer.cancel)
+        with mock.patch.object(player_module.settings, "playback_timeout", 2):
+            pm._play_media(make_video(), "http://example.invalid/s.mkv",
+                           is_initial_play=True)
+        return pm
+
+    def test_the_volume_is_applied_before_the_file_is_handed_over(self):
+        """The persisted per-type volume, set *before* playback starts "so
+        the track never briefly blares at the default while mpv
+        probes/loads". Writing it afterwards still ends at the right volume,
+        so every non-ordering assertion passes -- and the user still gets a
+        second of the default one."""
+        self._start().journal.order("mpv.set:volume", "mpv.play")
+
+    def test_the_menu_is_taken_down_before_the_file_is_handed_over(self):
+        self._start().journal.order("menu.hide", "mpv.play")
+
+    def test_the_window_geometry_is_armed_before_the_file_is_handed_over(self):
+        """Re-arming is a no-op on a window that already has that size and a
+        resize command on one that does not, so doing it after the file is
+        loaded moves the window under the video that just started."""
+        self._start().journal.order("mpv.set:geometry", "mpv.play")
+
+    def test_the_load_wait_is_registered_after_the_file_and_taken_back(self):
+        """Ordering *and* pairing in one claim: observing before the play
+        would wait on the previous file's duration, and never unobserving is
+        the leak `LoadObserverLeakTest` counts. The sequence says both."""
+        self._start().journal.order("mpv.play", "mpv.observe:duration",
+                                    "mpv.prop:duration", "mpv.unobserve:duration")
+
+    def test_the_title_is_set_only_once_the_file_has_loaded(self):
+        """`force_media_title` is written after the duration arrives. Set it
+        before and a load that times out leaves the failed item's name on a
+        window showing nothing."""
+        self._start().journal.order("mpv.prop:duration",
+                                    "mpv.set:force_media_title")
+
+
 class LoadObserverLeakTest(unittest.TestCase):
     """Each load registers a property observer and must take it back.
 
