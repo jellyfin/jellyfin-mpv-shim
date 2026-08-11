@@ -26,6 +26,15 @@ This is that boundary, tested. What it pins:
   progress report announces nothing *even when it finishes the item*, and
   the message is not filtered by which session caused it -- this app is
   told about its own marks as well as another device's.
+* **The marks a person makes.** Mark Watched and Mark Unwatched are
+  authoritative in both directions and are written to the catalog where they
+  are made -- no sweep, no socket. Both halves are somebody else's code
+  again: that the server clears what our local write clears, and that a
+  container mark fans out to its children.
+* **When the first sweep of a session runs.** Against the real client
+  registry, over the sequence a launch produces -- the worker's first pass
+  happens before `login_servers()`, so a pass with nobody to ask must not
+  spend the startup trigger.
 * **That the trimmed request still answers.** The sweep asks with
   ``Fields=""`` because measuring showed the default was 6x the server
   time for identical UserData. An empty Fields is exactly the kind of
@@ -538,6 +547,422 @@ class PushedUserDataReachesTheCatalogTest(unittest.TestCase):
                                      "PositionTicks": 0})
         _e2e.wait_for(lambda: self.stored().get("Played") or None, timeout=15)
         self.assertTrue(self.stored().get("Played"))
+
+
+@_e2e.require_server
+class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
+    """Mark Watched / Mark Unwatched, through the real gateway, against the
+    real server, with a real catalog on disk.
+
+    The unit tests answer "does the shim write what it believes"; this one
+    answers the two things they cannot, both of which are beliefs about
+    somebody else's code. **That the server does what the local write
+    mirrors** -- `db.set_watched` was written against `BaseItem.MarkPlayed`
+    and `ResetPlayedState`, and if the two ever disagree the next sweep
+    reads the difference back as a change and the catalog flickers between
+    them. And **that the mark does not need the socket**: it used to arrive
+    (when it arrived at all) as a `UserDataChanged` push, which is
+    advance-only on this side, so un-watching never reached the copy on
+    disk by any route.
+
+    Un-watching is asserted at every step for that reason: it is the
+    direction that had no writer, and the direction a test written the
+    obvious way (mark, assert, done) never exercises.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = _e2e.Session("qa-user")
+        cls.items = cls.session.find_all(library="Movies",
+                                         item_type="Movie")[:2]
+        if len(cls.items) < 2:
+            raise unittest.SkipTest("need two movies in the QA library")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.session.stop()
+
+    def setUp(self):
+        from unittest import mock
+
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import userdata as gw
+        from jellyfin_mpv_shim.sync import manager as mgr
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+
+        self.tmp = tempfile.mkdtemp(prefix="jms-e2e-mark-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(self.db.close)
+        for item in self.items:
+            self.db.upsert(_catalog_row(item))
+
+        self.mgr = SyncManager()
+        self.mgr.db = self.db
+        self.mgr.get_client = lambda uuid: (
+            self.session.client if uuid == SERVER_UUID else None)
+        patcher = mock.patch.object(mgr, "syncManager", self.mgr)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        # The gateway the library's context menu and detail page call, with
+        # the real client behind it -- not a stub that agrees.
+        class _Gateway(gw.UserDataMixin):
+            pass
+
+        self.gw = _Gateway()
+        deps_patcher = mock.patch.object(gw, "deps")
+        deps = deps_patcher.start()
+        self.addCleanup(deps_patcher.stop)
+        deps.clientManager.clients = {SERVER_UUID: self.session.client}
+
+        self.ids = [i["Id"] for i in self.items]
+        self.addCleanup(self.session.reset_played, *self.ids)
+        self.session.reset_played(*self.ids)
+
+    def stored(self, item_id):
+        row = self.db.get(item_id) or {}
+        return json.loads(row.get("userdata_json") or "{}")
+
+    def mark(self, item_id, watched):
+        self.assertTrue(self.gw.set_watched(SERVER_UUID, item_id, watched),
+                        "the gateway reported the mark as not recorded")
+
+    def server_played(self, item_id):
+        """The server's answer, read the way the sweep reads it.
+
+        Which endpoint is asked matters after a *container* mark and only
+        then -- see `test_a_per_item_read_still_says_unplayed`. The sweep
+        uses `get_items`, so that is what the catalog is compared against
+        here.
+        """
+        result = self.session.api.get_items([item_id], fields="") or {}
+        for item in result.get("Items") or []:
+            if item.get("Id") == item_id:
+                return bool((item.get("UserData") or {}).get("Played"))
+        return None
+
+    # -- both directions, both places --------------------------------------
+
+    def test_marking_watched_reaches_the_server_and_the_catalog(self):
+        item_id = self.ids[0]
+        self.mark(item_id, True)
+        self.assertTrue(self.session.user_data(item_id).get("Played"))
+        self.assertTrue(self.stored(item_id).get("Played"),
+                        "the server has it and the copy on disk does not")
+
+    def test_marking_unwatched_does_too(self):
+        """The half that had no writer at all: every path into this column
+        was advance-only, so `Played` could be set and never cleared."""
+        item_id = self.ids[0]
+        self.session.api.item_played(item_id, True)
+        self.mgr._refresh_userdata()
+        self.assertTrue(self.stored(item_id).get("Played"))
+
+        self.mark(item_id, False)
+        self.assertFalse(self.session.user_data(item_id).get("Played"))
+        self.assertFalse(self.stored(item_id).get("Played"),
+                         "offline this still shows the tick the user just "
+                         "removed, and delete-watched would still take it")
+
+    def test_it_needs_no_sweep_and_no_socket(self):
+        """The mark is written where it is made. Nothing here has a
+        websocket attached and nothing asks the server anything: if this
+        only passes with a sweep, the state is minutes late and wrong for
+        the whole of a flight."""
+        item_id = self.ids[0]
+        asked = []
+        self.mgr.get_client = lambda uuid: asked.append(uuid)
+        self.mark(item_id, True)
+        self.assertTrue(self.stored(item_id).get("Played"))
+        self.assertEqual(asked, [], "the local write went back to the server")
+
+    def test_only_the_marked_item_moves(self):
+        self.mark(self.ids[0], True)
+        self.assertFalse(self.stored(self.ids[1]).get("Played"))
+
+    # -- what the server actually stores -----------------------------------
+
+    def test_the_catalog_stores_what_the_server_stores(self):
+        """The measurement `db.set_watched` was written from, taken from a
+        live server rather than from the C#.
+
+        Marking played clears the resume point (the controller passes
+        `resetPosition: true`) and marking unplayed clears position and play
+        count. If the local write and the server ever diverge here, the next
+        sweep reads the difference back as a change.
+        """
+        item_id = self.ids[0]
+        self.session.api.update_userdata_for_item(
+            item_id, {"PlaybackPositionTicks": POSITION})
+
+        self.mark(item_id, True)
+        server = self.session.user_data(item_id)
+        self.assertEqual(server.get("PlaybackPositionTicks"), 0,
+                         "the server kept a resume point through a mark; "
+                         "db.set_watched clears it and would now diverge")
+        self.assertEqual(self.stored(item_id).get("PlaybackPositionTicks"),
+                         server.get("PlaybackPositionTicks"))
+        self.assertGreaterEqual(server.get("PlayCount") or 0, 1)
+        self.assertGreaterEqual(self.stored(item_id).get("PlayCount") or 0, 1)
+
+        self.mark(item_id, False)
+        server = self.session.user_data(item_id)
+        self.assertEqual(server.get("PlayCount") or 0, 0)
+        self.assertEqual(self.stored(item_id).get("PlayCount") or 0, 0)
+        self.assertEqual(self.stored(item_id).get("PlaybackPositionTicks"), 0)
+
+    def test_a_sweep_after_a_mark_finds_nothing_to_change(self):
+        """The two writers agreeing, asserted as the property rather than
+        field by field: a pull straight after a mark must be a no-op. When
+        they disagree this is where it shows -- the catalog would be
+        corrected back to the server's answer a minute later."""
+        item_id = self.ids[0]
+        self.mark(item_id, True)
+        before = self.stored(item_id)
+        self.mgr._refresh_userdata()
+        after = self.stored(item_id)
+        self.assertEqual(after.get("Played"), before.get("Played"))
+        self.assertEqual(after.get("PlaybackPositionTicks"),
+                         before.get("PlaybackPositionTicks"))
+
+    def test_it_tracks_over_several_flips(self):
+        """Multi-step, per the repo rule. Advance-only is invisible in one
+        direction and latched in the other, so a single mark cannot see it:
+        the failure is the third step, where the catalog stops following."""
+        item_id = self.ids[0]
+        seen = []
+        for watched in (True, False, True, False):
+            self.mark(item_id, watched)
+            seen.append((self.session.user_data(item_id).get("Played") or
+                         False,
+                         self.stored(item_id).get("Played") or False))
+        self.assertEqual(seen, [(True, True), (False, False),
+                                (True, True), (False, False)])
+
+    def test_a_series_mark_fans_out_the_way_the_server_does(self):
+        """The catalog holds leaves, so a series tick has to be fanned out
+        here -- and the answer has to be the server's, which marks every
+        child (`Folder.MarkPlayed`). Asserted against the real episodes
+        rather than against our own idea of them."""
+        eps = None
+        for series in self.session.find_all(library="Shows",
+                                            item_type="Series"):
+            found = self.session.find_all(parent_id=series["Id"],
+                                          item_type="Episode")
+            if len(found) >= 2:
+                eps = found[:2]
+                break
+        if eps is None:
+            self.skipTest("need a series with two episodes")
+        series_id = eps[0]["SeriesId"]
+        for ep in eps:
+            # The columns the fan-out is resolved from: a downloader writes
+            # them, `_catalog_row` (a movie row) does not.
+            row = _catalog_row(ep)
+            row["series_id"] = ep.get("SeriesId")
+            row["season_id"] = ep.get("SeasonId")
+            self.db.upsert(row)
+        ids = [e["Id"] for e in eps]
+        self.addCleanup(self.session.reset_played, *ids)
+        self.session.reset_played(*ids)
+
+        self.mark(series_id, True)
+        for item_id in ids:
+            self.assertTrue(self.server_played(item_id),
+                            "the server did not fan the mark out, so this "
+                            "test is asserting our fan-out against nothing")
+            self.assertTrue(self.stored(item_id).get("Played"),
+                            "%s missed the fan-out" % item_id)
+
+    def test_a_per_item_read_still_says_unplayed(self):
+        """A server fact, measured on 12.0.0 and pinned because two things
+        here depend on which endpoint asks.
+
+        After a *series* is marked played, its episodes come back **played**
+        from `GET /Items?ids=` and **unplayed** from both per-item reads
+        (`GET /UserItems/{id}/UserData` and `GET /Users/{uid}/Items/{id}`).
+        The fan-out really happened -- the list endpoint is not inventing
+        it -- so the per-item answer is the stale one.
+
+        It is load-bearing twice. The sweep asks with `get_items`, which is
+        why "watched on the phone by marking the series" reaches the
+        catalog at all. And `_sync_playstate` compares against
+        `get_userdata_for_item` before pushing, so it can be told an item
+        is unplayed that the server considers played -- harmless today,
+        since it only ever pushes *forward*, but it is the reason that
+        comparison cannot be trusted for anything else.
+
+        This goes red when the server starts agreeing with itself, which is
+        the point: both of the above want re-reading if it does.
+        """
+        eps = None
+        for series in self.session.find_all(library="Shows",
+                                            item_type="Series"):
+            found = self.session.find_all(parent_id=series["Id"],
+                                          item_type="Episode")
+            if len(found) >= 1:
+                eps = found[:1]
+                break
+        if eps is None:
+            self.skipTest("need a series with an episode")
+        item_id = eps[0]["Id"]
+        self.addCleanup(self.session.reset_played, item_id)
+        self.session.reset_played(item_id)
+
+        self.session.api.item_played(eps[0]["SeriesId"], True)
+        self.assertTrue(self.server_played(item_id),
+                        "the list endpoint no longer shows the fan-out")
+        self.assertFalse(
+            self.session.api.get_userdata_for_item(item_id).get("Played"),
+            "the per-item endpoint now agrees with the list one; the sweep "
+            "and _sync_playstate's comparison both want re-reading")
+        # A mark on the item itself is not affected -- so this is about
+        # container fan-out, not about the endpoint being broken.
+        self.session.api.item_played(item_id, True)
+        self.assertTrue(
+            self.session.api.get_userdata_for_item(item_id).get("Played"))
+
+
+@_e2e.require_server
+class TheFirstSweepOfASessionTest(unittest.TestCase):
+    """When the sweep runs at launch, against a real registry.
+
+    The unit tests drive `_sweep_if_due` with a hand-built manager; this
+    drives the real one, with the real client registry it reads, over the
+    sequence a launch produces -- `mpv_shim.main` starts the worker
+    *before* `login_servers()`, so the first pass has nobody to ask. It is
+    a clock-driven test rather than a slow one: `now` is passed in, so a
+    six-minute session is asserted in milliseconds. What is real here is
+    the registry, the catalog, and the requests the sweep makes when it
+    finally runs.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = _e2e.Session("qa-user")
+        cls.items = cls.session.find_all(library="Movies",
+                                         item_type="Movie")[:1]
+        if not cls.items:
+            raise unittest.SkipTest("need a movie in the QA library")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.session.stop()
+
+    def setUp(self):
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+
+        self.tmp = tempfile.mkdtemp(prefix="jms-e2e-settle-")
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(self.db.close)
+        self.item_id = self.items[0]["Id"]
+        self.db.upsert(_catalog_row(self.items[0]))
+
+        self.mgr = SyncManager()
+        self.mgr.db = self.db
+        self.clients = {}
+        self.mgr.get_clients = lambda: dict(self.clients)
+        self.mgr.get_client = lambda uuid: self.clients.get(uuid)
+        self.start = 40_000.0           # monotonic counts from boot
+        self.mgr._started_at = self.start
+
+        self.addCleanup(self.session.reset_played, self.item_id)
+        self.session.reset_played(self.item_id)
+
+    def stored(self):
+        row = self.db.get(self.item_id) or {}
+        return json.loads(row.get("userdata_json") or "{}")
+
+    def login(self):
+        self.clients[SERVER_UUID] = self.session.client
+
+    def run_session(self, seconds, login_at=1):
+        """Drive the worker's idle loop over a session, returning when each
+        sweep ran (in seconds since the catalog opened)."""
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        swept = []
+        for tick in range(0, seconds, 5):
+            if login_at is not None and tick >= login_at:
+                self.login()
+            self.mgr._note_connected_servers()
+            if self.mgr._sweep_if_due(self.start + tick):
+                swept.append(tick)
+        self.assertLess(len(swept), seconds // mgr.USERDATA_SWEEP_FLOOR + 2)
+        return swept
+
+    def test_the_first_sweep_lands_a_minute_in_and_pulls_state(self):
+        """The whole point of the change, asserted end to end: something
+        watched elsewhere while this app was closed is in the catalog
+        within about a minute of launch, not five.
+
+        The state is set on the server *before* the session starts, which
+        is what "changed while nobody was listening" means -- no socket
+        could have carried it, so only the sweep can have.
+        """
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        self.session.api.item_played(self.item_id, True)
+        self.assertFalse(self.stored().get("Played"))
+
+        swept = self.run_session(400)
+        self.assertTrue(swept, "the session never swept at all")
+        self.assertGreaterEqual(swept[0], mgr.USERDATA_SWEEP_SETTLE)
+        self.assertLess(swept[0], mgr.USERDATA_SWEEP_SETTLE + 10,
+                        "the first sweep waited out the floor rather than "
+                        "the settle -- the five-minute gap is back")
+        self.assertTrue(self.stored().get("Played"),
+                        "the sweep ran but the catalog did not move")
+
+    def test_nothing_is_asked_before_the_settle(self):
+        """A negative worth asserting because it is the reason for the
+        delay: the first screen has the network to itself."""
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        self.session.api.item_played(self.item_id, True)
+        asked = []
+        real = self.mgr.get_client
+        self.mgr.get_client = lambda uuid: (asked.append(uuid) or real(uuid))
+        for tick in range(0, mgr.USERDATA_SWEEP_SETTLE, 5):
+            self.login()
+            self.mgr._note_connected_servers()
+            self.mgr._sweep_if_due(self.start + tick)
+        self.assertEqual(asked, [])
+        self.assertFalse(self.stored().get("Played"))
+        # The control: the same setup does sweep once the settle is over,
+        # so the silence above is the settle and not a broken fixture.
+        self.mgr._sweep_if_due(self.start + mgr.USERDATA_SWEEP_SETTLE + 1)
+        self.assertTrue(self.stored().get("Played"))
+
+    def test_a_login_slower_than_the_settle_still_sweeps_promptly(self):
+        """The pass the settle releases can still have nobody to ask -- a
+        retrying login, a captive portal. Spending the trigger there is
+        what put the first real sweep five minutes past the login."""
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        self.session.api.item_played(self.item_id, True)
+        swept = self.run_session(500, login_at=120)
+        self.assertTrue(swept, "the session never swept at all")
+        self.assertGreaterEqual(swept[0], 120)
+        self.assertLess(swept[0], 120 + mgr.USERDATA_SWEEP_FLOOR,
+                        "the sweep waited out a floor started by a pass "
+                        "with no server to ask")
+        self.assertTrue(self.stored().get("Played"))
+
+    def test_the_session_does_not_then_poll(self):
+        """The floor is still doing its job afterwards: six minutes of an
+        idle app with a live registry is not a request every five seconds.
+        """
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        swept = self.run_session(400)
+        self.assertLessEqual(len(swept), 2, "the sweep became a poll")
+        if len(swept) > 1:
+            self.assertGreaterEqual(swept[1] - swept[0],
+                                    mgr.USERDATA_SWEEP_FLOOR)
 
 
 if __name__ == "__main__":

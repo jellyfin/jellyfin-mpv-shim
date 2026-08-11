@@ -884,7 +884,84 @@ before the absence of one is believed).
 **Advance-only, still.** The local copy is a floor, not a mirror: an item
 un-watched on another device stays watched here. That is the existing rule
 rather than a decision taken here, and it is the one thing about this worth
-revisiting — flagged in the method's docstring.
+revisiting — flagged in the method's docstring. Revisited below.
+
+### Revisited: a deliberate mark is not a report **[iw]**
+
+The flag above, taken. Advance-only is right for everything that *reports* —
+progress arrives out of order, a queue replayed after a week must not rewind
+another device, a pull is a floor — and wrong for the one thing that
+*decides*: a person choosing Mark Watched or Mark Unwatched. Under one rule
+for both, un-watching was the only deliberate action in the app that silently
+did nothing to the downloaded copy. Offline you were then shown the tick you
+had just removed, and "delete watched downloads" — which reads `userdata_json`
+with no server fallback — was still willing to throw the item away.
+
+So there is now a second writer, `db.set_watched`, verbatim in both
+directions, kept apart from `update_userdata` for the same reason
+`set_reading_position` is. It mirrors what the server does with the same
+request (`BaseItem.MarkPlayed` / `ResetPlayedState`, the controller passing
+`resetPosition: true`): played clears the resume point and puts the play count
+at one, unplayed clears position, count and last-played date. Matching matters
+beyond tidiness — where the two disagree, the next sweep reads the difference
+back as a change and the catalog flickers between them.
+
+Three call sites, one rule: `SyncManager.mirror_watched` (fan-out over a series
+or season through `db.watched_targets`, notify only when something moved),
+which the browser gateway calls after the server takes the mark, and which
+`media.Video.set_played` calls too — that last one is *streamed* playback's
+"Quit and Mark Unwatched", the same gap `mirror_playstate` was added for, in
+the direction it could not express. The resolver sits on `SyncDB` rather than
+the manager because every part of it is a catalog read, and because the offline
+path reaches it through a handle it already has.
+
+**Not changed, deliberately:** un-watching *offline* is still refused. The
+replay queue is advance-only, so a local un-watch would diverge from the server
+with nothing left to reconcile it, and the UI's optimistic tick rolls back on
+the `False`. And the two *pull* paths (`apply_userdata_event`, the sweep) stay
+advance-only: what another device did arrives as a floor, as before.
+
+### Revisited: when the first sweep of a session runs **[iw]**
+
+The sweep had no interval, three triggers and a five-minute floor — and at
+launch it did the wrong thing with all of them. `mpv_shim.main` starts the sync
+worker *before* `user_interface.login_servers()`, so the worker's first pass
+runs with an empty client registry: it reached no server, swept nothing, and
+stamped `_last_userdata` on the way past. The server appeared a second later,
+`_note_connected_servers` re-armed the sweep, and the floor then held it off
+for **five minutes** — exactly the stretch the sweep exists to cover, since
+what it covers is what happened while the app was off. Opening Home did not
+bring it forward either; that trigger is floored the same way.
+
+Two changes, and the second is the one that fixes it:
+
+* **A pass with nobody to ask is not a sweep.** `_sweep_if_due` now checks the
+  registry first and leaves the trigger up, so the startup trigger survives to
+  the moment there is a server. This also covers a login slower than the
+  settle — `connect_retry_mins`, a captive portal — where the settle alone
+  would hand the trigger to another empty pass.
+* **A settle, `USERDATA_SWEEP_SETTLE = 60`.** Startup is when every other part
+  of the app wants the network at once and the sweep is the only one nobody is
+  waiting for, so it stands down for the first minute after the catalog opens.
+
+The floor is also skipped while `_last_userdata` is zero, for the same reason
+it is measured with `time.monotonic()`: that clock counts from boot, so on a
+machine launching this at startup "five minutes since the epoch" was a real
+comparison, and it suppressed the first sweep of the session.
+
+### One more server fact, measured on 12.0.0
+
+After a **series** is marked played, its episodes come back *played* from
+`GET /Items?ids=` and *unplayed* from both per-item reads
+(`GET /UserItems/{id}/UserData`, `GET /Users/{uid}/Items/{id}`). The fan-out
+did happen; the per-item answer is the stale one. It is load-bearing twice: the
+sweep asks with `get_items`, which is why "watched on the phone by marking the
+series" reaches the catalog at all, and `_sync_playstate` compares against
+`get_userdata_for_item` before pushing, so it can be told an item is unplayed
+that the server considers played — harmless today, because it only ever pushes
+forward, but that comparison cannot be trusted for anything else. Pinned in
+`tests/e2e/test_offline_sync.py`, and it goes red when the server starts
+agreeing with itself.
 
 ### Test
 

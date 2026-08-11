@@ -461,6 +461,96 @@ class SyncDB:
                     raise
             return changed
 
+    def watched_targets(self, item_id, server_uuid=None):
+        """Which downloaded rows a watched mark for ``item_id`` covers.
+
+        An id from the library is not always a leaf: the tick on a series or
+        a season means every episode under it, which is what the server does
+        with the same request (``Folder.MarkPlayed`` fans out to children).
+        The catalog holds leaves only, so the fan-out is a scan of it rather
+        than a question anyone can be asked -- and offline there is nobody
+        to ask at all, which is why it is resolved here rather than read off
+        the item.
+
+        Here rather than on the manager because every part of it is a
+        catalog read, and because the offline path reaches this through a
+        catalog handle it already has.
+
+        Returns ``[(item_id, server_uuid)]``, empty when nothing we hold is
+        covered. ``server_uuid`` is the fallback for a row written before
+        that column was populated.
+        """
+        if not item_id:
+            return []
+        if self.is_complete(item_id):
+            return [(item_id, server_uuid)]
+        return [(row["item_id"], row["server_uuid"] or server_uuid)
+                for row in self.list(status=STATUS_COMPLETE)
+                if item_id in (row["series_id"], row["season_id"])]
+
+    def set_watched(self, item_id, played):
+        """Store a deliberate watched mark **verbatim**, both directions.
+
+        The one non-advancing writer of this column, and the reason it is a
+        separate method rather than a flag on ``update_userdata``: every
+        caller of that one is playback, where a value that went backwards is
+        a stale report rather than a change of mind. A person choosing "Mark
+        Unwatched" is the opposite -- it is the only thing they could have
+        meant, and advance-only made it the one deliberate action in the app
+        that silently did nothing to the copy on disk. Offline browsing then
+        showed the tick it had just been told to remove, and "delete watched
+        downloads" was still counting the item as fair game.
+
+        Mirrors what the server does with the same request, which is what
+        keeps the next sweep from looking like a change (measured against
+        ``BaseItem.MarkPlayed`` / ``ResetPlayedState``, with the controller
+        passing ``resetPosition: true``): marking played clears the resume
+        point and puts the play count at least at one; marking unplayed
+        clears the position, the count and the last-played date as well as
+        the flag. ``PlayedPercentage`` is derived and is dropped either way,
+        so a stale server-seeded value cannot shadow the new state.
+
+        Returns whether anything moved -- the callers use it to decide
+        whether the browser needs redrawing. Local only: what is *sent* to
+        the server is the caller's business, and the offline replay queue
+        stays advance-only (``upsert_playstate``) so a client that has been
+        away cannot rewind another device.
+        """
+        with self._lock:
+            if self._conn is None:
+                return False
+            row = self._conn.execute(
+                "SELECT userdata_json FROM downloads WHERE item_id=?",
+                (item_id,)).fetchone()
+            if row is None:
+                return False
+            try:
+                userdata = json.loads(row["userdata_json"] or "{}")
+            except ValueError:
+                userdata = {}
+            before = dict(userdata)
+            if played:
+                userdata["Played"] = True
+                userdata["PlaybackPositionTicks"] = 0
+                userdata["PlayCount"] = max(userdata.get("PlayCount") or 0, 1)
+            else:
+                userdata["Played"] = False
+                userdata["PlaybackPositionTicks"] = 0
+                userdata["PlayCount"] = 0
+                userdata["LastPlayedDate"] = None
+            userdata.pop("PlayedPercentage", None)
+            if userdata == before:
+                return False
+            try:
+                self._conn.execute(
+                    "UPDATE downloads SET userdata_json=? WHERE item_id=?",
+                    (json.dumps(userdata), item_id))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+            return True
+
     def set_reading_position(self, item_id, position_ticks):
         """Store a reader's cursor **verbatim**, not advance-only.
 

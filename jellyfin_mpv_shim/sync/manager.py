@@ -63,6 +63,25 @@ PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
 #: (see `_run`), so no trigger is ever lost -- only delayed.
 USERDATA_SWEEP_FLOOR = 300
 
+#: How long after the catalog opens the first sweep waits.
+#:
+#: Startup is the one moment every part of this app wants the network at
+#: once -- logging in, the home screen's rows, artwork for every one of
+#: them -- and the sweep is the only one of them nobody is waiting for. A
+#: minute is long enough for the first screen to have settled and short
+#: enough that "watched on the flight out" is right by the time anyone
+#: scrolls to it.
+#:
+#: It also fixes something the floor used to do by accident. The worker
+#: starts in `mpv_shim.main` *before* `login_servers()`, so its first pass
+#: ran with no clients registered at all: it swept nothing, and stamped
+#: `_last_userdata` on the way past. The server then appeared a second
+#: later, re-armed the sweep -- and the floor held it off for five minutes,
+#: which is precisely the stretch the sweep exists to cover. So a pass with
+#: no client to ask now leaves the trigger up and costs nothing (see
+#: `_sweep_if_due`), and this settle is what paces the first real one.
+USERDATA_SWEEP_SETTLE = 60
+
 #: Ids per request. They travel in the query string, which servers and
 #: proxies cap (the apiclient's own note on get_items says so), and a
 #: catalog of a few hundred downloads would otherwise be one 414.
@@ -195,6 +214,10 @@ class SyncManager:
         #: told us about. True at construction because starting up is one of
         #: those things -- the app was not listening a moment ago.
         self._sweep_due = True
+        #: When the catalog was opened, for USERDATA_SWEEP_SETTLE. Zero
+        #: until then, which reads as "no settle to serve" -- a manager
+        #: driven directly (every test) is not a client starting up.
+        self._started_at = 0.0
         #: Server uuids that had a client last time the worker looked. The
         #: transition *into* this set is the reconnect signal; see
         #: _note_connected_servers for why it is watched here rather than
@@ -232,6 +255,9 @@ class SyncManager:
         through exactly the same recover/reconcile path as a fresh launch.
         """
         os.makedirs(self.root, exist_ok=True)
+        # Stamped before anything slow: the settle is measured from the app
+        # opening its catalog, not from the end of a disk reconcile.
+        self._started_at = time.monotonic()
         self.db = SyncDB(os.path.join(self.root, "catalog.db"))
         # Recover rows interrupted mid-download on a previous run.
         for row in self.db.list(status=STATUS_DOWNLOADING):
@@ -1008,11 +1034,37 @@ class SyncManager:
         soon as it is allowed to, which is what makes a flapping server
         cost one sweep per floor rather than one per flap.
 
+        Two things hold a due sweep back besides the floor, and neither
+        consumes it. **The settle**: nothing sweeps in the first
+        `USERDATA_SWEEP_SETTLE` seconds after the catalog opens, so the
+        first screen has the network to itself. And **having nobody to
+        ask**: the worker's first pass happens before `login_servers()` has
+        registered a single client, and a sweep there reaches no server, so
+        counting it burned the startup trigger and left the floor to defer
+        the real one by five minutes. A pass with no clients is not a sweep
+        that found nothing -- it is a sweep that did not happen.
+
+        The floor is skipped while `_last_userdata` is zero for the same
+        reason it is measured with `time.monotonic()`: that clock counts
+        from boot on every platform we run on, so on a machine launching
+        this at startup "five minutes since the epoch" is a real comparison
+        and it used to suppress the first sweep of the session.
+
         Returns whether it swept, which is what the tests read.
         """
         if not self._sweep_due:
             return False
-        if now - self._last_userdata < USERDATA_SWEEP_FLOOR:
+        if now - self._started_at < USERDATA_SWEEP_SETTLE:
+            return False
+        if (self._last_userdata
+                and now - self._last_userdata < USERDATA_SWEEP_FLOOR):
+            return False
+        try:
+            if not self.get_clients():
+                return False    # nobody to ask; the trigger stays up
+        except Exception:
+            log.debug("could not read the connected server list",
+                      exc_info=True)
             return False
         self._sweep_due = False
         self._last_userdata = now
@@ -1114,6 +1166,55 @@ class SyncManager:
             log.debug("Could not mirror playstate for %s", item_id,
                       exc_info=True)
             return False
+
+    def mirror_watched(self, item_id, played):
+        """Record a *deliberate* watched mark in the catalog, immediately.
+
+        The counterpart to :meth:`mirror_playstate`, and deliberately not
+        the same rule. That one is playback, where advance-only is right:
+        reports arrive out of order and a position that went backwards is a
+        stale one. This one is a person choosing Mark Watched or Mark
+        Unwatched, which is the only signal in the app that is authoritative
+        in **both** directions -- so it writes verbatim, through
+        ``db.set_watched``.
+
+        Un-watching is the half that did not work before. Every writer of
+        this column was advance-only, so a downloaded item un-watched from
+        this app's own menu stayed watched on the copy on disk, forever: the
+        sweep is advance-only too, so nothing would ever have corrected it.
+        Offline browsing showed a tick the user had just removed, and
+        "delete watched downloads" was still willing to throw the item away.
+
+        Unconditional at the call sites, like ``mirror_playstate``: no check
+        of whether the item is downloaded, because ``db.watched_targets``
+        answers with nothing for an item we hold no copy of. That is what
+        keeps it from being forgotten at a call site again.
+
+        Fans out over a series or season id. Never raises; returns how many
+        rows moved.
+        """
+        db = self.db
+        if db is None:
+            return 0
+        try:
+            targets = db.watched_targets(item_id)
+        except Exception:
+            log.debug("Could not resolve downloads for %s", item_id,
+                      exc_info=True)
+            return 0
+        moved = 0
+        for target_id, _server in targets:
+            try:
+                if db.set_watched(target_id, played):
+                    moved += 1
+            except Exception:
+                log.debug("Could not mirror the watched mark for %s",
+                          target_id, exc_info=True)
+        if moved:
+            log.debug("Mirrored a watched mark onto %d downloaded item(s).",
+                      moved)
+            self._notify_change()
+        return moved
 
     def apply_userdata_event(self, arguments):
         """Apply a ``UserDataChanged`` push to the catalog. No requests.

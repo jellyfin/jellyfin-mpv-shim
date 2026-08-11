@@ -925,7 +925,25 @@ class Video(object):
                 return ticks / 10000000
 
     def set_played(self, watched: bool = True):
+        """Mark this item played/unplayed on the server, and locally.
+
+        The local half matters for the same reason `mirror_playstate` does:
+        an item can be *streamed* while a downloaded copy of it sits on
+        disk, and that copy -- the one kept precisely for when the server is
+        gone -- was the only thing that never heard about "Quit and Mark
+        Unwatched". Deliberate marks are authoritative in both directions,
+        so this goes through `mirror_watched` rather than the advance-only
+        playback path; it is a no-op for an item nothing was downloaded for.
+        `OfflineVideo` overrides this and keeps its own replay queue.
+        """
         self.client.jellyfin.item_played(self.item_id, watched)
+        try:
+            from .sync.manager import syncManager
+
+            syncManager.mirror_watched(self.item_id, watched)
+        except Exception:
+            log.debug("Could not mirror the watched mark for %s",
+                      self.item_id, exc_info=True)
 
     def set_streams(self, aid: Optional[int], sid: Optional[int]):
         need_restart = False

@@ -18,6 +18,7 @@ and assert the stored value tracks rather than latching.
 """
 
 import json
+import os
 import sys
 import unittest
 from unittest import mock
@@ -712,6 +713,246 @@ class StreamingSomethingYouAlsoHoldTest(unittest.TestCase):
         offline.record_offline_progress.assert_called_once_with(5, False)
 
 
+class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
+    """Mark Watched / Mark Unwatched, onto the copy on disk, at once.
+
+    Everything else that writes this column is advance-only, and rightly:
+    playback reports arrive out of order, a queue replayed after a week
+    must not rewind another device, and a pull is a floor rather than a
+    mirror. A person choosing "Mark Unwatched" is none of those -- it is the
+    one signal in the app that is authoritative in both directions -- and
+    under the old rule it was the only deliberate action here that silently
+    did nothing to the downloaded copy. Offline you were shown the tick you
+    had just removed, and "delete watched downloads" (which reads
+    `userdata_json` with no server fallback) would still have thrown it out.
+
+    A real SyncDB rather than `FakeDb`, because the rule under test *is*
+    what that column ends up holding.
+    """
+
+    def setUp(self):
+        import tempfile
+        from jellyfin_mpv_shim.sync.db import COLUMNS, SyncDB, STATUS_COMPLETE
+
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = SyncDB(os.path.join(self.tmp.name, "cat.db"))
+        self.addCleanup(self.db.close)
+        self.COLUMNS = COLUMNS
+        self.STATUS_COMPLETE = STATUS_COMPLETE
+
+    def row(self, item_id, userdata=None, **overrides):
+        row = {c: None for c in self.COLUMNS}
+        row["item_id"] = item_id
+        row["server_uuid"] = "srv"
+        row["status"] = self.STATUS_COMPLETE
+        row["runtime_ticks"] = 100 * 10_000_000
+        row["userdata_json"] = json.dumps(
+            userdata if userdata is not None
+            else {"Played": False, "PlaybackPositionTicks": 0})
+        row.update(overrides)
+        self.db.upsert(row)
+        return row
+
+    def stored(self, item_id):
+        row = self.db.get(item_id) or {}
+        return json.loads(row.get("userdata_json") or "{}")
+
+    def manager(self):
+        from jellyfin_mpv_shim.sync.manager import SyncManager
+
+        m = SyncManager.__new__(SyncManager)
+        m.db = self.db
+        m.on_change = mock.Mock()
+        return m
+
+    # -- the writer --------------------------------------------------------
+
+    def test_marking_watched_stores_it_and_clears_the_resume_point(self):
+        self.row("ep1", {"Played": False,
+                         "PlaybackPositionTicks": 42 * 10_000_000})
+        self.assertTrue(self.db.set_watched("ep1", True))
+        self.assertEqual(self.stored("ep1")["Played"], True)
+        self.assertEqual(self.stored("ep1")["PlaybackPositionTicks"], 0)
+
+    def test_marking_unwatched_clears_it(self):
+        """The direction no writer of this column had. Under the old rule
+        `played=False` meant "leave it alone", so this was unreachable."""
+        self.row("ep1", {"Played": True, "PlayCount": 3,
+                         "PlaybackPositionTicks": 42 * 10_000_000})
+        self.assertTrue(self.db.set_watched("ep1", False))
+        stored = self.stored("ep1")
+        self.assertEqual(stored["Played"], False)
+        self.assertEqual(stored["PlaybackPositionTicks"], 0)
+        self.assertEqual(stored["PlayCount"], 0)
+
+    def test_it_stores_what_the_server_stores(self):
+        """Measured against `BaseItem.MarkPlayed` / `ResetPlayedState`, with
+        the controller passing `resetPosition: true`. If the two disagree
+        the next sweep reads back as a change and the catalog flickers."""
+        self.row("ep1", {"Played": False, "PlayCount": 0,
+                         "LastPlayedDate": "2020-01-01T00:00:00Z"})
+        self.db.set_watched("ep1", True)
+        self.assertGreaterEqual(self.stored("ep1")["PlayCount"], 1)
+        self.db.set_watched("ep1", False)
+        self.assertIsNone(self.stored("ep1")["LastPlayedDate"])
+
+    def test_a_stale_percentage_cannot_shadow_the_new_state(self):
+        self.row("ep1", {"Played": True, "PlayedPercentage": 100})
+        self.db.set_watched("ep1", False)
+        self.assertNotIn("PlayedPercentage", self.stored("ep1"))
+
+    def test_it_tracks_rather_than_latching(self):
+        """Multi-step, per the repo rule: the failure shape here is a value
+        that can only move one way, which one flip cannot see."""
+        self.row("ep1")
+        seen = []
+        for played in (True, False, True, False):
+            self.db.set_watched("ep1", played)
+            seen.append(self.stored("ep1")["Played"])
+        self.assertEqual(seen, [True, False, True, False])
+
+    def test_nothing_moving_is_reported_as_nothing_moving(self):
+        self.row("ep1", {"Played": True, "PlayCount": 1,
+                         "PlaybackPositionTicks": 0})
+        self.assertFalse(self.db.set_watched("ep1", True),
+                         "an unchanged row asked the browser to redraw")
+
+    def test_an_item_we_hold_no_copy_of_is_left_alone(self):
+        self.assertFalse(self.db.set_watched("nothing-here", True))
+
+    def test_playback_is_still_advance_only(self):
+        """The guard on the change: `update_userdata` is the playback rule
+        and must not have acquired this one."""
+        self.row("ep1", {"Played": True})
+        self.db.update_userdata("ep1", played=False)
+        self.assertTrue(self.stored("ep1")["Played"])
+
+    # -- the fan-out -------------------------------------------------------
+
+    def test_a_series_mark_reaches_every_downloaded_episode(self):
+        self.row("ep1", series_id="show")
+        self.row("ep2", series_id="show")
+        self.row("other")
+        self.assertEqual(self.manager().mirror_watched("show", True), 2)
+        self.assertTrue(self.stored("ep1")["Played"])
+        self.assertTrue(self.stored("ep2")["Played"])
+        self.assertFalse(self.stored("other")["Played"],
+                         "the mark reached an item it does not cover")
+
+    def test_a_season_mark_does_too(self):
+        self.row("ep1", series_id="show", season_id="s1")
+        self.row("ep2", series_id="show", season_id="s2")
+        self.manager().mirror_watched("s1", True)
+        self.assertTrue(self.stored("ep1")["Played"])
+        self.assertFalse(self.stored("ep2")["Played"])
+
+    def test_an_item_with_nothing_downloaded_is_a_no_op(self):
+        """Called for every mark, downloaded or not -- which is what keeps
+        it from being forgotten at a call site."""
+        m = self.manager()
+        self.assertEqual(m.mirror_watched("never-heard-of-it", True), 0)
+        m.on_change.assert_not_called()
+
+    def test_it_redraws_only_when_something_moved(self):
+        self.row("ep1")
+        m = self.manager()
+        m.mirror_watched("ep1", True)
+        m.on_change.assert_called_once()
+        m.mirror_watched("ep1", True)
+        m.on_change.assert_called_once()
+
+    def test_a_catalog_failure_is_survivable(self):
+        self.row("ep1")
+        m = self.manager()
+        m.db = mock.Mock()
+        m.db.watched_targets.side_effect = RuntimeError("boom")
+        self.assertEqual(m.mirror_watched("ep1", True), 0)
+
+
+class TheUiMarksGoThroughItTest(unittest.TestCase):
+    """The call sites. A rule with no caller is the shape this repo keeps
+    finding (`mirror_playstate` existed before anything played through it),
+    so the gateway the context menu uses and the player's own explicit
+    marks are asserted here rather than assumed."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import userdata as gw
+
+        self.gw = gw
+
+        class _Gateway(gw.UserDataMixin):
+            pass
+
+        self.controller = _Gateway()
+        self.client = mock.Mock()
+        patcher = mock.patch.object(gw, "deps")
+        deps = patcher.start()
+        self.addCleanup(patcher.stop)
+        deps.clientManager.clients = {"srv": self.client}
+        self.clients = deps.clientManager.clients
+
+        from jellyfin_mpv_shim.sync import manager as mgr
+        self.sm = mock.Mock()
+        patcher = mock.patch.object(mgr, "syncManager", self.sm)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_marking_watched_online_writes_the_catalog_too(self):
+        self.assertTrue(self.controller.set_watched("srv", "ep1", True))
+        self.client.jellyfin.item_played.assert_called_once_with("ep1", True)
+        self.sm.mirror_watched.assert_called_once_with("ep1", True)
+
+    def test_marking_unwatched_online_does(self):
+        """The case that could not previously reach the catalog at all: the
+        socket announces it, and every path the announcement takes is
+        advance-only."""
+        self.assertTrue(self.controller.set_watched("srv", "ep1", False))
+        self.sm.mirror_watched.assert_called_once_with("ep1", False)
+
+    def test_a_server_that_refused_does_not_move_the_catalog(self):
+        self.client.jellyfin.item_played.side_effect = RuntimeError("no")
+        self.assertFalse(self.controller.set_watched("srv", "ep1", True))
+        self.sm.mirror_watched.assert_not_called()
+
+    def test_a_catalog_failure_does_not_lose_the_mark(self):
+        self.sm.mirror_watched.side_effect = RuntimeError("boom")
+        self.assertTrue(self.controller.set_watched("srv", "ep1", True),
+                        "the server took the mark; the UI was told it did "
+                        "not because the local copy failed")
+
+    def test_offline_un_watching_is_still_refused(self):
+        """Deliberately unchanged. The replay queue cannot carry an
+        un-watch, so applying one locally would diverge from the server
+        with nothing left to reconcile it -- and the UI rolls its optimistic
+        tick back on the False."""
+        self.clients.clear()
+        self.assertFalse(self.controller.set_watched("srv", "ep1", False))
+        self.sm.mirror_watched.assert_not_called()
+
+    def test_the_player_s_own_mark_reaches_the_catalog(self):
+        """"Quit and Mark Unwatched" on something you *streamed* while
+        holding a downloaded copy -- the same gap `mirror_playstate` was
+        added for, in the one direction it cannot express."""
+        from jellyfin_mpv_shim import media
+
+        video = media.Video.__new__(media.Video)
+        video.item_id = "ep1"
+        video.client = mock.Mock()
+        video.set_played(False)
+        video.client.jellyfin.item_played.assert_called_once_with("ep1", False)
+        self.sm.mirror_watched.assert_called_once_with("ep1", False)
+
+    def test_a_catalog_failure_does_not_break_the_player_s_mark(self):
+        from jellyfin_mpv_shim import media
+
+        self.sm.mirror_watched.side_effect = RuntimeError("boom")
+        video = media.Video.__new__(media.Video)
+        video.item_id = "ep1"
+        video.client = mock.Mock()
+        video.set_played(True)          # must not raise
+
+
 class HomeAsksForAFreshPullTest(unittest.TestCase):
     """The home screen brings the pull forward.
 
@@ -721,14 +962,20 @@ class HomeAsksForAFreshPullTest(unittest.TestCase):
     answer is then what they have for as long as they are offline.
     """
 
-    def _manager(self, last=0.0, due=False, connected=()):
+    def _manager(self, last=0.0, due=False, connected=(), clients=("srv",),
+                 started=0.0):
         from jellyfin_mpv_shim.sync.manager import SyncManager
 
         m = SyncManager.__new__(SyncManager)
         m._last_userdata = last
         m._sweep_due = due
         m._connected_servers = set(connected)
-        m.get_clients = lambda: {}
+        m._started_at = started
+        # A client by default: a sweep with nobody to ask is now a distinct
+        # state (it keeps the trigger and asks nothing), so a helper that
+        # handed out an empty registry would make every test below a test
+        # of *that* instead of of the floor it names.
+        m.get_clients = lambda: {uuid: object() for uuid in clients}
         m._wake = mock.Mock()
         m._refresh_userdata = mock.Mock()
         return m
@@ -853,6 +1100,118 @@ class HomeAsksForAFreshPullTest(unittest.TestCase):
         self.assertTrue(
             m._sweep_if_due(10_000.0 + mgr.USERDATA_SWEEP_FLOOR + 1),
             "the deferred request never ran")
+
+    # -- and when the first one is allowed to ---------------------------
+
+    def test_nothing_sweeps_in_the_first_minute(self):
+        """Startup is when every other part of the app wants the network,
+        and the sweep is the only one of them nobody is waiting for."""
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        m = self._manager(due=True, started=10_000.0)
+        self.assertFalse(m._sweep_if_due(10_000.0 + 1))
+        self.assertFalse(m._sweep_if_due(
+            10_000.0 + mgr.USERDATA_SWEEP_SETTLE - 1))
+        m._refresh_userdata.assert_not_called()
+
+    def test_the_settle_delays_the_sweep_and_does_not_drop_it(self):
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        m = self._manager(due=True, started=10_000.0)
+        m._sweep_if_due(10_000.0 + 1)
+        self.assertTrue(m._sweep_due, "the settle dropped the trigger")
+        self.assertTrue(m._sweep_if_due(
+            10_000.0 + mgr.USERDATA_SWEEP_SETTLE + 1))
+        m._refresh_userdata.assert_called_once()
+
+    def test_a_pass_with_nobody_to_ask_is_not_a_sweep(self):
+        """The bug the settle was added around, and the more expensive half
+        of it. The worker's first pass runs before `login_servers()` has
+        registered anything, so it reaches no server at all -- and counting
+        it as a sweep spent the startup trigger *and* started the floor."""
+        m = self._manager(due=True, clients=())
+        self.assertFalse(m._sweep_if_due(10_000.0))
+        m._refresh_userdata.assert_not_called()
+        self.assertTrue(m._sweep_due, "the trigger was spent on nobody")
+        self.assertEqual(m._last_userdata, 0.0,
+                         "the floor started counting from a sweep that "
+                         "never asked anything")
+
+    def test_an_unreadable_registry_holds_the_sweep_rather_than_spending_it(
+            self):
+        m = self._manager(due=True)
+        m.get_clients = mock.Mock(side_effect=RuntimeError("boom"))
+        self.assertFalse(m._sweep_if_due(10_000.0))
+        self.assertTrue(m._sweep_due)
+
+    def test_the_launch_sequence_sweeps_a_minute_in(self):
+        """The property, over the sequence a real launch produces.
+
+        Multi-step because no single call can see it: the first pass (no
+        clients yet), the server arriving a second later, and then every
+        five seconds of the worker's idle loop. What this catches is the
+        shipped behaviour -- the trigger burned at t=0 and the reconnect
+        deferred behind a five-minute floor, so the first sweep of a
+        session landed at t+300 rather than during the first screen.
+        """
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        start = 40_000.0                # monotonic counts from boot
+        m = self._manager(due=True, clients=(), started=start)
+        clients = {}
+        m.get_clients = lambda: dict(clients)
+
+        m._note_connected_servers()
+        m._sweep_if_due(start)          # worker's first pass, pre-login
+        clients["srv"] = object()       # login_servers finishes
+
+        swept_at = None
+        for tick in range(0, 400, 5):   # the idle loop, for six minutes
+            m._note_connected_servers()
+            if m._sweep_if_due(start + tick) and swept_at is None:
+                swept_at = tick
+        self.assertIsNotNone(swept_at, "the session never swept at all")
+        self.assertGreaterEqual(swept_at, mgr.USERDATA_SWEEP_SETTLE)
+        self.assertLess(swept_at, mgr.USERDATA_SWEEP_SETTLE + 10,
+                        "the first sweep of the session waited out the "
+                        "floor instead of the settle")
+        self.assertEqual(m._refresh_userdata.call_count, 1,
+                         "the rest of the six minutes swept again")
+
+    def test_a_slow_login_still_sweeps_when_it_lands(self):
+        """The settle alone is not enough, which is what the client gate is
+        for. A server behind `connect_retry_mins`, a laptop waking on a
+        captive portal: login finishes *after* the settle, so the pass that
+        the settle released had nobody to ask. Spending the trigger there
+        puts the first sweep of the session a floor away from the login
+        rather than a moment after it."""
+        from jellyfin_mpv_shim.sync import manager as mgr
+
+        start = 40_000.0
+        m = self._manager(due=True, clients=(), started=start)
+        clients = {}
+        m.get_clients = lambda: dict(clients)
+
+        swept_at = None
+        for tick in range(0, 500, 5):
+            if tick == 120:             # login finally completes
+                clients["srv"] = object()
+            m._note_connected_servers()
+            if m._sweep_if_due(start + tick) and swept_at is None:
+                swept_at = tick
+        self.assertIsNotNone(swept_at, "the session never swept at all")
+        self.assertLess(swept_at, 120 + mgr.USERDATA_SWEEP_FLOOR,
+                        "the sweep waited out a floor started by a pass "
+                        "that had no server to ask")
+        self.assertGreaterEqual(swept_at, 120)
+
+    def test_a_manager_that_was_never_started_serves_no_settle(self):
+        """Every test in this file, and the integration harness, drives a
+        manager built by hand. `_started_at` is zero there, which has to
+        read as "not a client starting up" rather than as "started at the
+        epoch, so wait a minute"."""
+        m = self._manager(due=True)
+        self.assertTrue(m._sweep_if_due(10_000.0))
 
     def test_a_flapping_server_costs_one_sweep_per_floor(self):
         """Multi-step: the failure is a sweep per reconnect, which is the
