@@ -57,6 +57,9 @@ AGNOSTIC = [
 # running them under both backends is a free extra check that passes identically.
 PER_BACKEND_FAKE = [
     "tests.integration.test_player_state_machine",
+    # The start of playback, which is where the two backends' observer APIs
+    # actually differ: the load wait dispatches on which one the handle has.
+    "tests.integration.test_playback_start",
     "tests.integration.test_keyboard_controls",
     "tests.integration.test_lifecycle",
     "tests.integration.test_mpv_lifecycle",

@@ -8,10 +8,12 @@ cheap and side-effect free (the fast suite never touches it).
 Contents:
 
 * Capability probes (``HAVE_*``) + ``require_*`` skip helpers.
-* ``FakeMPV`` — a scriptable stand-in for the python-mpv / jsonipc backend that
-  records the observer/event/key callbacks ``PlayerManager`` registers and lets
-  a test fire them on an arbitrary thread. This is what makes the player
-  state-machine races reproducible without a real libmpv.
+* ``FakeMPV`` — a scriptable stand-in for an mpv backend that records the
+  observer/event/key callbacks ``PlayerManager`` registers and lets a test fire
+  them on an arbitrary thread. This is what makes the player state-machine
+  races reproducible without a real libmpv. ``FakeMPVLibmpv`` and
+  ``FakeMPVJsonIPC`` add the registration surface each real backend has, which
+  is what the shim dispatches on; ``fake_mpv_class()`` picks by ``BACKEND``.
 * ``import_player_with_fake_mpv`` — installs ``FakeMPV`` as the ``mpv`` module
   and imports ``jellyfin_mpv_shim.player`` against it, so the module-level
   ``PlayerManager()`` singleton constructs without a real player/window.
@@ -132,6 +134,12 @@ class FakeMPV:
       recorded; the many scalar properties (``pause``, ``playback_abort``,
       ``playback_time`` …) are plain attributes tests can set to script state.
 
+    What it deliberately does **not** have is either backend's property-observer
+    API: the shim picks between them by asking the class, so both surfaces on
+    one object means one branch is dead on every leg. Use ``fake_mpv_class()``
+    (or the subclasses) rather than instantiating this directly, unless what is
+    under test genuinely only needs the shared half.
+
     Property reads/writes can be made to raise a "disconnect" error to exercise
     the ``_mpv_errors`` handling paths (``fail_with``).
     """
@@ -155,7 +163,6 @@ class FakeMPV:
         self.mute = False
         self.speed = 1.0
         self.cache_buffering_state = 0
-        self.fs = False
         self.sub = "no"
         self.audio = "auto"
         self.osc = False
@@ -172,6 +179,64 @@ class FakeMPV:
         self.osd_back_color = "#C8000000"
         self.osd_font_size = 55
         self.osd_border_style = "outline-and-shadow"
+
+        # Properties the shim READS. Absent, each of these raised
+        # AttributeError -- and every read site is inside a broad
+        # ``except Exception``, so nothing failed: the path quietly took
+        # its "mpv would not answer" branch and the suite stayed green.
+        # That is not a fake with a gap, it is a fake asserting that mpv
+        # has no such property about properties mpv has always had. EOF
+        # was never detected, the trickplay arm never armed, the window
+        # geometry was never re-armed, and no chapter or track list was
+        # ever non-empty. Idle defaults: a test that wants one of these
+        # states sets it.
+        self.core_idle = True
+        self.eof_reached = False
+        self.chapter_list = []
+        self.track_list = []
+        self.demuxer_cache_state = None
+        self.mpv_version = "mpv 0.40.0"
+        self.vf = []
+        self.fullscreen = False
+        self.window_maximized = False
+        self.window_minimized = False
+        self.osd_width = 1280
+        self.osd_height = 720
+        self.video_aspect_override = -1.0
+
+        # ...and the ones it only WRITES. Modelled for their *starting*
+        # value rather than to stop an AttributeError: an assignment
+        # would have conjured the attribute either way, but then the
+        # only thing assertable is that the shim wrote what the shim
+        # wrote. ``keepaspect`` is the one that matters -- mpv starts it
+        # on, the browse window turns it off, and the bug worth catching
+        # is a picture-view reset putting it back mid-playback.
+        self.keepaspect = True
+        self.video_zoom = 0.0
+        self.video_pan_x = 0.0
+        self.video_pan_y = 0.0
+        self.geometry = None
+        # Literals, not player_window's constants: importing the shim at
+        # module scope is what this harness is careful not to do. They are
+        # the same two values, and player_window's own name for them says
+        # so ("mpv's own defaults").
+        self.background = "tiles"
+        self.background_color = "#000000"
+        self.hwdec = "no"
+        self.loop_file = "no"
+        self.secondary_sid = "no"
+        self.http_header_fields = []
+        self.audio_device = "auto"
+        self.audio_channels = "auto-safe"
+        self.audio_exclusive = False
+        self.audio_spdif = ""
+        self.audio_normalize_downmix = False
+
+        # Properties whose name is a path, which attribute access cannot
+        # reach ("user-data/mpvtk/active"). Read through _get_property on
+        # libmpv and `command("get_property", ...)` on jsonipc; absent
+        # here, both answer the way an unset property does.
+        self.raw_properties = {}
 
         # Registered callbacks.
         self._property_observers = {}   # name -> [callbacks]
@@ -204,6 +269,36 @@ class FakeMPV:
         # simulate an mpv that died under us).
         self.fail_with = None
 
+    # -- properties ---------------------------------------------------------
+
+    @property
+    def fs(self):
+        """mpv's documented alias for ``fullscreen`` -- one property under
+        two names.
+
+        Two independent attributes is the kind of infidelity that makes a
+        *wrong* test pass: the shim toggles fullscreen by writing ``fs``
+        (``set_fullscreen``) and asks about it by reading ``fullscreen``
+        (``_sync_window_geometry``, the HUD gateway), so split storage
+        would have the window agreeing it is not fullscreen immediately
+        after being made fullscreen.
+        """
+        return self.fullscreen
+
+    @fs.setter
+    def fs(self, value):
+        self.fullscreen = value
+
+    def _read_raw(self, name):
+        """One property read by its full path name, for both backends'
+        spelling of it. Unset raises, which is what a real mpv does for a
+        property it has no value for and what every caller here catches."""
+        if name in self.raw_properties:
+            return self.raw_properties[name]
+        if "/" not in name:
+            return getattr(self, name.replace("-", "_"))
+        raise AttributeError(name)
+
     # -- registration decorators (used by PlayerManager._init_mpv) ----------
 
     def on_key_press(self, key):
@@ -226,14 +321,6 @@ class FakeMPV:
             return func
 
         return deco
-
-    # jsonipc-style aliases, provided for completeness.
-    def bind_property_observer(self, name, func):
-        self._property_observers.setdefault(name, []).append(func)
-        return len(self._property_observers[name])
-
-    def bind_event(self, name, func):
-        self._event_callbacks.setdefault(name, []).append(func)
 
     # -- test drivers -------------------------------------------------------
 
@@ -297,6 +384,12 @@ class FakeMPV:
             raise self.fail_with
         self.commands.append(args)
         self._section_command(args)
+        if len(args) == 2 and args[0] == "get_property":
+            # jsonipc's spelling of _get_property, and it has to answer
+            # the same thing: a read the two backends disagree about is a
+            # test that passes on one matrix leg.
+            return self._read_raw(args[1])
+        return None
 
     def _section_command(self, args):
         """define/enable/disable-section, kept as state rather than only as
@@ -351,6 +444,104 @@ class FakeMPV:
         self.fail_with = exc
 
 
+class FakeMPVLibmpv(FakeMPV):
+    """python-mpv's surface: observers registered by *name and handler*.
+
+    Split from the jsonipc one because the shim chooses between the two by
+    capability -- ``hasattr(type(instance), "bind_property_observer")``, in
+    both ``mpv_events.observe`` and ``mpv_events.wait_property``. One fake
+    carrying both surfaces answers that question identically on both matrix
+    legs, so the libmpv branch was never taken by anything: the leg named
+    "libmpv" was exercising jsonipc's dispatch.
+    """
+
+    def observe_property(self, name, handler):
+        self._property_observers.setdefault(name, []).append(handler)
+
+    def unobserve_property(self, name, handler):
+        obs = self._property_observers.get(name, [])
+        if handler in obs:
+            obs.remove(handler)
+
+    def property_observer(self, name):
+        """The decorator, stamp and all.
+
+        python-mpv writes ``unobserve_mpv_properties`` onto the function it
+        is handed, and **a bound method has no __dict__ to take it**, so
+        this raises AttributeError for exactly the callbacks the shim
+        registers, on exactly one backend, at runtime and nowhere else.
+        That hazard is the reason ``mpv_events.observe`` exists; a fake
+        that accepts a bound method here cannot see anyone walk back into
+        it.
+        """
+        def deco(func):
+            self.observe_property(name, func)
+            func.unobserve_mpv_properties = \
+                lambda: self.unobserve_property(name, func)
+            return func
+
+        return deco
+
+    def _get_property(self, name):
+        return self._read_raw(name)
+
+
+class FakeMPVJsonIPC(FakeMPV):
+    """python-mpv-jsonipc's surface: observers registered by id.
+
+    The id is unique across the whole player rather than per property, and
+    it is modelled rather than counted for a reason: it is the only thing
+    ``unbind_property_observer`` is given, so an id unique only within one
+    property unbinds the wrong observer the moment two are watched. A fake
+    is supposed to expose that shape of bug, not reproduce it.
+    """
+
+    def __init__(self, **options):
+        super().__init__(**options)
+        self._observer_ids = {}          # id -> (name, handler)
+        self._next_observer_id = 1
+
+    def bind_property_observer(self, name, func):
+        observer_id = self._next_observer_id
+        self._next_observer_id += 1
+        self._observer_ids[observer_id] = (name, func)
+        self._property_observers.setdefault(name, []).append(func)
+        return observer_id
+
+    def unbind_property_observer(self, observer_id):
+        name, func = self._observer_ids.pop(observer_id, (None, None))
+        obs = self._property_observers.get(name, [])
+        if func in obs:
+            obs.remove(func)
+
+    def bind_event(self, name, func):
+        self._event_callbacks.setdefault(name, []).append(func)
+
+    def on_event(self, name):
+        def deco(func):
+            self.bind_event(name, func)
+            return func
+
+        return deco
+
+
+def fake_mpv_class(backend=None):
+    """The fake whose surface matches the backend this leg is exercising."""
+    return FakeMPVLibmpv if (backend or BACKEND) == "libmpv" else FakeMPVJsonIPC
+
+
+def is_fake_mpv(mod):
+    """Whether an imported ``mpv`` / ``python_mpv_jsonipc`` module is ours.
+
+    ``is FakeMPV`` no longer answers this -- what a module carries is one of
+    the two flavours -- and an identity check that has silently stopped
+    matching reports every fake as real, which is how a "this must not be
+    the fake" assertion dies.
+    """
+    cls = getattr(mod, "MPV", None)
+    return isinstance(cls, type) and issubclass(cls, FakeMPV)
+
+
 def make_fake_mpv_module(backend="libmpv"):
     """Return an object usable as a stand-in for the imported mpv backend.
 
@@ -363,7 +554,7 @@ def make_fake_mpv_module(backend="libmpv"):
 
     name = "mpv" if backend == "libmpv" else "python_mpv_jsonipc"
     mod = types.ModuleType(name)
-    mod.MPV = FakeMPV
+    mod.MPV = fake_mpv_class(backend)
     if backend == "libmpv":
         mod.ShutdownError = ShutdownError
     return mod
@@ -503,7 +694,7 @@ def build_player(player_module, video=None):
     PlayerManager = player_module.PlayerManager
     pm = PlayerManager.__new__(PlayerManager)
 
-    pm._player = FakeMPV()
+    pm._player = fake_mpv_class()()
     pm._video = video
     pm.evt_queue = Queue()
     pm._lock = RLock()

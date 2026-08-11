@@ -38,11 +38,10 @@ before = sys.modules.get(name)
 player = h.import_player_with_fake_mpv()
 after = sys.modules.get(name)
 
-print("PLAYER_BOUND_TO_FAKE",
-      getattr(getattr(player, "mpv", None), "MPV", None) is h.FakeMPV)
+print("PLAYER_BOUND_TO_FAKE", h.is_fake_mpv(getattr(player, "mpv", None)))
 print("SYSMODULES_RESTORED", after is before is not None)
 fresh = __import__(name)
-print("FRESH_IMPORT_IS_REAL", getattr(fresh, "MPV", None) is not h.FakeMPV)
+print("FRESH_IMPORT_IS_REAL", not h.is_fake_mpv(fresh))
 '''
 
 
