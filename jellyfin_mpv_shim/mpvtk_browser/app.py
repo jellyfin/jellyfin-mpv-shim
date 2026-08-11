@@ -600,10 +600,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         route["_refreshing"] = True
         self._load_route(route)
 
-    #: How long a UserDataChanged burst settles before Home re-reads. The
-    #: server sends one per progress report -- including for our own
-    #: playback -- so without this, watching a film would refetch the home
-    #: screen every few seconds behind the video.
+    #: How long a UserDataChanged burst settles before Home re-reads.
+    #:
+    #: Not as large a burst as it once said here. That comment claimed the
+    #: server sends one per progress report, including for our own playback,
+    #: so watching a film would refetch Home every few seconds; measured
+    #: against 10.11.11 and 12.0.0, progress saves are dropped before the
+    #: message is built and three progress reports produce zero events. What
+    #: is left is a start, a stop, and whatever anyone marks by hand -- the
+    #: server already coalescing 500 ms of those into one message. So this
+    #: is settling a handful of events, not a stream, and it stays because
+    #: a handful still arrives together and Home is several requests.
     USERDATA_DEBOUNCE = 3.0
 
     def refresh_home(self, _client=None, now=False):

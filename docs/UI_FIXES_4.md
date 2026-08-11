@@ -776,6 +776,111 @@ notifies the browser when something actually moved. `db.update_userdata` now
 returns whether it changed anything, which is what makes that last part
 possible.
 
+### Then measured, and mostly replaced
+
+The pull above was the right shape and the wrong mechanism, and three
+measurements said so. What replaced it:
+
+**The server already pushes the answer.** `UserDataChanged` carries
+`UserDataList[]` — `ItemId`, `Played`, `PlaybackPositionTicks`, `PlayCount`,
+`IsFavorite` — so the episode watched on a phone can be applied from the
+message that announced it, at **zero requests**. `event_handler.py` had been
+taking that payload as `_arguments` and dropping it, and the five-minute poll
+existed to go and ask for what the socket had already said.
+`SyncManager.apply_userdata_event` is the consumer.
+
+**And then the interval went away entirely**, which was **[iw]**'s question:
+if the push is the mechanism, a timer is only needed for when the push
+*fails* — otherwise reconnect and startup are the whole schedule. That is
+right, and the reason it is right is that a sweep covers *a stretch during
+which nothing was listening*, which is not a duration but an interval with
+**edges**: it starts when a server drops and ends when one connects. So the
+trigger is a server appearing in `clientManager.clients`
+(`_note_connected_servers`), which also covers startup with no special case,
+and there is no periodic sweep at all. An idle app with a live socket now
+asks the server nothing, ever.
+
+Watched rather than subscribed: `on_server_connected` means almost exactly
+this, but it is a single slot `ui.py` assigns *after* `syncManager.start()`
+runs, and it is a notification — five call sites today, and a sixth path that
+reconnects without firing it would leave a gap invisible until somebody's
+catalog was stale. The registry is the state, so a set comparison against it
+cannot miss a transition however the server came back. (**[iw]** noted the
+CLI half of the original argument was moot, since downloads are GUI-only;
+that is true and it is not the reason.)
+
+`USERDATA_SWEEP_FLOOR` (300 s) is all that remains of the timer, and it is
+there for the one trigger with no edge — a server that *flaps*. It **defers**
+a pending sweep rather than dropping it: a suppressed trigger would be a
+stretch of time nobody ever looks at again. So twenty reconnects inside one
+floor cost one sweep, and the twenty-first still sweeps once the floor lifts.
+
+**The pull was asking for 29 fields to read one.** `get_items(batch)` with no
+`fields` sends the apiclient's `info()` default, `MediaSources` included.
+Measured against 12.0, 60 ids: **73 ms / 191 KB** with the default against
+**13 ms / 60 KB** with `fields=""`, for byte-identical `UserData`. (This is
+the "not acted on" item below, now acted on — and the reasoning recorded there
+for deferring it was wrong.)
+
+**And the requests went out in one burst.** `USERDATA_BATCH_PAUSE` spaces them
+by three seconds; nothing is waiting on the sweep, and a catalog of a few
+hundred is several requests at a server that may also be streaming to us.
+
+**The local half had a second gate nobody had noticed.** `_mirror_locally`
+writes either way — but all three reporting call sites reached it only through
+`hasattr(video, "record_offline_progress")`, which is true only of a video
+played *from the downloaded file*. So streaming an episode you also had
+downloaded still wrote nothing, and the copy on disk never learned it had been
+watched. `ReportingMixin._record_progress` is now one helper with no gate at
+all; `db.update_userdata` answering False for an item it holds no row for is
+what makes that safe to call for everything played.
+
+### Three things about the server, measured against 10.11.11 and 12.0.0
+
+All three were assumptions somewhere in this app, and one of them was wrong in
+the comment that justified a design.
+
+1. **A progress report announces nothing.**
+   `UserDataChangeNotifier.OnUserDataManagerUserDataSaved` returns early on
+   `UserDataSaveReason.PlaybackProgress`. Three progress reports produce zero
+   events. The comment on `event_handler.user_data_change` had claimed the
+   opposite — "fires every few seconds while watching" — and `USERDATA_DEBOUNCE`
+   and `USERDATA_REQUEST_FLOOR` were both sized against that.
+2. **Not even the one that finishes the item.** The obvious guess, and the one
+   the first draft of the e2e suite pinned: a progress report that carries an
+   item past the completion threshold is saved under `PlaybackProgress` like
+   any other. `Video.PropagatePlayedState` is the only thing done differently,
+   and it returns immediately for a video with no alternate versions. So
+   another device can watch something to the end and this client is told
+   nothing until that device sends its **stop** — which a client killed
+   mid-playback never does. That gap is why the sweep survives at all, and why
+   making it cheap mattered more than making it rare.
+3. **The message is not filtered by origin.** It goes to every session the
+   *user* has, including the one that caused it. Measured symmetric.
+
+`MinDateLastSavedForUser` was also considered as a "what changed since T"
+watermark and is **not one**: `BaseItemRepository.TranslateQuery.cs:282`
+filters `e.DateLastSaved`, the item's metadata save date, identical to
+`MinDateLastSaved`. Measured, right after marking an item played: a
+year-old mark returns all 3,224 items and an hour-old mark returns none.
+
+### And an e2e suite, because all of the above is somebody else's code
+
+`tests/e2e/test_offline_sync.py`. The fast suite answers the server from a
+mock, and `tests/integration/test_e2e_offline.py` fakes the HTTP client by its
+own admission — so every belief about *when* the server announces a change was
+untested. Both directions, the websocket path through the real `EventHandler`,
+and the two counter-intuitive facts above, against a real server on both major
+versions.
+
+Two things it had to learn the hard way, both the repo's existing live-test
+rules: a wait satisfied by **stale evidence** (`setUp`'s own `reset_played`
+emits an event, so waiting without clearing first returns that one and the real
+event lands in a just-emptied list — which is what made fact 2 look false), and
+a **negative assertion that cannot fail** (silence over a socket reads the same
+as a dead socket, so the same window is made to produce an event on demand
+before the absence of one is believed).
+
 **Advance-only, still.** The local copy is a floor, not a mirror: an item
 un-watched on another device stays watched here. That is the existing rule
 rather than a decision taken here, and it is the one thing about this worth
@@ -1991,10 +2096,18 @@ path fires.
 
 ### Not acted on
 
-The userdata pull asking for the apiclient's default field set. Real but
+~~The userdata pull asking for the apiclient's default field set. Real but
 small, and `UserData` rides `EnableUserData` rather than `Fields`, so the
 tightening is a `fields=""` experiment rather than a fix. Left for the next
-pass.
+pass.~~
+
+**Done, and the reasoning here was wrong.** `UserData` does ride
+`EnableUserData`, which is why `fields=""` is safe — but that is the argument
+for making the change, not against it: the default field set is 29 fields
+including `MediaSources`, and dropping it costs nothing that is read.
+Measured, 60 ids against 12.0: 73 ms / 191 KB down to 13 ms / 60 KB. "Real but
+small" was an estimate where a measurement was available. See *Then measured,
+and mostly replaced* above.
 
 ### One that was missed, and how
 

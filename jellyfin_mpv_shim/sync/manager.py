@@ -46,22 +46,42 @@ CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
 PLAYSTATE_INTERVAL = 30    # replay offline playstate at least this often (s)
 
-#: ...and pull the server's answer back down this often. Slower than the
-#: replay: what it catches is somebody watching an episode on another
-#: device, which is not a thing that needs noticing within the minute, and
-#: it costs a request per batch against every reachable server.
-USERDATA_REFRESH_INTERVAL = 300
-
-#: Floor on how often a *request* (the home screen loading) can bring the
-#: pull forward. Without it, bouncing in and out of Home is a refresh per
-#: visit; with it, the screen you are about to read is up to date and the
-#: server is asked at most twice a minute.
-USERDATA_REQUEST_FLOOR = 30
+#: Minimum gap between two catalog sweeps, whatever asked for them.
+#:
+#: **There is deliberately no interval to go with it.** The sweep is not a
+#: poll: `apply_userdata_event` applies changes as the server pushes them,
+#: so a timer would be asking, over and over, about a period during which
+#: anything that happened has already been applied. What a sweep covers is
+#: a *stretch with nobody listening*, and that stretch has edges the app
+#: can see -- it starts when a server drops and ends when one connects. So
+#: sweeps are triggered by those edges (`_note_connected_servers`, plus
+#: the first pass after start), never by elapsed time.
+#:
+#: This floor exists for the one thing that has no edge: a server that
+#: flaps, reconnecting every few seconds, would otherwise sweep on each
+#: one. A pending sweep is **deferred** by the floor rather than dropped
+#: (see `_run`), so no trigger is ever lost -- only delayed.
+USERDATA_SWEEP_FLOOR = 300
 
 #: Ids per request. They travel in the query string, which servers and
 #: proxies cap (the apiclient's own note on get_items says so), and a
 #: catalog of a few hundred downloads would otherwise be one 414.
 USERDATA_BATCH = 60
+
+#: Seconds between one sweep request and the next. The sweep is background
+#: work with nobody waiting on it, and a catalog of a few hundred items is
+#: several requests: sending them back to back is a burst at a server that
+#: may also be streaming to this client. Spread them instead -- 500 items
+#: is 9 requests over ~24s rather than 9 at once. Waited on `_wake`, which
+#: `stop()` sets, so shutdown does not sit out the delay.
+USERDATA_BATCH_PAUSE = 3
+
+#: A UserDataChanged carrying more entries than this is applied by marking
+#: the sweep due rather than one row at a time. The ordinary message is two
+#: entries (the item and its parent); something that moved hundreds at once
+#: is a bulk mark or a plugin, and walking it on the websocket thread would
+#: hold up every other event behind it.
+USERDATA_EVENT_MAX = 200
 STOP_JOIN_TIMEOUT = 10     # how long stop() waits for the worker to unwind (s)
 
 
@@ -167,8 +187,22 @@ class SyncManager:
         # that is mid-move.
         self._relocating = False
         self._last_playstate = 0.0
-        #: Same shape as _last_playstate, for the pull direction.
+        #: When the last catalog sweep ran, for USERDATA_SWEEP_FLOOR. Unlike
+        #: _last_playstate this does not schedule anything: nothing is due
+        #: because time passed, only because something asked.
         self._last_userdata = 0.0
+        #: Set when something has happened that the websocket could not have
+        #: told us about. True at construction because starting up is one of
+        #: those things -- the app was not listening a moment ago.
+        self._sweep_due = True
+        #: Server uuids that had a client last time the worker looked. The
+        #: transition *into* this set is the reconnect signal; see
+        #: _note_connected_servers for why it is watched here rather than
+        #: subscribed to.
+        self._connected_servers = set()
+        #: All connected clients, for the above. Set in start(); the default
+        #: keeps a directly-driven manager (every test) safe.
+        self.get_clients = lambda: {}
         # item_id -> (last downloaded size, consecutive no-progress short reads).
         # A short read normally leaves the row pending to resume; but a server
         # that cleanly truncates at the same offset every time would resume
@@ -183,6 +217,8 @@ class SyncManager:
         auto-download; both optional so existing callers and the tests keep
         working, in which case auto-download simply finds no servers."""
         self.get_client = get_client
+        if get_clients is not None:
+            self.get_clients = get_clients
         self.auto = AutoDownloader(self, get_clients=get_clients,
                                    is_busy=is_busy,
                                    should_stop=lambda: self._stop)
@@ -875,9 +911,8 @@ class SyncManager:
                 if now - self._last_playstate >= PLAYSTATE_INTERVAL:
                     self._last_playstate = now
                     self._sync_playstate()
-                if now - self._last_userdata >= USERDATA_REFRESH_INTERVAL:
-                    self._last_userdata = now
-                    self._refresh_userdata()
+                self._note_connected_servers()
+                self._sweep_if_due(now)
                 row = self._next_runnable()
                 # Only between downloads: a pass here would otherwise
                 # enqueue work while the user's own download is streaming,
@@ -962,41 +997,211 @@ class SyncManager:
             log.info("Synced %d offline playstate change(s) to the server.",
                      len(done))
 
+    def _sweep_if_due(self, now):
+        """Run a pending catalog sweep, unless one ran too recently.
+
+        The floor **defers, it does not drop**. A suppressed trigger would
+        be a stretch of time nobody ever looks at again -- the flag is set
+        because something happened that the websocket could not report, and
+        that does not stop being true because a sweep happened to run three
+        minutes ago. So `_sweep_due` stays up and the sweep goes out as
+        soon as it is allowed to, which is what makes a flapping server
+        cost one sweep per floor rather than one per flap.
+
+        Returns whether it swept, which is what the tests read.
+        """
+        if not self._sweep_due:
+            return False
+        if now - self._last_userdata < USERDATA_SWEEP_FLOOR:
+            return False
+        self._sweep_due = False
+        self._last_userdata = now
+        self._refresh_userdata()
+        return True
+
+    def _note_connected_servers(self):
+        """Watch for a server appearing, and mark a sweep due when one does.
+
+        This is the whole schedule. A sweep covers a stretch during which
+        nothing was listening, and a server *becoming reachable* is the end
+        of exactly such a stretch -- so it is the trigger, in place of the
+        interval this used to have. Startup is the same event (every server
+        transitions into the set on the first pass) and needs no special
+        case, though `_sweep_due` starts True anyway so a catalog is swept
+        even on a machine with no servers configured yet.
+
+        **Watched here rather than subscribed to.** `clientManager` has an
+        `on_server_connected` hook that means almost precisely this, and
+        two things argue against hanging the sweep off it. It is a single
+        slot that `mpvtk_browser/ui.py` already assigns, and it is assigned
+        *after* `syncManager.start()` runs -- so taking it would mean either
+        clobbering the browser's use of it or growing a fan-out for one more
+        listener. And it is a notification: it fires from five call sites,
+        and a sixth path that reconnects without calling it would leave a
+        gap that is invisible until somebody's catalog is stale. The
+        registry is the state itself, so a comparison against it cannot
+        miss a transition however the server came back -- health check,
+        websocket redial, or the user logging in -- and it is a set
+        comparison on a loop that already runs every five seconds.
+
+        Disappearances are recorded but trigger nothing: there is nothing to
+        catch up on with a server that just went away.
+        """
+        try:
+            connected = set(self.get_clients() or {})
+        except Exception:
+            log.debug("could not read the connected server list",
+                      exc_info=True)
+            return
+        if connected - self._connected_servers:
+            log.debug("Server(s) %s reachable again; catalog sweep due.",
+                      ", ".join(sorted(connected - self._connected_servers)))
+            self._sweep_due = True
+        self._connected_servers = connected
+
     def request_userdata_refresh(self):
-        """Bring the userdata pull forward — the home screen is loading.
+        """Ask for a catalog sweep — the home screen is loading.
 
-        The five-minute tick is right for a background poll and wrong for
-        the moment somebody opens the screen that draws watched state: an
-        episode finished on a phone should not need up to five minutes to
-        show here, and going offline in that window shows the stale answer
-        for as long as you are offline.
+        The one trigger that is not an edge the app can see, and the only
+        thing left covering the gap measured in
+        `tests/e2e/test_offline_sync.py`: another client can play something
+        to the end and never report its stop, and the server announces that
+        to nobody. No reconnect happens, so nothing else here would ever
+        notice. Home is where it would show, and a person opening Home is
+        the closest thing to a signal that exists.
 
-        Cheap and non-blocking: this only marks the pull due and wakes the
+        Not floored here -- `_run` defers rather than drops, so bouncing in
+        and out of Home cannot turn this into a poll and cannot lose a
+        request either.
+
+        Cheap and non-blocking: this only marks the sweep due and wakes the
         worker, so the requests happen on the sync thread rather than on
         whatever loaded the page.
         """
-        now = time.monotonic()
-        if now - self._last_userdata < USERDATA_REQUEST_FLOOR:
-            return          # one just ran; the screen is already current
-        self._last_userdata = 0.0       # due on the next tick
+        self._sweep_due = True
         self._wake.set()
+
+    def mirror_playstate(self, item_id, position_ticks=None, played=None):
+        """Record what *this* app just played, for an item we hold a copy of.
+
+        The catalog is what offline browsing reads, and until this existed
+        it was written only when the file being played was the downloaded
+        one. Streaming an episode you also have downloaded therefore left
+        the catalog at position 0 -- so the copy on disk, the one you keep
+        precisely because you are about to lose the network, was the one
+        thing that did not know you had watched it.
+
+        Unconditional on purpose: no check of whether the server is
+        reachable, and no check of whether the item is downloaded. The
+        server half is somebody else's job (the timeline reports to it, and
+        `_sync_playstate` replays what it missed); the downloaded half is
+        answered by ``db.update_userdata``, which returns False for an item
+        it holds no row for. That makes this safe to call for every item
+        played, which is the property that keeps it from being forgotten at
+        a call site again.
+
+        Advance-only, like every other writer of this column. Never raises.
+        """
+        if not item_id or (played is None and position_ticks is None):
+            return False
+        db = self.db
+        if db is None:
+            return False
+        try:
+            return db.update_userdata(item_id, played=played,
+                                      position_ticks=position_ticks)
+        except Exception:
+            log.debug("Could not mirror playstate for %s", item_id,
+                      exc_info=True)
+            return False
+
+    def apply_userdata_event(self, arguments):
+        """Apply a ``UserDataChanged`` push to the catalog. No requests.
+
+        This is how watched state normally arrives, and it is free: the
+        server sends the changed values themselves, so the item finished on
+        a phone is written here from the message that announced it rather
+        than from a sweep that goes and asks. `_refresh_userdata` is what
+        covers the gap where nobody was listening.
+
+        The payload is ``{UserId, ServerId, UserDataList: [...]}``, each
+        entry a ``UserItemDataDto`` -- ``ItemId``, ``Played``,
+        ``PlaybackPositionTicks``, ``PlayCount``, ``IsFavorite``. Measured
+        against 10.11.11 and 12.0.0, which agree.
+
+        **Not every save produces one**, and the exception is the one that
+        would otherwise matter most: the server drops ``PlaybackProgress``
+        saves before it ever builds this message
+        (``UserDataChangeNotifier.OnUserDataManagerUserDataSaved``), so a
+        client streaming somewhere else announces its *start* and its
+        *stop* and nothing in between. That is why this does not replace
+        the sweep, and why it is not a problem that it does not: a position
+        this client did not see move is caught at the stop, and our own
+        playback is mirrored locally without the server's help.
+
+        Ids not in the catalog cost one indexed SELECT and are dropped --
+        which is most of them, since the server adds each item's *parent*
+        to the list for its own indicator refresh. Runs on the websocket
+        thread, so a list long enough to hold that thread up is handed to
+        the sweep instead of walked here.
+        """
+        entries = (arguments or {}).get("UserDataList") or []
+        if not entries:
+            return
+        if len(entries) > USERDATA_EVENT_MAX:
+            log.debug("UserDataChanged carried %d entries; sweeping instead.",
+                      len(entries))
+            self.request_userdata_refresh()
+            return
+        db = self.db
+        if db is None:
+            return              # catalog not open (or already closed)
+        updated = 0
+        for entry in entries:
+            item_id = entry.get("ItemId")
+            if not item_id:
+                continue
+            try:
+                # `or None` on played, matching the sweep: db.update_userdata
+                # is advance-only, and False there would mean "leave it
+                # alone" anyway. An un-watch elsewhere does not retreat the
+                # local copy -- see _refresh_userdata's note on that rule,
+                # which this deliberately does not change.
+                if db.update_userdata(
+                        item_id,
+                        played=entry.get("Played") or None,
+                        position_ticks=entry.get("PlaybackPositionTicks")):
+                    updated += 1
+            except Exception:
+                log.debug("Could not apply pushed userdata for %s", item_id,
+                          exc_info=True)
+        if updated:
+            log.debug("Applied pushed watched state for %d downloaded "
+                      "item(s).", updated)
+            self._notify_change()
 
     def _refresh_userdata(self):
         """Pull the server's watched state for what we hold, and store it.
 
-        The other direction from :meth:`_sync_playstate`, and the half that
-        needs the server *asked*: an episode watched on a phone changes
-        nothing here until somebody tells us. Without it the catalog is a
-        download-time snapshot, so offline browsing shows a series you have
-        since finished as untouched -- and "delete watched downloads", which
-        reads ``userdata_json`` with no server fallback, quietly skips
-        everything watched elsewhere.
+        The other direction from :meth:`_sync_playstate`, and **the
+        fallback rather than the mechanism**. An episode watched on a phone
+        is normally applied here for free, by `apply_userdata_event`, the
+        moment the server pushes it. What this covers is what the socket
+        cannot: the stretch where nothing was listening -- offline, logged
+        out, not running -- after which there is nothing to replay and only
+        asking will do, and the narrower case of another client that
+        finished something and never reported its stop, which the server
+        records and announces to nobody (see `apply_userdata_event`).
+        Without it the catalog would be a download-time snapshot across
+        exactly that gap, so offline browsing shows a series you finished on
+        the flight out as untouched, and "delete watched downloads" (which
+        reads ``userdata_json`` with no server fallback) quietly skips it.
 
         Batched: one request per ``USERDATA_BATCH`` ids per server, rather
-        than the per-item call the auto-download reaper makes. That reaper
-        is the reason this is worth having at all -- it already pays a round
-        trip per row to work around the stale snapshot, and it is the only
-        consumer that could.
+        than the per-item call the auto-download reaper makes, and spaced by
+        ``USERDATA_BATCH_PAUSE`` so a large catalog does not arrive as a
+        burst. Nothing is waiting on it, so the spacing costs nothing that
+        anyone can see.
 
         **Advance-only**, because it goes through ``db.update_userdata``:
         the local copy is a floor, not a mirror. An item un-watched on
@@ -1016,6 +1221,7 @@ class SyncManager:
                 by_server.setdefault(row.get("server_uuid"), []).append(
                     row["item_id"])
         updated = 0
+        sent = 0
         for server_uuid, ids in by_server.items():
             client = self.get_client(server_uuid)
             if client is None:
@@ -1023,9 +1229,25 @@ class SyncManager:
             for start in range(0, len(ids), USERDATA_BATCH):
                 if self._stop:
                     return      # shutdown: the catalog closes behind us
+                if sent:
+                    # Between requests, never before the first: a sweep of
+                    # one batch must not pay for spacing it does not need.
+                    # Counted across servers too -- two servers' worth of
+                    # batches back to back is the same burst from this
+                    # machine's uplink even though neither server sees it.
+                    self._wake.wait(USERDATA_BATCH_PAUSE)
+                    if self._stop:
+                        return
+                sent += 1
                 batch = ids[start:start + USERDATA_BATCH]
                 try:
-                    result = client.jellyfin.get_items(batch) or {}
+                    # `fields=""`, not the apiclient's default: that default
+                    # is info(), 29 fields including MediaSources, and this
+                    # wants exactly one field group -- UserData, which comes
+                    # back whatever Fields says. Measured against 12.0 for
+                    # 60 ids: 73 ms and 191 KB with the default, 13 ms and
+                    # 60 KB without it, for byte-identical UserData.
+                    result = client.jellyfin.get_items(batch, fields="") or {}
                 except Exception:
                     log.debug("Userdata refresh failed for %s", server_uuid,
                               exc_info=True)

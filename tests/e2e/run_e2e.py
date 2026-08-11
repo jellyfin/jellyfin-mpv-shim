@@ -108,6 +108,14 @@ CONTRACT = [
     # no position at all. Pinned because reading it wrong looks exactly
     # like a client bug.
     "tests.e2e.test_audiobooks",
+    # Offline watched state, both directions, plus the websocket message
+    # the whole design now rests on. The fast suite answers the server from
+    # a mock and the offline integration test fakes the HTTP client by its
+    # own admission, so every belief about *when* the server announces a
+    # change was untested until this -- and the obvious guess about the one
+    # that matters (does finishing something elsewhere announce itself?) is
+    # the wrong one.
+    "tests.e2e.test_offline_sync",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.
