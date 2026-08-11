@@ -215,10 +215,12 @@ class FakeMPVJournalTest(unittest.TestCase):
     def setUp(self):
         self.player = fake_mpv_class()()
 
-    def test_the_constructors_own_defaults_are_not_events(self):
-        """Two dozen entries every test has to read past, none of which
-        anything did."""
-        self.assertEqual(self.player.journal.entries(), [])
+    def test_the_constructor_is_one_event_and_not_two_dozen(self):
+        """The defaults are not events -- nothing did them. The handle
+        coming into being is, because "after the new mpv exists" is the
+        ordering half of every re-creation claim and otherwise has no moment
+        to name."""
+        self.assertEqual(self.player.journal.entries(), ["mpv.create"])
 
     def test_a_property_write_is_recorded(self):
         self.player.keepaspect = False

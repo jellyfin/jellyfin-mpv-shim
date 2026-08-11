@@ -93,6 +93,25 @@ def require_real_mpv(obj):
 # Journal — an ordered record of what the fakes were asked to do
 # --------------------------------------------------------------------------
 
+#: The journal a fake with no journal of its own joins. Set by
+#: ``build_player`` for the life of that player, because ``_init_mpv``
+#: constructs its mpv through the *module* -- so a re-created player would
+#: otherwise start a private journal and everything after an mpv
+#: re-creation would vanish from the record. Re-creation is exactly when
+#: order matters most: the menu and the SyncPlay session survive it, and
+#: whether the new handle is configured before or after they are re-pointed
+#: at it is the shape of several bugs already in this file.
+_ACTIVE_JOURNAL = None
+
+
+def use_journal(journal):
+    """Make ``journal`` the one new fakes join. Returns the previous."""
+    global _ACTIVE_JOURNAL
+    previous = _ACTIVE_JOURNAL
+    _ACTIVE_JOURNAL = journal
+    return previous
+
+
 class _Unset:
     """Distinguishes "no value" from a recorded ``None``, which is a real
     mpv property value."""
@@ -467,7 +486,12 @@ class FakeMPV:
         # Recording starts here. Shared with the other stand-ins when
         # build_player hands one in, so the ordering ACROSS collaborators is
         # readable -- which is the half no per-object recorder can show.
-        self._journal = self._pending_journal or Journal()
+        self._journal = self._pending_journal or _ACTIVE_JOURNAL or Journal()
+        # One event for the handle coming into being. The constructor's own
+        # writes are deliberately not events, which leaves "after the new
+        # mpv exists" -- the ordering half of every re-creation claim --
+        # with no moment to name. This is that moment.
+        self._journal.record("mpv", "create")
 
     # -- the journal --------------------------------------------------------
 
@@ -661,7 +685,18 @@ class FakeMPV:
         self.played.append(url)
         # A real play() clears the aborted/idle state; duration becomes known
         # shortly after. Tests that use wait_property drive that separately.
-        self.playback_abort = False
+        #
+        # Recorded as mpv's doing, not ours: `playback-abort` is a READ-ONLY
+        # mpv property, so a `set:` event here would say the shim wrote
+        # something it cannot write -- and would break the one assertion
+        # that is worth making about a read-only property, which is that
+        # nothing ever writes it.
+        self._suppress_set = True
+        try:
+            self.playback_abort = False
+        finally:
+            self._suppress_set = False
+        self._journal.record("mpv", "prop", "playback-abort", False)
 
     def show_text(self, text, duration=None, level=None):
         self._journal.record("mpv", "text", text)
@@ -677,7 +712,13 @@ class FakeMPV:
 
     def terminate(self):
         self._journal.record("mpv", "terminate")
-        self.terminated = True
+        # This fake's own bookkeeping -- mpv has no `terminated` property --
+        # so it is not an event.
+        self._suppress_set = True
+        try:
+            self.terminated = True
+        finally:
+            self._suppress_set = False
 
     # Property access hook for the fail_with paths. We can't intercept normal
     # attribute reads cheaply without __getattribute__ gymnastics, so tests that
@@ -945,6 +986,10 @@ def build_player(player_module, video=None):
     # sequence. That is the half a per-object recorder cannot show, and the
     # half this codebase's ordering bugs live in.
     pm.journal = Journal()
+    # ...and every mpv built AFTER this one joins it too. _init_mpv goes
+    # through the fake module, which cannot be handed a journal, so without
+    # this the record stops at the first re-creation.
+    use_journal(pm.journal)
     pm._player = fake_mpv_class()(journal=pm.journal)
     pm._video = video
     pm.evt_queue = Queue()
@@ -1108,6 +1153,7 @@ class _FakeMenu:
     def update_player(self, player):
         # Mirrors OSDMenu.update_player: the menu survives mpv re-creation and
         # is pointed at the new player handle.
+        self.journal.record("menu", "update_player")
         self.player = player
 
 

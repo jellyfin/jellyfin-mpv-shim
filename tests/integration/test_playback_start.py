@@ -24,6 +24,7 @@ fail the test -- it took the "mpv would not answer" branch and left the
 assertion looking satisfied.
 """
 
+import contextlib
 import os
 import sys
 import threading
@@ -217,7 +218,7 @@ class StartOrderTest(unittest.TestCase):
     them -- see `tests/test_fake_journal.py`.
     """
 
-    def _start(self):
+    def _start(self, video=None, **settings_kw):
         pm = build()
         timer = threading.Timer(
             0.05, lambda: pm._player.fire_property("duration", 100.0))
@@ -225,8 +226,13 @@ class StartOrderTest(unittest.TestCase):
         timer.start()
         self.addCleanup(timer.cancel)
         with mock.patch.object(player_module.settings, "playback_timeout", 2):
-            pm._play_media(make_video(), "http://example.invalid/s.mkv",
-                           is_initial_play=True)
+            with contextlib.ExitStack() as stack:
+                for key, value in settings_kw.items():
+                    stack.enter_context(
+                        mock.patch.object(player_module.settings, key, value))
+                pm._play_media(video or make_video(),
+                               "http://example.invalid/s.mkv",
+                               is_initial_play=True)
         return pm
 
     def test_the_volume_is_applied_before_the_file_is_handed_over(self):
@@ -234,8 +240,25 @@ class StartOrderTest(unittest.TestCase):
         the track never briefly blares at the default while mpv
         probes/loads". Writing it afterwards still ends at the right volume,
         so every non-ordering assertion passes -- and the user still gets a
-        second of the default one."""
-        self._start().journal.order("mpv.set:volume", "mpv.play")
+        second of the default one.
+
+        The value is pinned as well as the position, and the two defaults
+        are made to differ to do it: `music_volume` and `video_volume` are
+        both 100 out of the box, so a version that read the wrong one wrote
+        the same number and the journal could not tell.
+        """
+        pm = self._start(music_volume=40, video_volume=90)
+        pm.journal.order("mpv.set:volume=90", "mpv.play")
+
+    def test_a_song_gets_the_music_volume_and_a_film_the_video_one(self):
+        """Which of the two, decided from the item about to play rather than
+        from what is playing now -- there is nothing playing yet."""
+        song = make_video(item_id="song")
+        song.item = {"MediaType": "Audio", "Type": "Audio"}
+        self._start(song, music_volume=40, video_volume=90).journal.happened(
+            "mpv.set:volume=40")
+        self._start(music_volume=40, video_volume=90).journal.happened(
+            "mpv.set:volume=90")
 
     def test_the_menu_is_taken_down_before_the_file_is_handed_over(self):
         self._start().journal.order("menu.hide", "mpv.play")

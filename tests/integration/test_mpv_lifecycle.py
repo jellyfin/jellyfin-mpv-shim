@@ -590,6 +590,93 @@ class WindowLifecycleTest(unittest.TestCase):
         self.assertEqual(self._stops(pm), [], "stopped the music")
 
 
+class KeyClaimsSurviveReopenTest(unittest.TestCase):
+    """A claim lives in an mpv **input section**, which dies with the handle.
+
+    The menu object and the SyncPlay session survive an mpv re-creation --
+    two classes above assert that -- because they are the player's, not the
+    handle's. A key claim is the opposite: it is state inside mpv, so
+    re-creating mpv silently un-claims every key unless the claims are
+    re-installed on the new one.
+
+    Nothing would notice. A re-open only happens on the external backend
+    after an idle-quit, and the symptom is that the keys the shim had taken
+    over go back to meaning what mpv thinks they mean -- pause still pauses,
+    seek still seeks, so the app is *almost* right and only the parts that
+    needed the interception (the menu's arrows, the seek gate) are wrong.
+    """
+
+    def _player(self):
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        pm._video = None
+        pm.mpvtk_active = False
+        return pm
+
+    def _reopen(self, pm):
+        """A re-creation by the seam both crash recovery and idle-quit reach.
+
+        **Not** through ``idle_quit``, which is gated on the backend: a
+        *user-launched* external mpv is never quit, and the fake jsonipc leg
+        is exactly that (``import_player_with_fake_mpv`` sets
+        ``mpv_ext_start`` False so the fake cannot spawn a process). Driven
+        that way, this re-created nothing on one of the two legs and the
+        assertions then ran against an empty journal -- which is how a test
+        passes for the wrong reason on the leg you were not watching.
+        `MenuSurvivesReopenTest` already uses this shape.
+
+        The precondition is asserted rather than assumed for the same
+        reason: "nothing was rebuilt" and "it was rebuilt wrongly" have to
+        be told apart by the failure, not by reading the code afterwards.
+        """
+        previous = pm._player
+        pm._mpv_alive = False
+        pm.journal.mark("reopening")
+        pm._ensure_mpv()
+        self.assertIsNot(
+            pm._player, previous,
+            "no new mpv was built, so nothing below is being tested")
+        return previous
+
+    def test_a_standing_claim_is_reinstalled_on_the_new_handle(self):
+        pm = self._player()
+        pm.claim_keys("menu", {"pause": "menu-pause", "seek": "menu-seek"})
+        pm.journal.reset()
+
+        self._reopen(pm)
+
+        after = pm.journal.since("test:reopening")
+        after.order("mpv.cmd:define-section", "mpv.cmd:enable-section")
+        self.assertIn("SPACE", pm._player._sections.get("jms_keys", {}),
+                      "the new mpv has no claim on the keys the menu took")
+
+    def test_the_claimed_key_still_reaches_python_on_the_new_handle(self):
+        """The section being installed is not the claim working -- asserting
+        the command that installs it is asserting our own request back. What
+        the user has is a key press, and what has to come out of it is a
+        client message naming the semantic."""
+        pm = self._player()
+        pm.claim_keys("menu", {"pause": "menu-pause"})
+        self._reopen(pm)
+        pm.journal.mark("pressing")
+
+        pm._player.press_key("SPACE")
+
+        pm.journal.since("test:pressing").order("mpv.key:SPACE",
+                                                "mpv.event:client-message")
+
+    def test_the_menu_is_pointed_at_the_new_handle_once_it_exists(self):
+        """Ordering, because the other order is silent: re-pointing the menu
+        before the handle is built leaves it holding the dead one, and the
+        menu only draws when somebody opens it."""
+        pm = self._player()
+        pm.journal.reset()
+        self._reopen(pm)
+        pm.journal.since("test:reopening").order("mpv.create",
+                                                 "menu.update_player")
+        self.assertIs(pm.menu.player, pm._player)
+
+
 class BrowseHandoffTest(unittest.TestCase):
     """What ``browse_yield`` has to undo when video takes the window back.
 
@@ -690,6 +777,78 @@ class BrowseHandoffTest(unittest.TestCase):
                          "torn down")
 
 
+class StopReleasesSyncPlayTest(unittest.TestCase):
+    """Stopping playback **halts** a SyncPlay group, unless there would be no
+    way back into it -- then it leaves.
+
+    Halting keeps the membership: the group carries on, and the member can
+    rejoin from the SyncPlay menu when they are done. That is only a kindness
+    while the menu is reachable, and on two surfaces it is not -- no GUI at
+    all, or playback cast to a shim whose browser was never opened, where the
+    window goes away with the video and the menu lives in the browser's
+    chrome. Leaving is right there; the alternative is a group the user is in,
+    is not watching, and cannot get out of.
+
+    Both halves were only covered end to end, against a real server and a
+    real group (`tests/e2e/test_syncplay_playback.py`). The *decision* needs
+    neither: what it turns on is a hook the browser installs, and which of
+    the two calls comes out is now readable in the journal.
+    """
+
+    def _player(self, reachable):
+        from tests.integration.test_player_state_machine import FakeVideo
+
+        pm = h.build_player(player_module)
+        pm._mpv_alive = True
+        pm._video = FakeVideo()
+        pm.syncplay._enabled = True
+        pm.syncplay._following = True
+        pm.syncplay_menu_reachable = (None if reachable is None
+                                      else (lambda: reachable))
+        pm.send_timeline_stopped = lambda *a, **kw: None
+        pm._player.playback_abort = False
+        return pm
+
+    def test_a_stop_with_the_menu_reachable_halts(self):
+        pm = self._player(reachable=True)
+        pm.journal.mark("stopping")
+        pm.stop()
+        after = pm.journal.since("test:stopping")
+        after.happened("syncplay.halt_group_playback")
+        after.never("syncplay.disable_sync_play",
+                    msg="stopping playback left a group the user could have "
+                        "rejoined from the menu")
+
+    def test_a_stop_with_no_way_back_leaves(self):
+        pm = self._player(reachable=False)
+        pm.journal.mark("stopping")
+        pm.stop()
+        after = pm.journal.since("test:stopping")
+        after.happened("syncplay.disable_sync_play")
+        after.never("syncplay.halt_group_playback",
+                    msg="the user is halted in a group with no menu to leave "
+                        "it from")
+
+    def test_no_hook_at_all_counts_as_no_way_back(self):
+        """The CLI has no browser to install one. Defaulting to "reachable"
+        would strand exactly the surface that cannot recover."""
+        pm = self._player(reachable=None)
+        pm.journal.mark("stopping")
+        pm.stop()
+        pm.journal.since("test:stopping").happened("syncplay.disable_sync_play")
+
+    def test_the_group_is_released_before_the_file_is_stopped(self):
+        """Ordering, and the reason is what the group hears. The release is
+        what tells the group we are stepping out; commanding mpv first means
+        the eof/abort observers can fire into a session that is still a
+        member and report the finish to everybody."""
+        pm = self._player(reachable=True)
+        pm.journal.mark("stopping")
+        pm.stop()
+        pm.journal.since("test:stopping").order("syncplay.halt_group_playback",
+                                                "mpv.cmd:stop")
+
+
 class DyingMpvTest(unittest.TestCase):
     """Closing the window makes mpv end the file **and** shut down, so the
     end-file callback runs on the action thread while the terminate thread
@@ -718,7 +877,7 @@ class DyingMpvTest(unittest.TestCase):
         pm = self._player()
         pm._mpv_alive = False
         before = len(pm._player.commands)
-        pm.finished_callback(has_lock=False)
+        pm.finished_callback(has_lock=True)
         self.assertEqual(
             [c for c in pm._player.commands[before:] if c and c[0] == "stop"],
             [], "commanded a handle that is being freed")
@@ -728,7 +887,7 @@ class DyingMpvTest(unittest.TestCase):
         ended file on screen, paused on its last frame."""
         pm = self._player()
         pm._mpv_alive = True
-        pm.finished_callback(has_lock=False)
+        pm.finished_callback(has_lock=True)
         self.assertIn(("stop",), pm._player.commands)
 
 
