@@ -267,6 +267,12 @@ class Tile:
     key: str
     title: str = ""
     subtitle: str = ""
+    #: A THIRD caption line, drawn under ``subtitle``. Empty everywhere
+    #: except a Live TV listing on a tile too narrow to carry "BBC Two ·
+    #: 20:00 - 20:30" on one line -- see ``TileRenderer.caption_geom``. The
+    #: geometry has to agree (``TileGeom.caption_lines``); this alone does
+    #: not make room for it.
+    subtitle2: str = ""
     poster: Optional[object] = None
     poster_tag: str = ""
     watched: bool = False
@@ -832,7 +838,7 @@ class StripStore:
             # an extended. The count, not a symbol, because which of them
             # plays is a choice the detail page offers and the number is what
             # says there is one to make.
-            self._paint_count_badge(dr, lx, _px(17), str(t.sources),
+            self._paint_count_badge(img, dr, lx, inset, str(t.sources),
                                     g.badge_size)
         # The top-right stack, filled from the corner leftwards. These used
         # to be an if/elif chain -- one badge won and the rest silently did
@@ -845,8 +851,8 @@ class StripStore:
         # Precedence is what sits IN the corner, not what draws at all: a
         # recording is the only one of these about something happening right
         # now, so it keeps the spot the eye goes to first.
-        cy = _px(17)
-        cx = x + g.tile_w - _px(17)
+        cy = inset
+        cx = x + g.tile_w - inset
         if t.record:
             self._paint_record(img, cx, cy, t.record)
             cx -= _px(self.BADGE_PITCH)
@@ -874,14 +880,20 @@ class StripStore:
             # of the card.
             text = str(t.badge)
             font = _font(g.badge_size, bold=True)
-            bw = max(_px(26), int(dr.textlength(text, font=font)) + _px(14))
             right = cx + _px(13)
-            dr.rounded_rectangle(
-                [right - bw, _px(5), right, _px(25)],
-                radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
-            )
-            dr.text((right - bw / 2, _px(15)), text, font=font, anchor="mm",
-                    fill=(255, 255, 255))
+            if self.shadowed_badges():
+                # Same right edge, so it still lines up with the stack; the
+                # chip's own 14px of horizontal padding goes with the chip.
+                self._shadowed_text(img, text, font, 0, cy, right=right)
+            else:
+                bw = max(_px(26),
+                         int(dr.textlength(text, font=font)) + _px(14))
+                dr.rounded_rectangle(
+                    [right - bw, _px(5), right, _px(25)],
+                    radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
+                )
+                dr.text((right - bw / 2, _px(15)), text, font=font,
+                        anchor="mm", fill=(255, 255, 255))
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
             bar = _px(6)
@@ -931,6 +943,7 @@ class StripStore:
     #: across, so this is them plus a 4px gap.
     BADGE_PITCH = 26
 
+
     #: Glyph box for a LINE icon on a badge (check, file_download), and for
     #: a SOLID one (folder, photo, videocam). Different on purpose, in a
     #: 22px disc that has to hold both.
@@ -946,6 +959,101 @@ class StripStore:
     LINE_GLYPH = 20
     SOLID_GLYPH = 16
 
+    #: How much bigger a mark is drawn when the theme replaces its pill with
+    #: a shadow. The pill's own 22px disc is doing part of the work of being
+    #: *seen*; take it away and the mark has to carry that itself. Still
+    #: inside BADGE_PITCH (26), so the stack does not collide.
+    SHADOW_GLYPH = 1.15
+
+    #: Blur radius and drop, as fractions of the MARK's own size (not of the
+    #: padded layer's -- that would make them depend on the padding computed
+    #: from them).
+    SHADOW_BLUR = 9.0
+    SHADOW_DROP = 11.0
+
+    @staticmethod
+    def shadow_pad(size):
+        """Room to leave round a mark of ``size`` px for its shadow.
+
+        Derived from the blur, not a constant. It was a flat 5px, and a
+        Gaussian needs about three sigma before it has faded: at the badge
+        sizes in play sigma is 2 or more, so the halo was still visibly dark
+        where the layer ended and every numeric badge carried a squared-off
+        corner of shadow. Under-padding a blur does not soften the edge, it
+        *makes* one.
+        """
+        blur = max(1.0, size / StripStore.SHADOW_BLUR)
+        return int(-(-blur * 3 // 1)) + max(1, round(size /
+                                                     StripStore.SHADOW_DROP))
+
+    @staticmethod
+    def shadowed_badges():
+        """Whether the active theme draws badges as a mark plus a drop shadow
+        instead of a mark on a filled pill.
+
+        Read per paint rather than captured: a theme change retags the strip
+        store, so every strip recomposites through here with the new answer
+        (see ``MpvtkBrowser.set_theme``).
+        """
+        return bool((theme.active() or {}).get("badge_shadow"))
+
+    #: Gain applied to a badge's blurred silhouette before it is used as the
+    #: shadow's alpha. Above 1, so the halo SATURATES near the mark and only
+    #: falls off at its rim -- a plain blur of a 20px glyph is a faint grey
+    #: smudge that a white poster swallows whole, which is precisely the case
+    #: the pill was there for.
+    SHADOW_GAIN = 2.4
+
+    @staticmethod
+    def _shadowed(img, layer, span, cx, cy):
+        """Composite ``layer`` -- a mark on transparency, padded by
+        :meth:`shadow_pad` -- centred on (cx, cy), over a dark halo of its
+        own silhouette.
+
+        ``span`` is the size the blur is derived from: the mark's own, NOT
+        the padded layer's (which is computed from the blur, so measuring it
+        here would grow one every time the other grew to hold it). For a
+        glyph that is its box; for text it is the cap height, because what a
+        shadow is proportional to is the weight of the ink -- taking the
+        WIDTH made a three-digit count three times blurrier than a
+        one-digit one and gave it a 36px layer to live in, which centred
+        17px below the top of a card does not fit and was clipped.
+
+        **Not ``imageutil.with_shadow``.** That one is tuned for a logo: a
+        large mark with margins, wanting a hint of separation from a plate it
+        is nearly the colour of, so its blur is a sixtieth of the image and
+        its alpha is a straight multiply. This is a 20px glyph over
+        *artwork*, which can be any colour including white, with nothing else
+        holding it up -- the halo is not a hint, it is the entire reason the
+        mark is visible. Hence a blur about a tenth of the mark, an offset
+        big enough to read as a direction rather than a ring, and a gain that
+        drives the middle of it opaque.
+        """
+        from PIL import Image as PILImage, ImageFilter
+
+        drop = max(1, round(span / StripStore.SHADOW_DROP))
+        silhouette = PILImage.new("L", layer.size, 0)
+        silhouette.paste(layer.getchannel("A"), (0, drop))
+        silhouette = silhouette.filter(
+            ImageFilter.GaussianBlur(max(1.0, span / StripStore.SHADOW_BLUR)))
+        gain = StripStore.SHADOW_GAIN
+        silhouette = silhouette.point(
+            lambda v: min(255, int(v * gain)))
+        shadow = PILImage.new("RGBA", layer.size, (0, 0, 0, 0))
+        shadow.putalpha(silhouette)
+        layer = PILImage.alpha_composite(shadow, layer)
+        img.paste(layer, (int(cx - layer.width // 2),
+                          int(cy - layer.height // 2)), layer)
+
+    @staticmethod
+    def _mark_layer(size):
+        """A transparent square with room round it for :meth:`_shadowed`."""
+        from PIL import Image as PILImage
+
+        pad = StripStore.shadow_pad(size)
+        return PILImage.new("RGBA", (size + 2 * pad, size + 2 * pad),
+                            (0, 0, 0, 0)), pad
+
     @staticmethod
     def _paint_glyph_badge(img, dr, cx, cy, name, fill, size=None):
         """A Material glyph in white on a filled disc, centred on (cx, cy).
@@ -954,18 +1062,34 @@ class StripStore:
         marker (``_paint_kind``) is the same disc in the window colour,
         because it labels the item rather than reporting a state and should
         not read as another accent badge.
+
+        With ``badge_shadow`` the disc goes and a drop shadow takes over the
+        job of separating the mark from the artwork. **The mark stays white**
+        rather than adopting ``fill``: the pill is what makes an accent
+        legible on a photograph, so an accent-coloured mark with no pill is
+        legible only for themes whose accent happens to be bright -- and the
+        first theme to ask for this (Darker) has a near-black one on purpose.
+        White reads on everything, which is the property the option is being
+        bought for.
         """
         from ..mpvtk import vector
 
+        size = _px(size or StripStore.LINE_GLYPH)
+        if StripStore.shadowed_badges():
+            size = int(size * StripStore.SHADOW_GLYPH)
+            layer, pad = StripStore._mark_layer(size)
+            glyph = vector.icon_image(name, size, (255, 255, 255))
+            layer.paste(glyph, (pad, pad), glyph)
+            StripStore._shadowed(img, layer, size, cx, cy)
+            return
         r = _px(11)
         dr.ellipse([cx - r, cy - r, cx + r, cy + r],
                    fill=theme.rgb(fill, 255))
-        size = _px(size or StripStore.LINE_GLYPH)
         glyph = vector.icon_image(name, size, (255, 255, 255))
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
     @staticmethod
-    def _paint_count_badge(dr, cx, cy, text, size):
+    def _paint_count_badge(img, dr, cx, cy, text, size):
         """A number in white on a filled accent disc, centred on (cx, cy).
 
         The same disc ``_paint_glyph_badge`` draws, carrying a digit instead
@@ -975,11 +1099,44 @@ class StripStore:
         *rectangle*: it runs to three digits, where this one is a count of
         files on disk and stays one.
         """
+        font = _font(size, bold=True)
+        if StripStore.shadowed_badges():
+            StripStore._shadowed_text(img, str(text), font, cx, cy)
+            return
         r = _px(11)
         dr.ellipse([cx - r, cy - r, cx + r, cy + r],
                    fill=theme.rgb(theme.ACCENT, 255))
-        dr.text((cx, cy), text, font=_font(size, bold=True), anchor="mm",
+        dr.text((cx, cy), text, font=font, anchor="mm",
                 fill=(255, 255, 255))
+
+    @staticmethod
+    def _shadowed_text(img, text, font, cx, cy, right=None):
+        """White text with a drop shadow, no chip behind it.
+
+        Centred on (cx, cy), or pinned by its RIGHT edge when ``right`` is
+        given -- which is what the episode count needs, for the reason
+        ``_paint_decorations`` gives: that edge is the one lined up with the
+        badge stack, and a wide chip growing from its middle walks off the
+        corner of the card.
+        """
+        from PIL import Image as PILImage, ImageDraw
+
+        probe = ImageDraw.Draw(PILImage.new("RGBA", (1, 1)))
+        box = probe.textbbox((0, 0), text, font=font, anchor="lt")
+        tw, th = max(1, box[2] - box[0]), max(1, box[3] - box[1])
+        # Off the cap HEIGHT, so every count -- "2", "12", "128" -- carries
+        # the same weight of shadow as the glyph badges beside it. Off the
+        # width it grew with the digit count, which both looked wrong (a wide
+        # soft blob next to tight little marks) and did not fit: see
+        # _shadowed.
+        pad = StripStore.shadow_pad(th)
+        layer = PILImage.new("RGBA", (tw + 2 * pad, th + 2 * pad), (0, 0, 0, 0))
+        ImageDraw.Draw(layer).text((pad - box[0], pad - box[1]), text,
+                                   font=font, anchor="lt",
+                                   fill=(255, 255, 255, 255))
+        if right is not None:
+            cx = right - layer.width // 2
+        StripStore._shadowed(img, layer, th, cx, cy)
 
     @staticmethod
     def _paint_kind(img, dr, cx, cy, name):
@@ -989,13 +1146,25 @@ class StripStore:
         not the accent: this one says what the item *is*, permanently, and
         an accent chip on every tile in a Home Videos library reads as
         something having happened to all of them.
+
+        With ``badge_shadow`` it keeps TEXT_FG rather than going white with
+        the state badges: the distinction this marker exists to make is that
+        it is *not* one of them, and the pill going away is exactly when that
+        distinction has the least left to stand on.
         """
         from ..mpvtk import vector
 
+        size = _px(StripStore.SOLID_GLYPH)
+        if StripStore.shadowed_badges():
+            size = int(size * StripStore.SHADOW_GLYPH)
+            layer, pad = StripStore._mark_layer(size)
+            glyph = vector.icon_image(name, size, theme.rgb(theme.TEXT_FG))
+            layer.paste(glyph, (pad, pad), glyph)
+            StripStore._shadowed(img, layer, size, cx, cy)
+            return
         r = _px(11)
         dr.ellipse([cx - r, cy - r, cx + r, cy + r],
                    fill=theme.rgb(theme.WINDOW_BG, 210))
-        size = _px(StripStore.SOLID_GLYPH)
         glyph = vector.icon_image(name, size, theme.rgb(theme.TEXT_FG))
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 

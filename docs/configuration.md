@@ -297,6 +297,12 @@ You can use the config file to enable and disable features.
   - `default` - The stock look, unchanged from earlier versions.
   - `nebula` - A deep-violet, glowing theme with rounded cards and larger
     covers.
+  - `superdark` - Near-black surfaces, dark buttons, no colour anywhere. It
+    turns `badge_shadow` on, because that is the look it is for: an
+    accent-filled badge pill on a near-black card reads as a chip stuck to
+    the poster. Its accent is a light grey rather than a dark one — `ACCENT`
+    is the hover ring and focus border as well as the button fill, so a
+    colour dark enough to be a button is a hairline nobody can see.
   - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv` -
     Translations of jellyfin-web's own Blue Radiance, Windows Media Center,
     Purple Haze, Light and Apple TV themes, so the shim can match the web
@@ -657,6 +663,7 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `glow` | Blurred accent halo behind bold titles and around the selected card. |
 | `rounded` | Rounded cards instead of square ones. Card shape only — the artwork is cover-cropped to fill its tile under every theme. |
 | `accent_buttons` | Accent-bordered top bar and settings tabs. |
+| `badge_shadow` | Tile badges (type marker, version count, unwatched count, downloaded, watched) as a bare white mark with a drop shadow instead of a mark on a filled pill. The mark goes white rather than keeping the accent: the pill is what makes an accent legible over artwork, so a dark or pale accent with no pill is a badge you cannot see. |
 | `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
 | `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |
 | `hud_accent` | The accent as drawn over *video* — the seek bar's fill. `null` follows `ACCENT`, which is usually what you want; pin it if your accent is too dark or too pale to read against a moving picture. |

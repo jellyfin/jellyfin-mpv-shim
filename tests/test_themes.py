@@ -12,7 +12,7 @@ import unittest
 
 from jellyfin_mpv_shim.mpvtk_browser import hud, theme, themes
 from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
-                                                    POSTER_GEOM)
+                                                    POSTER_GEOM, StripStore)
 
 
 def _relative_luminance(colour):
@@ -645,6 +645,191 @@ class CoverSizeTest(unittest.TestCase):
         settings.poster_scale = None
         b = MpvtkBrowser(app=None, source=FakeSource())
         self.assertIs(b.geom_wide, LANDSCAPE_GEOM)
+
+
+class BadgeShadowTest(unittest.TestCase):
+    """`badge_shadow`: tile badges as a mark plus a drop shadow, no pill."""
+
+    def tearDown(self):
+        theme.apply("default")
+
+    def test_the_stock_look_keeps_its_pills(self):
+        theme.apply("default")
+        self.assertFalse(StripStore.shadowed_badges())
+
+    def test_super_dark_asks_for_shadows(self):
+        """The shipped theme the option exists for: near-black surfaces and
+        dark buttons, where an accent-filled badge pill reads as a chip stuck
+        to the poster rather than as a state.
+
+        Its ACCENT is deliberately NOT its BUTTON_BG, which is what the first
+        draft of this theme did. ACCENT does double duty here -- button fill
+        AND hover ring, focus border and resume bar -- so a colour dark
+        enough to be a button is a hairline nobody can see. Pinned, because
+        the two look interchangeable in a palette file.
+        """
+        cfg = theme.apply("superdark")
+        self.assertTrue(StripStore.shadowed_badges())
+        self.assertNotEqual(cfg["palette"]["ACCENT"],
+                            cfg["palette"]["BUTTON_BG"])
+
+    def _badge(self, theme_id):
+        """``(pixels, that theme's own accent)`` for one painted badge.
+
+        The accent is read from the theme being painted, not from DEFAULT.
+        Asking whether Jellyfin blue is absent from a theme whose accent is
+        grey is a question with the right answer for the wrong reason: it
+        holds whether or not the pill was drawn.
+        """
+        from PIL import Image as PILImage, ImageDraw
+
+        theme.apply(theme_id)
+        img = PILImage.new("RGBA", (60, 60), (0, 0, 0, 0))
+        StripStore._paint_glyph_badge(img, ImageDraw.Draw(img), 30, 30,
+                                      "check", theme.ACCENT)
+        return list(img.getdata()), theme.rgb(theme.ACCENT) + (255,)
+
+    def test_a_shadowed_badge_draws_no_pill_but_still_marks_the_corner(self):
+        """Both halves. "No pill" alone is satisfied by drawing nothing at
+        all, which is the failure this option is one line away from."""
+        stock, stock_accent = self._badge("default")
+        self.assertIn(stock_accent, stock,
+                      "the stock badge lost its accent disc")
+        dark, dark_accent = self._badge("superdark")
+        self.assertNotIn(dark_accent, dark, "badge_shadow still filled a pill")
+        self.assertTrue(any(p[3] > 0 for p in dark),
+                        "badge_shadow drew nothing at all")
+
+    def test_the_padding_round_a_mark_covers_its_own_blur(self):
+        """The halo is drawn INSIDE the layer, so the room left for it has to
+        be derived from the blur rather than fixed. It was a flat 5px while
+        sigma ran to 2 and more, and under-padding a Gaussian does not soften
+        its edge -- it puts a straight one where the layer stops, which is
+        the squared-off corner every numeric badge was carrying."""
+        for size in (10, 14, 16, 20, 23, 40, 64):
+            with self.subTest(size=size):
+                blur = max(1.0, size / StripStore.SHADOW_BLUR)
+                drop = max(1, round(size / StripStore.SHADOW_DROP))
+                self.assertGreaterEqual(StripStore.shadow_pad(size),
+                                        3 * blur + drop)
+
+    def _count_badge_shadow_top(self, count):
+        """The topmost row of the card carrying any shadow ink, for a tile
+        whose unwatched count is ``count`` — over a white poster, so anything
+        that is not 255 is the badge's own halo."""
+        import tempfile
+
+        from PIL import Image as PILImage
+
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM, Tile
+
+        held = []
+
+        class _Capture(StripStore):
+            def _store(self, img):
+                held.append(img)
+                return "s", img.width, img.height, 1
+
+        theme.apply("superdark")
+        art = PILImage.new("RGBA", (300, 450), (255, 255, 255, 255))
+        store = _Capture(tempfile.mkdtemp())
+        self.addCleanup(store.shutdown)
+        store.strip([Tile(key="t1", title="Film", poster=art, poster_tag="p",
+                          badge=count)], POSTER_GEOM)
+        img = held[0].convert("RGB")
+        g = POSTER_GEOM.physical()
+        # Inside the card's own 1px outline, right-hand half (where the
+        # count sits), top quarter.
+        for y in range(1, g.tile_h // 4):
+            for x in range(g.tile_w // 2, g.tile_w - 1):
+                if sum(img.getpixel((x, y))) / 3 < 250:
+                    return y
+        return None
+
+    def test_a_counts_shadow_does_not_grow_with_its_digits(self):
+        """The bug the tester saw as "cut-off on numeric badges".
+
+        The padding round a mark is derived from its size, and the size was
+        being taken as the LONGER side of the text — so "128" got three times
+        the blur of "2" and a 36px-tall layer to hold it, which centred 17px
+        below the top of the card does not fit and was clipped by the bitmap.
+
+        A shadow is proportional to the WEIGHT of the ink, and every one of
+        these is the same type at the same size. Asserted as equality across
+        digit counts rather than against a number, because the number is
+        whatever the type happens to measure.
+        """
+        tops = {n: self._count_badge_shadow_top(n) for n in (2, 12, 128)}
+        self.assertNotIn(None, tops.values(), "no count badge drew a shadow")
+        self.assertEqual(len(set(tops.values())), 1,
+                         "the halo grows with the digit count: %r" % (tops,))
+
+    def test_a_counts_shadow_is_not_clipped_by_the_top_of_the_card(self):
+        """The consequence, asserted on its own: an unclipped halo has faded
+        to nothing before it runs out of card, so the first row carrying its
+        ink is strictly below the top edge."""
+        for count in (2, 12, 128, 1280):
+            with self.subTest(count=count):
+                top = self._count_badge_shadow_top(count)
+                self.assertIsNotNone(top)
+                self.assertGreater(
+                    top, 1,
+                    "the badge's shadow runs off the top of the card")
+
+    def test_a_badges_shadow_fades_out_before_the_edge_of_the_card(self):
+        """The other half, and the one the padding alone does not give: a
+        stack inset 17px from the corner puts the OUTERMOST badge's halo over
+        the side of the card, where it is clipped by the bitmap instead of
+        fading. A pill could sit there because a pill ends at its rim.
+
+        Measured on the artwork's own boundary ring, over a white poster --
+        the case with the most to lose, and the one where shadow ink pressed
+        against the edge is unmistakable.
+        """
+        import tempfile
+
+        from PIL import Image as PILImage
+
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM, Tile
+
+        held = []
+
+        class _Capture(StripStore):
+            def _store(self, img):
+                held.append(img)
+                return "s", img.width, img.height, 1
+
+        theme.apply("superdark")
+        art = PILImage.new("RGBA", (300, 450), (255, 255, 255, 255))
+        store = _Capture(tempfile.mkdtemp())
+        self.addCleanup(store.shutdown)
+        # Every corner-badge kind at once, both stacks, and a three-digit
+        # count -- the widest thing that goes up there.
+        store.strip([Tile(key="t1", title="Film", poster=art, poster_tag="p",
+                          watched=True, sources=2, downloaded=True,
+                          kind="videocam", badge=128)], POSTER_GEOM)
+        img = held[0].convert("RGB")
+        g = POSTER_GEOM.physical()
+        # Two pixels in from the card's own 1px outline, which is near-black
+        # under every theme and is not what this is measuring.
+        i = 2
+        ring = ([(x, i) for x in range(i, g.tile_w - i)]
+                + [(g.tile_w - 1 - i, y) for y in range(i, g.tile_h - i)]
+                + [(i, y) for y in range(i, g.tile_h - i)])
+        darkest = min(sum(img.getpixel(p)) / 3 for p in ring)
+        self.assertGreater(
+            darkest, 235,
+            "a badge's shadow reaches the edge of the card, where it is cut "
+            "off rather than faded out")
+
+    def test_the_mark_stays_white_so_a_dark_accent_still_reads(self):
+        """The reason the mark does not simply adopt the pill's colour: the
+        first theme to ask for this has a grey accent on purpose, and an
+        accent-coloured check with no pill behind it is a grey check on a
+        photograph -- which is what the pill was there to prevent."""
+        dark, dark_accent = self._badge("superdark")
+        self.assertIn((255, 255, 255, 255), dark)
+        self.assertNotIn(dark_accent, dark)
 
 
 if __name__ == "__main__":

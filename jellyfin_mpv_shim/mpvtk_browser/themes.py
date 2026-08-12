@@ -68,6 +68,16 @@ DEFAULT = {
     # longer decides whether a tile letterboxes. See strips._paint_poster.
     "rounded": False,
     "accent_buttons": False,  # accent-bordered top-bar buttons
+    # Tile badges -- the type marker, the version count, the unwatched
+    # episode count, the downloaded arrow and the watched check -- drawn as a
+    # bare mark with a drop shadow instead of a mark on a filled pill.
+    #
+    # The pill is what makes an accent-coloured badge legible over any
+    # artwork, so the marks go WHITE when it is taken away rather than
+    # keeping the accent: a theme whose accent is dark (the whole point of
+    # "Darker") would otherwise put a near-black check on a photograph. See
+    # strips.StripStore._paint_glyph_badge.
+    "badge_shadow": False,
     # Where a carousel's page buttons live. "header" is jellyfin-web's design
     # and the default: a flat pair in the section heading, clear of the
     # artwork, with a disabled state. "overlay" floats round translucent
