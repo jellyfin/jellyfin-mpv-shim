@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 01:33-0400\n"
+"POT-Creation-Date: 2026-08-11 22:40-0400\n"
 "PO-Revision-Date: 2026-08-09 19:55+0000\n"
 "Last-Translator: Mateusz Lesiak <mateusz.lesiak01@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
@@ -19,6 +19,27 @@ msgstr ""
 "|| n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: jellyfin_mpv_shim/books.py
+msgid "Unknown format"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, python-format
+msgid "Page %(page)d of %(total)d"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy, python-format
+#| msgid "Page"
+msgid "Page %d"
+msgstr "Strona"
+
+#: jellyfin_mpv_shim/books.py
+#, python-format
+msgid "%d%% read"
+msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -523,10 +544,13 @@ msgid "Failed to load. Check the connection."
 msgstr "Nie udało się załadować. Sprawdź połączenie."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
 msgstr "Strona"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
 msgstr "z %d"
@@ -536,10 +560,14 @@ msgid "First page"
 msgstr "Pierwsza strona"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Previous page"
 msgstr "Poprzednia strona"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
 msgstr "Następna strona"
 
@@ -804,11 +832,13 @@ msgstr "Obsada i ekipa"
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Download"
 msgstr "Pobierz"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Remove Download"
 msgstr "Usuń pobieranie"
 
@@ -819,12 +849,507 @@ msgstr "Obejrzane"
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
 msgstr "Ulubione"
 
+# seeded from jellyfin-web: Video
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Video"
+msgstr "Wideo"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Interface"
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Audio"
+msgstr "Dźwięk"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Subtitle"
+msgstr "Rozmiar napisów: {0}"
+
+# seeded from jellyfin-web: Lyric
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Lyric"
+msgstr "Tekst"
+
+# seeded from jellyfin-web: Image
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Image"
+msgstr "Obraz"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Continuous"
+msgid "Container"
+msgstr "Ciągle"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Normal"
+msgid "Format"
+msgstr "Normalny"
+
+# seeded from jellyfin-web: LabelPath
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Path"
+msgstr "Folder"
+
+# seeded from jellyfin-web: LabelSize
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Size"
+msgstr "Rozmiar"
+
+# seeded from jellyfin-web: Yes
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Yes"
+msgstr "Tak"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "None"
+msgid "No"
+msgstr "Brak"
+
+# seeded from jellyfin-web: LabelTitle
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
+msgid "Title"
+msgstr "Tytuł"
+
+# seeded from jellyfin-web: LabelLanguage
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Language"
+msgstr "Język"
+
+# seeded from jellyfin-web: MediaInfoCodec
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Codec"
+msgstr "Kodek"
+
+# seeded from jellyfin-web: MediaInfoCodecTag
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Codec tag"
+msgstr "Tag kodeku"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "New Group"
+msgid "Profile"
+msgstr "Nowa grupa"
+
+# seeded from jellyfin-web: LabelLevel
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Level"
+msgstr "Poziom"
+
+# seeded from jellyfin-web: LabelChapterImageResolution
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Resolution"
+msgstr "Rozdzielczość"
+
+# seeded from jellyfin-web: AspectRatio
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Aspect ratio"
+msgstr "Proporcje obrazu"
+
+# seeded from jellyfin-web: MediaInfoAnamorphic
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Anamorphic"
+msgstr "Anamorficzne"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Interface"
+msgid "Interlaced"
 msgstr "Interfejs"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Framerate"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoLayout
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Layout"
+msgstr "Format"
+
+# seeded from jellyfin-web: Channels
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgctxt "audio channel count"
+msgid "Channels"
+msgstr "Kanały"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d ch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Bitrate"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d kbps"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoSampleRate
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Sample rate"
+msgstr "Próbkowanie"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d Hz"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoBitDepth
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Bit depth"
+msgstr "Głębia bitowa"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d bit"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Video Preferences"
+msgid "Video range"
+msgstr "Preferencje wideo"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Video Profile Subtype"
+msgid "Video range type"
+msgstr "Podtyp profilu wideo"
+
+# seeded from jellyfin-web: ColorSpace
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Color space"
+msgstr "Przestrzeń kolorów"
+
+# seeded from jellyfin-web: ColorTransfer
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Color transfer"
+msgstr "Transfer kolorów"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Color primaries"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoPixelFormat
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Pixel format"
+msgstr "Format piksela"
+
+# seeded from jellyfin-web: MediaInfoRefFrames
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Ref frames"
+msgstr "Klatki referencyjne"
+
+# seeded from jellyfin-web: MediaInfoRotation
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Rotation"
+msgstr "Obrót"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Default (auto)"
+msgid "Default"
+msgstr "Domyślnie (automatycznie)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid " Forced"
+msgid "Forced"
+msgstr " Wymuszone"
+
+# seeded from jellyfin-web: MediaInfoExternal
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
+msgid "External"
+msgstr "Zewnętrzny"
+
+# seeded from jellyfin-web: LabelTime
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Timestamp"
+msgstr "Godzina"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "DV title"
+msgstr "Rozmiar napisów: {0}"
+
+# seeded from jellyfin-web: LabelVersion
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV version major"
+msgstr "Wersja"
+
+# seeded from jellyfin-web: LabelVersion
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV version minor"
+msgstr "Wersja"
+
+# seeded from jellyfin-web: MediaInfoDvProfile
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV profile"
+msgstr "Profil DV"
+
+# seeded from jellyfin-web: MediaInfoDvLevel
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV level"
+msgstr "Poziom DV"
+
+# seeded from jellyfin-web: MediaInfoRpuPresentFlag
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV rpu preset flag"
+msgstr "Flaga ustawień DV rpu"
+
+# seeded from jellyfin-web: MediaInfoElPresentFlag
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV el preset flag"
+msgstr "Flaga ustawień DV el"
+
+# seeded from jellyfin-web: MediaInfoBlPresentFlag
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV bl preset flag"
+msgstr "Flaga ustawień wstępnych DV bl"
+
+# seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV bl signal compatibility id"
+msgstr "Identyfikator zgodności sygnału DV bl"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f Mbps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Direct Paths"
+msgid "Direct playing"
+msgstr "Ścieżki bezpośrednie"
+
+# seeded from jellyfin-web: DirectStreaming
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Direct streaming"
+msgstr "Transmisja bezpośrednia"
+
+# seeded from jellyfin-web: Remuxing
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Remuxing"
+msgstr "Remuksowanie"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Transcoding"
+msgstr "Transkodowanie"
+
+# seeded from jellyfin-web: ContainerNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The container is not supported"
+msgstr "Kontener nie jest obsługiwany"
+
+# seeded from jellyfin-web: VideoCodecNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video codec is not supported"
+msgstr "Kodek wideo nie jest obsługiwany"
+
+# seeded from jellyfin-web: AudioCodecNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio codec is not supported"
+msgstr "Kodek audio nie jest obsługiwany"
+
+# seeded from jellyfin-web: SubtitleCodecNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The subtitle codec is not supported"
+msgstr "Kodek napisów nie jest obsługiwany"
+
+# seeded from jellyfin-web: AudioIsExternal
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio stream is external"
+msgstr "Strumień audio jest zewnętrzny"
+
+# seeded from jellyfin-web: SecondaryAudioNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Secondary audio tracks are not supported"
+msgstr "Dodatkowe ścieżki audio nie są obsługiwane"
+
+# seeded from jellyfin-web: VideoProfileNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video codec's profile is not supported"
+msgstr "Profil kodeka wideo nie jest obsługiwany"
+
+# seeded from jellyfin-web: VideoLevelNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video codec's level is not supported"
+msgstr "Poziom kodeka wideo nie jest obsługiwany"
+
+# seeded from jellyfin-web: VideoResolutionNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's resolution is not supported"
+msgstr "Rozdzielczość wideo nie jest obsługiwana"
+
+# seeded from jellyfin-web: VideoBitDepthNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's bit depth is not supported"
+msgstr "Głębia bitowa wideo nie jest obsługiwana"
+
+# seeded from jellyfin-web: VideoFramerateNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's framerate is not supported"
+msgstr "Liczba klatek na sekundę wideo nie jest obsługiwana"
+
+# seeded from jellyfin-web: RefFramesNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Reference frames are not supported"
+msgstr "Ramki referencyjne nie są obsługiwane"
+
+# seeded from jellyfin-web: AnamorphicVideoNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Anamorphic video is not supported"
+msgstr "Wideo anamorficzne nie jest obsługiwane"
+
+# seeded from jellyfin-web: InterlacedVideoNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Interlaced video is not supported"
+msgstr "Wideo z przeplotem nie jest obsługiwane"
+
+# seeded from jellyfin-web: AudioChannelsNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The number of audio channels is not supported"
+msgstr "Liczba kanałów audio nie jest obsługiwana"
+
+# seeded from jellyfin-web: AudioProfileNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio codec's profile is not supported"
+msgstr "Profil kodeka audio nie jest obsługiwany"
+
+# seeded from jellyfin-web: AudioSampleRateNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio's sample rate is not supported"
+msgstr "Częstotliwość próbkowania dźwięku nie jest obsługiwana"
+
+# seeded from jellyfin-web: AudioBitDepthNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio's bit depth is not supported"
+msgstr "Głębia bitowa dźwięku nie jest obsługiwana"
+
+# seeded from jellyfin-web: ContainerBitrateExceedsLimit
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's bitrate exceeds the limit"
+msgstr "Bitrate wideo przekracza limit"
+
+# seeded from jellyfin-web: VideoBitrateNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's bitrate is not supported"
+msgstr "Szybkość transmisji wideo nie jest obsługiwana"
+
+# seeded from jellyfin-web: AudioBitrateNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio's bitrate is not supported"
+msgstr "Szybkość transmisji dźwięku nie jest obsługiwana"
+
+# seeded from jellyfin-web: UnknownVideoStreamInfo
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video stream info is unknown"
+msgstr "Informacje o strumieniu wideo są nieznane"
+
+# seeded from jellyfin-web: UnknownAudioStreamInfo
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The audio stream info is unknown"
+msgstr "Informacje o strumieniu audio są nieznane"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "There is nothing downloaded to browse."
+msgid "There was an error starting direct playback"
+msgstr "Nie pobrano niczego do przeglądania."
+
+# seeded from jellyfin-web: VideoRangeTypeNotSupported
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "The video's range type is not supported"
+msgstr "Typ zakresu wideo nie jest obsługiwany"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "This Device"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Window"
+msgstr ""
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -833,21 +1358,42 @@ msgid "Theme"
 msgstr "Motyw"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Library Browser"
+msgstr "Przeglądarka biblioteki"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Transcoding"
+msgid "Reading"
+msgstr "Transkoduj"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Downloads"
+msgstr "Pobrane"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Download Tuning"
+msgstr "Usuń serwer"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Player Controls Style"
+msgid "Player Controls"
+msgstr "Styl kontrolek odtwarzacza"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Playback"
 msgstr "Odtwarzanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Audio"
-msgstr "Dźwięk"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
 msgstr "Napisy i języki"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Transcoding"
-msgstr "Transkodowanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -857,15 +1403,29 @@ msgstr "Ulepszanie wideo"
 msgid "Skip Intro / Credits"
 msgstr "Pomiń wstęp / napisy końcowe"
 
+# seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Library Browser"
-msgstr "Przeglądarka biblioteki"
+#, fuzzy
+msgid "Advanced"
+msgstr "Zaawansowane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-msgid "Downloads"
-msgstr "Pobrane"
+msgid "Off (software decoding)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Only above 1080p"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "On"
+msgstr ""
+
+# seeded from jellyfin-web: TabAdvanced
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Copy (advanced)"
+msgstr "Zaawansowane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -886,12 +1446,24 @@ msgid "No player controls"
 msgstr "Styl kontrolek odtwarzacza"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Follow display"
-msgstr "Zgodnie z wyświetlaczem"
+msgid "75%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "85%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "90%"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
 msgstr "100% (bez skalowania)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "110%"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
@@ -900,6 +1472,30 @@ msgstr "125%"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
 msgstr "150%"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No minimum"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "14 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "16 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "18 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "20 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Follow display"
+msgstr "Zgodnie z wyświetlaczem"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
@@ -918,10 +1514,35 @@ msgid "One row per notch"
 msgstr "Jeden rząd na nacięcie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Only when the window has no title bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Dark"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Sepia"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Light"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Width"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, fuzzy
-#| msgid "Default (auto)"
-msgid "Default"
-msgstr "Domyślnie (automatycznie)"
+#| msgid "Page"
+msgid "Fit Page"
+msgstr "Strona"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
@@ -1032,6 +1653,24 @@ msgid "Prefer Downloaded Copy"
 msgstr "Preferuj pobraną kopię"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Left Click Pauses Playback"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Show Posters on Detail Pages"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Show Episode Thumbnails on Detail Pages"
+msgstr ""
+
+# seeded from jellyfin-web: HeaderCancelRecording
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Hardware Decoding"
+msgstr "Anuluj nagranie"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
 msgstr "Automatycznie pobieraj nadchodzące odcinki"
 
@@ -1064,6 +1703,18 @@ msgid "Check Every (minutes)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Top Up When Fewer Than (episodes)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Top Up To (episodes)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Maximum Downloads per Check"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
 msgstr ""
 
@@ -1073,6 +1724,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Window Buttons in the Top Bar"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1088,8 +1743,42 @@ msgid "Interface Scale"
 msgstr "Skalowanie interfejsu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Text Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Minimum Text Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make Live TV logos more legible"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make library logos more legible"
+msgstr ""
+
+# seeded from jellyfin-web: LabelType
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Type Size"
+msgstr "Typ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Page Colour"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Justify Text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Comic Reading Mode"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1195,6 +1884,34 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Leave these blank unless downloads are waking your disks too often. Set both "
+"of the first two together: episodes are then fetched in one batch when a "
+"series runs low, instead of one at a time."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"An episode's thumbnail is a frame of an episode you may not have watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Off gives MPV's own mouse behaviour instead: drag the video to move the "
+"window, and right click to pause. Double click is full screen either way."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Off by default because some graphics drivers handle it badly. \"Only above "
+"1080p\" is the cautious way to turn it on: most hardware decodes 1080p in "
+"software without help. \"Copy (advanced)\" is slower, but it is the mode "
+"that works with video filters, so it is the one to pick if you run SVP or "
+"another VapourSynth filter. If video stops working, start with --disable-"
+"hwdec and change this back."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
 "screen, so the only way back is editing conf.json by hand. It is not how you "
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
@@ -1208,6 +1925,15 @@ msgid ""
 "only way back is editing conf.json. For the classic cast-target setup you "
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+"player window, leaving no way to move or close it. This puts minimize, "
+"maximize and close in the top bar instead, and lets you drag the window by "
+"it. Left on \"Only when the window has no title bar\", MPV is asked whether "
+"this window got one, so desktops that do decorate it are left alone."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1262,6 +1988,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Channel logos come as ink on a transparent background, drawn for the white "
+"page other clients put them on — so on a dark one the black ones vanish. On, "
+"they are backed with the light plate they were made for, and the few whose "
+"own outline is white get a drop shadow so they still have an edge against "
+"it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
+"does."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The same treatment for a library set to draw Logo artwork. Off by default, "
+"because a film's or series' logo is white by convention and already reads on "
+"a dark background — the plate is what makes it need a shadow. Turn it on if "
+"yours are dark."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
@@ -1306,6 +2050,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Scales the text only. Interface Scale above resizes everything -- artwork, "
+"spacing and controls -- so use this one when the words are too small rather "
+"than the whole interface. It stops at 150% because by then most tile "
+"captions are ellipsized and it is the whole interface that needs to be "
+"bigger -- which is Interface Scale, above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Nothing renders smaller than this, whatever Text Size works out to. Raises "
+"the smallest labels without enlarging headings, which a percentage cannot do."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
@@ -1330,17 +2089,170 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"In pixels, before interface scaling. The A- and A+ buttons in the reader "
+"change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How a comic page is fitted to the window when you open it. The reader's own "
+"buttons change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Evens out loud effects and quiet dialogue. This turns passthrough off while "
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
 
-# seeded from jellyfin-web: TabAdvanced
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+# seeded from jellyfin-web: HeaderStatus
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
-msgid "Advanced"
-msgstr "Zaawansowane"
+msgid "Status"
+msgstr "Stan"
+
+# seeded from jellyfin-web: Unplayed
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Unplayed"
+msgstr "Nieodtwarzane"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Played"
+msgstr "SyncPlay"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Favorites"
+msgstr "Usuń serwer"
+
+# seeded from jellyfin-web: ButtonResume
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Resumable"
+msgstr "Wznów"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Liked"
+msgstr ""
+
+# seeded from jellyfin-web: Features
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Features"
+msgstr "Cechy"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Has Subtitles"
+msgstr "Rozmiar napisów: {0}"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Fail"
+msgid "Has Trailer"
+msgstr "Błąd"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Special Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Song"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Video"
+msgstr ""
+
+# seeded from jellyfin-web: Genres
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
+msgid "Genres"
+msgstr "Gatunki"
+
+# seeded from jellyfin-web: LabelYear
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Years"
+msgstr "Rok"
+
+# seeded from jellyfin-web: OptionParentalRating
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+msgid "Parental Rating"
+msgstr "Kategoria wiekowa"
+
+# seeded from jellyfin-web: Tags
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Tags"
+msgstr "Znaczniki"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitles & Languages"
+msgid "Audio Language"
+msgstr "Napisy i języki"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitles & Languages"
+msgid "Subtitle Language"
+msgstr "Napisy i języki"
+
+# seeded from jellyfin-web: HeaderVideoTypes
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Video Types"
+msgstr "Typy wideo"
+
+# seeded from jellyfin-web: ChannelResolutionSD
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "SD"
+msgstr "SD"
+
+# seeded from jellyfin-web: ChannelResolutionHD
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
+#, fuzzy
+msgid "HD"
+msgstr "HD"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "4K"
+msgstr ""
+
+# seeded from jellyfin-web: Option3D
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "3D"
+msgstr "3D"
+
+# seeded from jellyfin-web: OptionDvd
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "DVD"
+msgstr "DVD"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Blu-ray"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "ISO"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1372,7 +2284,9 @@ msgid "Collections…"
 msgstr "Kolekcje…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Close"
 msgstr "Zamknij"
 
@@ -1393,10 +2307,36 @@ msgstr "Nowa nazwa kolekcji…"
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, fuzzy
 msgid "Back"
 msgstr "Wstecz"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Unkn"
+msgid "Unknown"
+msgstr "Niezn"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "No media information is available."
+msgstr ""
+
+# seeded from jellyfin-web: MoreMediaInfo
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Media Info"
+msgstr "Informacje o mediach"
+
+# seeded from jellyfin-web: ButtonOk
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "OK"
+msgstr "OK"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1428,6 +2368,11 @@ msgstr ""
 msgid "%d watched"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%d of unknown size"
+msgstr ""
+
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1445,6 +2390,37 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "This library offers no filters."
+msgstr ""
+
+# seeded from jellyfin-web: Filters
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Filters"
+msgstr "Filtry"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
+#, python-format
+msgid "%d items"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Clear All"
+msgstr "SyncPlay"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Any"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1483,6 +2459,7 @@ msgid "Disc"
 msgstr "Dysk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
 msgstr ""
 
@@ -1529,18 +2506,15 @@ msgid "View Settings"
 msgstr "Ustawienia SVP"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Done"
+msgid ""
+"Backs transparent logos with the light plate they were drawn for, and "
+"shadows the ones whose own outline is white. Off puts the theme's card "
+"colour behind them instead, with no shadows."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
 msgstr ""
-
-# seeded from jellyfin-web: ButtonOk
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-msgid "OK"
-msgstr "OK"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1567,6 +2541,68 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
+msgid ""
+"%s records your place as an ebook reader position, which no application "
+"shows you a number for — so there is nothing meaningful to set by hand. It "
+"is still read from the server and shown above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%s stores no reading position."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Open Config Folder"
+msgid "Reading Progress"
+msgstr "Otwórz folder konfiguracji"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading the position…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Pull"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Push"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "The position could not be read."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Enter a new PIN."
+msgid "Enter a number."
+msgstr "Wpisz nowy kod PIN."
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "Enter a page between 1 and %d."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Enter a page of 1 or more."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading position saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "The PIN could not be saved."
+msgid "The position could not be saved."
+msgstr "Nie udało się zapisać kodu PIN."
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
 msgid "%s (joined)"
 msgstr "%s (dołączyło)"
 
@@ -1585,6 +2621,12 @@ msgstr "Brak aktywnych grup."
 #: jellyfin_mpv_shim/syncplay.py
 msgid "New Group"
 msgstr "Nowa grupa"
+
+# seeded from jellyfin-web: LabelSyncPlayResumePlayback
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Resume local playback"
+msgstr "Wznów lokalne odtwarzanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1630,6 +2672,12 @@ msgstr ""
 "Nie można dodać serwera.\n"
 "Proszę sprawdzić informacje o połączeniu."
 
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Could not start Quick Connect."
+msgid "Could not resume SyncPlay playback."
+msgstr "Nie można uruchomić funkcji Szybkie łączenie."
+
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
 #| msgid "Automatic"
@@ -1646,6 +2694,26 @@ msgstr "Usuń serwer"
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Automatic"
 msgstr "Automatycznie"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+#| msgid "Audio"
+msgid "Audiobooks"
+msgstr "Dźwięk"
+
+# seeded from jellyfin-web: Books
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Books"
+msgstr "Książki"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+msgid "Ungrouped"
+msgstr ""
 
 # seeded from jellyfin-web: Episodes
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -1707,12 +2775,6 @@ msgstr ""
 msgid "Default (mpv decides)"
 msgstr ""
 
-# seeded from jellyfin-web: ChannelResolutionHD
-#: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
-#, fuzzy
-msgid "HD"
-msgstr "HD"
-
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
@@ -1744,6 +2806,13 @@ msgstr "Kontynuuj odtwarzanie"
 #, fuzzy
 msgid "Continue Listening"
 msgstr "Kontynuuj słuchanie"
+
+# seeded from jellyfin-web: HeaderContinueWatching
+#: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Continue Reading"
+msgstr "Kontynuuj odtwarzanie"
 
 # seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -1779,12 +2848,16 @@ msgid "Subtitle Track"
 msgstr "Wybierz ścieżkę napisów"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
 msgstr ""
 
@@ -1830,14 +2903,106 @@ msgstr "Pozycja napisów: {0}"
 msgid "Subtitle Color"
 msgstr "Kolor napisów: {0}"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-msgid "Playback Data"
-msgstr ""
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Playback"
+msgid "Playback Info"
+msgstr "Odtwarzanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
 msgid "None (Disabled)"
 msgstr "Brak (wyłączone)"
+
+# seeded from jellyfin-web: LabelHardwareAccelerationType
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Hardware acceleration"
+msgstr "Akceleracja sprzętowa"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Change Video Quality"
+msgid "Video output"
+msgstr "Zmień jakość wideo"
+
+# seeded from jellyfin-web: LabelDroppedFrames
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Dropped frames"
+msgstr "Pominięte klatki"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%(vo)d output, %(dec)d decoder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "A/V sync"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Buffered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Downloads"
+msgid "Download speed"
+msgstr "Pobrane"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Media Key Seek"
+msgid "Media type"
+msgstr "Klawisz przewijania multimediów"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Prefer Downloaded Copy"
+msgid "downloaded copy"
+msgstr "Preferuj pobraną kopię"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "local file"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "stream from server"
+msgstr ""
+
+# seeded from jellyfin-web: LabelPlayMethod
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Play method"
+msgstr "Metoda odtwarzania"
+
+# seeded from jellyfin-web: HeaderSeasons
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Reasons"
+msgstr "Sezony"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Player"
+msgstr "SyncPlay"
+
+# seeded from jellyfin-web: File
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "File"
+msgstr "Plik"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Nothing is playing."
+msgstr ""
 
 # seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1848,6 +3013,7 @@ msgid "Previous"
 msgstr "Poprzedni"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Previous Chapter"
 msgstr "Poprzedni rozdział"
 
@@ -1860,6 +3026,7 @@ msgid "Forward 30 Seconds"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Next Chapter"
 msgstr ""
 
@@ -1971,6 +3138,31 @@ msgid "The recording settings could not be saved."
 msgstr "Zmiany nie udało się zastosować."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Delete from Disk"
+msgstr ""
+
+# seeded from jellyfin-web: ConfirmDeleteItem
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy
+msgid ""
+"Deleting this item will delete it from both the file system and your media "
+"library. Are you sure you wish to continue?"
+msgstr "Usunięcie tej pozycji usunie ją zarówno z systemu plików jak i z biblioteki mediów. Czy chcesz kontynuować?"
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s was deleted."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy, python-format
+#| msgid "The PIN could not be removed."
+msgid "%s could not be deleted."
+msgstr "Nie udało się usunąć kodu PIN."
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "Delete the downloaded copy of %s?"
@@ -1996,6 +3188,44 @@ msgstr "Usuń"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Opening %s…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Nothing on this system could open %s."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s is already downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid ""
+"Your account is not allowed to download from this server, and a book can "
+"only be read by downloading it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s has not been downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy, python-format
+#| msgid "The PIN could not be saved."
+msgid "%s could not be downloaded."
+msgstr "Nie udało się zapisać kodu PIN."
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy, python-format
+#| msgid "Remove Server"
+msgid "Downloading %s…"
+msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -2271,6 +3501,12 @@ msgid "Repeat Off"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Back %d seconds"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2284,6 +3520,11 @@ msgstr "SyncPlay"
 #, fuzzy
 msgid "Pause"
 msgstr "Pauza"
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Forward %d seconds"
+msgstr ""
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2309,13 +3550,112 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d chapters"
+msgstr ""
+
+# seeded from jellyfin-web: ButtonResume
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Resume"
+msgstr "Wznów"
+
+# seeded from jellyfin-web: Restart
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Restart"
+msgstr "Ponowne uruchomienie"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Add to Queue"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Finished"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Item not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%s in"
+msgstr ""
+
+# seeded from jellyfin-web: ButtonStart
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Start"
+msgstr "Start"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d pages"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgctxt "open a book"
+msgid "Read"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoExternal
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Open Externally"
+msgstr "Zewnętrzny"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Downloading…"
+msgstr "Usuń serwer"
+
+# seeded from jellyfin-web: Programs
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Progress…"
+msgstr "Programy"
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Nothing here yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Item not available."
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "This comic could not be opened."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "This page could not be read."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "The download failed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Getting the comic…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom out"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom in"
 msgstr ""
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
@@ -2328,13 +3668,6 @@ msgstr "Więcej podobnych"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Go to Series"
 msgstr ""
-
-# seeded from jellyfin-web: ButtonResume
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-msgid "Resume"
-msgstr "Wznów"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -2362,17 +3695,6 @@ msgstr "Wersja"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
-msgid "Subtitle"
-msgstr "Rozmiar napisów: {0}"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, python-format
-msgid "%.1f Mbps"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -2435,12 +3757,6 @@ msgstr "Czas trwania"
 msgid "Critic Rating"
 msgstr ""
 
-# seeded from jellyfin-web: OptionParentalRating
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-msgid "Parental Rating"
-msgstr "Kategoria wiekowa"
-
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2457,49 +3773,25 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
 msgstr ""
-
-# seeded from jellyfin-web: Genres
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-msgid "Genres"
-msgstr "Gatunki"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Genres"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Years"
-msgstr ""
-
-# seeded from jellyfin-web: Unplayed
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-msgid "Unplayed"
-msgstr "Nieodtwarzane"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
-msgid "Favorites"
-msgstr "Usuń serwer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Collections"
 msgstr "Usuń serwer"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, python-format
+msgid "Filter (%d)"
+msgstr ""
+
+# seeded from jellyfin-web: Filter
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+msgid "Filter"
+msgstr "Filtruj"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2736,11 +4028,6 @@ msgstr "Albumy"
 msgid "Similar Artists"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Queue"
-msgstr ""
-
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #, fuzzy
@@ -2871,13 +4158,6 @@ msgstr "Usuń serwer"
 msgid "Delete the playlist %s?"
 msgstr "Usunąć listę odtwarzania %s?"
 
-# seeded from jellyfin-web: LabelTitle
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-msgid "Title"
-msgstr "Tytuł"
-
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, fuzzy
@@ -2905,6 +4185,88 @@ msgid ""
 "moment."
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "The PIN could not be removed."
+msgid "This book could not be opened."
+msgstr "Nie udało się usunąć kodu PIN."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copy Paragraph"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "Page"
+msgid "Copy Page"
+msgstr "Strona"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the paragraph."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the page."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "There is nothing downloaded to browse."
+msgid "There is nothing to copy."
+msgstr "Nie pobrano niczego do przeglądania."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copying is not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not copy the text."
+msgstr ""
+"Nie można dodać serwera.\n"
+"Proszę sprawdzić informacje o połączeniu."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, python-format
+msgid "No clipboard available — saved to %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "Continuous"
+msgid "Contents"
+msgstr "Ciągle"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "Contacting the server…"
+msgid "Getting the book…"
+msgstr "Łączenie z serwerem…"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "This book could not be drawn."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Smaller text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "Large"
+msgid "Larger text"
+msgstr "Duży"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Page colour"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
 msgstr ""
@@ -2913,12 +4275,6 @@ msgstr ""
 #, python-format
 msgid "Results for \"%s\""
 msgstr "Wyniki dla „%s”"
-
-# seeded from jellyfin-web: People
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
-msgid "People"
-msgstr "Osoby"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2931,6 +4287,12 @@ msgstr "Seriale"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Videos"
 msgstr ""
+
+# seeded from jellyfin-web: People
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
+msgid "People"
+msgstr "Osoby"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
@@ -3042,6 +4404,12 @@ msgid "Downloaded Shows"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+#| msgid "Downloads"
+msgid "Downloaded Books"
+msgstr "Pobrane"
+
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
 msgstr ""
@@ -3060,66 +4428,6 @@ msgstr ""
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
 msgstr ""
-
-# seeded from jellyfin-web: Display
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-msgid "Display"
-msgstr "Wyświetlanie"
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Connect to a server to change these settings."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid "The change could not be applied."
-msgid "These settings could not be loaded from your server."
-msgstr "Zmiany nie udało się zastosować."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Try Again"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Use episode images in Next Up and Continue Watching"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid ""
-"Off by default: the show's artwork is used instead, because an episode image "
-"can spoil the episode you have not watched yet."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
-msgid "Could not load your display settings."
-msgstr ""
-"Nie można dodać serwera.\n"
-"Proszę sprawdzić informacje o połączeniu."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Display settings saved."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
-msgid "Could not save your display settings."
-msgstr ""
-"Nie można dodać serwera.\n"
-"Proszę sprawdzić informacje o połączeniu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -3174,6 +4482,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
+msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
 msgid "Applies to %s, enable other servers in servers tab."
 msgstr ""
 
@@ -3221,7 +4534,8 @@ msgstr ""
 "Proszę sprawdzić informacje o połączeniu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Home Screen Layout"
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3229,11 +4543,29 @@ msgid "Connect to a server to change the home screen sections."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "The layout could not be loaded from your server."
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "These settings could not be loaded from your server."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Try Again"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "These sections are stored on your server and shared with Jellyfin Web."
+msgid "These settings are stored on your server and shared with Jellyfin Web."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Sections"
+msgstr "Usuń serwer"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid ""
+"The rows the home screen shows, in order. Sections this app cannot draw are "
+"left as your web client set them."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3247,11 +4579,37 @@ msgid "Section %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Use episode images in Next Up and Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid ""
+"Off by default: the show's artwork is used instead, because an episode image "
+"can spoil the episode you have not watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
 #| "Please check your connection information."
-msgid "Could not load the home screen layout."
+msgid "Could not load the home screen settings."
+msgstr ""
+"Nie można dodać serwera.\n"
+"Proszę sprawdzić informacje o połączeniu."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+#, fuzzy
+#| msgid "The change could not be applied."
+msgid "Home screen settings saved."
+msgstr "Zmiany nie udało się zastosować."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not save the home screen settings."
 msgstr ""
 "Nie można dodać serwera.\n"
 "Proszę sprawdzić informacje o połączeniu."
@@ -3276,9 +4634,11 @@ msgstr ""
 msgid "General"
 msgstr "Ogólne"
 
+# seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-msgid "Home Screen"
-msgstr ""
+#, fuzzy
+msgid "Browse"
+msgstr "Przeglądaj"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Servers & Users"
@@ -3318,11 +4678,6 @@ msgid "Could not copy the log."
 msgstr ""
 "Nie można dodać serwera.\n"
 "Proszę sprawdzić informacje o połączeniu."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, python-format
-msgid "No clipboard available — saved to %s"
-msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -3450,6 +4805,12 @@ msgstr "Album"
 msgid "Play from Beginning"
 msgstr ""
 
+# seeded from jellyfin-web: OptionPlayCount
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Play Next"
+msgstr "Liczba odtworzeń"
+
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
@@ -3494,6 +4855,26 @@ msgstr ""
 #, fuzzy
 msgid "Search"
 msgstr "Szukaj"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Minimize"
+msgstr ""
+
+# seeded from jellyfin-web: LabelRestore
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+msgid "Restore"
+msgstr "Przywróć"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Maximum"
+msgid "Maximize"
+msgstr "Maksimum"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Resize"
+msgstr ""
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -3553,23 +4934,22 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
+msgid "Playback Data"
+msgstr ""
+
+#: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
 msgstr "Transkoduj"
 
-# seeded from jellyfin-web: MediaInfoExternal
-#: jellyfin_mpv_shim/osc_bridge.py
+#: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 #, fuzzy
-msgid "External"
-msgstr "Zewnętrzny"
+#| msgid "Theme default"
+msgid "Use the default"
+msgstr "Motyw domyślny"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "SyncPlay Enabled"
 msgstr "SyncPlay włączone"
-
-#: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0}'s Group"
-msgstr "Grupa {0}"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -3659,6 +5039,11 @@ msgstr "Odmówiono dostępu do biblioteki SyncPlay."
 
 #: jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
+msgid "{0}'s Group"
+msgstr "Grupa {0}"
+
+#: jellyfin_mpv_shim/syncplay.py
+#, python-brace-format
 msgid "SpeedToSync (x{0})"
 msgstr "Szybkość synchronizacji (x{0})"
 
@@ -3693,6 +5078,19 @@ msgstr "{0} wyszedł."
 #, python-brace-format
 msgid "{0} is buffering."
 msgstr "{0} buforuje."
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"GNOME does not draw a system tray on its own. Install the \"AppIndicator and "
+"KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
+"Background\" in Settings to run without a window anyway."
+msgstr ""
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"No system tray is running on this desktop. Turn on \"Allow Background\" in "
+"Settings to run without a window anyway."
+msgstr ""
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
@@ -3784,8 +5182,62 @@ msgid "ArtCNN High (C4F32)"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
+#, fuzzy
+#| msgid "Default (auto)"
+msgid "Default (all media)"
+msgstr "Domyślnie (automatycznie)"
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "This Library"
+msgstr ""
+
+# seeded from jellyfin-web: Series
+#: jellyfin_mpv_shim/video_profile.py
+#, fuzzy
+msgid "This Series"
+msgstr "Seriale"
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "Not set"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+#, python-brace-format
+msgid "{0}  <-- in effect"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+#, fuzzy
+#| msgid "Video Playback Profiles"
+msgid "Video Playback Profile"
+msgstr "Profile odtwarzania wideo"
+
+#: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Wybierz profil shadera"
+
+# seeded from jellyfin-web: Display
+#, fuzzy
+#~ msgid "Display"
+#~ msgstr "Wyświetlanie"
+
+#, fuzzy
+#~| msgid ""
+#~| "Could not add server.\n"
+#~| "Please check your connection information."
+#~ msgid "Could not load your display settings."
+#~ msgstr ""
+#~ "Nie można dodać serwera.\n"
+#~ "Proszę sprawdzić informacje o połączeniu."
+
+#, fuzzy
+#~| msgid ""
+#~| "Could not add server.\n"
+#~| "Please check your connection information."
+#~ msgid "Could not save your display settings."
+#~ msgstr ""
+#~ "Nie można dodać serwera.\n"
+#~ "Proszę sprawdzić informacje o połączeniu."
 
 #~ msgid "Always Skip Intros"
 #~ msgstr "Zawsze pomijaj wstępy"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-02 01:33-0400\n"
+"POT-Creation-Date: 2026-08-11 22:40-0400\n"
 "PO-Revision-Date: 2025-08-23 13:20+0000\n"
 "Last-Translator: RadvinM <tworadvin@gmail.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -18,6 +18,26 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 "X-Generator: Weblate 5.11.4\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: jellyfin_mpv_shim/books.py
+msgid "Unknown format"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, python-format
+msgid "Page %(page)d of %(total)d"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "Page %d"
+msgstr ""
+
+#: jellyfin_mpv_shim/books.py
+#, python-format
+msgid "%d%% read"
+msgstr ""
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -531,10 +551,13 @@ msgid "Failed to load. Check the connection."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
 msgstr ""
@@ -544,12 +567,16 @@ msgid "First page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Previous page"
 msgstr "سرور با موفقیت اضافه شد."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
 msgstr ""
 
@@ -861,12 +888,14 @@ msgstr "بازیگران و کارکنان"
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 msgid "Download"
 msgstr "بارگیری"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Remove Download"
@@ -881,12 +910,439 @@ msgstr "ترک و علامت گذاری نشده"
 # seeded from jellyfin-web: Favorite
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, fuzzy
 msgid "Favorite"
 msgstr "مورد علاقه"
 
+# seeded from jellyfin-web: HeaderVideos
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Video"
+msgstr "ویدیوها"
+
+# seeded from jellyfin-web: Audio
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Interface"
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
+msgid "Audio"
+msgstr "صدا"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Subtitle"
+msgstr "اندازه زیرنویس: {0}"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Lyric"
+msgstr ""
+
+# seeded from jellyfin-web: Image
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Image"
+msgstr "تصویر"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Container"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Normal"
+msgid "Format"
+msgstr "طبیعی"
+
+# seeded from jellyfin-web: LabelPath
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Path"
+msgstr "‏‏مسیر"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Size"
+msgstr ""
+
+# seeded from jellyfin-web: Yes
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Yes"
+msgstr "بلی"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "None"
+msgid "No"
+msgstr "هیچ یک"
+
+# seeded from jellyfin-web: LabelTitle
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
+#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
+#, fuzzy
+msgid "Title"
+msgstr "عنوان"
+
+# seeded from jellyfin-web: LabelLanguage
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Language"
+msgstr "زبان"
+
+# seeded from jellyfin-web: MediaInfoCodec
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Codec"
+msgstr "کدک"
+
+# seeded from jellyfin-web: MediaInfoCodecTag
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Codec tag"
+msgstr "برچسب کدک"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "New Group"
+msgid "Profile"
+msgstr "گروه جدید"
+
+# seeded from jellyfin-web: MediaInfoLevel
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Level"
+msgstr "سطح"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Resolution"
+msgstr ""
+
+# seeded from jellyfin-web: AspectRatio
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Aspect ratio"
+msgstr "نسبت تصویر"
+
+# seeded from jellyfin-web: MediaInfoAnamorphic
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Anamorphic"
+msgstr "آنامورفیک"
+
+# seeded from jellyfin-web: MediaInfoInterlaced
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Interlaced"
+msgstr "درهم آمیخته"
+
+# seeded from jellyfin-web: Framerate
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Framerate"
+msgstr "نرخ فریم"
+
+# seeded from jellyfin-web: MediaInfoLayout
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Layout"
+msgstr "چیدمان"
+
+# seeded from jellyfin-web: Channels
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgctxt "audio channel count"
+msgid "Channels"
+msgstr "کانالها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d ch"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Bitrate"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d kbps"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoSampleRate
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Sample rate"
+msgstr "نرخ نمونه"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d Hz"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoBitDepth
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Bit depth"
+msgstr "عمق بیت"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, python-format
+msgid "%d bit"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Video Preferences"
+msgid "Video range"
+msgstr "تنظیمات برگزیده ویدیو"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Video Profile Subtype"
+msgid "Video range type"
+msgstr "زیرنوع پروفایل ویدیو"
+
+# seeded from jellyfin-web: ColorSpace
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Color space"
+msgstr "فضای رنگی"
+
+# seeded from jellyfin-web: ColorTransfer
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Color transfer"
+msgstr "انتقال رنگ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Color primaries"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoPixelFormat
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Pixel format"
+msgstr "فرمت پیکسل"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Ref frames"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Rotation"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid " Forced"
+msgid "Forced"
+msgstr " اجباری"
+
+# seeded from jellyfin-web: MediaInfoExternal
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/osc_bridge.py
+#, fuzzy
+msgid "External"
+msgstr "خارجی"
+
+# seeded from jellyfin-web: LabelTime
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Timestamp"
+msgstr "زمان"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "DV title"
+msgstr "اندازه زیرنویس: {0}"
+
+# seeded from jellyfin-web: LabelVersion
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV version major"
+msgstr "نسخه"
+
+# seeded from jellyfin-web: LabelVersion
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "DV version minor"
+msgstr "نسخه"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV profile"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV level"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV rpu preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV el preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV bl preset flag"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "DV bl signal compatibility id"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f Mbps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+#| msgid "Direct Paths"
+msgid "Direct playing"
+msgstr "مسیرهای مستقیم"
+
+# seeded from jellyfin-web: DirectStreaming
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Direct streaming"
+msgstr "پخش مستقیم"
+
+# seeded from jellyfin-web: Remuxing
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "Remuxing"
+msgstr "بازسازی"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid " (Transcode)"
+msgid "Transcoding"
+msgstr " (کد رمز)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The container is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The subtitle codec is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio stream is external"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Secondary audio tracks are not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec's profile is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video codec's level is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's resolution is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bit depth is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's framerate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Reference frames are not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Anamorphic video is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "Interlaced video is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The number of audio channels is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio codec's profile is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's sample rate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's bit depth is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bitrate exceeds the limit"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's bitrate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio's bitrate is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video stream info is unknown"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The audio stream info is unknown"
+msgstr ""
+
+# seeded from jellyfin-web: DirectPlayError
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+#, fuzzy
+msgid "There was an error starting direct playback"
+msgstr "خطایی در شروع پخش مستقیم وجود داشت"
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
+msgid "The video's range type is not supported"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "This Device"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Window"
 msgstr ""
 
 # seeded from jellyfin-web: LabelTheme
@@ -896,28 +1352,47 @@ msgstr ""
 msgid "Theme"
 msgstr "قالب"
 
-# seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-msgid "Playback"
-msgstr "پخش"
-
-# seeded from jellyfin-web: Audio
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-msgid "Audio"
-msgstr "صدا"
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Subtitles & Languages"
+msgid "Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
 #| msgid " (Transcode)"
-msgid "Transcoding"
+msgid "Reading"
 msgstr " (کد رمز)"
+
+# seeded from jellyfin-web: DownloadManager
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
+msgid "Downloads"
+msgstr "دانلود ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Download Tuning"
+msgstr "حذف سرور"
+
+# seeded from jellyfin-web: OptionPlayCount
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Player Controls"
+msgstr "تعداد پخش"
+
+# seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
+msgid "Playback"
+msgstr "پخش"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Subtitles & Languages"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
@@ -929,17 +1404,29 @@ msgstr ""
 msgid "Skip Intro / Credits"
 msgstr "پرش برای رد کردن تیتراژ پایانی"
 
+# seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Library Browser"
+#, fuzzy
+msgid "Advanced"
+msgstr "پیشرفته"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Off (software decoding)"
 msgstr ""
 
-# seeded from jellyfin-web: DownloadManager
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Only above 1080p"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "On"
+msgstr ""
+
+# seeded from jellyfin-web: TabAdvanced
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
-msgid "Downloads"
-msgstr "دانلود ها"
+msgid "Copy (advanced)"
+msgstr "پیشرفته"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -958,11 +1445,23 @@ msgid "No player controls"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Follow display"
+msgid "75%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "85%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "90%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "110%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -971,6 +1470,30 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "No minimum"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "14 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "16 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "18 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "20 px"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Follow display"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -990,7 +1513,32 @@ msgid "One row per notch"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Default"
+msgid "Only when the window has no title bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Dark"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Sepia"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Light"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Width"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Fit Page"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1104,6 +1652,24 @@ msgid "Prefer Downloaded Copy"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Left Click Pauses Playback"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Show Posters on Detail Pages"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Show Episode Thumbnails on Detail Pages"
+msgstr ""
+
+# seeded from jellyfin-web: HeaderCancelRecording
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Hardware Decoding"
+msgstr "لغو ضبط"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
 msgstr ""
 
@@ -1138,6 +1704,18 @@ msgid "Check Every (minutes)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Top Up When Fewer Than (episodes)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Top Up To (episodes)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Maximum Downloads per Check"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
 msgstr ""
 
@@ -1147,6 +1725,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Window Buttons in the Top Bar"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1162,8 +1744,42 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Text Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Minimum Text Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make Live TV logos more legible"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Make library logos more legible"
+msgstr ""
+
+# seeded from jellyfin-web: LabelType
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Type Size"
+msgstr "نوع"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Page Colour"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Justify Text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Comic Reading Mode"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1267,6 +1883,34 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Leave these blank unless downloads are waking your disks too often. Set both "
+"of the first two together: episodes are then fetched in one batch when a "
+"series runs low, instead of one at a time."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"An episode's thumbnail is a frame of an episode you may not have watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Off gives MPV's own mouse behaviour instead: drag the video to move the "
+"window, and right click to pause. Double click is full screen either way."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Off by default because some graphics drivers handle it badly. \"Only above "
+"1080p\" is the cautious way to turn it on: most hardware decodes 1080p in "
+"software without help. \"Copy (advanced)\" is slower, but it is the mode "
+"that works with video filters, so it is the one to pick if you run SVP or "
+"another VapourSynth filter. If video stops working, start with --disable-"
+"hwdec and change this back."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
 "screen, so the only way back is editing conf.json by hand. It is not how you "
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
@@ -1280,6 +1924,15 @@ msgid ""
 "only way back is editing conf.json. For the classic cast-target setup you "
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+"player window, leaving no way to move or close it. This puts minimize, "
+"maximize and close in the top bar instead, and lets you drag the window by "
+"it. Left on \"Only when the window has no title bar\", MPV is asked whether "
+"this window got one, so desktops that do decorate it are left alone."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1334,6 +1987,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Channel logos come as ink on a transparent background, drawn for the white "
+"page other clients put them on — so on a dark one the black ones vanish. On, "
+"they are backed with the light plate they were made for, and the few whose "
+"own outline is white get a drop shadow so they still have an edge against "
+"it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
+"does."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"The same treatment for a library set to draw Logo artwork. Off by default, "
+"because a film's or series' logo is white by convention and already reads on "
+"a dark background — the plate is what makes it need a shadow. Turn it on if "
+"yours are dark."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Palette, glow, cover style and default cover size. Colours change "
 "immediately; cover and heading sizes take effect after a restart."
 msgstr ""
@@ -1378,6 +2049,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Scales the text only. Interface Scale above resizes everything -- artwork, "
+"spacing and controls -- so use this one when the words are too small rather "
+"than the whole interface. It stops at 150% because by then most tile "
+"captions are ellipsized and it is the whole interface that needs to be "
+"bigger -- which is Interface Scale, above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Nothing renders smaller than this, whatever Text Size works out to. Raises "
+"the smallest labels without enlarging headings, which a percentage cannot do."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "\"Default\" changes nothing and lets MPV (and your own mpv.conf) decide. "
 "Pick a mode only if you are sending audio to a receiver."
 msgstr ""
@@ -1402,17 +2088,168 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"In pixels, before interface scaling. The A- and A+ buttons in the reader "
+"change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How a comic page is fitted to the window when you open it. The reader's own "
+"buttons change this too."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Evens out loud effects and quiet dialogue. This turns passthrough off while "
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
 
-# seeded from jellyfin-web: TabAdvanced
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+# seeded from jellyfin-web: HeaderStatus
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
-msgid "Advanced"
-msgstr "پیشرفته"
+msgid "Status"
+msgstr "وضعیت"
+
+# seeded from jellyfin-web: Unplayed
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Unplayed"
+msgstr "پخش نشده"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Played"
+msgstr "اجرای همگام"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Favorites"
+msgstr "حذف سرور"
+
+# seeded from jellyfin-web: ButtonResume
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Resumable"
+msgstr "ادامه"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Liked"
+msgstr ""
+
+# seeded from jellyfin-web: Features
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Features"
+msgstr "برجسته‌ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Has Subtitles"
+msgstr "اندازه زیرنویس: {0}"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Fail"
+msgid "Has Trailer"
+msgstr "شکست"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Special Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Song"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Video"
+msgstr ""
+
+# seeded from jellyfin-web: Genres
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#, fuzzy
+msgid "Genres"
+msgstr "ژانرها"
+
+# seeded from jellyfin-web: LabelYear
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Years"
+msgstr "سال"
+
+# seeded from jellyfin-web: OptionParentalRating
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+msgid "Parental Rating"
+msgstr "رتبه بندی والدین"
+
+# seeded from jellyfin-web: Tags
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Tags"
+msgstr "برچسب‌ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Audio Language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Subtitle Language"
+msgstr "اندازه زیرنویس: {0}"
+
+# seeded from jellyfin-web: HeaderVideos
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Video Types"
+msgstr "ویدیوها"
+
+# seeded from jellyfin-web: ChannelResolutionSD
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "SD"
+msgstr "SD"
+
+# seeded from jellyfin-web: ChannelResolutionHD
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
+#, fuzzy
+msgid "HD"
+msgstr "HD"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "4K"
+msgstr ""
+
+# seeded from jellyfin-web: Option3D
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "3D"
+msgstr "3D"
+
+# seeded from jellyfin-web: OptionDvd
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "DVD"
+msgstr "DVD"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Blu-ray"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "ISO"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -1446,7 +2283,9 @@ msgid "Collections…"
 msgstr "حذف سرور"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Close"
 msgstr "بستن"
 
@@ -1471,10 +2310,36 @@ msgstr "نام کاربری: "
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, fuzzy
 msgid "Back"
 msgstr "بازگشت"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Unkn"
+msgid "Unknown"
+msgstr "باز کردن"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "No media information is available."
+msgstr ""
+
+# seeded from jellyfin-web: MoreMediaInfo
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Media Info"
+msgstr "اطلاعات محتوا"
+
+# seeded from jellyfin-web: ButtonOk
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "OK"
+msgstr "خوب"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1508,6 +2373,11 @@ msgstr ""
 msgid "%d watched"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%d of unknown size"
+msgstr ""
+
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1525,6 +2395,37 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "This library offers no filters."
+msgstr ""
+
+# seeded from jellyfin-web: Filters
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Filters"
+msgstr "صافی‌ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
+#, python-format
+msgid "%d items"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Clear All"
+msgstr "اجرای همگام"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Done"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Any"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1563,6 +2464,7 @@ msgid "Disc"
 msgstr "دیسک"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
 msgstr ""
 
@@ -1609,18 +2511,15 @@ msgid "View Settings"
 msgstr "تنظیمات SVP"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Done"
+msgid ""
+"Backs transparent logos with the light plate they were drawn for, and "
+"shadows the ones whose own outline is white. Off puts the theme's card "
+"colour behind them instead, with no shadows."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
 msgstr ""
-
-# seeded from jellyfin-web: ButtonOk
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-msgid "OK"
-msgstr "خوب"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
@@ -1646,6 +2545,64 @@ msgid "Clipboard"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid ""
+"%s records your place as an ebook reader position, which no application "
+"shows you a number for — so there is nothing meaningful to set by hand. It "
+"is still read from the server and shown above."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "%s stores no reading position."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Open Config Folder"
+msgid "Reading Progress"
+msgstr "پوشه پیکربندی را باز کنید"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading the position…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Pull"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Push"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "The position could not be read."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Change Subtitles"
+msgid "Enter a number."
+msgstr "زیرنویس را تغییر دهید"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, python-format
+msgid "Enter a page between 1 and %d."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Enter a page of 1 or more."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Reading position saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "The position could not be saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy, python-format
 #| msgid "{0} has joined."
 msgid "%s (joined)"
@@ -1668,6 +2625,12 @@ msgstr "گروه جدید"
 #: jellyfin_mpv_shim/syncplay.py
 msgid "New Group"
 msgstr "گروه جدید"
+
+# seeded from jellyfin-web: LabelSyncPlayResumePlayback
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Resume local playback"
+msgstr "پخش محلی را از سر بگیرید"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -1713,6 +2676,16 @@ msgstr ""
 "سرور اضافه نشد\n"
 "لطفاً اطلاعات اتصال خود را بررسی کنید."
 
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not resume SyncPlay playback."
+msgstr ""
+"سرور اضافه نشد\n"
+"لطفاً اطلاعات اتصال خود را بررسی کنید."
+
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
 #| msgid "Automatic"
@@ -1729,6 +2702,26 @@ msgstr "حذف سرور"
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Automatic"
 msgstr "خودکار"
+
+# seeded from jellyfin-web: Audio
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Audiobooks"
+msgstr "صدا"
+
+# seeded from jellyfin-web: Books
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Books"
+msgstr "کتاب‌ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/downloads.py
+msgid "Ungrouped"
+msgstr ""
 
 # seeded from jellyfin-web: Episodes
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -1790,12 +2783,6 @@ msgstr ""
 msgid "Default (mpv decides)"
 msgstr ""
 
-# seeded from jellyfin-web: ChannelResolutionHD
-#: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
-#, fuzzy
-msgid "HD"
-msgstr "HD"
-
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No channels available."
@@ -1827,6 +2814,13 @@ msgstr "ادامه تماشا"
 #, fuzzy
 msgid "Continue Listening"
 msgstr "به گوش دادن ادامه دهید"
+
+# seeded from jellyfin-web: HeaderContinueWatching
+#: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Continue Reading"
+msgstr "ادامه تماشا"
 
 # seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -1862,12 +2856,16 @@ msgid "Subtitle Track"
 msgstr "زیرنویس را انتخاب کنید"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
 msgstr ""
 
@@ -1913,14 +2911,106 @@ msgstr "موقعیت زیرنویس: {0}"
 msgid "Subtitle Color"
 msgstr "رنگ زیرنویس: {0}"
 
-#: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-msgid "Playback Data"
-msgstr ""
+# seeded from jellyfin-web: HeaderSyncPlayPlaybackSettings
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Playback Info"
+msgstr "پخش"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
 msgid "None (Disabled)"
 msgstr "هیچ (غیرفعال)"
+
+# seeded from jellyfin-web: LabelHardwareAccelerationType
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Hardware acceleration"
+msgstr "شتاب سخت افزاری"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Change Video Quality"
+msgid "Video output"
+msgstr "تغییر کیفیت ویدئو"
+
+# seeded from jellyfin-web: LabelDroppedFrames
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Dropped frames"
+msgstr "فریم های از دست رفته"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%(vo)d output, %(dec)d decoder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "A/V sync"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Buffered"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, python-format
+msgid "%.1f s"
+msgstr ""
+
+# seeded from jellyfin-web: DownloadManager
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Download speed"
+msgstr "دانلود ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Media Key Seek"
+msgid "Media type"
+msgstr "جستجوی کلید رسانه"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "downloaded copy"
+msgstr "حذف سرور"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "local file"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "stream from server"
+msgstr ""
+
+# seeded from jellyfin-web: LabelPlayMethod
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Play method"
+msgstr "نحوه پخش"
+
+# seeded from jellyfin-web: HeaderSeasons
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Reasons"
+msgstr "فصل ها"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "SyncPlay"
+msgid "Player"
+msgstr "اجرای همگام"
+
+# seeded from jellyfin-web: File
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "File"
+msgstr "فایل"
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Nothing is playing."
+msgstr ""
 
 # seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1931,6 +3021,7 @@ msgid "Previous"
 msgstr "قبلی"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, fuzzy
 #| msgid "Successfully added server."
 msgid "Previous Chapter"
@@ -1945,6 +3036,7 @@ msgid "Forward 30 Seconds"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Next Chapter"
 msgstr ""
 
@@ -2050,6 +3142,30 @@ msgid "The recording settings could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Delete from Disk"
+msgstr ""
+
+# seeded from jellyfin-web: ConfirmDeleteItem
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy
+msgid ""
+"Deleting this item will delete it from both the file system and your media "
+"library. Are you sure you wish to continue?"
+msgstr "حذف این مورد، آن را هم از فایل سیستمی و هم از کتابخانه رسانه شما حذف می کند. آیا اطمینان دارید که می‌خواهید ادامه دهید؟"
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s was deleted."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s could not be deleted."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy, python-format
 #| msgid "Remove Server"
@@ -2076,6 +3192,48 @@ msgstr "حذف"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Opening %s…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "Nothing on this system could open %s."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s is already downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+msgid ""
+"Your account is not allowed to download from this server, and a book can "
+"only be read by downloading it."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, python-format
+msgid "%s has not been downloaded."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy, python-format
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "%s could not be downloaded."
+msgstr ""
+"سرور اضافه نشد\n"
+"لطفاً اطلاعات اتصال خود را بررسی کنید."
+
+#: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
+#, fuzzy, python-format
+#| msgid "Remove Server"
+msgid "Downloading %s…"
+msgstr "حذف سرور"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -2351,6 +3509,12 @@ msgid "Repeat Off"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Back %d seconds"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2364,6 +3528,11 @@ msgstr "اجرای همگام"
 #, fuzzy
 msgid "Pause"
 msgstr "مکث"
+
+#: jellyfin_mpv_shim/mpvtk_browser/music.py
+#, python-format
+msgid "Forward %d seconds"
+msgstr ""
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2389,13 +3558,108 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d chapters"
+msgstr ""
+
+# seeded from jellyfin-web: ButtonResume
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Resume"
+msgstr "ادامه"
+
+# seeded from jellyfin-web: Restart
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Restart"
+msgstr "راه اندازی مجدد"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgid "Add to Queue"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+msgid "Finished"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Item not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%s in"
+msgstr ""
+
+# seeded from jellyfin-web: ButtonStart
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Start"
+msgstr "شروع"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, python-format
+msgid "%d pages"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+msgctxt "open a book"
+msgid "Read"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoExternal
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Open Externally"
+msgstr "خارجی"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Downloading…"
+msgstr "حذف سرور"
+
+# seeded from jellyfin-web: Programs
+#: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
+#, fuzzy
+msgid "Progress…"
+msgstr "برنامه ها"
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Nothing here yet."
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Item not available."
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This comic could not be opened."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "This page could not be read."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "The download failed."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Getting the comic…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom out"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
+msgid "Zoom in"
 msgstr ""
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
@@ -2408,13 +3672,6 @@ msgstr "موارد مشابه با این"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Go to Series"
 msgstr ""
-
-# seeded from jellyfin-web: ButtonResume
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-msgid "Resume"
-msgstr "ادامه"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
@@ -2442,17 +3699,6 @@ msgstr "نسخه"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
-msgid "Subtitle"
-msgstr "اندازه زیرنویس: {0}"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, python-format
-msgid "%.1f Mbps"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -2511,12 +3757,6 @@ msgstr "زمان اجرا"
 msgid "Critic Rating"
 msgstr ""
 
-# seeded from jellyfin-web: OptionParentalRating
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-msgid "Parental Rating"
-msgstr "رتبه بندی والدین"
-
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
@@ -2532,49 +3772,25 @@ msgid "View"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, python-format
-msgid "%d items"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
 msgstr ""
-
-# seeded from jellyfin-web: Genres
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-msgid "Genres"
-msgstr "ژانرها"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Genres"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "All Years"
-msgstr ""
-
-# seeded from jellyfin-web: Unplayed
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-msgid "Unplayed"
-msgstr "پخش نشده"
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
-msgid "Favorites"
-msgstr "حذف سرور"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Collections"
 msgstr "حذف سرور"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, python-format
+msgid "Filter (%d)"
+msgstr ""
+
+# seeded from jellyfin-web: Filter
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#, fuzzy
+msgid "Filter"
+msgstr "Filter"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -2811,11 +4027,6 @@ msgstr "آلبوم‌ها"
 msgid "Similar Artists"
 msgstr ""
 
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Queue"
-msgstr ""
-
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #, fuzzy
@@ -2954,13 +4165,6 @@ msgstr "حذف سرور"
 msgid "Delete the playlist %s?"
 msgstr "حذف سرور"
 
-# seeded from jellyfin-web: LabelTitle
-#: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-msgid "Title"
-msgstr "عنوان"
-
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, fuzzy
@@ -2988,6 +4192,84 @@ msgid ""
 "moment."
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "This book could not be opened."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copy Paragraph"
+msgstr ""
+
+# seeded from jellyfin-web: Copy
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+msgid "Copy Page"
+msgstr "کپی"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the paragraph."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copied the page."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "There is nothing to copy."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Copying is not available."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not copy the text."
+msgstr ""
+"سرور اضافه نشد\n"
+"لطفاً اطلاعات اتصال خود را بررسی کنید."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, python-format
+msgid "No clipboard available — saved to %s"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Contents"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Getting the book…"
+msgstr ""
+"سرور اضافه نشد\n"
+"لطفاً اطلاعات اتصال خود را بررسی کنید."
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "This book could not be drawn."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Smaller text"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#, fuzzy
+#| msgid "Large"
+msgid "Larger text"
+msgstr "بزرگ"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+msgid "Page colour"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
 msgstr ""
@@ -2997,12 +4279,6 @@ msgstr ""
 #| msgid "Server:"
 msgid "Results for \"%s\""
 msgstr "سرور:"
-
-# seeded from jellyfin-web: People
-#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
-msgid "People"
-msgstr "افراد"
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -3017,6 +4293,12 @@ msgstr "سریال‌ها"
 #, fuzzy
 msgid "Videos"
 msgstr "ویدیوها"
+
+# seeded from jellyfin-web: People
+#: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
+#, fuzzy
+msgid "People"
+msgstr "افراد"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
@@ -3123,6 +4405,12 @@ msgstr ""
 msgid "Downloaded Shows"
 msgstr ""
 
+# seeded from jellyfin-web: DownloadManager
+#: jellyfin_mpv_shim/mpvtk_browser/repository.py
+#, fuzzy
+msgid "Downloaded Books"
+msgstr "دانلود ها"
+
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
@@ -3142,64 +4430,6 @@ msgstr ""
 #, python-format
 msgid "Saved: %(key)s (also turned off \"%(other)s\")"
 msgstr ""
-
-# seeded from jellyfin-web: Display
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-msgid "Display"
-msgstr "نمایش"
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Connect to a server to change these settings."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "These settings could not be loaded from your server."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Try Again"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "These settings are stored on your server and shared with Jellyfin Web."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Use episode images in Next Up and Continue Watching"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid ""
-"Off by default: the show's artwork is used instead, because an episode image "
-"can spoil the episode you have not watched yet."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
-msgid "Could not load your display settings."
-msgstr ""
-"سرور اضافه نشد\n"
-"لطفاً اطلاعات اتصال خود را بررسی کنید."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-msgid "Display settings saved."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/display.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
-msgid "Could not save your display settings."
-msgstr ""
-"سرور اضافه نشد\n"
-"لطفاً اطلاعات اتصال خود را بررسی کنید."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "Nothing downloaded yet."
@@ -3255,6 +4485,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
+msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
 msgid "Applies to %s, enable other servers in servers tab."
 msgstr ""
 
@@ -3302,7 +4537,8 @@ msgstr ""
 "لطفاً اطلاعات اتصال خود را بررسی کنید."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Home Screen Layout"
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+msgid "Home Screen"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3310,11 +4546,27 @@ msgid "Connect to a server to change the home screen sections."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "The layout could not be loaded from your server."
+msgid "These settings could not be loaded from your server."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "These sections are stored on your server and shared with Jellyfin Web."
+msgid "Try Again"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "These settings are stored on your server and shared with Jellyfin Web."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Sections"
+msgstr "حذف سرور"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid ""
+"The rows the home screen shows, in order. Sections this app cannot draw are "
+"left as your web client set them."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
@@ -3328,11 +4580,35 @@ msgid "Section %d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Use episode images in Next Up and Continue Watching"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid ""
+"Off by default: the show's artwork is used instead, because an episode image "
+"can spoil the episode you have not watched yet."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
 #| "Please check your connection information."
-msgid "Could not load the home screen layout."
+msgid "Could not load the home screen settings."
+msgstr ""
+"سرور اضافه نشد\n"
+"لطفاً اطلاعات اتصال خود را بررسی کنید."
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+msgid "Home screen settings saved."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not save the home screen settings."
 msgstr ""
 "سرور اضافه نشد\n"
 "لطفاً اطلاعات اتصال خود را بررسی کنید."
@@ -3357,9 +4633,11 @@ msgstr ""
 msgid "General"
 msgstr "عمومی"
 
+# seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-msgid "Home Screen"
-msgstr ""
+#, fuzzy
+msgid "Browse"
+msgstr "مرور کردن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #, fuzzy
@@ -3399,11 +4677,6 @@ msgid "Could not copy the log."
 msgstr ""
 "سرور اضافه نشد\n"
 "لطفاً اطلاعات اتصال خود را بررسی کنید."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, python-format
-msgid "No clipboard available — saved to %s"
-msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -3543,6 +4816,12 @@ msgstr "آلبوم"
 msgid "Play from Beginning"
 msgstr ""
 
+# seeded from jellyfin-web: OptionPlayCount
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+msgid "Play Next"
+msgstr "تعداد پخش"
+
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
@@ -3589,6 +4868,26 @@ msgstr ""
 #, fuzzy
 msgid "Search"
 msgstr "جستجو کردن"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Minimize"
+msgstr ""
+
+# seeded from jellyfin-web: LabelRestore
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+msgid "Restore"
+msgstr "بازیابی"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Maximum"
+msgid "Maximize"
+msgstr "بیشترین"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgid "Resize"
+msgstr ""
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -3652,27 +4951,24 @@ msgid "unknown"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
+msgid "Playback Data"
+msgstr ""
+
+#: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
 #| msgid " (Transcode)"
 msgid "Transcode"
 msgstr " (کد رمز)"
 
-# seeded from jellyfin-web: MediaInfoExternal
-#: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-msgid "External"
-msgstr "خارجی"
+#: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
+msgid "Use the default"
+msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
 #| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
 msgstr "فعال شد SyncPlay."
-
-#: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0}'s Group"
-msgstr "گروه {0}"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -3761,6 +5057,11 @@ msgstr "دسترسی به کتابخانه همگام سازی پخش رد شد.
 
 #: jellyfin_mpv_shim/syncplay.py
 #, python-brace-format
+msgid "{0}'s Group"
+msgstr "گروه {0}"
+
+#: jellyfin_mpv_shim/syncplay.py
+#, python-brace-format
 msgid "SpeedToSync (x{0})"
 msgstr "سرعت همگام سازی (x {0})"
 
@@ -3795,6 +5096,19 @@ msgstr "{0} ترک کرده است."
 #, python-brace-format
 msgid "{0} is buffering."
 msgstr "{0} در حال بافر است."
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"GNOME does not draw a system tray on its own. Install the \"AppIndicator and "
+"KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
+"Background\" in Settings to run without a window anyway."
+msgstr ""
+
+#: jellyfin_mpv_shim/tray.py
+msgid ""
+"No system tray is running on this desktop. Turn on \"Allow Background\" in "
+"Settings to run without a window anyway."
+msgstr ""
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
@@ -3886,8 +5200,60 @@ msgid "ArtCNN High (C4F32)"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
+msgid "Default (all media)"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "This Library"
+msgstr ""
+
+# seeded from jellyfin-web: Series
+#: jellyfin_mpv_shim/video_profile.py
+#, fuzzy
+msgid "This Series"
+msgstr "سریال ها"
+
+#: jellyfin_mpv_shim/video_profile.py
+msgid "Not set"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+#, python-brace-format
+msgid "{0}  <-- in effect"
+msgstr ""
+
+#: jellyfin_mpv_shim/video_profile.py
+#, fuzzy
+#| msgid "Video Playback Profiles"
+msgid "Video Playback Profile"
+msgstr "پروفایل های پخش ویدئو"
+
+#: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "نمایه سایه بان را انتخاب کنید"
+
+# seeded from jellyfin-web: Display
+#, fuzzy
+#~ msgid "Display"
+#~ msgstr "نمایش"
+
+#, fuzzy
+#~| msgid ""
+#~| "Could not add server.\n"
+#~| "Please check your connection information."
+#~ msgid "Could not load your display settings."
+#~ msgstr ""
+#~ "سرور اضافه نشد\n"
+#~ "لطفاً اطلاعات اتصال خود را بررسی کنید."
+
+#, fuzzy
+#~| msgid ""
+#~| "Could not add server.\n"
+#~| "Please check your connection information."
+#~ msgid "Could not save your display settings."
+#~ msgstr ""
+#~ "سرور اضافه نشد\n"
+#~ "لطفاً اطلاعات اتصال خود را بررسی کنید."
 
 #~ msgid "Always Skip Intros"
 #~ msgstr "رد کردن همیشگی تیتراژ"
