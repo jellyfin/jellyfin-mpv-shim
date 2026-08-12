@@ -30,6 +30,7 @@ no poster yet renders a placeholder and recomposites when the poster
 arrives (its ``poster_tag`` changes the key).
 """
 
+import dataclasses
 import logging
 import os
 import threading
@@ -153,28 +154,53 @@ class TileGeom:
 
         TileGeom is authored in LOGICAL units like the rest of the view
         layer; only the compositor below works in physical pixels, because
-        the renderer crops bitmaps rather than resampling them."""
+        the renderer crops bitmaps rather than resampling them.
+
+        ``replace``, not a fresh TileGeom: the fields that are NOT pixels
+        (``caption_lines``) have to survive the conversion, and spelling the
+        pixel ones out in a constructor call is how one gets left behind."""
         from ..mpvtk.scaling import px
 
-        return TileGeom(
+        return dataclasses.replace(
+            self,
             tile_w=px(self.tile_w), tile_h=px(self.tile_h), gap=px(self.gap),
             caption_h=px(self.caption_h), title_size=px(self.title_size),
             sub_size=px(self.sub_size), badge_size=px(self.badge_size),
         )
 
     def scaled(self, f):
-        """A copy scaled by factor ``f`` — the active theme's cover size, or
-        the user's Cover Size setting. The gap is kept so rows keep their
-        rhythm as the art grows."""
+        """A copy whose ARTWORK is scaled by factor ``f`` — the active theme's
+        cover size, or the user's Cover Size setting.
+
+        **The type is not touched, and neither is the caption band.** Cover
+        Size used to scale ``title_size``/``sub_size``/``badge_size``/
+        ``caption_h`` along with the art, on the reasoning that a label under
+        a bigger poster should be bigger. Three things were wrong with that:
+
+        * it is a second, unlabelled text-size control, so a user who wanted
+          bigger covers got bigger captions they did not ask for -- and one
+          who wanted *smaller* covers (Extra Compact is 0.75) got captions
+          below the floor ``ui_text_min`` exists to enforce;
+        * the badge decorations do NOT scale with it. Every offset in
+          ``_paint_decorations`` is a fixed logical constant (the 22px disc,
+          ``BADGE_PITCH``, the 17px corner inset), so ``badge_size`` growing
+          alone put a 24px numeral in a 22px disc at Extra Large;
+        * text scaling already has two controls that do it properly and
+          keep working here -- ``ui_scale`` through :meth:`physical`, which
+          scales the whole interface including these, and ``ui_text_scale`` /
+          ``ui_text_min`` through :meth:`with_text_scale`, which is applied
+          *after* this and is what a theme's pinned caption size is measured
+          against.
+
+        The gap is kept too, so rows keep their rhythm as the art grows.
+        """
         if not f or abs(f - 1.0) < 1e-6:
             return self
+
         def r(v):
             return max(1, int(round(v * f)))
-        return TileGeom(
-            tile_w=r(self.tile_w), tile_h=r(self.tile_h), gap=self.gap,
-            caption_h=r(self.caption_h), title_size=r(self.title_size),
-            sub_size=r(self.sub_size), badge_size=r(self.badge_size),
-        )
+        return dataclasses.replace(self, tile_w=r(self.tile_w),
+                                   tile_h=r(self.tile_h))
 
 
 # Tile shapes, matching the Tk browser's poster_box/thumb_box/square_box.

@@ -96,7 +96,10 @@ DEFAULT = {
     # stops changing, which reads as a band. See mpvtk.widgets.Gradient.
     "window_gradient": None,
     "topbar_gradient": None,
-    "poster_scale": 1.0,  # tile-geometry multiplier
+    # Cover-size multiplier: the tile ARTWORK only. Captions and badges do
+    # not follow it -- text size is base_size/tile_*_size here and the
+    # user's own Text Size setting. See strips.TileGeom.scaled.
+    "poster_scale": 1.0,
     # The base every text size derives from (mpvtk.theme.TYPE_SCALE). A
     # theme that wants larger type moves this one number and the whole
     # scale follows -- headings, controls, captions, all of it, in
@@ -109,7 +112,7 @@ DEFAULT = {
     # better default.
     "heading_size": None,
     "tile_landscape": (240, 135),  # (w, h) of the library/landscape tile
-    "tile_title_size": None,  # tile caption font; None = stock (scales w/ cover)
+    "tile_title_size": None,  # tile caption font; None = stock
     "tile_sub_size": None,
 }
 

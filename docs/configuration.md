@@ -322,6 +322,11 @@ You can use the config file to enable and disable features.
   - `null` keeps the theme's own size; a number scales the cover tiles. The
     settings form offers `0.75`, `0.85`, `1.0`, `1.2`, `1.4` and `1.7`, but
     any number works.
+  - **The artwork, and only the artwork** — every shape of it: posters, square
+    music covers, 16:9 thumbnails and banners. Captions and badges keep their
+    size. Text has its own two controls (`ui_text_scale` and `ui_text_min`),
+    and `ui_scale` moves the whole interface including the type; a cover
+    setting that also moved text was a third, unlabelled text control.
   - **Applies immediately**, and is also on the View menu of any library —
     seeing the change is the point of the setting, and walking back to a
     library to look was the whole difficulty. Scroll positions are dropped
@@ -660,7 +665,7 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `poster_scale` | Cover-size multiplier. The `poster_scale` *setting* overrides this. |
 | `heading_size` | Carousel section-title font size. |
 | `tile_landscape` | `[width, height]` of the landscape/library tile. |
-| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` scales them with the cover. |
+| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` is the stock size. Cover size does not move these. |
 
 Palette colours: `WINDOW_BG`, `CARD_BG`, `PANEL_BG`, `PLACEHOLDER_BG`,
 `BUTTON_BG`, `BUTTON_ACTIVE`, `ENTRY_BG`, `BORDER`, `TEXT_FG`, `SUBTLE_FG`,

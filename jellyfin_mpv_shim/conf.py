@@ -552,6 +552,11 @@ class Settings(SettingsBase):
     # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"
+    #: Cover Size: a multiplier on the tile ARTWORK, every shape of it
+    #: (poster, square, landscape/thumbnail, banner). Deliberately not a
+    #: text control -- captions and badges keep their size, because
+    #: ui_text_scale/ui_text_min are what move type and a second unlabelled
+    #: one is how "bigger covers" quietly became "bigger everything".
     poster_scale: Optional[float] = None
     # The in-window epub reader (mpvtk_browser/pages/reader.py). These are
     # settings rather than per-book state because they are a property of

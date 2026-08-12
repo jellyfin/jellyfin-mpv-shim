@@ -571,6 +571,81 @@ class CoverSizeTest(unittest.TestCase):
         self.assertGreaterEqual(tiny.tile_w, 1)
         self.assertGreaterEqual(tiny.tile_h, 1)
 
+    def test_cover_size_moves_the_artwork_and_nothing_else(self):
+        """Cover Size is a control over the ARTWORK. It used to scale the
+        caption type and the badge type with it, which made it a second,
+        unlabelled text-size setting -- so Extra Compact put captions under
+        the floor `ui_text_min` exists to enforce, and Extra Large put a
+        24px numeral inside a 22px badge disc (every offset in
+        `_paint_decorations` is a fixed logical constant and does not scale).
+        """
+        for factor in (0.75, 1.4, 1.7):
+            with self.subTest(factor=factor):
+                big = POSTER_GEOM.scaled(factor)
+                self.assertEqual(big.tile_w,
+                                 round(POSTER_GEOM.tile_w * factor))
+                for field in ("title_size", "sub_size", "badge_size",
+                              "caption_h"):
+                    self.assertEqual(
+                        getattr(big, field), getattr(POSTER_GEOM, field),
+                        "Cover Size moved %s, which is type, not artwork"
+                        % field)
+
+    def test_the_other_two_scales_still_move_the_type(self):
+        """The half a careless fix breaks. Cover Size is not a text control;
+        `ui_scale` and `ui_text_scale` are, and they reach a tile caption
+        through `physical()` and `with_text_scale()` respectively -- which is
+        the whole reason `scaled` does not have to."""
+        scaled = POSTER_GEOM.with_text_scale(1.5)
+        self.assertGreater(scaled.title_size, POSTER_GEOM.title_size)
+        self.assertGreater(scaled.sub_size, POSTER_GEOM.sub_size)
+        self.assertGreater(scaled.caption_h, POSTER_GEOM.caption_h,
+                           "the band has to grow with the type or the "
+                           "subtitle is clipped away")
+
+    def test_cover_size_reaches_the_landscape_tile(self):
+        """The shape it did NOT reach, and not a rare one: episodes, home
+        videos, Live TV listings and every library whose median artwork is
+        landscape are drawn in it. Turning covers up grew the film posters
+        and left all of those at stock size.
+
+        Through the BROWSER's own derivation, not through `TileGeom.scaled`.
+        The geometry has always been able to scale; the bug was that
+        `_derive_cover_size` never asked it to for this one shape, and a test
+        that calls `LANDSCAPE_GEOM.scaled(1.4)` itself passes either way.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from jellyfin_mpv_shim.conf import settings
+        from tests._shell_harness import FakeSource
+
+        was = settings.poster_scale
+        self.addCleanup(setattr, settings, "poster_scale", was)
+        shapes = {}
+        for factor in (1.0, 1.4):
+            settings.poster_scale = factor
+            b = MpvtkBrowser(app=None, source=FakeSource())
+            shapes[factor] = (b.geom.tile_w, b.geom_wide.tile_w,
+                              b.geom_square.tile_w)
+        for i, name in enumerate(("poster", "landscape", "square")):
+            with self.subTest(shape=name):
+                self.assertEqual(
+                    shapes[1.4][i], round(shapes[1.0][i] * 1.4),
+                    "Cover Size does not reach the %s tile" % name)
+
+    def test_cover_size_still_leaves_the_stock_shape_identical_at_one(self):
+        """`scaled` returns `self` at 1.0, and the derivation leans on it:
+        `auto_geom` and its tests compare the landscape geometry by IDENTITY
+        against the module singleton."""
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from jellyfin_mpv_shim.conf import settings
+        from tests._shell_harness import FakeSource
+
+        was = settings.poster_scale
+        self.addCleanup(setattr, settings, "poster_scale", was)
+        settings.poster_scale = None
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        self.assertIs(b.geom_wide, LANDSCAPE_GEOM)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1157,19 +1157,35 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self.geom = self._geom_pinned or POSTER_GEOM.scaled(cs)
         # The stock shape stays the module singleton rather than an equal
         # copy, so identity comparisons against LANDSCAPE_GEOM keep working.
+        # `scaled` returns `self` at 1.0, so that identity survives the
+        # scaling below for as long as it is the stock shape at stock size.
         if (lw, lh) == (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h):
-            self.geom_wide = LANDSCAPE_GEOM           # 16:9 (episodes / video)
+            wide = LANDSCAPE_GEOM                     # 16:9 (episodes / video)
         else:
-            self.geom_wide = TileGeom(
-                tile_w=lw, tile_h=lh,
-                caption_h=LANDSCAPE_GEOM.caption_h)
+            wide = TileGeom(tile_w=lw, tile_h=lh,
+                            caption_h=LANDSCAPE_GEOM.caption_h)
+        # Scaled like the other three. This was the one shape Cover Size did
+        # not reach, and it is not a rare one -- episodes, home videos, Live
+        # TV listings and every library whose median artwork is landscape
+        # come out of `auto_geom` in it. So turning covers up grew the film
+        # posters and left every 16:9 row at stock size, which reads as the
+        # setting half-working rather than as a deliberate exemption.
+        #
+        # The theme's own `tile_landscape` override is scaled too: it states
+        # the tile's SHAPE (240x135 vs something wider), and cover size is
+        # how big that shape is drawn -- the same relationship the poster has
+        # with POSTER_GEOM.
+        self.geom_wide = wide.scaled(cs)
         self.geom_square = SQUARE_GEOM.scaled(cs)     # 1:1 (music)
         # ~5.4:1. Only a user asking for the Banner image type reaches this.
         self.geom_banner = BANNER_GEOM.scaled(cs)
-        # A theme may also pin the tile caption font so it does NOT grow with
-        # the cover (big art, modest labels), which lets a long title show
-        # more of itself before it is ellipsized. Section headings are
-        # separate (heading_size) and unaffected.
+        # A theme may also pin the tile caption font outright -- smaller than
+        # stock lets a long title show more of itself before it is
+        # ellipsized, larger buys legibility at the cost of that. Section
+        # headings are separate (heading_size) and unaffected.
+        #
+        # It no longer has anything to do with cover size: nothing under a
+        # bigger cover is bigger any more. See TileGeom.scaled.
         tts = self._theme_cfg.get("tile_title_size")
         tss = self._theme_cfg.get("tile_sub_size")
         if tts or tss:
