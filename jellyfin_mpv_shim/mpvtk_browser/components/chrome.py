@@ -99,6 +99,30 @@ def wrap_row(items, avail, gap=8, align="center", row_gap=None):
                   gap=gap if row_gap is None else row_gap, align="start")
 
 
+def header_body(banner, blocks, pad=CONTENT_PAD, gap=16, full_bleed=False):
+    """The scrollable column of a page that opens with a backdrop header.
+
+    ``Column([banner] + blocks, pad=pad, gap=gap)`` -- the padded shape all
+    three detail-ish pages used to build by hand -- unless ``full_bleed``,
+    in which case the banner comes OUT of the padding and the rest of the
+    page keeps it.
+
+    The nesting is what makes that possible: a single column has one padding
+    for every child. So the banner and an inner, horizontally-padded column
+    become the two children of an unpadded outer one. ``align="stretch"``
+    there is for the inner column, which has no width of its own; the banner
+    is an Image with an explicit ``w`` and layout leaves a fixed cross size
+    alone, so it keeps exactly the width ``banner_box`` gave it.
+
+    The trailing Spacer is the bottom padding the outer column's ``pad=0``
+    gives up. There is no top padding to replace, which is the point.
+    """
+    if not full_bleed:
+        return Column([banner] + list(blocks), pad=pad, gap=gap)
+    body = Column(list(blocks) + [Spacer(h=pad)], pad=(pad, 0), gap=gap)
+    return Column([banner, body], gap=gap, align="stretch")
+
+
 def body_width(w, pad=CONTENT_PAD):
     """Usable text width inside a padded, scrollable content column.
 

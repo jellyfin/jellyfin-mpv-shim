@@ -22,6 +22,25 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `backdrop_full_width` - Run a detail page's backdrop to the edges of the
+      window, with no padding above or beside it, the way the web client does.
+      Default: `false`
+  - It costs no vertical space either way: the header keeps exactly the height
+      the padded version had and gets wider, so what changes is how much of the
+      backdrop is cropped away, not how far down the page the buttons start.
+  - Off by default because of what it asks of the artwork and of the window.
+      Backdrops are often low-resolution, and this is the mode that stretches
+      one furthest; and the scroll view reserves a gutter for its scrollbar, so
+      on any page long enough to scroll a "full-width" header stops 10px short
+      of the edge — a notch at the end of an edge-to-edge banner reads worse
+      than a margin does.
+  - Off for an item with no artwork at all whatever this is set to: there is
+      nothing to bleed, and the grey placeholder panel run edge to edge is just
+      a wider grey band.
+  - A header is capped at 60% of the window height in both modes. Its height
+      comes from its width, so on a short wide window the untamed 2.67:1 box
+      was most of the screen and the page opened on artwork with everything
+      below the fold.
 - `detail_poster` - Show a film's or series' own poster in a detail page's
       header, inset over the backdrop. Default: `true`
 - `detail_episode_image` - The same slot on an episode, where the artwork is a

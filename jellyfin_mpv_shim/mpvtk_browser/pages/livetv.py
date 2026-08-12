@@ -800,7 +800,8 @@ class ProgramPage(Page):
             return chrome.busy()
         tiles = self.ctx.art.tiles
         w = size[0]
-        bw, bh = tiles.banner_box(w)
+        full_bleed = tiles.full_bleed_header(item)
+        bw, bh = tiles.banner_box(w, full_bleed, size[1])
         title = live_tv.program_title(item)
         meta = self._meta(item)
         banner = tiles.backdrop_node(item, (bw, bh), "program-bd",
@@ -834,7 +835,8 @@ class ProgramPage(Page):
         if item.get("Overview"):
             blocks.append(chrome.paragraph(item["Overview"], 18,
                                            tiles.body_w(w)))
-        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=16),
+        return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
+                                          full_bleed=full_bleed),
                        id="program", flex=1,
                        offset=self.parked_scroll("program"))
 

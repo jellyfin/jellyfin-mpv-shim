@@ -589,6 +589,24 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
+    #: Detail, series and programme headers span the whole viewport, with
+    #: no padding above or beside them -- jellyfin-web's full-bleed
+    #: backdrop.
+    #:
+    #: **Off by default**, which is not what this shipped as. Two things
+    #: decided it, both only visible against a real library:
+    #:
+    #: * a lot of backdrop artwork is low-resolution, and full bleed is the
+    #:   mode that asks the most of it -- the same picture stretched over
+    #:   another few hundred pixels of width, cropped harder;
+    #: * the scroll view reserves a gutter for its scrollbar, so a
+    #:   "full-width" header stops 10px short of the window on any page long
+    #:   enough to scroll, and a notch at the end of an edge-to-edge banner
+    #:   reads worse than a margin does.
+    #:
+    #: It still costs no vertical space either way: the header keeps the
+    #: height the padded version had (see TileRenderer.banner_box).
+    backdrop_full_width: bool = False
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the

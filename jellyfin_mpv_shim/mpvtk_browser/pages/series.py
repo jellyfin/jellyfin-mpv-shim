@@ -6,7 +6,7 @@ playlist, so it lives in ``components/detail.py``.
 """
 
 from ...i18n import _
-from ...mpvtk.widgets import Column, Row, Text, VScroll
+from ...mpvtk.widgets import Row, Text, VScroll
 from .. import theme
 from ..components import chrome, controls, detail as detail_components
 from .base import Page
@@ -48,7 +48,8 @@ class SeriesPage(Page):
             return chrome.busy()
         item = data.get("item") or {}
         w = size[0]
-        bw, bh = tiles.banner_box(w)
+        full_bleed = tiles.full_bleed_header(item)
+        bw, bh = tiles.banner_box(w, full_bleed, size[1])
         server = route.get("server") or self.ctx.server
         meta = detail_components.meta_line(item)
         banner = tiles.backdrop_node(item, (bw, bh), "series-bd",
@@ -87,7 +88,9 @@ class SeriesPage(Page):
             blocks.append(tiles.tile_row(
                 _("More Like This"), data["similar"], "series-similar",
                 geom=sim_geom, image_type=sim_type))
-        return VScroll(Column(blocks, pad=16, gap=16), id="series", flex=1)
+        return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
+                                          full_bleed=full_bleed),
+                       id="series", flex=1)
 
     def _series_actions(self, item, server, series_id, trailers=None):
         actions = self.ctx.actions

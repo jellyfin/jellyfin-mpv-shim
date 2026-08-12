@@ -451,8 +451,20 @@ class TestButtonColors(unittest.TestCase):
 class TestBanner(unittest.TestCase):
     def test_banner_is_two_thirds_of_a_16_9_box(self):
         b = MpvtkBrowser(app=None, source=FakeSource())
-        bw, bh = b._banner_box(1280)
+        bw, bh = b._banner_box(1280, False)
         self.assertAlmostEqual(bh / bw, 9 / 16 * 2 / 3, places=3)
+
+    def test_a_full_width_banner_spends_width_and_not_height(self):
+        """`backdrop_full_width` (on by default) breaks the ratio above on
+        purpose, and in exactly one direction. The height is the number
+        everything below the header is positioned against, so the option is
+        only allowed to make the box wider -- what it buys is more backdrop,
+        not more page."""
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        pw, ph = b._banner_box(1280, False)
+        fw, fh = b._banner_box(1280, True)
+        self.assertEqual(fh, ph)
+        self.assertGreater(fw, pw)
 
     def test_heading_is_baked_into_the_banner(self):
         """Text over artwork has to be part of the bitmap — ASS would render

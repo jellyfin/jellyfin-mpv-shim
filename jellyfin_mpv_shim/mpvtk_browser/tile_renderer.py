@@ -751,16 +751,71 @@ class TileRenderer:
     #: which is invisible; one drawn narrower is soft.
     BANNER_STEP = 128
 
-    def banner_box(self, width):
+    def full_bleed_header(self, item=None):
+        """Whether this header runs edge to edge (``backdrop_full_width``).
+
+        Asked once per render and passed to both :meth:`banner_box` and
+        ``chrome.header_body``, so the box and the padding around it cannot
+        answer differently.
+
+        **No, when the item has no artwork of any kind.** There is nothing to
+        bleed: :meth:`backdrop_node` returns a rounded placeholder panel, and
+        running that to both edges is a full-width empty grey band across the
+        top of the page -- which is not the jellyfin-web look the option is
+        for, it is just a bigger version of the thing that look replaces. The
+        height is the same either way, so nothing below it moves whichever
+        answer this gives. ``item=None`` skips the question, for a caller
+        that has not got one.
+        """
+        from ..conf import settings
+
+        if not getattr(settings, "backdrop_full_width", True):
+            return False
+        return item is None or self.header_bakes_heading(item)
+
+    #: Most of the viewport a detail header may take. A header is a picture
+    #: you look past on the way to the buttons under it, and at the bottom
+    #: of the window's height range the 2.67:1 box below was most of the
+    #: screen -- so the page opened on artwork with nothing else in view and
+    #: everything you came for below the fold.
+    BANNER_MAX_H = 0.6
+
+    def banner_box(self, width, full_bleed=None, height=None):
         """The banner's LAID-OUT size: exactly the space it has.
 
         Deliberately not quantised. The header spans the content width, so
         rounding this up overhangs the scrollbar and rounding it down leaves
         a gap beside content that does reach the edge. What gets quantised is
         the *fetch* -- see ``_banner_fetch_w``.
+
+        Full bleed widens it to the whole scroll viewport -- the window less
+        the scrollbar the view reserves, which is the honest full width;
+        asking for ``width`` itself overhangs into the bar.
+
+        **The height does not change.** It is still computed from the padded,
+        1100-capped width, so a header takes exactly the vertical space it
+        took before and nothing below it moves. What the extra width buys is
+        more backdrop, not more page: the shape gets wider, and
+        ``compose_banner``'s cover-crop takes the difference off the top and
+        bottom of the artwork.
         """
         bw = min(width - 2 * chrome.CONTENT_PAD, 1100)
-        return bw, int(bw * self.BANNER_RATIO)
+        bh = int(bw * self.BANNER_RATIO)
+        if height:
+            # Capped against the WINDOW, not the artwork. A short, wide
+            # window (a 21:9 monitor, a half-height tiled pane) is exactly
+            # where the ratio's own answer eats the page, and the cap only
+            # ever bites there -- at 16:9 or taller the 2.67:1 box is already
+            # well under it.
+            bh = min(bh, int(height * self.BANNER_MAX_H))
+        if self.full_bleed_header() if full_bleed is None else full_bleed:
+            # -- widen; the height above is what the caller keeps.
+            from ..mpvtk.layout import SCROLLBAR_W
+
+            # max(), so a window narrow enough for the padded width to be the
+            # wider of the two never *shrinks* the header.
+            return max(bw, width - SCROLLBAR_W), bh
+        return bw, bh
 
     def _banner_fetch_w(self, physical_w):
         """Physical width to ask the server for, given the drawn width.
@@ -779,6 +834,22 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
+
+    #: Quantisation step for a full-bleed header's fetch HEIGHT. Finer than
+    #: BANNER_STEP because it is quantising a smaller number -- the drawn
+    #: height is around 3/8 of the width -- and a 128px step there would
+    #: routinely overshoot by a third of the picture.
+    BANNER_H_STEP = 64
+
+    def _banner_fetch_h(self, physical_h):
+        """Physical height to ask for, given the drawn height. Same rounding
+        rule and the same reason as :meth:`_banner_fetch_w`: up to a step, so
+        a drag-resize asks for a handful of shapes rather than one per pixel.
+        """
+        step = self.BANNER_H_STEP
+        if physical_h <= 0:
+            return 0
+        return int(-(-physical_h // step) * step)
     def header_bakes_heading(self, item):
         """Whether :meth:`backdrop_node` will bake the heading into its
         bitmap — answerable *now*, before any image has arrived.
@@ -929,6 +1000,23 @@ class TileRenderer:
             # ~1.8x, in the commit whose point was making banners cheaper.
             fetch_w = self._banner_fetch_w(pbox[0])
             fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
+            if pbox[1] * fetch_w < fetch_h * pbox[0]:
+                # The drawn box is WIDER than the banner ratio, which is what
+                # a full-bleed header is: same height, more width. Asking at
+                # BANNER_RATIO there hands back close to twice the height
+                # `scale_to_cover` keeps -- correct, but a third of a
+                # megabyte of backdrop per header thrown away.
+                #
+                # Quantised, and that is the load-bearing half. The drawn
+                # height is continuous in the window width until the 1100 cap
+                # bites, so a fetch height taken exactly from the box would
+                # mint a fresh server request per pixel of a drag-resize --
+                # precisely what `_banner_fetch_w` exists to stop, reintroduced
+                # on the other axis. Capped at the ratio's answer so a step
+                # that overshoots can never ask for MORE than before.
+                fetch_h = max(1, min(
+                    fetch_h,
+                    self._banner_fetch_h(int(fetch_w * pbox[1] / pbox[0]))))
             fetch_key = make_key(owner_id, itype, tag, fetch_w, fetch_h)
             url = self.art.source.backdrop_url(self.art.server, item,
                                                width=fetch_w, height=fetch_h,

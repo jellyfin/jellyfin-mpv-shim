@@ -114,6 +114,7 @@ TAB_SECTIONS = {
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
+                                "backdrop_full_width",
                                 "detail_poster",
                                 "detail_episode_image",
                                 "logo_legibility_live_tv",
@@ -385,6 +386,7 @@ LABEL_OVERRIDES = {
     "ui_text_min": _("Minimum Text Size"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
+    "backdrop_full_width": _("Full-Width Backdrops"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
     # Named for what they do to the page, not for the module they belong
@@ -564,6 +566,10 @@ NOTES = {
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),
+    "backdrop_full_width": _("Run the backdrop on a detail page to the "
+                             "edges of the window, as the web client does. "
+                             "It shows more of the artwork without taking "
+                             "any more vertical space."),
     "poster_scale": _("Overrides the theme's cover size. Applies "
                       "immediately, and is also on the View menu of any "
                       "library."),
