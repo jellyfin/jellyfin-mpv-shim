@@ -81,7 +81,7 @@ def _import_real_player():
 
 
 def _is_fake(mod):
-    return mod is not None and getattr(mod, "MPV", None) is h.FakeMPV
+    return mod is not None and h.is_fake_mpv(mod)
 
 
 class FakeJellyfinApi:

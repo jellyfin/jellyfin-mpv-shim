@@ -18,6 +18,7 @@ from unittest import mock
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 from jellyfin_mpv_shim import video_profile  # noqa: E402
+from jellyfin_mpv_shim.shader_overrides import ShaderOverrides  # noqa: E402
 from jellyfin_mpv_shim.video_profile import VideoProfileManager  # noqa: E402
 
 PROFILES = {
@@ -39,7 +40,23 @@ class FakeMenu:
         self.title, self.entries, self.selected = title, entries or [], selected
 
 
-def make_manager(current=None):
+class FakePlayerManager:
+    """Enough player for the menu to ask what is playing.
+
+    Modelled rather than left off: ``_menu_item`` reaches through this to
+    the item, and a manager without one does not leave the scope menu
+    untested -- it makes it raise where nothing is looking."""
+
+    def __init__(self, item=None):
+        self.item = item
+
+    def get_video(self):
+        if self.item is None:
+            return None
+        return type("V", (), {"item": self.item, "client": None})()
+
+
+def make_manager(current=None, item=None):
     mgr = VideoProfileManager.__new__(VideoProfileManager)
     mgr.profiles = PROFILES
     mgr.menu = FakeMenu()
@@ -49,6 +66,17 @@ def make_manager(current=None):
     mgr.defaults = {}
     mgr.revert_ignore = set()
     mgr.used_settings = set()
+    mgr.playerManager = FakePlayerManager(item)
+    # path=None: no file, no writes. The store is real otherwise, because
+    # what these tests are about is which rows the menu draws.
+    mgr.overrides = ShaderOverrides(None)
+    mgr.active_scope = "default"
+    mgr._library_ids = {}
+    mgr._menu_scope = "default"
+    # The default scope's value IS the loaded one here: these tests
+    # have no overrides, so the two cannot differ.
+    mgr.session_default = current
+    mgr.suppressed = False
     return mgr
 
 
@@ -82,14 +110,14 @@ class PlatformGatingTests(unittest.TestCase):
         with mock.patch.object(video_profile, "PLATFORM", "linux"), \
                 mock.patch.object(video_profile.settings,
                                   "shader_pack_subtype", "lq"):
-            mgr.menu_action()
+            mgr.profile_menu("default")
         self.assertEqual(rows(mgr), [None, "generic", "nvscaler"])
 
         mgr = make_manager()
         with mock.patch.object(video_profile, "PLATFORM", "windows"), \
                 mock.patch.object(video_profile.settings,
                                   "shader_pack_subtype", "lq"):
-            mgr.menu_action()
+            mgr.profile_menu("default")
         self.assertEqual(rows(mgr), [None, "generic", "rtx-vsr", "nvscaler"])
 
     def test_selected_row_survives_filtering(self):
@@ -99,7 +127,7 @@ class PlatformGatingTests(unittest.TestCase):
         with mock.patch.object(video_profile, "PLATFORM", "linux"), \
                 mock.patch.object(video_profile.settings,
                                   "shader_pack_subtype", "lq"):
-            mgr.menu_action()
+            mgr.profile_menu("default")
         self.assertEqual(mgr.menu.selected, 2)
         self.assertEqual(mgr.menu.entries[mgr.menu.selected][2], "nvscaler")
 

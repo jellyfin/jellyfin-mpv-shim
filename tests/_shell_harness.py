@@ -148,6 +148,10 @@ class FakeSource:
         #: drawn below it). `tools/audit_fake_contracts.py` cannot see
         #: this: `backdrop_spec` is provided, just never honestly.
         self.has_backdrop = False
+        #: Whether items resolve to a Primary image. See image_spec: off by
+        #: default so tiles stay placeholders, on for the tests that need
+        #: the header's inset poster to exist at all.
+        self.has_poster = False
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
@@ -252,10 +256,25 @@ class FakeSource:
 
     def image_spec(self, item, image_type="Primary", width=280,
                    inherit=True):
-        return None  # no artwork in tests -> placeholder tiles, no network
+        """Which image an item resolves to, or None.
+
+        Off by default so tiles stay placeholders and nothing reaches the
+        network -- but *switchable*, because answering None unconditionally
+        is how a path goes untested while every test still passes. That is
+        what `has_backdrop` was added for next door, after no shell test had
+        ever rendered a header with artwork; the header's inset poster (#7)
+        reads this one and would have had the same hole.
+        """
+        if not self.has_poster:
+            return None
+        return (item.get("Id") or "x", image_type, "ptag0")
 
     def image_url(self, *a, **k):
-        return None
+        # A url only when there is artwork to fetch, for the same reason
+        # backdrop_url below has that rule: _request_image bails on a falsy
+        # url before recording anything, so always answering None leaves
+        # the request path unreachable.
+        return "http://fake/img.jpg" if self.has_poster else None
 
     def backdrop_spec(self, item):
         if not self.has_backdrop:
@@ -314,10 +333,13 @@ class FakeSource:
         return [{"Id": "e%d" % i} for i in range(3)]
 
     def get_seasons(self, server_uuid, series_id):
+        # SeriesName, because the season screen puts it in the title bar
+        # and every Season stand-in omitting it left that path untestable
+        # -- the field the feature is named after had nowhere to live.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
-                 "SeriesId": series_id},
+                 "SeriesId": series_id, "SeriesName": "A Show"},
                 {"Id": "se2", "Name": "Season 2", "Type": "Season",
-                 "SeriesId": series_id}]
+                 "SeriesId": series_id, "SeriesName": "A Show"}]
 
     def get_episodes(self, server_uuid, series_id, season_id):
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
@@ -838,6 +860,31 @@ class HudController(FakeController):
             {"title": "Middle", "time": 40.0},
             {"title": "End", "time": 80.0},
         ]
+        self.player_stats_blob = {
+            "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
+            "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
+            "buffered": 42.5, "cache_speed": 1_500_000,
+        }
+        self.playback_info_blob = {
+            "title": "Movie", "item_type": "Movie", "media_type": "Video",
+            "play_method": "Transcode",
+            "transcode_reasons": ["VideoCodecNotSupported"],
+            "direct_path": False, "offline": False,
+            "aid": 1, "sid": None,
+            "source": {
+                "Container": "mkv", "Size": 8400000000,
+                "Path": "/media/Films/Film (2017)/film.mkv",
+                "MediaStreams": [
+                    {"Type": "Video", "Index": 0, "Codec": "hevc",
+                     "Width": 3840, "Height": 2160, "BitDepth": 10},
+                    {"Type": "Audio", "Index": 1, "Codec": "truehd",
+                     "Channels": 8, "ChannelLayout": "7.1",
+                     "IsDefault": True},
+                    {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
+                     "Language": "eng", "IsExternal": True},
+                ],
+            },
+        }
 
     def use_hud(self):
         return True
@@ -847,6 +894,27 @@ class HudController(FakeController):
 
     def chapters(self):
         return list(self.chapter_list)
+
+    def player_stats(self):
+        """Live mpv counters, as the real gateway answers them.
+
+        Populated rather than empty, and with a *software* decoder and real
+        drop counts, because the rows this feeds only exist when mpv has
+        something to say -- a fake answering {} leaves every one of them
+        with nowhere to live while the tests of them still pass.
+        """
+        return dict(self.player_stats_blob)
+
+    def playback_info(self):
+        """What the playback-info panel reads.
+
+        A *transcode* by default, and with real streams on it, because the
+        rows that only exist in that state (the reasons, the play method's
+        qualifier) are the ones the panel was added for -- a fake answering
+        DirectPlay with no streams leaves them with nowhere to live and
+        every test of them passing against an empty panel.
+        """
+        return dict(self.playback_info_blob)
 
 class StubHudApp:
     """Records the renderer-facing calls the HUD lifecycle makes."""
@@ -888,6 +956,13 @@ class FakeConfig:
                        "seek_up": 60, "osc_mode": "auto", "lang": "unset"}
         self.schema = {"autoplay": "bool", "player_name": "str",
                        "seek_up": "int", "osc_mode": "str", "lang": "str"}
+
+    #: Which groups sit behind "Show advanced settings". Modelled because
+    #: the renderer reads it: it used to key off a group being *called*
+    #: "Advanced", and a stand-in without this makes every group look
+    #: ordinary -- the disclosure then never renders and the test named
+    #: after it passes against a form that has no disclosure at all.
+    ADVANCED_GROUPS = frozenset({"Advanced"})
 
     def sections(self, tab=None):
         # The real one splits its groups across the General/Browse/Playback

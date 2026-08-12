@@ -66,6 +66,10 @@ class LivePlayer:
         self.messages = []
         self.stopped = []
         self.plays = []
+        #: (owner, semantics) per claim_keys call; None semantics is a
+        #: release. See claim_keys below.
+        self.key_claims = []
+        self.syncplay_notices = 0
 
     # -- the clock
     def _now(self):
@@ -163,6 +167,25 @@ class LivePlayer:
     def __repr__(self):
         return "<LivePlayer at %.3fs %s>" % (
             self.position, "paused" if self._paused else "playing")
+
+    # --- the key claim (tests/test_syncplay_player_contract.py) ---
+    #
+    # Reached through `getattr(self.playerManager, "...", None)` in
+    # syncplay.py, so until the contract extractor learned that spelling
+    # these three were invisible: no stand-in had them, getattr answered
+    # None on every test player, and replacing both `_claim_keys` call
+    # sites with `pass` -- deleting the feature -- left 34 tests green.
+    #
+    # Recorders rather than no-ops, so a test can assert the claim
+    # HAPPENED and not merely that it did not raise.
+    def claim_keys(self, owner, semantics=None):
+        self.key_claims.append((owner, semantics))
+
+    def on_syncplay_change(self):
+        self.syncplay_notices += 1
+
+    def notify_syncplay(self, *args, **kwargs):
+        self.syncplay_notices += 1
 
 
 class LiveMember:

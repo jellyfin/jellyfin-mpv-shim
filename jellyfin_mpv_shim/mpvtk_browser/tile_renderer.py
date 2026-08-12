@@ -1,6 +1,6 @@
 """``TileRenderer`` — artwork plumbing and tile/row/grid construction.
 
-Step 6b of ``docs/ARCHITECTURE_TARGET.md`` §3.1, the larger half. These are
+Step 6b of ``docs/archive/ARCHITECTURE_TARGET.md`` §3.1, the larger half. These are
 the helpers that made page conversion impossible: measuring the five
 remaining ``ViewsMixin`` renderers against ``PageContext`` gave 50 uses of
 the ``ctx.shell`` escape hatch against a budget of 9, and this class is what
@@ -36,6 +36,7 @@ a new name.
 """
 
 import logging
+from collections import Counter
 import time
 
 from ..i18n import _
@@ -748,18 +749,98 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
-    def has_backdrop(self, item):
-        """Whether this item will ever have a banner — answerable *now*.
+    def header_bakes_heading(self, item):
+        """Whether :meth:`backdrop_node` will bake the heading into its
+        bitmap — answerable *now*, before any image has arrived.
 
-        The whole point is that it needs no image: ``backdrop_spec`` is a
-        pure function of the DTO the page already has, so a header can
-        reserve the right space on its very first paint instead of finding
-        out when the bitmap lands. See :meth:`backdrop_node` for what that
-        prevents.
+        The whole point is that it needs no image: both specs are pure
+        functions of the DTO the page already has, so a header can reserve
+        the right space on its very first paint instead of finding out when
+        the bitmap lands. See :meth:`backdrop_node` for what that prevents.
+
+        Called ``has_backdrop`` until the poster fallback below existed, and
+        renamed because that stopped being the question: a header with no
+        backdrop but a poster to inset draws a banner, bakes its heading,
+        and needs the caller *not* to draw one underneath.
         """
         if self.art.server is None:
             return False
-        return self.art.source.backdrop_spec(item) is not None
+        if self.art.source.backdrop_spec(item) is not None:
+            return True
+        # No backdrop, but there may still be artwork to inset. Asked of the
+        # spec rather than of _banner_poster, which fetches.
+        return self._header_poster_spec(item) is not None
+
+    def _header_poster_spec(self, item):
+        """The spec for a header's inset poster, or None — the DTO half of
+        :meth:`_banner_poster`, split out so ``header_bakes_heading`` can ask
+        the question without starting a fetch."""
+        from ..conf import settings
+
+        if (item or {}).get("Type") == "Episode":
+            wanted = settings.detail_episode_image
+        else:
+            wanted = settings.detail_poster
+        if self.art.server is None or not wanted:
+            return None
+        return self.art.source.image_spec(item, "Primary", 0, inherit=False)
+
+    def _banner_poster(self, item, box, backdrop_spec):
+        """``(image or None, cache tag)`` for the poster inset into a header.
+
+        The item's **own** Primary, with no inheritance: on an episode that
+        is the still, which is what belongs beside a series backdrop, and
+        borrowing the series poster there would draw the same series twice.
+
+        Returns nothing when the poster would *be* the backdrop -- a home
+        video whose landscape Primary is already the banner (see
+        ``backdrop_spec``'s Primary step). Drawing it inset over itself is
+        the one case that looks like a rendering fault rather than a
+        feature.
+        """
+        from ..conf import settings
+        from . import live_tv
+
+        # Two settings, chosen by what the artwork *is*. An episode's is a
+        # still -- a frame of something the user may not have watched --
+        # and somebody avoiding spoilers wants that off with the poster
+        # left alone, which one combined setting cannot express.
+        if (item or {}).get("Type") == "Episode":
+            wanted = settings.detail_episode_image
+        else:
+            wanted = settings.detail_poster
+        if self.art.server is None or not wanted:
+            return None, ""
+        slot = components.poster_box(box)
+        if slot is None:
+            return None, ""
+        spec = self.art.source.image_spec(item, "Primary", slot[2],
+                                          inherit=False)
+        if not spec or spec == backdrop_spec:
+            return None, ""
+        item_id, itype, itag = spec
+        # `box` arrives PHYSICAL from backdrop_node (it rastered it), and
+        # poster_box works in the same units -- so rastering again asked the
+        # server for a poster at scale-squared on any HiDPI display, and
+        # cached it under a key the drawn size never matches.
+        pw, ph = int(slot[2]), int(slot[3])
+        key = make_key(item_id, itype, itag, pw, ph, fit="fit")
+        url = self.art.source.image_url(self.art.server, item_id, itype,
+                                        itag, pw, ph, fill=False)
+        img = self._request_image(key, url, (pw, ph))
+        if img is None:
+            return None, key
+        # Plated like every other transparent logo in the app. This used to
+        # be reachable only beside a backdrop, where the artwork is a poster
+        # or a still; the no-backdrop fallback opened it to a *Program*,
+        # whose own `image_spec` last step resolves ChannelId +
+        # ChannelPrimaryImageTag -- the channel logo, which is dark ink on
+        # transparency by broadcaster convention and is invisible composited
+        # straight onto PLACEHOLDER_BG. The guide's channel column and the
+        # Schedule tab plate the same file through `_plated`; without this
+        # the two screens disagree about it. `logo_plate` stays the single
+        # decision point, so #637's two settings are answered once.
+        return self._plated(img, live_tv.is_channel_artwork(item)), key
 
     def backdrop_node(self, item, box, node_id, title=None, meta=None,
                        context=None):
@@ -784,10 +865,11 @@ class TileRenderer:
         `_request_image` gives up after ``IMG_MAX_ATTEMPTS``, and a permanent
         failure would otherwise be an anonymous grey panel forever.
 
-        A plain placeholder Box is still returned when the item genuinely has
-        no artwork, because then there is no baked heading to match and the
-        caller draws its own. :meth:`has_backdrop` is how a caller tells the
-        two apart — *not* the returned node's type, which cannot distinguish
+        A plain placeholder Box is returned only when the item has no
+        artwork **of any kind** -- no backdrop and no poster to inset --
+        because then there is no baked heading to match and the caller draws
+        its own. :meth:`header_bakes_heading` is how a caller tells
+        the two apart — *not* the returned node's type, which cannot distinguish
         "none" from "not yet".
         """
         spec = None
@@ -822,9 +904,30 @@ class TileRenderer:
                                                width=fetch_w, height=fetch_h,
                                                fill=True)
             img = self._request_image(fetch_key, url, (fetch_w, fetch_h))
+            # The poster is a SECOND fetch with its own arrival time, so it
+            # goes in the key: without it the first composition -- backdrop
+            # here, poster still loading -- is what the cache serves for
+            # ever, and the poster never appears. Its absence is keyed too
+            # ("nopo"), or the waiting state and the finished one collide.
+            poster, poster_key = self._banner_poster(item, pbox, spec)
+            # Keyed on whether the poster IS THERE, not on which poster it
+            # would be. _banner_poster answers a key as soon as it knows the
+            # spec -- before the bytes arrive -- so keying on that alone
+            # gives the waiting composition and the finished one the same
+            # key, and the cache serves the poster-less one for ever.
+            key += "|" + (poster_key if poster is not None else "nopo")
             if img is not None:
-                b = self.art.strips.bitmap(key, components.compose_banner(
-                    img, pbox, title, meta, context), lsize=box)
+                # Deferred, like the placeholder below: `bitmap` calls this
+                # only on a MISS. Composing eagerly meant every repaint of a
+                # detail page re-cropped the backdrop, re-drew the heading
+                # and — since the inset poster arrived — re-blurred a
+                # full-canvas drop shadow, to hand the answer to a cache
+                # that already had it.
+                b = self.art.strips.bitmap(
+                    key,
+                    lambda: components.compose_banner(
+                        img, pbox, title, meta, context, poster=poster),
+                    lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
             if title:
@@ -841,10 +944,46 @@ class TileRenderer:
                     pending,
                     lambda: components.compose_banner(
                         _flat_image(pbox, theme.PLACEHOLDER_BG),
-                        pbox, title, meta, context),
+                        pbox, title, meta, context, poster=poster),
                     lsize=box)
                 return Image(b["src"], b["iw"], b["ih"], id=node_id,
                              v=b.get("v", 0), w=b["lw"], h=b["lh"])
+        # No backdrop. **A poster is still not stretched across a 2.67:1
+        # banner** -- see backdrop_spec, where cropping a 2:3 poster into a
+        # strip is rejected for looking like a rendering fault. But the
+        # alternative was a bare grey box for every item without key art,
+        # which is what this used to draw and what [iw] reported: nothing
+        # but a grey box, when the item has a perfectly good poster.
+        #
+        # So it gets the composition the *waiting* state already used --
+        # flat panel, heading baked in, artwork inset at its own aspect --
+        # which is the one shape that shows the poster without distorting
+        # it. Same call, same geometry, so a header cannot move depending
+        # on which of the two it got.
+        if title and self._header_poster_spec(item) is not None:
+            # **Gated on the SPEC, not on the decoded poster**, and keyed on
+            # whether the poster is there yet -- exactly as the backdrop
+            # branch above is, and for the reason its docstring gives.
+            # header_bakes_heading answers from the spec, which is known on
+            # the first paint; the poster is a fetch. Gating this on the
+            # image meant that between the two the caller suppressed its
+            # heading and the banner had none, so the page drew no title at
+            # all -- and if the fetch never succeeded (_request_image gives
+            # up after IMG_MAX_ATTEMPTS), no title *ever*. The two questions
+            # have to be answered from the same thing.
+            pbox = raster(*box)
+            poster, poster_key = self._banner_poster(item, pbox, None)
+            key = ("noart|" + make_key(title, meta or "", context or "",
+                                       pbox[0], pbox[1])
+                   + "|" + (poster_key if poster is not None else "nopo"))
+            b = self.art.strips.bitmap(
+                key,
+                lambda: components.compose_banner(
+                    _flat_image(pbox, theme.PLACEHOLDER_BG),
+                    pbox, title, meta, context, poster=poster),
+                lsize=box)
+            return Image(b["src"], b["iw"], b["ih"], id=node_id,
+                         v=b.get("v", 0), w=b["lw"], h=b["lh"])
         return Box(w=box[0], h=box[1], bg=theme.PLACEHOLDER_BG, radius=6,
                    id=node_id)
     def _tile(self, item, geom, image_type="Primary", parent_item=False,
@@ -935,8 +1074,20 @@ class TileRenderer:
         geom = geom or self.art.geom
         # Section-title size is theme-controlled (24 = the stock value), so a
         # theme with larger covers can size its headings to match.
-        title_size = (theme.active() or {}).get("heading_size", 24)
-        heading: object = Text(title, size=title_size, bold=True)
+        title_size = theme.heading_size()
+        # Both spellings of the heading are the SAME box, and only its
+        # contents and handlers differ. They used to be a bare Text and a
+        # padded Box, which meant a linked row's title sat 6px right and 2px
+        # down of a plain one and the whole row measured 4px taller -- so on
+        # a page that mixes them (the home screen: Next Up links, Continue
+        # Watching does not) the titles jogged sideways row to row.
+        #
+        # The pad is RING_PAD because that is what `hscroll_row` insets the
+        # strip by, so the title now starts exactly above the first tile's
+        # artwork. Both of the old positions were wrong about that; this is
+        # not a compromise between them.
+        inner: list = [Text(title, size=title_size, bold=True)]
+        link: dict = {}
         if see_all is not None:
             # jellyfin-web's chevron: the heading becomes the link to the
             # full listing, because a row is a top-N of something and this
@@ -949,13 +1100,14 @@ class TileRenderer:
             # it in its TV layout, but that is web having two layouts and
             # hiding the affordance in one, not a judgement that a remote
             # cannot use it.
-            heading = Box(
-                [Text(title, size=title_size, bold=True),
-                 Icon("chevron_right", int(title_size * 0.9),
-                      color=theme.TEXT_FG)],
-                id="%s-more" % row_id, direction="row", align="center",
-                gap=2, pad=(6, 2), radius=6,
-                hover={"fill": theme.BUTTON_BG}, on_click=see_all)
+            inner.append(Icon("chevron_right", int(title_size * 0.9),
+                              color=theme.TEXT_FG))
+            link = {"id": "%s-more" % row_id,
+                    "hover": {"fill": theme.BUTTON_BG},
+                    "on_click": see_all}
+        heading: object = Box(
+            inner, direction="row", align="center",
+            gap=2, pad=(RING_PAD, 2), radius=6, **link)
         head = [heading]
         if bleed:
             # The strip runs edge to edge; indent the heading to line up with
@@ -1057,7 +1209,7 @@ class TileRenderer:
             else:
                 rows.append(Spacer(h=geom.strip_h))
         if not items:
-            rows.append(Text(_("Nothing here yet."), size=18,
+            rows.append(Text(_("Nothing here yet."), size="large",
                              color=theme.SUBTLE_FG))
         return rows
 
@@ -1078,10 +1230,30 @@ class TileRenderer:
         regions = []
         act = on_click or self.on_open
         chip = None
+        # **An item can legitimately appear twice in one row**, and the id is
+        # built from its item id -- so two tiles got one id, and `layout`'s
+        # duplicate-id warning says what that costs: "renderer state and
+        # events will target only the last occurrence". Hovering or clicking
+        # the FIRST of the pair drove the second.
+        #
+        # The Cast & Crew row is where [iw] saw it (a person credited as
+        # both Actor and Director is two credits and two tiles -- confirmed
+        # on a real server), but it is not people-specific: a playlist can
+        # hold the same track twice and so can a queue.
+        #
+        # Disambiguated by position, and ONLY for a key that really repeats.
+        # Suffixing everything would be simpler to read and would rename
+        # every hit region in the app for a case that almost never happens;
+        # the id is internal (nothing parses it, nothing persists it), but
+        # it is also what hover and spatial focus are tracked by, and this
+        # keeps that churn to the rows that are actually broken.
+        repeated = Counter(r["key"] for r in s["regions"])
         for i, (r, it) in enumerate(zip(s["regions"], items)):
             if not it:
                 continue        # nothing to open, nothing to hover
             rid = "%s-%s" % (prefix, r["key"])
+            if repeated[r["key"]] > 1:
+                rid = "%s-%d" % (rid, i)
             playable = self.on_play is not None and self.can_play(it)
             regions.append(dict(
                 r,
@@ -1484,5 +1656,5 @@ class TileRenderer:
                 row["on_context"] = (
                     lambda x, y, tr=tr: self.on_context(tr, x, y))
             rows.append(row)
-        return Table(columns, rows, size=17, row_h=TRACK_ROW_H,
+        return Table(columns, rows, size="normal", row_h=TRACK_ROW_H,
                      hover_bg=theme.BUTTON_BG, virtual=virtual)

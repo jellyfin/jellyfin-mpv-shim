@@ -42,7 +42,7 @@ import unittest
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 from tests._scene_snapshot import frozen_clock                # noqa: E402
-from tests._shell_harness import FakeSource                   # noqa: E402
+from tests._shell_harness import build_scene, FakeSource                   # noqa: E402
 
 from jellyfin_mpv_shim.mpvtk import scaling                   # noqa: E402
 from jellyfin_mpv_shim.mpvtk.layout import (                  # noqa: E402
@@ -66,6 +66,39 @@ class WordySource(FakeSource):
         "it is a film about the cost of certainty.\n\n"
         "Restored in 4K from the original camera negative."
     )
+
+    #: Several rows with names of real length, for the three row-per-thing
+    #: screens. The harness ships one row of one item, which draws two
+    #: labels -- below MIN_TEXTS, and nowhere near enough page to measure.
+    #: The captions are not labels at any width (they are baked into the
+    #: strip bitmap), so what these screens put on the page is their row
+    #: HEADINGS, and a screen with one heading cannot overflow.
+    _ROW_TITLES = ("Science Fiction & Fantasy", "Documentary",
+                   "Action & Adventure", "Mystery & Thriller")
+
+    @staticmethod
+    def _row_items(prefix, n=10):
+        return [{"Id": "%s-%d" % (prefix, i), "Name": "A Film of Some Name",
+                 "Type": "Movie", "PrimaryImageAspectRatio": 2 / 3}
+                for i in range(n)]
+
+    @property
+    def genre_rows(self):
+        return [{"key": "g%d" % i, "title": t, "types": "Movie",
+                 "items": self._row_items("g%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
+
+    @property
+    def favorite_rows(self):
+        return [{"key": "f%d" % i, "title": t, "types": "Movie",
+                 "items": self._row_items("f%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
+
+    @property
+    def byname_rows(self):
+        return [{"key": "b%d" % i, "title": t, "types": "Movie",
+                 "total": 40, "items": self._row_items("b%d" % i)}
+                for i, t in enumerate(self._ROW_TITLES)]
 
     def get_item(self, server_uuid, item_id, **kw):
         item = super().get_item(server_uuid, item_id, **kw)
@@ -107,10 +140,21 @@ MIN_LOGICAL_W = 640
 #: plus the ones carrying dense chrome, which is where a row of controls runs
 #: out of page: tab bars, filter bars, track tables and the queue's toolbar.
 #:
-#: ``favorites``, ``genres`` and ``byname`` are deliberately absent: the fake
-#: source has no data for them, so they render an empty state that would pass
-#: this at any width and any scale. ``_walk`` pins that they are not quietly
-#: joined by a screen that has *become* empty.
+#: ``favorites``, ``genres`` and ``byname`` used to be excluded here, on the
+#: grounds that the fake source had no data for them and they would render an
+#: empty state that passes at any width. That has not been true since the
+#: harness grew ``genre_rows`` / ``favorite_rows`` / ``byname_rows`` -- they
+#: drew a real screen and nobody was measuring it, which is how a screen
+#: reported as misbehaving on a scaled display turned out never to have been
+#: laid out at a scale here. They are in, over ``RowSource``'s several rows:
+#: one row of one item is a screen too thin to run out of anything.
+#:
+#: Still absent, and each for the same honest reason -- no fixture that would
+#: draw the real thing: ``reader``, ``comic``, ``book``/``audiobook``/
+#: ``books``, ``playlist``/``playlist_edit``, ``person``, ``music_genre``,
+#: and Live TV's ``program`` / ``channel``. ``test_every_screen_has_a_test``
+#: guards the table below, not the set of routes that exist, so adding a
+#: screen here is the only thing that starts measuring it.
 SCREENS = {
     "home": {"kind": "home", "server": "s1"},
     "grid": {"kind": "grid", "parent_id": "lib1", "server": "s1",
@@ -129,6 +173,11 @@ SCREENS = {
     "artist": {"kind": "artist", "item_id": "ar1", "server": "s1"},
     "livetv": {"kind": "livetv", "server": "s1"},
     "queue": {"kind": "queue", "server": "s1"},
+    "genres": {"kind": "genres", "parent_id": "lib1", "server": "s1",
+               "collection_type": "movies", "title": "Genres"},
+    "favorites": {"kind": "favorites", "server": "s1", "title": "Favorites"},
+    "byname": {"kind": "byname", "server": "s1", "parent_id": "lib1",
+               "title": "People"},
 }
 
 #: A screen with fewer drawn labels than this is a spinner or an error state,
@@ -283,6 +332,56 @@ class DpiMatrixTest(unittest.TestCase):
                     "  %s %r spans %s..%s, limit %s" % b for b in bad)))
         self._walk(name, check)
 
+    def test_every_offered_text_scale_still_fits(self):
+        """The ceiling we ship, checked rather than assumed.
+
+        [iw], smoke-testing: "150% is about as high as you can go before
+        things start breaking spectacularly." Measured here, and it agrees
+        -- 1.5 is clean and 1.75 overflows -- which is why the drop-down
+        stops there. `ui_text_min` is the control for going further on
+        readability, because raising a floor moves fewer sizes than
+        multiplying everything does.
+
+        The smaller values matter as much as the larger ones: text that
+        shrinks cannot overflow, so they isolate "does the scale reach
+        this widget" from "does this widget have room", and a regression
+        that stopped the scale reaching something would show up as an
+        unchanged layout rather than a broken one.
+        """
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk_browser import theme
+        from jellyfin_mpv_shim.mpvtk_browser.config import LABELED_ENUMS
+
+        offered = [v for _label, v in LABELED_ENUMS["ui_text_scale"]]
+        self.assertIn(1.5, offered, "the ceiling this pins has moved")
+        was = (settings.ui_text_scale, settings.ui_text_min)
+        try:
+            for factor in offered:
+                settings.ui_text_scale = factor
+                settings.ui_text_min = 0
+                theme.apply_to_toolkit()
+                # EVERY screen, not a hand-picked few. The first version
+                # of this checked four and passed happily at 200%, because
+                # the screens that actually overflow are livetv, genres,
+                # byname, favorites and music -- none of which were in the
+                # list. A subset here is not a cheaper test, it is a test
+                # that cannot fail.
+                for name in sorted(SCREENS):
+                    with self.subTest(scale=factor, screen=name):
+                        b = _loaded(SCREENS[name])
+                        for win in ((1280, 720), (1920, 1080)):
+                            nodes, _h = build_scene(b, win)
+                            bad = overflows(nodes, win[0])
+                            self.assertEqual(
+                                bad, [],
+                                "text scale %s overflows %s at %dx%d:\n%s"
+                                % (factor, name, win[0], win[1],
+                                   "\n".join("  %s %r spans %s..%s, limit %s"
+                                              % b for b in bad)))
+        finally:
+            settings.ui_text_scale, settings.ui_text_min = was
+            theme.apply_to_toolkit()
+
     def test_home(self):
         self._no_overflow("home")
 
@@ -321,6 +420,15 @@ class DpiMatrixTest(unittest.TestCase):
 
     def test_queue(self):
         self._no_overflow("queue")
+
+    def test_genres(self):
+        self._no_overflow("genres")
+
+    def test_favorites(self):
+        self._no_overflow("favorites")
+
+    def test_byname(self):
+        self._no_overflow("byname")
 
     def test_every_screen_has_a_test(self):
         """A SCREENS entry with no test above is a screen nobody checks."""

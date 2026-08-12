@@ -819,6 +819,13 @@ def _arrange_icon(ctx, el, x, y, w, h, sc, path):
     return
 
 
+#: Left margin for a ``side="left"`` Dialog, in logical px. The same
+#: value the page content is padded by (components.chrome.CONTENT_PAD),
+#: repeated rather than imported: mpvtk is the toolkit and does not know
+#: about the browser's chrome.
+DIALOG_MARGIN = 16
+
+
 def _arrange_overlay(ctx, el, x, y, w, h, sc, path):
     """Dialog and Float: positioned against the window, not the parent."""
     cw, ch = measure(el.child)
@@ -828,7 +835,13 @@ def _arrange_overlay(ctx, el, x, y, w, h, sc, path):
     # panel it is supposed to be inside.
     ch = max(ch, measure_h(el.child, cw))
     if isinstance(el, Dialog):
-        dx = (ctx.root_w - cw) / 2
+        if getattr(el, "side", "center") == "left":
+            # Clamped, not just placed: a dialog wider than the window
+            # would otherwise start at the margin and run off the right
+            # edge, where a centred one is at least symmetrically clipped.
+            dx = max(0.0, min(DIALOG_MARGIN, ctx.root_w - cw))
+        else:
+            dx = (ctx.root_w - cw) / 2
         dy = max(0.0, (ctx.root_h - ch) / 2.5)
     else:
         dx, dy = float(el.x), float(el.y)
@@ -881,6 +894,11 @@ def _arrange_dropdown(ctx, el, x, y, w, h, sc, path):
             from .vector import icon_ass
 
             node["ticon"] = icon_ass(el.trigger_icon)
+            if getattr(el, "icon_size", None):
+                # An explicit glyph size. Without it the renderer falls
+                # back to size * 1.2, which ties the icon to the type
+                # scale -- see widgets.Dropdown.
+                node["isz"] = int(el.icon_size)
             chip = getattr(el, "trigger_chip", None)
             if chip:
                 node["tchip"] = list(chip)

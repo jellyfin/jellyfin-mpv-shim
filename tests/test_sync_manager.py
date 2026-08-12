@@ -1071,12 +1071,15 @@ class ExpandFolderTest(TmpTest):
 
     class Api:
         def __init__(self, items):
-            self.items = items
+            # `_items`: `items` is the method now (GET /Items -- see
+            # jellyfin_mpv_shim/items_api), so an attribute of that name
+            # would shadow it.
+            self._items = items
             self.calls = []
 
-        def get_user_items(self, **kw):
-            self.calls.append(kw)
-            return {"Items": list(self.items)}
+        def items(self, handler="", action="GET", params=None, **_kw):
+            self.calls.append(dict(params or {}))
+            return {"Items": list(self._items)}
 
     def test_a_folder_expands_to_its_children(self):
         m = make_manager(self.tmp, self.addCleanup)
@@ -1091,7 +1094,7 @@ class ExpandFolderTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         api = self.Api([])
         m._expand(api, "f", "Folder")
-        self.assertNotIn("recursive", api.calls[0])
+        self.assertNotIn("Recursive", api.calls[0])
 
     def test_it_asks_for_path(self):
         # The only statement of a Book's format, and the row is written
@@ -1099,7 +1102,7 @@ class ExpandFolderTest(TmpTest):
         m = make_manager(self.tmp, self.addCleanup)
         api = self.Api([])
         m._expand(api, "f", "Folder")
-        self.assertIn("Path", api.calls[0]["fields"])
+        self.assertIn("Path", api.calls[0]["Fields"])
 
     def test_unsupported_children_are_dropped(self):
         m = make_manager(self.tmp, self.addCleanup)
@@ -1115,10 +1118,10 @@ class BookEstimateTest(TmpTest):
 
     class Api:
         def __init__(self, items):
-            self.items = items
+            self._items = items      # see the note on the Api above
 
-        def get_user_items(self, **kw):
-            return {"Items": list(self.items)}
+        def items(self, handler="", action="GET", params=None, **_kw):
+            return {"Items": list(self._items)}
 
     def _estimate(self, items):
         m = make_manager(self.tmp, self.addCleanup)

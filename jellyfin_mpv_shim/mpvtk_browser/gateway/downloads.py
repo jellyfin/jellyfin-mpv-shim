@@ -198,6 +198,20 @@ class DownloadsMixin(GatewayCore):
             if one:
                 syncManager.delete(item_id=one)
 
+    def refresh_downloaded_userdata(self):
+        """Ask the sync worker to re-read watched state for what we hold.
+
+        Called when the home screen loads, because that is the screen whose
+        rows *are* watched state -- and because the catalog it draws from
+        offline is otherwise a background poll behind. Marks the pull due
+        and returns; the requests happen on the sync thread.
+        """
+        from ...sync.manager import syncManager
+        try:
+            syncManager.request_userdata_refresh()
+        except Exception:
+            log.debug("could not request a userdata refresh", exc_info=True)
+
     def on_downloads_changed(self, callback):
         """Subscribe to catalog changes. The browser polled a status blob
         and never refreshed its badges from it; syncManager has had a push

@@ -22,6 +22,53 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `detail_poster` - Show a film's or series' own poster in a detail page's
+      header, inset over the backdrop. Default: `true`
+- `detail_episode_image` - The same slot on an episode, where the artwork is a
+      still from the episode. Default: `true`
+  - Separate from `detail_poster` on purpose: an episode's thumbnail is a frame
+      of an episode you may not have watched yet, on the page you opened to
+      decide whether to watch it. Somebody avoiding spoilers wants this off and
+      the posters left alone.
+- `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
+  - This is what this client has always done (the same "click anywhere" the MPV
+      OSC has). Turning it off gives MPV's own mouse behaviour back: nothing
+      binds the left button, so dragging the video moves the window, and **right
+      click** is what pauses.
+  - The two cannot both be had: a binding on the left button is exactly what
+      stops the video output dragging the window with it.
+  - Double click is full screen in either mode.
+- `hwdec` - Hardware video decoding. Default: `no`
+  - Values: `no` (software decoding, the same default mpv itself uses),
+      `over-1080p`, `auto`, `auto-copy`.
+  - `over-1080p` is software decoding at 1080p and below and hardware above it —
+      the cautious way to turn it on. Most hardware of the last decade decodes
+      1080p without help, and often looks better doing it, so this limits
+      hardware decoding to the files that actually need it (4K HEVC, AV1).
+  - `auto` uses mpv's whitelisted hardware decoders, decoding straight into the
+      GPU. `auto-copy` is the same but copies frames back to system RAM: slower,
+      and it avoids the hardware/renderer interop paths entirely, so it is worth
+      trying if `auto` misbehaves.
+  - `auto-copy` is also the mode that works with **video filters**, which the
+      direct modes do not. If your `mpv.conf` runs SVP or another VapourSynth
+      filter, that is the one to pick. (The shader pack is not a video filter —
+      it runs inside the GPU renderer and is unaffected either way.)
+  - It is off by default because some graphics drivers handle hardware decoding
+      badly, and mpv's own maintainers decline to enable it by default for that
+      reason. If turning it on stops video working — or stops the window opening
+      at all — start the app once with `--disable-hwdec`, which forces software
+      decoding for that run without changing the setting, and then change it back.
+  - **Your own `mpv.conf` outranks this.** If it sets `hwdec` at the top level,
+      the app writes the option nowhere at all — not from this setting, not from
+      a shader profile — and the Settings page says "Pinned by config". A
+      `hwdec` inside an mpv profile section (`[name]`) is *not* treated as a
+      pin, because those are conditional.
+  - A shader profile that states a **requirement** has it applied: a named
+      decoder (the shipped `rtx-vsr` needs `d3d11va` for its Direct3D filter),
+      or `no` if a profile ever needs software frames. Choosing that profile is
+      opting in. The blanket `auto-copy` every profile carries is ignored —
+      that is a policy about the machine, not a requirement of the profile.
+  - The playback HUD's *Playback Info* panel reports what is actually in use.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile
@@ -395,6 +442,22 @@ nothing is playing.
   - The window is anchored on the next episode *to watch* (the server's Next Up for that series),
     not on the last one downloaded, so a series you stop watching settles at this many episodes
     instead of being fetched in its entirety.
+- `auto_download_lookahead_min` - Leave a series alone while it already has at
+      least this many upcoming episodes held or queued. Default: `null`
+- `auto_download_lookahead_max` - ...and top it up to this many when it drops
+      below the minimum. Default: `null`
+  - **Set both or neither.** With one set and not the other, the pair is
+      ignored and `auto_download_lookahead` is used as before — there is no
+      sensible guess for the missing half.
+  - Downloads then arrive in fewer, larger batches, which is the point: the
+      flat lookahead fetches one episode at a time, waking a spun-down disk for
+      each one.
+  - Episodes that are queued or downloading count as held, so a pass does not
+      re-request what the previous pass already asked for.
+- `auto_download_max_per_pass` - How many items one automatic check may queue.
+      Default: `null`, meaning 20
+  - The limit was previously hardcoded at 20; this makes it adjustable without
+      changing that default. Values below 1 are ignored.
 - `auto_download_max_gb` - Storage budget for automatic downloads. Default: `20`
   - Only applies to automatic downloads. Ones you asked for are never counted against it and are
     never deleted automatically.
@@ -479,15 +542,51 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_menu_down` - "down" for menu. Seeks otherwise. (Default: `down`)
 - `kb_pause` - Pause. Also "ok" for menu. (Default: `space`)
 - `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
-- `kb_debug` - Trigger `pdb` debugger. (Default: `~`)
 - `kb_kill_shader` - Disable shader packs. (Default: `k`)
-- `seek_up` - Time to seek for "up" key. (Default: `60`)
-- `seek_down` - Time to seek for "down" key. (Default: `-60`)
-- `seek_right` - Time to seek for "right" key. (Default: `5`)
-- `seek_left` - Time to seek for "left" key. (Default: `-5`)
 - `media_keys` - Enable binding of MPV to media keys. Default: `true`
-- `seek_v_exact` - Use exact seek for up/down keys. Default: `false`
-- `seek_h_exact` - Use exact seek for left/right keys. Default: `false`
+
+- `ui_text_scale` - Multiply the size of every piece of text in the
+  interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike
+  `ui_scale`, which scales the entire interface (artwork, spacing and
+  controls along with the type), this moves only the text -- for when the
+  words are too small rather than everything being too small. Values above
+  `1.5` are not offered in the interface: by then most tile captions are
+  ellipsized, and what is needed is for the *whole* interface to be bigger
+  — which is `ui_scale`. Text scaling is for text, by definition.
+  (Default: `1.0`)
+
+- `ui_text_min` - Nothing in the interface renders smaller than this many
+  pixels, whatever `ui_text_scale` works out to. `0` disables it. This is
+  the low-vision control: a percentage moves every size together, so the
+  smallest label stays the smallest label — a floor raises the bottom of
+  the scale without enlarging headings that were already readable.
+  (Default: `0`)
+
+### Seek distances moved to `input.conf`
+
+`seek_up`, `seek_down`, `seek_right`, `seek_left`, `seek_v_exact` and
+`seek_h_exact` were **removed in config version 4**. The arrow keys are
+mpv's own again, so a seek distance is an ordinary mpv binding and lives
+in `input.conf` in this client's config directory, where it can be edited
+like any other:
+
+```
+up    seek 30
+down  seek -30
+right seek 10 exact
+left  seek -10 exact
+```
+
+If you had any of those settings, they were written there for you the
+first time this version started, and removed from `conf.json`.
+
+**One case is not carried across on purpose**: with `mpv_ext` and
+`mpv_ext_no_ovr` both enabled, external mpv reads *your* mpv config
+directory rather than this client's, so the file above is never loaded.
+Nothing is written and nothing is cleared — that combination means "use
+my own mpv config", and this client does not edit it. The lines it would
+have written are printed to the log at startup, so you can paste them
+into your own `input.conf`.
 
 ## Shader Packs
 
@@ -628,8 +727,6 @@ need to.
 - `sync_speed_time` - Duration in ms to change playback speed. Default: `1000`
 - `sync_speed_attempts` - Number of attempts before speed changes are disabled. Default: `3`
 - `sync_attempts` - Number of attempts before disabling sync play. Default: `5`
-- `sync_revert_seek` - Attempt to revert seek via MPV OSC. Default: `true`
-  - This could break if you use revert-seek markers or scripts that use it.
 - `sync_osd_message` - Write syncplay status messages to OSD. Default: `true`
 
 ## Debugging

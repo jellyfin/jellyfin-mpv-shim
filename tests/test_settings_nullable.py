@@ -11,6 +11,8 @@ path and the UI save path (both funnel through ``parse_obj``) are covered.
 """
 import unittest
 
+from typing import Optional
+
 from jellyfin_mpv_shim.settings_base import SettingsBase, allow_none
 
 
@@ -140,6 +142,107 @@ class SettingsFormNullableTest(unittest.TestCase):
         section = next(keys for name, keys in self.cfg.SECTIONS
                        if "theme" in keys)
         self.assertIn("ui_scale", section)
+
+
+class KeyBindingsAreNullableTest(unittest.TestCase):
+    """`kb_*` were `str`, and the documentation has always said you can set
+    them to `null` to disable the shortcut.
+
+    Those two cannot both be true: a JSON null coerced through `str` to the
+    STRING "None", which `_bind_key`'s None guard could never match. It
+    looked like it worked only because no keyboard produces a key named
+    None, so mpv bound something unreachable instead of binding nothing.
+
+    #16 needs the difference to be real, not incidental: "the user cleared
+    this" is how the one-time migration to input.conf tells someone who
+    parked our interception on purpose from someone who never touched it.
+    """
+
+    KEYS = ("kb_stop", "kb_prev", "kb_next", "kb_watched", "kb_unwatched",
+            "kb_menu", "kb_menu_esc", "kb_menu_ok", "kb_menu_left",
+            "kb_menu_right", "kb_menu_up", "kb_menu_down", "kb_pause",
+            "kb_fullscreen", "kb_kill_shader")
+
+    def _settings(self):
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.conf import Settings
+
+        return Settings()
+
+    def test_every_key_binding_is_nullable(self):
+        s = self._settings()
+        for key in self.KEYS:
+            with self.subTest(key=key):
+                # conf.py has no `from __future__ import annotations`, so
+                # these arrive as real typing objects; the string spelling
+                # is what a PEP 563 module would give. Accept either.
+                ann = s.__class__.__annotations__[key]
+                self.assertIn(
+                    ann, (Optional[str], "Optional[str]"),
+                    "%s cannot be cleared, which the docs say it can" % key)
+
+    def test_null_and_empty_both_clear_a_binding(self):
+        s = self._settings().parse_obj(
+            {"kb_stop": None, "kb_pause": "", "kb_next": "x"})
+        self.assertIsNone(s.kb_stop)
+        self.assertIsNone(s.kb_pause)
+        self.assertEqual(s.kb_next, "x")
+
+    def test_clearing_is_distinguishable_from_never_touching(self):
+        # The whole point: __fields_set__ says "touched", the value says
+        # "and they meant to switch it off". A migration that cannot tell
+        # those apart re-binds a key somebody deliberately gave back to mpv.
+        s = self._settings().parse_obj({"kb_stop": None})
+        self.assertIn("kb_stop", s.__fields_set__)
+        self.assertIsNone(s.kb_stop)
+        self.assertNotIn("kb_pause", s.__fields_set__)
+        self.assertEqual(s.kb_pause, "space")
+
+    def test_an_old_config_holding_the_string_None_is_migrated(self):
+        """Retyping alone does not reach the users this is for.
+
+        Under the old `str` typing a documented JSON null became the string
+        "None", and save() wrote it back verbatim — so someone who cleared a
+        binding years ago has "None" on disk *now*. That loads as a
+        non-empty string, so the distinction #16's input.conf migration
+        needs would still not exist for exactly the people it is about.
+        """
+        s = self._settings().parse_obj(
+            {"kb_stop": "None", "kb_next": "x", "config_version": 2})
+        self.assertEqual(s.kb_stop, "None", "test premise")
+        s._migrate({})
+        self.assertIsNone(s.kb_stop)
+        self.assertEqual(s.kb_next, "x", "a real binding must survive")
+
+    def test_the_migration_does_not_run_twice_or_touch_a_fresh_install(self):
+        from jellyfin_mpv_shim.conf import CONFIG_VERSION
+
+        s = self._settings().parse_obj(
+            {"kb_stop": "None", "config_version": CONFIG_VERSION})
+        s._migrate({})
+        self.assertEqual(
+            s.kb_stop, "None",
+            "a config already at this version must not be re-migrated")
+
+    def test_the_binder_refuses_every_spelling_of_cleared(self):
+        # A config written under the old typing holds the string "None".
+        import sys
+
+        sys.argv = [sys.argv[0]]
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        bound = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._player = type("P", (), {
+            "on_key_press": lambda self, k: (bound.append(k)
+                                             or (lambda fn: fn))})()
+        for cleared in (None, "", "None"):
+            pm._bind_key(cleared, lambda: None)
+        self.assertEqual(bound, [])
+        pm._bind_key("q", lambda: None)
+        self.assertEqual(bound, ["q"])
 
 
 if __name__ == "__main__":

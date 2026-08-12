@@ -131,6 +131,18 @@ class TilesMixin:
     #: played into a queue, and a program is not itself playable at all.
     MENU_LIVE = {"TvChannel", "Program"}
 
+    #: Types that offer Media Info. jellyfin-web's condition is simply
+    #: ``item.MediaSources`` (itemContextMenu.js:210), which it can ask
+    #: because its list responses carry them; ours deliberately do not --
+    #: MediaSources is a third of a grid response for something no tile
+    #: draws. So the question becomes "does this KIND of item have media
+    #: sources", and the streams are fetched when the dialog opens.
+    #:
+    #: A Book is out, and not by oversight: it is not IHasMediaSources at
+    #: all, so the dialog would always be empty (see books.py). A Photo and
+    #: a Program are out for the same reason.
+    MENU_MEDIA_INFO = PLAYABLE_TYPES | {"Audio", "AudioBook"}
+
     #: Containers the hover play chip offers, on top of MENU_PLAYABLE and
     #: MENU_LIVE: things whose contents are a queue in the order the grid is
     #: already showing them.
@@ -316,6 +328,20 @@ class TilesMixin:
             out.append((_("Add to Playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
             out.append((_("Download"), "file_download", "download"))
+        if t in self.MENU_MEDIA_INFO:
+            # Offline too: the catalog holds the source it was downloaded
+            # with, so this is one of the few entries that answers just as
+            # well with the server away.
+            out.append((_("Media Info"), "info", "mediainfo"))
+        # Last, and deliberately: it is the only entry here that destroys
+        # anything, and a menu whose most dangerous item sits next to Play
+        # is a menu that gets misclicked. The condition is the item's own
+        # CanDelete (ItemActions.can_delete) -- not a type set, because
+        # deletion is granted per library and only the server knows which.
+        # Offline is out: there is nothing to delete *on*, and the local
+        # copy has its own Remove Download.
+        if not self._offline and self._actions.can_delete(item):
+            out.append((_("Delete from Disk"), "delete", "deleteitem"))
         # Only inside a playlist, and only for an entry that carries its
         # PlaylistItemId — removal is by entry, not by item id (the same
         # item can appear twice).
@@ -389,6 +415,17 @@ class TilesMixin:
             self._close_menu()
             self._open_download(item)
             return
+        elif action == "mediainfo":
+            self._close_menu()
+            self._open_media_info(item, server)
+            return
+        elif action == "deleteitem":
+            self._close_menu()
+            # Reload the list it came from: the tile is now a row pointing
+            # at nothing, and leaving it there invites a second press.
+            self._actions.confirm_delete_item(
+                item, server, on_done=self._reload_after_delete)
+            return
         elif action == "unplaylist":
             self._close_menu()
             self._remove_from_playlist(item)
@@ -446,6 +483,21 @@ class TilesMixin:
         else:
             self._actions.cancel_series_timer(item.get("SeriesTimerId"),
                                               server, on_done=done)
+
+    def _reload_after_delete(self):
+        """Re-read the list the deleted tile came from.
+
+        Same shape as ``_do_remove_from_collection``'s re-read, and for the
+        same reason: the grid still lists what is no longer there, and a
+        tile pointing at nothing invites a second press. Dropping ``_items``
+        as well as ``_loading`` matters -- a load that finds the route
+        already holding items returns without fetching.
+        """
+        route = self.route
+        route.pop("_items", None)
+        route.pop("_data", None)
+        route.pop("_loading", None)
+        self._load_route(route)
 
     def _remove_from_playlist(self, item):
         entry = item.get("PlaylistItemId")

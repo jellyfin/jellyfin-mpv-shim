@@ -47,16 +47,43 @@ def _parse(rel_path):
         return ast.parse(fh.read())
 
 
+def _is_player(node):
+    """Is this expression `self.playerManager`?"""
+    return (isinstance(node, ast.Attribute)
+            and node.attr == "playerManager"
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "self")
+
+
 def player_contract():
-    """Every `self.playerManager.X` in syncplay.py, read from the source."""
+    """Every player member `syncplay.py` reaches for, read from the source.
+
+    **Both spellings.** `self.playerManager.X` is the obvious one, and
+    `getattr(self.playerManager, "X", None)` is the one that hid the
+    SyncPlay key claim: `_claim_keys` reaches `claim_keys` and
+    `on_syncplay_change` through string literals, so this extractor could
+    not see them, no stand-in provided them, `getattr` answered None on
+    every test player, and the whole feature was a silent no-op in every
+    SyncPlay suite. Replacing both call sites with `pass` -- deleting it
+    outright -- left 34 tests green.
+
+    A `getattr` with a default is exactly where this matters most: it is
+    the spelling used when the member might be absent, so it fails
+    *quietly* by design and needs the contract more than a plain
+    attribute does, not less.
+    """
     names = set()
     for node in ast.walk(_parse("jellyfin_mpv_shim/syncplay.py")):
-        if (isinstance(node, ast.Attribute)
-                and isinstance(node.value, ast.Attribute)
-                and node.value.attr == "playerManager"
-                and isinstance(node.value.value, ast.Name)
-                and node.value.value.id == "self"):
+        if isinstance(node, ast.Attribute) and _is_player(node.value):
             names.add(node.attr)
+        elif (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "getattr"
+                and len(node.args) >= 2
+                and _is_player(node.args[0])
+                and isinstance(node.args[1], ast.Constant)
+                and isinstance(node.args[1].value, str)):
+            names.add(node.args[1].value)
     return names
 
 

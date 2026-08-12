@@ -48,6 +48,15 @@ class FakeProfileManager:
                          "vf": ""}
         self.revert_ignore = {"gpu_api", "profile", "hwdec"}
         self.used_settings = set()
+        #: Modelled because process_setting_group writes it: a profile
+        #: naming a *-copy hwdec is recorded as "this profile needs frames
+        #: in system RAM", which is the one part of the pack's hwdec value
+        #: that survives. A fake without it makes that path raise where
+        #: nothing is looking.
+        self.wants_copy_hwdec = False
+        self._sets_vf = False
+        self._names_direct_hwdec = False
+        self.forced_hwdec = None
         self.shader_pack = "/nonexistent"
 
     process_setting_group = VideoProfileManager.process_setting_group
@@ -75,8 +84,10 @@ class ShaderGpuApiTests(unittest.TestCase):
         applied = FakeProfileManager().applied()
         self.assertNotIn("gpu_api", applied)
         self.assertNotIn("fbo_format", applied)
-        # The rest of the group still has to be applied.
-        self.assertEqual(applied["hwdec"], "auto-copy")
+        # The rest of the group still has to be applied -- except hwdec,
+        # which the pack no longer gets to set (it is a user setting now;
+        # see ThePackDoesNotSetHwdecTest in tests/test_shader_stills.py).
+        self.assertNotIn("hwdec", applied)
         self.assertEqual(applied["profile"], "gpu-hq")
 
     def test_fbo_format_stays_dropped_when_an_api_is_forced(self):
@@ -107,6 +118,10 @@ class ShaderGpuApiTests(unittest.TestCase):
         settings.shader_pack_gpu_api = "auto"
         out = applied(RTX_VSR)
         self.assertEqual(out["gpu_api"], "d3d11")
+        # ...and its hwdec too, because d3d11va NAMES a decoder rather than
+        # expressing a policy. Its d3d11vpp filter operates on Direct3D
+        # surfaces, so the profile does not work without it -- unlike the
+        # blanket auto-copy every profile carries, which is dropped.
         self.assertEqual(out["hwdec"], "d3d11va")
 
     def test_the_user_still_outranks_a_profile_that_names_an_api(self):

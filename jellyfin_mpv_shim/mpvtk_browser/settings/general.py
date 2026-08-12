@@ -47,16 +47,25 @@ class GeneralTabMixin:
         schema = cfg.settings_schema()
         values = cfg.get_settings()
         show_adv = bool(route.get("_advanced"))
+        seen_advanced = False
         rows = []
         for title, keys in cfg.sections(route.get("_tab", "general")):
-            advanced = title == _("Advanced")
+            # Membership, not the title itself: the disclosure used to be
+            # a property of a group being *called* "Advanced", which capped
+            # a tab at one and forced any tucked-away group to be named
+            # that. See config.ADVANCED_GROUPS.
+            advanced = title in getattr(cfg, "ADVANCED_GROUPS", ())
             if advanced:
-                rows.append(Checkbox(
-                    _("Show advanced settings"), show_adv, id="set-adv",
-                    on_toggle=lambda: self._toggle_advanced(route)))
+                if not seen_advanced:
+                    # One checkbox per tab, at the first advanced group:
+                    # two would be two controls for one piece of state.
+                    seen_advanced = True
+                    rows.append(Checkbox(
+                        _("Show advanced settings"), show_adv, id="set-adv",
+                        on_toggle=lambda: self._toggle_advanced(route)))
                 if not show_adv:
                     continue
-            rows.append(Text(title, size=20, bold=True))
+            rows.append(Text(title, size="large", bold=True))
             notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))
@@ -69,7 +78,7 @@ class GeneralTabMixin:
                     if note:
                         # An explanatory line under the setting it belongs to;
                         # the settings it qualifies follow directly below.
-                        rows.append(Text(note, size=14,
+                        rows.append(Text(note, size="caption",
                                          color=theme.SUBTLE_FG, wrap=True))
             if title == _("Theme"):
                 # Theme used to be read once at startup like the other two,
@@ -81,9 +90,9 @@ class GeneralTabMixin:
                 # warning about the control you are looking at.
                 rows.append(Text(
                     _("Interface scale requires a restart."),
-                    size=14, color=theme.SUBTLE_FG, wrap=True))
+                    size="caption", color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
-                         size=14, color=theme.SUBTLE_FG))
+                         size="caption", color=theme.SUBTLE_FG))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings", flex=1)
@@ -152,7 +161,7 @@ class GeneralTabMixin:
                              w=self.FIELD_W,
                              on_submit=lambda v, k=key: self._set_setting(k, v),
                              on_commit=lambda v, k=key: self._set_setting(k, v))
-        return Row([Text(label, w=self.FIELD_W, size=17,
+        return Row([Text(label, w=self.FIELD_W, size="normal",
                          color=theme.SUBTLE_FG),
                     widget], gap=12, align="center")
     def _dynamic_enum(self, key):
@@ -221,6 +230,19 @@ class GeneralTabMixin:
             return _("Not active: the \"pypresence\" package is missing or "
                      "failed to load. Install it and restart. (Details in "
                      "the Logs tab.)")
+        if key == "hwdec":
+            # A pin, not a preference: where mpv.conf sets hwdec, nothing
+            # here writes the option at all, so the control above is inert
+            # and has to say so. Silently ignoring a setting the user is
+            # looking straight at is the failure this whole feature is
+            # downstream of.
+            from ...mpv_options import hwdec_pinned_by_config
+
+            pinned = hwdec_pinned_by_config()
+            if pinned is None:
+                return None
+            return _("Pinned by config: your mpv.conf sets hwdec=%s, which "
+                     "overrides this.") % pinned
         if key != "auto_download_enable":
             return None
         name = self._auto_dl_scope_name()

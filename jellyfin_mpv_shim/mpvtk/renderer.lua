@@ -187,6 +187,10 @@ local state = {
              -- auto-hide policy and the no-scrim text halo, pushed
              -- with the engage (mpvtk-hud) so setting changes stick
              hide_s = 4, hide_mode = 'hover', shadow = false,
+             -- does a left click on the hidden HUD pause? off gives mpv's
+             -- own modality back (drag with left, pause with right)
+             click_pauses = true,
+             syncplay = false,
              -- has the pointer MOVED since this summon? The bar-hover
              -- hold below is meaningless without it: see phud_busy
              moved = false },
@@ -1116,6 +1120,21 @@ local function tb_menu_items(node)
     return { 'Cut', 'Copy', 'Paste', 'Select All' }
 end
 
+-- ui_px for TEXT: the user's multiplier and the readability floor on top.
+-- Chrome composed here never passes through a widget, so without this the
+-- tooltip, the context menu and the scrub preview bubble stayed at their
+-- authored size while every other label moved.
+--
+-- A field on `state` rather than a file-scope local: this chunk is AT
+-- LuaJIT's 200-local ceiling, and one more is a load error rather than a
+-- warning (mpvtk GUIDE; CLAUDE.md says the same).
+function state.text_px(v)
+    return math.max(
+        math.floor(v * (state.scale or 1) * (state.tscale or 1) + 0.5),
+        state.tmin or 0, 1)
+end
+
+
 local function ui_px(v)
     -- Logical -> physical for chrome that is composed HERE and so never
     -- passes through Python's scale_scene: the textbox context menu and
@@ -1128,7 +1147,7 @@ local function tb_menu_geometry(items)
     local n = #items
     local ih = ui_px(34)
     local w = ui_px(40)
-    local fs = ui_px(18)
+    local fs = state.text_px(18)
     for _, item in ipairs(items) do
         w = math.max(w, text_w(item, fs) + ui_px(32))
     end
@@ -1370,7 +1389,7 @@ local function draw_dropdown(ass, node, ex, ey, clip)
     local open = state.dd_open == node.id
     if node.ticon then
         local hovered = open or state.hover_id == node.id
-        local isz = math.floor(node.size * 1.2)
+        local isz = math.floor(node.isz or (node.size * 1.2))
         if node.tchip then
             -- Button trigger (the now-playing bar's chapter picker): a
             -- filled rounded square, matching the transport buttons it
@@ -1396,9 +1415,13 @@ local function draw_dropdown(ass, node, ex, ey, clip)
                     clip = clip,
                 })
         end
+        -- on_surface, not on_surface_muted: this trigger is the playback
+        -- HUD's track pickers, drawn over the picture beside flat Buttons
+        -- that pass fg="eeeeee". Muted is an app-chrome token and left
+        -- these four glyphs visibly grey against their white neighbours.
         draw_icon_path(ass, node.ticon,
             ex + (node.w - isz) / 2, ey + (node.h - isz) / 2, isz,
-            hovered and state.accent or state.tok.on_surface_muted, clip)
+            hovered and state.accent or state.tok.on_surface, clip)
         return
     end
     draw_rect(ass, ex, ey, node.w, node.h, {
@@ -2020,7 +2043,7 @@ render = function()
     if state.tip then
         local tnode = state.byid[state.tip]
         if tnode and tnode.tip and state.hover_id == state.tip then
-            local tfs = ui_px(15)
+            local tfs = state.text_px(15)
             local tw = text_w(tnode.tip, tfs) + ui_px(18)
             local th = ui_px(26)
             local tx = clamp(state.mouse.x + ui_px(12), 2,
@@ -2294,7 +2317,7 @@ render = function()
     local pv_node = pv_id and state.byid[pv_id]
     if pv_node and pv_secs and (pv_node.max or 0) > 0 then
         local pad, gap = ui_px(8), ui_px(4)
-        local fs = ui_px(14)
+        local fs = state.text_px(14)
         local lh = math.floor(fs * PHUD_SKIP_LINE_H)
         -- Which frame of the tile file, if there is one. BIF data is
         -- evenly spaced (multiplier ms apart); the chapter-image fallback
@@ -3251,6 +3274,18 @@ local function on_mouse_down()
         state.nav_mode = false
         send({ t = 'nav', active = false })
     end
+    -- **Whether a popup consumed this press**, remembered for on_dbl.
+    --
+    -- mpv delivers a double click as mbtn_left, mbtn_left_dbl, mbtn_left
+    -- (measured against a real mpv under Xvfb -- see the note above the
+    -- mouse-modality tests). The first mbtn_left runs THIS function, which
+    -- dismisses the textbox menu, the context menu and the dropdown popup
+    -- before returning -- so by the time on_dbl runs, asking "is one open?"
+    -- always answers no and a guard written that way is dead code. Only a
+    -- modal survives, because clicking inside its body dismisses nothing.
+    --
+    -- So the press records it and the double click reads the record.
+    state.pop_press = false
     -- textbox copy/paste menu eats the click first
     if state.tb_menu then
         local idx = item_at(state.tb_menu_geo, x, y)
@@ -3259,12 +3294,14 @@ local function on_mouse_down()
         if idx ~= nil and tbn then
             tb_menu_action(tbn, tb_menu_items(tbn)[idx + 1])
         end
+        state.pop_press = true
         request_render()
         return
     end
     -- an open context menu eats the click next
     if active_menu() then
         dismiss_menu(item_at(state.menu_geo, x, y))
+        state.pop_press = true
         return
     end
     -- open popup eats the click first
@@ -3280,6 +3317,7 @@ local function on_mouse_down()
                 t = popup_thumb(g)
             end
             state.dd_bar_drag = { grab = y - t.y }
+            state.pop_press = true
             request_render()
             return
         end
@@ -3292,6 +3330,7 @@ local function on_mouse_down()
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
         end
+        state.pop_press = true
         request_render()
         return
     end
@@ -3377,9 +3416,22 @@ local function on_mouse_down()
                 request_render()
             end
         elseif state.phud.mode and state.phud.shown then
-            -- summoned HUD: clicking bare video toggles pause, like
-            -- the lua OSC's click-anywhere behavior
-            mp.commandv('cycle', 'pause')
+            -- Summoned HUD, click on bare video. The HUD's own controls
+            -- are nodes and were handled above; this is the picture.
+            --
+            -- **The setting has to be honoured here too, not only while
+            -- the HUD is hidden.** The controls being on screen does not
+            -- change what the user asked the left button to mean, and
+            -- while `mpvtk_mouse` is enabled it is this branch -- not the
+            -- phud binding -- that the click reaches.
+            if state.phud.click_pauses then
+                state.pause_now()                    -- the lua OSC's click-anywhere
+            else
+                -- mpv's modality: the left button drags the window. Same
+                -- command and the same reasoning as the title bar below --
+                -- the press is the only moment mpv will take it.
+                pcall(mp.commandv, 'begin-vo-dragging')
+            end
         end
         return
     end
@@ -3736,7 +3788,32 @@ end
 local function on_dbl()
     local x, y = state.mouse.x, state.mouse.y
     local node = node_at(x, y)
-    if not node then return end
+    if not node then
+        -- Bare video with the HUD up. `mpvtk_mouse` has taken
+        -- mbtn_left_dbl, so mpv's own MBTN_LEFT_DBL never runs and
+        -- double-click stopped full-screening the moment the controls
+        -- appeared -- in BOTH modes, which is why this is not conditional.
+        -- (With click-to-pause on, the pair of single clicks either side
+        -- of this cancel out, exactly as they do with the HUD hidden.)
+        --
+        -- **"No node" is not "bare video" while something floats over the
+        -- scene.** A modal's body, a dropdown's popup rows, a context menu
+        -- and the textbox copy menu are all popup geometry rather than
+        -- scene nodes, so node_at is nil ON them -- and this branch would
+        -- full-screen the window from a double click inside the Playback
+        -- Info panel or on a track picker's row.
+        --
+        -- Two different questions, because a double click is three events:
+        -- a modal is still up when this runs, but the popups were all
+        -- dismissed by the leading mbtn_left (see state.pop_press, set in
+        -- on_mouse_down). Re-asking "is one open?" for those was dead code
+        -- that tested true only when nothing had been clicked.
+        if state.phud.mode and state.phud.shown
+            and not modal_active() and not state.pop_press then
+            mp.commandv('cycle', 'fullscreen')
+        end
+        return
+    end
     if node.t ~= 'textbox' then
         if node.dbl then
             send({ t = 'dbl', id = node.id })
@@ -3789,6 +3866,22 @@ local function on_rclick()
     end
     if node and node.ctx then
         send({ t = 'context', id = node.id, x = x, y = y })
+        return
+    end
+    -- Bare video, HUD up, mpv's modality: right click is what pauses
+    -- there, and `mpvtk_mouse` has taken mbtn_right so mpv's own default
+    -- cannot. Only in that mode -- with click-to-pause on, the left
+    -- button already does it and a right click means nothing here.
+    --
+    -- The context menu and the textbox menu returned above; a modal and an
+    -- open dropdown did not, and node_at is nil over both of them (their
+    -- bodies are popup geometry, not scene nodes) -- so without this a
+    -- right click on the Playback Info panel toggled pause under it. See
+    -- on_dbl for the same trap.
+    if not node and not state.phud.click_pauses
+        and state.phud.mode and state.phud.shown
+        and not modal_active() and not state.dd_open then
+        state.pause_now()
     end
 end
 
@@ -4963,10 +5056,20 @@ mp.register_script_message('mpvtk-scale', function(json)
     -- Same rounding as Python's scaling.px(); SLIDER_PAD in particular must
     -- land on the identical value or clicks seek to the wrong time.
     local function sc(v) return math.floor(v * s + 0.5) end
+    -- Text the renderer composes itself takes the user's multiplier and
+    -- the readability floor as well; geometry above takes neither. A
+    -- text scale that resized the slider padding would move where a
+    -- click seeks, and the floor is about legibility, not layout.
+    state.tscale = tonumber(t.t) or 1
+    if state.tscale <= 0 then state.tscale = 1 end
+    state.tmin = math.floor((tonumber(t.m) or 0) * s + 0.5)
+    local function tsc(v)
+        return math.max(math.floor(v * s * state.tscale + 0.5), state.tmin, 1)
+    end
     WHEEL_STEP = sc(_SCALE_BASE.WHEEL_STEP)
     SLIDER_PAD = sc(_SCALE_BASE.SLIDER_PAD)
     PHUD_SKIP_BOTTOM = sc(_SCALE_BASE.PHUD_SKIP_BOTTOM)
-    PHUD_SKIP_FS = sc(_SCALE_BASE.PHUD_SKIP_FS)
+    PHUD_SKIP_FS = tsc(_SCALE_BASE.PHUD_SKIP_FS)
     PHUD_SKIP_PAD = sc(_SCALE_BASE.PHUD_SKIP_PAD)
     PHUD_SKIP_RIGHT = sc(_SCALE_BASE.PHUD_SKIP_RIGHT)
     NAV_LEAD = sc(_SCALE_BASE.NAV_LEAD)
@@ -5201,11 +5304,31 @@ local PHUD_HIDE = { def = 4, min = 0.5 }
 local PHUD_SKIP_S = 10
 local PHUD_SUMMON_KEYS = { 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ENTER' }
 
+-- **How the RENDERER pauses.** Locally by default, because `cycle pause`
+-- with no round trip is what makes click-to-pause feel immediate -- but in
+-- a SyncPlay group a local pause is not a pause at all: mpv stops, the
+-- group does not hear about it, and the next tick drags this player back.
+-- [iw] found this on the click-to-pause path; it applies to all four of
+-- them. Python's toggle_pause -> set_paused is SyncPlay-aware at the top,
+-- so handing it over is the whole fix, and scoping it to when it is needed
+-- is the same rule the key claims follow.
+--
+-- A FIELD on `state`, not a local: this chunk is at LuaJIT's 200-local
+-- ceiling and one more is a load error, not a warning. Resolved at call
+-- time, so the handlers above may use it.
+state.pause_now = function()
+    if state.phud.syncplay then
+        send({ t = 'pause' })
+    else
+        mp.commandv('cycle', 'pause')
+    end
+end
+
 local function phud_summon_enter()
     -- Select/ENTER wakes the HUD AND toggles pause/play (the bar
     -- comes up focused + in adjust mode via the autofocus slider)
     phud_summon('key')
-    mp.commandv('cycle', 'pause')
+    state.pause_now()
 end
 
 local function phud_wake_key()
@@ -5239,6 +5362,25 @@ local function phud_skip_bind()
         send({ t = 'hudskip' })
         phud_skip_hide()
     end)
+    -- The MOUSE half of the skip button normally lives in
+    -- mpvtk_phud_click, which mpv's modality does not install -- taking
+    -- mbtn_left is exactly what stops the VO dragging the window. So bind
+    -- it here instead, for the few seconds the button is actually up, and
+    -- drag by our own command meanwhile. Without this the Skip button is
+    -- keyboard-only in that mode, which is not a trade anybody chose.
+    if not state.phud.click_pauses then
+        mp.add_forced_key_binding('mbtn_left', 'mpvtk_skip_click', function()
+            local r = state.phud.skip_rect
+            local x, y = state.phud.mx, state.phud.my
+            if state.phud.skip_show and r and x >= r.x1 and x <= r.x2
+                and y >= r.y1 and y <= r.y2 then
+                send({ t = 'hudskip' })
+                phud_skip_hide()
+            else
+                pcall(mp.commandv, 'begin-vo-dragging')
+            end
+        end)
+    end
     state.kb_skip = true
 end
 
@@ -5298,8 +5440,21 @@ function phud_bind_summon()
             end
         end
     end
-    -- clicking the hidden-HUD video pauses (the lua OSC's
-    -- click-anywhere), except on the standalone skip button
+    -- Clicking the hidden-HUD video pauses (the lua OSC's
+    -- click-anywhere), except on the standalone skip button.
+    --
+    -- **Not bound at all in mpv's modality** (mouse_click_pauses off): a
+    -- forced binding here is what stops the VO dragging the window with
+    -- the left button, so giving dragging back means not taking the
+    -- button. Right-click-to-pause and double-click-to-fullscreen are
+    -- mpv's own defaults and need nothing from us either way -- measured:
+    -- a double click delivers mbtn_left, mbtn_left_dbl, mbtn_left, so
+    -- even with this bound the two pause toggles cancel and fullscreen
+    -- still fires.
+    if not state.phud.click_pauses then
+        state.kb_summon = true
+        return
+    end
     mp.add_forced_key_binding('mbtn_left', 'mpvtk_phud_click', function()
         local r = state.phud.skip_rect
         local x, y = state.phud.mx, state.phud.my
@@ -5308,7 +5463,7 @@ function phud_bind_summon()
             send({ t = 'hudskip' })
             phud_skip_hide()
         else
-            mp.commandv('cycle', 'pause')
+            state.pause_now()
         end
     end)
     state.kb_summon = true
@@ -5551,6 +5706,13 @@ mp.register_script_message('mpvtk-hud', function(on, opts_json)
         state.phud.hide_s = hide ~= nil and hide or PHUD_HIDE.def
         state.phud.hide_mode = (opts and opts.mode) or 'hover'
         state.phud.shadow = (opts and opts.shadow) or false
+        -- Absent means the historical behaviour, not false: an older
+        -- Python side sends no `click` and must keep click-to-pause.
+        local click = opts and opts.click
+        state.phud.click_pauses = click == nil or click and true or false
+        -- Absent means false: an older Python side sends nothing and keeps
+        -- the local fast path, which is the historical behaviour.
+        state.phud.syncplay = (opts and opts.syncplay) and true or false
         if state.phud.hide_s <= 0 then
             -- A zero delay only means anything as "gone the moment the
             -- pointer leaves the controls"; with no pointer test it is a

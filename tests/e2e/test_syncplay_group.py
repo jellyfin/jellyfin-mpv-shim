@@ -12,6 +12,10 @@ group, every command, the Media round trip) and what is not (mpv).
 
 import time
 import unittest
+from datetime import datetime, timedelta
+from unittest import mock
+
+import jellyfin_mpv_shim.syncplay as syncplay_module
 
 from tests.e2e import _e2e
 from tests.e2e._syncplay_live import (
@@ -326,6 +330,144 @@ class HaltingIsNotLeavingTest(GroupCase):
                        <= TOLERANCE, timeout=20),
             "alice resumed at %.3fs while the group is at %.3fs"
             % (self.alice.position, self.bob.position))
+
+
+@_e2e.require_server
+class RequestConformanceTest(GroupCase):
+    """Every SyncPlay request the shim sends is one the server accepts.
+
+    All of these are fire-and-forget. `syncplay.py` wraps the ones it cares
+    about in `except Exception: log.error(...)` precisely because losing one
+    must not derail playback -- which means a request the server refuses does
+    not fail, does not raise, and does not show up on screen. It just quietly
+    stops doing its job.
+
+    That is not hypothetical. `ping_sync_play` used to send a *fractional*
+    millisecond count; `PingRequestDto` declares `long Ping`, so it failed to
+    bind and every ping this client ever sent came back 400. The server fell
+    back to its default latency for us and compensated the group's unpause
+    delay with the wrong number, for years, with a comment in the source
+    recording the 400 as a curiosity.
+
+    Nothing in the modelled suite can catch that class: the model is a port of
+    the server's *state machine*, not of its request binding, and a fake
+    accepts whatever shape it is handed. Only a real server has an opinion.
+
+    The requests are sent through the shim's own client with the argument
+    shapes `syncplay.py` builds, so what is under test is the call as the shim
+    makes it -- not a hand-written POST that happens to be well formed.
+    """
+
+    DEVICE_TAG = "conform"
+
+    def _playlist_item_id(self, index=None):
+        """A queue entry id, taken the way `_buffer_req` takes it."""
+        video = self.alice.player.video
+        self.assertIsNotNone(video, "nothing is loaded, so there is no "
+                                    "PlaylistItemId to send")
+        media = video.parent
+        return media.queue[media.seq if index is None
+                           else index]["PlaylistItemId"]
+
+    def _send_all(self, item, second):
+        """Every request `syncplay.py` makes, made the way it makes it.
+
+        Through the manager, never through the endpoint. Half of these are
+        wrapped in `except Exception: log.<error|warning>(...)` in the shim,
+        so a refusal shows up as a log line rather than a traceback -- and a
+        test that called the API directly would prove the *endpoint* works
+        while a client that had stopped converting its arguments sailed past.
+        That is the exact gap the ping bug lived in.
+        """
+        manager = self.alice.manager
+        return [
+            ("ping", lambda: manager.on_timesync_update(
+                timedelta(seconds=0), timedelta(milliseconds=12.34))),
+            ("ignore-wait on", lambda: manager._set_ignore_wait(True)),
+            ("ignore-wait off", lambda: manager._set_ignore_wait(False)),
+            ("buffering", lambda: manager._buffer_req(True)),
+            ("ready", lambda: manager._buffer_req(False)),
+            ("unpause", lambda: manager.play_request()),
+            ("pause", lambda: manager.pause_request()),
+            ("seek", lambda: manager.seek_request(7.5)),
+            ("set-item", lambda: manager.request_skip(item)),
+            ("next", lambda: manager.request_next(item)),
+            ("prev", lambda: manager.request_prev(second)),
+        ]
+
+    def test_every_request_the_shim_sends_is_accepted(self):
+        # Two items, so next/prev are requests the group can honour rather
+        # than ones it is right to refuse.
+        episodes = self.alice.session.find_all(library="Shows",
+                                               item_type="Episode")
+        self.assertGreaterEqual(len(episodes), 2)
+        self.group.start([episodes[0]["Id"], episodes[1]["Id"]])
+        self.wait_all(lambda m: m.player.video is not None)
+
+        first = self._playlist_item_id()
+        second = self._playlist_item_id(index=1)
+
+        for label, send in self._send_all(first, second):
+            with self.subTest(request=label):
+                with mock.patch.object(syncplay_module, "log") as logger:
+                    try:
+                        send()
+                    except Exception as error:
+                        self.fail("the server refused the %s request: %s"
+                                  % (label, error))
+                complaints = logger.error.call_args_list + \
+                    logger.warning.call_args_list
+                self.assertEqual(
+                    complaints, [],
+                    "the %s request was refused and swallowed: %r. Nothing "
+                    "surfaces in normal use, so the only symptom is the "
+                    "group behaving subtly wrongly." % (label, complaints))
+
+    def test_the_ping_the_shim_computes_is_accepted(self):
+        """Driven through `on_timesync_update`, not by calling the endpoint.
+
+        Sending a well-formed ping from a test proves the *endpoint* works and
+        says nothing about the client -- which is exactly the gap the original
+        bug lived in for years. The conversion (`round(seconds * 1000)`) is the
+        part that was wrong, so the test has to go through it. The failure is
+        swallowed and logged, so the log is what gets watched.
+        """
+        self.group.start([self.item_id])
+        self.wait_all(lambda m: m.playing)
+        manager = self.alice.manager
+        # `sync_enabled` is what gates the ping, and it is only armed once a
+        # scheduled play has landed (`_rearm_sync`) -- so waiting for it is
+        # also the check that this test is in a state where a ping is sent
+        # at all. Without it the assertion below passes on a manager that
+        # never made a request.
+        self.assertTrue(
+            wait_until(lambda: manager.sync_enabled, timeout=20),
+            "drift correction never armed, so no ping is sent and this test "
+            "cannot fail")
+
+        with mock.patch.object(syncplay_module.log, "error") as errors:
+            manager.on_timesync_update(timedelta(seconds=0),
+                                       timedelta(milliseconds=12.34))
+
+        self.assertEqual(
+            errors.call_args_list, [],
+            "the ping the shim computes was refused; it is swallowed in "
+            "normal use, so the group would silently be compensated with the "
+            "server's default latency instead of ours")
+
+    def test_a_fractional_ping_is_still_refused(self):
+        """The evidence that `round()` is load-bearing rather than tidy.
+
+        Without this the accepted-ping case above passes just as well against
+        a client that stopped rounding, because a server that accepted both
+        would make the two indistinguishable. If Jellyfin ever starts binding
+        a fractional Ping this fails and says the guard can relax -- which is
+        the right way round for a claim about somebody else's parser.
+        """
+        with self.assertRaises(Exception, msg=(
+                "the server now accepts a fractional Ping, so nothing here "
+                "distinguishes a rounding client from one that dropped it")):
+            self.alice.api.ping_sync_play(12.3)
 
 
 if __name__ == "__main__":

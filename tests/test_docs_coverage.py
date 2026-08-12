@@ -36,7 +36,6 @@ INTERNAL = {
     "window_width",          # window state, rewritten on exit
     "window_height",
     "window_maximized",
-    "library_last_server",   # which server was last selected
     "music_volume",          # persisted playback volume, per media kind
     "video_volume",
     "language_config",       # structured; has its own prose section

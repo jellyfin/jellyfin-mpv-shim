@@ -17,8 +17,9 @@ import logging
 
 from ...i18n import _
 from ...mpvtk.widgets import (
-    Box, Button, Checkbox, Column, Dropdown, Row, Spacer, Text, VScroll)
-from .. import pagination, theme, view_prefs
+    Box, Column, Dropdown, Row, Spacer, Text, VScroll,
+)
+from .. import dialogs, pagination, theme, view_prefs
 from ..components import chrome, controls
 from ..tile_renderer import GRID_GAP
 from .base import Page
@@ -263,7 +264,24 @@ class GridPage(Page):
         route = self.route
         items = route.get("_items")
         if items is None:
-            return chrome.busy()
+            # The SHELL stays and only the tiles blank -- **[iw]**: "what
+            # should happen is the tiles blank out but the shell stays".
+            #
+            # This used to be `chrome.busy()` for the whole page, so a
+            # filter tick, a sort change or a letter press replaced the
+            # title, the filter bar and the A-Z rail with a spinner and
+            # the library looked dead -- behind the filter panel, which
+            # covers the middle of the window, the page simply emptied.
+            #
+            # The tiles genuinely are unknown for the length of the query
+            # and drawing the previous ones would be a small lie; the
+            # title, the controls and their state are not unknown, and
+            # blanking them was the whole of the problem. Same Column,
+            # pad and gap as the loaded path, so nothing above the tiles
+            # moves when they arrive.
+            return Column(self._header(None, size[0]) + [chrome.busy()],
+                          pad=chrome.CONTENT_PAD, gap=GRID_GAP,
+                          flex=1, align="stretch")
         header = self._header(items, size[0])
         if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
             return self._list_view(items, header)
@@ -336,10 +354,10 @@ class GridPage(Page):
         # read once and rarely touched do not earn permanent space on a
         # filter row already carrying a sort, three filters and a shuffle.
         header: list = [Row([
-            Text(route.get("title", ""), size=26, bold=True),
+            Text(route.get("title", ""), size="page", bold=True),
             Spacer(flex=1),
             controls.action_btn("settings", _("View"), "grid-viewcfg",
-                                self._open_view_settings, size=16),
+                                self._open_view_settings),
         ], align="center", w=max(0, (width or 0) - 2 * chrome.CONTENT_PAD))]
         header.append(self._filter_bar(width))
         # The count line is redundant with the pagination bar's "of N".
@@ -350,17 +368,27 @@ class GridPage(Page):
         # show what it had not fetched.
         if not self._pages.enabled():
             header.append(Text(_("%d items") % (route.get("_total") or 0),
-                               size=14, color=theme.SUBTLE_FG))
+                               size="caption", color=theme.SUBTLE_FG))
         return header
 
     def _view_controls(self):
         """Buttons that LEAVE this library -- Genres, Networks.
 
+        ...and **Collections**, which is one of these and not a filter.
+        It sets `route["_collections"]`, tears down `_items`, `_total`,
+        the grid shape and the paginator, and comes back with a different
+        item type wearing a different tile shape -- its own docstring
+        says "a different query rather than a filter". The test is
+        whether it composes: everything in `_filters` intersects, and
+        Collections cannot intersect with anything. **[iw]**: "we should
+        honestly treat collections as a door."
+
+        (This docstring used to argue the opposite -- that Collections
+        "really is a filter" -- which is why it sat among the checkboxes.)
+
         They lead the filter row rather than sitting among the filters,
         because they are a different kind of thing: a filter changes what
-        this grid shows and these navigate somewhere else entirely. Mixing
-        them in made "Collections" (which really is a filter) and "Genres"
-        (which is a door) look like the same control.
+        this grid shows and these navigate somewhere else entirely.
 
         jellyfin-web reaches both through library tabs, which we do not
         have -- so leading the bar is the nearest thing to a tab strip.
@@ -370,11 +398,21 @@ class GridPage(Page):
         if route.get("collection_type") in STUDIO_LIBRARIES:
             # Web calls this "Networks" on a TV library and offers it only
             # there, which is where studio metadata actually is.
-            out.append(Button(_("Networks"), id="grid-studios",
-                              icon="apartment", on_click=self._open_studios))
+            out.append(controls.action_btn("apartment", _("Networks"),
+                                           "grid-studios", self._open_studios))
         if route.get("collection_type") in GENRE_LIBRARIES:
-            out.append(Button(_("Genres"), id="grid-genres", icon="label",
-                              on_click=self._open_genres))
+            out.append(controls.action_btn("label", _("Genres"),
+                                           "grid-genres", self._open_genres))
+        if route.get("_collection_capable"):
+            # ``on``, not chrome_button_style: that helper is empty for any
+            # theme that did not ask for accented chrome -- which is the
+            # stock one -- so the only toggle on this bar had NO visible
+            # active state on the default theme. Same fill every other
+            # toggle in the app uses (Watched, Favorite), and the accent is
+            # the whole signal that this grid is showing something else.
+            out.append(controls.action_btn(
+                "video_library", _("Collections"), "grid-collections",
+                self._toggle_collections, on=bool(route.get("_collections"))))
         return out
 
     def _filter_bar(self, width=0):
@@ -392,52 +430,54 @@ class GridPage(Page):
         yi = 0
         if filters.get("year") in years:
             yi = years.index(filters["year"]) + 1
+        active = self._active_filters()
         bar = Row([
             Dropdown("grid-sort", [s[0] for s in self._sorts()],
                      selected=route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
-            Dropdown("grid-genre", [_("All Genres")] + genres, selected=gi,
-                     w=180,
-                     on_select=lambda i, v: self._set_filter(
-                         "genre", None if i == 0 else genres[i - 1])),
-            Dropdown("grid-year",
-                     [_("All Years")] + [str(y) for y in years],
-                     selected=yi, w=140,
-                     on_select=lambda i, v: self._set_filter(
-                         "year", None if i == 0 else years[i - 1])),
-            Checkbox(_("Unplayed"), bool(filters.get("unplayed")),
-                     id="grid-unplayed",
-                     on_toggle=lambda: self._toggle_filter("unplayed")),
-            Checkbox(_("Favorites"), bool(filters.get("favorite")),
-                     id="grid-fav",
-                     on_toggle=lambda: self._toggle_filter("favorite")),
+            # One button instead of the three drop-downs and two
+            # checkboxes that used to live here. The bar had 277px spare
+            # at 1280 -- one control's width, with genre names that size
+            # to their contents -- so the eight categories web offers
+            # could not have gone on it at any window size.
+            #
+            # The count is the badge: web draws a dot, but a dot says
+            # "something is on" and a number says how much of what you
+            # are looking at has been hidden, which is the question you
+            # ask when a library looks short.
         ] + ([
-            # A filter, not a door: it swaps this library's grid for its
-            # collections. So it sits with the other checkboxes rather than
-            # with Genres and Networks -- after Favorites, before the
-            # Paginated toggle, which is not a filter at all.
-            Checkbox(_("Collections"), bool(route.get("_collections")),
-                     id="grid-collections",
-                     on_toggle=self._toggle_collections),
-        ] if route.get("_collection_capable") else []) + [
-            # The play buttons are trailing; the Spacer is what pushes them
-            # away from the filters.
-            Spacer(),
-        ] + ([
-            # Ahead of Shuffle, as jellyfin-web pairs them. Shuffle alone was
-            # the whole of "play this library", which on a Home Videos folder
-            # of holiday clips in date order is the one thing you do not want.
-            Button(_("Play All"), id="grid-playall", on_click=self._play_all),
+            controls.action_btn(
+                "filter_alt",
+                _("Filter (%d)") % active if active else _("Filter"),
+                "grid-filter", self._open_filters,
+                primary=bool(active)),
+        ] if self._filters_offered() else []) + ([
+            # Inline, not pushed to the far edge. They sat there because
+            # the bar used to be five filter controls wide and they had to
+            # go somewhere; with one Filter button there is nothing to be
+            # on the other side OF. **[iw]**: "we should put shuffle next
+            # to Filter. It doesn't make sense to put it on the other side
+            # of the UI anymore."
+            #
+            # action_btn, not Button, and that is the rule its own
+            # docstring states: a plain Button resolves its label from the
+            # type scale and comes out taller than the icon buttons beside
+            # it. Moving these inline is what made it visible -- across the
+            # bar from Filter, nothing was next to them to be uneven with.
+            controls.action_btn("play_arrow", _("Play All"), "grid-playall",
+                                self._play_all),
         ] if self._play_all_capable() else []) + ([
-            Button(_("Shuffle"), id="grid-shuffle", on_click=self._shuffle),
-        ] if self._shuffle_capable() else []), gap=10, align="center")
+            controls.action_btn("shuffle", _("Shuffle"), "grid-shuffle",
+                                self._shuffle),
+        ] if self._shuffle_capable() else []) + [Spacer(flex=1)],
+            gap=10, align="center")
         bar = self._fit_bar(bar, self._view_controls(), width)
         cur_letter = filters.get("letter")
         cells = [
             # flex + align="center" centres the glyph horizontally; a bare
             # Text is packed at the box's left edge (Box only centres on its
             # cross axis), which left every letter hugging its left border.
-            Box([Text(ch, size=15, align="center", flex=1,
+            Box([Text(ch, size="small", align="center", flex=1,
                       color=theme.ACCENT_FG if cur_letter == ch
                       else theme.SUBTLE_FG)],
                 id="grid-l-" + ch, w=26, h=26, align="center",
@@ -474,7 +514,7 @@ class GridPage(Page):
             self.route, ps, self._page_fetcher(),
             seed=self.route.get("_items"))
         if page_items is None:
-            body = [Text(_("Loading…"), size=18, color=theme.SUBTLE_FG)]
+            body = [Text(_("Loading…"), size="large", color=theme.SUBTLE_FG)]
         else:
             body = tiles.grid_of(page_items, "grid", size, geom=geom,
                                  image_type=image_type, labels=labels)
@@ -490,24 +530,36 @@ class GridPage(Page):
         return sorts_for(self.route.get("collection_type"))
 
     def _bound_query(self):
-        """``(sort_by, sort_order, filters, person, srv, image_type)`` read
-        NOW, on the loop thread. The sort/filters a page is fetched with must
-        be the ones it was asked for, not whatever they are when it lands --
-        and the artwork it asks the server for must be the one the grid is
-        being drawn with, or page two of a Banner view arrives with no
-        banners."""
+        """``(sort_by, sort_order, filters, person, srv, image_type,
+        collections)`` read NOW, on the loop thread. The sort/filters a page
+        is fetched with must be the ones it was asked for, not whatever they
+        are when it lands -- and the artwork it asks the server for must be
+        the one the grid is being drawn with, or page two of a Banner view
+        arrives with no banners.
+
+        ``collections`` for the same reason as the rest, and it was the one
+        thing missing: `_fetch_at` read it live off the route, so a page-in
+        submitted before the Collections toggle and landing after it would
+        answer from whichever endpoint the flag named by then -- the movies
+        query spliced into a list of collections or the reverse. Not
+        reachable today, because `_toggle_collections` drops `_items` and
+        the loading shell is drawn before any window is computed; bound
+        here so that stays a property of this tuple rather than of what
+        render happens to do.
+        """
         _n, sort_by, sort_order = self._sorts()[self.route.get("_sort", 0)]
         return (sort_by, sort_order,
                 self.route.get("_filters") or {},
                 self.route.get("person_id"),
                 self.route.get("server") or self.ctx.server,
-                _image_type_of(self.route.get("_view")))
+                _image_type_of(self.route.get("_view")),
+                bool(self.route.get("_collections")))
 
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
         (sort_by, sort_order, filters, person, srv,
-         image_type) = bound or self._bound_query()
+         image_type, collections) = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -518,7 +570,7 @@ class GridPage(Page):
             return source.get_person_items(
                 srv, person, start_index=start,
                 sort_by=sort_by, sort_order=sort_order, **kw)
-        if self.route.get("_collections"):
+        if collections:
             return source.get_movie_collections(
                 srv, start_index=start, sort_by=sort_by,
                 sort_order=sort_order, filters=filters,
@@ -616,7 +668,7 @@ class GridPage(Page):
         while the list route was being built on top of it.
         """
         return Row([
-            Text(_("Sort"), size=15, color=theme.SUBTLE_FG),
+            Text(_("Sort"), size="small", color=theme.SUBTLE_FG),
             Dropdown("%s-sort" % self.kind, [s[0] for s in self._sorts()],
                      selected=self.route.get("_sort", 0), w=180,
                      on_select=lambda i, v: self._set("_sort", i)),
@@ -791,6 +843,102 @@ class GridPage(Page):
         else:
             self.ctx.nav.load(self.route)
 
+    #: Filter keys that are NOT drawn by the panel. `letter` is the A-Z
+    #: rail down the side of the grid, which is a control of its own.
+    _NOT_IN_PANEL = ("letter",)
+
+    def _panel_keys(self):
+        """Filter keys this source can actually apply.
+
+        Asked of the SOURCE rather than tested as "are we offline": a
+        page is not supposed to care which source it has, and the honest
+        question is what the source can do. Empty on a downloaded
+        library, which is what takes the Filter button off the bar.
+
+        `getattr` with a default because the shell's stand-ins and any
+        third source predate the capability; the default is the online
+        set, so a source that says nothing keeps today's behaviour rather
+        than silently losing its filters.
+        """
+        from ..repository import SUPPORTED_FILTERS
+        return getattr(self.ctx.source, "supported_filters",
+                       SUPPORTED_FILTERS)
+
+    def _filters_offered(self):
+        """Whether to draw the Filter button at all."""
+        return bool(set(self._panel_keys()) - set(self._NOT_IN_PANEL))
+
+    def _active_filters(self):
+        """How many filters are on. Drives the button's dot.
+
+        Counts only what this source can APPLY -- a key it ignores is not
+        a filter that is on, and counting it made the badge report
+        filtering that was not happening.
+        """
+        f = self.route.get("_filters") or {}
+        keys = self._panel_keys()
+        return sum(1 for k, v in f.items()
+                   if v and k not in self._NOT_IN_PANEL and k in keys)
+
+    def _open_filters(self):
+        """The filter panel: a modal, because it is a page of controls."""
+        # Getters, not values. `route.get("_filters") or {}` answers with
+        # a FRESH dict when nothing is set yet, and `_toggle_filter` then
+        # writes to the one `setdefault` makes -- a different object -- so
+        # every tick was drawn from a snapshot taken when the panel opened
+        # and nothing ever moved. `_clear_filters` replaces the dict
+        # outright, which breaks it a second way.
+        #
+        # This is the standing browser footgun (CLAUDE.md): a widget tree
+        # is a snapshot, so read mutable state INSIDE the builder.
+        self.ctx.dialogs.filter_panel(
+            lambda: self.route.get("_filtervals") or {},
+            lambda: self.route.get("_filters") or {},
+            self._match_count,
+            self._set_filter, self._panel_toggle, self._clear_filters,
+            collection_type=self.route.get("collection_type"))
+
+    def _match_count(self):
+        """``(matches, pending)`` for the filter panel's count.
+
+        The same pair the header draws with: ``_total`` (which ``_reload``
+        keeps across a re-query on purpose) and whether the query behind
+        it has answered yet. A missing ``_items`` is exactly that test --
+        it is what ``render`` blanks the tiles on.
+
+        Only the panel asks; the header shows the count *conditionally*
+        (a paginated grid says "of N" on the pagination bar instead) and
+        the panel covers both of those, so it shows it unconditionally.
+
+        A failed load is not pending. Its ``_items`` stays None for good
+        -- the page swaps itself for the retry screen -- so testing that
+        alone leaves a spinner turning in here over a query that is never
+        coming back.
+        """
+        return (self.route.get("_total") or 0,
+                self.route.get("_items") is None
+                and not self.route.get("_error"))
+
+    def _panel_toggle(self, key):
+        """A panel checkbox. Repaints the dialog as well as reloading.
+
+        The renderer flips a Dropdown's own selection optimistically, but
+        **a Checkbox is drawn from its `checked` argument** and only a
+        redraw can move the tick -- the standing footgun in this codebase
+        (CLAUDE.md), and the reason the Add to Playlist dialog once had a
+        Private box that flipped invisibly.
+        """
+        self._toggle_filter(key)
+        self.ctx.invalidate()
+
+    def _clear_filters(self):
+        """Everything off, except the A-Z rail, which is not in here."""
+        keep = {k: v for k, v in (self.route.get("_filters") or {}).items()
+                if k in self._NOT_IN_PANEL}
+        self.route["_filters"] = keep
+        self._reload()
+        self.ctx.invalidate()
+
     def _fit_bar(self, bar, extras, width):
         """``bar`` with ``extras`` appended, or stacked under it if that
         would not fit.
@@ -801,8 +949,13 @@ class GridPage(Page):
         toggle and a Genres button that a music one does not, and the sort
         and genre dropdowns are sized to their contents.
         """
+        avail0 = (width or 0) - 2 * chrome.CONTENT_PAD
         if not extras:
-            return bar
+            # Still width it: the trailing Spacer needs leftover to absorb
+            # whether or not this library has doors on the bar, and this
+            # is the path a movies library takes.
+            return (Row(bar.children, gap=10, align="center", w=avail0)
+                    if avail0 > 0 else bar)
         wide = Row(extras + bar.children, gap=10, align="center")
         avail = (width or 0) - 2 * chrome.CONTENT_PAD
         if avail <= 0:
@@ -814,11 +967,17 @@ class GridPage(Page):
             log.debug("could not measure the filter bar", exc_info=True)
             fits = True
         if fits:
-            return wide
+            # An explicit width, so the trailing Spacer has leftover to
+            # absorb and the play buttons sit at the right edge. A Row
+            # sizes to what it measures otherwise, which parked them
+            # immediately after the Filter button.
+            return Row(extras + bar.children, gap=10, align="center",
+                       w=avail)
         # Above, not below: these are the doors out of this library, and a
         # row of them under the filters reads as more filtering.
-        return Column([Row(extras, gap=10, align="center"), bar], gap=8,
-                      align="stretch")
+        return Column([Row(extras, gap=10, align="center"),
+                       Row(bar.children, gap=10, align="center", w=avail)],
+                      gap=8, align="stretch")
 
     def _grid_shape(self, items):
 
@@ -885,12 +1044,38 @@ class GridPage(Page):
     # -- header actions -----------------------------------------------------
 
     def _reload(self):
-        for k in ("_items", "_total", "_grid_shape", "_win_tried",
-                  "_win_load"):
-            self.route.pop(k, None)
-        self.route["_loading"] = False
-        self._pages.reset(self.route)
-        self.ctx.nav.reload(self.route)
+        """Re-run this route's query, **keeping what is on screen until the
+        new results land**.
+
+        This used to pop ``_items``, and ``render`` answers a missing
+        ``_items`` with ``chrome.busy()`` for the whole page -- title,
+        filter bar, A-Z rail and all. So every filter tick, every sort
+        change and every letter press blanked the library and drew a
+        spinner over it. Behind the filter panel, which covers the middle
+        of the window, all that was visible of that was the page going
+        empty: **[iw]** "it makes the page look dead behind a modal while
+        re-querying".
+
+        Stale-while-revalidate, the rule refresh_live_tv already argues
+        for: a re-read of a screen the user is looking at must not blink a
+        spinner over what they are reading. Unlike that one this DOES
+        bump the epoch -- the query has changed, so anything in flight is
+        answering the wrong question -- and unlike that one the old data
+        is genuinely wrong rather than merely stale. It stays up because
+        an empty page for the length of a query says nothing true either,
+        and it says it much louder.
+
+        ``_total`` is deliberately NOT dropped. It is the header's item
+        count, which is shell rather than content -- and zeroing it puts
+        "0 items" over the spinner, which is a worse thing to say than a
+        count one second out of date. ``_install`` overwrites it.
+        """
+        route = self.route
+        for k in ("_items", "_grid_shape", "_win_tried", "_win_load"):
+            route.pop(k, None)
+        route["_loading"] = False
+        self._pages.reset(route)
+        self.ctx.nav.reload(route)
 
     def _set(self, key, value):
         self.route[key] = value
@@ -902,7 +1087,24 @@ class GridPage(Page):
 
     def _toggle_filter(self, key):
         f = self.route.setdefault("_filters", {})
-        f[key] = not f.get(key)
+        on = not f.get(key)
+        f[key] = on
+        if on:
+            # Turning one on turns its opposite off. Two of these pairs
+            # cannot be sent at all rather than merely being pointless:
+            # Played+Unplayed share one comma-joined `Filters` parameter
+            # and the server answers that with HTTP 400, and SD+HD share
+            # one tri-state `IsHd`. See dialogs.MUTUALLY_EXCLUSIVE.
+            #
+            # `if on` is the correct spelling and is not observable:
+            # clearing the partner while switching a box OFF could only
+            # matter if the partner were on, and this is the one thing
+            # that lets it be. It is written this way because it says what
+            # it means, not because a test can tell -- a test that pinned
+            # it would be asserting nothing.
+            other = dialogs.MUTUALLY_EXCLUSIVE.get(key)
+            if other:
+                f[other] = False
         self._reload()
 
     def _toggle_collections(self):
@@ -1060,13 +1262,16 @@ class ListPage(GridPage):
 
     def _bound_query(self):
         # No image type: a list route's shape comes from its spec, not from
-        # a library's view settings (see SHAPES below).
+        # a library's view settings (see SHAPES below). No collections
+        # either -- that toggle belongs to a library grid -- but the arity
+        # is the base class's, because `_window` and `_page_fetcher` are
+        # inherited and unpack what this returns.
         sort_by, sort_order = self._sort_args()
         return (sort_by, sort_order, self.route.get("_filters") or {}, None,
-                self.route.get("server") or self.ctx.server, None)
+                self.route.get("server") or self.ctx.server, None, False)
 
     def _fetch_at(self, start, limit=None, bound=None):
-        sort_by, sort_order, filters, _person, srv, _itype = (
+        sort_by, sort_order, filters, _person, srv, _itype, _coll = (
             bound or self._bound_query())
         kw = {} if limit is None else {"limit": limit}
         return self.ctx.source.get_list(
@@ -1090,13 +1295,13 @@ class ListPage(GridPage):
         return getattr(self.ctx.art, attr), image_type
 
     def _header(self, items, width=0):
-        header = [Text(self.route.get("title", ""), size=26, bold=True)]
+        header = [Text(self.route.get("title", ""), size="page", bold=True)]
         if self._sortable():
             header.append(self._sort_bar())
         if not self._pages.enabled():
             header.append(
                 Text(_("%d items") % (self.route.get("_total") or 0),
-                     size=14, color=theme.SUBTLE_FG))
+                     size="caption", color=theme.SUBTLE_FG))
         return header
 
 
@@ -1142,6 +1347,6 @@ class PersonPage(GridPage):
         self.route_async(work, done, epoch)
 
     def _header(self, items, width=0):
-        return [Text(self.route.get("title", ""), size=26, bold=True),
+        return [Text(self.route.get("title", ""), size="page", bold=True),
                 self._sort_bar()]
 

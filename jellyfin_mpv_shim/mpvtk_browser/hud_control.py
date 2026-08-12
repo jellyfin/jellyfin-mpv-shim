@@ -77,6 +77,9 @@ class HudController:
         self.scrub_paused = False
         self.menu = None
         self.menu_anchor = "hud-settings"
+        #: The playback-info panel is up. Reset with the rest: a fresh
+        #: renderer is showing no HUD, so it is showing no panel either.
+        self.info = False
         self.tc_remaining = False
 
     # -- is the HUD in play at all ----------------------------------------
@@ -171,6 +174,13 @@ class HudController:
             # keep a menu opened in the same beat as a summon
             # (open_menu sets it right before the hud event lands)
             self.menu = None
+            # The panel goes with it. It is anchored to nothing on screen
+            # once the bar is gone, and the renderer holds the HUD up while
+            # a modal is open (phud_busy) -- so the only way to reach here
+            # with the panel open is the HUD being dismissed outright, and
+            # leaving it set would bring the panel back with the next
+            # summon, which nobody asked for.
+            self.info = False
         if active:
             # a fresh position snapshot before the bar first paints, then
             # the shared 1s ticker keeps its clock moving

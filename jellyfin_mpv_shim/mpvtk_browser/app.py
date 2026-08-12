@@ -14,7 +14,7 @@ This module is the *core*: ``__init__``, the nav stack, the epoch and
 the browse<->playback lifecycle and HUD glue, and ``shutdown``.
 
 Around it are two things, and the split is a **migration in progress**
-(``docs/ARCHITECTURE_TARGET.md`` §3.2), not a design:
+(``docs/archive/ARCHITECTURE_TARGET.md`` §3.2), not a design:
 
 *Pages* (``pages/``) own a route each — a class with ``load`` and ``build``
 and its own state, registered in ``pages/PAGES``. This is where a route
@@ -268,8 +268,10 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._cast_size = None
         self._cast_lock = threading.Lock()
         # Locked-down cast-target mode: the cast screen is the ONLY page.
-        # See navigate() and mpvtk/HEADLESS.md for what this does and does
-        # not protect against.
+        # See navigate() and tests/test_mpvtk_headless.py for what this
+        # does and does not protect against. (That test is the live
+        # substitute; the mpvtk/HEADLESS.md this used to cite has never
+        # existed in any commit.)
         self.headless = bool(self._cfg_headless())
         # Wires on_hud/on_hud_skip (and re-wires on_nav) on the app —
         # shared with mpv re-creation, which attaches a fresh app.
@@ -406,7 +408,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             view_settings=lambda current, on_set, paginated=None:
                 self.view_settings(current, on_set, paginated),
             open_book_progress=lambda item, server=None:
-                self._open_book_progress(item, server))
+                self._open_book_progress(item, server),
+            media_info=lambda item, server=None:
+                self._open_media_info(item, server),
+            filter_panel=lambda get_vals, get_filters, get_count, on_set,
+                on_toggle, on_clear, collection_type=None: self.filter_panel(
+                    get_vals, get_filters, get_count, on_set, on_toggle,
+                    on_clear, collection_type=collection_type))
         self._actions = ItemActions(
             services=self, run=self._async,
             dialogs=self._dialogs,
@@ -592,10 +600,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         route["_refreshing"] = True
         self._load_route(route)
 
-    #: How long a UserDataChanged burst settles before Home re-reads. The
-    #: server sends one per progress report -- including for our own
-    #: playback -- so without this, watching a film would refetch the home
-    #: screen every few seconds behind the video.
+    #: How long a UserDataChanged burst settles before Home re-reads.
+    #:
+    #: Not as large a burst as it once said here. That comment claimed the
+    #: server sends one per progress report, including for our own playback,
+    #: so watching a film would refetch Home every few seconds; measured
+    #: against 10.11.11 and 12.0.0, progress saves are dropped before the
+    #: message is built and three progress reports produce zero events. What
+    #: is left is a start, a stop, and whatever anyone marks by hand -- the
+    #: server already coalescing 500 ms of those into one message. So this
+    #: is settling a handful of events, not a stream, and it stays because
+    #: a handful still arrives together and Home is several requests.
     USERDATA_DEBOUNCE = 3.0
 
     def refresh_home(self, _client=None, now=False):
@@ -701,6 +716,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # editor from further in.
         elif (any((r or {}).get("kind") == "playlist_edit" for r in left)
               and self.route.get("kind") in ("playlist", "grid")):
+            self.route.pop("_data", None)
+            self.route.pop("_items", None)
+            self.route.pop("_loading", None)
+            self._load_route(self.route)
+        # The page we left was DELETED out from under itself. Whatever is
+        # underneath still lists it, so it draws a tile pointing at nothing
+        # — which invites a second press, and the second press 404s.
+        #
+        # Flagged on the route rather than detected here, because only the
+        # page that deleted knows: a detail screen is left for a dozen
+        # reasons, and re-reading the list on all of them would refetch a
+        # grid every time somebody looked at a film and came back. Asked of
+        # every route left, like the playlist-editor case above, so a jump
+        # through the history menu behaves the same as one Back press.
+        elif any((r or {}).get("_deleted") for r in left):
             self.route.pop("_data", None)
             self.route.pop("_items", None)
             self.route.pop("_loading", None)
@@ -1150,6 +1180,26 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.geom = caption(self.geom)
             self.geom_wide = caption(self.geom_wide)
             self.geom_square = caption(self.geom_square)
+        # ...and the user's text preference on top of whatever the theme
+        # settled on. Last, so a theme that pins a caption size still gets
+        # scaled rather than escaping the setting entirely -- the pin is an
+        # opinion about proportion, not about legibility.
+        # Imported here, not at module scope, like the other conf reads in
+        # this file (import cycle: conf -> ... -> app).
+        from ..conf import settings
+
+        try:
+            factor = float(getattr(settings, "ui_text_scale", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            factor = 1.0
+        try:
+            floor = int(getattr(settings, "ui_text_min", 0) or 0)
+        except (TypeError, ValueError):
+            floor = 0
+        if factor != 1.0 or floor:
+            for name in ("geom", "geom_wide", "geom_square", "geom_banner"):
+                setattr(self, name, getattr(self, name).with_text_scale(
+                    factor if factor > 0 else 1.0, floor))
 
     def apply_cover_size(self):
         """Adopt a changed Cover Size without a restart.
@@ -1324,7 +1374,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                           on_click=lambda: self._page_go(route, target))
 
         return Row([
-            Text(_("Page"), size=15, color=theme.SUBTLE_FG),
+            Text(_("Page"), size="small", color=theme.SUBTLE_FG),
             # force: the box tracks the current page, so paging with the
             # buttons updates the number rather than leaving a stale edit.
             # on_commit as well as on_submit: ENTER jumps, and so does clicking
@@ -1334,7 +1384,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             TextBox("pg-jump", text=str(cur + 1), w=64, force=True,
                     on_submit=lambda s: self._page_jump(route, s),
                     on_commit=lambda s: self._page_jump(route, s)),
-            Text(_("of %d") % npages, size=15, color=theme.SUBTLE_FG),
+            Text(_("of %d") % npages, size="small", color=theme.SUBTLE_FG),
             Spacer(),
             nav("first_page", "pg-first", 0, _("First page")),
             nav("chevron_left", "pg-prev", cur - 1, _("Previous page")),
@@ -1820,8 +1870,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         elif t in SERIES_TYPES:
             self.navigate(dict(base, kind="series"))
         elif t == "Season":
+            # bar_title: the top bar says which *show* this is. Without it
+            # every part of the screen says "Season 1" and none of them
+            # says what it is a season of. Absent SeriesName it stays
+            # unset and the bar falls back to the season name.
             self.navigate(dict(base, kind="season",
-                               series_id=item.get("SeriesId")))
+                               series_id=item.get("SeriesId"),
+                               bar_title=item.get("SeriesName") or None))
         elif t in PLAYABLE_TYPES:
             self.navigate(dict(base, kind="detail"))
         elif t in ("Person", "Actor", "Director", "Writer"):
@@ -1882,6 +1937,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_hud = self.hud.on_hud
         if hasattr(app, "on_hud_skip"):
             app.on_hud_skip = self.hud.on_skip
+        if hasattr(app, "on_pause"):
+            # The renderer's own pause paths (click-to-pause, the summon
+            # key, right-click in mpv modality) hand over while a SyncPlay
+            # group is on, because a local `cycle pause` is not a pause
+            # there -- it is a desync the group then corrects.
+            app.on_pause = lambda: self._ctl(lambda c: c.toggle_pause())
         if hasattr(app, "on_clipboard_error"):
             app.on_clipboard_error = self._on_clipboard_error
         if hasattr(app, "on_forward"):
@@ -2595,6 +2656,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._status_at = time.time()
         self.invalidate()
 
+    def clear_status_if(self, text):
+        """Take the toast down early, but only if it is still ours.
+
+        For a message that *reports something in progress*: TOAST_SECS is
+        six, and on a local server "Downloading X…" outlives the download
+        it is about and sits over the first page of the book (#2).
+
+        Conditional on the text, because six seconds is long enough for
+        something else to have replaced it -- an error, a finished
+        download, a queued item -- and a reader clearing that would be
+        worse than the stale toast it was fixing.
+        """
+        # `text and` only avoids a needless repaint when both are empty;
+        # what makes this safe is the equality, not the guard.
+        if text and self.status == text:
+            self.set_status("")
+
     # Minimum room the page title keeps in the top bar before the
     # buttons drop their labels (~a "Continue Watching" at 22px bold).
     TITLE_MIN_W = 260
@@ -2690,7 +2768,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         return Box([
             Spacer(),
             Row([Spacer(),
-                 Text(route["_error"], size=20, color=theme.SUBTLE_FG),
+                 Text(route["_error"], size="large", color=theme.SUBTLE_FG),
                  Spacer()]),
             Row([Spacer(),
                  Button(_("Retry"), id="route-retry", icon="refresh",
@@ -2705,6 +2783,34 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         as a browser banner (mirrors the Tk browser / CLI-OSD split)."""
         self._update = {"version": version, "url": url}
         self.invalidate()
+
+    def resend_hud_config(self):
+        """Re-send the renderer's HUD token. Called when SyncPlay is joined
+        or left, because the token carries whether the renderer's own pause
+        paths hand over to Python -- a group joined mid-playback would
+        otherwise keep the local `cycle pause`, which in a group is a desync
+        rather than a pause.
+
+        Called directly from whichever thread SyncPlay is on, as
+        ``notify_syncplay`` beside it is: ``engage`` ends in an mpv command,
+        which is thread-safe, and deferring it would let a group be joined
+        and a click land before the renderer had been told.
+
+        **Guarded exactly as every other engage() call site is.** engage()
+        is not a re-send, it is set_hud(True), and the renderer treats that
+        as a MODE CHANGE when the HUD is not already up: ui_suspend() drops
+        the nav keys, the mouse and the wheel bindings. Ungated, leaving a
+        group from the library -- which is what pressing stop in a group
+        does -- froze the library with no way back. And for a user on a lua
+        OSC it switched the mpvtk summon layer on over their OSC.
+        Un-engaged, the flag does not matter: none of the renderer's pause
+        paths are live, and the next engage() sends the current value."""
+        try:
+            if (self.hud is not None and not self._browsing
+                    and self.hud.available() and self.hud.state is not None):
+                self.hud.engage()
+        except Exception:
+            log.debug("could not re-send the HUD config", exc_info=True)
 
     def notify_syncplay(self, message):
         """Registered as playerManager.notify_syncplay: SyncPlay's messages

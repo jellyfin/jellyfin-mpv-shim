@@ -12,6 +12,7 @@ from tests._shell_harness import (
     FakeController,
     FakeSource,
     StubHudApp,
+    _DeferredPool,
     _SyncPool,
     build_scene,
     detail_page,
@@ -118,6 +119,20 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
                              fill=False):
                 asked.update(width=width, height=height, fill=fill)
                 return "http://srv/bd.jpg"
+
+            @staticmethod
+            def image_spec(_item, _type="Primary", _w=280, inherit=True):
+                # The header's inset poster (#7). Modelled with a REAL
+                # spec, not None: a fake that answers None here leaves the
+                # poster path unexercised while every banner test still
+                # passes, which is the exact trap this file's siblings
+                # document.
+                return ("m1", "Primary", "ptag")
+
+            @staticmethod
+            def image_url(_server, _id, _type, _tag, w=None, h=None,
+                          fill=False, index=None):
+                return "http://srv/poster.jpg"
 
         r = self._r()
         r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
@@ -652,10 +667,12 @@ class TestTileShapes(unittest.TestCase):
         t = self.b.tiles._tile({"Id": "m1", "Name": "Alpha", "Type": "Movie"},
                          self.b.geom)
         self.assertTrue(t.downloaded)
-        self.assertEqual(t.glyph, "A")
+        # Material icon names now, not characters -- jellyfin-web's map.
+        # See test_photos.PhotoGlyphTest for why the rule changed.
+        self.assertEqual(t.glyph, "movie")
         t2 = self.b.tiles._tile({"Id": "a1", "Name": "Song", "Type": "Audio"},
                           self.b.geom)
-        self.assertEqual(t2.glyph, "♪")
+        self.assertEqual(t2.glyph, "audiotrack")
 
     def test_watched_series_fallback(self):
         t = self.b.tiles._tile({"Id": "s1", "Type": "Series",
@@ -874,10 +891,28 @@ class TestGridFilters(unittest.TestCase):
                          "parent_id": "lib1", "title": "Movies"})
         return build_scene(self.b)
 
+    def _panel(self):
+        """The grid with its filter panel open.
+
+        The three drop-downs and two checkboxes that used to sit on the
+        bar are behind one Filter button now -- the bar had 277px spare
+        at 1280 and web offers eight categories, so they could not have
+        stayed. Everything these tests assert is unchanged; only the door
+        to it moved.
+        """
+        _n, h = self._grid()
+        h["grid-filter"]["click"]()
+        return build_scene(self.b)
+
     def test_filter_bar_present(self):
         nodes, _h = self._grid()
-        for nid in ("grid-sort", "grid-genre", "grid-unplayed", "grid-fav",
-                    "grid-shuffle", "grid-l-A", "grid-l-#"):
+        for nid in ("grid-sort", "grid-filter", "grid-shuffle",
+                    "grid-l-A", "grid-l-#"):
+            self.assertIn(nid, ids(nodes))
+
+    def test_the_filters_are_in_the_panel(self):
+        nodes, _h = self._panel()
+        for nid in ("flt-genre", "flt-unplayed", "flt-favorite", "flt-year"):
             self.assertIn(nid, ids(nodes))
 
     def test_sort_change_sets_and_reloads(self):
@@ -886,13 +921,13 @@ class TestGridFilters(unittest.TestCase):
         self.assertEqual(self.b.route["_sort"], 3)
 
     def test_genre_filter(self):
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")   # index 0 = All Genres
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")   # index 0 = All Genres
         self.assertEqual(self.b.route["_filters"]["genre"], "Action")
 
     def test_unplayed_toggle(self):
-        _n, h = self._grid()
-        h["grid-unplayed"]["click"]()
+        _n, h = self._panel()
+        h["flt-unplayed"]["click"]()
         self.assertTrue(self.b.route["_filters"]["unplayed"])
 
     def test_letter_jump(self):
@@ -926,13 +961,13 @@ class TestGridFilters(unittest.TestCase):
                          ("CommunityRating", "Descending"))
 
     def test_the_genre_filter_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         self.assertEqual(self._last_query()["filters"].get("genre"), "Action")
 
     def test_the_unplayed_toggle_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-unplayed"]["click"]()
+        _n, h = self._panel()
+        h["flt-unplayed"]["click"]()
         self.assertTrue(self._last_query()["filters"].get("unplayed"))
 
     def test_the_letter_jump_reaches_the_source(self):
@@ -941,17 +976,17 @@ class TestGridFilters(unittest.TestCase):
         self.assertEqual(self._last_query()["filters"].get("letter"), "M")
 
     def test_the_year_filter_reaches_the_source(self):
-        _n, h = self._grid()
-        h["grid-year"]["select"](1, "2020")
+        _n, h = self._panel()
+        h["flt-year"]["select"](1, "2020")
         self.assertEqual(self._last_query()["filters"].get("year"), 2020)
 
     def test_filters_accumulate_rather_than_replace(self):
         """Picking a genre then a year must send both — dropping the first
         would silently widen the result set."""
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         _n, h = build_scene(self.b)
-        h["grid-unplayed"]["click"]()
+        h["flt-unplayed"]["click"]()
         f = self._last_query()["filters"]
         self.assertEqual(f.get("genre"), "Action")
         self.assertTrue(f.get("unplayed"))
@@ -959,8 +994,8 @@ class TestGridFilters(unittest.TestCase):
     def test_windowing_carries_the_filters(self):
         """A window fetched later losing them is how the person route
         shipped: the two result sets interleave into duplicates and skips."""
-        _n, h = self._grid()
-        h["grid-genre"]["select"](1, "Action")
+        _n, h = self._panel()
+        h["flt-genre"]["select"](1, "Action")
         before = len(self.b.source.queries)
         grid_scroll(self.b, self.b.route, 100000, 200000)
         self.assertGreater(len(self.b.source.queries), before,
@@ -1489,28 +1524,34 @@ class TestYearFilter(unittest.TestCase):
         self.b.nav_stack = [r]
         return r
 
+    def _panel(self):
+        """The year picker lives in the filter panel now."""
+        _n, h = build_scene(self.b)
+        h["grid-filter"]["click"]()
+        return build_scene(self.b)
+
     def test_the_year_picker_lists_the_available_years(self):
         self._route()
-        nodes, _h = build_scene(self.b)
-        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        nodes, _h = self._panel()
+        dd = next(n for n in nodes if n.get("id") == "flt-year")
         self.assertEqual(dd["items"][1:], ["2021", "1999"])
 
     def test_choosing_a_year_stores_it_as_an_int(self):
         route = self._route()
-        _n, handlers = build_scene(self.b)
-        handlers["grid-year"]["select"](1, "2021")
+        _n, handlers = self._panel()
+        handlers["flt-year"]["select"](1, "2021")
         self.assertEqual(route["_filters"]["year"], 2021)
 
     def test_all_years_clears_the_filter(self):
         route = self._route(_filters={"year": 2021})
-        _n, handlers = build_scene(self.b)
-        handlers["grid-year"]["select"](0, "All Years")
+        _n, handlers = self._panel()
+        handlers["flt-year"]["select"](0, "All Years")
         self.assertIsNone(route["_filters"].get("year"))
 
     def test_the_current_year_is_preselected(self):
         self._route(_filters={"year": 1999})
-        nodes, _h = build_scene(self.b)
-        dd = next(n for n in nodes if n.get("id") == "grid-year")
+        nodes, _h = self._panel()
+        dd = next(n for n in nodes if n.get("id") == "flt-year")
         self.assertEqual(dd["sel"], 2)
 
 class TestCollections(unittest.TestCase):
@@ -2386,3 +2427,833 @@ class TestPlayNext(unittest.TestCase):
         called = [name for name, _args in self.ctl.transport]
         self.assertIn("queue_items", called)
         self.assertNotIn("queue_next_items", called)
+
+
+class TestFilterGating(unittest.TestCase):
+    """A filter is offered only where it can match something.
+
+    Transcribed from jellyfin-web's ``FilterButton.tsx``, which gates by
+    ``viewType``: ``isFiltersFeaturesEnabled`` (Movies/Series/Episodes),
+    ``isFiltersLanguagesEnabled`` (those plus Mixed) and
+    ``getVisibleFiltersStatus`` (no play state for Albums/Artists/Songs).
+
+    Before this, every library type drew an identical panel -- a books
+    library offered "Has Theme Song" and a music library "Has Subtitles".
+    Neither is merely useless: a filter that cannot match returns an
+    empty grid, which reads as a broken library rather than as a filter
+    that never applied.
+    """
+
+    #: Everything a fully-stocked server answers with, so the "did the
+    #: server offer options" gate never hides a picker this is asking
+    #: about. Those two gates are independent and both have to be off
+    #: for a section to be missing for the reason under test.
+    VALS = {"genres": ["Action"], "years": [2020],
+            "official_ratings": ["PG-13"], "tags": ["Heist"],
+            "audio_languages": [("English (eng)", "eng")],
+            "subtitle_languages": [("English (eng)", "eng")]}
+
+    def _panel_keys(self, collection_type):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": collection_type, "title": "Lib"})
+        b.route["_filtervals"] = dict(self.VALS)
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        nodes, _h = build_scene(b)
+        return {n["id"][4:] for n in nodes
+                if str(n.get("id", "")).startswith("flt-")
+                and n["id"] not in ("flt-body", "flt-clear", "flt-done")}
+
+    FEATURES = ("has_subtitles", "has_trailer", "has_special_feature",
+                "has_theme_song", "has_theme_video")
+
+    def test_features_are_offered_on_movies_and_tv(self):
+        for ctype in ("movies", "tvshows"):
+            with self.subTest(ctype=ctype):
+                keys = self._panel_keys(ctype)
+                for f in self.FEATURES:
+                    self.assertIn(f, keys)
+
+    def test_and_nowhere_else(self):
+        """They ask about a media item. A book has no subtitles and an
+        album has no trailer, so these could only ever return nothing."""
+        for ctype in ("music", "books", "boxsets", "playlists", None):
+            with self.subTest(ctype=ctype):
+                keys = self._panel_keys(ctype)
+                for f in self.FEATURES:
+                    self.assertNotIn(f, keys)
+
+    def test_languages_follow_the_features_set_plus_mixed(self):
+        for ctype in ("movies", "tvshows", None):
+            with self.subTest(ctype=ctype, offered=True):
+                keys = self._panel_keys(ctype)
+                self.assertIn("audio_languages", keys)
+                self.assertIn("subtitle_languages", keys)
+        for ctype in ("music", "books", "boxsets"):
+            with self.subTest(ctype=ctype, offered=False):
+                keys = self._panel_keys(ctype)
+                self.assertNotIn("audio_languages", keys)
+                self.assertNotIn("subtitle_languages", keys)
+
+    def test_a_music_library_has_no_play_state(self):
+        """An album has no play position of its own -- web hides these
+        for Albums, Artists and Songs alike."""
+        keys = self._panel_keys("music")
+        for k in ("played", "unplayed", "resumable"):
+            self.assertNotIn(k, keys)
+
+    def test_but_it_still_has_favorites(self):
+        """Which web offers unconditionally, and is the reason Status is
+        gated per box rather than per section."""
+        self.assertIn("favorite", self._panel_keys("music"))
+
+    def test_a_collection_type_nobody_listed_keeps_its_play_state(self):
+        """The play-state gate is a DENY-list on purpose.
+
+        Written as an allow-list, a collection type added to Jellyfin (or
+        simply left out of the table) would quietly lose its Unplayed box
+        -- a filter silently missing is much harder to notice than one
+        that is present and matches nothing.
+        """
+        keys = self._panel_keys("somethingnewentirely")
+        for k in ("played", "unplayed", "resumable", "favorite"):
+            self.assertIn(k, keys)
+
+    def test_a_section_with_every_row_gated_out_draws_no_heading(self):
+        """Otherwise a music library shows a bold "Features" with
+        nothing under it, which reads as a failed load."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "music", "title": "Music"})
+        b.route["_filtervals"] = dict(self.VALS)
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        nodes, _h = build_scene(b)
+        texts = {n.get("text") for n in nodes if n.get("t") == "text"}
+        self.assertNotIn("Features", texts)
+        self.assertIn("Status", texts)      # ...and one that survives
+
+    def test_the_gate_understands_both_forms(self):
+        """``None`` everywhere, a set as an allow-list, an ("except",
+        set) pair as a deny-list."""
+        from jellyfin_mpv_shim.mpvtk_browser.dialogs import _applies
+        self.assertTrue(_applies(None, "anything"))
+        self.assertTrue(_applies(frozenset({"movies"}), "movies"))
+        self.assertFalse(_applies(frozenset({"movies"}), "music"))
+        self.assertFalse(_applies(("except", frozenset({"music"})), "music"))
+        self.assertTrue(_applies(("except", frozenset({"music"})), "movies"))
+        # None is a real collection type here -- an untyped library --
+        # and both forms have to answer for it rather than treat it as
+        # "no gate given".
+        self.assertTrue(_applies(frozenset({"movies", None}), None))
+        self.assertTrue(_applies(("except", frozenset({"music"})), None))
+
+
+class _ShrinkingSource(FakeSource):
+    """A library that answers differently once a filter is on, and with
+    the SAME number of items -- 30 either way, but different ones.
+
+    Same-length is the case that matters: `spread` clamps a list to
+    `total`, so a filter that returns fewer items truncates the old tail
+    by accident. Only a result set the same size (or larger) leaves slots
+    past page 0 holding items of the previous query.
+    """
+
+    PAGE = 20
+    TOTAL = 30
+
+    def get_library_items(self, server_uuid, parent_id, start_index=0,
+                          sort_by="SortName", sort_order="Ascending",
+                          limit=100, filters=None, image_type=None,
+                          collection_type=None):
+        self.queries.append({"parent_id": parent_id,
+                             "start_index": start_index,
+                             "sort_by": sort_by, "sort_order": sort_order,
+                             "filters": dict(filters or {}),
+                             "image_type": image_type,
+                             "collection_type": collection_type})
+        tag = "Filtered" if (filters or {}).get("unplayed") else "All"
+        items = [{"Id": "%s%d" % (tag, i), "Name": "%s %d" % (tag, i),
+                  "Type": "Movie"} for i in range(self.TOTAL)]
+        return items[start_index:start_index + self.PAGE], self.TOTAL
+
+
+class TestFilterRevalidation(unittest.TestCase):
+    """Changing a filter blanks the TILES, and nothing else.
+
+    ``render`` used to answer a missing ``_items`` with ``chrome.busy()``
+    for the **whole page** -- title, filter bar and A-Z rail included --
+    and ``_reload`` pops it. So every filter tick, sort change and letter
+    press replaced the library with a spinner. Behind the filter panel,
+    which covers part of the window, all that was visible of that was the
+    page going empty.
+
+    **[iw]**: "what should happen is the tiles blank out but the shell
+    stays". Which is also the more honest split -- the tiles really are
+    unknown for the length of the query, so drawing the previous ones
+    would be a small lie, while the title, the controls and their state
+    are not unknown and blanking them was the whole of the problem.
+    """
+
+    def _grid(self, source=None, pool=None):
+        b = MpvtkBrowser(app=None, source=source or FakeSource(),
+                         controller=FakeController())
+        b._pool = pool or _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b
+
+    @staticmethod
+    def _toggle_unplayed(b):
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        _n2, panel = build_scene(b)
+        panel["flt-unplayed"]["click"]()
+
+    @staticmethod
+    def _frame(b):
+        nodes, _h = build_scene(b, size=(1280, 720))
+        found = {n.get("id") for n in nodes}
+        return {
+            "ids": found,
+            "tiles": sum(1 for i in found
+                         if str(i).startswith("grid-0-g")),
+            "busy": any(n.get("t") == "busy" for n in nodes),
+            # The HEADER's count. These frames are taken with the filter
+            # panel open, and the panel now draws the same count itself
+            # (`filters-count`) -- which is a different claim about a
+            # different node, asserted by TestFilterPanelMatchCount.
+            "count": [n.get("text") for n in nodes
+                      if str(n.get("text", "")).endswith("items")
+                      and n.get("id") != "filters-count"],
+        }
+
+    def test_the_shell_stays_while_the_tiles_blank(self):
+        b = self._grid()
+        loaded = self._frame(b)
+        self.assertTrue(loaded["tiles"])
+
+        b._pool = _DeferredPool()
+        self._toggle_unplayed(b)
+        mid = self._frame(b)
+        for nid in ("grid-sort", "grid-filter", "grid-l-A", "grid-viewcfg"):
+            self.assertIn(nid, mid["ids"], "the shell blanked with the tiles")
+        self.assertEqual(mid["tiles"], 0, "the tiles did not blank")
+        self.assertTrue(mid["busy"], "nothing said it was loading")
+
+    def test_the_item_count_does_not_flash_to_zero(self):
+        """``_total`` is deliberately kept across a reload.
+
+        It is shell rather than content, and dropping it puts "0 items"
+        over the spinner -- a worse thing to say than a count one second
+        out of date, and one that reads as "your filter matched nothing"
+        before the query has even answered.
+        """
+        b = self._grid()
+        before = self._frame(b)["count"]
+        self.assertTrue(before)
+        b._pool = _DeferredPool()
+        self._toggle_unplayed(b)
+        self.assertEqual(self._frame(b)["count"], before)
+
+    def test_the_new_results_replace_the_old_ones_tail_and_all(self):
+        """The reason the tiles are dropped rather than kept.
+
+        ``_install`` SPREADS its page over whatever is already there --
+        right for a window landing mid-load, wrong for a new query. Only
+        page 0 comes back on the first install, so a grid that kept its
+        items across a reload would go on showing the previous filter in
+        every slot past the first page, and no later load would heal it:
+        every slot is full, so nothing is ever asked for again.
+
+        Keeping the shell and dropping the items is what makes that
+        impossible rather than merely guarded against.
+        """
+        src = _ShrinkingSource()
+        b = self._grid(source=src)
+        # As if the user had scrolled the whole library in, which is the
+        # state a stale tail can hide in.
+        b.route["_items"] = [{"Id": "All%d" % i, "Name": "All %d" % i,
+                              "Type": "Movie"} for i in range(src.TOTAL)]
+
+        self._toggle_unplayed(b)
+
+        items = b.route.get("_items") or []
+        self.assertEqual(len(items), src.TOTAL)
+        left = [i["Name"] for i in items[:src.PAGE]]
+        self.assertTrue(all(n.startswith("Filtered") for n in left), left)
+        tail = items[src.PAGE:]
+        self.assertTrue(all(i is None for i in tail),
+                        "items from the previous filter survived: %r"
+                        % [(i or {}).get("Name") for i in tail])
+
+    def test_nothing_is_fetched_against_the_mixture_in_between(self):
+        """A page-in issued while revalidating would be fetched with the
+        NEW query -- ``_window`` binds it on the loop thread -- and
+        spliced into the OLD list, leaving the grid holding a mixture of
+        two filters that no later load heals.
+
+        Nothing fetches because ``render`` returns the loading shell
+        before it ever reaches the window: no items, no geometry, no
+        visible range to ask about. That is the whole guard, and it is
+        why there is no flag for a reload being in flight.
+
+        The scroll matters and the first version of this test had none:
+        with every slot loaded there is nothing for ``window`` to fetch,
+        so it passed however the code behaved. It needs the visible range
+        to sit over HOLES, which means scrolling past the loaded head.
+        """
+        src = _ShrinkingSource()
+        src.TOTAL = 400          # ...so the tail is holes, not items
+        b = self._grid(source=src)
+        route = b.route
+        # Deep enough that what is on screen has never been fetched.
+        grid_scroll(b, route, 4000, 20000)
+        b._pool = _DeferredPool()
+        # Prove the window WOULD fetch here, or the assertion below is
+        # about nothing: same scroll, no revalidation in progress.
+        grid_scroll(b, route, 4200, 20000)
+        self.assertTrue(b._pool.queued,
+                        "no page-in even without a reload in flight -- "
+                        "this test cannot see what it is asserting")
+
+        b._pool = _DeferredPool()
+        # A sort change, which reloads with NO modal over the grid: the
+        # panel would block the scroll that drives this.
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-sort"]["select"](2, "Release Date")
+        b._pool = _DeferredPool()
+        grid_scroll(b, route, 4400, 20000)
+        self.assertFalse(
+            b._pool.queued,
+            "a page-in was issued while the query was in flight")
+
+    def test_repeated_filter_changes_do_not_walk(self):
+        """Over several rounds, not one, and with the tail refilled
+        between them -- which is what a user scrolling does.
+
+        Both halves are needed and neither is decoration. The recurring
+        bug shape in this codebase is state feeding back into the input
+        that produced it, and this change deliberately feeds the old list
+        forward into the frame that draws the new one; one toggle proves
+        nothing about the second. And the FIRST toggle cannot see an
+        aliasing bug at all: ``_bound_query`` answers ``route["_filters"]
+        or {}``, so before any filter is set it hands back a fresh dict
+        and a stored key cannot alias anything. From the second toggle on
+        it is the route's own dict, mutated in place by every filter
+        handler -- so a key that stored the reference changes along with
+        the route and compares equal forever. Written without the refill,
+        this test passed with exactly that bug in place: the stale tail it
+        causes has nowhere to show when the tail is already holes.
+        """
+        src = _ShrinkingSource()
+        b = self._grid(source=src)
+        for i in range(4):
+            with self.subTest(round=i):
+                tag = "Filtered" if i % 2 == 0 else "All"
+                stale = "All" if i % 2 == 0 else "Filtered"
+                # As if the user had scrolled the rest of the library in
+                # before touching the filter again.
+                items = list(b.route.get("_items") or [])
+                b.route["_items"] = [
+                    it or {"Id": "%s%d" % (stale, n),
+                           "Name": "%s %d" % (stale, n), "Type": "Movie"}
+                    for n, it in enumerate(items)] or None
+
+                self._toggle_unplayed(b)
+
+                items = b.route.get("_items") or []
+                self.assertEqual(len(items), src.TOTAL,
+                                 "the list changed length on round %d" % i)
+                real = [x for x in items if x]
+                self.assertEqual(len({x["Id"] for x in real}), len(real),
+                                 "duplicate items after round %d" % i)
+                wrong = [x["Name"] for x in real
+                         if not x["Name"].startswith(tag)]
+                self.assertFalse(wrong,
+                                 "round %d left items from the other "
+                                 "filter: %r" % (i, wrong))
+
+
+class _CountedSource(FakeSource):
+    """A library whose match count really changes with the filter: 30
+    items, 7 of them unplayed.
+
+    ``_ShrinkingSource`` above deliberately answers the same TOTAL either
+    way -- it is about the item list, not the count -- so a test written
+    against it could not tell a live count from a frozen one.
+    """
+
+    PAGE = 20
+    TOTAL = 30
+    FILTERED = 7
+
+    #: Raise on the next query instead of answering it.
+    fail = False
+
+    def get_library_items(self, server_uuid, parent_id, start_index=0,
+                          sort_by="SortName", sort_order="Ascending",
+                          limit=100, filters=None, image_type=None,
+                          collection_type=None):
+        if self.fail:
+            raise RuntimeError("server is down")
+        on = bool((filters or {}).get("unplayed"))
+        total = self.FILTERED if on else self.TOTAL
+        tag = "Filtered" if on else "All"
+        items = [{"Id": "%s%d" % (tag, i), "Name": "%s %d" % (tag, i),
+                  "Type": "Movie"} for i in range(total)]
+        return items[start_index:start_index + self.PAGE], total
+
+
+class TestFilterPanelMatchCount(unittest.TestCase):
+    """The panel carries the match count, because it covers the one on
+    the page.
+
+    **[iw]**: "the filters modal obscures the match count on the nav, so
+    we should probably show it in the modal". The count is what every
+    tick in here is aimed at -- and the panel is left-aligned precisely
+    so the page behind stays readable, which is an argument that reading
+    the *result* while filtering is the point.
+    """
+
+    def _grid(self, source=None, pool=None):
+        b = MpvtkBrowser(app=None, source=source or _CountedSource(),
+                         controller=FakeController())
+        b._pool = pool or _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        return b
+
+    @staticmethod
+    def _open(b):
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+
+    @staticmethod
+    def _panel(b):
+        """(count text or None, is the spinner up, handlers)."""
+        nodes, handlers = build_scene(b, size=(1280, 720))
+        count = [n.get("text") for n in nodes
+                 if n.get("id") == "filters-count"]
+        return (count[0] if count else None,
+                any(n.get("id") == "filters-pending" for n in nodes),
+                handlers)
+
+    def test_the_panel_says_how_many_match(self):
+        b = self._grid()
+        nodes, _h = build_scene(b, size=(1280, 720))
+        header = [n.get("text") for n in nodes
+                  if str(n.get("text", "")).endswith("items")]
+        self.assertTrue(header, "the page does not draw a count to hide")
+
+        self._open(b)
+        count, pending, _h = self._panel(b)
+        self.assertEqual(count, header[0],
+                         "the panel says something other than what it "
+                         "is covering")
+        self.assertFalse(pending, "a spinner over a settled query")
+
+    def test_the_count_follows_the_filter_over_several_ticks(self):
+        """Several, not one. The count is written by the query the tick
+        starts, so a version that showed the *previous* answer -- a value
+        captured when the panel opened, or a count read before the
+        install -- is right on the frame the panel opens and one behind
+        for the rest of the session. One toggle cannot tell those apart.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        expected = ["%d items" % src.FILTERED, "%d items" % src.TOTAL]
+        for i in range(4):
+            with self.subTest(round=i):
+                _c, _p, handlers = self._panel(b)
+                handlers["flt-unplayed"]["click"]()
+                count, pending, _h = self._panel(b)
+                self.assertEqual(count, expected[i % 2])
+                self.assertFalse(pending, "the query has already landed")
+
+    def test_it_does_not_flash_to_zero_while_the_query_is_out(self):
+        """The same rule the header follows -- ``_reload`` keeps
+        ``_total`` on purpose, because "0 items" before the server has
+        answered reads as "your filter matched nothing".
+
+        Which leaves the number one query out of date, so the panel says
+        so: the page says it with the spinner over its blanked tiles, and
+        this panel is what is covering that.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        before, _p, handlers = self._panel(b)
+        self.assertEqual(before, "%d items" % src.TOTAL)
+
+        b._pool = _DeferredPool()
+        handlers["flt-unplayed"]["click"]()
+        mid, pending, _h = self._panel(b)
+        self.assertEqual(mid, before, "the count flashed while re-querying")
+        self.assertTrue(pending, "nothing said the count was out of date")
+
+        b._pool.drain()
+        after, pending, _h = self._panel(b)
+        self.assertEqual(after, "%d items" % src.FILTERED)
+        self.assertFalse(pending, "the spinner outlived the query")
+
+    def test_a_failed_query_does_not_leave_it_spinning(self):
+        """A failure leaves ``_items`` None for good -- the page swaps
+        itself for the retry screen and nothing refills it -- so testing
+        that alone spins forever over a query that is never coming back.
+        """
+        src = _CountedSource()
+        b = self._grid(source=src)
+        self._open(b)
+        _c, _p, handlers = self._panel(b)
+        src.fail = True
+        handlers["flt-unplayed"]["click"]()
+        self.assertTrue(b.route.get("_error"),
+                        "the query did not fail -- this test cannot see "
+                        "what it is asserting")
+
+        count, pending, _h = self._panel(b)
+        self.assertFalse(pending, "still spinning over a dead query")
+        self.assertEqual(count, "%d items" % src.TOTAL,
+                         "the last known count went with the failure")
+
+
+class TestFilterPanelSide(unittest.TestCase):
+    """The filter panel is pinned left, not centred.
+
+    Every other dialog in the app IS the task -- a confirm, a download, a
+    picker -- so there is nothing behind it worth seeing and centred is
+    right. This one exists to change what is behind it, and centred it
+    covered the two things you want to watch while filtering: the results,
+    and the spinner saying they are being re-queried. **[iw]**: "maybe it
+    might make sense to left align this modal? That would solve a lot of
+    the issues with the spinner being invisible."
+    """
+
+    def _modal(self, width=1280):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        _n, handlers = build_scene(b, size=(width, 720))
+        handlers["grid-filter"]["click"]()
+        nodes, _h = build_scene(b, size=(width, 720))
+        return b, nodes, [n for n in nodes if n.get("kind") == "modal"][0]
+
+    def test_it_sits_at_the_content_margin(self):
+        """The same margin the page content uses, so it lines up with the
+        title rather than floating at an arbitrary offset."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        _b, _n, modal = self._modal()
+        self.assertEqual(modal["x"], chrome.CONTENT_PAD)
+
+    def test_and_stays_left_however_wide_the_window_is(self):
+        """A centred dialog walks right as the window grows -- which is
+        exactly when there is most library beside it to look at."""
+        for width in (1280, 1920, 2560):
+            with self.subTest(width=width):
+                _b, _n, modal = self._modal(width)
+                self.assertEqual(modal["x"], 16)
+
+    def test_a_window_narrower_than_the_panel_does_not_push_it_off(self):
+        """Clamped, not just placed.
+
+        A Dialog is never width-clamped to the window (``_clamp_wh``
+        applies the element's own min/max and nothing else), so a 520px
+        panel on a 480px window overflows whatever it is aligned to.
+        Centring at least splits that overflow in two; left-aligning it
+        at a 16px margin puts all of it on one side and pushes the Done
+        and Clear All buttons out. So the margin gives way rather than the
+        panel: it sits flush at 0 and overflows by as little as it can.
+
+        Asserted as "overflows by no more than the panel is too wide",
+        not as ``x >= 0`` -- which is true of the unclamped placement too
+        and is how the first version of this test passed with the clamp
+        removed.
+        """
+        _b, _n, modal = self._modal(480)
+        self.assertLessEqual(modal["x"] + modal["w"], max(480, modal["w"]),
+                             "the margin pushed the panel further off "
+                             "the right edge than its width required")
+        self.assertEqual(modal["x"], 0)
+
+    def test_other_dialogs_are_still_centred(self):
+        """The side is per-dialog, not a new default: a confirm has
+        nothing behind it worth uncovering."""
+        from jellyfin_mpv_shim.mpvtk.widgets import Dialog, Text
+        self.assertEqual(Dialog("d", Text("x")).side, "center")
+
+    def test_the_spinner_clears_the_panel_on_an_ordinary_window(self):
+        """Which is the point of the whole change -- the loading state is
+        centred in the content area, so on a narrow enough window it
+        lands under the panel however the panel is aligned. This pins
+        that the common sizes are not that."""
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        for width in (1280, 1920):
+            with self.subTest(width=width):
+                _n, handlers = build_scene(b, size=(width, 720))
+                handlers["grid-filter"]["click"]()
+                _n2, panel = build_scene(b, size=(width, 720))
+                b._pool = _DeferredPool()
+                panel["flt-unplayed"]["click"]()
+                nodes, _h = build_scene(b, size=(width, 720))
+                modal = [n for n in nodes if n.get("kind") == "modal"][0]
+                spinner = [n for n in nodes if n.get("t") == "busy"]
+                self.assertTrue(spinner, "no spinner while loading")
+                self.assertGreaterEqual(
+                    spinner[0]["x"], modal["x"] + modal["w"],
+                    "the spinner is hidden behind the filter panel")
+                b._pool = _SyncPool()
+                b._close_dialog()
+
+
+class TestVideoTypeFilters(unittest.TestCase):
+    """The Video Types section: seven checkboxes over three different
+    kinds of query parameter.
+
+    Only DVD/Blu-ray/ISO is a list (`VideoTypes`). 4K and 3D are their own
+    booleans, and SD/HD are ONE tri-state `IsHd` -- there is no `IsSd`.
+    Every spelling here was measured against a real 12.0 server rather
+    than taken from the SDK, because an unparseable `VideoTypes` value is
+    silently ignored: `VideoTypes=Nonsense` answers with the whole
+    library, so a typo would not break the filter, it would turn it off.
+    """
+
+    def _panel(self, ctype="movies"):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": ctype, "title": "Lib"})
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        return b, build_scene(b)
+
+    BOXES = ("sd", "hd", "is_4k", "is_3d", "vt_dvd", "vt_bluray", "vt_iso")
+
+    def test_the_boxes_are_offered_on_a_movies_library(self):
+        _b, (nodes, _h) = self._panel()
+        found = ids(nodes)
+        for key in self.BOXES:
+            self.assertIn("flt-" + key, found)
+
+    def test_and_not_where_there_is_no_video(self):
+        """Same gate as Features -- web's isFiltersFeaturesEnabled covers
+        both sections."""
+        for ctype in ("music", "books"):
+            with self.subTest(ctype=ctype):
+                _b, (nodes, _h) = self._panel(ctype)
+                found = ids(nodes)
+                for key in self.BOXES:
+                    self.assertNotIn("flt-" + key, found)
+
+    def test_they_come_last_in_the_panel(self):
+        """Seven checkboxes is the longest section and the least often
+        wanted; in web's position it pushed every picker below the fold."""
+        _b, (nodes, _h) = self._panel()
+        pos = {n["id"]: n["y"] for n in nodes if n.get("id")}
+        last_other = max(pos[i] for i in pos
+                         if i.startswith("flt-")
+                         and i[4:] not in self.BOXES
+                         and i not in ("flt-body", "flt-clear", "flt-done"))
+        first_vt = min(pos["flt-" + k] for k in self.BOXES if "flt-" + k in pos)
+        self.assertGreater(first_vt, last_other)
+
+    def test_each_kind_of_box_reaches_the_query_as_its_own_shape(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        kw = LibrarySource._filter_kwargs(
+            {"hd": True, "is_4k": True, "is_3d": True,
+             "vt_dvd": True, "vt_bluray": True, "vt_iso": True})
+        self.assertEqual(kw["params"]["IsHd"], "true")
+        self.assertEqual(kw["params"]["Is4K"], "true")
+        self.assertEqual(kw["params"]["Is3D"], "true")
+        # One parameter, comma-joined, in the table's order.
+        self.assertEqual(kw["params"]["VideoTypes"], "Dvd,BluRay,Iso")
+
+    def test_sd_is_the_same_parameter_saying_false(self):
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        kw = LibrarySource._filter_kwargs({"sd": True})
+        self.assertEqual(kw["params"]["IsHd"], "false")
+        self.assertNotIn("IsSd", kw["params"])
+
+    def test_nothing_ticked_sends_nothing(self):
+        """An off checkbox must be absent, not `false` -- `IsHd=false` is
+        the SD filter, so sending it for an unticked HD box would filter
+        the library to standard definition."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        self.assertEqual(LibrarySource._filter_kwargs(
+            {"hd": False, "sd": False, "is_4k": False, "vt_dvd": False}), {})
+
+
+class TestMutuallyExclusiveFilters(unittest.TestCase):
+    """Two pairs of boxes cannot both be on, and not merely for tidiness.
+
+    `Filters=IsUnplayed,IsPlayed` is answered with **HTTP 400** (measured,
+    12.0), so ticking both did not show an empty grid -- it failed the
+    load and put "Failed to load. Check the connection." over a library
+    that was working. And SD/HD share one tri-state `IsHd`, so the pair
+    cannot be expressed at all.
+
+    jellyfin-web has this for Played/Unplayed (`mutuallyExclusiveFilters`)
+    and NOT for SD/HD, where its handler assigns `isHd` twice and the
+    second silently wins -- two ticks, one filter.
+    """
+
+    def _panel(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        _n, handlers = build_scene(b, size=(1280, 720))
+        handlers["grid-filter"]["click"]()
+        return b
+
+    def _tick(self, b, key):
+        _n, panel = build_scene(b)
+        panel["flt-" + key]["click"]()
+
+    def test_ticking_one_clears_its_opposite(self):
+        for first, second in (("played", "unplayed"), ("unplayed", "played"),
+                              ("hd", "sd"), ("sd", "hd")):
+            with self.subTest(first=first, second=second):
+                b = self._panel()
+                self._tick(b, first)
+                self._tick(b, second)
+                filters = b.route.get("_filters") or {}
+                self.assertTrue(filters.get(second))
+                self.assertFalse(filters.get(first),
+                                 "%s survived %s" % (first, second))
+
+    def test_so_the_query_can_never_be_the_one_the_server_rejects(self):
+        """The property, stated where it bites: whatever sequence of
+        clicks, `filters` never carries both members of a pair."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        b = self._panel()
+        for key in ("played", "unplayed", "played", "hd", "sd", "hd",
+                    "unplayed", "sd"):
+            with self.subTest(clicked=key):
+                self._tick(b, key)
+                sent = LibrarySource._filter_kwargs(
+                    b.route.get("_filters") or {})
+                status = set((sent.get("filters") or "").split(","))
+                self.assertFalse(
+                    {"IsPlayed", "IsUnplayed"} <= status,
+                    "sent the pair the server answers with HTTP 400")
+                # ...and the other pair, which shares one parameter and so
+                # cannot show up as a conflict in the query at all -- only
+                # as the wrong one silently winning.
+                filters = b.route.get("_filters") or {}
+                self.assertFalse(filters.get("hd") and filters.get("sd"))
+
+
+class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
+    """A downloaded library gets no Filter button.
+
+    `OfflineLibrarySource._apply_filters` honours four of the twenty-six
+    keys the panel can produce, so the panel drew fifteen checkboxes and
+    four pickers that silently did nothing -- and every one counted on the
+    `Filter (N)` badge, so the button reported filtering that was not
+    happening and the grid did not change.
+
+    **[iw]**: "filter panel should be disabled offline, people generally
+    will know what they want to watch offline or not have that much
+    downloaded."
+
+    Asked of the SOURCE (`supported_filters`) rather than of an "are we
+    offline" flag: `PageContext` says a page "must not care which" source
+    it has, and the honest question is what the source can apply.
+    """
+
+    def _bar(self, source):
+        b = MpvtkBrowser(app=None, source=source, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        nodes, _h = build_scene(b, size=(1280, 720))
+        return ids(nodes)
+
+    def test_the_online_source_still_offers_it(self):
+        self.assertIn("grid-filter", self._bar(FakeSource()))
+
+    def test_a_source_that_applies_nothing_does_not(self):
+        src = FakeSource()
+        src.supported_filters = frozenset()
+        found = self._bar(src)
+        self.assertNotIn("grid-filter", found)
+        # ...and the rest of the bar is untouched: sort, the A-Z rail and
+        # the doors all work offline.
+        for nid in ("grid-sort", "grid-l-A", "grid-shuffle"):
+            self.assertIn(nid, found)
+
+    def test_the_real_offline_source_applies_nothing(self):
+        """The capability is on the class, so this is the actual claim
+        rather than a stand-in agreeing with the test."""
+        from jellyfin_mpv_shim.mpvtk_browser.repository import (
+            LibrarySource, OfflineLibrarySource)
+        self.assertEqual(OfflineLibrarySource.supported_filters, frozenset())
+        self.assertTrue(LibrarySource.supported_filters)
+
+    def test_a_source_that_says_nothing_keeps_its_filters(self):
+        """A third source, or a stand-in written before the capability,
+        must not silently lose the panel."""
+        src = FakeSource()
+        if hasattr(src, "supported_filters"):
+            del src.supported_filters
+        self.assertIn("grid-filter", self._bar(src))
+
+    def test_the_badge_counts_only_what_the_source_applies(self):
+        """A key the source ignores is not a filter that is on."""
+        src = FakeSource()
+        src.supported_filters = frozenset({"genre"})
+        b = MpvtkBrowser(app=None, source=src, controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        page = b._page_for(b.route)
+        b.route["_filters"] = {"genre": "Action", "has_subtitles": True,
+                               "vt_dvd": True}
+        self.assertEqual(page._active_filters(), 1)
+
+    def test_every_panel_key_is_one_the_online_source_applies(self):
+        """The derivation the offline gap came from not having.
+
+        A category added to FILTER_SECTIONS that `_filter_kwargs` does not
+        translate is a control that does nothing -- the same defect, on
+        the other source. This is the check that would have caught it on
+        the commit that introduced it.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+        from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource
+        keys = set()
+        for _label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
+            if kind == "checks":
+                keys |= {k for k, _t, _l in spec}
+            else:
+                keys.add(spec[0])
+        unapplied = sorted(keys - set(LibrarySource.supported_filters))
+        self.assertEqual(
+            unapplied, [],
+            "the panel offers filters the source cannot apply: %r"
+            % unapplied)

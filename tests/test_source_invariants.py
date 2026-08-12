@@ -94,7 +94,7 @@ class TestComponentsAreLeaves(unittest.TestCase):
     the browser a 360-method object, and the only thing keeping them out is
     a rule someone has to remember.
 
-    So the rule is a test. See docs/ARCHITECTURE_TARGET.md §1.4 for the
+    So the rule is a test. See docs/archive/ARCHITECTURE_TARGET.md §1.4 for the
     distinction being enforced: a component may need ``art`` and callbacks,
     but never ``nav``, ``source`` or ``route``.
     """
@@ -123,7 +123,7 @@ class TestComponentsAreLeaves(unittest.TestCase):
         self.assertTrue(
             self._component_sources(),
             "mpvtk_browser/components/ has no modules yet — this is step 1 "
-            "of docs/ARCHITECTURE_TARGET.md §3 and the invariant it "
+            "of docs/archive/ARCHITECTURE_TARGET.md §3 and the invariant it "
             "establishes.")
 
     def test_components_do_not_import_the_shell(self):
@@ -324,7 +324,7 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
     """The browser talks to the player through ``PlayerGateway``, not by
     importing ``playerManager`` wherever it is convenient.
 
-    Step 5 of ``docs/ARCHITECTURE_TARGET.md`` §3. Before it, ``ui.py`` held
+    Step 5 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3. Before it, ``ui.py`` held
     61 of the browser's 68 cross-package imports — which is what made it the
     boundary in practice — but two other modules had quietly grown their own
     direct line to a singleton. Each of those is a place the eventual page
@@ -448,7 +448,7 @@ class TestThePlayerIsReachedThroughOneGateway(unittest.TestCase):
         self.assertTrue(
             os.path.isdir(pkg),
             "mpvtk_browser/gateway/ does not exist — this is step 5 of "
-            "docs/ARCHITECTURE_TARGET.md §3.")
+            "docs/archive/ARCHITECTURE_TARGET.md §3.")
         self.assertTrue(os.path.exists(os.path.join(pkg, "__init__.py")))
 
 

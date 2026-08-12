@@ -25,6 +25,7 @@ from ..mpvtk.widgets import (
     Box,
     Button,
     Column,
+    Dialog,
     Dropdown,
     Element,
     Gradient,
@@ -34,8 +35,10 @@ from ..mpvtk.widgets import (
     Spacer,
     Stack,
     Text,
+    VScroll,
 )
 from . import theme, window_chrome
+from .components import media_info
 from .window_chrome import WINDOW_CONTROL_W
 
 log = logging.getLogger("mpvtk_browser.hud")
@@ -137,14 +140,21 @@ def _hud_action(b, verb, arg=None):
     b._ctl(lambda c: c.hud_action(verb, arg))
 
 
-def _option_picker(b, node_id, icon, tip, options, verb):
+#: One glyph size for every icon control on the playback HUD, before the
+#: responsive shrink. The transport buttons were already 30; the track
+#: pickers derived theirs from the type size and came out at 24.
+HUD_ICON = 30
+
+
+def _option_picker(b, node_id, icon, tip, options, verb,
+                   icon_size=None):
     """Icon-trigger dropdown over osc_bridge option dicts
     ([{id, label, selected}]); selecting routes through hud_action so
     the change lands exactly like the lua OSC's menus."""
     sel = next((i for i, o in enumerate(options) if o.get("selected")), 0)
     return Dropdown(
         node_id, [o.get("label") or "" for o in options], selected=sel,
-        force=True, trigger_icon=icon, tip=tip,
+        force=True, trigger_icon=icon, tip=tip, icon_size=icon_size,
         on_select=lambda i, v, opts=options: _hud_action(
             b, verb, opts[i]["id"]))
 
@@ -158,7 +168,7 @@ def _secondary_available(st, subs):
     return len(sub2) > 1 and primary_on
 
 
-def _subtitle_picker(b, st, subs):
+def _subtitle_picker(b, st, subs, icon_size=None):
     """The primary subtitle dropdown, with a trailing 'Secondary…' entry that
     opens the secondary-track submenu (see _menu_rows' 'secondary_sub'). Custom
     rather than _option_picker because that last row opens a menu instead of
@@ -183,10 +193,10 @@ def _subtitle_picker(b, st, subs):
 
     return Dropdown("hud-sub", labels, selected=sel, force=True,
                     trigger_icon="closed_caption", tip=_("Subtitle Track"),
-                    on_select=on_select)
+                    icon_size=icon_size, on_select=on_select)
 
 
-def _chapters(b):
+def _chapters(b, icon_size=None):
     if b.controller is None or not hasattr(b.controller, "chapters"):
         return []
     try:
@@ -209,7 +219,7 @@ def _chapter_jump(b, direction):
     b._ctl(lambda c: c.chapter_seek(direction))
 
 
-def _pickers(b, menu_state, pos, chapters, tiers):
+def _pickers(b, menu_state, pos, chapters, tiers, icon_size=None):
     """Right-aligned controls: chapters, audio/subtitle tracks, quality
     — each only when there is a real choice to make (and the viewport
     has room for it)."""
@@ -227,6 +237,7 @@ def _pickers(b, menu_state, pos, chapters, tiers):
         out.append(Dropdown(
             "hud-chapters", labels, selected=cur, force=True,
             trigger_icon="bookmark", tip=_("Chapters"),
+            icon_size=icon_size,
             on_select=lambda i, v, chs=chapters: b._ctl(
                 lambda c: c.seek(chs[i]["time"]))))
     st = menu_state if menu_state and menu_state.get("has_media") else None
@@ -235,15 +246,16 @@ def _pickers(b, menu_state, pos, chapters, tiers):
     audio = st.get("audio") or []
     if len(audio) > 1:
         out.append(_option_picker(b, "hud-audio", "audiotrack",
-                                  _("Audio Track"), audio, "set-audio"))
+                                  _("Audio Track"), audio, "set-audio",
+                                  icon_size=icon_size))
     subs = st.get("subtitles") or []
     if len(subs) > 1:  # more than just "None"
-        out.append(_subtitle_picker(b, st, subs))
+        out.append(_subtitle_picker(b, st, subs, icon_size))
     quality = st.get("quality") or {}
     if quality.get("options") and tiers["quality"]:
         out.append(_option_picker(b, "hud-quality", "hd",
                                   _("Video Quality"), quality["options"],
-                                  "set-quality"))
+                                  "set-quality", icon_size=icon_size))
     return out
 
 
@@ -272,6 +284,12 @@ def _open_hud_menu(b, kind, anchor=None):
         # group discovery hits the server; request it once on open (the
         # result lands in a later build via osc_bridge's cache)
         _hud_action(b, "syncplay-refresh")
+    if kind == "profiles":
+        # Same shape, same reason: which library an item is in takes a
+        # request, and the state blob is built on the render path. Asked
+        # for once on open; the "This Library" row appears in a later
+        # build, and is cached for the rest of the series.
+        _hud_action(b, "profiles-scopes")
     if anchor is not None:
         b.hud.menu_anchor = anchor
     b.hud.menu = kind
@@ -369,8 +387,13 @@ def _menu_rows(b, st, w=None):
         rows.append((_("Night Mode (Auto Volume Adj)"),
                      "check" if settings.audio_night_mode else None,
                      leaf(lambda: b._ctl(lambda c: c.toggle_night_mode()))))
-        rows.append((_("Playback Data"), None, leaf(
-            lambda: b._ctl(lambda c: c.toggle_stats()))))
+        # Ours, not mpv's. mpv's stats.lua overlay is still one keypress
+        # away on `i` (player._stats_key) and is a different question --
+        # what the decoder is doing, not what the server is sending -- so
+        # the two are not rivals for this row. This is the one a viewer
+        # wants when the fan spins up.
+        rows.append((_("Playback Info"), None, leaf(
+            lambda: _open_info(b))))
         if st.get("allow_screenshot"):
             rows.append((_("Screenshot"), None, leaf(
                 lambda: _hud_action(b, "screenshot"))))
@@ -379,7 +402,13 @@ def _menu_rows(b, st, w=None):
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
-    if b.hud.menu_anchor not in ("hud-syncplay", "hud-sub"):
+    if kind.startswith("profiles:"):
+        # Back goes to the scope step, not to the gear root: this list was
+        # reached through it, and returning past it would strand the user
+        # one level further out than they came from.
+        rows.append((_("Back"), "arrow_back",
+                     lambda: _open_hud_menu(b, "profiles")))
+    elif b.hud.menu_anchor not in ("hud-syncplay", "hud-sub"):
         # opened from the gear: submenus can step back to its root. The top
         # bar's SyncPlay button and the subtitle dropdown's Secondary… entry
         # open their sheets standalone (like the lua OSC's drop-downs), so no
@@ -403,7 +432,29 @@ def _menu_rows(b, st, w=None):
                          leaf(lambda v=value: b._ctl(
                              lambda c: c.set_aspect(v)))))
     elif kind == "profiles":
-        option_rows(st.get("profiles"), "set-profile")
+        # The scope step, which is also the report: each row carries the
+        # profile that scope holds and the winning one is marked, so a film
+        # being sharpened differently from the rest of its library has a
+        # visible cause. Scopes that do not apply are absent -- a film has
+        # no series row.
+        scopes = (st.get("profiles") or {}).get("scopes") or []
+        if not scopes:
+            # No scope information (an older state blob, or the library is
+            # still being resolved): the profile list itself, which is what
+            # this menu was before scopes and still does the useful thing.
+            option_rows(st.get("profiles"), "set-profile")
+        for scope in scopes:
+            rows.append((
+                with_current(scope.get("label") or "", scope.get("value")),
+                "check" if scope.get("in_effect") else None,
+                lambda sid=scope.get("id"): _open_hud_menu(
+                    b, "profiles:" + str(sid))))
+    elif kind.startswith("profiles:"):
+        wanted = kind.split(":", 1)[1]
+        for scope in (st.get("profiles") or {}).get("scopes") or []:
+            if scope.get("id") == wanted:
+                option_rows(scope, "set-profile")
+                break
     elif kind in ("sub_size", "sub_position", "sub_color"):
         option_rows(sub_style.get(kind[4:]),
                     "set-" + kind.replace("_", "-"))
@@ -451,6 +502,174 @@ def _settings_menu(b, menu_state, size):
         icons=[r[1] for r in rows],
         on_select=lambda i, v, rr=rows: rr[i][2](),
         on_dismiss=lambda: _close_hud_menu(b))
+
+
+#: The info panel's width, and the height its scroll gives up at. Wide
+#: enough for "The video resolution is not supported." on one line, since
+#: those sentences are the point of the panel; tall enough for a typical
+#: file's whole summary without scrolling, and no taller, because it is
+#: floating over the frame somebody is watching.
+INFO_W = 520
+INFO_MAX_H = 420
+
+
+def _mpv_rows(stats):
+    """The live-counter block, from mpv rather than from the DTO.
+
+    Only what a *viewer* asks: is my GPU being used, why is it stuttering,
+    why did it stall. Each row is omitted when mpv had nothing to say --
+    which is a real state rather than an error (no rendered-fps estimate
+    before the first frame, none of the video counters during audio), and
+    is why they are individually guarded rather than shown as zeroes.
+    """
+    rows = []
+    hwdec = stats.get("hwdec")
+    if hwdec:
+        # mpv says "no" for software decoding, which reads as a broken
+        # value rather than an answer.
+        rows.append((_("Hardware acceleration"),
+                     _("No") if hwdec == "no" else str(hwdec)))
+    if stats.get("vo"):
+        rows.append((_("Video output"), str(stats["vo"])))
+    fps = stats.get("fps")
+    if fps:
+        rows.append((_("Framerate"), "%.2f" % float(fps)))
+    drops_vo, drops_dec = stats.get("drops_vo"), stats.get("drops_dec")
+    if drops_vo is not None or drops_dec is not None:
+        # Both, and labelled, because they mean opposite things: the
+        # decoder dropping frames is a machine that cannot keep up, the VO
+        # dropping them is usually a display-sync problem. One combined
+        # number sends people to the wrong place.
+        rows.append((_("Dropped frames"),
+                     _("%(vo)d output, %(dec)d decoder")
+                     % {"vo": int(drops_vo or 0), "dec": int(drops_dec or 0)}))
+    if stats.get("avsync") is not None:
+        rows.append((_("A/V sync"), "%+.3f s" % float(stats["avsync"])))
+    if stats.get("buffered") is not None:
+        # The answer to "why does it keep stalling" -- and the one number
+        # here that a Jellyfin user can act on, by turning the stream down.
+        rows.append((_("Buffered"), _("%.1f s") % float(stats["buffered"])))
+    speed = stats.get("cache_speed")
+    if speed:
+        rows.append((_("Download speed"),
+                     _("%.1f Mbps") % (float(speed) * 8 / 1000000.0)))
+    return rows
+
+
+def _info_rows(info, stats=None):
+    """``[(heading, [(label, value), ...]), ...]`` for the panel.
+
+    jellyfin-web's playerstats categories, minus the two that need the
+    server polled (transcode completion and encoder fps) — see the gateway's
+    ``playback_info`` — plus one they do not have: what mpv is doing with
+    the stream once it arrives.
+    """
+    source = info.get("source") or {}
+    method = info.get("play_method")
+    playback = []
+    if info.get("item_type"):
+        playback.append((_("Media type"), info["item_type"]))
+    label = media_info.play_method_label(method)
+    if label:
+        # How it got here, which web cannot say and we can: a file we opened
+        # ourselves is a different thing from the same bytes over HTTP, and
+        # on a downloaded copy it is the whole answer.
+        if method == media_info.DIRECT_PLAY:
+            label += "  (%s)" % (_("downloaded copy") if info.get("offline")
+                                 else _("local file") if info.get("direct_path")
+                                 else _("stream from server"))
+        playback.append((_("Play method"), label))
+    reasons = media_info.transcode_reasons(info.get("transcode_reasons"))
+
+    out = [(_("Playback"), playback)] if playback else []
+    if reasons:
+        # Numbered rather than bulleted: the label column is what every
+        # other block here uses, and an empty one leaves the sentences
+        # hanging in the middle of the panel.
+        out.append((_("Reasons"),
+                    [("%d." % (i + 1), r) for i, r in enumerate(reasons)]))
+    player_rows = _mpv_rows(stats or {})
+    if player_rows:
+        out.append((_("Player"), player_rows))
+    file_rows = media_info.source_attributes(source)
+    if file_rows:
+        out.append((_("File"), file_rows))
+    for stream in media_info.visible_streams(source):
+        rows = media_info.stream_attributes(stream, source)
+        if rows:
+            out.append((media_info.stream_heading(stream), rows))
+    return out
+
+
+def _info_dialog(b, size):
+    """The playback-info panel, or None when it is closed.
+
+    A ``Dialog`` rather than a floating Box for two reasons that are one
+    reason: it gets ESC and click-outside dismissal for free, and the
+    renderer's auto-hide treats an open modal as a busy HUD
+    (``phud_busy``) — so the panel cannot be read for four seconds and then
+    yanked away with the bar it is attached to.
+    """
+    if not b.hud.info:
+        return None
+    info = _ctl_get(b, "playback_info", None)
+    if not info:
+        return None
+    # Sized against the window, not at a constant. The HUD is drawn at every
+    # width from a phone-shaped window upward -- the bar itself scales to
+    # 72% and sheds controls -- and a 520-wide panel in a 480-wide window is
+    # a dialog with its own edges off both sides of the screen.
+    win_w, win_h = size
+    w = max(280, min(INFO_W, win_w - 40))
+    # The floor is deliberately below anything readable: at that point
+    # the window is too short for the panel AND its own heading, and a
+    # scroll of two rows inside the window beats a panel whose Close
+    # button is off the bottom of the screen.
+    body_h = max(60, min(INFO_MAX_H, win_h - 220))
+    blocks = [Text(_("Playback Info"), size="title", bold=True)]
+    if info.get("title"):
+        blocks.append(Text(info["title"], size="normal", color=theme.SUBTLE_FG,
+                           wrap=True, w=w - 48))
+    body = []
+    stats = _ctl_get(b, "player_stats", {}) or {}
+    for heading, rows in _info_rows(info, stats):
+        body.append(Text(heading, size="normal", bold=True, color=theme.ACCENT))
+        for label, value in rows:
+            # An explicit value width rather than flex, for the reason
+            # DialogsMixin.MINFO_VALUE_W spells out: a wrap=True Text with
+            # no `w` measures one line tall, so inside a Row it clips and
+            # ellipsizes -- which on a path throws away the filename and on
+            # a transcode reason throws away the end of the sentence.
+            label_w = min(160, w // 3)
+            body.append(Row([
+                Text(label, size="small", color=theme.SUBTLE_FG, w=label_w),
+                Text(value, size="small", wrap=True,
+                     w=max(80, w - 48 - label_w - 8)),
+            ], gap=8, align="start"))
+    if not body:
+        body.append(Text(_("Nothing is playing."), size="small",
+                         color=theme.SUBTLE_FG))
+    blocks.append(VScroll(Column(body, gap=6, align="stretch"),
+                          id="hud-info-scroll", h=body_h))
+    blocks.append(Row([Spacer(flex=1),
+                       Button(_("Close"), id="hud-info-close",
+                              on_click=lambda: _close_info(b))], gap=10))
+    return Dialog("hud-info",
+                  Column(blocks, pad=24, gap=14, bg=theme.PANEL_BG,
+                         radius=12, border=theme.BORDER, w=w,
+                         align="stretch"),
+                  on_dismiss=lambda: _close_info(b))
+
+
+def _open_info(b):
+    b.hud.menu = None          # it was opened from the gear menu
+    b.hud.info = True
+    b.invalidate()
+
+
+def _close_info(b):
+    b.hud.info = False
+    b.invalidate()
 
 
 def _toggle_tc(b):
@@ -549,8 +768,6 @@ def build_hud(b, size):
     dur = st.get("duration", 0) or 0
     pp = "play_arrow" if st.get("paused") else "pause"
     scrub = b.hud.scrub
-    chapters = _chapters(b)
-
     # Responsive shrink, mirroring the lua OSC's jellyfin layout:
     # everything scales down to 72% as the window narrows, and the
     # less essential controls drop out at breakpoints (in the spirit
@@ -559,6 +776,13 @@ def build_hud(b, size):
 
     def sz(v):
         return int(v * scale + 0.5)
+
+    # One glyph size for every control on the bar. The track pickers used
+    # to take theirs from `size * 1.2` -- 24px beside the buttons' 30 --
+    # which is a mismatch the baseline has always had [iw] and which the
+    # type scale made worse by moving the control default to 17.
+    picker_icon = sz(HUD_ICON)
+    chapters = _chapters(b, picker_icon)
 
     # A still has no timeline and no sound. mpv reports a duration for one
     # -- --image-display-duration, i.e. when the NEXT photo arrives -- and
@@ -582,7 +806,8 @@ def build_hud(b, size):
         "ends_at": w >= 1000 and not photo,    # wall-clock end time
     }
 
-    def tbtn(icon, node_id, cb, autofocus=False, icon_size=30, tip=None,
+    def tbtn(icon, node_id, cb, autofocus=False, icon_size=HUD_ICON,
+             tip=None,
              repeat=False, fg="eeeeee"):
         return Button("", id=node_id, icon=icon, flat=True, fg=fg,
                       icon_size=sz(icon_size), autofocus=autofocus,
@@ -683,7 +908,8 @@ def build_hud(b, size):
             "favorite" if fav else "favorite_border", "hud-fav",
             lambda: _toggle_hud_favorite(b),
             tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee"))
-    right.extend(_pickers(b, menu_state, pos, chapters, tiers))
+    right.extend(_pickers(b, menu_state, pos, chapters, tiers,
+                          picker_icon))
     muted = bool(st.get("muted"))
     vol = st.get("volume", 100) or 0
     if tiers["volume"]:
@@ -791,6 +1017,10 @@ def build_hud(b, size):
     menu = _settings_menu(b, menu_state, size)
     if menu is not None:
         children.append(menu)
+
+    info = _info_dialog(b, size)
+    if info is not None:
+        children.append(info)
 
     # The same corner the library grows, for the same reason the buttons
     # above are here: a windowed video on a desktop that draws no frame is

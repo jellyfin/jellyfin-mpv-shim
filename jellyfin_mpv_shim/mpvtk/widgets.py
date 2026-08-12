@@ -162,7 +162,7 @@ class Text(Element):
     def __init__(
         self,
         text,
-        size=22,
+        size=None,
         color=None,
         bold=False,
         align="left",
@@ -172,6 +172,10 @@ class Text(Element):
         max_lines=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('TITLE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.text = text
         self.size = size
@@ -319,8 +323,20 @@ class Icon(Element):
     in a Row for labelled buttons; Dropdown/Menu take per-item icons
     directly."""
 
-    def __init__(self, name, size=20, color=None, on_click=None,
+    def __init__(self, name, size=None, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        # An EXPLICIT size is geometry and stays put: scaling the whole
+        # interface -- controls, artwork, spacing -- is what `ui_scale`
+        # does, and having the text multiplier resize icons too would make
+        # it a second, partial copy of that. [iw]: "that would basically
+        # just be the dpi setting which we already have."
+        #
+        # No size at all still resolves to a tier, because an icon with no
+        # opinion is standing in for a line of text and should match it.
+        size = theme.size('NORMAL') if size is None else int(size)
         kw.setdefault("w", size)
         kw.setdefault("h", size)
         super().__init__(**kw)
@@ -341,11 +357,15 @@ class Button(Box):
     colour so accented/active buttons stay legible. An icon-only button is
     just ``label=""``."""
 
-    def __init__(self, label, on_click=None, size=20, fg=None, icon=None,
+    def __init__(self, label, on_click=None, size=None, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
         # Resolved here rather than as a default argument: a default is
         # evaluated once at import, so it could never follow a theme
         # applied later -- let alone one swapped at runtime.
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
         if kw.get("disabled"):
@@ -394,7 +414,7 @@ class TextBox(Element):
         id,
         text="",
         placeholder="",
-        size=20,
+        size=None,
         mask=False,  # password entry: render bullets, value unchanged
         on_change=None,
         on_submit=None,
@@ -405,6 +425,10 @@ class TextBox(Element):
         force=False,  # override renderer-local edit state with ``text``
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         kw.setdefault("w", 240)
         super().__init__(id=id, **kw)
         self.text = text
@@ -482,15 +506,25 @@ class Busy(Element):
 class Checkbox(Row):
     """Labelled toggle — pure composite sugar over Row/Box/Text."""
 
-    def __init__(self, label, checked, on_toggle=None, size=20, **kw):
+    def __init__(self, label, checked, on_toggle=None, size=None, **kw):
         # Muted here rather than in the renderer, and the handler dropped:
         # see Button for why a composite cannot leave this to the draw side.
         # The check itself still shows -- a disabled setting has a value, and
         # hiding it would say the opposite of what it is.
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         off = bool(kw.get("disabled"))
+        # Sized from the label it sits beside, not a constant. The 20 it
+        # was is what a 20px label needed; once the control default moved
+        # to 17 the square nearly filled its own row (row height 25 -> 21
+        # with an unchanged 20px box inside it). 1.18x is that original
+        # ratio, so the tick keeps its proportions at any type size.
+        _tick = max(12, int(round(size * 1.18)))
         box = Box(
-            w=20,
-            h=20,
+            w=_tick,
+            h=_tick,
             bg=((theme.ACCENT if not off else theme.CONTROL_SUNKEN)
                 if checked else theme.CONTROL_SUNKEN),
             border=(theme.OUTLINE_STRONG
@@ -499,7 +533,7 @@ class Checkbox(Row):
             align="center",
             direction="row",
             children=(
-                [Text("✓", size=15, align="center", flex=1,
+                [Text("✓", size="small", align="center", flex=1,
                       color=(theme.ON_SURFACE_FAINT if off
                              else theme.ON_ACCENT))]
                 if checked
@@ -544,7 +578,11 @@ class Grid(Element):
     """
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
-                 row_pad=0, size=18, fg=None, **kw):
+                 row_pad=0, size=None, fg=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.rows = rows
         self.cols = cols
@@ -562,8 +600,12 @@ class Form(Grid):
     ``(label, element)`` pairs (label may be a str or an Element; a
     None element leaves the row's value cell empty)."""
 
-    def __init__(self, rows, label_w=None, size=18,
+    def __init__(self, rows, label_w=None, size=None,
                  label_fg=None, **kw):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
         label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
             {"w": label_w} if label_w else {},
@@ -716,8 +758,8 @@ class Table(Column):
         rows,
         row_h=36,
         header_h=30,
-        size=18,
-        header_size=15,
+        size=None,
+        header_size=None,
         header_fg=None,
         fg=None,
         selected_bg=None,
@@ -727,6 +769,12 @@ class Table(Column):
         virtual=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('LARGE') if size is None else theme.text_size(size)
+        header_size = (theme.size('SMALL')
+                       if header_size is None else theme.text_size(header_size))
         selected_bg = selected_bg or theme.SOFT
         header_fg = header_fg or theme.ON_SURFACE_MUTED
         fg = fg or theme.ON_SURFACE
@@ -840,15 +888,32 @@ class Float(Element):
 
 
 class Dialog(Element):
-    """Modal dialog: centered floating container that grabs all input.
-    Clicks outside it and ESC emit on_dismiss(); the app closes it by
+    """Modal dialog: floating container that grabs all input. Clicks
+    outside it and ESC emit on_dismiss(); the app closes it by
     re-rendering without the Dialog. No dimmed backdrop (bitmaps render
-    above ASS, so a scrim cannot cover posters — see README z-order)."""
+    above ASS, so a scrim cannot cover posters — see README z-order).
 
-    def __init__(self, id, child, on_dismiss=None, **kw):
+    ``side`` moves it off centre. Centred is right for a dialog that IS
+    the task — a confirm, a download, a picker — because there is nothing
+    behind it worth seeing. It is wrong for one whose whole purpose is to
+    change what is behind it: a centred filter panel covers the middle of
+    the window, which is where the results and the loading spinner are,
+    so the one thing you want to watch while filtering is the one thing
+    it hides. ``"left"`` pins it to the same margin the page content
+    uses, leaving the library visible beside it.
+    """
+
+    def __init__(self, id, child, on_dismiss=None, side="center", **kw):
         super().__init__(id=id, **kw)
         self.child = child
         self.on_dismiss = on_dismiss
+        self.side = side
+
+
+#: Nominal size of an icon-only Dropdown trigger, in logical px. Not a
+#: type size: it is the side of a square button, and it stays put while
+#: the type scale moves.
+ICON_TRIGGER = 20
 
 
 class Dropdown(Element):
@@ -873,11 +938,12 @@ class Dropdown(Element):
         id,
         items,
         selected=0,
-        size=20,
+        size=None,
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         force=False,
         trigger_icon=None,
+        icon_size=None,
         # Draw the icon trigger as a filled, rounded BUTTON rather than the
         # chromeless glyph the playback HUD uses. The HUD's controls float
         # over video, where a bare glyph with a hover wash is right; the
@@ -890,9 +956,37 @@ class Dropdown(Element):
         popup_w=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         if trigger_icon:
-            kw.setdefault("w", int(size * 1.9))
-            kw.setdefault("h", int(size * 1.9))
+            # The trigger's BOX, from the icon rather than from the text.
+            #
+            # `size` on a Dropdown means two unrelated things -- the type
+            # size of the popup's rows, and (here) the dimensions of the
+            # control. Only the first belongs on a type scale, and tying
+            # the second to it shrank the playback HUD's Chapters,
+            # Subtitles, Audio and Video-quality buttons when the control
+            # default moved 20 -> 17, while every other HUD button (a real
+            # Icon, sized on its own) stayed put [iw].
+            #
+            # ICON_TRIGGER is the size those buttons were, so the control
+            # is stable under a theme's type choices -- and a user who
+            # wants a bigger touch target has Interface Scale, which is
+            # what scales controls.
+            # Sized from the ICON, not from the type. `size` on a
+            # Dropdown means two unrelated things -- the type size of the
+            # popup's rows and, here, the button -- and only the first
+            # belongs on a type scale.
+            # Geometry, like `Icon`'s explicit size: the trigger is a
+            # control, and controls follow `ui_scale`, not the text
+            # multiplier. This is what keeps it the same size as the HUD
+            # transport buttons beside it at every setting.
+            glyph = int(icon_size or ICON_TRIGGER * 1.2)
+            box = int(glyph / 1.2 * 1.9)
+            kw.setdefault("w", box)
+            kw.setdefault("h", box)
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.selected = selected
@@ -901,6 +995,7 @@ class Dropdown(Element):
         self.on_select = on_select
         self.force = force
         self.trigger_icon = trigger_icon
+        self.icon_size = icon_size
         self.trigger_chip = trigger_chip
         self.popup_w = popup_w
 
@@ -920,12 +1015,16 @@ class Menu(Element):
         items,
         x,
         y,
-        size=20,
+        size=None,
         icons=None,  # optional per-item Material icon names (None ok)
         on_select=None,
         on_dismiss=None,
         **kw,
     ):
+        # Resolved here, not in the signature: a default argument is
+        # evaluated once at import, and the type scale is set by the
+        # app at startup and again on a theme swap.
+        size = theme.size('NORMAL') if size is None else theme.text_size(size)
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.x = x

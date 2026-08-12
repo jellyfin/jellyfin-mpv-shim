@@ -19,6 +19,16 @@ Every one of these has shipped here:
 * ``FakeManager.enqueue`` recorded the call and wrote no row, so every
   auto-download pass saw a virgin catalog and a five-pass property was
   unobservable.
+* ``FakeMPV`` had neither ``eof_reached`` nor ``core_idle`` nor
+  ``window_maximized``, and every one of those is read inside a broad
+  ``except Exception`` -- so end-of-file was never detected, the trickplay
+  arm never armed and the geometry was never re-armed, in a suite that
+  passed. It was also missing ``unbind_property_observer`` entirely, which
+  made every ``wait_property`` against it raise on the way out; the load
+  wait is the *only* thing standing between play() and its timeout path,
+  so nothing fake-backed had ever completed a load. And it carried BOTH
+  backends' observer APIs at once, which is what the shim discriminates
+  on, so the leg named "libmpv" was exercising jsonipc's branch.
 
 The check is the one ``tests/test_syncplay_player_contract.py`` already makes
 for the syncplay-to-player surface, generalised: extract from the *source*
@@ -102,6 +112,40 @@ PAIRS = [
         reads=("self.menu", "playerManager.menu", "pm.menu"),
         accepted=set(),
         notes="survives mpv re-creation; gates idle_quit",
+    ),
+    Pair(
+        "FakeMPVLibmpv (python-mpv backend)",
+        "tests/integration/_harness.py", "FakeMPVLibmpv",
+        reads=("self._player", "pm._player", "playerManager._player",
+               "instance", "self.mpv"),
+        accepted={
+            # jsonipc's spelling of the same three things. Their ABSENCE is
+            # what the shim dispatches on -- `mpv_events.observe` and
+            # `wait_property` both ask `hasattr(type(x),
+            # "bind_property_observer")` -- so providing them here would put
+            # this leg back on the other backend's branch, which is the
+            # exact bug the split fixed.
+            "bind_property_observer", "unbind_property_observer",
+            # jsonipc-only, and reached only from mpvtk's *spawn* backend
+            # (the standalone demo). The production path is AdoptBackend,
+            # which uses event_callback on both.
+            "on_event",
+        },
+        notes="what the shim thinks it is talking to on the libmpv leg",
+    ),
+    Pair(
+        "FakeMPVJsonIPC (python-mpv-jsonipc backend)",
+        "tests/integration/_harness.py", "FakeMPVJsonIPC",
+        reads=("self._player", "pm._player", "playerManager._player",
+               "instance", "self.mpv"),
+        accepted={
+            # libmpv's spelling; see the pair above. Real jsonipc has none
+            # of these either -- `_get_property` least of all, which is why
+            # both of its call sites are gated on `is_using_ext_mpv` and
+            # reach `command("get_property", ...)` here instead.
+            "observe_property", "unobserve_property", "_get_property",
+        },
+        notes="what the shim thinks it is talking to on the jsonipc leg",
     ),
     Pair(
         "FakeQueue (Media)",

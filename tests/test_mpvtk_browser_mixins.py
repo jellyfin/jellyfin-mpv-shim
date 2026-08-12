@@ -170,7 +170,9 @@ class TestRouteTable(unittest.TestCase):
 
     def test_every_renderer_is_declared(self):
         """A _render_<kind> nobody routes to is dead code — this codebase has
-        shipped that five times (see MIGRATION.md)."""
+        shipped that five times (recorded in the migration write-up, which
+        was deleted in c37bfc3e -- jellyfin_mpv_shim/mpvtk/GUIDE.md's closing section is what
+        survives of it)."""
         routed = {r for _k, _l, r, _m in self._declared()}
         orphans = []
         for mod in MODULES:

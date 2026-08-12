@@ -69,6 +69,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "leaves MPV unable to show video)",
     )
     parser.add_argument(
+        "--disable-hwdec",
+        dest="disable_hwdec",
+        action="store_true",
+        help="force software decoding for this run, whatever the Hardware "
+        "Decoding setting says (recovery for when hardware decoding stops "
+        "the window opening at all); not saved to the config",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="surface debug-level application log messages (does not affect mpv verbosity)",

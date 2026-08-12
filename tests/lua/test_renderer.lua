@@ -2148,6 +2148,280 @@ ok(box and box.clip and box.clip.y1 >= HDR_H,
 
 fake.send("mpvtk-theme", fake.token({ glow = false }))
 
+-- =============================== the left button, and who gets to have it
+--
+-- #669. Clicking the hidden HUD pauses, which is the lua OSC's
+-- click-anywhere and this client's long-standing behaviour. A *forced*
+-- binding on mbtn_left is also exactly what stops the VO dragging the
+-- window with that button, so giving mpv's modality back means not taking
+-- the button at all rather than taking it and behaving differently.
+--
+-- Measured against a real mpv under Xvfb, both ways: a double click
+-- delivers mbtn_left, mbtn_left_dbl, mbtn_left. So the two pause toggles
+-- cancel and mpv's own MBTN_LEFT_DBL still fullscreens *with* our binding
+-- installed -- which is why double-click needs nothing from us in either
+-- mode, and why only the single-click binding is conditional.
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "click-to-pause is the default: mbtn_left is taken")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = false }))
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "mpv modality: mbtn_left is left alone so the VO can drag")
+
+-- The wake key still has to work in that mode, or the HUD becomes
+-- unreachable from the keyboard as well as from the left button.
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "the wake key survives mpv modality")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", click = true }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "and it comes back when the setting is turned on again")
+
+-- An older Python side sends no `click` at all. Absent must mean the
+-- historical behaviour, not false -- otherwise a version skew silently
+-- removes click-to-pause for everyone.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4 }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "an absent click option keeps click-to-pause")
+
+fake.send("mpvtk-hud", "no")
+
+-- ----------------- ...and the same answer while the controls are ON SCREEN
+--
+-- The bug this pins: the setting was honoured only while the HUD was
+-- hidden. Once summoned, `mpvtk_mouse` owns mbtn_left / mbtn_left_dbl /
+-- mbtn_right, so every one of them reaches the scene handlers instead of
+-- the phud binding or mpv's defaults -- and those handlers paused on any
+-- bare-video click, swallowed the double click, and swallowed the right
+-- click. Reported from hand-testing; nothing here had ever clicked the
+-- *picture* with the controls up.
+
+local function hud_up(opts)
+    fake.send("mpvtk-hud", "no")
+    fake.send("mpvtk-hud", "yes", fake.token(opts))
+    fake.observe("mouse-pos", { x = 640, y = 300, hover = true })
+    fake.observe("mouse-pos", { x = 640, y = 360, hover = true })
+    -- Bars at the edges; the middle of the window is bare video.
+    scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+            { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+    repaint()
+    fake.mouse(640, 360)
+    fake.log.commands = {}
+end
+
+local function did(cmd, arg)
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == cmd and (arg == nil or c[2] == arg) then return true end
+    end
+    return false
+end
+
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.key("mbtn_left")
+ok(did("cycle", "pause"),
+   "click-to-pause on: a click on bare video still pauses with the HUD up")
+
+hud_up({ hide = 4, mode = "hover", click = false })
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "mpv modality: a click on bare video must not pause with the HUD up")
+ok(did("begin-vo-dragging"),
+   "mpv modality: a click on bare video starts a window drag instead")
+
+-- Double click is full screen in BOTH modes -- it is mpv's own default and
+-- the only reason it stopped working is that our section took the key.
+for _, mode in ipairs({ true, false }) do
+    hud_up({ hide = 4, mode = "hover", click = mode })
+    fake.key("mbtn_left_dbl")
+    ok(did("cycle", "fullscreen"),
+       "double click on bare video did not full-screen with the HUD up",
+       "click_pauses=" .. tostring(mode))
+end
+
+hud_up({ hide = 4, mode = "hover", click = false })
+fake.key("mbtn_right")
+ok(did("cycle", "pause"),
+   "mpv modality: right click on bare video pauses with the HUD up")
+
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "click-to-pause on: right click is not a second way to pause")
+
+-- ------------- ...but "no node" is not "bare video" while something floats
+--
+-- node_at() answers with clickable SCENE nodes, and a modal's body, a
+-- dropdown's popup rows and a context menu are none of those -- so it is
+-- nil ON them. on_mouse_down checks all four before its bare-video branch;
+-- on_dbl and on_rclick did not, so a double click inside the Playback Info
+-- panel full-screened the window under it and a right click paused. Found
+-- by the adversarial review, missed by everything above: these tests had
+-- never had anything open over the picture.
+
+local MODAL = { id = "dlg", t = "layer", kind = "modal",
+                x = 340, y = 200, w = 600, h = 320 }
+
+-- **The real sequence, not one event.** mpv delivers a double click as
+-- mbtn_left, mbtn_left_dbl, mbtn_left -- measured, and written down 140
+-- lines above this. Firing mbtn_left_dbl alone is what let the first
+-- version of these tests pass while three of the four guards were dead:
+-- the leading mbtn_left dismisses the dropdown, the context menu and the
+-- textbox menu, so on_dbl asking "is one open?" always answered no.
+local function dbl()
+    fake.key("mbtn_left")
+    fake.key("mbtn_left_dbl")
+    fake.key("mbtn_left")
+end
+
+for _, mode in ipairs({ true, false }) do
+    hud_up({ hide = 4, mode = "hover", click = mode })
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            MODAL })
+    repaint()
+    fake.log.commands = {}
+    dbl()
+    ok(not did("cycle", "fullscreen"),
+       "double click inside an open modal must not full-screen the window",
+       "click_pauses=" .. tostring(mode))
+end
+
+hud_up({ hide = 4, mode = "hover", click = false })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        MODAL })
+repaint()
+fake.log.commands = {}
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "right click inside an open modal must not pause under it")
+
+-- The dropdown popup has the same shape: its rows are popup geometry, not
+-- scene nodes, so a double click on the audio-track picker landed here too.
+local function dd_open()
+    hud_up({ hide = 4, mode = "hover", click = false })
+    scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+            { id = "dd", t = "dropdown", x = 500, y = 300, w = 200, h = 30,
+              size = 18, items = { "One", "Two", "Three" }, sel = 0 } })
+    repaint()
+    click("dd")                      -- open it
+    fake.mouse(640, 360)             -- pointer over a popup row
+    fake.log.commands = {}
+end
+
+dd_open()
+dbl()
+ok(not did("cycle", "fullscreen"),
+   "double click on an open dropdown's row must not full-screen")
+
+-- Re-opened, because dbl() ends in an mbtn_left that closes the popup --
+-- the reason the first version of this pair passed for the wrong reason.
+dd_open()
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "right click on an open dropdown must not pause under it")
+
+-- ------------------------ ...and in a SyncPlay group the pause is Python's
+--
+-- The renderer pauses locally by default, because `cycle pause` with no
+-- round trip is what makes click-to-pause feel immediate. In a group that
+-- is not a pause at all: mpv stops, the group never hears, and the next
+-- tick drags this player back. [iw] found it by clicking the video in a
+-- group -- the keys had been fixed, the click had not.
+
+hud_up({ hide = 4, mode = "hover", click = true, syncplay = true })
+fake.reset_events()
+fake.key("mbtn_left")
+ok(not did("cycle", "pause"),
+   "in a group, a click on bare video must not pause mpv locally")
+ok(last_event("pause") ~= nil,
+   "...it hands the pause to Python, which knows about the group")
+
+-- ...and out of a group nothing changed: still local, still no round trip.
+hud_up({ hide = 4, mode = "hover", click = true })
+fake.reset_events()
+fake.key("mbtn_left")
+ok(did("cycle", "pause"),
+   "outside a group the click still pauses locally")
+ok(last_event("pause") == nil,
+   "...and does not pay for a round trip to Python")
+
+-- The right-click path in mpv modality is the same decision.
+hud_up({ hide = 4, mode = "hover", click = false, syncplay = true })
+fake.reset_events()
+fake.key("mbtn_right")
+ok(not did("cycle", "pause"),
+   "in a group, right-click in mpv modality must not pause locally")
+ok(last_event("pause") ~= nil,
+   "...it hands that one over too")
+
+-- The context menu had no test at all, and is the case the dead guard was
+-- most obviously written for.
+hud_up({ hide = 4, mode = "hover", click = false })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "cm", t = "menu", x = 500, y = 260, w = 220, rh = 30,
+          size = 18, items = { "Play", "Queue", "Mark Watched" } } })
+repaint()
+fake.mouse(560, 300)
+fake.log.commands = {}
+dbl()
+ok(not did("cycle", "fullscreen"),
+   "double click on an open context menu must not full-screen")
+
+-- ...and the guard must not have cost the thing it guards: with nothing
+-- floating, both still do what mpv would.
+hud_up({ hide = 4, mode = "hover", click = false })
+dbl()
+ok(did("cycle", "fullscreen"),
+   "with nothing open, double click on bare video still full-screens")
+fake.key("mbtn_right")
+ok(did("cycle", "pause"),
+   "with nothing open, right click on bare video still pauses")
+
+-- A click on a CONTROL is still a click on a control, in either mode --
+-- the fall-through must not have eaten the HUD's own buttons. The bar's
+-- own background is deliberately NOT a control: pressing the gaps between
+-- buttons drags the window, which is what pressing chrome does everywhere
+-- and mirrors it pausing there under the other setting.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover",
+                                           click = false }))
+fake.observe("mouse-pos", { x = 640, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 640, y = 360, hover = true })
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-pp", t = "rect", x = 600, y = 660, w = 40, h = 40,
+          click = true } })
+repaint()
+fake.mouse(620, 680)                    -- squarely on the play button
+fake.log.commands = {}
+fake.key("mbtn_left")
+ok(not did("begin-vo-dragging"),
+   "a press on a HUD control started a window drag instead of clicking")
+ok(not did("cycle", "pause"),
+   "a press on a HUD control fell through to the bare-video handler")
+
+-- ...and NOT while the library owns the window. `mpvtk_mouse` is enabled
+-- in browse mode too, so an unguarded fall-through would make a
+-- double-click on empty library background toggle full screen -- which is
+-- what the phud test on the fullscreen branch is actually protecting.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+scene({ { id = "tile", t = "rect", x = 10, y = 10, w = 100, h = 100,
+          click = true } })
+repaint()
+fake.mouse(640, 400)                    -- empty page background
+fake.log.commands = {}
+fake.key("mbtn_left_dbl")
+ok(not did("cycle", "fullscreen"),
+   "double-clicking empty library background toggled full screen")
+fake.send("mpvtk-active", "no")
+
 -- ========================================================== teardown
 
 scene({})

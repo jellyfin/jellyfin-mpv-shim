@@ -201,7 +201,7 @@ class QueuePage(SelectionPage):
         sel = self.selection()
         n = len(entries)
         toolbar = chrome.wrap_row([
-            Text(_("Play Queue"), size=26, bold=True), Spacer(),
+            Text(_("Play Queue"), size="page", bold=True), Spacer(),
             Button(_("Top"), id="q-top", icon="vertical_align_top",
                    on_click=lambda: self._move("top")),
             Button(_("Up"), id="q-up", icon="keyboard_arrow_up",
@@ -210,7 +210,7 @@ class QueuePage(SelectionPage):
                    on_click=lambda: self._move("down")),
             Button(_("Bottom"), id="q-bottom", icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
-            Text(_("%d selected") % len(sel) if sel else "", size=15,
+            Text(_("%d selected") % len(sel) if sel else "", size="small",
                  color=theme.SUBTLE_FG),
             Button(_("Select All"), id="q-all",
                    on_click=lambda: self.set_selection(set(range(n)))),
@@ -223,7 +223,7 @@ class QueuePage(SelectionPage):
         ], size[0] - 2 * chrome.CONTENT_PAD, gap=8)
         rows = [toolbar, Spacer(h=2)]
         if not entries:
-            rows.append(Text(_("The queue is empty."), size=18,
+            rows.append(Text(_("The queue is empty."), size="large",
                              color=theme.SUBTLE_FG))
         else:
             rows.append(self.ctx.art.tiles.track_list(
@@ -353,7 +353,7 @@ class PlaylistEditPage(SelectionPage):
             Button(_("Bottom"), id="pe-bottom", icon="vertical_align_bottom",
                    on_click=lambda: self._move("bottom")),
             Spacer(),
-            Text(_("%d selected") % len(sel) if sel else "", size=15,
+            Text(_("%d selected") % len(sel) if sel else "", size="small",
                  color=theme.SUBTLE_FG),
             Button(_("Select All"), id="pe-all",
                    on_click=lambda: self.set_selection(set(range(n)))),
@@ -390,9 +390,9 @@ class PlaylistEditPage(SelectionPage):
               # is what makes shift-range selection possible.
               "on_click": (lambda mods, i=i: self.click_row(i, mods))}
              for i, it in enumerate(items)],
-            size=17, row_h=34, hover_bg=theme.BUTTON_BG)
+            size="normal", row_h=34, hover_bg=theme.BUTTON_BG)
         rows = [Text("%s — %s" % (route.get("title", ""), _("Edit")),
-                     size=26, bold=True), Spacer(h=4), rename_row, toolbar,
+                     size="page", bold=True), Spacer(h=4), rename_row, toolbar,
                 Spacer(h=2), table]
         return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=8,
                               align="stretch"),

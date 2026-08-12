@@ -47,9 +47,9 @@ class HomeTabMixin:
             # Offering the controls here would fail only at save time, which
             # is the worst moment.
             return VScroll(Column([
-                Text(_("Home Screen"), size=20, bold=True),
+                Text(_("Home Screen"), size="large", bold=True),
                 Text(_("Connect to a server to change the home screen "
-                       "sections."), size=17, color=theme.SUBTLE_FG,
+                       "sections."), size="normal", color=theme.SUBTLE_FG,
                      wrap=True),
             ], pad=self.CONTENT_PAD, gap=12, align="stretch"),
                 id="settings-home", flex=1)
@@ -58,9 +58,9 @@ class HomeTabMixin:
             # clearing the flag here would re-fetch forever against a server
             # that is simply down.
             return VScroll(Column([
-                Text(_("Home Screen"), size=20, bold=True),
+                Text(_("Home Screen"), size="large", bold=True),
                 Text(_("These settings could not be loaded from your "
-                       "server."), size=17, color=theme.SUBTLE_FG, wrap=True),
+                       "server."), size="normal", color=theme.SUBTLE_FG, wrap=True),
                 Button(_("Try Again"), id="home-retry",
                        on_click=lambda: self._retry_home_layout(route)),
             ], pad=self.CONTENT_PAD, gap=12, align="stretch"),
@@ -73,17 +73,17 @@ class HomeTabMixin:
         values = [v for v, _l in options]
         labels = [lbl for _v, lbl in options]
         rows = [
-            Text(_("Home Screen"), size=20, bold=True),
+            Text(_("Home Screen"), size="large", bold=True),
             # Said once, at the top, for the whole page: everything below it
             # is the same kind of setting, and repeating the caveat per
             # group would read as three different caveats.
             Text(_("These settings are stored on your server and shared "
-                   "with Jellyfin Web."), size=14, color=theme.SUBTLE_FG,
+                   "with Jellyfin Web."), size="caption", color=theme.SUBTLE_FG,
                  wrap=True),
-            Text(_("Sections"), size=17, bold=True),
+            Text(_("Sections"), size="normal", bold=True),
             Text(_("The rows the home screen shows, in order. Sections this "
                    "app cannot draw are left as your web client set them."),
-                 size=14, color=theme.SUBTLE_FG, wrap=True),
+                 size="caption", color=theme.SUBTLE_FG, wrap=True),
         ]
         for slot in range(home_sections.SLOT_COUNT):
             current = layout[slot]
@@ -99,7 +99,7 @@ class HomeTabMixin:
                 note = _("Set to “%s” in Jellyfin Web, which this app does "
                          "not display.") % current
             row = Row([
-                Text(_("Section %d") % (slot + 1), w=340, size=17,
+                Text(_("Section %d") % (slot + 1), w=340, size="normal",
                      color=theme.SUBTLE_FG),
                 Dropdown("home-slot-%d" % slot, labels, selected=selected,
                          w=340, force=True,
@@ -108,7 +108,7 @@ class HomeTabMixin:
             ], gap=12, align="center")
             rows.append(row)
             if note:
-                rows.append(Text(note, size=14, color=theme.SUBTLE_FG,
+                rows.append(Text(note, size="caption", color=theme.SUBTLE_FG,
                                  wrap=True))
         rows += self._home_artwork_rows(route)
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
@@ -130,7 +130,7 @@ class HomeTabMixin:
             # cost of being wrong is the whole tab raising mid-render.
             return []
         return [
-            Text(_("Artwork"), size=17, bold=True),
+            Text(_("Artwork"), size="normal", bold=True),
             Checkbox(_("Use episode images in Next Up and Continue Watching"),
                      bool(prefs.get("episode_images")),
                      id="display-episode-images",
@@ -139,7 +139,7 @@ class HomeTabMixin:
             Text(_("Off by default: the show's artwork is used instead, "
                    "because an episode image can spoil the episode you "
                    "have not watched yet."),
-                 size=14, color=theme.SUBTLE_FG, wrap=True),
+                 size="caption", color=theme.SUBTLE_FG, wrap=True),
         ]
     def _load_home_layout(self, route):
         """Fetch the layout AND the artwork preference, once per visit.

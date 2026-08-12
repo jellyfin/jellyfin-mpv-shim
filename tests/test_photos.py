@@ -272,12 +272,28 @@ class PhotoTypeSetsTest(unittest.TestCase):
 
 
 class PhotoGlyphTest(unittest.TestCase):
-    """A first initial is useless where the name does not distinguish
-    things: a Home Videos library is folders named 2019, 2020, Holiday."""
+    """What a tile with no artwork draws.
+
+    **This rule changed.** It used to be "keep the first initial, because
+    it distinguishes, and use a mark only where names do not" -- a Home
+    Videos library is folders named 2019, 2020, Holiday, so those got a
+    mark while a Movie kept its letter.
+
+    It is now jellyfin-web's map (`getItemTypeIcon` / `getLibraryIcon`,
+    `src/utils/image.ts`), for every type web names. **[iw]: "let's match
+    jf-web here."** The cost is real and was weighed: a grid of artless
+    movies is now twelve identical film icons rather than twelve different
+    letters. The gain is that a library with no artwork looks like the
+    same library does in every other client, and that the old marks
+    (`▤`, `▣`, `♪`) were characters chosen by us that looked off -- the
+    bookshelf especially, which is what prompted this.
+
+    An initial survives only where web names no icon at all.
+    """
 
     def test_a_folder_says_folder(self):
         self.assertEqual(placeholder_glyph({"Type": "Folder",
-                                            "Name": "2019"}), "▤")
+                                            "Name": "2019"}), "folder")
 
     def test_a_folder_does_not_look_like_a_play_button(self):
         """It was "▸", which drawn large and centred on an artless tile is
@@ -288,28 +304,39 @@ class PhotoGlyphTest(unittest.TestCase):
 
     def test_a_photo_album_says_album(self):
         self.assertEqual(placeholder_glyph({"Type": "PhotoAlbum",
-                                            "Name": "2019"}), "▣")
+                                            "Name": "2019"}), "photo_album")
 
-    def test_an_ordinary_item_still_gets_its_initial(self):
+    def test_a_movie_says_movie(self):
+        # Was "A", for Arrival. See the class docstring: matching web
+        # costs the letter and buys the same look as every other client.
         self.assertEqual(placeholder_glyph({"Type": "Movie",
-                                            "Name": "Arrival"}), "A")
+                                            "Name": "Arrival"}), "movie")
 
-    def test_an_audiobook_gets_the_audio_note(self):
-        """It IS an audio item, and it hits the case this table is for: an
-        author folder of three books called "The ..." drew three tiles all
-        reading "T"."""
+    def test_an_audiobook_gets_the_audio_icon(self):
+        """It IS an audio item, and it hits the case this table was
+        originally written for: an author folder of three books called
+        "The ..." drew three tiles all reading "T". web names no icon for
+        AudioBook; this is ours, and consistent with its Audio arm."""
         self.assertEqual(placeholder_glyph({"Type": "AudioBook",
-                                            "Name": "The Copper Bell"}), "♪")
+                                            "Name": "The Copper Bell"}),
+                         "audiotrack")
 
-    def test_a_book_keeps_its_initial(self):
-        # Deliberate: a title is what tells one book from another, and a
-        # shelf of identical marks says less than a shelf of letters.
+    def test_a_book_says_book(self):
+        # Was the initial, deliberately. web maps Book -> 'book', and the
+        # bookshelf is the tile [iw] reported as looking wrong.
         self.assertEqual(placeholder_glyph({"Type": "Book",
-                                            "Name": "Ascent"}), "A")
+                                            "Name": "Ascent"}), "book")
 
-    def test_music_keeps_its_note(self):
+    def test_music_keeps_a_mark(self):
         self.assertEqual(placeholder_glyph({"Type": "MusicAlbum",
-                                            "Name": "Kid A"}), "♪")
+                                            "Name": "Kid A"}), "album")
+
+    def test_a_type_web_does_not_name_keeps_its_initial(self):
+        """The fallback is unchanged, and is what stops an unknown type
+        drawing nothing."""
+        self.assertEqual(placeholder_glyph({"Type": "Nonesuch",
+                                            "Name": "Zebra"}), "Z")
+        self.assertEqual(placeholder_glyph({"Type": "Nonesuch"}), "?")
 
 
 class PhotoOpensTheAlbumTest(unittest.TestCase):

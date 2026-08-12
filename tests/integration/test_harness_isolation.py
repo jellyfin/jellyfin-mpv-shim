@@ -9,7 +9,8 @@ do ``import mpv as libmpv`` to spawn a real handle.
 The symptom was 17 real-mpv tests failing with "renderer never became ready",
 15 seconds of timeout each, only when the suite ran as a whole; every module
 passed in isolation. That reads exactly like resource contention, and was
-recorded as such in MIGRATION.md for a while. It was module poisoning.
+recorded as such in the migration write-up for a while (deleted in
+c37bfc3e). It was module poisoning.
 
 These run in subprocesses: checking the contract in-process would be the very
 thing the contract forbids.
@@ -37,11 +38,10 @@ before = sys.modules.get(name)
 player = h.import_player_with_fake_mpv()
 after = sys.modules.get(name)
 
-print("PLAYER_BOUND_TO_FAKE",
-      getattr(getattr(player, "mpv", None), "MPV", None) is h.FakeMPV)
+print("PLAYER_BOUND_TO_FAKE", h.is_fake_mpv(getattr(player, "mpv", None)))
 print("SYSMODULES_RESTORED", after is before is not None)
 fresh = __import__(name)
-print("FRESH_IMPORT_IS_REAL", getattr(fresh, "MPV", None) is not h.FakeMPV)
+print("FRESH_IMPORT_IS_REAL", not h.is_fake_mpv(fresh))
 '''
 
 

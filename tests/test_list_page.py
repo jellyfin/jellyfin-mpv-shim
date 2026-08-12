@@ -33,8 +33,11 @@ class _Api:
     def get_next(self, **kw):
         return self._record("get_next", kw)
 
-    def get_user_items(self, **kw):
-        return self._record("get_user_items", kw)
+    def items(self, handler="", action="GET", params=None, **_kw):
+        # GET /Items -- see jellyfin_mpv_shim/items_api. Recorded under
+        # the endpoint it actually hits, and with the query the server
+        # actually receives.
+        return self._record("items", dict(params or {}))
 
 
 def _source(api):
@@ -67,27 +70,33 @@ class SpecDispatchTest(unittest.TestCase):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "genre_ids": "g1"})
         name, kw = api.calls[0]
-        self.assertEqual(name, "get_user_items")
-        self.assertEqual(kw["genre_ids"], "g1")
-        self.assertTrue(kw["recursive"])
+        self.assertEqual(name, "items")
+        self.assertEqual(kw["GenreIds"], "g1")
+        self.assertTrue(kw["Recursive"])
 
     def test_favorites_are_the_same_query_with_a_predicate(self):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "is_favorite": True})
-        self.assertEqual(api.calls[0][1]["is_favorite"], "true")
+        self.assertEqual(api.calls[0][1]["IsFavorite"], "true")
 
     def test_studios_ride_the_params_passthrough(self):
-        """get_user_items has no named studio_ids; params is the documented
-        way through and merges last."""
+        """`get_items` has no named studio_ids; params is the documented
+        way through and merges last.
+
+        Asserted on the built query rather than on a `params` key, because
+        that is where it ends up -- `build_query` merges params in last, so
+        a passthrough that stopped being merged would still look right in a
+        test that only checked what was handed over.
+        """
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "studio_ids": "s1"})
-        self.assertEqual(api.calls[0][1]["params"], {"StudioIds": "s1"})
+        self.assertEqual(api.calls[0][1]["StudioIds"], "s1")
 
     def test_the_grids_own_filters_still_apply(self):
         api = _Api()
         _source(api).get_list("srv", {"type": "items", "genre_ids": "g1"},
                               filters={"unplayed": True})
-        self.assertEqual(api.calls[0][1]["filters"], "IsUnplayed")
+        self.assertEqual(api.calls[0][1]["Filters"], "IsUnplayed")
 
     def test_an_unknown_type_raises_rather_than_looking_empty(self):
         """A typo in a route must not render as an empty library."""
@@ -383,9 +392,9 @@ class FavoritesTest(unittest.TestCase):
         rows = _source(api).get_favorite_sections("srv")
         self.assertTrue(rows)
         kw = api.calls[0][1]
-        self.assertEqual(kw["is_favorite"], "true")
-        self.assertTrue(kw["recursive"])
-        self.assertIn("include_item_types", kw)
+        self.assertEqual(kw["IsFavorite"], "true")
+        self.assertTrue(kw["Recursive"])
+        self.assertIn("IncludeItemTypes", kw)
 
     def test_offline_has_none(self):
         src = OfflineLibrarySource.__new__(OfflineLibrarySource)
@@ -493,7 +502,7 @@ class GenresTest(unittest.TestCase):
         g = _G()
         _source(g).get_genre_sections("srv", "lib1", "tvshows")
         self.assertEqual(g.calls[0][1]["include_item_types"], "Series")
-        self.assertEqual(g.calls[1][1]["include_item_types"], "Series")
+        self.assertEqual(g.calls[1][1]["IncludeItemTypes"], "Series")
         del api
 
     def test_an_unknown_collection_type_has_no_genres_screen(self):
@@ -701,9 +710,9 @@ class ByNameTest(unittest.TestCase):
             "srv", {"type": "items", "person_ids": "p1"})
         self.assertTrue(rows)
         kw = api.calls[0][1]
-        self.assertEqual(kw["person_ids"], "p1")
-        self.assertIn("include_item_types", kw)
-        self.assertTrue(kw["recursive"])
+        self.assertEqual(kw["PersonIds"], "p1")
+        self.assertIn("IncludeItemTypes", kw)
+        self.assertTrue(kw["Recursive"])
 
     def test_offline_has_none(self):
         src = OfflineLibrarySource.__new__(OfflineLibrarySource)
@@ -750,11 +759,24 @@ class FilterBarOverflowTest(unittest.TestCase):
 
     def test_and_move_ABOVE_it_when_there_is_not(self):
         """Above, not below: a row of doors under the filters reads as more
-        filtering."""
-        narrow = self._bar(760)
-        self.assertLess(narrow["grid-genres"]["y"],
-                        narrow["grid-sort"]["y"] - 20,
-                        "the doors did not move above the filter row")
+        filtering.
+
+        The width is *searched for* rather than pinned. This test pinned
+        760, and the filter panel -- which took five controls off the bar
+        -- moved the split to somewhere below 760 without breaking the
+        behaviour at all: the assertion failed while the feature worked.
+        A pinned width can only ever go stale in that direction, silently
+        if the number is generous.
+        """
+        def splits(w):
+            f = self._bar(w)
+            return f["grid-genres"]["y"] < f["grid-sort"]["y"] - 20
+
+        split = next((w for w in range(1920, 400, -40) if splits(w)), None)
+        self.assertIsNotNone(
+            split, "the doors never moved above the filter row at any width")
+        self.assertLess(split, 1280,
+                        "the bar split on a window it comfortably fits in")
 
     def test_a_library_with_no_view_controls_keeps_one_row(self):
         """Nothing to fit, so nothing to split -- and no empty second row."""
@@ -791,15 +813,22 @@ class FavoritesInTheTopBarTest(unittest.TestCase):
 
     def test_the_library_still_has_its_own_favorites_filter(self):
         """Which is the point -- the function is not lost, it is the one
-        that was already better."""
+        that was already better.
+
+        It sits in the filter panel now rather than on the bar, which
+        does not change the argument: it is still this library's own
+        favorites, one click away, next to the rest of the filtering.
+        """
         b = MpvtkBrowser(app=None, source=FakeSource(),
                          controller=FakeController())
         b._pool = _SyncPool()
         b.server = "srv1"
         b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
                     "title": "Movies"})
+        _nodes, handlers = build_scene(b)
+        handlers["grid-filter"]["click"]()
         nodes, _h = build_scene(b)
-        self.assertIn("grid-fav", ids(nodes))
+        self.assertIn("flt-favorite", ids(nodes))
 
 
 class FilterOrderTest(unittest.TestCase):
@@ -819,14 +848,75 @@ class FilterOrderTest(unittest.TestCase):
             (n.get("x", 0), n["id"]) for n in nodes
             if n.get("id") in want)]
 
-    def test_collections_sits_last_among_the_filters(self):
-        """It is a filter -- it swaps the grid for this library's
-        collections -- so it belongs with the checkboxes, not with the
-        buttons that leave, and after the two that filter the grid it is
-        replacing."""
-        want = ("grid-genres", "grid-sort", "grid-unplayed", "grid-fav",
-                "grid-collections", "grid-playall", "grid-shuffle")
+    def test_collections_sits_with_the_doors_not_the_filters(self):
+        """It was argued as a filter -- it swaps the grid for this
+        library's collections -- and that reading did not survive.
+
+        **[iw]**: "we should honestly treat collections as a door". A
+        filter narrows the set on screen; Collections replaces it with a
+        different kind of thing entirely, which is what every other door
+        on this row does. So it leads the row with Genres rather than
+        trailing the controls that filter.
+        """
+        want = ("grid-genres", "grid-collections", "grid-sort",
+                "grid-filter", "grid-playall", "grid-shuffle")
         self.assertEqual(self._row(want), list(want))
+
+    def test_every_control_on_the_row_shares_one_height(self):
+        """One row of buttons, one baseline.
+
+        The rule is action_btn's own docstring -- "every button in an
+        action row must come from here" -- and the bar broke it: Play All
+        and Shuffle were plain Buttons, which resolve their label from the
+        type scale and came out 1.2px taller than the Filter button.
+
+        It was invisible until the panel moved them next to it. Across the
+        bar from each other there was nothing to be uneven WITH, which is
+        why a height assertion is worth more here than an eyeball: the
+        symptom appears when the layout changes, not when the bug is made.
+        """
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                    "collection_type": "movies", "title": "Movies"})
+        b.route["_collection_capable"] = True
+        nodes, _h = build_scene(b, size=(1920, 720))
+        found = {n["id"]: n for n in nodes if n.get("id")}
+        want = ("grid-genres", "grid-collections", "grid-filter",
+                "grid-playall", "grid-shuffle")
+        heights = {i: found[i]["h"] for i in want if i in found}
+        self.assertEqual(len(heights), len(want), heights)
+        self.assertEqual(len(set(heights.values())), 1, heights)
+        # ...and on one baseline, or equal heights still stagger.
+        self.assertEqual(len({found[i]["y"] for i in want}), 1,
+                         {i: found[i]["y"] for i in want})
+
+    def test_collections_looks_different_when_it_is_on(self):
+        """It is the one toggle left on this row, and it had no visible
+        active state at all on the stock theme.
+
+        It was styled with ``theme.chrome_button_style()``, which returns
+        an EMPTY dict for any theme that did not ask for accented chrome --
+        so "on" and "off" rendered byte-identical and the only clue you
+        were in collections view was that the tiles had changed.
+        """
+        def coll(on):
+            b = MpvtkBrowser(app=None, source=FakeSource(),
+                             controller=FakeController())
+            b._pool = _SyncPool()
+            b.server = "srv1"
+            b.navigate({"kind": "grid", "server": "srv1",
+                        "parent_id": "lib1", "collection_type": "movies",
+                        "title": "Movies"})
+            b.route["_collection_capable"] = True
+            b.route["_collections"] = on
+            nodes, _h = build_scene(b, size=(1920, 720))
+            return [n for n in nodes if n.get("id") == "grid-collections"][0]
+
+        self.assertNotEqual(coll(True).get("fill"), coll(False).get("fill"),
+                            "the collections toggle looks the same on as off")
 
     def test_play_all_leads_shuffle(self):
         """Paired, and in web's order."""

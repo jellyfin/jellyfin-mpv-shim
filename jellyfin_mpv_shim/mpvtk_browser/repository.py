@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from jellyfin_apiclient_python import JellyfinClient
 
+from .. import items_api
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE
 from ..constants import USER_APP_NAME, CLIENT_VERSION, USER_AGENT
 from ..i18n import _
@@ -60,7 +61,7 @@ log = logging.getLogger("mpvtk_browser.repository")
 # to answer (it is the length of the item's own alternate-version lists, not a
 # media-source resolution -- that is MediaSources, which DETAIL_FIELDS pays
 # for and a browse query must not).
-LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount"
+LIST_FIELDS = "PrimaryImageAspectRatio,Overview,MediaSourceCount,CanDelete"
 
 #: An item's own artwork counts as landscape at or above this, which is what
 #: lets `backdrop_spec` use a home video's extracted still for its header and
@@ -77,7 +78,18 @@ _LANDSCAPE_ART = 0.8
 # a clicked one seeds a page that shows the text while the real DTO loads.
 # jellyfin-web's grid asks for the aspect ratio only when the view is Primary;
 # MediaSourceCount it asks for everywhere, and so do we -- see LIST_FIELDS.
-GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount"
+GRID_FIELDS = "PrimaryImageAspectRatio,MediaSourceCount,CanDelete"
+
+#: CanDelete is in all four field sets, and it has to be ASKED FOR: a list query
+#: omits it entirely (measured -- the key is absent, not False), so a Delete
+#: from Disk entry keyed off it would simply never appear. A single-item
+#: fetch returns it whatever Fields says, but relying on that would make the
+#: detail page's button depend on an undocumented default.
+#:
+#: It costs nothing measurable: +1.8 KB on a 165 KB hundred-item grid, and
+#: no change in query time -- which is worth having measured, because the
+#: per-item permission fields on this API are exactly the ones that have
+#: been expensive before (see the note on Items/Filters).
 
 #: ...and what a BOOKS grid asks for on top.
 #:
@@ -170,7 +182,12 @@ OFFLINE_ROW_KIND = "downloaded"
 # Fields for music browse (albums/artists/tracks). ItemCounts is what fills in
 # the track/album totals on artist tiles. The artist/album labels and track
 # runtimes these views also draw need no field at all — see LIST_FIELDS.
-MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts"
+#: CanDelete for the same reason as the other three sets -- it is absent
+#: unless asked for, and `item_actions.can_delete` reads absent as "no".
+#: Without it a music album offered Delete from Disk on its detail page
+#: (which uses DETAIL_FIELDS) and never from its tile menu, with nothing
+#: to suggest the two disagreed.
+MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts,CanDelete"
 
 # Fields requested for the detail view. Intentionally a superset (MediaSources,
 # MediaStreams, People, ...) so cached DTOs are already complete for the eventual
@@ -179,7 +196,7 @@ MUSIC_FIELDS = "PrimaryImageAspectRatio,ItemCounts"
 DETAIL_FIELDS = (
     "Path,Overview,Genres,Studios,People,Taglines,SortName,"
     "MediaSources,MediaStreams,Chapters,ProviderIds,"
-    "PrimaryImageAspectRatio,DateCreated"
+    "PrimaryImageAspectRatio,DateCreated,CanDelete"
 )
 
 # CollectionTypes we do not surface (video-only browser, phase 1). Playlists
@@ -372,6 +389,96 @@ class ServerConn:
             log.debug("Error stopping browse client", exc_info=True)
 
 
+#: Status filters -- `setting key -> the member of Jellyfin's `Filters`
+#: enum`. web's FiltersStatus, minus IsFavorite, which has a parameter of
+#: its own (`is_favorite`) and would be sent twice.
+STATUS_FILTERS = (
+    ("unplayed", "IsUnplayed"),
+    ("played", "IsPlayed"),
+    ("resumable", "IsResumable"),
+    ("liked", "Likes"),
+)
+
+#: Feature filters -- each its own boolean query parameter. web's
+#: FiltersFeatures.
+FEATURE_FILTERS = (
+    ("has_subtitles", "HasSubtitles"),
+    ("has_trailer", "HasTrailer"),
+    ("has_special_feature", "HasSpecialFeature"),
+    ("has_theme_song", "HasThemeSong"),
+    ("has_theme_video", "HasThemeVideo"),
+)
+
+#: Video "standard" filters -- each its own boolean parameter, and each
+#: measured on a real 12.0 server rather than taken from the SDK's
+#: spelling. The parameters are case-insensitive (`Is4K` and `is4K` both
+#: answered identically), so the casing here is only for readability.
+#:
+#: They UNION rather than intersect: `IsHd=true` answered 49 and
+#: `IsHd=true&Is4K=true` answered 54, which is 49 + the 5 the 4K filter
+#: matches on its own. That is the useful reading for a quality filter
+#: and is how web sends them, so it is left alone -- but it is the
+#: opposite of how every other filter on the panel composes, which is
+#: worth knowing before someone "fixes" it.
+VIDEO_FLAG_FILTERS = (
+    ("is_4k", "Is4K"),
+    ("is_3d", "Is3D"),
+)
+
+#: The `VideoType` enum, one checkbox each, joined into `VideoTypes`.
+#:
+#: The spellings are measured, and they have to be: an unparseable value
+#: is **silently ignored**, not rejected. `VideoTypes=Nonsense` answered
+#: with the whole library (1131 items), exactly as sending nothing does,
+#: while `VideoTypes=BluRay` answered 0 and `VideoTypes=VideoFile` 1131 --
+#: which is how these three are known to parse rather than to be quietly
+#: dropped. A typo here would not break the filter, it would turn it off.
+VIDEO_TYPE_FILTERS = (
+    ("vt_dvd", "Dvd"),
+    ("vt_bluray", "BluRay"),
+    ("vt_iso", "Iso"),
+)
+
+#: Filters whose value is a LIST of chosen options.
+#:
+#: `audio_languages` / `subtitle_languages` exist only on Jellyfin 12 and
+#: later, and only reach the server because item queries moved to
+#: `/Items` -- the legacy `Users/{id}/Items` route hard-codes them empty
+#: (see jellyfin_mpv_shim/items_api.py). The panel offers a category only
+#: when the server returned options for it, which is jellyfin-web's own
+#: gate and needs no version check.
+LIST_FILTERS = (
+    ("official_ratings", "OfficialRatings"),
+    ("tags", "Tags"),
+    # `video_types` is NOT here. It was, before the panel drew the
+    # VideoType boxes, and it built `VideoTypes` a second time -- from a
+    # key nothing sets, in a loop that runs after VIDEO_TYPE_FILTERS and
+    # would therefore have overwritten the real answer. Dead rather than
+    # wrong, which is why it survived: the only way to notice was to read
+    # both loops.
+    ("audio_languages", "AudioLanguages"),
+    ("subtitle_languages", "SubtitleLanguages"),
+    ("studio_ids", "StudioIds"),
+)
+
+
+#: Every filter key ``LibrarySource._filter_kwargs`` actually turns into a
+#: query parameter, derived from the tables above rather than listed.
+#:
+#: Derived because a list would be a second place to state the same fact,
+#: and the offline gap this exists to close was exactly that: the panel
+#: grew from five categories to eight while `OfflineLibrarySource` stayed
+#: at five keys, so a downloaded library drew fifteen checkboxes that did
+#: nothing and counted every one of them on the Filter button.
+SUPPORTED_FILTERS = frozenset(
+    [key for key, _param in STATUS_FILTERS]
+    + [key for key, _param in FEATURE_FILTERS]
+    + [key for key, _param in VIDEO_FLAG_FILTERS]
+    + [key for key, _param in VIDEO_TYPE_FILTERS]
+    + [key for key, _param in LIST_FILTERS]
+    + ["favorite", "genre", "year", "hd", "sd", "letter"])
+
+
 class LibrarySource:
     """Live, multi-server browse data source.
 
@@ -379,6 +486,13 @@ class LibrarySource:
     raise on network errors; callers run them off the UI thread and surface
     failures in the view.
     """
+
+    #: Which filter keys this source honours -- asked by the grid so it
+    #: can offer only what it can apply. A capability on the SOURCE and
+    #: not an "are we offline" test on the page, because `PageContext`
+    #: says a page "must not care which" source it has, and because the
+    #: honest question is not which source this is but what it can do.
+    supported_filters = SUPPORTED_FILTERS
 
     def __init__(self, servers, device_id: str, player_name: str, verify_ssl: bool):
         self._conns = {}
@@ -1308,7 +1422,7 @@ class LibrarySource:
 
         def find(item_type, fields):
             try:
-                result = api.get_user_items(
+                result = items_api.get_items(api, 
                     include_item_types=item_type, search_term=term,
                     recursive=True, limit=limit, fields=fields,
                     image_type_limit=1,
@@ -1416,13 +1530,26 @@ class LibrarySource:
 
     @staticmethod
     def _filter_kwargs(filters):
-        """Translate the UI's filter dict into ``get_user_items`` arguments."""
+        """Translate the UI's filter dict into ``get_items`` arguments."""
         kwargs: dict[str, str] = {}
         if not filters:
             return kwargs
-        active = []
-        if filters.get("unplayed"):
-            active.append("IsUnplayed")
+        # Status. web's `Filters` enum, sent as one comma-joined value --
+        # `is_favorite` is the exception, because it has its own parameter
+        # and the enum member is redundant with it.
+        # `IsUnplayed,IsPlayed` is answered with **HTTP 400** (measured,
+        # 12.0) rather than with nothing, so a filters dict holding both
+        # does not return an empty grid -- it fails the load and puts an
+        # error banner over a library that works. That it cannot hold
+        # both is enforced once, where the boxes are ticked
+        # (dialogs.MUTUALLY_EXCLUSIVE, applied by
+        # GridPage._toggle_filter), rather than a second time here: two
+        # copies of a rule are two things to diverge, and this layer
+        # cannot un-tick the box the user is looking at. Anything that
+        # learns to set filters WITHOUT going through that toggle owes
+        # the same check.
+        active = [name for key, name in STATUS_FILTERS
+                  if filters.get(key)]
         if active:
             kwargs["filters"] = ",".join(active)
         if filters.get("favorite"):
@@ -1431,6 +1558,45 @@ class LibrarySource:
             kwargs["genres"] = filters["genre"]
         if filters.get("year"):
             kwargs["years"] = str(filters["year"])
+        # Features (HasSubtitles, HasTrailer, ...) and the two languages,
+        # each its own boolean or list parameter rather than a member of
+        # `Filters`. All measured working on /Items; the languages need
+        # a server that has them, which is why the panel only offers a
+        # category the server returned options for.
+        #
+        # Through `params`, not as keywords: `items_api.get_items` names
+        # only the parameters the apiclient does, and RAISES on anything
+        # else -- deliberately, since a keyword it silently dropped would
+        # be a filter that stopped applying. `params` is the documented
+        # way past that and `build_query` merges it last.
+        extra: dict[str, str] = {}
+        for key, param in FEATURE_FILTERS:
+            if filters.get(key):
+                extra[param] = "true"
+        for key, param in VIDEO_FLAG_FILTERS:
+            if filters.get(key):
+                extra[param] = "true"
+        # SD and HD are one tri-state parameter, not two flags -- there is
+        # no `IsSd`. The panel makes them mutually exclusive so this can
+        # never be asked to send both; jellyfin-web does not, and there
+        # the second check silently wins (its handler assigns `isHd`
+        # twice, SD last), so ticking both shows two ticks and filters by
+        # one of them.
+        if filters.get("hd"):
+            extra["IsHd"] = "true"
+        elif filters.get("sd"):
+            extra["IsHd"] = "false"
+        chosen = [param for key, param in VIDEO_TYPE_FILTERS
+                  if filters.get(key)]
+        if chosen:
+            extra["VideoTypes"] = ",".join(chosen)
+        for key, param in LIST_FILTERS:
+            value = filters.get(key)
+            if value:
+                extra[param] = ",".join(str(v) for v in value) if isinstance(
+                    value, (list, tuple, set)) else str(value)
+        if extra:
+            kwargs["params"] = extra
         letter = filters.get("letter")
         if letter == "#":
             kwargs["name_less_than"] = "A"
@@ -1692,12 +1858,12 @@ class LibrarySource:
                 kwargs[key] = spec[key]
         if spec.get("is_favorite"):
             kwargs["is_favorite"] = "true"
-        # StudioIds has no named argument on get_user_items; params is the
+        # StudioIds has no named argument on get_items; params is the
         # documented way through for query parameters the signature does not
         # spell out, and it merges last.
         if spec.get("studio_ids") is not None:
             kwargs["params"] = {"StudioIds": spec["studio_ids"]}
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             sort_by=sort_by,
             sort_order=sort_order,
             start_index=start_index,
@@ -1737,7 +1903,7 @@ class LibrarySource:
         # how a TV library answers with 43,000 episodes.
         typed = ({"include_item_types": include, "recursive": True}
                  if include else {})
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             parent_id=parent_id,
             **typed,
             sort_by=sort_by,
@@ -1758,10 +1924,10 @@ class LibrarySource:
         items from several libraries), mirroring jellyfin-web's Collections
         view. Returns ``(items, total)`` like ``get_library_items``."""
         api = self._conn(server_uuid).api
-        # get_user_items rather than the apiclient's get_collections: this grid
+        # get_items rather than the apiclient's get_collections: this grid
         # carries the same filter row as any other, and the collections helper
         # has no filter arguments.
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             include_item_types="BoxSet",
             recursive=True,
             sort_by=sort_by,
@@ -1809,8 +1975,15 @@ class LibrarySource:
         }
         if extra:
             kwargs.update(extra)
-        kwargs.update(self._filter_kwargs(filters))
-        result = api.get_user_items(**kwargs) or {}
+        # Merged, not replaced: both sides may carry `params` and an
+        # update() would drop whichever landed first.
+        got = self._filter_kwargs(filters)
+        merged = dict(kwargs.get("params") or {})
+        merged.update(got.pop("params", None) or {})
+        kwargs.update(got)
+        if merged:
+            kwargs["params"] = merged
+        result = items_api.get_items(api, **kwargs) or {}
         return result.get("Items", []), result.get("TotalRecordCount", 0)
 
     def get_music_albums(self, server_uuid, parent_id, sort_by="SortName",
@@ -1962,10 +2135,15 @@ class LibrarySource:
 
     def get_filter_values(self, server_uuid, parent_id=None,
                           collection_type=None):
-        """Filter-picker values: {"genres": [...], "years": [...]}.
+        """Filter-picker values: one option list per picker section --
+        ``genres``, ``years``, ``official_ratings``, ``tags``.
 
-        Years come from Items/Filters; where that is unavailable the year
-        picker is simply empty and only the genre list is offered.
+        All four keys are always present, empty where the server said
+        nothing: the panel builds a section per key and a missing one
+        would raise where an empty one simply draws no options.
+
+        Only genres and years come from the pre-Items/Filters fallback;
+        against those servers the other two pickers are always empty.
 
         ``collection_type`` scopes the scan to the type the grid lists, which
         is what web's filter menu does. Untyped, the endpoint walks every
@@ -1987,12 +2165,53 @@ class LibrarySource:
                     years.add(int(y))
                 except (TypeError, ValueError):
                     continue
-            return {"genres": result.get("Genres") or [],
-                    "years": sorted(years, reverse=True)}
+            out = {"genres": result.get("Genres") or [],
+                   "years": sorted(years, reverse=True),
+                   "official_ratings": result.get("OfficialRatings") or [],
+                   "tags": result.get("Tags") or []}
+            out.update(self._filters2(server_uuid, parent_id,
+                                      collection_type))
+            return out
         except Exception:
             log.warning("Items/Filters failed; falling back to genres",
                         exc_info=True)
         return {"genres": self.get_genres(server_uuid, parent_id), "years": []}
+
+    def _filters2(self, server_uuid, parent_id=None, collection_type=None):
+        """The options only ``Items/Filters2`` knows: the two languages.
+
+        **Both endpoints, not one.** They return different, overlapping
+        sets: the legacy `Filters` has Years and OfficialRatings and no
+        languages; `Filters2` has the languages and no Years. Measured on
+        a live server -- switching wholesale to the newer one would have
+        silently emptied the Year picker we already ship. jellyfin-web
+        calls both for the same reason (`useFetchItems`).
+
+        Absent on Jellyfin 11 and earlier, where the query parameters do
+        not exist either -- so an empty answer here is exactly the gate
+        the panel needs, and it needs no version check.
+        """
+        api = self._conn(server_uuid).api
+        params = {"userId": "{UserId}"}
+        if parent_id:
+            params["parentId"] = parent_id
+        types = LIBRARY_ITEM_TYPES.get(collection_type or "")
+        if types:
+            params["includeItemTypes"] = types
+        try:
+            got = api.items("/Filters2", params=params) or {}
+        except Exception:
+            log.debug("Items/Filters2 unavailable", exc_info=True)
+            return {}
+
+        def pairs(key):
+            # NameValuePair: the Name is "English (eng)" and the Value is
+            # what the query wants.
+            return [(o.get("Name") or o.get("Value") or "", o.get("Value"))
+                    for o in (got.get(key) or []) if o.get("Value")]
+
+        return {"audio_languages": pairs("AudioLanguages"),
+                "subtitle_languages": pairs("SubtitleLanguages")}
 
     def get_similar(self, server_uuid, item_id, limit=12):
         """"More Like This" items."""
@@ -2096,7 +2315,7 @@ class LibrarySource:
         if ids or not any(i.get("IsFolder") for i in items):
             return ids
         api = self._conn(server_uuid).api
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             parent_id=parent_id,
             recursive=True,
             media_types=QUEUEABLE_MEDIA_PARAM,
@@ -2178,11 +2397,25 @@ class LibrarySource:
         counting matches is work the server can skip.
         """
         api = self._conn(server_uuid).api
-        result = api.get_user_items(
+        result = items_api.get_items(api, 
             search_term=term,
             include_item_types=SEARCH_TYPES,
             recursive=True,
             limit=limit,
+            # GRID_FIELDS, not nothing. This asked for no fields at all,
+            # which cost three things at once and measured at +47 KB on a
+            # 1.28 MB response: `PrimaryImageAspectRatio` was absent on
+            # *every* result, so search tiles have never been shaped by
+            # their own artwork (auto_geom fell back for all of them);
+            # `MediaSourceCount` was absent, so a multi-version item showed
+            # no version chip; and `CanDelete` was absent, so Delete from
+            # Disk could not appear on a search result the way it does
+            # everywhere else.
+            #
+            # GRID_FIELDS rather than LIST_FIELDS deliberately: this asks
+            # for 800 items, and LIST_FIELDS carries Overview -- which is a
+            # third of a response body for something no tile draws.
+            fields=GRID_FIELDS,
             enable_total_record_count=False,
         ) or {}
         return result.get("Items", [])
@@ -2503,6 +2736,23 @@ class OfflineLibrarySource:
     episodes) filtered to downloaded content, with artwork from local files.
     Reads the catalog read-only and caches rows in memory.
     """
+
+    #: **None.** The panel is not offered on a downloaded library.
+    #:
+    #: `_apply_filters` honours four of the twenty-six keys the panel can
+    #: produce, so offering it meant fifteen checkboxes and four pickers
+    #: that silently did nothing -- and every one of them counted on the
+    #: `Filter (N)` badge, so the button reported filtering that was not
+    #: happening. The alternative was reimplementing two dozen server
+    #: predicates against the catalog, which is a lot of surface for a
+    #: screen nobody needs it on. **[iw]**: "filter panel should be
+    #: disabled offline, people generally will know what they want to
+    #: watch offline or not have that much downloaded."
+    #:
+    #: `_apply_filters` stays, and the four keys it honours still work --
+    #: the A-Z rail writes `letter`, and Genres is a door rather than a
+    #: filter. What goes is the panel.
+    supported_filters = frozenset()
 
     def __init__(self, catalog_path):
         self.catalog_path = catalog_path
@@ -2901,10 +3151,21 @@ class OfflineLibrarySource:
 
     def get_filter_values(self, server_uuid, parent_id=None,
                           collection_type=None):
-        years = {i.get("ProductionYear") for i in self._snap.items
-                 if i.get("ProductionYear")}
+        # Derived from the catalog rather than an endpoint. Ratings and
+        # tags are only as complete as the Fields the downloader asked
+        # for -- an absent one leaves that picker empty, which is the
+        # same thing the pre-Items/Filters fallback does online.
+        years, ratings, tags = set(), set(), set()
+        for i in self._snap.items:
+            if i.get("ProductionYear"):
+                years.add(i["ProductionYear"])
+            if i.get("OfficialRating"):
+                ratings.add(i["OfficialRating"])
+            tags.update(i.get("Tags") or ())
         return {"genres": self.get_genres(server_uuid, parent_id),
-                "years": sorted(years, reverse=True)}
+                "years": sorted(years, reverse=True),
+                "official_ratings": sorted(ratings),
+                "tags": sorted(tags)}
 
     def get_similar(self, server_uuid, item_id, limit=12):
         return []  # no similarity data in the offline catalog
@@ -2993,9 +3254,15 @@ class OfflineLibrarySource:
                 # every episode was discarded and the season read "Nothing
                 # here yet." The live source gets this for free from the
                 # server's own Season DTO.
+                # SeriesName for the same reason as SeriesId, one screen
+                # further on: the season page puts it in the title bar, so
+                # without it an offline season says "Season 1" and never
+                # what it is a season of. The live server's Season DTO
+                # carries it; a synthesized one has to be told.
                 seen[key] = {"Id": item.get("SeasonId") or key, "Name": name,
                              "Type": "Season", "ImageTags": {},
                              "SeriesId": series_id,
+                             "SeriesName": item.get("SeriesName"),
                              "IndexNumber": pidx}
                 episodes_by_key[key] = []
                 order.append(key)

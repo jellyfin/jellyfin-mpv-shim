@@ -37,7 +37,29 @@ class HudMixin(GatewayCore):
                 "key": settings.hud_wake_key or "ENTER",
                 "hide": max(0.0, float(settings.hud_hide_secs or 0)),
                 "mode": settings.hud_autohide or "hover",
-                "shadow": settings.hud_scrim == "none"}
+                "shadow": settings.hud_scrim == "none",
+                # Whether the hidden HUD takes the left button at all. It
+                # rides this message rather than being read at startup for
+                # the same reason the rest do: engage() re-sends them, which
+                # is what makes the setting apply without a restart.
+                "click": bool(settings.mouse_click_pauses),
+                # Whether a pause the RENDERER performs has to go through
+                # Python. Normally it does not -- `cycle pause` locally is
+                # what makes click-to-pause feel immediate -- but in a
+                # SyncPlay group a local pause is not a pause, it is a
+                # desync the group then has to correct. Same shape as
+                # `click` above, and re-sent by engage(), which is what
+                # makes joining a group take effect without a restart.
+                "syncplay": self._syncplay_active()}
+
+    @staticmethod
+    def _syncplay_active():
+        from ...player import playerManager
+
+        try:
+            return bool(playerManager.syncplay.is_enabled())
+        except Exception:
+            return False
 
     def hud_menu_state(self):
         """osc_bridge's menu/track state blob for the HUD's pickers
@@ -88,6 +110,109 @@ class HudMixin(GatewayCore):
         Goes through the player's tracked toggle so the overlay is cleared
         when the library returns (see on_browse_enter -> clear_stats)."""
         self._act(lambda pm: pm.toggle_stats())
+
+    def playback_info(self):
+        """What the playback-info panel shows, or None with nothing playing.
+
+        **Not on the playstate snapshot**, unlike everything else the HUD
+        draws: that blob is pushed on every position tick and this carries a
+        whole MediaSource. It is read once when the panel opens instead,
+        which is also when it is true -- none of it can change without
+        playback restarting.
+
+        Every field is already decided and sitting on the Video. We do not
+        ask the server what it is doing with our session the way
+        jellyfin-web has to (``/Sessions`` -> ``TranscodingInfo``, polled):
+        the decision was *ours*, taken in
+        ``media.Video._get_url_from_source``, so this is an attribute read
+        rather than a request per second. The cost is that live transcode
+        progress and encoder fps are not available, which is the trade
+        recorded in docs/UI_FIXES_4.md §10.
+        """
+        from ...player import playerManager
+        try:
+            video = playerManager.get_video()
+        except Exception:
+            log.debug("could not read the playing video", exc_info=True)
+            return None
+        if video is None:
+            return None
+        item = getattr(video, "item", None) or {}
+        return {
+            "title": item.get("Name") or "",
+            "item_type": item.get("Type") or "",
+            "media_type": item.get("MediaType") or "",
+            # None until a url has been asked for, which is every state the
+            # panel can be opened in -- but the panel must not assume it.
+            "play_method": getattr(video, "play_method", None),
+            "transcode_reasons": list(
+                getattr(video, "transcode_reasons", None) or ()),
+            "direct_path": bool(getattr(video, "direct_path", False)),
+            "offline": getattr(video, "client", None) is None,
+            # The source actually chosen, not MediaSources[0]: an item with
+            # several versions would otherwise describe the wrong file.
+            "source": getattr(video, "media_source", None) or {},
+            "aid": getattr(video, "aid", None),
+            "sid": getattr(video, "sid", None),
+        }
+
+    #: mpv properties the playback-info panel shows, as
+    #: ``(property, key)``. Deliberately short: this is the half of mpv's
+    #: own stats.lua overlay that answers a question a *viewer* has --
+    #: why is it stuttering, why is it buffering, is my GPU being used --
+    #: rather than the half that answers one a developer has.
+    #:
+    #: **The overlay itself is not a substitute, which is the point.** It is
+    #: ASS OSD and our HUD is overlay bitmaps, and bitmaps composite above
+    #: all script ASS (mpvtk GUIDE 6) -- so mpv's stats have always been
+    #: drawn *behind* the very controls you are reading them from. Moving
+    #: the useful rows into a panel we draw is the only way they are
+    #: legible while the OSC is up. `i` still opens mpv's, for the rest.
+    _MPV_STATS = (
+        ("hwdec-current", "hwdec"),
+        ("current-vo", "vo"),
+        ("estimated-vf-fps", "fps"),
+        ("frame-drop-count", "drops_vo"),
+        ("decoder-frame-drop-count", "drops_dec"),
+        ("avsync", "avsync"),
+        ("demuxer-cache-duration", "buffered"),
+        ("cache-speed", "cache_speed"),
+    )
+
+    def player_stats(self):
+        """Live mpv counters for the playback-info panel, ``{}`` when idle.
+
+        Read per build rather than pushed on the playstate snapshot: the
+        panel is only open for seconds at a time, and these would otherwise
+        ride every 1s tick for the whole of every playback. While it *is*
+        open the HUD's own ticker rebuilds about once a second, which is
+        also the rate at which these are worth re-reading.
+
+        Every property is fetched independently and a failure is dropped
+        rather than raised: they are not all present on every mpv, on every
+        backend, or at every moment (there is no ``estimated-vf-fps``
+        before the first frame, and none of the video ones during audio),
+        and a panel that shows nothing because one counter was missing is
+        worse than one that shows seven rows.
+        """
+        from ...player import playerManager
+        player = getattr(playerManager, "_player", None)
+        if player is None or not getattr(playerManager, "_mpv_alive", True):
+            return {}
+        out = {}
+        for prop, key in self._MPV_STATS:
+            try:
+                # Both backends turn an unknown attribute into a property
+                # read, which is also why a typo here would be silent -- it
+                # raises, gets dropped below, and the row simply never
+                # appears. tests/test_mpv_stat_properties.py checks every
+                # name against `mpv --list-properties` for that reason.
+                value = getattr(player, prop.replace("-", "_"))
+            except Exception:
+                continue
+            if value is not None:
+                out[key] = value
+        return out
 
     def toggle_night_mode(self):
         """Night mode on/off from the playback HUD's gear menu. Applies to

@@ -82,6 +82,24 @@ class SettingsBase:
             apply_cover = getattr(self, "apply_cover_size", None)
             if apply_cover is not None:
                 apply_cover()
+        if ok and key in ("ui_text_scale", "ui_text_min"):
+            # Both apply live, and they have to: a control whose whole
+            # purpose is "make the text readable" that does nothing until
+            # a restart reads as broken, and the user cannot tell whether
+            # the value they picked was the right one.
+            #
+            # Two halves. The toolkit's type scale is what every text node
+            # resolves against; the tile captions are geometry baked into
+            # the strip bitmap, so they need the cover-size path -- which
+            # also drops the parked scroll offsets, since the row pitch
+            # changes with the caption band.
+            from .. import theme as browser_theme
+
+            browser_theme.apply_to_toolkit(
+                glow=bool((browser_theme.active() or {}).get("glow")))
+            apply_cover = getattr(self, "apply_cover_size", None)
+            if apply_cover is not None:
+                apply_cover()
         if ok and key.startswith("logo_legibility"):
             # Which backing a transparent logo gets is baked into the strip
             # bitmap, so the rows on screen have to be made unreachable or
@@ -106,9 +124,9 @@ class SettingsBase:
         """A full-width titled card. Settings panels are forms, not tile
         grids — they should span the pane rather than sit in a ragged
         left-aligned column."""
-        head = [Text(title, size=20, bold=True)]
+        head = [Text(title, size="large", bold=True)]
         if subtitle:
-            head.append(Text(subtitle, size=14, color=theme.SUBTLE_FG,
+            head.append(Text(subtitle, size="caption", color=theme.SUBTLE_FG,
                              wrap=True))
         return Column(head + children, pad=14, gap=8, bg=theme.CARD_BG,
                       radius=10, align="stretch")

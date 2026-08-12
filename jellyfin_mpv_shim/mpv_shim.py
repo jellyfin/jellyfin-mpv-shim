@@ -195,6 +195,40 @@ def main():
                 "Falling back to the command line interface.",
                 exc_info=True,
             )
+            # Same landing place as the no-lua fallback below, and it needs
+            # the same thing: with the browser gone nothing sets
+            # `on_hud_menu`, and `toggle_settings_menu` refuses the OSD
+            # menu while the resolved style is "mpvtk" -- so without this
+            # a machine that merely lacks Pillow has no menu at all.
+            from .player import playerManager as _pm
+
+            _pm.set_osc_style("mpv" if _pm.lua_works() else "none")
+
+    if use_gui:
+        # ...and the other thing the browser cannot do without: lua.
+        #
+        # Everything the shim DRAWS is lua -- the browser and the playback
+        # HUD are renderer.lua, the stock OSC is lua, mouse.lua is lua -- so
+        # an mpv that cannot run it leaves the app running and drawing
+        # nothing but video. Worse, `toggle_settings_menu` refuses the OSD
+        # menu whenever the *configured* style is mpvtk, live renderer or
+        # not, so there was no menu either: no UI at all, and no way to
+        # reach one. **[iw]**: "the lua probe failure should be a full and
+        # hard fallback to cli mode with osd menu enabled (and of course the
+        # osc setting doesn't matter because MPV's default OSC *needs
+        # lua*)."
+        #
+        # Importing player here rather than below: the probe needs the live
+        # mpv, and this decision has to be made before the UI is started.
+        from .player import playerManager as _pm
+
+        if not _pm.lua_works():
+            user_interface = None
+            use_gui = False
+            # There is no OSC to fall back to -- every one of them is lua --
+            # so the OSD menu is the only surface left, and it is reachable
+            # exactly because the resolved style is no longer "mpvtk".
+            _pm.set_osc_style("none")
 
     if not user_interface:
         from .cli_mgr import user_interface

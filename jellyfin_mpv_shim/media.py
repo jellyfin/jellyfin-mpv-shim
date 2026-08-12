@@ -42,6 +42,142 @@ _SERVER_CONVERTED_IMAGES = {"heic", "heif", "avif", "cr2", "nef", "arw",
 _PHOTO_MAX_WIDTH = 3840
 
 
+#: How the stream reached us, in jellyfin-web's *display* vocabulary
+#: (``playback/playmethodhelper.js``) rather than Jellyfin's ``PlayMethod``
+#: enum, which the two only partly agree about: web shows "Direct playing"
+#: for a ``static=true`` stream as well as for a file opened directly,
+#: because the bytes are unmodified either way.
+#:
+#: Deliberately *not* the string reported to the server. What we report is a
+#: separate and older question -- see docs/UI_FIXES_4.md §10, where it is
+#: deferred -- and tying the screen to it would have made the screen wait for
+#: it.
+PLAY_DIRECT = "DirectPlay"
+PLAY_DIRECT_STREAM = "DirectStream"
+PLAY_REMUX = "Remux"
+PLAY_TRANSCODE = "Transcode"
+
+
+def _target_codecs(transcoding_url):
+    """``(video, audio, reasons)`` out of a ``TranscodingUrl`` query string.
+
+    **All three are query parameters, and that is measured, not assumed.**
+    Against Jellyfin 10.11 the MediaSource DTO carries no ``TranscodeReasons``
+    field at all -- the reasons ride in the transcoding URL as a comma-joined
+    flags string -- so reading them off the DTO, which is the obvious thing
+    and what an older server's schema suggests, yields None every time and a
+    screen that says the file is being transcoded for no reason.
+
+    Each codec parameter may name *several* codecs (the profile can offer a
+    list and the server picks); the caller tests membership rather than
+    equality for that reason.
+    """
+    try:
+        query = urllib.parse.parse_qs(
+            urllib.parse.urlparse(transcoding_url or "").query)
+    except Exception:
+        log.debug("could not parse the transcoding url", exc_info=True)
+        return "", "", []
+
+    def one(key):
+        return (query.get(key) or [""])[0]
+
+    reasons = [r.strip() for r in one("TranscodeReasons").split(",")
+               if r.strip()]
+    return one("VideoCodec"), one("AudioCodec"), reasons
+
+
+#: Reasons that force the VIDEO to be re-encoded **even when the target
+#: codec matches the source**. These are all "the codec is fine, this
+#: property is not": a resolution, a level, a bit depth, a bitrate ceiling.
+#:
+#: **Codec-identity reasons are deliberately absent**, and the distinction
+#: matters. `TranscodeReasons` says why *direct play* was refused, not what
+#: the transcoder does with each stream -- so `AudioCodecNotSupported` can
+#: appear on a session whose transcoding profile then happily copies the
+#: audio. Treating every reason as authoritative made a remux report as a
+#: DirectStream, which the e2e test against a live server caught.
+#: Where the reason is about the codec, the target codec is the better
+#: witness and wins.
+_VIDEO_REASONS = frozenset({
+    "ContainerBitrateExceedsLimit", "VideoBitrateNotSupported",
+    "VideoResolutionNotSupported", "VideoFramerateNotSupported",
+    "VideoLevelNotSupported", "VideoProfileNotSupported",
+    "VideoBitDepthNotSupported", "VideoRangeTypeNotSupported",
+    "AnamorphicVideoNotSupported", "InterlacedVideoNotSupported",
+    "RefFramesNotSupported",
+})
+
+#: The same for audio: properties, not the codec name.
+_AUDIO_REASONS = frozenset({
+    "AudioBitrateNotSupported", "AudioChannelsNotSupported",
+    "AudioSampleRateNotSupported", "AudioBitDepthNotSupported",
+    "AudioProfileNotSupported", "SecondaryAudioNotSupported",
+})
+
+
+def transcode_play_method(media_source, transcoding_url, aid=None):
+    """``(play_method, reasons)`` for a source the server is serving us.
+
+    Only for the transcoding branch -- a direct path or a static stream is
+    :data:`PLAY_DIRECT` without asking anyone.
+
+    The rule is jellyfin-web's, reached by a different route. Web reads its
+    own session back off the server (``TranscodingInfo.IsVideoDirect`` /
+    ``IsAudioDirect``) because the *server* made the decision and web only
+    finds out; here the same facts are in the URL we were handed, so the
+    comparison is between the codec the server says it will emit and the
+    codec the file already has:
+
+    ==================  ==================  ==============
+    target video        target audio        method
+    ==================  ==================  ==============
+    same as source      same as source      Remux
+    same as source      re-encoded          DirectStream
+    re-encoded          --                  Transcode
+    ==================  ==================  ==============
+
+    Measured against a live 10.11 server with three device profiles built to
+    force each row; see the commit that added this.
+    """
+    target_v, target_a, reasons = _target_codecs(transcoding_url)
+    streams = (media_source or {}).get("MediaStreams") or []
+    video = next((s for s in streams if s.get("Type") == "Video"), None)
+    audio = None
+    if aid is not None:
+        audio = next((s for s in streams
+                      if s.get("Index") == aid and s.get("Type") == "Audio"),
+                     None)
+    if audio is None:
+        audio = next((s for s in streams if s.get("Type") == "Audio"), None)
+
+    named = set(reasons)
+
+    def direct(stream, target, touching):
+        if stream is None:
+            # No stream of that kind is not a stream being re-encoded. A file
+            # with no audio would otherwise report as a transcode forever.
+            return True
+        # **The reasons outrank the codec comparison**, because a same-codec
+        # re-encode names the source codec in the url and is otherwise
+        # indistinguishable from a copy. If the server says it is
+        # transcoding *because of* something about this stream, it is not
+        # passing it through.
+        if named & touching:
+            return False
+        codec = (stream.get("Codec") or "").lower()
+        names = [t.strip().lower() for t in (target or "").split(",")]
+        # An empty target means the server named no codec for this kind,
+        # which is how it says "untouched".
+        return not target or (codec and codec in names)
+
+    if not direct(video, target_v, _VIDEO_REASONS):
+        return PLAY_TRANSCODE, reasons
+    if not direct(audio, target_a, _AUDIO_REASONS):
+        return PLAY_DIRECT_STREAM, reasons
+    return PLAY_REMUX, reasons
+
+
 def build_video(item_id, parent, aid=None, sid=None, srcid=None,
                 explicit_tracks=False):
     if _video_factory is not None:
@@ -148,6 +284,19 @@ class Video(object):
         self.audio_seq = {}
         self.audio_uid = {}
         self.is_transcode = False
+        #: What the *screen* should say about how this is being played, and
+        #: why -- see PLAY_DIRECT and friends. Set by _get_url_from_source at
+        #: each of its exits, because that method IS the decision; anything
+        #: reconstructing it afterwards is a second implementation of it.
+        #: None until a url has been asked for.
+        self.play_method = None
+        self.transcode_reasons: List[str] = []
+        #: True when we opened the file (or its URL) ourselves rather than
+        #: streaming it from /Videos. Not part of play_method because web has
+        #: no equivalent -- it cannot direct-path and so never had to say --
+        #: but it is the difference between a local disk and the network, and
+        #: on a downloaded copy it is the whole answer.
+        self.direct_path = False
         self.trs_ovr = None
         self.playback_info = None
         self.media_source = None
@@ -414,6 +563,14 @@ class Video(object):
         return path
 
     def _get_url_from_source(self):
+        # Everything below is decided fresh. This method runs again when the
+        # quality is changed or a failed load is retried with a transcode
+        # forced, and without the reset a Video that direct-played first
+        # keeps `direct_path` set (the panel then says "local file" over a
+        # transcode) and keeps the previous negotiation's transcode reasons.
+        self.play_method = None
+        self.transcode_reasons = []
+        self.direct_path = False
         # Only use Direct Paths if:
         # - The media source supports direct paths.
         # - Direct paths are enabled in the config.
@@ -457,6 +614,8 @@ class Video(object):
 
             if parsed_source_path.scheme:
                 self.is_transcode = False
+                self.play_method = PLAY_DIRECT
+                self.direct_path = True
                 log.debug("Using remote direct path.")
                 # translate path for windows
                 # if path is smb path in credential format for kodi and maybe linux \\username:password@mediaserver\foo,
@@ -470,10 +629,20 @@ class Video(object):
                 if os.path.isfile(source_path):
                     log.debug("Using local direct path.")
                     self.is_transcode = False
+                    self.play_method = PLAY_DIRECT
+                    self.direct_path = True
                     return source_path
 
         if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False
+            # PLAY_DIRECT, not PLAY_DIRECT_STREAM: these are jellyfin-web's
+            # *display* names, and it calls a static stream "Direct playing"
+            # too, because the bytes are the file's either way. Its
+            # DirectStream means something else entirely -- video copied,
+            # audio re-encoded -- which is a transcoding session. The
+            # direct_path flag below is where the difference this one does
+            # have from a local file is recorded.
+            self.play_method = PLAY_DIRECT
             log.info("Using direct url.")
             query_params = {
                 "static": "true",
@@ -501,9 +670,10 @@ class Video(object):
         elif self.media_source["SupportsTranscoding"]:
             log.info("Using transcode url.")
             self.is_transcode = True
-            return self.client.config.data["auth.server"] + self.media_source.get(
-                "TranscodingUrl"
-            )
+            transcoding_url = self.media_source.get("TranscodingUrl")
+            self.play_method, self.transcode_reasons = transcode_play_method(
+                self.media_source, transcoding_url, self.aid)
+            return self.client.config.data["auth.server"] + transcoding_url
 
     def get_best_media_source(self, preferred: Optional[str] = None):
         weight_selected = 0
@@ -657,6 +827,12 @@ class Video(object):
             # url is the original-quality *upgrade* rather than the only way
             # in. jellyfin-web draws exactly this line (slideshow.js:
             # getImgUrl). Fails open: see user_policy.may_download.
+            # Neither of the two photo urls below is negotiated, so the
+            # decision _get_url_from_source would have recorded never
+            # happens: one is the file, the other is the server's own
+            # rendering of it. Both are "here are the bytes".
+            self.play_method = PLAY_DIRECT
+            self.direct_path = True
             keep_token = not self.auth_via_header
             container = (self.item.get("Container") or "").lower()
             path = (self.item.get("Path") or "").lower()
@@ -749,7 +925,25 @@ class Video(object):
                 return ticks / 10000000
 
     def set_played(self, watched: bool = True):
+        """Mark this item played/unplayed on the server, and locally.
+
+        The local half matters for the same reason `mirror_playstate` does:
+        an item can be *streamed* while a downloaded copy of it sits on
+        disk, and that copy -- the one kept precisely for when the server is
+        gone -- was the only thing that never heard about "Quit and Mark
+        Unwatched". Deliberate marks are authoritative in both directions,
+        so this goes through `mirror_watched` rather than the advance-only
+        playback path; it is a no-op for an item nothing was downloaded for.
+        `OfflineVideo` overrides this and keeps its own replay queue.
+        """
         self.client.jellyfin.item_played(self.item_id, watched)
+        try:
+            from .sync.manager import syncManager
+
+            syncManager.mirror_watched(self.item_id, watched)
+        except Exception:
+            log.debug("Could not mirror the watched mark for %s",
+                      self.item_id, exc_info=True)
 
     def set_streams(self, aid: Optional[int], sid: Optional[int]):
         need_restart = False
@@ -881,8 +1075,17 @@ class Media(object):
         self.has_next = self.seq < len(new_queue) - 1
 
     def replace_queue(self, sp_items, seq):
-        """Update queue for SyncPlay.
-        Returns None if the video is the same or a new Media if not."""
+        """Swap in a different queue, keeping this Media if it can.
+
+        Returns None when the entry at ``seq`` is the item already playing
+        (updated in place), or a new Media when it is not.
+
+        Written for SyncPlay, which is still its main caller, but not
+        specific to it: PlayerManager._widen_queue_backwards uses it to
+        prepend the episodes before a Next Up start (#650). What makes it
+        the right tool for both is the ordering discipline below -- any
+        publisher of a whole new queue needs it.
+        """
         if self.queue[self.seq]["Id"] == sp_items[seq]["Id"]:
             # has_next/has_prev are derived state and every other publisher
             # re-derives them (insert_items above, _publish_queue in the

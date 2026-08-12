@@ -182,6 +182,14 @@ class OfflineWatchTargetsTest(unittest.TestCase):
             {"item_id": "m1", "series_id": None, "season_id": None,
              "server_uuid": "srv"},
         ]
+        # The fan-out rule moved onto SyncDB, and it is what this class is
+        # about -- so run the real one against this mock's rows rather than
+        # restating it here, which would be a test agreeing with itself.
+        from jellyfin_mpv_shim.sync.db import SyncDB
+
+        db.watched_targets.side_effect = (
+            lambda item_id, server_uuid=None:
+            SyncDB.watched_targets(db, item_id, server_uuid))
         return db
 
     def test_leaf_item(self):

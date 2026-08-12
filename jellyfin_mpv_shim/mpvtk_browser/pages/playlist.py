@@ -41,7 +41,7 @@ class PlaylistPage(Page):
         pl_item = {"Id": pid, "Type": "Playlist",
                    "Name": route.get("title", "")}
         header = Row([
-            Text(route.get("title", ""), size=28, bold=True),
+            Text(route.get("title", ""), size="hero", bold=True),
             Spacer(),
             # Play All / Shuffle only when there is something to play — they
             # rendered above the empty check, so an empty playlist offered
@@ -70,7 +70,7 @@ class PlaylistPage(Page):
             body = [Text(
                 _("This playlist is empty.") if not raw else
                 _("This playlist has no supported media types."),
-                size=18, color=theme.SUBTLE_FG)]
+                size="large", color=theme.SUBTLE_FG)]
         elif audio:
             # Music playlists read as a track list, like the Tk browser —
             # a wall of identical album covers tells you nothing. Per-track

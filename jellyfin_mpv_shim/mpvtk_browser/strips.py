@@ -114,6 +114,36 @@ class TileGeom:
     sub_size: int = 13
     badge_size: int = 14
 
+    def with_text_scale(self, factor, minimum=0):
+        """A copy with the caption text scaled, and room made for it.
+
+        The caption sizes are **geometry**, not type-scale tiers: they are
+        baked into the strip bitmap by Pillow and they already grow with
+        Cover Size, because a label under a bigger poster should. So the
+        user's text preference has to be applied here separately -- it
+        does not arrive through `theme.size()` like everything drawn as a
+        text node, which is why turning text up left the tiles alone.
+
+        ``caption_h`` grows with them. It is a fixed band under the
+        artwork and `_paint_caption` lays out inside it as title, a 7px
+        gap, then subtitle -- 15 + 7 + 13 in 46px at stock. Scale the type
+        without the band and the subtitle is simply clipped away.
+        """
+        import dataclasses
+
+        def scaled(value):
+            return max(1, int(round(value * factor)), int(minimum or 0))
+
+        title, sub = scaled(self.title_size), scaled(self.sub_size)
+        # What the painter needs, plus the slack the stock band already
+        # carries -- so a caption keeps the breathing room it was designed
+        # with instead of being cropped to its own text.
+        slack = self.caption_h - (self.title_size + self.sub_size)
+        return dataclasses.replace(
+            self, title_size=title, sub_size=sub,
+            badge_size=scaled(self.badge_size),
+            caption_h=max(self.caption_h, title + sub + max(slack, 0)))
+
     @property
     def strip_h(self):
         return self.tile_h + self.caption_h
@@ -686,11 +716,28 @@ class StripStore:
                 img.paste(poster, (px, py),
                           poster if poster.mode == "RGBA" else None)
         elif t.glyph:
-            # A muted centered glyph (first initial / ♪) so blank tiles read.
+            # A muted centred mark so a blank tile still reads. Usually a
+            # Material icon -- jellyfin-web's own per-type default, so a
+            # library with no artwork looks like it does in every other
+            # client -- and a letter only where no icon fits (see
+            # components.labels.placeholder_glyph).
+            #
+            # Told apart by looking the name up, not by length: "?" and a
+            # one-letter initial are both legitimate answers, and an icon
+            # name is never one character.
+            from ..mpvtk import vector
+
             gsize = max(_px(24), g.tile_h // 4)
-            dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
-                    font=_font(gsize, bold=True, text=t.glyph), anchor="mm",
-                    fill=theme.rgb(theme.SUBTLE_FG))
+            if t.glyph in vector.ICON_PATHS:
+                glyph = vector.icon_image(
+                    t.glyph, gsize, theme.rgb(theme.SUBTLE_FG))
+                img.paste(glyph,
+                          (int(x + (g.tile_w - gsize) // 2),
+                           int((g.tile_h - gsize) // 2)), glyph)
+            else:
+                dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
+                        font=_font(gsize, bold=True, text=t.glyph),
+                        anchor="mm", fill=theme.rgb(theme.SUBTLE_FG))
         if rounded:
             dr.rounded_rectangle(box, radius=r,
                                  outline=theme.rgb("101012", 255))
@@ -748,13 +795,29 @@ class StripStore:
             self._paint_kind(img, dr, cx, cy, t.kind)
             cx -= _px(self.BADGE_PITCH)
         if t.badge:
-            bw = _px(26)
+            # Sized to the number it carries, not to a guess about how big
+            # numbers get. This was a fixed 26 logical px, which is three
+            # physical px NARROWER than "123" draws at the default badge
+            # size -- so a three-digit count (routine on an unwatched anime
+            # series, and reachable by anyone who adds a show and never
+            # starts it) hung out of both ends of its own chip. Two digits
+            # fitted, with 3px of padding against the single digit's 8.
+            #
+            # jellyfin-web's `.countIndicator` is the same shape and grows
+            # the same way: `padding: 0 .5em` over a min-width. The chip is
+            # pinned by its RIGHT edge rather than its centre, because that
+            # edge is the one lined up with the badge stack beside it --
+            # growing from the middle would walk a wide chip off the corner
+            # of the card.
+            text = str(t.badge)
+            font = _font(g.badge_size, bold=True)
+            bw = max(_px(26), int(dr.textlength(text, font=font)) + _px(14))
+            right = cx + _px(13)
             dr.rounded_rectangle(
-                [cx - bw // 2, _px(5), cx + bw // 2, _px(25)],
+                [right - bw, _px(5), right, _px(25)],
                 radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
             )
-            dr.text((cx, _px(15)), str(t.badge),
-                    font=_font(g.badge_size, bold=True), anchor="mm",
+            dr.text((right - bw / 2, _px(15)), text, font=font, anchor="mm",
                     fill=(255, 255, 255))
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))

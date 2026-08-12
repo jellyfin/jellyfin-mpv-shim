@@ -9,12 +9,16 @@ screen.
 Reaches the shell for nothing. The first page to manage that.
 """
 
+import logging
+
 from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
 from .. import components, home_sections, theme, user_prefs
 from ..components import chrome
 from .base import Page
+
+log = logging.getLogger("mpvtk_browser.pages.home")
 
 
 class HomePage(Page):
@@ -66,6 +70,21 @@ class HomePage(Page):
         source = self.ctx.source
         run = self.ctx.run
         invalidate = self.ctx.invalidate
+
+        # This screen's rows *are* watched state, and the copy the catalog
+        # holds for offline browsing is only refreshed on a background
+        # tick. Ask for that pull now, so an episode finished on another
+        # device is current here -- and, more to the point, is still
+        # current when the network goes away a moment later. Non-blocking:
+        # it marks the pull due and wakes the sync worker.
+        refresh = getattr(self.ctx.player, "refresh_downloaded_userdata",
+                          None)
+        if refresh is not None:
+            try:
+                refresh()
+            except Exception:
+                log.debug("could not request a userdata refresh",
+                          exc_info=True)
 
         def work():
             server = route.get("server") or self.ctx.server
@@ -183,7 +202,7 @@ class HomePage(Page):
                 [Spacer(),
                  Row([Spacer(), Busy(), Spacer()]),
                  Row([Spacer(),
-                      Text(_("Connecting to your server…"), size=20,
+                      Text(_("Connecting to your server…"), size="large",
                            color=theme.SUBTLE_FG),
                       Spacer()]),
                  Spacer()],
@@ -247,7 +266,7 @@ class HomePage(Page):
                                            see_all=see_all))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
-                             Text(_("Nothing to show yet."), size=20,
+                             Text(_("Nothing to show yet."), size="large",
                                   color=theme.SUBTLE_FG)]))
         # pad=0: home carousels bleed to the window edges so their page
         # arrows sit flush against them (see TileRenderer.hscroll_row).
@@ -277,8 +296,7 @@ class HomePage(Page):
 
         return Row(
             [Spacer(w=chrome.CONTENT_PAD),
-             Text(_("Live TV"), size=(theme.active() or {}).get(
-                 "heading_size", 24), bold=True)]
+             Text(_("Live TV"), size=theme.heading_size(), bold=True)]
             + [Button(label, id="home-lt-" + key,
                       on_click=lambda k=key: self.ctx.nav.navigate({
                           "kind": "livetv", "server": self.ctx.server,

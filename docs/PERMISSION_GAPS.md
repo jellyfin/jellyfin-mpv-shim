@@ -336,3 +336,47 @@ that playlists survive) and `tests/e2e/test_collections.py:CollectionPermissionT
 which is where the field *spelling* is checked and where the premise lives:
 that the server really would have refused. If Jellyfin ever relaxes this, that
 test fails and hiding the button becomes the thing to reconsider.
+
+## 6. Deleting media — the one gate we take from the item, not the account  — ADDED
+
+Not a gap that was found; a feature that had to be built without making one.
+Delete from Disk (#4, `docs/UI_FIXES_4.md`) is the first thing in the browser
+that destroys anything on the server, so the question of who may press it had
+to be answered before the button existed rather than after.
+
+**The gate is the item's own `CanDelete`, and nothing else.** That is
+jellyfin-web's test (`itemContextMenu.js:210`, `if (item.CanDelete && …)`) and
+it is the only correct one available to a client: the server grants deletion
+per *library* (`EnableContentDeletionFromFolders`), so an account can be
+allowed to delete from one library and refused on another. Reading
+`EnableContentDeletion` off the user policy — the shape every other entry in
+this document uses — would be right about the account and wrong about half
+their libraries, in both directions.
+
+**It has to be asked for.** Measured against 10.11: a list query omits
+`CanDelete` entirely (the key is absent, not `False`), so an entry keyed off
+it would simply never appear; a single-item fetch returns it whatever `Fields`
+says, but depending on that would make the detail page's button rest on an
+undocumented default. It is therefore in `GRID_FIELDS`, `LIST_FIELDS` and
+`DETAIL_FIELDS`. The cost is nothing measurable — +1.8 KB on a 165 KB
+hundred-item grid, no change in query time — which is worth having measured,
+because per-item permission fields on this API are exactly the ones that have
+been expensive before.
+
+**Absent means no, and that is deliberately the opposite of §4's fail-open.**
+`may_download` fails *open* because a missing permission there costs a
+convenience and a wrong guess costs a working feature. Here the asymmetry is
+reversed: hiding a delete the user could have made is an inconvenience, and
+offering one that 403s at the point of no return is not. There is no
+`user_policy` accessor for this at all, on purpose — adding one would invite
+exactly the account-level reading the first paragraph rules out.
+
+**The stdjflib half.** The QA server's own administrator account has
+`EnableContentDeletion: False` (measured), which is a *useful* default and has
+been left alone: it makes "the entry is correctly absent" the state you get
+without arranging anything, and the granting case the one that has to be set
+up deliberately. Nothing in the test suite deletes from a real server.
+
+Pinned by `tests/test_shell_delete_item.py` — the gate, that an absent field
+is a refusal, that offline does not offer it, and that the confirmation says
+what it destroys without truncating the sentence.

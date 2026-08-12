@@ -253,6 +253,23 @@ class SyncPlayManager:
         self.playback_rate = self.playerManager.get_speed()
         self.enabled_at = datetime.utcnow()
         self.enable_speed_sync = True
+        # #16: take every key that currently means pause or seek, for as
+        # long as the group lasts.
+        #
+        # There are two paths into SyncPlay and they are not equivalent. The
+        # direct one -- a key -> toggle_pause -> pause_request -- never lets
+        # mpv unpause in a group at all. The defensive observer on `pause`
+        # catches what we did not initiate, but only *after* mpv has already
+        # acted, so it plays and then forces a re-pause while the group is
+        # asked: a visible flicker on every play. [iw]: "it's not ideal,
+        # worth capturing when using syncplay."
+        #
+        # So the direct path is kept, and scoped to when it is needed rather
+        # than held for the life of the process. It also reaches further
+        # than the fixed bindings ever did -- `p`, PLAYPAUSE, REWIND,
+        # Shift+arrows and anything the user remapped were all going through
+        # the observer before.
+        self._claim_keys(True)
 
         def ready_callback():
             self.process_command(self.queued_command)
@@ -287,6 +304,9 @@ class SyncPlayManager:
         # yanking the player around after the group was left.
         self.enabled_at = None
         self.sync_generation += 1
+        # ...and give the keys back. Outside a group they are mpv's, and
+        # the user's own bindings apply untouched.
+        self._claim_keys(False)
 
         # Cancel every pending scheduled command / sync timer / speed restore.
         # clear_scheduled_command() also resets the player speed to 1.
@@ -506,6 +526,28 @@ class SyncPlayManager:
         that has stopped playing. Membership questions only -- leaving,
         listing, reporting which group we are in."""
         return self.enabled_at is not None
+
+    def _claim_keys(self, wanted):
+        """Claim or release pause+seek on the player. Best effort: a player
+        that cannot do this (an old mpv, a stand-in in a test) must not stop
+        a group being joined or left."""
+        try:
+            from .keysweep import PAUSE, SEEK
+
+            claim = getattr(self.playerManager, "claim_keys", None)
+            if claim is not None:
+                claim("syncplay", {PAUSE, SEEK} if wanted else None)
+            # ...and tell the renderer, whose own pause paths (click-to-pause,
+            # the summon key, right-click in mpv modality) hand over to
+            # Python only while a group is on. Without this a group joined
+            # mid-playback keeps the local `cycle pause`, which is not a
+            # pause at all in a group.
+            notify = getattr(self.playerManager, "on_syncplay_change", None)
+            if notify is not None:
+                notify()
+        except Exception:
+            log.debug("could not update the SyncPlay key claim",
+                      exc_info=True)
 
     def is_enabled(self):
         """SyncPlay is driving, and being driven by, this player.
@@ -880,7 +922,7 @@ class SyncPlayManager:
         and stop() takes the player lock and then the timeline lock. Doing
         that here would block every other message from this server behind it,
         and would add a fresh path into the lock inversion in finding 1 of
-        docs/SYNCPLAY_FINDINGS.md.
+        docs/archive/SYNCPLAY_FINDINGS.md.
         """
         self.clear_scheduled_command()
         self.playerManager.put_task(self.playerManager.stop, False)

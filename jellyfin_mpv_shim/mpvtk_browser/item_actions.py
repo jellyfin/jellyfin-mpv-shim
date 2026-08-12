@@ -522,6 +522,106 @@ class ItemActions:
         """Ask the shell for the download dialog (size estimate, options)."""
         self.dialogs.open_download(item)
 
+    # -- deleting from the server ------------------------------------------
+
+    @staticmethod
+    def can_delete(item):
+        """Whether to offer Delete from Disk for this item.
+
+        ``CanDelete`` off the DTO, which is jellyfin-web's own test
+        (itemContextMenu.js) and the only correct one: the server computes
+        it from the user's policy **and** the library the item is in, so
+        deletion can be granted for one library and not another and no
+        client-side reading of the account can know which.
+
+        Absent means no, and that is the opposite of ``may_download``'s
+        fail-open on purpose: hiding a delete the user could have made is an
+        inconvenience, and offering one that 403s at the point of no return
+        is not.
+        """
+        return bool((item or {}).get("CanDelete"))
+
+    def confirm_delete_item(self, item, server, on_done=None):
+        """Confirm, loudly, then delete this item from the server.
+
+        The wording is jellyfin-web's ``ConfirmDeleteItem`` verbatim -- so it
+        seeds into 86 locales -- and the name goes on its own line rather
+        than into the sentence, which is both more legible and the only way
+        it *can* seed (their placeholder is ``{0}`` and ours would be
+        ``%s``, and the seeder compares placeholder shapes).
+
+        "Delete from Disk" on the title and on the button, not "Delete":
+        every other Delete on these screens removes a *download*, and the
+        two are one careless press apart.
+        """
+        name = item.get("Name") or ""
+        self.dialogs.confirm(
+            name,
+            lambda: self.delete_item(item, server, on_done=on_done),
+            title=_("Delete from Disk"),
+            yes=_("Delete from Disk"),
+            detail=_("Deleting this item will delete it from both the file "
+                     "system and your media library. Are you sure you wish "
+                     "to continue?"))
+
+    def delete_item(self, item, server, on_done=None):
+        """Delete on the server, then drop any local copy.
+
+        **The download goes too.** Leaving it behind means the library says
+        the item is gone while this machine still plays it -- and the local
+        file is now the only copy of something the user asked to destroy,
+        which is a surprise in the more alarming direction. Best effort and
+        after the fact: the server delete is the one that has to be
+        reported, and a catalog row that failed to clear is a cosmetic
+        problem next to it.
+
+        ``on_done`` is how the *page* decides what to do next, because only
+        it knows whether the deleted item was the thing on screen or a tile
+        in a list.
+        """
+        iid = item.get("Id")
+        if not iid:
+            return
+        name = item.get("Name") or ""
+
+        def gone():
+            ctl = self.services.controller
+            try:
+                if ctl is not None:
+                    # By TYPE, like remove_download -- deleting a Series
+                    # with `item_id=` matches one catalog row that does not
+                    # exist (a series is not downloaded, its episodes are),
+                    # so every episode was left on disk pointing at an item
+                    # the server no longer has.
+                    self._drop_downloads(ctl, item)
+            except Exception:
+                log.debug("could not drop the local copy of %s", iid,
+                          exc_info=True)
+            self._on_downloads_changed()
+            self.services.set_status(_("%s was deleted.") % name)
+            if on_done is not None:
+                on_done()
+
+        self.edit(lambda c: c.delete_item(server, iid), on_ok=gone,
+                  error=_("%s could not be deleted.") % name)
+
+    @staticmethod
+    def _drop_downloads(ctl, item):
+        """Delete whatever this item's *downloads* are, by type.
+
+        The same dispatch as :meth:`remove_download`, shared so a container
+        cannot be handled correctly in one place and by id in the other.
+        """
+        iid, kind = item.get("Id"), item.get("Type")
+        if kind == "Series":
+            ctl.delete_download(series_id=iid)
+        elif kind == "Season":
+            ctl.delete_download(series_id=item.get("SeriesId"), season_id=iid)
+        elif kind == "Playlist":
+            ctl.delete_download(playlist_id=iid)
+        else:
+            ctl.delete_download(item_id=iid)
+
     def confirm_remove_download(self, item):
         """Confirm, then delete this item's downloaded copy."""
         self.dialogs.confirm(
@@ -536,15 +636,7 @@ class ItemActions:
         ctl = self.services.controller
 
         def work():
-            if t == "Series":
-                ctl.delete_download(series_id=iid)
-            elif t == "Season":
-                ctl.delete_download(series_id=item.get("SeriesId"),
-                                    season_id=iid)
-            elif t == "Playlist":
-                ctl.delete_download(playlist_id=iid)
-            else:
-                ctl.delete_download(item_id=iid)
+            self._drop_downloads(ctl, item)
 
         def done(_ok):
             self._on_downloads_changed()
@@ -675,7 +767,8 @@ class ItemActions:
             else:
                 if then_open:
                     self._pending_reads[iid] = name
-                self.services.set_status(_("Downloading %s…") % name)
+                self.services.set_status(
+                    self.downloading_message(name))
             # However it ended, the catalog may now say something different
             # from what the screen is drawing: a row was just queued, or an
             # already-complete one was found. Re-reading here rather than
@@ -689,6 +782,28 @@ class ItemActions:
             self._on_downloads_changed()
 
         self.run.run(work, done, ep, on_error=failed)
+
+    @staticmethod
+    def downloading_message(name):
+        """The toast a queued book raises.
+
+        One function rather than the format string in two places, because
+        the *reader* clears it by comparing against it (#2) and a second
+        spelling would silently never match.
+        """
+        return _("Downloading %s…") % (name or "")
+
+    def clear_downloading_toast(self, item):
+        """Take that toast down, now the thing it was about is on screen.
+
+        ``TOAST_SECS`` is six, so on a local server the message outlives
+        the download and sits over the first page of the book. Conditional
+        on the text still being ours -- see ``clear_status_if``.
+        """
+        clear = getattr(self.services, "clear_status_if", None)
+        if clear is not None:
+            clear(self.downloading_message(item.get("Name")
+                                           if item else ""))
 
     def flush_pending_reads(self):
         """Open any book whose download has finished since the last call.

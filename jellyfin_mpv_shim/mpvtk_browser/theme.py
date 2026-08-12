@@ -153,13 +153,66 @@ def toolkit_tokens():
     }
 
 
+def heading_size():
+    """The carousel section-heading size.
+
+    The theme's ``heading_size`` if it pins one, else the scale's HEADING
+    tier -- so a heading follows the user's text-size multiplier unless a
+    theme has deliberately taken it over.
+    """
+    from ..mpvtk import theme as tk
+
+    return (_active or {}).get("heading_size") or tk.size("HEADING")
+
+
+def baked_text(physical_px):
+    """A **physical** text size, with the user's multiplier and floor.
+
+    For text Pillow bakes into a bitmap -- the banner heading, the cast
+    screen's lines. Those never pass through a widget, so they received
+    neither the multiplier nor the readability floor, and a floor of 20
+    left a banner's meta line at 19px beside body copy at 20. In
+    `headless` mode the cast screen is the only page there is, so nothing
+    on screen was floored at all.
+
+    Takes and returns physical pixels because that is the space these
+    compositors work in; `theme.text_size` is the logical-space twin.
+    """
+    from ..mpvtk import theme as tk
+    from ..mpvtk.scaling import px
+
+    try:
+        value = int(round(float(physical_px) * tk.text_factor()))
+    except (TypeError, ValueError):
+        return int(physical_px)
+    return max(value, int(px(tk.min_size())), 1)
+
+
 def apply_to_toolkit(glow=False):
     """Hand this palette (and the theme's ``glow`` flag) to mpvtk, so every
     widget default and every control the renderer draws for itself follows
     the app's theme rather than a hardcoded dark palette."""
+    from ..conf import settings
     from ..mpvtk import theme as tk
 
     tk.set_tokens(glow=glow, **toolkit_tokens())
+    # Type scale as well as palette. The user's multiplier rides on the
+    # theme's base rather than being applied per-size later, so every tier
+    # keeps its proportion to every other -- which is the property that
+    # makes a scale a scale.
+    base = (_active or {}).get("base_size") or tk.DEFAULT_BASE_SIZE
+    try:
+        factor = float(getattr(settings, "ui_text_scale", 1.0) or 1.0)
+    except (TypeError, ValueError):
+        factor = 1.0
+    try:
+        floor = int(getattr(settings, "ui_text_min", 0) or 0)
+    except (TypeError, ValueError):
+        floor = 0
+    # base = the theme's design size; factor = the user's preference about
+    # all text, including the many call sites that still pass a literal.
+    tk.set_type_scale(base, minimum=floor,
+                      factor=factor if factor > 0 else 1.0)
 
 
 def mix(a, b, t):

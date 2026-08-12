@@ -162,6 +162,8 @@ Green on both backends. See `tests/e2e/README.md` to run it.
 | `test_large_queue` | contract | — | 400-id queue metadata; the 414 request-line limit |
 | `test_connection_loss` | contract | — | server gone / token revoked / a page-in that fails after a screenful drew |
 | `test_collections` | contract | — | box sets: an unscoped toggle query, `ChildCount` 0 against a full listing, an untyped listing keeping a Series member, create/add/remove, and the permission an ordinary account lacks |
+| `test_home_layout` | contract | 14, 15 | the home layout in jellyfin-web's DisplayPreferences namespace, and the two halves of `LatestItemsExcludes` |
+| `test_chapters` | playback | 9 | chapter nav over `Twelve chapters` and `Three hours`; the #614 dead zone |
 | `test_playback_advance` | playback | 1, 5 | queue advance + watched-marking + resume position |
 | `test_playback_eof` | playback | 2, 3, 4 | last-in-queue, seek-to-end (#541), replay (#157/#323) |
 | `test_playback_failure` | playback | 7, 8 | truncated, zero-byte, single-frame |
@@ -311,6 +313,22 @@ Each of these produced a failure that read as a shim bug and was not:
 - **A truncated file behaves correctly** — reported at 0.29s, not marked
   watched — and a zero-byte file is refused with no session at all. Neither is
   a route to the margin defect above; they were checked as candidates.
+- **The server does not store a blank home-screen slot.** Writing
+  `homesection0 = ""` — which is what jellyfin-web stores for a slot holding
+  its own default, and what `layout_to_prefs` writes — reads back as the
+  literal default (`smalllibrarytiles`) on 12.0. So the "empty means that
+  slot's default" half of the encoding can only ever be exercised against a
+  synthetic prefs dict; end to end, the blank never survives to be read.
+  `test_home_layout` asserts the substitution itself, so a future server that
+  starts keeping the blank fails a test instead of quietly changing what the
+  other tests in that file cover.
+- **No fixture in the library has a negative first chapter timestamp.** Both
+  chaptered items start at exactly 0.0 and no episode has chapters at all, so
+  the half of #614 where a container's start-time offset puts chapter zero at
+  -0.005 — making "previous chapter" an absolute seek to the *end* of the file
+  — has no end-to-end coverage. `test_chapters` asserts on the observable a
+  user would see (a different item playing), so it starts catching that the day
+  such a fixture exists.
 
 ## Starter set, priority ordered
 

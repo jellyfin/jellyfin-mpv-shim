@@ -84,6 +84,196 @@ TOKENS = {
     "CHIP_FG": "ffffff",
 }
 
+#: The type scale, as multiples of the base size.
+#:
+#: **Surveyed, not invented.** Every explicit ``size=`` in the app was
+#: counted (237 call sites) and grouped by what the text actually is, and
+#: these ratios are the result: with a base of 17 they reproduce 236 of
+#: those 237 to within a pixel. ``HEADING`` landing on 24 -- which is what
+#: ``heading_size`` has always been -- is the check that the ratios are
+#: real rather than fitted.
+#:
+#: The tiers are named for the JOB, like the colour tokens above and for
+#: the same reason: an author can pick "this is a caption" and cannot pick
+#: between 13 and 14. That was the actual problem -- 161 of the 237 sizes
+#: sat in the 3px band 14-18 with no rule saying which.
+TYPE_SCALE = {
+    "MICRO": 0.70,     # guide badges ("HD"), the densest chrome
+    "CAPTION": 0.80,   # help text under a settings row
+    "SMALL": 0.88,     # dense body: guide, music, comic, reader
+    "NORMAL": 1.00,    # body text, and every control label
+    "LARGE": 1.12,     # meta and secondary lines on a detail page
+    "TITLE": 1.30,     # dialog titles
+    "HEADING": 1.42,   # carousel section headings
+    "PAGE": 1.53,      # page titles
+    "HERO": 1.70,      # onboarding: "Connect to Jellyfin"
+}
+
+#: The base every tier is a multiple of, in logical px.
+#:
+#: 17 because that is what the app was already written at: the survey's
+#: best fit, and the size six of the shim's own buttons pass explicitly
+#: when their author bothered to pick one. The widget defaults were 20 --
+#: a value **no call site ever chose**, arrived at 194 times by not
+#: passing one -- which is why unstyled controls read a whole tier larger
+#: than the text beside them. **[iw]**: "I'd probably default to the size
+#: we use for buttons as Normal."
+DEFAULT_BASE_SIZE = 17
+
+_base_size = DEFAULT_BASE_SIZE
+
+#: Nothing renders below this, whatever a tier or a call site asked for.
+#: 0 = no floor, which is stock.
+#:
+#: For low vision: a scale multiplies everything, so the smallest text
+#: stays the smallest text and a guide badge at 0.70x base is still the
+#: hardest thing on screen to read. A floor is the other control -- it
+#: compresses the bottom of the scale instead of moving all of it, which
+#: is what somebody who cannot read 12px actually wants.
+_min_size = 0
+
+#: The user's text multiplier, applied to EVERY size the toolkit resolves
+#: -- tiers and explicit sizes alike.
+#:
+#: Not folded into the base, which is what it did first: that scaled the
+#: tiers and left the several hundred call sites that still pass a literal
+#: exactly where they were, so turning text up enlarged the controls and
+#: not the body text -- recreating the mismatch the scale exists to fix,
+#: in the other direction. The base is the theme's design; this is the
+#: user's preference about all of it.
+_text_factor = 1.0
+
+
+class Px(int):
+    """A size that has already been resolved by :func:`text_size`.
+
+    The user's multiplier has to be applied **exactly once**. A composite
+    widget resolves its own size and then hands the number to a child --
+    `Button` builds a `Text` and an `Icon`, `Checkbox` builds a `Text`,
+    `Form` builds a `Grid` which builds a `Text` per cell -- and each of
+    those resolved again. At "150%" a button label came out 39px against
+    body copy at 20 (a Form cell, 76px), which is the size mismatch this
+    scale exists to remove, arriving from inside it.
+
+    An int subclass rather than a flag, so it stores, compares and
+    arithmetics exactly like the number it replaces. **Arithmetic returns
+    a plain int**, which is the right default: `int(size * 0.95)` is a
+    NEW size derived from this one, and deriving is not resolving.
+    """
+
+    __slots__ = ()
+
+
+def set_type_scale(base=None, minimum=None, factor=None):
+    """Set the base size every tier derives from. ``None`` restores stock.
+
+    Wholesale like :func:`set_tokens`, and for the same reason: a theme
+    that says nothing about type must get the default back rather than
+    keep the last theme's.
+
+    ``minimum`` floors every size the toolkit resolves and ``factor``
+    multiplies it; see ``_min_size`` and ``_text_factor``.
+    """
+    global _base_size, _min_size, _text_factor
+    try:
+        value = float(DEFAULT_BASE_SIZE if base is None else base)
+    except (TypeError, ValueError):
+        value = float(DEFAULT_BASE_SIZE)
+    # A base of 0 would render the whole UI invisible and a negative one is
+    # meaningless; both are reachable from a hand-edited theme file.
+    _base_size = value if value > 0 else float(DEFAULT_BASE_SIZE)
+    try:
+        floor = float(0 if minimum is None else minimum)
+    except (TypeError, ValueError):
+        floor = 0.0
+    # A floor above the largest tier would flatten the whole scale into one
+    # size, which is not a readability aid, it is a broken UI. Capped at the
+    # base so the tiers above it keep their spread.
+    try:
+        mult = float(1.0 if factor is None else factor)
+    except (TypeError, ValueError):
+        mult = 1.0
+    _text_factor = mult if mult > 0 else 1.0
+    # Capped at the LARGEST tier, not at the base. Capping at the base was
+    # the first version and it quietly swallowed every useful value: with a
+    # base of 17 a floor of 18 came out as 17, so the setting appeared to do
+    # nothing at all to buttons or body text -- which is exactly what it is
+    # for. A floor is allowed to raise everything up to the top of the
+    # scale; beyond that it is a hand-edited value with no meaning.
+    _biggest = _base_size * _text_factor * max(TYPE_SCALE.values())
+    _min_size = min(max(floor, 0.0), _biggest)
+    return _base_size
+
+
+
+def size_of_tier(tier):
+    """The px size for a named tier. Unknown tiers are an error, not a
+    silent default -- a typo'd tier would otherwise render as body text
+    and look almost right."""
+    try:
+        ratio = TYPE_SCALE[str(tier).upper()]
+    except KeyError:
+        raise KeyError("unknown type tier %r. Tiers are %s"
+                       % (tier, ", ".join(TYPE_SCALE))) from None
+    # Rounded, because a font size that is not a whole number of logical px
+    # gives layout a fractional line height to divide the page by. The
+    # logical->physical conversion deliberately does NOT round (see
+    # scaling._EXACT_KEYS); this is the other end of that.
+    # Never below 1: a zero font size divides by zero in layout's line
+    # fitting, and `ui_text_scale` is a documented float, so 0.05 in a
+    # hand-edited config reaches here even though the drop-down stops at
+    # 0.75. The base is guarded the same way, for the same reason.
+    return Px(max(int(round(_base_size * _text_factor * ratio)),
+                  int(_min_size), 1))
+
+
+#: The tier lookup under its short name. `theme.size("caption")` reads
+#: better at a call site than `size_of_tier`, and `size` is what every
+#: widget already calls its parameter.
+size = size_of_tier
+
+
+def text_size(size):
+    """A size as the toolkit will actually render it.
+
+    Accepts a **tier name** (``"caption"``) or a number. The name is the
+    preferred spelling at a call site: an author can tell whether a line
+    is a caption and cannot tell whether it is 13 or 14, and picking
+    between those was the whole of what made the type "feel a little
+    random" [iw]. A number still works, for the genuine one-off that no
+    tier describes.
+
+    Numbers are multiplied and floored;
+
+    applied where a widget resolves its size, **before layout measures
+    it**. Flooring later -- at the logical-to-physical boundary, where
+    `scaling` already touches every size -- would draw bigger text inside
+    boxes measured for the smaller kind, which is overflow everywhere
+    rather than a readability setting.
+    """
+    if isinstance(size, Px):
+        # Already resolved, by whichever widget owns this subtree.
+        return size
+    if isinstance(size, str):
+        # A tier is already scaled and floored by size().
+        return size_of_tier(size)
+    try:
+        return Px(max(int(round(float(size) * _text_factor)),
+                      int(_min_size), 1))
+    except (TypeError, ValueError):
+        return Px(max(int(round(_base_size * _text_factor)), 1))
+
+
+def text_factor():
+    """The user's text multiplier, for code that resolves its own sizes --
+    which is the renderer, and nothing else."""
+    return _text_factor
+
+
+def min_size():
+    return _min_size
+
+
 #: Aliases kept so existing reads (``theme.HOVER``, ``theme.SOFT``) keep
 #: working; they were the accent's derived pair before tokens existed.
 _ALIASES = {"HOVER": "ACCENT_HOVER", "SOFT": "ACCENT_SOFT"}

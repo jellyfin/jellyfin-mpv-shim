@@ -1,6 +1,6 @@
 """``PlayerGateway`` — the browser's boundary to everything else.
 
-Step 4 of ``docs/ARCHITECTURE_TARGET.md`` §3, and a hard prerequisite for
+Step 4 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3, and a hard prerequisite for
 steps 5+. Coverage put ``ui.py`` at **41.6%**, the lowest of any module the
 refactor touches, and this class is most of it: 99 methods, and the ones
 with the least coverage are ``_connect``, ``on_mpv_recreated``,
@@ -323,6 +323,23 @@ class TestOfflineWatchedQueue(unittest.TestCase):
 
         def update_userdata(self, item_id, played=False):
             self.userdata.append((item_id, played))
+
+        # Modelled rather than stubbed: the real one is the fan-out this
+        # class is largely about, and a stand-in that answered with the id
+        # it was handed would make every series test below pass on an app
+        # that had stopped fanning out at all.
+        def watched_targets(self, item_id, server_uuid=None):
+            if not item_id:
+                return []
+            if self.is_complete(item_id):
+                return [(item_id, server_uuid)]
+            return [(r["item_id"], r["server_uuid"] or server_uuid)
+                    for r in self.list()
+                    if item_id in (r["series_id"], r["season_id"])]
+
+        def set_watched(self, item_id, played):
+            self.userdata.append((item_id, played))
+            return True
 
     def _with_db(self, db):
         import jellyfin_mpv_shim.sync.manager as manager_mod

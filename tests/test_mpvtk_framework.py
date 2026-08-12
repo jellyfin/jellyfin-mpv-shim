@@ -1,4 +1,4 @@
-"""Unit tests for the framework features added to close the MIGRATION.md
+"""Unit tests for the framework features added to close the migration
 "Framework deficits" list: Stack (+occlude markers), Text wrap,
 Table, hold-repeat flags, click modifier dispatch, and the synchronous
 scroll-offset query. Renderer-side behavior (overlay slot ordering,
@@ -855,8 +855,12 @@ class TestNavPolish(unittest.TestCase):
             300, 50,
         )
         self.assertGreaterEqual(by_id(nodes, "b")["w"], bw - 0.5)
-        # the text absorbed the shrink instead
-        self.assertLessEqual(by_id(nodes, "t")["w"], 300 - bw)
+        # The text absorbed the shrink instead. Same 0.5 tolerance as the
+        # line above, and for the same reason: the button is permitted to
+        # give up a fraction of a pixel, and whatever it gives up the text
+        # receives -- so a bound with no tolerance here contradicts the one
+        # with tolerance there. The row still sums to exactly 300.
+        self.assertLessEqual(by_id(nodes, "t")["w"], 300 - bw + 0.5)
 
     def test_virtual_table_min_w_is_scroll_independent(self):
         def rows():

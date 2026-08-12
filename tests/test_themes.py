@@ -154,7 +154,13 @@ class DefaultThemeIsTheStockLookTest(unittest.TestCase):
         self.assertFalse(d["rounded"])    # square cards (the art still crops)
         self.assertFalse(d["accent_buttons"])   # plain top-bar buttons
         self.assertEqual(d["poster_scale"], 1.0)
-        self.assertEqual(d["heading_size"], 24)
+        # None, not 24: an unset heading size means "follow the type
+        # scale", whose HEADING tier is 24 at the stock base. Pinning the
+        # number here would opt every theme's headings out of the user's
+        # text-size multiplier.
+        self.assertIsNone(d["heading_size"])
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+        self.assertEqual(tk.size("HEADING"), 24)
         self.assertEqual(d["tile_landscape"],
                          (LANDSCAPE_GEOM.tile_w, LANDSCAPE_GEOM.tile_h))
         # None = "leave the caption font alone", i.e. it scales as before.

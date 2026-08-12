@@ -1,8 +1,8 @@
 """``run_async``'s failure handling — the paths hand-testing never reaches.
 
 Written before extracting the async machinery (step 2 of
-docs/ARCHITECTURE_TARGET.md §3), per the recipe in
-docs/REFACTORING_METHOD.md §2: measure first, and anything at zero that the
+docs/archive/ARCHITECTURE_TARGET.md §3), per the recipe in
+docs/archive/REFACTORING_METHOD.md §2: measure first, and anything at zero that the
 step touches gets a test before it moves. Coverage put every one of these
 lines at zero — they are the ``except`` arms inside ``run_async``, and a
 refactor that quietly dropped one would look green.

@@ -56,7 +56,7 @@ def toast_node(b, w, h):
     b._arm_toast_clear(left)
     tw = min(max(320, len(b.status) * 9), max(360, w - 80))
     return Float(
-        Box([Text(b.status, size=16, wrap=True, w=tw - 32)],
+        Box([Text(b.status, size="normal", wrap=True, w=tw - 32)],
             pad=16, bg=theme.CARD_BG, radius=10, border=theme.BORDER,
             align="stretch"),
         x=(w - tw) / 2, y=max(20, h - 140), w=tw)
@@ -209,7 +209,14 @@ def resize_grip(b, w, h):
 
 def chrome_bar(b, compact, probe=False, servers=None,
                 users=None):
-    title = "" if probe else (b.route.get("title") or _("Home"))
+    # `bar_title` where a route sets one, because the bar and the page
+    # heading are answering different questions. A season is the case that
+    # forced it: the bar said "Season 1", the heading said "Season 1" and
+    # the picker beside it said "Season 1", so the one thing the screen
+    # never told you was *which show*. The bar is the outer context, so it
+    # carries the series; the heading stays the season.
+    title = "" if probe else (b.route.get("bar_title")
+                              or b.route.get("title") or _("Home"))
 
     # A theme may give the top bar accent-bordered buttons; the stock look
     # leaves the Button defaults alone.
@@ -296,12 +303,19 @@ def chrome_bar(b, compact, probe=False, servers=None,
             on_select=lambda i, v: b._switch_user(users[i])))
     right += [
         TextBox("nav-search", placeholder=_("Search…"),
+                # "large", to match the Search button glued to its right
+                # and the nav buttons either side. A TextBox derives its
+                # height from its type size, and Buttons do not -- so when
+                # the control default moved 20 -> 17 this field alone got
+                # 3.7px shorter and sat 1.9px lower than the button it
+                # abuts, on every screen.
+                size="large",
                 w=140 if compact else 220,
                 on_change=lambda v: b._search_box.__setitem__("term", v),
                 on_submit=b._search),
         # The textbox submits on Enter, but a visible button is the
         # discoverable affordance (and the only one with a pointer).
-        Button("", id="nav-search-go", icon="search", size=18,
+        Button("", id="nav-search-go", icon="search", size="large",
                tip=_("Search"),
                on_click=lambda: b._search(
                    b._search_box.get("term", "")), **accent_style),
@@ -320,7 +334,7 @@ def chrome_bar(b, compact, probe=False, servers=None,
     # the fit probe like everything else, so the bar simply goes icon-only
     # sooner on an undecorated window rather than having a width reserved.
     right += window_controls(b)
-    middle = [Spacer(w=6), Text(title, size=22, bold=True), Spacer()]
+    middle = [Spacer(w=6), Text(title, size="title", bold=True), Spacer()]
     bar = Row(
         left + middle + right,
         pad=12, gap=8 if compact else 10, align="center", h=60,
@@ -412,7 +426,7 @@ def banner(b):
     if b._update:
         return Row([
             Text(_("Update available: %s") % b._update["version"],
-                 size=16),
+                 size="normal"),
             Spacer(),
             Button(_("Open"), id="banner-open",
                    on_click=lambda: b._open_url(b._update["url"])),
@@ -421,7 +435,7 @@ def banner(b):
         ], pad=10, gap=10, align="center", h=48, bg=theme.ACCENT_SOFT)
     if b._offline:
         return Row([
-            Text(_("Offline — showing what's available."), size=16),
+            Text(_("Offline — showing what's available."), size="normal"),
             Spacer(),
             Button(_("Configure Servers"), id="banner-servers",
                    on_click=b.show_login),
@@ -446,10 +460,10 @@ def download_bar(b):
     left = (_("Downloading %(name)s — %(n)d remaining")
             if name else _("Downloading — %(n)d remaining")) % {
         "name": name, "n": st["pending"]}
-    row = [Icon("file_download", 20), Text(left, size=16)]
+    row = [Icon("file_download", 20), Text(left, size="normal")]
     if pct is not None:
         row.append(Progress(pct / 100.0, w=160))
-        row.append(Text("%d%%" % pct, size=15, w=48,
+        row.append(Text("%d%%" % pct, size="small", w=48,
                         color=theme.SUBTLE_FG))
     row += [
         Spacer(),

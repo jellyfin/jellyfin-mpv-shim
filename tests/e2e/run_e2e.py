@@ -11,6 +11,20 @@ into it and never needs a server.
     JMS_E2E_SERVER=... python3 tests/e2e/run_e2e.py --backend libmpv
     python3 tests/e2e/run_e2e.py --list
 
+`JMS_E2E_SERVER_ALT` names a **second** server, and only
+`test_filter_matrix` reads it: that module's whole point is the API
+differences between major versions, so it runs its sweep against both.
+A 10.11 container alongside a 12.0 source build is two commands —
+
+    ./stdjflib.py serve ~/Desktop/std-jf-lib --live-tv            # 12.0
+    ./stdjflib.py container ~/Desktop/std-jf-lib --port 8097 \
+        --keep-running --server-name "stdjflib QA 10.11"          # 10.11
+
+and the differences are not hypothetical: `Filters=IsUnplayed,IsPlayed`
+is **HTTP 400 on 12.0 and an empty result on 10.11**, and the audio
+language picker has options on 12.0 and none on 10.11. Unset, that leg
+skips and everything else is unchanged.
+
 Every module runs once per mpv backend, in a fresh interpreter with
 `JMS_TEST_BACKEND` set — player.py picks its backend at import time and wires
 interdependent module-level singletons, so a subprocess is the only clean way
@@ -42,6 +56,13 @@ CONTRACT = [
     "tests.e2e.test_source_conformance",
     "tests.e2e.test_strm_source",
     "tests.e2e.test_live_tv",
+    # The home screen's layout, which lives in jellyfin-web's own
+    # DisplayPreferences document. Pure interop, so the fast suite cannot
+    # help: it is written from the same reading of the API the code is, and
+    # the two are wrong together. Plus LatestItemsExcludes, whose two halves
+    # (the server applies it for Continue Watching, we apply it for the
+    # per-library Latest rows) are only distinguishable on the wire.
+    "tests.e2e.test_home_layout",
     "tests.e2e.test_route_walk",
     "tests.e2e.test_paging",
     "tests.e2e.test_keyboard_nav",
@@ -55,6 +76,23 @@ CONTRACT = [
     # (ChildCount is 0 for a collection read off disk while the listing has
     # every member), plus the three edit endpoints nothing else calls.
     "tests.e2e.test_collections",
+    "tests.e2e.test_items_endpoint",
+    # The server-truth backing for batch 4 -- CanDelete absent unless
+    # asked, TranscodeReasons in the TranscodingUrl, StartItemId
+    # inclusive, the shader library-scope lookup. It was added to
+    # tests/e2e/README.md's table and never here, so it LOOKED registered
+    # and had never run. `tests/test_e2e_registry.py` now makes that
+    # impossible rather than relying on the next person noticing.
+    "tests.e2e.test_batch4_contracts",
+    # Every filter the panel can offer, swept against a real server: 17
+    # checkboxes, all 134 reachable pairs, and every picker value the
+    # server itself returns. The two failures it exists for are both
+    # invisible to a fake source -- a combination the server REFUSES
+    # (Played+Unplayed is HTTP 400 on 12.0), and one it silently IGNORES
+    # (an unparseable VideoTypes value answers with the whole library).
+    # Set JMS_E2E_SERVER_ALT to a second server and the whole matrix runs
+    # against both versions; the differences are real (see its docstring).
+    "tests.e2e.test_filter_matrix",
     # Two real clients on one real group. No mpv: SyncPlay drives a player
     # through a handful of calls and the harness implements those, so this is
     # a contract question about the server and the protocol.
@@ -70,6 +108,14 @@ CONTRACT = [
     # no position at all. Pinned because reading it wrong looks exactly
     # like a client bug.
     "tests.e2e.test_audiobooks",
+    # Offline watched state, both directions, plus the websocket message
+    # the whole design now rests on. The fast suite answers the server from
+    # a mock and the offline integration test fakes the HTTP client by its
+    # own admission, so every belief about *when* the server announces a
+    # change was untested until this -- and the obvious guess about the one
+    # that matters (does finishing something elsewhere announce itself?) is
+    # the wrong one.
+    "tests.e2e.test_offline_sync",
 ]
 
 # Playback tier: a real mpv, so once per backend under xvfb.
@@ -79,6 +125,13 @@ PER_BACKEND = [
     "tests.e2e.test_playback_failure",
     "tests.e2e.test_strm_playback",
     "tests.e2e.test_track_selection",
+    # Chapter navigation, which the fast suite covers only as a pure
+    # function. The list comes out of MPV and the answer goes back through
+    # seek(), and both ends are where the two chapter bugs lived -- the
+    # half-second dead zone before every boundary, and a negative first
+    # timestamp that made "previous" an absolute seek to the END of the
+    # file. Only a real container has a boundary mpv chose.
+    "tests.e2e.test_chapters",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
     "tests.e2e.test_input_routing",

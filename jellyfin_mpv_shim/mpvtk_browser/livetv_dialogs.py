@@ -179,9 +179,9 @@ class LiveTvDialogsMixin:
         def build():
             timer, fields = dlg["timer"], dlg["fields"]
             if dlg.get("error"):
-                body = [Text(dlg["error"], size=15, color=theme.FAV_RED)]
+                body = [Text(dlg["error"], size="small", color=theme.FAV_RED)]
             elif timer is None:
-                body = [Text(_("Loading…"), size=15, color=theme.SUBTLE_FG)]
+                body = [Text(_("Loading…"), size="small", color=theme.SUBTLE_FG)]
             else:
                 body = self._timer_form(timer, fields, dlg["series"],
                                         editable=dlg.get("editable", True))
@@ -200,8 +200,8 @@ class LiveTvDialogsMixin:
                 buttons.append(Button(_("Save"), id="tm-save",
                                       on_click=self._timer_save))
             return Dialog("timer", self._dialog_shell("timer", [
-                Text(title, size=22, bold=True),
-                Text((timer or {}).get("Name") or "", size=17),
+                Text(title, size="title", bold=True),
+                Text((timer or {}).get("Name") or "", size="normal"),
                 VScroll(Column(body, gap=12, align="stretch"), id="tm-body",
                         h=self._timer_body_h(dlg)),
                 self._dialog_buttons(buttons),
@@ -229,7 +229,7 @@ class LiveTvDialogsMixin:
         channel = timer.get("ChannelName") or ""
         subtitle = "   ·   ".join(p for p in (channel, when) if p)
         if subtitle:
-            rows.append(Text(subtitle, size=15, color=theme.SUBTLE_FG))
+            rows.append(Text(subtitle, size="small", color=theme.SUBTLE_FG))
         if series:
             rows.append(self._picker(
                 # A LABEL on a picker ("Record: New episodes only"), not the
@@ -288,9 +288,14 @@ class LiveTvDialogsMixin:
 
     @staticmethod
     def _picker(label, node_id, items, selected, on_select, editable=True):
-        return Row([Text(label, w=170, size=16, color=theme.SUBTLE_FG),
+        # w=190, not 170: the column was measured against 16px text and
+        # "normal" is 17, which pushed Italian's "Tempo di trasmissione"
+        # (178px) past a 170px box it used to fit at 167. Widened rather
+        # than the text shrunk, because the label is the thing being read
+        # and every other locale gains slack.
+        return Row([Text(label, w=190, size="normal", color=theme.SUBTLE_FG),
                     Dropdown(node_id, items, selected=selected, w=280,
-                             size=16, on_select=on_select,
+                             size="normal", on_select=on_select,
                              disabled=not editable)],
                    gap=8, align="center")
 
@@ -298,8 +303,8 @@ class LiveTvDialogsMixin:
     def _padding_row(label, node_id, value, on_change, editable=True):
         # on_commit as well as on_submit: a padding typed and then dismissed
         # with a click on Save (rather than ENTER) must still be read.
-        return Row([Text(label, w=170, size=16, color=theme.SUBTLE_FG),
-                    TextBox(node_id, value, size=16, w=90,
+        return Row([Text(label, w=170, size="normal", color=theme.SUBTLE_FG),
+                    TextBox(node_id, value, size="normal", w=90,
                             on_submit=on_change, on_commit=on_change,
                             disabled=not editable)],
                    gap=8, align="center")
@@ -425,7 +430,7 @@ class LiveTvDialogsMixin:
                          id="gs-color",
                          on_toggle=lambda: self._guide_set(
                              "color_coded", not prefs["color_coded"])),
-                Text(_("Show indicators for"), size=16, bold=True),
+                Text(_("Show indicators for"), size="normal", bold=True),
             ]
             body += [
                 Checkbox(label, bool(prefs["indicators"].get(key)),
@@ -434,7 +439,7 @@ class LiveTvDialogsMixin:
                              self._guide_toggle_indicator(k))
                 for key, label in live_tv.indicator_labels()
             ]
-            body.append(Text(_("Categories"), size=16, bold=True))
+            body.append(Text(_("Categories"), size="normal", bold=True))
             body += [
                 Checkbox(label, key in picked, id="gs-cat-" + key,
                          on_toggle=lambda k=key:
@@ -442,7 +447,7 @@ class LiveTvDialogsMixin:
                 for key, label in live_tv.category_labels()
             ]
             return Dialog("guidecfg", self._dialog_shell("guidecfg", [
-                Text(_("Guide Settings"), size=22, bold=True),
+                Text(_("Guide Settings"), size="title", bold=True),
                 VScroll(Column(body, gap=12, align="stretch"), id="gs-body",
                         h=340),
                 self._dialog_buttons([

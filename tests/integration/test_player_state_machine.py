@@ -88,7 +88,7 @@ class RecordingClient:
         pass
 
 
-class RaisingMPV(h.FakeMPV):
+class RaisingMPV(h.fake_mpv_class()):
     """FakeMPV that raises a chosen 'mpv is gone' error when a named property is
     *read*. The base FakeMPV can only raise from command(); this models an mpv
     that died under a property access (the #458/#503 close-crash path), which is
@@ -695,8 +695,9 @@ class EofPollRescueTest(unittest.TestCase):
     def test_lost_abort_on_last_item_still_stops(self):
         pm = self._player(has_next=False)
         calls = _stub_advance(pm)
-        # Last item: keep_open off, mpv idles; eof-reached is unavailable
-        # (FakeMPV has no such attribute) and playback-abort's event was lost.
+        # Last item: keep_open off, so mpv idles rather than reaching eof --
+        # eof-reached stays False (its idle default) and playback-abort's
+        # event was lost.
         pm._player.playback_abort = True
 
         pm.update()

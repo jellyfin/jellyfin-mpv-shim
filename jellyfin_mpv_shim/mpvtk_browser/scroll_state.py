@@ -1,6 +1,6 @@
 """Scroll-offset bookkeeping for virtualized lists.
 
-Extracted from ``MpvtkBrowser`` (step 6b of ``docs/ARCHITECTURE_TARGET.md``
+Extracted from ``MpvtkBrowser`` (step 6b of ``docs/archive/ARCHITECTURE_TARGET.md``
 §3.1). Ten of the eighteen unconverted routes need this, and no page should
 own it privately: the *renderer* is the authority on where a container is
 scrolled, and the shell reads its live snapshot once per frame. A page

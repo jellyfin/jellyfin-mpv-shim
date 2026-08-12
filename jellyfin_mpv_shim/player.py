@@ -11,7 +11,9 @@ from collections import deque
 from typing import TYPE_CHECKING, Optional
 
 from . import conffile
-from .utils import synchronous, Timer
+import threading
+
+from .utils import synchronous, Timer, get_resource
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -111,6 +113,26 @@ def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
     except Exception:
         log.debug("Could not bound the mpv IPC reply wait.", exc_info=True)
 
+
+
+def _source_height(video):
+    """The video height of what is about to play, or None.
+
+    Read off the **MediaSource**, not the item: an item with several
+    versions has one height per version, and the one being played is the
+    one that decides whether hardware decoding is worth its risk. A photo,
+    an audio track and anything the server did not probe all answer None,
+    which every caller treats as "software" -- see mpv_options.hwdec_for.
+    """
+    try:
+        streams = (getattr(video, "media_source", None) or {}).get(
+            "MediaStreams") or []
+        for stream in streams:
+            if stream.get("Type") == "Video" and stream.get("Height"):
+                return int(stream["Height"])
+    except Exception:
+        log.debug("could not read the source height", exc_info=True)
+    return None
 
 
 def runtime_force_window_works(version):
@@ -423,6 +445,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.last_update = Timer()
         self._jf_settings = None
         self.pause_ignore = None  # Used to ignore pause events that come from us.
+        #: owner -> semantics, and the sweep, for the #16 key claims.
+        self._key_claims = {}
+        self._key_actions = {}
+        self._swept = None
+        self._swept_ptr = None
+        #: Whether this mpv can run lua, once asked. See lua_works.
+        self._lua_works = None
+        #: An OSC style a fallback forced, or None. Survives mpv
+        #: re-creation -- see _init_mpv.
+        self._osc_style_override = None
+        self._lua_probe = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
         # timeline path (time.monotonic seconds); -inf so the first tick fires.
@@ -538,8 +571,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Tracks whether mpv's stats.lua ("Playback Data") overlay is up, so
         # it can be cleared when the library comes back. It is ASS OSD, which
         # the in-window browser draws over — but left on, it lingers behind
-        # the library once playback ends. Both the HUD gear entry and the `i`
-        # key funnel through toggle_stats() so this stays truthful.
+        # the library once playback ends. The `i` key and the lua OSC's gear
+        # sheet funnel through toggle_stats() so this stays truthful (the
+        # mpvtk HUD's gear row is now our own Playback Info -- see #10).
         self._stats_shown = False
         # True while the in-window browser's solid background image is the
         # loaded file. Guards against reloading it on top of itself, which
@@ -592,6 +626,11 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # update is found, so the notice shows in the browser UI instead of on
         # the MPV OSD. Unset for CLI users -> update_check falls back to the OSD.
         self.notify_update = None
+        # Called (no args, set by the UI) when SyncPlay is joined or left, so
+        # the renderer's HUD token is re-sent: its `syncplay` flag decides
+        # whether the renderer's own pause paths hand over to Python, and a
+        # group joined mid-playback would otherwise keep the local one.
+        self.on_syncplay_change = None
         # Optional callback (set by the UI) invoked with a SyncPlay message, so
         # "N has joined" and friends land on the browser's status line instead
         # of the MPV OSD. Unset -> SyncPlayManager.player_message falls back to
@@ -654,6 +693,94 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.debug("Stopping previous trickplay failed", exc_info=True)
             self.trickplay = None
 
+    def _effective_osc_style(self):
+        """The OSC style this mpv should be built with.
+
+        `resolve_osc_style()` answers from settings, which know nothing
+        about the machine -- so a fallback that discovered something about
+        *this* mpv (no lua, no Pillow) has to be applied on top, and has to
+        keep being applied.
+
+        **The override outlives the mpv it was decided on.** `_init_mpv`
+        runs again on every re-creation -- an idle-quit then a cast,
+        `set_browse_window`, `force_window` -- and re-resolving from
+        settings there put the style back to "mpvtk" with no renderer
+        behind it and `on_hud_menu` still None, so `toggle_settings_menu`
+        went back to refusing: no HUD, no OSD menu, no way to reach either.
+        One idle timeout undid the whole fallback.
+
+        Its answer feeds `mpv_scripts` and `build_mpv_options` as well as
+        `_osc_style_resolved`, because there is no point handing lua
+        scripts to an mpv already known not to run them.
+        """
+        if self._osc_style_override is not None:
+            return self._osc_style_override
+        return resolve_osc_style()
+
+    def _construct_mpv(self, mpv_options, **kwargs):
+        """``mpv.MPV(...)``, retried without ``--osc`` if mpv has no such
+        option -- which means it was built without lua.
+
+        **A build without lua does not ignore ``--osc``, it refuses to
+        start**, and that made the whole lua fallback unreachable:
+        `lua_works` needs a live mpv to probe, and the app died
+        constructing one. Measured against a `-Dlua=disabled` mpv 0.41, on
+        both backends: libmpv raises ``AttributeError`` from the
+        constructor, and the external binary exits with "Error parsing
+        option osc (option not found)", arriving here as
+        ``MPVError("MPV process retry limit reached.")``.
+
+        The two backends report entirely different things, and none of that
+        has to be parsed, because **there is only one option this can be**.
+        ``--osc`` is the single lua-gated option the shim sets, so failing
+        to construct *with* it and succeeding *without* it is not evidence
+        that needs interpreting -- it is the answer. [iw]: "we don't even
+        need the detector, osc not being available means lua wasn't
+        compiled in."
+
+        So the answer is recorded rather than rediscovered: `lua_works`
+        skips its probe and its timeout. It is recorded only in this
+        direction. mpv having ``--osc`` says lua was *compiled in*, not that
+        it runs -- lua that loads and then errors is exactly what the probe
+        is for -- so the ordinary path is left to ask.
+
+        Dropping the option is also the right answer rather than a
+        workaround: the OSC being turned off is itself lua, so a build
+        without it has none to turn off.
+        """
+        from .mpv_options import OSC_OPTION
+
+        if self._lua_works is False and OSC_OPTION in mpv_options:
+            # Already discovered, on a previous mpv. Re-learning it costs a
+            # failed construction every time, and on the external backend a
+            # failed construction is the whole start-retry budget --
+            # measured at ~31s with the shipped defaults, paid on every
+            # re-open (idle-quit then a cast, set_browse_window,
+            # force_window) before anything plays.
+            mpv_options = {k: v for k, v in mpv_options.items()
+                           if k != OSC_OPTION}
+            return mpv.MPV(**kwargs, **mpv_options)
+
+        try:
+            return mpv.MPV(**kwargs, **mpv_options)
+        except Exception:
+            if OSC_OPTION not in mpv_options:
+                raise
+            options = {k: v for k, v in mpv_options.items()
+                       if k != OSC_OPTION}
+            # Retry first, log second. If --osc was not the problem this
+            # raises the real error (chained to the first), and saying
+            # "built without lua" on the way to an unrelated failure would
+            # send the next person reading the log somewhere else entirely.
+            player = mpv.MPV(**kwargs, **options)
+            log.warning("This mpv has no --%s option, so it was built "
+                        "without lua. The library browser, the playback HUD "
+                        "and the on-screen controls all need it; falling "
+                        "back to the command line and the OSD menu.",
+                        OSC_OPTION)
+            self._lua_works = False
+            return player
+
     def _init_mpv(self):
         # Re-open reuses this method; drop the previous instance's trickplay
         # thread first so recovery/idle cycles don't leak it.
@@ -663,7 +790,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                   "re-open" if reopen else "first", player_window._caller())
         self._teardown_player()
 
-        osc_style = resolve_osc_style()
+        osc_style = self._effective_osc_style()
 
         trickplay_started = False
         if settings.thumbnail_enable:
@@ -707,13 +834,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._geometry_armed = mpv_options["geometry"]
 
-        self._player = mpv.MPV(
+        self._player = self._construct_mpv(
+            mpv_options,
             input_default_bindings=True,
             input_vo_keyboard=True,
             input_media_keys=settings.media_keys,
             log_handler=mpv_log_handler,
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
-            **mpv_options,
         )
 
         try:
@@ -848,10 +975,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _bind_key(self, key, func):
         """Bind one configurable key, ignoring the ones the user cleared.
 
-        Was the `keypress` decorator factory; the None check is the whole of
-        it, and an unset keybind is a supported configuration.
+        Was the `keypress` decorator factory; the emptiness check is the
+        whole of it, and an unset keybind is a supported configuration.
+
+        Empty string as well as None: the settings are Optional now, so a
+        documented `null` really does arrive as None, but a config written
+        under the old typing holds the string "None" and somebody clearing
+        the field in a text editor leaves "". All three mean the same thing
+        and none of them is a key.
         """
-        if key is not None:
+        if key and key != "None":
             self._player.on_key_press(key)(func)
 
     def _observe(self, prop, handler):
@@ -885,14 +1018,62 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
-        self._bind_key(settings.kb_menu_left, self._on_menu_left)
-        self._bind_key(settings.kb_menu_right, self._on_menu_right)
-        self._bind_key(settings.kb_menu_up, self._on_menu_up)
-        self._bind_key(settings.kb_menu_down, self._on_menu_down)
+        # #16: `kb_menu_*` are MENU keys. They are not bound here at all --
+        # the OSD menu installs them itself for exactly as long as it is on
+        # screen (claim_menu_keys), and the rest of the time the key is
+        # mpv's.
+        #
+        # **[iw]** on why that is the right split rather than a smaller one:
+        # "people probably configured arrow keys to something else *so that
+        # our seek bindings weren't messing with the mpv defaults*; the menu
+        # logically uses arrow keys and the only other thing I could see
+        # someone binding those to are wasd." One setting meant two things
+        # -- which key drives the menu, and which key seeks -- and almost
+        # everybody who ever touched it was reaching for the second to get
+        # rid of it. Split, the name it has always had is finally the whole
+        # truth.
+        #
+        # Seeking is mpv's too, unless the shim's own seek does something
+        # mpv's cannot; then it is *claimed*, which follows a remapped key
+        # where the fixed binding never did. See _seek_is_ours.
         self._bind_key(settings.kb_pause, self._on_pause_key)
-        self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
-        self._bind_key(settings.kb_debug, self._on_debug_key)
+        # #16: `f` is mpv's own key with mpv's own meaning, so it is no
+        # longer bound here -- the fullscreen claim below takes whatever key
+        # currently means `cycle fullscreen`, runs it, and records the
+        # user's intent (which is the whole reason we needed the key at
+        # all). A value the user explicitly set is still honoured: that is
+        # their choice, not our interception.
+        # Compared to the DEFAULT, for the reason input_conf._changed sets
+        # out: __fields_set__ means "this key was in the file", and save()
+        # writes all 186 of them, so it is true for every existing install
+        # and this gate could never open. `f` stayed intercepted for
+        # everyone -- including a user whose own input.conf puts fullscreen
+        # on F11 and `f` on something else, which is the exact interception
+        # the gate exists to prevent.
+        if settings.kb_fullscreen != type(settings).kb_fullscreen:
+            self._bind_key(settings.kb_fullscreen, self._on_fullscreen_key)
         self._bind_key(settings.kb_kill_shader, self._on_kill_shader_key)
+        # Standing claim: recording "the user asked for fullscreen" is
+        # always wanted, and interception is how it is known -- a change
+        # that came through our binding is user-initiated by construction,
+        # where an observer plus an ignore flag needs that flag set and
+        # cleared around every self-initiated change and is wrong wherever
+        # somebody forgets.
+        from . import keysweep
+
+        self._key_claims["fullscreen"] = {keysweep.FULLSCREEN}
+        if self._seek_is_ours():
+            self._key_claims["seek"] = {keysweep.SEEK}
+        # Under the lock, which _refresh_key_section's contract requires and
+        # this path did not hold: _bind_mpv_handlers is reachable from
+        # set_browse_window / force_window, neither of which is
+        # @synchronous, on the browser loop thread -- so a GroupJoined
+        # landing on the websocket thread could mutate _key_claims while
+        # this iterated it ("dictionary changed size during iteration",
+        # out of _init_mpv, aborting the window rebuild), or simply lose
+        # the race and install a section without the group's claim in it.
+        with self._lock:
+            self._refresh_key_section()
         p.on_key_press("i")(self._on_stats_oneshot)
         p.on_key_press("I")(self._on_stats_toggle)
         if settings.mouse_chapter_nav:
@@ -1052,37 +1233,32 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.fullscreen_disable = True
 
     def _on_menu_ok(self):
-        self.menu.menu_action("ok")
+        """ENTER: confirm the OSD menu, and nothing else.
 
-    def _on_menu_left(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("left")
-        else:
-            self.kb_seek("left")
+        This was the one handler in its group with no ``is_menu_shown``
+        guard, so ENTER did not mean "confirm" -- it meant *open* the OSD
+        menu, because ``menu_action("ok")`` on a hidden menu is
+        ``show_menu()``. Under mpvtk that is the exact thing
+        ``toggle_settings_menu`` refuses a few lines above, and for the
+        reason stated there: the OSD menu draws as mpv OSD text, so it
+        lands under the overlay bitmaps and takes the arrow keys with it.
 
-    def _on_menu_right(self):
+        **[iw]**: "ENTER doesn't need to open the menu, `c` is fine for
+        that." So it opens nothing under either OSC. Swallowed rather than
+        left to mpv, which binds ENTER to ``playlist-next`` -- our mpv
+        playlist holds one file, so what that does depends on ``keep-open``
+        and is not a behaviour to inherit by accident. Part of #16's
+        "stop intercepting keys whose meaning we did not change", except
+        that here the honest answer is that we mean nothing by it at all.
+        """
         if self.menu.is_menu_shown:
-            self.menu.menu_action("right")
-        else:
-            if self.is_in_intro and settings.skip_intro_on_seek:
-                self.skip_intro()
-            else:
-                self.kb_seek("right")
+            self.menu.menu_action("ok")
 
-    def _on_menu_up(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("up")
-        else:
-            if self.is_in_intro and settings.skip_intro_on_seek:
-                self.skip_intro()
-            else:
-                self.kb_seek("up")
-
-    def _on_menu_down(self):
-        if self.menu.is_menu_shown:
-            self.menu.menu_action("down")
-        else:
-            self.kb_seek("down")
+    # _on_menu_left / _right / _up / _down are gone with #16. Nothing bound
+    # them once `kb_menu_*` became the MENU's keys: the menu's own section
+    # sends `jms-menu <action>` straight to `menu_action`, and seeking is
+    # mpv's (or a claim). Their skip-intro and web-seek branches live in
+    # `_on_seeking` and `_on_claimed_key` respectively.
 
     def _on_pause_key(self):
         if self.menu.is_menu_shown:
@@ -1093,14 +1269,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _on_fullscreen_key(self):
         self.toggle_fullscreen()
 
-    # This gives you an interactive python debugger prompt.
-    def _on_debug_key(self):
-        import pdb
-
-        pdb.set_trace()
-
     # Kill shader packs (useful for breakage)
     def _on_kill_shader_key(self):
+        # Suppressed until the user picks again, not merely unloaded. Since
+        # profiles resolve per item (series -> library -> default), an
+        # unload alone lasted until the next episode, which then put the
+        # override's profile straight back -- on the one key whose entire
+        # purpose is recovering from a profile that breaks playback.
+        if self.menu is not None and self.menu.profile_manager is not None:
+            self.menu.profile_manager.suppressed = True
         if settings.shader_pack_remember:
             settings.shader_pack_profile = None
             settings.save()
@@ -1323,6 +1500,271 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._terminate_thread.start()
 
+    #: What makes the shim's seek different from mpv's. The distances and
+    #: exactness are here for the run BEFORE the migration carries them into
+    #: input.conf; afterwards they are back at their defaults and only
+    #: ``use_web_seek`` can keep a claim alive.
+    #:
+    #: **`skip_intro_on_seek` is deliberately absent** ([iw] asked). It does
+    #: not need a key at all: `_on_seeking` observes the `seeking` property
+    #: and applies it to *any* forward seek, mpv's own bindings included --
+    #: which is what its comment there has always said. Claiming a key for
+    #: it would double-handle, since the claim's own `self.seek()` raises
+    #: that same observer.
+    #: Only `use_web_seek` now. The six seek settings that used to be here
+    #: are gone from the config entirely (see conf.Settings): a distance
+    #: lives in the user's input.conf since #16, and while they existed
+    #: they were actively misleading -- a changed distance made this return
+    #: True, and the resulting claim then seeks by the amount in *mpv's*
+    #: binding rather than by the setting. Web seek is the one thing left
+    #: that mpv cannot express, so it is the one thing that still claims.
+    _MPV_EQUIVALENT_SEEK = {"use_web_seek": False}
+
+    def _seek_is_ours(self):
+        """Whether the shim's seek does something mpv's cannot.
+
+        Four things can: a changed distance, an exact-seek flag,
+        jellyfin-web's variable seek, and skip-intro-on-seek. None of them
+        and seeking is mpv's outright -- the defaults here are `seek 60` /
+        `seek -60` / `seek 5` / `seek -5`, character for character what mpv
+        binds, so the old arrow bindings existed to reimplement mpv's
+        arrows exactly.
+
+        Any of them and the keys are *claimed* rather than bound: the claim
+        follows whatever currently means seek, so somebody who moved seeking
+        onto other keys gets their features there too, which four fixed
+        bindings never gave them.
+        """
+        return any(getattr(settings, key, default) != default
+                   for key, default in self._MPV_EQUIVALENT_SEEK.items())
+
+    def set_osc_style(self, style: str):
+        """Override the resolved OSC style for this mpv instance.
+
+        One caller: the no-lua fallback. Every OSC the shim can offer is a
+        lua script, so when lua is unavailable there is no style to resolve
+        *to* -- and leaving the resolved value at "mpvtk" is what kept the
+        OSD menu unreachable, since ``toggle_settings_menu`` refuses it
+        under that style alone.
+        """
+        self._osc_style_override = style
+        self._osc_style_resolved = style
+        self._osc_script_loaded = False
+
+    def lua_works(self, timeout: float = 2.0):
+        """Whether this mpv can run a lua script at all. Cached.
+
+        **Everything the shim draws needs this.** The library browser and
+        the playback HUD are rendered by ``renderer.lua``; the stock OSC is
+        lua; ``mouse.lua`` is lua. An mpv built without it, or with it
+        broken, leaves the app running and drawing nothing but video --
+        and, until this existed, with no menu either, because
+        ``toggle_settings_menu`` refuses the OSD menu whenever the
+        *configured* style is mpvtk, live renderer or not.
+
+        A probe, not a capability string: `mpv-configuration` does not
+        mention lua on every build (measured on this one), and `load-script`
+        on a script that cannot run raises nothing on either backend. Only a
+        script reporting back is proof -- which also catches lua that loads
+        and then errors.
+
+        Costs ~10 ms when lua works (measured), and the full timeout once
+        when it does not.
+        """
+        if self._lua_works is not None:
+            return self._lua_works
+        answered = threading.Event()
+        self._lua_probe = answered
+        try:
+            self._player.command("load-script",
+                                 get_resource("lua_probe.lua"))
+            answered.wait(timeout)
+        except Exception:
+            log.debug("lua probe could not be loaded", exc_info=True)
+        finally:
+            self._lua_probe = None
+        self._lua_works = answered.is_set()
+        if not self._lua_works:
+            log.warning("This MPV cannot run lua scripts. The library "
+                        "browser, the playback HUD and the on-screen "
+                        "controls all need it; falling back to the "
+                        "command line and the OSD menu.")
+        return self._lua_works
+
+    # ------------------------------------------------------ the OSD menu
+
+    #: Section and message for the OSD menu's own arrow keys.
+    MENU_SECTION = "jms_menu"
+    MENU_MESSAGE = "jms-menu"
+
+    #: ``key setting -> menu action``. ENTER and ESC are deliberately absent:
+    #: they keep their Python bindings, which are already guarded on
+    #: ``is_menu_shown`` and have duties outside the menu.
+    _MENU_KEYS = (("kb_menu_left", "left"), ("kb_menu_right", "right"),
+                  ("kb_menu_up", "up"), ("kb_menu_down", "down"))
+
+    def claim_menu_keys(self, wanted):
+        """Give the arrows to the OSD menu for as long as it is on screen.
+
+        Installed on show and torn down on hide, which is what lets them
+        belong to mpv the rest of the time with no conditional behaviour
+        for the user to notice -- the same lifecycle the renderer runs for
+        its own mouse sections.
+
+        Unconditional since the arrows stopped being bound in Python: this
+        is the only thing that gives the menu its navigation, so a gate here
+        is a menu that cannot be driven.
+        """
+        try:
+            if not wanted:
+                self._player.command("disable-section", self.MENU_SECTION)
+                return
+            lines = "\n".join(
+                "%s script-message %s %s" % (getattr(settings, key),
+                                             self.MENU_MESSAGE, act)
+                for key, act in self._MENU_KEYS
+                if getattr(settings, key, None)
+            )
+            self._player.command("define-section", self.MENU_SECTION,
+                                 lines, "force")
+            self._player.command("enable-section", self.MENU_SECTION)
+        except Exception:
+            log.debug("could not update the menu key section", exc_info=True)
+
+    # ------------------------------------------------------- key claims
+    #
+    # #16. Rather than binding `space`, `f` and the arrows for ever, ask mpv
+    # which keys currently MEAN pause/seek/fullscreen (keysweep) and take
+    # only those, only while something needs them. A claim re-issues the
+    # user's own intent through the shim's SyncPlay-aware operations, so the
+    # key keeps meaning what their config says it means.
+    #
+    # An input SECTION rather than per-key bindings, because that is the one
+    # mechanism both backends have: libmpv can unregister a key binding and
+    # python_mpv_jsonipc cannot (it has bind_key_press and no unbind at
+    # all), while define-section/enable-section/disable-section are ordinary
+    # commands on either.
+
+    #: The section's name, and the script-message verb its lines send.
+    KEY_SECTION = "jms_keys"
+    KEY_MESSAGE = "jms-key"
+
+    def claim_keys(self, owner, semantics=None):
+        """Take, or give back, every key that currently means one of
+        ``semantics``. ``None`` releases ``owner``'s claim.
+
+        Owners are independent and the section is the union, so SyncPlay
+        joining a group does not disturb the standing fullscreen claim.
+        """
+        with self._lock:
+            if semantics:
+                self._key_claims[owner] = set(semantics)
+            else:
+                self._key_claims.pop(owner, None)
+            self._refresh_key_section()
+
+    def _swept_keys(self):
+        """The sweep, done ONCE and cached.
+
+        Cached because it must not see our own section: the lines we install
+        are non-weak, so a re-sweep would find `script-message jms-key ...`
+        winning every claimed key, classify it as nothing, and quietly drop
+        the claim on the next refresh. Bindings do not change at runtime
+        anyway -- mpv reads input.conf at startup.
+        """
+        if self._swept is None:
+            from . import keysweep
+
+            try:
+                bindings = self._player.input_bindings
+            except Exception:
+                log.debug("could not read input-bindings", exc_info=True)
+                bindings = []
+            self._swept = keysweep.sweep(
+                bindings, {keysweep.PAUSE, keysweep.SEEK,
+                           keysweep.FULLSCREEN})
+            log.debug("key sweep: %s", self._swept)
+        return self._swept
+
+    def _swept_pointers(self):
+        """Pointer keys meaning seek, cached alongside the sweep and for the
+        same reason -- see :meth:`_swept_keys`."""
+        if self._swept_ptr is None:
+            from . import keysweep
+
+            try:
+                bindings = self._player.input_bindings
+            except Exception:
+                bindings = []
+            self._swept_ptr = keysweep.pointer_keys(bindings,
+                                                    {keysweep.SEEK})
+        return self._swept_ptr
+
+    def _refresh_key_section(self):
+        """Rebuild and re-enable the section for the current claims. Callers
+        hold ``_lock``."""
+        from . import keysweep
+
+        wanted = set()
+        for owned in self._key_claims.values():
+            wanted |= owned
+        claims = [c for c in self._swept_keys() if c[1] in wanted]
+        self._key_actions = {key: (semantic, arg)
+                             for key, semantic, arg in claims}
+        # Pointer keys are never *claimed* -- that is the renderer's ground
+        # -- but a seek nobody reports is a desync a SyncPlay group then
+        # corrects, and mpv binds WHEEL_LEFT/RIGHT to one. Suppressed for
+        # the duration rather than routed: a wheel gesture delivers dozens
+        # of notches, all to reach an operation the group would refuse.
+        suppress = ([] if keysweep.SEEK not in wanted
+                    else self._swept_pointers())
+        try:
+            if not claims and not suppress:
+                self._player.command("disable-section", self.KEY_SECTION)
+                return
+            self._player.command(
+                "define-section", self.KEY_SECTION,
+                keysweep.section_lines(claims, self.KEY_MESSAGE, suppress),
+                "force")
+            self._player.command("enable-section", self.KEY_SECTION)
+        except Exception:
+            log.debug("could not update the key section", exc_info=True)
+
+    def _on_claimed_key(self, semantic, key):
+        """A claimed key was pressed: carry out what the user had bound,
+        through the operation that knows about SyncPlay and about
+        remembering the choice."""
+        found = self._key_actions.get(key)
+        if found is None:
+            return
+        _semantic, arg = found
+        if semantic == "pause":
+            if arg is None:
+                self.toggle_pause()
+            else:
+                # `set pause yes/no` -- PAUSEONLY and PLAYONLY. Answering
+                # these with a toggle would pause a playing file from the
+                # key whose entire job is not to.
+                self.set_paused(bool(arg))
+        elif semantic == "seek":
+            amount, exact = arg
+            # jellyfin-web's variable seek, applied to whatever key the
+            # user actually seeks with -- which four fixed arrow bindings
+            # never managed. Routed by SIGN, because that is all a binding
+            # can tell us: `seek -5` and `seek -60` are both "backwards",
+            # and which of them was the "left" key is neither recoverable
+            # nor needed, since web seek replaces the distance anyway.
+            #
+            # Nothing here for skip-intro: `_on_seeking` catches the seek
+            # this is about to make, exactly as it catches mpv's own.
+            if settings.use_web_seek:
+                back, forward = self.get_seek_times()
+                amount = forward if amount > 0 else back
+            self.seek(amount, exact=exact)
+        elif semantic == "fullscreen":
+            want = (not self._player.fs) if arg is None else bool(arg)
+            self.set_fullscreen(want, persist=True)
+
     def _on_client_message(self, event):
         try:
             # Python-MPV 1.0 uses a class/struct combination now
@@ -1348,6 +1790,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self.menu.menu_action("ok")
             elif args[0] == "shim-menu-back":
                 self.menu.menu_action("back")
+            elif args[0] == self.KEY_MESSAGE and len(args) >= 3:
+                self._on_claimed_key(args[1], args[2])
+            elif args[0] == self.MENU_MESSAGE and len(args) >= 2:
+                self.menu.menu_action(args[1])
+            elif args[0] == "jms-lua":
+                if self._lua_probe is not None:
+                    self._lua_probe.set()
         except Exception:
             log.warning("Error when processing client-message.", exc_info=True)
 
@@ -1755,6 +2204,63 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return False
         return True
 
+    def _forced_hwdec(self):
+        """Whether a shader profile has named the decoder it requires.
+
+        A profile naming a *specific* decoder (``d3d11va``, ``vaapi``, …)
+        is stating a hardware requirement of the thing the user just chose
+        -- the shipped ``rtx-vsr`` needs d3d11va because its d3d11vpp
+        filter operates on d3d11 surfaces. That is different in kind from
+        the blanket ``auto-copy`` every profile used to carry, which was an
+        opinion about the machine. The specific one is applied by the
+        profile itself; this just stops the per-item write from undoing it
+        on the next file.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            return bool(profiles is not None
+                        and getattr(profiles, "forced_hwdec", None))
+        except Exception:
+            log.debug("could not read the shader profile", exc_info=True)
+            return False
+
+    def _needs_copy_hwdec(self):
+        """Whether anything downstream needs frames in system RAM.
+
+        The direct hardware-decoding modes hand mpv frames that live on the
+        GPU, which a video filter cannot read -- so where there is a filter,
+        hardware decoding has to be the copy-back kind or it silently does
+        not apply. Three sources, and none of them is a guess:
+
+        * the active shader profile said so (``wants_copy_hwdec`` -- the
+          pack names a ``-copy`` mode because it knows what it will do with
+          the frames);
+        * SVP is enabled, which means a VapourSynth filter in the user's
+          own mpv.conf;
+        * mpv reports a filter chain. This is the general case and catches
+          the other two as well once playback is running, but it is asked
+          separately because it is the only one that sees a filter the app
+          knows nothing about.
+
+        Never raises: an unanswerable question here means "no filter", and
+        the cost of being wrong is a filter that does not apply -- not a
+        player that fails to start.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None and getattr(profiles, "wants_copy_hwdec",
+                                                False):
+                return True
+        except Exception:
+            log.debug("could not read the shader profile", exc_info=True)
+        if settings.svp_enable:
+            return True
+        try:
+            return bool(self._player.vf)
+        except Exception:
+            log.debug("could not read the filter chain", exc_info=True)
+        return False
+
     @synchronous("_lock")
     def _play_media(
         self,
@@ -1805,6 +2311,66 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                                    else settings.video_volume)
         except _mpv_errors:
             pass
+        # A shader pack is for moving pictures. It is applied once and
+        # left on the mpv instance, so without this an anime-upscaling
+        # chain runs over a photograph -- and over a comic page, which is
+        # 1600x2400 or larger, where it is expensive as well as wrong. The
+        # name is kept while suspended, so the menu still shows the profile
+        # the user chose and nothing rewrites the remembered setting.
+        #
+        # apply_for_item, not resume_after_still: the profile is resolved
+        # per item now (series -> library -> the global setting), so the
+        # answer for this file is not necessarily the answer for the last
+        # one, and a still having suspended it is only the commonest reason
+        # for that rather than the only one. It takes the client explicitly
+        # because self._video is not this video yet.
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+            if profiles is not None:
+                if getattr(video, "is_photo", False):
+                    profiles.suspend_for_still()
+                else:
+                    profiles.apply_for_item(v_item,
+                                            getattr(video, "client", None))
+        except Exception:
+            log.debug("could not adjust the shader profile for this item",
+                      exc_info=True)
+        # Hardware decoding, BEFORE play() for the same reason as the two
+        # above: hwdec is read when the decoder is initialised, and the
+        # failures this setting is cautious about (a driver that resets the
+        # GPU, a vp9 path that hangs before the window opens) happen there.
+        # Setting it afterwards would apply to the file after this one.
+        #
+        # Re-applied per item rather than only at construction, which is
+        # what lets "over-1080p" be a policy at all -- and, for the static
+        # modes, what makes a settings change take effect on the next item
+        # instead of the next launch.
+        try:
+            from .mpv_options import hwdec_for
+
+            # None means somebody more specific has already spoken -- the
+            # user's own mpv.conf, or a shader profile naming the decoder
+            # its filter requires. Both outrank the setting, and both are
+            # already applied, so the right move is not to write at all.
+            from .args import get_args
+
+            # --disable-hwdec outranks EVERYTHING, including a profile that
+            # named its decoder. It is the recovery path for hardware
+            # decoding stopping the window opening at all, so a shader
+            # profile silently defeating it would leave the user with no way
+            # back in -- which is the one thing this flag exists to prevent.
+            if getattr(get_args(), "disable_hwdec", False):
+                self._player.hwdec = "no"
+            else:
+                forced = self._forced_hwdec()
+                want = None if forced else hwdec_for(
+                    _source_height(video), self._needs_copy_hwdec())
+                if want is not None:
+                    self._player.hwdec = want
+        except Exception:
+            # Never let a decode *preference* stop playback: mpv keeps
+            # whatever it had, which is at worst the previous item's.
+            log.debug("could not apply the hwdec setting", exc_info=True)
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
         # the duration wait below and the HUD's scrub bar both depend on it
@@ -2172,9 +2738,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def toggle_stats(self):
         """Toggle mpv's "Playback Data" (stats.lua) overlay, tracking its
-        state. Both the HUD gear menu's Playback Data entry and the `i` key
-        route here so ``_stats_shown`` stays truthful and clear_stats() can
-        reliably put it away when the library returns."""
+        state.
+
+        Reached from the `i` key and from the *lua* OSC's gear sheet. The
+        mpvtk HUD's gear no longer has an entry for it: that row is
+        "Playback Info" now, which is ours and answers what the server is
+        sending rather than what the decoder is doing (#10). Everything
+        still funnels through here so ``_stats_shown`` stays truthful and
+        clear_stats() can reliably put the overlay away when the library
+        returns."""
         if not self._mpv_alive:
             return
         try:
@@ -2471,9 +3043,74 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return True
         return False
 
+    def _widen_queue_backwards(self, video):
+        """Put the episodes *before* this one into the queue. True if it grew.
+
+        Starting an episode from Next Up or Continue Watching builds the
+        queue with ``StartItemId``, which is inclusive -- so the queue is
+        this episode onward and there is nothing behind it to step to
+        (#650). jellyfin-web has the same gap; the issue asks for "load
+        more/full list, so going back is possible", and this is that, done
+        lazily: nothing is fetched until someone actually presses previous,
+        and then once for the rest of the session.
+
+        **Prepends rather than rebuilding.** The entries after the current
+        one already exist, already carry their PlaylistItemIds, and may
+        have been edited (``insert_items`` from the queue screen, a
+        websocket Play command) -- reconstructing them from the server's
+        episode list would silently discard all of that. So the server's
+        answer is used only for the part we do not have.
+
+        Runs under the player lock, like every other blocking server call
+        on this path (``get_playback_url`` is one), and returns False on
+        anything unexpected: this is a convenience on a keypress, and the
+        worst honest outcome is the previous button doing nothing, which is
+        what it did before.
+        """
+        from .utils import get_seq
+
+        if self.syncplay.is_enabled():
+            # The group owns the queue. Inventing entries it has never
+            # heard of is not ours to do -- request_prev is the whole
+            # protocol for this, and play_prev already routes there.
+            return False
+        client = getattr(video, "client", None)
+        if client is None:
+            return False        # offline: nothing to ask
+        item = getattr(video, "item", None) or {}
+        if item.get("Type") != "Episode" or not item.get("SeriesId"):
+            return False
+        try:
+            result = client.jellyfin.get_episodes(item["SeriesId"]) or {}
+        except Exception:
+            log.debug("could not read the series for a backwards step",
+                      exc_info=True)
+            return False
+        ids = [e.get("Id") for e in (result.get("Items") or []) if e.get("Id")]
+        try:
+            index = ids.index(video.item_id)
+        except ValueError:
+            # The playing episode is not in its own series listing. A
+            # mixed-in special, or a library that changed underneath us.
+            return False
+        if index <= 0:
+            return False        # already the first episode
+        media = video.parent
+        prefix = [{"PlaylistItemId": "playlistItem{0}".format(get_seq()),
+                   "Id": eid} for eid in ids[:index]]
+        media.replace_queue(prefix + list(media.queue), len(prefix) + media.seq)
+        log.info("Queue widened backwards by %d episode(s).", len(prefix))
+        return True
+
     @synchronous("_lock")
     def play_prev(self):
         video = self._video
+        if video is not None and not video.parent.has_prev:
+            # Nothing behind us *in the queue* is not the same as nothing
+            # behind us in the series. Only on an explicit press: this is a
+            # server round trip, and doing it up front would put one on
+            # every episode start for a button most people never touch.
+            self._widen_queue_backwards(video)
         if video and video.parent.has_prev:
             new_video = video.parent.get_prev().video
             self.send_timeline_stopped(True)
@@ -3362,23 +3999,49 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def set_speed(self, speed: float):
         self._player.speed = speed
 
+    #: What mpv's own arrows do, for a remote seek on an mpv that answered
+    #: nothing. mpv's documented defaults, character for character.
+    _DEFAULT_SEEK = {"up": (60, False), "down": (-60, False),
+                     "right": (5, False), "left": (-5, False)}
+
+    def _seek_like_the_keyboard(self, action):
+        """``(amount, exact)`` that pressing ``action`` on the keyboard
+        would seek by, right now, on this mpv.
+
+        **Asked of mpv, not of a setting.** The seek distances left the
+        config in version 4, so the only place a distance lives is the
+        user's input.conf -- and the keyboard reads it from there whether
+        the key is mpv's own or one the shim claimed. A remote that kept
+        its own number would seek a different distance from the arrow key
+        beside it on the same machine, which is what it did while
+        `settings.seek_*` still existed and the keyboard had stopped
+        reading them.
+        """
+        from . import keysweep
+
+        try:
+            for key, semantic, cmd in self._swept_keys():
+                if semantic != "seek" or key != action:
+                    continue
+                got = keysweep.action(cmd)
+                if got is not None:
+                    return got[1]
+        except Exception:
+            log.debug("could not read mpv's seek binding for %r", action,
+                      exc_info=True)
+        return self._DEFAULT_SEEK[action]
+
     def kb_seek(self, action):
-        if action == "up":
-            self.seek(settings.seek_up, exact=settings.seek_v_exact)
-        elif action == "down":
-            self.seek(settings.seek_down, exact=settings.seek_v_exact)
-        elif action == "left":
-            seektime = settings.seek_left
-            if settings.use_web_seek:
-                seektime, _x = self.get_seek_times()
-            self.seek(seektime, exact=settings.seek_h_exact)
-        elif action == "right":
-            seektime = settings.seek_right
-            if settings.use_web_seek:
-                _x, seektime = self.get_seek_times()
-            self.seek(seektime, exact=settings.seek_h_exact)
-        else:
+        if action not in self._DEFAULT_SEEK:
             self.menu.menu_action(action)
+            return
+        amount, exact = self._seek_like_the_keyboard(action)
+        if settings.use_web_seek:
+            # Routed by sign, as the claimed-key path does: a binding says
+            # which way it goes, never which arrow it was.
+            back, forward = self.get_seek_times()
+            amount = forward if amount > 0 else back
+        self.seek(amount, exact=exact)
 
     # Jellyfin remote navigation (MoveUp/Select/… from a phone or web
     # client) -> mpv key names. While the mpvtk browser owns input its

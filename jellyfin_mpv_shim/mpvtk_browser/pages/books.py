@@ -208,7 +208,7 @@ class BooksPage(GridPage):
 
     def _header_text(self, folder, tracks, width):
         out = [Text(folder.get("Name") or self.route.get("title", ""),
-                    size=28, bold=True)]
+                    size="hero", bold=True)]
         # The author, which for an audiobook is the album artist. Named
         # rather than folded into the meta line: on a book it is the single
         # most useful thing on the screen after the title.
@@ -222,7 +222,7 @@ class BooksPage(GridPage):
                 sum(t.get("RunTimeTicks") or 0 for t in tracks)),
         ) if x]
         if meta:
-            out.append(Text("   ·   ".join(meta), size=15,
+            out.append(Text("   ·   ".join(meta), size="small",
                             color=theme.SUBTLE_FG))
         overview = self._overview(folder, tracks)
         if overview:
@@ -412,11 +412,11 @@ class AudiobookPage(Page):
             return chrome.error(_("Item not available."))
         art = self.ctx.art
         server = route.get("server") or self.ctx.server
-        text = [Text(item.get("Name") or route.get("title", ""), size=28,
+        text = [Text(item.get("Name") or route.get("title", ""), size="hero",
                      bold=True)]
         meta = self._meta(item)
         if meta:
-            text.append(Text(meta, size=15, color=theme.SUBTLE_FG))
+            text.append(Text(meta, size="small", color=theme.SUBTLE_FG))
         text.append(self._actions(item, server))
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
@@ -468,29 +468,29 @@ class AudiobookPage(Page):
                 _("Resume") + "  " + detail_components.fmt_ticks(position),
                 "ab-resume",
                 lambda: actions.play(item, server, offset_ticks=position),
-                primary=True, size=18, autofocus=True))
+                primary=True, size=controls.PRIMARY_ROW, autofocus=True))
             btns.append(controls.action_btn(
                 "first_page", _("Restart"), "ab-play",
-                lambda: actions.play(item, server), size=18))
+                lambda: actions.play(item, server), size=controls.PRIMARY_ROW))
         else:
             btns.append(controls.action_btn(
                 "play_arrow", _("Play"), "ab-play",
                 lambda: actions.play(item, server),
-                primary=True, size=18, autofocus=True))
+                primary=True, size=controls.PRIMARY_ROW, autofocus=True))
         btns.append(controls.action_btn(
             "playlist_add", _("Add to Queue"), "ab-queue",
-            lambda: actions.queue_items([item.get("Id")], server), size=18))
+            lambda: actions.queue_items([item.get("Id")], server), size=controls.PRIMARY_ROW))
         btns.append(controls.action_btn(
             "check", _("Finished"), "ab-watched",
             lambda: actions.toggle_watched(item, server),
-            on=is_watched(item), size=18))
+            on=is_watched(item), size=controls.PRIMARY_ROW))
         btns.append(controls.action_btn(
             "favorite", _("Favorite"), "ab-fav",
             lambda: actions.toggle_favorite(item, server),
             on=bool((item.get("UserData") or {}).get("IsFavorite")),
-            size=18))
+            size=controls.PRIMARY_ROW))
         download = detail_components.download_button(
-            actions, tiles, item, server, "ab")
+            actions, tiles, item, server, "ab", size=controls.PRIMARY_ROW)
         if download is not None:
             btns.append(download)
         return Row(btns, gap=8, align="center")
@@ -519,11 +519,11 @@ class AudiobookPage(Page):
                                                    offset_ticks=offset)),
             })
         return Column([
-            Text(_("Chapters"), size=22, bold=True),
+            Text(_("Chapters"), size="title", bold=True),
             Table([{"label": "#", "w": 46, "align": "right"},
                    {"label": _("Title"), "flex": 1},
                    {"label": _("Start"), "w": 90, "align": "right"}],
-                  rows, size=17, hover_bg=theme.BUTTON_BG),
+                  rows, size="normal", hover_bg=theme.BUTTON_BG),
         ], gap=8, align="stretch")
 
 
@@ -597,14 +597,14 @@ class BookPage(Page):
             return chrome.error(_("Item not available."))
         server = route.get("server") or self.ctx.server
         art = self.ctx.art
-        text = [Text(item.get("Name") or route.get("title", ""), size=28,
+        text = [Text(item.get("Name") or route.get("title", ""), size="hero",
                      bold=True)]
         context = self._context(item)
         if context:
-            text.append(Text(context, size=17, color=theme.SUBTLE_FG))
+            text.append(Text(context, size="normal", color=theme.SUBTLE_FG))
         meta = self._meta(item)
         if meta:
-            text.append(Text(meta, size=15, color=theme.SUBTLE_FG))
+            text.append(Text(meta, size="small", color=theme.SUBTLE_FG))
         text.append(self._buttons(item, server, data.get("state")))
         blocks = [Row([art.tiles.art_cell(item, size=BOOK_ART),
                        Column(text, gap=8, flex=1, align="stretch")],
@@ -679,7 +679,7 @@ class BookPage(Page):
             "menu_book", _p("open a book", "Read"), "bk-read",
             (lambda: self._read_here(item, server)) if readable
             else (lambda: actions.read_book(item, server)),
-            primary=True, size=18, autofocus=True)]
+            primary=True, size=controls.PRIMARY_ROW, autofocus=True)]
         if readable:
             # Kept next to it rather than behind a setting: the built-in
             # reader draws paragraphs, headings, emphasis and pictures and
@@ -688,16 +688,16 @@ class BookPage(Page):
             # user can be expected to predict from a preferences page.
             btns.append(controls.action_btn(
                 "", _("Open Externally"), "bk-read-ext",
-                lambda: actions.read_book(item, server), size=18))
+                lambda: actions.read_book(item, server), size=controls.PRIMARY_ROW))
         if path:
             btns.append(controls.action_btn(
                 "delete", _("Remove Download"), "bk-undownload",
-                lambda: actions.confirm_remove_download(item), size=18))
+                lambda: actions.confirm_remove_download(item), size=controls.PRIMARY_ROW))
         elif status in ("pending", "downloading"):
             # A label, not a button: there is nothing useful to press while
             # it is in flight, and a Download button that re-enqueues an
             # in-flight download reads as one that did nothing.
-            btns.append(Text(_("Downloading…"), size=16,
+            btns.append(Text(_("Downloading…"), size="normal",
                              color=theme.SUBTLE_FG))
         elif not actions.offline:
             # Download, and only download. Read is the button that opens
@@ -706,7 +706,7 @@ class BookPage(Page):
             # window if both buttons do the same thing.
             btns.append(controls.action_btn(
                 "file_download", _("Download"), "bk-download",
-                lambda: actions.download_book(item, server), size=18))
+                lambda: actions.download_book(item, server), size=controls.PRIMARY_ROW))
         if progress_settable(item):
             # Left out entirely for an epub, whose stored position is an
             # index into a JavaScript library's locations array rather than
@@ -716,7 +716,7 @@ class BookPage(Page):
             btns.append(controls.action_btn(
                 "bookmark", _("Progress…"), "bk-progress",
                 lambda: self.ctx.dialogs.open_book_progress(item, server),
-                size=18))
+                size=controls.PRIMARY_ROW))
         btns.append(controls.action_btn(
             # "Finished", not "Read". The verb and the state are the same
             # word in English, so with `Read` on both this page showed two
@@ -725,10 +725,10 @@ class BookPage(Page):
             # nothing at all.
             "check", _("Finished"), "bk-watched",
             lambda: actions.toggle_watched(item, server),
-            on=is_watched(item), size=18))
+            on=is_watched(item), size=controls.PRIMARY_ROW))
         btns.append(controls.action_btn(
             "favorite", _("Favorite"), "bk-fav",
             lambda: actions.toggle_favorite(item, server),
             on=bool((item.get("UserData") or {}).get("IsFavorite")),
-            size=18))
+            size=controls.PRIMARY_ROW))
         return Row(btns, gap=8, align="center")

@@ -5,17 +5,41 @@ family — the grid's sort/filter bar, the music action bar — is that page's
 own method; moving it here would trade a mixin for a components dumping
 ground, which is the same coupling with a nicer directory name.
 
-See ``docs/ARCHITECTURE_TARGET.md`` §1.4 for the test: a component may take
+See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the test: a component may take
 render resources and callbacks, never ``nav``, ``source`` or ``route``.
 """
 
 from typing import Any, List
 
+from ...mpvtk import theme as toolkit_theme
 from ...mpvtk.widgets import Button, Icon, Row, Text
 from .. import theme
 
 
-def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16,
+#: The label size of a **primary action row** -- the buttons across the
+#: top of a detail, series, season, book or Live TV page.
+#:
+#: Named because it was a bare `18` at twenty-five call sites: a rule
+#: about a ROW, restated once per button in it, so adding a button and
+#: forgetting the argument gave you one button a size out. That is
+#: exactly what happened on the AudioBook page, where the appended
+#: Download button came out at the default and the row measured 42.5
+#: against 40.0. `tests/test_action_rows.py` measures the rows; this
+#: makes the rule greppable and gives it one value.
+#:
+#: **Both of these are off the type scale** (the tiers either side are
+#: SMALL 15, NORMAL 17, LARGE 19), which is deliberate only in the sense
+#: that nobody has decided otherwise: a theme changing `base_size` moves
+#: every tokenized size and leaves these two behind. Moving them onto
+#: NORMAL/LARGE would fix that and resize every action button in the app
+#: by a pixel, so it wants a smoke test rather than a quiet edit.
+PRIMARY_ROW = 18
+
+#: The default, for secondary rows -- tile menus, dialogs, the grid bar.
+ROW = 16
+
+
+def action_btn(icon, text, node_id, cb, on=False, primary=False, size=ROW,
                autofocus=False):
     """An icon+label action button.
 
@@ -42,7 +66,24 @@ def action_btn(icon, text, node_id, cb, on=False, primary=False, size=16,
     # infer list[Icon] from it and reject the Text that always follows.
     children: List[Any] = []
     if icon:
-        children.append(Icon(icon, size + 2, color=fg))
+        # Sized to the label as it will actually RENDER, not to the
+        # authored number -- so the glyph tracks the text multiplier
+        # instead of staying frozen beside a label that grows.
+        #
+        # This is `Icon`'s own rule, not an exception to it: an explicit
+        # size is geometry and stays put, and "an icon with no opinion is
+        # standing in for a line of text and should match it". A glyph
+        # inline beside a label is the second case wearing the first
+        # case's spelling. **[iw]**: "the glyphs being unscaled is fine in
+        # most cases, it does start to look a little odd though at 150%
+        # for buttons where a glyph is right next to text, because the
+        # glyphs are used like an icon font would be used."
+        #
+        # A standalone icon button is untouched and still frozen: there is
+        # no text next to it for it to disagree with, and resizing those
+        # is `ui_scale`'s job.
+        children.append(
+            Icon(icon, toolkit_theme.text_size(size) + 2, color=fg))
     children.append(Text(text, size=size, color=fg))
     return Row(children,
                id=node_id, gap=7, pad=10,

@@ -4,7 +4,7 @@
 by detail and series. That cross-family reach is what makes them components
 rather than methods on a page.
 
-See ``docs/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
+See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4 for the line being drawn.
 """
 
 from ...i18n import _
@@ -83,8 +83,15 @@ def people_row(tiles, people):
                           geom=tiles.art.geom)
 
 
-def download_button(actions, tiles, item, server, prefix):
+def download_button(actions, tiles, item, server, prefix,
+                    size=controls.ROW):
     """Download, or Remove when it's already downloaded.
+
+    ``size`` because this is the one button in the set that a caller
+    appends to a row it built itself, rather than getting from
+    ``common_actions``. The AudioBook page builds a row of 18s and got a
+    16 on the end -- 42.5px against 40.0, the same defect the grid bar was
+    levelled for, twice the size.
 
     The button used to always say Download, so pressing it on a complete
     item did nothing visible and there was no way to reclaim the space
@@ -103,10 +110,10 @@ def download_button(actions, tiles, item, server, prefix):
             return None
         return controls.action_btn(
             "file_download", _("Download"), prefix + "-download",
-            lambda: actions.open_download(item))
+            lambda: actions.open_download(item), size=size)
     return controls.action_btn(
         "delete", _("Remove Download"), prefix + "-undownload",
-        lambda: actions.confirm_remove_download(item))
+        lambda: actions.confirm_remove_download(item), size=size)
 
 
 def common_actions(actions, tiles, item, server, prefix):

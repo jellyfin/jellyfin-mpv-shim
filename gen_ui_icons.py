@@ -78,6 +78,9 @@ ICON_NAMES = [
     "cloud_upload",
     "delete",
     "edit",
+    # the Media Info dialog, on the tile menu and the detail page --
+    # jellyfin-web's own icon for MoreMediaInfo (itemContextMenu.js).
+    "info",
     "movie",
     "radio",
     # by-name screens (genres, networks) -- the same two jellyfin-web uses
@@ -112,6 +115,20 @@ ICON_NAMES = [
     "refresh",
     "folder",
     "content_copy",
+    # The library grid's filter panel. web's FilterAlt.
+    "filter_alt",
+    # Tile placeholders, for an item with no artwork. jellyfin-web's
+    # `getItemTypeIcon` and `getLibraryIcon` (src/utils/image.ts) --
+    # taken from there rather than chosen, so a library with no posters
+    # looks like the same library does in every other client.
+    "tv",
+    "live_tv",
+    "theaters",
+    "music_video",
+    "book",
+    "video_library",
+    "queue",
+    "album",
     # live tv / recordings
     "fiber_manual_record",
     "fiber_smart_record",

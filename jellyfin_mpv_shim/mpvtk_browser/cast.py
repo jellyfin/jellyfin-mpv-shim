@@ -30,6 +30,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 from ..i18n import _
+from . import theme
 from ..imageutil import apply_dark_gradient, pil_font, scale_to_cover
 from ..mpvtk import pilfont
 
@@ -413,7 +414,7 @@ class CastMixin:
         # bare floors and caps are logical constants and convert.
         margin = max(px(40), cw // 30)
         wrap = cw - 2 * margin
-        info_size = max(px(14), min(px(28), ch // 50))
+        info_size = theme.baked_text(max(px(14), min(px(28), ch // 50)))
         body_size = max(px(18), min(px(36), ch // 30))
         title = (title or "")[:200]
         base = max(px(36), min(px(96), ch // 14))

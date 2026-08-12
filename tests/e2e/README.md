@@ -41,12 +41,14 @@ E1 and E2 exist so far:
 
 | Module | Tier | Covers |
 | --- | --- | --- |
+| `test_batch4_contracts` | E1 | the server behaviours batch 4 relies on: `CanDelete` absent unless asked, `MediaSourceCount` omitted at 1, `TranscodeReasons` living in the TranscodingUrl rather than the DTO, a remux naming the *source* codec, `StartItemId` being inclusive |
 | `test_account_policy` | E1 | restricted libraries, Live TV access, no-password / disabled / hidden / one-session logins |
 | `test_syncplay_group` | E1 | **two real clients on one real group** — pause/seek propagation, the Waiting handshake, halt/resume; the check that `tests/_syncplay_server.py`'s port of the group state machine is telling the truth |
 | `test_source_conformance` | E1 | the fake `LibrarySource` still describes the real one |
 | `test_auto_download` | E1 | the two endpoints the lookahead window is built from — NextUp names the first episode of an *unstarted* series (or the window silently never extends), advances with what was watched, is empty for a finished one; `StartItemId` is inclusive and carries `MediaSources` |
 | `test_strm_source` | E1 | `.strm` shortcuts: where the source is, where the runtime is, what a refused one resolves to |
 | `test_live_tv` | E1 | channel line-up, guide window bounds, category flags, guide prefs, timers |
+| `test_home_layout` | E1 | the home layout in **jellyfin-web's** DisplayPreferences document — the `emby` client namespace, a save that preserves both the sections we cannot draw and the rest of the document, and `LatestItemsExcludes` applied client-side for Latest rows and server-side for Continue Watching |
 | `test_route_walk` | E1 | every screen loads and renders against the real library — including the **epub reader**, on a book downloaded for real |
 | `test_paging` | E1 | virtual scrolling over ~1000 items at real totals (#617) |
 | `test_keyboard_nav` | E1 | reaching and activating the library by keyboard, online |
@@ -64,6 +66,7 @@ E1 and E2 exist so far:
 | `test_input_routing` | E2 | real keys through mpv's input layer across every UI transition |
 | `test_scroll_recovery` | E2 | wheel-scrolling 1000 items hard in a real window; tiles come back |
 | `test_track_selection` | E2 | Jellyfin's stream index vs mpv's track id, in both numbering schemes, and reported back |
+| `test_chapters` | E2 | chapter navigation over a real chaptered container: the #614 dead zone before every boundary, the back-direction grace, and mpv's chapter list against the server's |
 | `test_photos` | E2 | one still is held, an album is a slideshow, and neither inherits the browser's endless display duration |
 | `test_window_resize` | E2 | the window changes size under the UI, down to a size nobody could use |
 | `test_comic_reader` | E2 | the one browser screen the walk cannot open: a comic page is *played*, so the page reaching mpv, `keepaspect`, and `_video` staying None all need a real player |

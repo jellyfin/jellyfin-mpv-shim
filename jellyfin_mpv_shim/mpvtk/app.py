@@ -283,6 +283,9 @@ class MpvtkApp:
         # Skip Intro/Credits button while the HUD is idle (ENTER /
         # remote Select / click). Should perform the skip.
         self.on_hud_skip = None
+        #: The renderer paused/unpaused and wants Python to do it, because
+        #: a SyncPlay group is on -- see renderer.lua's state.pause_now.
+        self.on_pause = None
         # called as ("vpan", evt) when a wheel notch ran off the end of a
         # panned picture, and as ("vzoom", evt) on ctrl+wheel over one.
         # Node-less for the same reason the picture is: it is mpv's video,
@@ -428,8 +431,21 @@ class MpvtkApp:
         Nodes arrive already-physical, but the renderer has pixel
         constants of its own (wheel step, slider padding, the idle Skip
         button, tooltip offsets) that no scene node covers."""
+        # `t` and `m` as well as `s`: text the renderer composes itself --
+        # the hover tooltip, the TextBox context menu, the scrub preview
+        # bubble and the idle Skip Intro button -- never passes through a
+        # widget, so it received neither the user's text multiplier nor the
+        # readability floor. The Skip button is the sharp one: its Python
+        # and Lua copies are deliberately identical so the label does not
+        # change size when the HUD hides, and without this they diverge at
+        # any setting other than 100%.
+        from . import theme
+
         self.backend.command(
-            "script-message", "mpvtk-scale", json.dumps({"s": scaling.scale()})
+            "script-message", "mpvtk-scale",
+            json.dumps({"s": scaling.scale(),
+                        "t": theme.text_factor(),
+                        "m": theme.min_size()})
         )
 
     def push_scroll_config(self):
@@ -664,6 +680,13 @@ class MpvtkApp:
                 except Exception:
                     log.exception("on_hud handler failed")
             self._dirty = True
+            return
+        if t == "pause":
+            if self.on_pause is not None:
+                try:
+                    self.on_pause()
+                except Exception:
+                    log.exception("on_pause handler failed")
             return
         if t == "hudskip":
             if self.on_hud_skip is not None:

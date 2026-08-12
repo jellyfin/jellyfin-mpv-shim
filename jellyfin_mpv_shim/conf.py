@@ -24,7 +24,11 @@ config_path = None
 #   1: transcode_dolby_vision defaults off (mpv plays Dolby Vision natively).
 #   2: the four skip_intro/skip_credits booleans become one action per
 #      media segment type (segment_intro and friends).
-CONFIG_VERSION = 2
+#   3: a kb_* binding cleared to JSON null had coerced to the STRING
+#      "None" and been saved back verbatim; those become real nulls.
+#   4: the seek_* settings leave conf.json -- the keys the user CHANGED
+#      become real bindings in their input.conf (see input_conf.py).
+CONFIG_VERSION = 4
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -118,6 +122,39 @@ class Settings(SettingsBase):
     direct_paths: bool = False
     remote_direct_paths: bool = False
     path_substitutions: list = []
+    #: Hardware video decoding. "no" (mpv's own default and ours),
+    #: "over-1080p" (software below, hardware above), "auto" (mpv's
+    #: whitelisted direct modes), or "auto-copy" (the same, copied back to
+    #: system RAM).
+    #:
+    #: **Off by default, and that follows mpv rather than the other
+    #: clients.** mpv's manual on turning it on: "acknowledge that this may
+    #: cause problems", and its maintainers decline to default it on
+    #: (mpv#12948) because particular vendor/GPU combinations are badly
+    #: broken -- AMD vaapi on Linux causing GPU resets, vp9 on Intel Macs
+    #: hanging mpv before the window even opens. Jellyfin Media Player did
+    #: default it on and it worked for most people; this is about the tail
+    #: it did not work for, who are disproportionately the people on
+    #: hardware that needed it.
+    #:
+    #: "over-1080p" is the option that exists because *we* can do what mpv
+    #: cannot: the source resolution is in the DTO before playback starts,
+    #: so decoding can be software where software is fine and hardware only
+    #: where it is not. Most hardware of the last decade decodes 1080p
+    #: without help, and often looks better doing it.
+    #: Draw the item's own poster inset into a detail page's header (#7).
+    #: A film's or series' key art, beside the backdrop it is normally
+    #: shown against everywhere else.
+    detail_poster: bool = True
+    #: The same slot on an *episode*, where the artwork is a still.
+    #:
+    #: Split from the poster deliberately, because the two objections are
+    #: unrelated and only one is about taste [iw]: a still is a frame of an
+    #: episode you have **not watched**, on the page you opened to decide
+    #: whether to watch it. Somebody avoiding spoilers wants this off and
+    #: the poster left alone.
+    detail_episode_image: bool = True
+    hwdec: str = "no"
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False
@@ -255,7 +292,6 @@ class Settings(SettingsBase):
     # is a bug, and libraries differ.
     logo_legibility_live_tv: bool = True
     logo_legibility_library: bool = False
-    library_last_server: Optional[str] = None
     sync_path: Optional[str] = None
     work_offline: bool = False
     prefer_downloaded: bool = True
@@ -275,6 +311,21 @@ class Settings(SettingsBase):
     # actually working through.
     auto_download_next_up_limit: int = 10
     auto_download_lookahead: int = 2
+    #: Hysteresis for the lookahead (#661), and the per-pass cap that was
+    #: hardcoded. **All three default to None, meaning "behave exactly as
+    #: before"** -- a flat window of auto_download_lookahead and a 20-item
+    #: pass. That is deliberate: the failure mode this feature is about is
+    #: unwanted disk activity, so an install that never opens the setting
+    #: must not change behaviour at all.
+    #:
+    #: With min and max set, a series is left alone while it already has at
+    #: least `min` upcoming episodes held or queued, and is topped up to
+    #: `max` when it drops below. Fewer, larger batches -- which is the
+    #: point: the reporter's HDDs were spinning up for one episode at a
+    #: time.
+    auto_download_lookahead_min: Optional[int] = None
+    auto_download_lookahead_max: Optional[int] = None
+    auto_download_max_per_pass: Optional[int] = None
     # Budget for auto-downloads only (see SyncDB.auto_size). Downloads the
     # user asked for are never counted against it and never reaped.
     auto_download_max_gb: int = 20
@@ -326,28 +377,38 @@ class Settings(SettingsBase):
     mpv_log_level: str = "info"
     idle_when_paused: bool = False
     stop_idle: bool = False
-    kb_stop: str = "q"
-    kb_prev: str = "<"
-    kb_next: str = ">"
-    kb_watched: str = "w"
-    kb_unwatched: str = "u"
-    kb_menu: str = "c"
-    kb_menu_esc: str = "esc"
-    kb_menu_ok: str = "enter"
-    kb_menu_left: str = "left"
-    kb_menu_right: str = "right"
-    kb_menu_up: str = "up"
-    kb_menu_down: str = "down"
-    kb_pause: str = "space"
-    kb_fullscreen: str = "f"
-    kb_debug: str = "~"
-    kb_kill_shader: str = "k"
-    seek_up: int = 60
-    seek_down: int = -60
-    seek_right: int = 5
-    seek_left: int = -5
-    seek_v_exact: bool = False
-    seek_h_exact: bool = False
+    # Optional, because the documentation has always said "you can also set
+    # them to `null` to disable the shortcut" and `str` made that a lie: a
+    # JSON null coerced to the STRING "None", which _bind_key's None guard
+    # ("an unset keybind is a supported configuration") could never match.
+    # It looked like it worked only because no keyboard produces a key named
+    # None, so mpv bound something unreachable instead of binding nothing.
+    # #16 needs the difference to be real: "the user cleared this" is how a
+    # one-time migration to input.conf tells someone who parked our
+    # interception on purpose from someone who never touched it.
+    kb_stop: Optional[str] = "q"
+    kb_prev: Optional[str] = "<"
+    kb_next: Optional[str] = ">"
+    kb_watched: Optional[str] = "w"
+    kb_unwatched: Optional[str] = "u"
+    kb_menu: Optional[str] = "c"
+    kb_menu_esc: Optional[str] = "esc"
+    kb_menu_ok: Optional[str] = "enter"
+    kb_menu_left: Optional[str] = "left"
+    kb_menu_right: Optional[str] = "right"
+    kb_menu_up: Optional[str] = "up"
+    kb_menu_down: Optional[str] = "down"
+    kb_pause: Optional[str] = "space"
+    kb_fullscreen: Optional[str] = "f"
+    kb_kill_shader: Optional[str] = "k"
+    # seek_up / seek_down / seek_right / seek_left / seek_v_exact /
+    # seek_h_exact were removed in config version 4. #16 gave the arrow
+    # keys back to mpv, so a seek distance lives in the user's input.conf
+    # now; the settings could not work after that (a changed distance made
+    # the shim CLAIM the key, and the claim seeks by mpv's own amount) and
+    # were never in the settings UI or the README to begin with. The
+    # migration carries an old value across by reading the raw config --
+    # see input_conf.LEGACY_SEEK_DEFAULTS.
     shader_pack_enable: bool = True
     shader_pack_custom: bool = False
     shader_pack_remember: bool = True
@@ -372,7 +433,6 @@ class Settings(SettingsBase):
     sync_speed_time: int = 1000
     sync_speed_attempts: int = 3
     sync_attempts: int = 5
-    sync_revert_seek: bool = True
     sync_osd_message: bool = True
     screenshot_menu: bool = True
     check_updates: bool = True
@@ -479,6 +539,16 @@ class Settings(SettingsBase):
     # because rescaling live means dropping every cached bitmap and that
     # is only safe on the libmpv path once mpv is gone.
     ui_scale: Optional[float] = None
+    #: Multiplier on the UI's base text size, for readability. Separate
+    #: from ui_scale, which scales the whole interface (boxes, artwork,
+    #: spacing) -- this moves only the type, so a user who wants bigger
+    #: words without bigger posters has a control that says so.
+    ui_text_scale: float = 1.0
+    #: Nothing in the interface renders smaller than this, whatever the
+    #: scale works out to. 0 = no floor. For low vision: a multiplier
+    #: keeps the smallest text the smallest text, so a floor is the
+    #: control that actually raises the hardest thing on screen to read.
+    ui_text_min: int = 0
     # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"
@@ -514,6 +584,17 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
+    #: Left-click on the video toggles pause (#669).
+    #:
+    #: On -- the default, and what this client has always done -- the
+    #: hidden HUD takes ``mbtn_left`` and pauses, like the lua OSC's
+    #: click-anywhere. Off gives mpv's own modality back: nothing binds the
+    #: left button, so the VO drags the window with it and RIGHT click is
+    #: what pauses. Measured, both ways: double-click still fullscreens in
+    #: *either* mode, because mpv delivers mbtn_left, mbtn_left_dbl,
+    #: mbtn_left for a double -- so the two pause toggles cancel and the
+    #: default binding still fires.
+    mouse_click_pauses: bool = True
     hud_grab_keys: bool = False
     # The key that summons the HUD for keyboard driving while it is
     # hidden (mpv key name syntax). ENTER also toggles pause on wake.
@@ -542,6 +623,28 @@ class Settings(SettingsBase):
         """
         changed = False
         data = data or {}
+        if self.config_version < 3:
+            # The kb_* settings were `str` while the documentation said you
+            # could set them to null to disable a shortcut -- so a JSON null
+            # coerced to the STRING "None", and save() wrote that back
+            # verbatim. A user who cleared a binding years ago has "None" on
+            # disk *now*, and merely retyping the fields to Optional[str]
+            # does not reach them: it loads as a non-empty string, so
+            # `settings.kb_stop is None` is still False.
+            #
+            # This is a RENAME-shaped step, not a changed default: it is
+            # carrying a real choice across, and the choice is unreadable
+            # without it. #16's migration of these bindings to input.conf
+            # turns on exactly this distinction -- someone who parked our
+            # interception on purpose must not have the key re-bound for
+            # them.
+            for key in [k for k in self.__fields__ if k.startswith("kb_")]:
+                if getattr(self, key, None) == "None":
+                    log.info("Config migration: %s = null (was the string "
+                             "\"None\", which is what a cleared binding "
+                             "used to be written as).", key)
+                    setattr(self, key, None)
+                    changed = True
         if self.config_version < 2:
             # The four booleans become one action per segment type. Read from
             # the raw config rather than from self: the old keys are gone from
@@ -579,6 +682,22 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 4:
+            # #16: the keys the user CHANGED become real mpv bindings, and
+            # the settings are cleared so nothing binds them twice. The
+            # choice moves out of our config and into theirs, where they
+            # can edit it like any other mpv binding.
+            from . import conffile, input_conf
+            from .constants import APP_NAME
+
+            try:
+                if input_conf.migrate(
+                        self, conffile.get(APP_NAME, "input.conf"),
+                        raw=data):
+                    changed = True
+            except Exception:
+                log.warning("Could not migrate key bindings to input.conf",
+                            exc_info=True)
         if self.config_version != CONFIG_VERSION:
             self.config_version = CONFIG_VERSION
             changed = True
@@ -623,6 +742,15 @@ class Settings(SettingsBase):
                 input_params = 0
                 for key in safe_data.__fields_set__:
                     setattr(self, key, getattr(safe_data, key))
+                    # ...and the RECORD of which keys came from the file,
+                    # not only their values. parse_obj builds it on the
+                    # throwaway object and this loop used to leave it there,
+                    # so the global `settings` reported that the user had
+                    # touched nothing, ever. Nothing consulted it until #16,
+                    # which asks exactly that question to tell "this is our
+                    # default, take it back" from "this is the user's
+                    # choice, honour it".
+                    self.__fields_set__.add(key)
                     input_params += 1
 
                 # Print warnings

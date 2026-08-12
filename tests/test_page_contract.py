@@ -1,6 +1,6 @@
 """The Page contract, and the budget on its escape hatch.
 
-Step 6 of ``docs/ARCHITECTURE_TARGET.md`` §3 converts route kinds from
+Step 6 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3 converts route kinds from
 ``(loader, renderer)`` method-name pairs on a 358-method object into classes
 that own their state and receive their dependencies. It proceeds one route at
 a time, which means two things have to be true throughout:

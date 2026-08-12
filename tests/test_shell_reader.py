@@ -627,3 +627,65 @@ class TestHeadless(ReaderHarness):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DownloadToastDismissalTest(unittest.TestCase):
+    """The reader takes down the "Downloading…" toast (#2).
+
+    `TOAST_SECS` is six, so on a local server — or a book already on disk —
+    the message outlives the download it reports and sits over the first
+    page. The reader is the one screen that *waited* for that download, so
+    it is the one that knows it is over.
+
+    Conditional on the text, because six seconds is long enough for
+    something else to have replaced it, and clearing an error or a
+    different download's message would be worse than the stale toast.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        return b
+
+    def test_the_message_has_one_spelling(self):
+        """The raiser and the clearer compare against each other, so a
+        second format string would silently never match."""
+        from jellyfin_mpv_shim.mpvtk_browser.item_actions import ItemActions
+        self.assertIn("Fables", ItemActions.downloading_message("Fables"))
+
+    def test_it_clears_our_own_toast(self):
+        b = self._browser()
+        item = {"Id": "b1", "Name": "Fables"}
+        b.set_status(b._actions.downloading_message("Fables"))
+        b._actions.clear_downloading_toast(item)
+        self.assertEqual(b.status, "")
+
+    def test_it_leaves_somebody_elses_alone(self):
+        b = self._browser()
+        b.set_status(b._actions.downloading_message("Fables"))
+        # A different book finished, or an error arrived, in the six
+        # seconds the toast was up.
+        b.set_status("Something else happened.")
+        b._actions.clear_downloading_toast({"Id": "b1", "Name": "Fables"})
+        self.assertEqual(b.status, "Something else happened.")
+
+    def test_clearing_when_nothing_is_showing_is_harmless(self):
+        b = self._browser()
+        b._actions.clear_downloading_toast({"Id": "b1", "Name": "Fables"})
+        self.assertEqual(b.status, "")
+
+    def test_an_item_with_no_name_still_matches_only_itself(self):
+        """A nameless item does not produce an empty message — the format
+        still yields "Downloading …" — so it compares like any other and
+        cannot take down an unrelated toast. (Worth pinning: the guard in
+        `clear_status_if` reads as if it were what prevents this, and it is
+        not; the equality is.)"""
+        b = self._browser()
+        b.set_status("Something else happened.")
+        b._actions.clear_downloading_toast({})
+        self.assertEqual(b.status, "Something else happened.")
+
+        b.set_status(b._actions.downloading_message(None))
+        b._actions.clear_downloading_toast({})
+        self.assertEqual(b.status, "")

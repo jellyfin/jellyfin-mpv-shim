@@ -109,10 +109,13 @@ TAB_SECTIONS = {
         # The three startup-applied "look" settings, together: the theme
         # sets the palette and its own cover size, and these two can
         # override the sizing.
-        (_("Theme"), ["theme", "poster_scale", "ui_scale"]),
+        (_("Theme"), ["theme", "poster_scale", "ui_scale",
+                       "ui_text_scale", "ui_text_min"]),
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
+                                "detail_poster",
+                                "detail_episode_image",
                                 "logo_legibility_live_tv",
                                 "logo_legibility_library"]),
         # The epub reader. On this tab rather than Playback because a book
@@ -133,6 +136,12 @@ TAB_SECTIONS = {
                           "auto_download_delete_watched",
                           "auto_download_keep_days",
                           "auto_download_interval_mins"]),
+        # Behind the disclosure, directly under the settings they qualify
+        # (#661). Blank means "use the simple lookahead above", which is not
+        # guessable from a label, so NOTES carries it.
+        (_("Download Tuning"), ["auto_download_lookahead_min",
+                                "auto_download_lookahead_max",
+                                "auto_download_max_per_pass"]),
     ],
     "playback": [
         # The in-player UI leads: it is the thing you are looking at while
@@ -140,9 +149,9 @@ TAB_SECTIONS = {
         # applies at all.
         (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
-                                "mouse_chapter_nav"]),
-        (_("Playback"), ["auto_play", "always_transcode", "local_kbps",
-                         "remote_kbps", "direct_paths",
+                                "mouse_chapter_nav", "mouse_click_pauses"]),
+        (_("Playback"), ["auto_play", "hwdec", "always_transcode",
+                         "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
         # Passthrough keys are listed in full here; sections() drops the
         # ones the selected mode cannot carry.
@@ -180,6 +189,19 @@ TAB_SECTIONS = {
 #: place to look for a key you cannot find.
 ADVANCED_TAB = "general"
 
+#: Group titles that sit behind the "Show advanced settings" disclosure,
+#: on whichever tab they appear.
+#:
+#: It used to be the literal title "Advanced", which made the disclosure a
+#: property of a group's *name* -- so a tab could have at most one, it had
+#: to be called that, and a handful of tuning keys could not be tucked away
+#: beside the settings they qualify without being moved to another tab
+#: entirely. #661's three fields are exactly that case.
+ADVANCED_GROUPS = frozenset({
+    _("Advanced"),
+    _("Download Tuning"),
+})
+
 #: Flattened, in tab order. Anything that wants "every curated key" reads
 #: this rather than knowing about the tabs.
 SECTIONS = [group for tab in ("general", "browse", "playback")
@@ -201,11 +223,51 @@ _SEGMENT_ACTIONS = [
 
 # Enums whose stored value isn't presentable: [(label, value), ...].
 LABELED_ENUMS = {
+    "hwdec": [
+        (_("Off (software decoding)"), "no"),
+        (_("Only above 1080p"), "over-1080p"),
+        (_("On"), "auto"),
+        (_("Copy (advanced)"), "auto-copy"),
+    ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
         (_("No player controls"), "none"),
+    ],
+    # Down as well as up. Smaller is useful on a small screen, and it is
+    # also how the scale gets tested in the direction where nothing
+    # overflows -- text that shrinks cannot break a layout, so it isolates
+    # "does the scale reach this widget" from "does this widget have room".
+    #
+    # Stops at 150%, and the reason is CONTENT rather than overflow.
+    # [iw]: "most of the tiles are already using an ellipsis at that
+    # point", and "after 150% most of the UI scaling breaks down and needs
+    # to get bigger, but text scaling is for text only by definition".
+    # So the honest ceiling is where captions stop saying anything useful;
+    # past it the right control is `ui_scale`, which moves the artwork and
+    # the spacing with the words.
+    #
+    # An earlier version of this comment claimed 1.75 overflowed Live TV's
+    # tab strip. That measurement was taken while the multiplier was being
+    # applied twice by every composite widget -- "150%" was really 225% on
+    # buttons -- so it described a bug, not the layout. With that fixed
+    # nothing overflows until 3.0. The cap stays for the reason above.
+    "ui_text_scale": [
+        (_("75%"), 0.75),
+        (_("85%"), 0.85),
+        (_("90%"), 0.9),
+        (_("100% (no scaling)"), 1.0),
+        (_("110%"), 1.1),
+        (_("125%"), 1.25),
+        (_("150%"), 1.5),
+    ],
+    "ui_text_min": [
+        (_("No minimum"), 0),
+        (_("14 px"), 14),
+        (_("16 px"), 16),
+        (_("18 px"), 18),
+        (_("20 px"), 20),
     ],
     "ui_scale": [
         (_("Follow display"), None),
@@ -297,6 +359,10 @@ LABELED_ENUMS = {
 LABEL_OVERRIDES = {
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
+    "mouse_click_pauses": _("Left Click Pauses Playback"),
+    "detail_poster": _("Show Posters on Detail Pages"),
+    "detail_episode_image": _("Show Episode Thumbnails on Detail Pages"),
+    "hwdec": _("Hardware Decoding"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
     "auto_download_next_up_limit": _("Next Up Entries to Consider"),
@@ -305,6 +371,9 @@ LABEL_OVERRIDES = {
     "auto_download_delete_watched": _("Delete Automatic Downloads Once Watched"),
     "auto_download_keep_days": _("Delete Unwatched After (days, 0 = never)"),
     "auto_download_interval_mins": _("Check Every (minutes)"),
+    "auto_download_lookahead_min": _("Top Up When Fewer Than (episodes)"),
+    "auto_download_lookahead_max": _("Top Up To (episodes)"),
+    "auto_download_max_per_pass": _("Maximum Downloads per Check"),
     "close_to_tray": _("Close to Tray (keep running)"),
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
@@ -312,6 +381,8 @@ LABEL_OVERRIDES = {
     "osc_style": _("Player Controls Style"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
+    "ui_text_scale": _("Text Size"),
+    "ui_text_min": _("Minimum Text Size"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
@@ -373,6 +444,39 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # A blank numeric field meaning "use the setting above" is not
+    # guessable from a label, and these three are the ones where leaving
+    # them alone is the right answer for almost everybody.
+    "auto_download_lookahead_min": _("Leave these blank unless downloads are "
+                                     "waking your disks too often. Set both "
+                                     "of the first two together: episodes "
+                                     "are then fetched in one batch when a "
+                                     "series runs low, instead of one at a "
+                                     "time."),
+    # Both reasons someone turns this off, because they are unrelated and
+    # only one of them is about taste.
+    # Only the second one carries the spoiler argument, which is why they
+    # are two settings and not one.
+    "detail_episode_image": _("An episode's thumbnail is a frame of an "
+                              "episode you may not have watched yet."),
+    # What turning it OFF buys, since that is the non-obvious half: the
+    # left button is what the VO drags the window with, so pausing with it
+    # and dragging with it are mutually exclusive.
+    "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "
+                            "drag the video to move the window, and right "
+                            "click to pause. Double click is full screen "
+                            "either way."),
+    # The reason this is off by default, in the place someone deciding
+    # whether to change it is looking. mpv's own manual says to
+    # "acknowledge that this may cause problems"; the tail it breaks for
+    # is disproportionately the hardware that needed it.
+    "hwdec": _("Off by default because some graphics drivers handle it "
+               "badly. \"Only above 1080p\" is the cautious way to turn "
+               "it on: most hardware decodes 1080p in software without "
+               "help. \"Copy (advanced)\" is slower, but it is the mode "
+               "that works with video filters, so it is the one to pick if "
+               "you run SVP or another VapourSynth filter. If video stops "
+               "working, start with --disable-hwdec and change this back."),
     "close_to_tray": CAST_TARGET_NOTE,
     "allow_background": CAST_TARGET_NOTE,
     # Advanced-only (see SECTIONS), and the note is why: it reads like "turn
@@ -483,6 +587,16 @@ NOTES = {
     # no msgid, so nothing already translated is discarded.
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
+    "ui_text_scale": _("Scales the text only. Interface Scale above resizes "
+                       "everything -- artwork, spacing and controls -- so "
+                       "use this one when the words are too small rather "
+                       "than the whole interface. It stops at 150% "
+                       "because by then most tile captions are ellipsized "
+                       "and it is the whole interface that needs to be "
+                       "bigger -- which is Interface Scale, above."),
+    "ui_text_min": _("Nothing renders smaller than this, whatever Text Size "
+                     "works out to. Raises the smallest labels without "
+                     "enlarging headings, which a percentage cannot do."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
                     "mpv.conf) decide. Pick a mode only if you are sending "
                     "audio to a receiver."),

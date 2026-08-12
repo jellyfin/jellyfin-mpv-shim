@@ -81,7 +81,13 @@ CREATE TABLE IF NOT EXISTS downloads (
     -- into a form that matches NULL (e.g. `origin IS NOT 'user'`) -- that
     -- would make every un-backfilled legacy row reapable.
     origin TEXT,
-    completed_at INTEGER
+    completed_at INTEGER,
+    -- The CollectionFolder this item lives in. Captured at download time,
+    -- where a request is already normal, so the shader-profile library
+    -- scope can be resolved for downloaded media with the server away --
+    -- and without the play path making a call at all. NULL on rows written
+    -- before this, and on anything the lookup could not answer.
+    library_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_downloads_series ON downloads(series_id);
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
@@ -162,7 +168,8 @@ class SyncDB:
     #: Columns added after the first release, as (name, DDL type). _SCHEMA's
     #: CREATE TABLE IF NOT EXISTS is a no-op on an existing catalog, so a new
     #: column only reaches an existing install through here.
-    _ADDED_COLUMNS = (("origin", "TEXT"), ("completed_at", "INTEGER"))
+    _ADDED_COLUMNS = (("origin", "TEXT"), ("completed_at", "INTEGER"),
+                      ("library_id", "TEXT"))
 
     def _migrate(self):
         """Bring an existing catalog up to the current schema.
@@ -393,16 +400,20 @@ class SyncDB:
         sync with local playback is what makes watched-based delete correct
         without a server round-trip. Advancing only: played sticks True, the
         position only moves forward — except that a finish clears the resume
-        point (server-matching semantics)."""
+        point (server-matching semantics).
+
+        Returns whether anything actually moved, which the userdata refresh
+        in ``manager`` counts: a pull that changed nothing must not tell the
+        browser to redraw."""
         with self._lock:
             if self._conn is None:
-                return
+                return False
             row = self._conn.execute(
                 "SELECT userdata_json, runtime_ticks FROM downloads "
                 "WHERE item_id=?",
                 (item_id,)).fetchone()
             if row is None:
-                return
+                return False
             try:
                 userdata = json.loads(row["userdata_json"] or "{}")
             except ValueError:
@@ -448,6 +459,97 @@ class SyncDB:
                 except sqlite3.Error:
                     self._conn.rollback()
                     raise
+            return changed
+
+    def watched_targets(self, item_id, server_uuid=None):
+        """Which downloaded rows a watched mark for ``item_id`` covers.
+
+        An id from the library is not always a leaf: the tick on a series or
+        a season means every episode under it, which is what the server does
+        with the same request (``Folder.MarkPlayed`` fans out to children).
+        The catalog holds leaves only, so the fan-out is a scan of it rather
+        than a question anyone can be asked -- and offline there is nobody
+        to ask at all, which is why it is resolved here rather than read off
+        the item.
+
+        Here rather than on the manager because every part of it is a
+        catalog read, and because the offline path reaches this through a
+        catalog handle it already has.
+
+        Returns ``[(item_id, server_uuid)]``, empty when nothing we hold is
+        covered. ``server_uuid`` is the fallback for a row written before
+        that column was populated.
+        """
+        if not item_id:
+            return []
+        if self.is_complete(item_id):
+            return [(item_id, server_uuid)]
+        return [(row["item_id"], row["server_uuid"] or server_uuid)
+                for row in self.list(status=STATUS_COMPLETE)
+                if item_id in (row["series_id"], row["season_id"])]
+
+    def set_watched(self, item_id, played):
+        """Store a deliberate watched mark **verbatim**, both directions.
+
+        The one non-advancing writer of this column, and the reason it is a
+        separate method rather than a flag on ``update_userdata``: every
+        caller of that one is playback, where a value that went backwards is
+        a stale report rather than a change of mind. A person choosing "Mark
+        Unwatched" is the opposite -- it is the only thing they could have
+        meant, and advance-only made it the one deliberate action in the app
+        that silently did nothing to the copy on disk. Offline browsing then
+        showed the tick it had just been told to remove, and "delete watched
+        downloads" was still counting the item as fair game.
+
+        Mirrors what the server does with the same request, which is what
+        keeps the next sweep from looking like a change (measured against
+        ``BaseItem.MarkPlayed`` / ``ResetPlayedState``, with the controller
+        passing ``resetPosition: true``): marking played clears the resume
+        point and puts the play count at least at one; marking unplayed
+        clears the position, the count and the last-played date as well as
+        the flag. ``PlayedPercentage`` is derived and is dropped either way,
+        so a stale server-seeded value cannot shadow the new state.
+
+        Returns whether anything moved -- the callers use it to decide
+        whether the browser needs redrawing. Local only: what is *sent* to
+        the server is the caller's business, and the offline replay queue
+        stays advance-only (``upsert_playstate``) so a client that has been
+        away cannot rewind another device.
+        """
+        with self._lock:
+            if self._conn is None:
+                return False
+            row = self._conn.execute(
+                "SELECT userdata_json FROM downloads WHERE item_id=?",
+                (item_id,)).fetchone()
+            if row is None:
+                return False
+            try:
+                userdata = json.loads(row["userdata_json"] or "{}")
+            except ValueError:
+                userdata = {}
+            before = dict(userdata)
+            if played:
+                userdata["Played"] = True
+                userdata["PlaybackPositionTicks"] = 0
+                userdata["PlayCount"] = max(userdata.get("PlayCount") or 0, 1)
+            else:
+                userdata["Played"] = False
+                userdata["PlaybackPositionTicks"] = 0
+                userdata["PlayCount"] = 0
+                userdata["LastPlayedDate"] = None
+            userdata.pop("PlayedPercentage", None)
+            if userdata == before:
+                return False
+            try:
+                self._conn.execute(
+                    "UPDATE downloads SET userdata_json=? WHERE item_id=?",
+                    (json.dumps(userdata), item_id))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+            return True
 
     def set_reading_position(self, item_id, position_ticks):
         """Store a reader's cursor **verbatim**, not advance-only.
@@ -528,6 +630,30 @@ class SyncDB:
                 # callers don't crash.
                 log.warning("Catalog query failed: %s", sql, exc_info=True)
                 return []
+
+    def library_id(self, lookup):
+        """The recorded CollectionFolder for an item id **or a series id**,
+        or None.
+
+        Two lookups because the caller has whichever it has: the shader
+        scope asks about a series, and a film has only its own id. Both
+        columns are indexed (``item_id`` is the primary key,
+        ``idx_downloads_series``), so this is two point queries.
+        """
+        if not lookup:
+            return None
+        try:
+            for sql in ("SELECT library_id FROM downloads WHERE item_id = ?",
+                        "SELECT library_id FROM downloads WHERE series_id = ? "
+                        "AND library_id IS NOT NULL LIMIT 1"):
+                row = self._conn.execute(sql, (lookup,)).fetchone()
+                if row and row[0]:
+                    return row[0]
+        except sqlite3.Error:
+            # A catalog from an older build has no such column. Not fatal:
+            # the caller falls back to asking the server.
+            log.debug("could not read library_id", exc_info=True)
+        return None
 
     def get(self, item_id):
         rows = self._query("SELECT * FROM downloads WHERE item_id=?", (item_id,))

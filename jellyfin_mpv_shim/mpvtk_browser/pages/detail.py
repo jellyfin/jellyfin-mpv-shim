@@ -16,7 +16,8 @@ from ...i18n import _
 from ...mpvtk.scaling import px
 from ...mpvtk.widgets import Column, Dropdown, Row, Text, VScroll
 from .. import components, theme
-from ..components import chrome, controls, detail as detail_components
+from ..components import (chrome, controls, detail as detail_components,
+                          media_info)
 from .base import Page
 
 log = logging.getLogger("mpvtk_browser.pages.detail")
@@ -70,7 +71,7 @@ class DetailPage(Page):
         banner = tiles.backdrop_node(item, (bw, bh), "detail-bd",
                                      title=title, meta=meta, context=context)
         blocks = [banner]
-        if not tiles.has_backdrop(item):
+        if not tiles.header_bakes_heading(item):
             # No artwork *at all* — asked of the DTO, not of the node that
             # came back. The node cannot answer it: a placeholder means
             # either "none" or "not yet", and drawing the heading below the
@@ -79,14 +80,14 @@ class DetailPage(Page):
             # image landed. A header that will get artwork bakes its heading
             # into the banner in both states; see `backdrop_node`.
             if context:
-                blocks.append(Text(context, size=17, color=theme.SUBTLE_FG))
-            blocks.append(Text(title, size=26, bold=True, wrap=True,
+                blocks.append(Text(context, size="normal", color=theme.SUBTLE_FG))
+            blocks.append(Text(title, size="page", bold=True, wrap=True,
                                w=tiles.body_w(w)))
             if meta:
-                blocks.append(Text(meta, size=18, color=theme.SUBTLE_FG))
+                blocks.append(Text(meta, size="large", color=theme.SUBTLE_FG))
         info = self._media_info_line(item)
         if info:
-            blocks.append(Text(info, size=15, color=theme.SUBTLE_FG))
+            blocks.append(Text(info, size="small", color=theme.SUBTLE_FG))
         blocks.append(self._play_buttons(item, server,
                                          trailers=data.get("trailers")))
         blocks.append(self._detail_actions(item, server))
@@ -121,6 +122,26 @@ class DetailPage(Page):
     def _detail_actions(self, item, server):
         btns = detail_components.common_actions(
             self.ctx.actions, self.ctx.art.tiles, item, server, "act")
+        if item.get("MediaSources"):
+            # Here the DTO really does carry them (DETAIL_FIELDS), so this
+            # asks jellyfin-web's own question rather than the tile menu's
+            # type-shaped stand-in for it. An item whose sources came back
+            # empty has nothing to show, and a button that opens an empty
+            # dialog is worse than no button.
+            btns.append(controls.action_btn(
+                "info", _("Media Info"), "act-minfo",
+                lambda: self.ctx.dialogs.media_info(item, server)))
+        # `actions.offline` as well as CanDelete, like the tile menu: the
+        # flag comes off a DTO the *catalog* stored, so offline it can still
+        # say True -- and pressing it would reach for a server that is not
+        # there. The local copy has its own Remove Download.
+        if not self.ctx.actions.offline and self.ctx.actions.can_delete(item):
+            # Last in the row, like the tile menu, and for the same reason:
+            # it is the only control here that destroys anything.
+            btns.append(controls.action_btn(
+                "delete", _("Delete from Disk"), "act-delete",
+                lambda: self.ctx.actions.confirm_delete_item(
+                    item, server, on_done=self._left_after_delete)))
         if item.get("Type") == "Episode" and item.get("SeriesId"):
             btns.append(controls.action_btn(
                 "movie", _("Go to Series"), "act-series",
@@ -129,6 +150,22 @@ class DetailPage(Page):
                     "item_id": item["SeriesId"],
                     "title": item.get("SeriesName", "")})))
         return Row(btns, gap=8, align="center")
+
+    def _left_after_delete(self):
+        """Leave the page once its item is gone.
+
+        Unlike a grid, this screen *is* the deleted item: re-reading it
+        would fetch a 404 and show an error where a film used to be.
+
+        The flag is what makes the list underneath re-read. Going back
+        alone does **not**: `_land_back` refreshes Home and the two cases
+        that had a reason to, and a grid otherwise keeps the items it was
+        loaded with -- so the deleted tile was still sitting there, and
+        pressing it 404s. Found by hand-testing; the unit tests only ever
+        checked that we left the page, which was the easy half.
+        """
+        self.route["_deleted"] = True
+        self.ctx.nav.go_back()
 
     def _start(self, item, server, offset_ticks=None):
         """Play `item` with the version and tracks selected **now**.
@@ -167,16 +204,16 @@ class DetailPage(Page):
                 _("Resume") + "  " + detail_components.fmt_ticks(pos),
                 "btn-resume",
                 lambda: self._start(item, server, offset_ticks=pos),
-                primary=True, size=18, autofocus=True))
+                primary=True, size=controls.PRIMARY_ROW, autofocus=True))
         buttons.append(controls.action_btn(
             "play_arrow", _("Play"), "btn-play",
             lambda: self._start(item, server),
-            primary=(pos <= 0), size=18, autofocus=(pos <= 0)))
+            primary=(pos <= 0), size=controls.PRIMARY_ROW, autofocus=(pos <= 0)))
         tids = [t.get("Id") for t in (trailers or []) if t.get("Id")]
         if tids:
             buttons.append(controls.action_btn(
                 "movie", _("Trailer"), "btn-trailer",
-                lambda: actions.play_list(tids, server, 0), size=18))
+                lambda: actions.play_list(tids, server, 0), size=controls.PRIMARY_ROW))
         return Row(buttons, gap=10)
 
     def _scenes_row(self, item, server):
@@ -357,53 +394,47 @@ class DetailPage(Page):
                     "_sid", -1 if i == 0 else subs[i - 1].get("Index"))))
         return rows
 
+    #: How wide the OPEN list of a track picker may get. The control stays
+    #: 300 either way -- see below.
+    PICKER_POPUP_W = 640
+
     @staticmethod
     def _picker_row(label, node_id, names, selected, on_select):
-        return Row([Text(label, w=90, size=16, color=theme.SUBTLE_FG),
+        """One `Label  [dropdown]` row for a version / audio / subtitle
+        picker.
+
+        ``popup_w``, exactly as the Settings page's audio-device list uses
+        it (**[iw]**), and for the same reason: these three carry the
+        longest text in the app and **none of it is ours**. A track's
+        DisplayTitle comes from whoever made the file -- "Signs & Songs -
+        English - SUBRIP", "Surround 5.1 - English - DTS-HD MA - Default" --
+        and at 300px every row of it ellipsizes to the same prefix, so the
+        picker offers a choice it cannot show. Version names are the same:
+        they are the user's own directory or edition labels.
+
+        The OPEN list widens, not the control. A control wider than 300
+        would put these rows out of line with everything else on the page,
+        and it is closed almost all of the time; the popup takes only as
+        much of the allowance as its widest item needs.
+        """
+        return Row([Text(label, w=90, size="normal", color=theme.SUBTLE_FG),
                     Dropdown(node_id, names, selected=selected, w=300,
+                             popup_w=DetailPage.PICKER_POPUP_W,
                              on_select=on_select)], gap=8, align="center")
 
     # -- media info --------------------------------------------------------
 
     def _media_info_line(self, item):
         """Codec/resolution/audio/size line plus "Ends at", like
-        jellyfin-web — enough to judge direct-play before hitting Play."""
+        jellyfin-web — enough to judge direct-play before hitting Play.
+
+        The file's half of this is ``media_info.summary_parts``, shared with
+        the two screens that show the same knowledge in full; "Ends at" stays
+        here because it is a property of the *item* (its resume position),
+        not of the file, and neither of those screens wants it.
+        """
         src = self._sel_source(item.get("MediaSources") or [])
-        streams = (src or {}).get("MediaStreams") or []
-        parts = []
-        video = next((s for s in streams if s.get("Type") == "Video"), None)
-        if video:
-            if video.get("DisplayTitle"):
-                parts.append(video["DisplayTitle"])
-            else:
-                # Codec as well as resolution. "1080p" alone drops the one
-                # thing that decides whether it will direct-play; Tk showed
-                # both when the server had no DisplayTitle to give.
-                bits = [(video.get("Codec") or "").upper()]
-                if video.get("Width") and video.get("Height"):
-                    bits.append("%dx%d" % (video["Width"], video["Height"]))
-                elif video.get("Height"):
-                    bits.append("%dp" % video["Height"])
-                joined = " ".join(b for b in bits if b)
-                if joined:
-                    parts.append(joined)
-            # VideoRangeType first: VideoRange only says HDR, not which.
-            vrange = video.get("VideoRangeType") or video.get("VideoRange")
-            if vrange and vrange != "SDR":
-                parts.append(vrange)
-        audio = next((s for s in streams if s.get("Type") == "Audio"), None)
-        if audio:
-            bits = [(audio.get("Codec") or "").upper(),
-                    audio.get("ChannelLayout") or ""]
-            joined = " ".join(b for b in bits if b)
-            if joined:
-                parts.append(joined)
-        if src and src.get("Container"):
-            parts.append(src["Container"].upper())
-        if src and src.get("Size"):
-            parts.append(components.human_size(src["Size"]))
-        if src and src.get("Bitrate"):
-            parts.append(_("%.1f Mbps") % (src["Bitrate"] / 1000000.0))
+        parts = media_info.summary_parts(src)
         runtime = item.get("RunTimeTicks")
         if runtime:
             pos = (item.get("UserData") or {}).get(

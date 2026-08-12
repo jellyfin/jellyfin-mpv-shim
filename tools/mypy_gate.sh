@@ -16,7 +16,7 @@
 # WHAT THIS DOES AND DOES NOT CATCH. It does not currently catch the
 # "forgotten move" class -- a lambda calling a method that no longer exists
 # -- because the callback parameters are unannotated, so mypy infers Any.
-# tests/test_late_bound_calls.py covers that. See docs/REFACTORING_METHOD.md
+# tests/test_late_bound_calls.py covers that. See docs/archive/REFACTORING_METHOD.md
 # §1.4 for the measurement behind that split.
 set -u
 

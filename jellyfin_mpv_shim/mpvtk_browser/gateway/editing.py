@@ -84,6 +84,23 @@ class EditingMixin(GatewayCore):
     def playlist_delete(self, server_uuid, playlist_id):
         self._edit(server_uuid, lambda jf: jf.delete_item(playlist_id))
 
+    def delete_item(self, server_uuid, item_id):
+        """Delete an item from the server, files and all.
+
+        The same endpoint its playlist sibling above uses, and it raises the
+        same way: a destructive call that reports success it did not have is
+        the bug ``delete_download`` was fixed for, and here the cost of
+        getting it wrong is the user believing a file is gone when it is
+        not -- or, worse, looking for it to come back.
+
+        No permission check here. The server decides, and the *item* carries
+        its answer (``CanDelete``), which is what the menu is keyed off --
+        deletion is granted per library, so a client-side reading of the
+        user policy would be right about the account and wrong about half
+        their libraries.
+        """
+        self._edit(server_uuid, lambda jf: jf.delete_item(item_id))
+
     def playlist_update(self, server_uuid, playlist_id, name=None,
                         is_public=None):
         self._edit(server_uuid,
