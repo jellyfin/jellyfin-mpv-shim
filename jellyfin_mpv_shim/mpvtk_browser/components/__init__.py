@@ -11,6 +11,8 @@ callbacks, but never ``nav``, ``source`` or ``route``.
 """
 
 from .labels import (
+    LISTING_TYPES,
+    air_time_line,
     episode_subtitle,
     heading_for,
     human_size,
@@ -25,6 +27,8 @@ from .labels import (
 from .banner import compose_banner, poster_box, wrap_pil
 
 __all__ = [
+    "LISTING_TYPES",
+    "air_time_line",
     "compose_banner",
     "poster_box",
     "episode_subtitle",

@@ -283,9 +283,15 @@ class LiveTvPage(Page):
         # thirteenth upcoming film was unreachable.
         see_all = self._see_all_programs(row)
         if row["key"] == "movies":
-            return art.tiles.tile_row(row["title"], row["items"],
-                                      "lt-" + row["key"], geom=art.geom,
-                                      image_type="Primary", see_all=see_all)
+            # caption_geom, not art.geom bare: this row is pinned to posters
+            # rather than shaped by auto_geom, so it is the one poster-width
+            # listing row that would not otherwise be asked whether its air
+            # times need a third line. They do -- it is a row of films with
+            # start and end times, at 150px.
+            return art.tiles.tile_row(
+                row["title"], row["items"], "lt-" + row["key"],
+                geom=art.tiles.caption_geom(row["items"], art.geom),
+                image_type="Primary", see_all=see_all)
         return self._auto_row(row["title"], row["items"], "lt-" + row["key"],
                               see_all=see_all)
 

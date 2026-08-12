@@ -436,7 +436,8 @@ class TileRenderer:
                                     for i in items or () if i)
                         if isinstance(r, (int, float)) and r > 0)
         if not ratios:
-            return (default or self.art.geom), default_type
+            return (self.caption_geom(items, default or self.art.geom),
+                    default_type)
         middle = len(ratios) // 2
         median = (ratios[middle] if len(ratios) % 2
                   else (ratios[middle - 1] + ratios[middle]) / 2.0)
@@ -444,8 +445,37 @@ class TileRenderer:
         if median >= self.LANDSCAPE_RATIO:
             return self.art.geom_wide, "Thumb"
         if median > self.SQUARE_RATIO:
-            return self.art.geom_square, "Primary"
-        return self.art.geom, "Primary"
+            return self.caption_geom(items, self.art.geom_square), "Primary"
+        return self.caption_geom(items, self.art.geom), "Primary"
+
+    #: Widest tile that gets a listing's air time on its own line. The
+    #: landscape tile is 240 logical px and holds "BBC Two   ·   20:00 -
+    #: 20:30" comfortably; the poster is 150 and the square 170, and neither
+    #: does -- the channel name eats the line and the time, which is the
+    #: half a listing exists to tell you, is ellipsized off the end.
+    #:
+    #: A width rather than "is this the poster geometry", because Cover Size
+    #: and a theme both move these: at Extra Large a poster is 255 wide and
+    #: genuinely does fit the joined line, and at Extra Compact a landscape
+    #: tile is 180 and genuinely does not.
+    THIRD_LINE_MAX_W = 200
+
+    def caption_geom(self, items, geom):
+        """``geom``, widened to three caption lines if these items need it.
+
+        Idempotent and cheap, so it can be asked wherever a geometry meets a
+        list of items. It has to be asked by whoever *keeps* the geometry,
+        though, not deep inside the compositor: a grid computes its row
+        pitch, its scroll snap and its virtualization window from
+        ``strip_h``, so a band that grew after those were taken windows the
+        wrong rows and snaps to the wrong stops.
+        """
+        if geom.tile_w > self.THIRD_LINE_MAX_W:
+            return geom
+        for item in items or ():
+            if item and components.air_time_line(item):
+                return geom.with_caption_lines(3)
+        return geom
 
     def square_geom(self, items):
         """``geom_square`` when every item's art is square, else None.
@@ -1031,8 +1061,15 @@ class TileRenderer:
         # labels: (show_title, show_year) from the library's view settings.
         # None means "as always", which is both on.
         show_title, show_year = labels or (True, True)
+        # Three-line captions are a property of the GEOMETRY, decided for the
+        # whole row by `caption_geom` -- a strip is composited at one tile
+        # size and one caption band, so it cannot be a per-tile answer. Here
+        # it only picks which of the two shapes this tile's text takes.
+        third = geom.caption_lines >= 3
         title, subtitle = components.tile_lines(item, parent_item,
-                                                show_year=show_year)
+                                                show_year=show_year,
+                                                air_time=not third)
+        subtitle2 = components.air_time_line(item) if third else ""
         if not show_title:
             title = ""
             if not show_year:
@@ -1042,10 +1079,12 @@ class TileRenderer:
                 # a listing's channel and time). Otherwise it draws into the
                 # row below.
                 subtitle = ""
+                subtitle2 = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
             subtitle=subtitle,
+            subtitle2=subtitle2,
             poster=poster,
             poster_tag=tag,
             glyph=components.placeholder_glyph(item),

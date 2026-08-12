@@ -1011,7 +1011,13 @@ class GridPage(Page):
             # does in web (ItemsView.tsx:75-88) -- the whole point of the
             # setting is that the artwork got it wrong for this library.
             attr, image_type = named
-            return getattr(self.ctx.art, attr), image_type
+            # Through caption_geom like the median path below: an explicit
+            # image type says what SHAPE the artwork is, which is a different
+            # question from how many lines the caption needs. A "see all"
+            # from a Live TV programmes row lands here whenever the library
+            # has a saved image type.
+            return (self.ctx.art.tiles.caption_geom(
+                items, getattr(self.ctx.art, attr)), image_type)
         parked = route.get("_grid_shape")
         if parked is None:
             art = self.ctx.art

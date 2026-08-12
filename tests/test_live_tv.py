@@ -1551,6 +1551,204 @@ class RowShapes(unittest.TestCase):
                          "the movies row followed its artwork")
 
 
+class AirTimeThirdLine(unittest.TestCase):
+    """A listing's air time gets its own caption line on a narrow tile.
+
+    "BBC Two   ·   20:00 - 22:15" is about 200 logical px of text. A poster
+    tile is 150 wide and a square one 170, so the channel name survived and
+    the TIME -- the half a listing exists to tell you -- was ellipsized off
+    the end of every one of them. The landscape tile at 240 fits it, and
+    keeps the joined line.
+    """
+
+    def setUp(self):
+        self.b = browser()
+
+    #: A programme with a real air time. Both dates, because
+    #: `air_time_label` returns only the start when there is no end.
+    PROGRAM = {"Id": "p1", "Type": "Program", "Name": "Casablanca",
+               "ChannelName": "BBC Two",
+               "StartDate": "2026-08-12T19:00:00.0000000Z",
+               "EndDate": "2026-08-12T21:15:00.0000000Z"}
+
+    def _geom(self, items, geom):
+        return self.b.tiles.caption_geom(items, geom)
+
+    # -- which rows get the line ------------------------------------------
+
+    def test_a_poster_row_of_listings_gets_a_third_line(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        geom = self._geom([self.PROGRAM], POSTER_GEOM)
+        self.assertEqual(geom.caption_lines, 3)
+
+    def test_and_the_band_grows_to_hold_it(self):
+        """Not just permission. `_paint_caption` lays out inside a fixed
+        `caption_h` and nothing crops it back, so a third line in a two-line
+        band draws over the top of the next grid row."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        geom = self._geom([self.PROGRAM], POSTER_GEOM)
+        self.assertGreaterEqual(
+            geom.caption_h,
+            POSTER_GEOM.title_size + 2 * POSTER_GEOM.sub_size)
+        self.assertGreater(geom.caption_h, POSTER_GEOM.caption_h)
+
+    def test_a_landscape_row_of_listings_does_not(self):
+        """It is 240 wide and the joined line fits. A third line there is a
+        band of empty space under every tile on the Programs screen."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+
+        self.assertIs(self._geom([self.PROGRAM], LANDSCAPE_GEOM),
+                      LANDSCAPE_GEOM)
+
+    def test_a_poster_row_of_films_does_not(self):
+        """The width is only half the test. An ordinary library row is
+        posters too, and its second line is a year."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self.assertIs(
+            self._geom([{"Id": "m1", "Type": "Movie", "Name": "Casablanca",
+                         "ProductionYear": 1942}], POSTER_GEOM),
+            POSTER_GEOM)
+
+    def test_a_listing_with_no_air_time_does_not(self):
+        """A finished recording is an ordinary item by then and carries no
+        StartDate. Asked of the LINE rather than of the type, so this needs
+        no second list of which types have times."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self.assertIs(
+            self._geom([{"Id": "r1", "Type": "Recording", "Name": "Film"}],
+                       POSTER_GEOM),
+            POSTER_GEOM)
+
+    def test_asking_twice_does_not_grow_the_band_twice(self):
+        """`caption_geom` is asked by whoever KEEPS the geometry, and more
+        than one of them can be in the chain -- `auto_geom` for a row that
+        shapes itself and the caller that pinned a shape. Idempotence is what
+        makes that safe."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        once = self._geom([self.PROGRAM], POSTER_GEOM)
+        self.assertEqual(self._geom([self.PROGRAM], once), once)
+
+    def test_a_narrow_landscape_tile_gets_it_after_all(self):
+        """The rule is a WIDTH, not "is this the poster geometry". Cover Size
+        and a theme both move these: at Extra Compact a landscape tile is
+        180px and the joined line stops fitting there too."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+
+        small = LANDSCAPE_GEOM.scaled(0.75)
+        self.assertEqual(self._geom([self.PROGRAM], small).caption_lines, 3)
+
+    # -- what the tile then says ------------------------------------------
+
+    def test_the_time_moves_off_the_second_line_onto_the_third(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        geom = self._geom([self.PROGRAM], POSTER_GEOM)
+        tile = self.b.tiles._tile(self.PROGRAM, geom)
+        self.assertEqual(tile.subtitle, "BBC Two")
+        self.assertIn("-", tile.subtitle2)
+        self.assertNotIn("-", tile.subtitle,
+                         "the air time is still on the second line as well")
+
+    def test_a_two_line_row_still_joins_them(self):
+        """The landscape row's caption is unchanged, text and all."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+
+        tile = self.b.tiles._tile(self.PROGRAM, LANDSCAPE_GEOM)
+        self.assertIn("BBC Two", tile.subtitle)
+        self.assertIn("-", tile.subtitle)
+        self.assertEqual(tile.subtitle2, "")
+
+    def test_the_third_line_is_part_of_the_strip_cache_key(self):
+        """Two tiles differing only in their third line are two bitmaps. A
+        key that ignored it would serve one programme's time under another's
+        name."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore, Tile
+
+        a = Tile(key="p1", title="Film", subtitle="BBC Two",
+                 subtitle2="20:00 - 22:15")
+        b = Tile(key="p1", title="Film", subtitle="BBC Two",
+                 subtitle2="23:00 - 01:15")
+        self.assertNotEqual(StripStore._tile_key(None, a),
+                            StripStore._tile_key(None, b))
+
+    def test_the_compositor_actually_draws_it(self):
+        """Everything above is about the DATA. The line only exists if the
+        painter puts ink on the bitmap, and it is baked -- no scene node, no
+        text to find, nothing else in this file can see it.
+
+        Compared against the same tile with the third line blank, in the same
+        three-line band, so this measures the line and not the band's height.
+        """
+        import tempfile
+
+        from PIL import Image as PILImage
+
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (POSTER_GEOM,
+                                                            StripStore, Tile)
+
+        held = {}
+
+        class _Capture(StripStore):
+            def _store(self, img):
+                held[len(held)] = img
+                return "s%d" % len(held), img.width, img.height, len(held)
+
+        geom = POSTER_GEOM.with_caption_lines(3)
+        store = _Capture(tempfile.mkdtemp())
+        self.addCleanup(store.shutdown)
+        base = dict(key="p1", title="Casablanca", subtitle="BBC Two")
+        store.strip([Tile(subtitle2="20:00 - 22:15", **base)], geom)
+        store.strip([Tile(subtitle2="", **base)], geom)
+        with_line, without = held[0], held[1]
+
+        # The band below the artwork and the first two caption lines.
+        top = geom.tile_h + geom.title_size + 2 * geom.sub_size
+        crop = (0, top, with_line.width, with_line.height)
+        self.assertNotEqual(
+            list(with_line.crop(crop).getdata()),
+            list(without.crop(crop).getdata()),
+            "the third caption line is not drawn at all")
+
+    def test_it_is_not_drawn_into_a_two_line_band(self):
+        """The guard in `_paint_caption`. A Tile built for one geometry and
+        drawn in another must not spill its third line over the row below --
+        nothing crops a caption back to `caption_h`."""
+        import tempfile
+
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (POSTER_GEOM,
+                                                            StripStore, Tile)
+
+        held = []
+
+        class _Capture(StripStore):
+            def _store(self, img):
+                held.append(img)
+                return "s%d" % len(held), img.width, img.height, len(held)
+
+        store = _Capture(tempfile.mkdtemp())
+        self.addCleanup(store.shutdown)
+        base = dict(key="p1", title="Casablanca", subtitle="BBC Two")
+        store.strip([Tile(subtitle2="20:00 - 22:15", **base)], POSTER_GEOM)
+        store.strip([Tile(subtitle2="", **base)], POSTER_GEOM)
+        self.assertEqual(list(held[0].getdata()), list(held[1].getdata()))
+
+    def test_captions_turned_off_take_the_third_line_with_them(self):
+        """Titles and years both off means no caption at all and the grid
+        reserves no room for one, so a surviving third line draws into the
+        row below."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        geom = self._geom([self.PROGRAM], POSTER_GEOM)
+        tile = self.b.tiles._tile(self.PROGRAM, geom, labels=(False, False))
+        self.assertEqual(tile.subtitle, "")
+        self.assertEqual(tile.subtitle2, "")
+
+
 class RecordingIndicator(unittest.TestCase):
     """What is being taped right now reads as red, everywhere it appears."""
 

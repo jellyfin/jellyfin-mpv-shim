@@ -114,36 +114,71 @@ class TileGeom:
     title_size: int = 15
     sub_size: int = 13
     badge_size: int = 14
+    #: How many lines ``_paint_caption`` may draw, and how much room
+    #: ``caption_h`` was sized for. Two everywhere except a Live TV listing
+    #: drawn at poster width -- see :meth:`with_caption_lines`.
+    caption_lines: int = 2
+
+    #: Baseline-to-baseline slack under the third caption line. Tighter than
+    #: the 7 between title and subtitle: the two subtitle lines are one
+    #: thought split in half ("BBC Two" / "20:00 - 20:30"), so they read as a
+    #: block, and the band is being made taller to fit them.
+    SUB_GAP = 4
+
+    def with_caption_lines(self, n):
+        """A copy with room for ``n`` caption lines instead of two.
+
+        **Idempotent** -- ``caption_lines`` is stored, so a geometry that
+        already has three is returned unchanged. That is what lets the
+        decision be made in more than one place (``auto_geom`` for a row that
+        shapes itself, ``GridPage._grid_shape`` for one told what shape to
+        be) without the band growing once per caller.
+
+        The band, not just the permission: ``_paint_caption`` lays out inside
+        a fixed ``caption_h`` and nothing clips it back, so a third line
+        drawn into a two-line band draws over the top of the next grid row.
+        """
+        if n <= self.caption_lines:
+            return self
+        extra = (n - self.caption_lines) * (self.sub_size + self.SUB_GAP)
+        return dataclasses.replace(self, caption_lines=n,
+                                   caption_h=self.caption_h + extra)
 
     def with_text_scale(self, factor, minimum=0):
         """A copy with the caption text scaled, and room made for it.
 
         The caption sizes are **geometry**, not type-scale tiers: they are
-        baked into the strip bitmap by Pillow and they already grow with
-        Cover Size, because a label under a bigger poster should. So the
-        user's text preference has to be applied here separately -- it
-        does not arrive through `theme.size()` like everything drawn as a
-        text node, which is why turning text up left the tiles alone.
+        baked into the strip bitmap by Pillow, so the user's text preference
+        has to be applied here separately -- it does not arrive through
+        `theme.size()` like everything drawn as a text node, which is why
+        turning text up left the tiles alone.
+
+        This is the ONLY thing that moves a tile's type. Cover Size used to
+        as well, silently; see :meth:`scaled` for why it no longer does.
 
         ``caption_h`` grows with them. It is a fixed band under the
         artwork and `_paint_caption` lays out inside it as title, a 7px
         gap, then subtitle -- 15 + 7 + 13 in 46px at stock. Scale the type
         without the band and the subtitle is simply clipped away.
-        """
-        import dataclasses
 
+        The band is measured against ``caption_lines``, not against two, or
+        a three-line Live TV caption loses its air time to exactly the same
+        clipping the moment somebody turns text up.
+        """
         def scaled(value):
             return max(1, int(round(value * factor)), int(minimum or 0))
 
         title, sub = scaled(self.title_size), scaled(self.sub_size)
+        subs = max(0, self.caption_lines - 1)
         # What the painter needs, plus the slack the stock band already
         # carries -- so a caption keeps the breathing room it was designed
         # with instead of being cropped to its own text.
-        slack = self.caption_h - (self.title_size + self.sub_size)
+        slack = self.caption_h - (self.title_size + self.sub_size * subs)
         return dataclasses.replace(
             self, title_size=title, sub_size=sub,
             badge_size=scaled(self.badge_size),
-            caption_h=max(self.caption_h, title + sub + max(slack, 0)))
+            caption_h=max(self.caption_h,
+                          title + sub * subs + max(slack, 0)))
 
     @property
     def strip_h(self):
@@ -411,6 +446,7 @@ class StripStore:
             t.poster_tag if t.poster is not None else "",
             t.title,
             t.subtitle,
+            t.subtitle2,
             bool(t.watched),
             int(t.badge),
             round(float(t.progress), 2),
@@ -429,7 +465,7 @@ class StripStore:
     @staticmethod
     def _geom_key(g):
         return (g.tile_w, g.tile_h, g.gap, g.caption_h,
-                g.title_size, g.sub_size, g.badge_size)
+                g.title_size, g.sub_size, g.badge_size, g.caption_lines)
 
     # -- public -----------------------------------------------------------
 
@@ -781,13 +817,14 @@ class StripStore:
         # same way round the other way (its played tick is top-right and its
         # version count top-left); ours are both on the left because the
         # right-hand corner is already three deep.
-        lx = x + _px(17)
+        inset = _px(17)
+        lx = x + inset
         if t.watched:
             # A real Material `check`, not two hand-drawn strokes. Same
             # reason _paint_record gives for the record dot: this glyph is
             # drawn elsewhere in the app from `ui_icon_paths`, and a
             # hand-rolled second copy of one symbol drifts from the first.
-            self._paint_glyph_badge(img, dr, lx, _px(17), "check",
+            self._paint_glyph_badge(img, dr, lx, inset, "check",
                                     theme.ACCENT)
             lx += _px(self.BADGE_PITCH)
         if t.sources > 1:
@@ -1015,6 +1052,18 @@ class StripStore:
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)
+            pilfont.draw_text(dr, (x, y), sub, fnt,
+                              fill=theme.rgb(theme.SUBTLE_FG))
+            y += g.sub_size + _px(TileGeom.SUB_GAP)
+        # Third line, and ONLY where the geometry was widened for it. A tile
+        # carrying one in a two-line band would draw it over the row below --
+        # nothing crops a caption back to caption_h, the band is a promise
+        # this painter keeps rather than a clip. The two are set together by
+        # TileRenderer.caption_geom / _tile, so this is a belt-and-braces
+        # guard against a Tile built for one geometry and drawn in another.
+        if t.subtitle2 and g.caption_lines >= 3:
+            fnt = _font(g.sub_size, text=t.subtitle2)
+            sub = self._ellipsize(dr, t.subtitle2, fnt, g.tile_w)
             pilfont.draw_text(dr, (x, y), sub, fnt,
                               fill=theme.rgb(theme.SUBTLE_FG))
 

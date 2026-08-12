@@ -7,8 +7,44 @@ it later.
 """
 
 
-def episode_subtitle(item, show_year=True):
+#: Types whose caption is a LISTING -- "which channel, and when" rather
+#: than a year or an episode number. The set ``air_time_line`` splits and
+#: ``episode_subtitle`` composes.
+LISTING_TYPES = ("Program", "Timer", "Recording", "SeriesTimer")
+
+
+def air_time_line(item):
+    """When a listing is on, as its own caption line — or "" for anything
+    that is not a listing, or has no air time to report.
+
+    Split out of :func:`episode_subtitle` because "BBC Two   ·   20:00 -
+    20:30" is about 200px of text and a poster tile is 150 wide, so the
+    channel survived and the time -- the half a listing exists to tell you
+    -- was ellipsized away. Two lines fit; one never did.
+
+    ``episode_subtitle(air_time=False)`` is the other half. Keeping them as
+    a pair rather than having the caller slice a joined string means the
+    separator, the SeriesTimer "any time" case and the recording-with-no-
+    start case are decided once.
+    """
+    kind = item.get("Type")
+    if kind not in LISTING_TYPES or item.get("_subtitle") is not None:
+        return ""
+    from .. import live_tv
+
+    if kind == "SeriesTimer":
+        # A series rule pinned to a slot says the slot; one that records at
+        # any time has no air time to give, and says nothing.
+        return "" if item.get("RecordAnyTime") else _a_time(item, live_tv)
+    return live_tv.air_time_label(item)
+
+
+def episode_subtitle(item, show_year=True, air_time=True):
     """The line under a tile's title.
+
+    ``air_time=False`` leaves the air time out of a listing's line, for a
+    caller that is drawing it as a third line instead — see
+    :func:`air_time_line`. It changes nothing for any other item type.
 
     Was ``TilesMixin._subtitle``.
     """
@@ -31,15 +67,16 @@ def episode_subtitle(item, show_year=True):
         # line. Guide data frequently has no ProductionYear at all.
         from .. import live_tv
 
+        when = live_tv.air_time_label(item) if air_time else ""
         return "   ·   ".join(p for p in (item.get("ChannelName") or "",
-                                          live_tv.air_time_label(item)) if p)
+                                          when) if p)
     if kind == "SeriesTimer":
         # A series rule has no single air time; what identifies it is the
         # channel it watches and whether it is pinned to one time slot.
         from .. import live_tv
 
-        when = (_a_time(item, live_tv) if not item.get("RecordAnyTime")
-                else "")
+        when = ("" if not air_time or item.get("RecordAnyTime")
+                else _a_time(item, live_tv))
         channel = ("" if item.get("RecordAnyChannel")
                    else (item.get("ChannelName") or ""))
         return "   ·   ".join(p for p in (channel, when) if p)
@@ -61,8 +98,11 @@ def _a_time(item, live_tv):
     return live_tv.fmt_time(start) if start else ""
 
 
-def tile_lines(item, parent_item=False, show_year=True):
+def tile_lines(item, parent_item=False, show_year=True, air_time=True):
     """``(title, subtitle)`` for a tile.
+
+    ``air_time`` is passed through to :func:`episode_subtitle`: False when
+    the caller is going to draw a listing's air time on its own line.
 
     ``parent_item`` flips an episode around: the series becomes the title
     and the episode name the subtitle. That is what a "Latest TV" row wants
@@ -75,7 +115,7 @@ def tile_lines(item, parent_item=False, show_year=True):
         series = item.get("SeriesName")
         if series:
             return series, item.get("Name", "")
-    return item.get("Name", ""), episode_subtitle(item, show_year)
+    return item.get("Name", ""), episode_subtitle(item, show_year, air_time)
 
 
 def is_watched(item):
