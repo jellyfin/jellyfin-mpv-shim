@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-12 06:55+0000\n"
+"PO-Revision-Date: 2026-08-12 22:48+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -20,23 +20,19 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
-#, fuzzy
-#| msgid "Unknown Series"
 msgid "Unknown format"
-msgstr "Sèrie desconeguda"
+msgstr "Format desconegut"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy, python-format
-#| msgid "%(shown)d of %(total)d"
+#, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "%(shown)d de %(total)d"
+msgstr "Pàgina %(page)d de %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "Page"
+#, python-format
 msgid "Page %d"
-msgstr "Pàgina"
+msgstr "Pàgina %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -825,10 +821,8 @@ msgstr "Preferit"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Videos"
 msgid "Video"
-msgstr "Vídeos"
+msgstr "Vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -843,52 +837,41 @@ msgstr "Subtítols"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Lyric"
 msgstr "Lletra"
 
 # seeded from jellyfin-web: Image
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Image"
 msgstr "Imatge"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Container"
-msgstr "Continu"
+msgstr "Contenidor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normal"
+msgstr "Format"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Path"
 msgstr "Camí"
 
 # seeded from jellyfin-web: LabelSize
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Size"
 msgstr "Mida"
 
 # seeded from jellyfin-web: Yes
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Yes"
 msgstr "Sí"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Now"
 msgid "No"
-msgstr "Ara"
+msgstr "No"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -900,58 +883,46 @@ msgstr "Títol"
 
 # seeded from jellyfin-web: LabelLanguage
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Language"
 msgstr "Idioma"
 
 # seeded from jellyfin-web: MediaInfoCodec
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec"
 msgstr "Còdec"
 
 # seeded from jellyfin-web: MediaInfoCodecTag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec tag"
 msgstr "Etiqueta del còdec"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Profile Group"
 msgid "Profile"
-msgstr "Grup del perfil"
+msgstr "Perfil"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Level"
 msgstr "Nivell"
 
 # seeded from jellyfin-web: LabelChapterImageResolution
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Resolution"
 msgstr "Resolució"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Aspect Ratio"
 msgid "Aspect ratio"
 msgstr "Relació d'aspecte"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic"
 msgstr "Anamòrfic"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Interface"
 msgid "Interlaced"
-msgstr "Interfície"
+msgstr "Entrellaçat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -960,27 +931,22 @@ msgstr "Fotogrames per segon"
 
 # seeded from jellyfin-web: MediaInfoLayout
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Layout"
 msgstr "Disposició"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Channels"
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "Canals"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy, python-format
-#| msgid "%d channels"
+#, python-format
 msgid "%d ch"
 msgstr "%d canals"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bitrate"
 msgstr "Taxa de bits"
 
@@ -1176,26 +1142,21 @@ msgid "The video codec is not supported"
 msgstr "No s'ha pogut iniciar la descàrrega."
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The audio codec is not supported"
-msgstr "No s'ha pogut iniciar la descàrrega."
+msgstr "El còdec d'àudio no és compatible"
 
 # seeded from jellyfin-web: SubtitleCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The subtitle codec is not supported"
 msgstr "El còdec de subtítols no és compatible"
 
 # seeded from jellyfin-web: AudioIsExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream is external"
 msgstr "El flux d'àudio és extern"
 
 # seeded from jellyfin-web: SecondaryAudioNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Secondary audio tracks are not supported"
 msgstr "Les pistes d'àudio secundàries no són compatibles"
 
@@ -1743,11 +1704,11 @@ msgstr "Color de la pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Justifica el text"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Mode de lectura de còmics"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
@@ -2172,7 +2133,7 @@ msgstr "Continuació"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Liked"
-msgstr ""
+msgstr "Agradat"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2194,15 +2155,15 @@ msgstr "Tràiler"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Té característiques especials"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Té un tema musical"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Té un vídeo temàtic"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2263,7 +2224,7 @@ msgstr "HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2279,11 +2240,11 @@ msgstr "DVD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2391,7 +2352,7 @@ msgstr "%d vistes"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d de mida desconeguda"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2413,7 +2374,7 @@ msgstr "No s'ha pogut iniciar la descàrrega."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "Aquesta mediateca no ofereix filtres."
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2440,7 +2401,7 @@ msgstr "Fet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "Qualsevol"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -3086,7 +3047,7 @@ msgstr "No s'han pogut aplicar els paràmetres d'enregistrament."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Elimina del disc"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3099,7 +3060,7 @@ msgstr "Eliminar aquest element l'eliminarà del sistema de fitxers i de la medi
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s ha estat eliminat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, fuzzy, python-format
@@ -3134,7 +3095,7 @@ msgstr "No s'ha pogut eliminar la descàrrega."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "S'està obrint %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3478,7 +3439,7 @@ msgstr "Afegeix a la cua"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "S'ha acabat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3488,7 +3449,7 @@ msgstr "Element no disponible."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "%s a"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3499,13 +3460,13 @@ msgstr "Comença"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d pàgines"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Llegit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, fuzzy
@@ -3552,15 +3513,15 @@ msgstr "El trasllat de les descàrregues ha fallat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "S'està obrint el còmic…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "Redueix"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Augmenta"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3672,7 +3633,7 @@ msgstr "Col·leccions"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Filtre (%d)"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4041,7 +4002,7 @@ msgstr "No s'ha pogut reanomenar aquest usuari."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Copia el paràgraf"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4051,7 +4012,7 @@ msgstr "Pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "S'ha copiat el paràgraf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4103,7 +4064,7 @@ msgstr "No s'ha pogut llegir l'enregistrament."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "Text més petit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4113,7 +4074,7 @@ msgstr "Gran"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "Color de la pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
@@ -4649,7 +4610,7 @@ msgstr "Cerca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Minimitza"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4665,7 +4626,7 @@ msgstr "Màxim"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Redimensiona"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4987,7 +4948,7 @@ msgstr "Per defecte (automàtic)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Aquesta mediateca"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, fuzzy
@@ -4997,7 +4958,7 @@ msgstr "A les sèries"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "No establert"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
