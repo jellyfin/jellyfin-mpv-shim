@@ -7,8 +7,9 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-07-06 01:00+0000\n"
-"Last-Translator: Ulrik <ulrik.johansen@me.com>\n"
+"PO-Revision-Date: 2026-08-12 22:48+0000\n"
+"Last-Translator: TheLostDims "
+"<thelostdims@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -21,7 +22,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "ukendt format"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
