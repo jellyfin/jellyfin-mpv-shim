@@ -71,7 +71,7 @@ def checkbox_keys(collection_type=CTYPE):
     for _label, kind, spec, libs in dialogs.FILTER_SECTIONS:
         if kind != "checks" or not dialogs._applies(libs, collection_type):
             continue
-        out += [key for key, _text, box_libs in spec
+        out += [key for key, _text, box_libs in dialogs.check_specs(spec)
                 if dialogs._applies(box_libs, collection_type)]
     return out
 

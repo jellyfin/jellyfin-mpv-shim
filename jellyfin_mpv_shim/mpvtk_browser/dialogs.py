@@ -83,12 +83,18 @@ def _applies(gate, collection_type):
     return collection_type in gate
 
 
-#: Every category the panel can draw, in web's order. Each is
-#: ``(label, kind, spec, libs)``; "vals" names the `_filtervals` entry a
-#: picker's options come from, and ``libs`` is the gate above (``None``
-#: for "everywhere"). A "checks" spec is ``(key, label, libs)`` per box,
-#: because Status is offered on every library but three of its five boxes
-#: are not.
+#: Every category the panel can draw. Each is ``(label, kind, spec,
+#: libs)``; "vals" names the `_filtervals` entry a picker's options come
+#: from, and ``libs`` is the gate above (``None`` for "everywhere").
+#:
+#: A "checks" spec is a tuple of ROWS, each a tuple of ``(key, label,
+#: libs)`` boxes. Two levels because the boxes are laid out across the
+#: panel rather than one per line, and where the line breaks is meaning
+#: rather than wrapping: Unplayed and Played are one question (and are
+#: mutually exclusive -- see MUTUALLY_EXCLUSIVE), the three flags under
+#: them are another. A row whose every box is gated out disappears
+#: without taking its neighbours with it, which is why the gate stays per
+#: box and not per row.
 #:
 #: A category is drawn only when it has something to offer: it applies to
 #: this library, and the server returned options for it (or it is a fixed
@@ -99,19 +105,15 @@ def _applies(gate, collection_type):
 #: out is not drawn at all, heading included.
 FILTER_SECTIONS = (
     (_("Status"), "checks", (
-        ("unplayed", _("Unplayed"), _EXCEPT_MUSIC),
-        ("played", _("Played"), _EXCEPT_MUSIC),
-        ("favorite", _("Favorites"), None),
-        ("resumable", _("Resumable"), _EXCEPT_MUSIC),
-        ("liked", _("Liked"), None),
+        # Play state on its own line: these two are one question, and the
+        # server rejects both at once (MUTUALLY_EXCLUSIVE), so a layout
+        # that pairs them says so before you click.
+        (("unplayed", _("Unplayed"), _EXCEPT_MUSIC),
+         ("played", _("Played"), _EXCEPT_MUSIC)),
+        (("favorite", _("Favorites"), None),
+         ("resumable", _("Resumable"), _EXCEPT_MUSIC),
+         ("liked", _("Liked"), None)),
     ), None),
-    (_("Features"), "checks", (
-        ("has_subtitles", _("Has Subtitles"), None),
-        ("has_trailer", _("Has Trailer"), None),
-        ("has_special_feature", _("Has Special Features"), None),
-        ("has_theme_song", _("Has Theme Song"), None),
-        ("has_theme_video", _("Has Theme Video"), None),
-    ), _FEATURE_LIBRARIES),
     (_("Genres"), "pick", ("genre", "genres"), None),
     (_("Years"), "pick", ("year", "years"), None),
     (_("Parental Rating"), "pick", ("official_ratings", "official_ratings"),
@@ -121,21 +123,46 @@ FILTER_SECTIONS = (
      _LANGUAGE_LIBRARIES),
     (_("Subtitle Language"), "pick",
      ("subtitle_languages", "subtitle_languages"), _LANGUAGE_LIBRARIES),
-    # Last, out of web's order. Seven checkboxes is the longest section
-    # in the panel and the least often wanted, and everything above it is
-    # one control -- putting it in web's position (straight after
-    # Features) pushed every picker below the fold. **[iw]**: "we can put
-    # those at the end since it'll be a lot of checkboxes".
+    # Both check sections sit AFTER every picker, out of web's order. The
+    # pickers are one control each and the checks are many, so in web's
+    # position they pushed the pickers below the fold. Status is the
+    # exception that stays on top: it is the one people open this panel
+    # for. **[iw]**: "we can put those at the end since it'll be a lot of
+    # checkboxes".
+    (_("Features"), "checks", (
+        (("has_subtitles", _("Has Subtitles"), None),
+         ("has_trailer", _("Has Trailer"), None)),
+        (("has_special_feature", _("Has Special Features"), None),),
+        (("has_theme_song", _("Has Theme Song"), None),
+         ("has_theme_video", _("Has Theme Video"), None)),
+    ), _FEATURE_LIBRARIES),
     (_("Video Types"), "checks", (
-        ("sd", _("SD"), None),
-        ("hd", _("HD"), None),
-        ("is_4k", _("4K"), None),
-        ("is_3d", _("3D"), None),
-        ("vt_dvd", _("DVD"), None),
-        ("vt_bluray", _("Blu-ray"), None),
-        ("vt_iso", _("ISO"), None),
+        (("sd", _("SD"), None),
+         ("hd", _("HD"), None),
+         ("is_4k", _("4K"), None),
+         ("is_3d", _("3D"), None)),
+        (("vt_dvd", _("DVD"), None),
+         ("vt_bluray", _("Blu-ray"), None),
+         ("vt_iso", _("ISO"), None)),
     ), _FEATURE_LIBRARIES),
 )
+
+def check_specs(spec):
+    """Every ``(key, label, libs)`` box in a "checks" section, flattened.
+
+    The spec is rows of boxes (see FILTER_SECTIONS) and most callers want
+    the boxes; only the renderer cares where the lines break. Here rather
+    than repeated at each call site because the nesting is exactly the kind
+    of shape change that leaves a sweep silently reading tuples as boxes --
+    which is what "not enough values to unpack" was, and it could as easily
+    have been a coverage check quietly passing over nothing.
+    """
+    return [box for line in spec for box in line]
+
+
+#: Width a filter panel checkbox row wraps to: the panel's 520 less its
+#: shell padding (24 each side) and the scroll view's reserved bar.
+FILTER_ROW_W = 520 - 2 * 24 - 10
 
 #: Checkboxes that cannot both be on, as ``key -> the key it clears``.
 #: Symmetric: listed both ways round, so whichever is ticked clears the
@@ -662,25 +689,39 @@ class DialogsMixin:
         def build():
             vals = get_vals()
             filters = get_filters()
+            from .components import chrome
+
             matches, pending = get_count()
             rows: list = []
             for label, kind, spec, libs in FILTER_SECTIONS:
                 if not _applies(libs, collection_type):
                     continue
                 if kind == "checks":
-                    boxes = [
-                        Checkbox(text, bool(filters.get(key)),
-                                 id="flt-" + key,
-                                 on_toggle=lambda k=key: on_toggle(k))
-                        for key, text, box_libs in spec
-                        if _applies(box_libs, collection_type)
-                    ]
-                    if not boxes:
+                    lines = []
+                    for line in spec:
+                        boxes = [
+                            Checkbox(text, bool(filters.get(key)),
+                                     id="flt-" + key,
+                                     on_toggle=lambda k=key: on_toggle(k))
+                            for key, text, box_libs in line
+                            if _applies(box_libs, collection_type)
+                        ]
+                        if boxes:
+                            # wrap_row, not a bare Row: the panel is 520px
+                            # and a label is whatever the translation made
+                            # it, so a line that fits in English is not a
+                            # line that fits. Wrapping keeps the grouping
+                            # where it fits and degrades to more lines
+                            # where it does not, which beats a row running
+                            # off the edge of the dialog.
+                            lines.append(chrome.wrap_row(
+                                boxes, FILTER_ROW_W, gap=18, row_gap=10))
+                    if not lines:
                         # Every box gated out, so the heading would be a
                         # section label with nothing under it.
                         continue
                     rows.append(Text(label, size="normal", bold=True))
-                    rows += boxes
+                    rows += lines
                     continue
                 key, vals_key = spec
                 options = vals.get(vals_key) or []
@@ -731,15 +772,17 @@ class DialogsMixin:
                                on_click=self._close_dialog),
                     ]),
                 ], w=520),
-                # Left, not centred -- the one dialog in the app whose
-                # purpose is to change what is behind it. Centred, it sat
-                # over the grid and the loading spinner both, so the
-                # results you were filtering and the sign that they were
-                # being re-queried were the two things it hid. **[iw]**:
-                # "maybe it might make sense to left align this modal?
-                # That would solve a lot of the issues with the spinner
-                # being invisible."
-                side="left",
+                # Centred, like every other dialog. It was pinned left
+                # because it is the one dialog whose purpose is to change
+                # what is behind it, and centred it covered the grid's
+                # loading spinner -- so the sign that the results were being
+                # re-queried was the thing it hid. That argument expired
+                # with `filters-pending` above: the panel now reports the
+                # in-flight query itself, on its own title row, and a modal
+                # sitting off to one side for a reason that no longer holds
+                # just reads as a modal in the wrong place. **[iw]**: "we
+                # might as well center that modal since we have a proper
+                # loading spinner *inside* the modal now."
                 on_dismiss=self._close_dialog)
         self._show_dialog(build)
 

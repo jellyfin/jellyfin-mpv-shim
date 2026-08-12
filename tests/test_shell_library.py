@@ -3029,15 +3029,19 @@ class TestFilterPanelMatchCount(unittest.TestCase):
 
 
 class TestFilterPanelSide(unittest.TestCase):
-    """The filter panel is pinned left, not centred.
+    """The filter panel is centred, like every other dialog.
 
-    Every other dialog in the app IS the task -- a confirm, a download, a
-    picker -- so there is nothing behind it worth seeing and centred is
-    right. This one exists to change what is behind it, and centred it
-    covered the two things you want to watch while filtering: the results,
-    and the spinner saying they are being re-queried. **[iw]**: "maybe it
-    might make sense to left align this modal? That would solve a lot of
-    the issues with the spinner being invisible."
+    It was pinned left for a while, and the reason was real: it is the one
+    dialog whose purpose is to change what is behind it, and centred it
+    covered the two things you want to watch while filtering -- the results,
+    and the spinner saying they are being re-queried.
+
+    That argument expired when the panel grew its own in-flight indicator
+    (`filters-pending`, on its title row). The second of those two things is
+    now *inside* the modal, so there is nothing left for the offset to buy
+    and a dialog sitting off to one side reads as one in the wrong place.
+    **[iw]**: "we might as well center that modal since we have a proper
+    loading spinner *inside* the modal now."
     """
 
     def _modal(self, width=1280):
@@ -3052,76 +3056,44 @@ class TestFilterPanelSide(unittest.TestCase):
         nodes, _h = build_scene(b, size=(width, 720))
         return b, nodes, [n for n in nodes if n.get("kind") == "modal"][0]
 
-    def test_it_sits_at_the_content_margin(self):
-        """The same margin the page content uses, so it lines up with the
-        title rather than floating at an arbitrary offset."""
-        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
-        _b, _n, modal = self._modal()
-        self.assertEqual(modal["x"], chrome.CONTENT_PAD)
-
-    def test_and_stays_left_however_wide_the_window_is(self):
-        """A centred dialog walks right as the window grows -- which is
-        exactly when there is most library beside it to look at."""
+    def test_it_is_centred(self):
         for width in (1280, 1920, 2560):
             with self.subTest(width=width):
                 _b, _n, modal = self._modal(width)
-                self.assertEqual(modal["x"], 16)
+                self.assertAlmostEqual(modal["x"] + modal["w"] / 2,
+                                       width / 2, delta=1)
 
     def test_a_window_narrower_than_the_panel_does_not_push_it_off(self):
-        """Clamped, not just placed.
-
-        A Dialog is never width-clamped to the window (``_clamp_wh``
-        applies the element's own min/max and nothing else), so a 520px
-        panel on a 480px window overflows whatever it is aligned to.
-        Centring at least splits that overflow in two; left-aligning it
-        at a 16px margin puts all of it on one side and pushes the Done
-        and Clear All buttons out. So the margin gives way rather than the
-        panel: it sits flush at 0 and overflows by as little as it can.
+        """Centring is also what keeps a 520px panel usable on a 480px
+        window: a Dialog is never width-clamped to the window
+        (``_clamp_wh`` applies the element's own min/max and nothing else),
+        so the overflow has to go somewhere. Split in two it costs 20px off
+        each edge; all on one side it pushed the Done and Clear All buttons
+        out of the window.
 
         Asserted as "overflows by no more than the panel is too wide",
-        not as ``x >= 0`` -- which is true of the unclamped placement too
-        and is how the first version of this test passed with the clamp
-        removed.
+        not as ``x >= 0`` -- which is true of an unclamped placement too and
+        is how the first version of this test passed with the clamp removed.
         """
         _b, _n, modal = self._modal(480)
-        self.assertLessEqual(modal["x"] + modal["w"], max(480, modal["w"]),
-                             "the margin pushed the panel further off "
-                             "the right edge than its width required")
-        self.assertEqual(modal["x"], 0)
+        overflow = modal["w"] - 480
+        self.assertLessEqual(abs(modal["x"]), overflow / 2 + 1)
 
-    def test_other_dialogs_are_still_centred(self):
-        """The side is per-dialog, not a new default: a confirm has
-        nothing behind it worth uncovering."""
+    def test_it_reports_its_own_in_flight_query(self):
+        """The thing that made centring affordable. Without an indicator on
+        the panel, a centred modal covers the grid's spinner and the count
+        on the title row is silently one query out of date."""
+        b, _n, _m = self._modal()
+        nodes, handlers = build_scene(b)
+        self.assertTrue([n for n in nodes if n.get("id") == "filters-count"],
+                        "the panel does not report the match count")
+        self.assertIn("flt-unplayed", handlers)
+
+    def test_other_dialogs_are_centred_too(self):
+        """No dialog is pinned to a side any more. The parameter survives;
+        nothing uses it."""
         from jellyfin_mpv_shim.mpvtk.widgets import Dialog, Text
         self.assertEqual(Dialog("d", Text("x")).side, "center")
-
-    def test_the_spinner_clears_the_panel_on_an_ordinary_window(self):
-        """Which is the point of the whole change -- the loading state is
-        centred in the content area, so on a narrow enough window it
-        lands under the panel however the panel is aligned. This pins
-        that the common sizes are not that."""
-        b = MpvtkBrowser(app=None, source=FakeSource(),
-                         controller=FakeController())
-        b._pool = _SyncPool()
-        b.server = "srv1"
-        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
-                    "collection_type": "movies", "title": "Movies"})
-        for width in (1280, 1920):
-            with self.subTest(width=width):
-                _n, handlers = build_scene(b, size=(width, 720))
-                handlers["grid-filter"]["click"]()
-                _n2, panel = build_scene(b, size=(width, 720))
-                b._pool = _DeferredPool()
-                panel["flt-unplayed"]["click"]()
-                nodes, _h = build_scene(b, size=(width, 720))
-                modal = [n for n in nodes if n.get("kind") == "modal"][0]
-                spinner = [n for n in nodes if n.get("t") == "busy"]
-                self.assertTrue(spinner, "no spinner while loading")
-                self.assertGreaterEqual(
-                    spinner[0]["x"], modal["x"] + modal["w"],
-                    "the spinner is hidden behind the filter panel")
-                b._pool = _SyncPool()
-                b._close_dialog()
 
 
 class TestVideoTypeFilters(unittest.TestCase):
@@ -3349,7 +3321,7 @@ class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
         keys = set()
         for _label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
             if kind == "checks":
-                keys |= {k for k, _t, _l in spec}
+                keys |= {k for k, _t, _l in dialogs.check_specs(spec)}
             else:
                 keys.add(spec[0])
         unapplied = sorted(keys - set(LibrarySource.supported_filters))
@@ -3693,3 +3665,70 @@ class InsetArtworkHeightTest(unittest.TestCase):
         expected = int(box[0] * banner.POSTER_W_FRAC / (16 / 9))
         self.assertAlmostEqual(self._drawn(box, self.STILL), expected,
                                delta=2)
+
+
+class FilterPanelOrderTest(unittest.TestCase):
+    """The filter panel's section order and checkbox grouping."""
+
+    def _sections(self):
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+        return [(label, kind) for label, kind, _s, _l
+                in dialogs.FILTER_SECTIONS]
+
+    @staticmethod
+    def _label(text):
+        """A section label as FILTER_SECTIONS holds it -- through gettext,
+        so this still finds it under a translation."""
+        from jellyfin_mpv_shim.i18n import _
+
+        return _(text)
+
+    def test_features_comes_after_every_picker(self):
+        """A picker is one control and a check section is many, so in
+        jellyfin-web's position (straight after Status) Features pushed the
+        pickers below the fold of a 380px panel."""
+        order = [label for label, _k in self._sections()]
+        kinds = dict(self._sections())
+        last_pick = max(i for i, label in enumerate(order)
+                        if kinds[label] == "pick")
+        self.assertGreater(order.index(self._label("Features")), last_pick)
+
+    def test_and_before_video_types(self):
+        order = [label for label, _k in self._sections()]
+        self.assertLess(order.index(self._label("Features")),
+                        order.index(self._label("Video Types")))
+
+    def test_status_stays_at_the_top(self):
+        """The one check section that does not move: it is what people open
+        the panel for."""
+        self.assertEqual(self._sections()[0][0], self._label("Status"))
+
+    def test_play_state_is_grouped_apart_from_the_flags(self):
+        """Unplayed/Played are one question and are mutually exclusive --
+        the server answers `Filters=IsUnplayed,IsPlayed` with HTTP 400 --
+        so the layout pairs them before you can click both."""
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+
+        spec = dict((label, s) for label, _k, s, _l
+                    in dialogs.FILTER_SECTIONS)[self._label("Status")]
+        lines = [[key for key, _t, _l in line] for line in spec]
+        self.assertEqual(lines[0], ["unplayed", "played"])
+        self.assertEqual(lines[1], ["favorite", "resumable", "liked"])
+
+    def test_every_check_section_is_rows_of_boxes(self):
+        """The shape the renderer and both sweeps read. A section left flat
+        unpacks a 3-tuple as if it were a row and fails with "not enough
+        values to unpack" -- or, on a sweep that is more forgiving, passes
+        over nothing at all."""
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+
+        for label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
+            if kind != "checks":
+                continue
+            with self.subTest(section=label):
+                self.assertTrue(spec, "empty check section")
+                for line in spec:
+                    self.assertTrue(line, "empty row")
+                    for box in line:
+                        self.assertEqual(len(box), 3)
+                        self.assertIsInstance(box[0], str)
