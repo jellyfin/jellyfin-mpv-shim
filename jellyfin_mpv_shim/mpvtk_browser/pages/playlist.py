@@ -66,6 +66,12 @@ class PlaylistPage(Page):
             # that page fails; don't offer the door.
             if not actions.offline and actions.can_edit() else None,
         ], align="center", gap=10)
+        # A TABLE stretches to fill, so it has no slack to take up and keeps
+        # the plain content padding; only the tile grid is laid out by
+        # `grid_fill`. Set here so the two branches that are not a grid --
+        # a playlist of songs, and an empty one -- cannot miss it.
+        geom = None
+        pad = chrome.CONTENT_PAD
         if not items:
             body = [Text(
                 _("This playlist is empty.") if not raw else
@@ -95,6 +101,7 @@ class PlaylistPage(Page):
             # A playlist of films still comes out as posters; that is the
             # same rule reaching a different answer.
             geom, image_type = art.tiles.auto_geom(items)
+            pad, geom = art.tiles.grid_layout(size[0], geom)
             body = art.tiles.grid_of(
                 items, "pl", size, geom=geom, image_type=image_type,
                 # inherit=False, for the reason the season listing gives:
@@ -111,8 +118,8 @@ class PlaylistPage(Page):
                 on_click=lambda it: actions.play_list(
                     ids, server, items.index(it), audio=False, items=items))
         return VScroll(Column([header, Spacer(h=2)] + body,
-                              pad=chrome.CONTENT_PAD, gap=GRID_GAP,
-                              align="stretch"),
+                              pad=(pad, chrome.CONTENT_PAD),
+                              gap=GRID_GAP, align="stretch"),
                        id="playlist", flex=1,
                        offset=self.parked_scroll("playlist"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(

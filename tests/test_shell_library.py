@@ -36,21 +36,44 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
     The fix quantises the FETCH, not the layout. Quantising the layout is
     what the first attempt did, and it overhung the scrollbar when the
     rounded-up width exceeded the space available.
+
+    **Every geometry question here is asked in BOTH header modes.** The
+    padded header (`backdrop_full_width` off) and the full-bleed one are
+    different boxes with the same fetch budget, and the interesting failure
+    is a quantisation rule that holds for one shape and not the other -- the
+    full-bleed box is wider than the banner ratio, so its fetch height stops
+    being a fixed multiple of its fetch width and gains an axis that can
+    follow the window pixel-for-pixel. That is #592 again, on the other axis.
     """
+
+    #: (label, full_bleed) for the two header modes.
+    MODES = (("padded", False), ("full-bleed", True))
 
     def _r(self):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
         return TileRenderer.__new__(TileRenderer)
 
-    def _layout(self, lo, hi):
+    def _layout(self, lo, hi, full_bleed=False):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
         r = self._r()
-        return [TileRenderer.banner_box(r, w)[0] for w in range(lo, hi)]
+        return [TileRenderer.banner_box(r, w, full_bleed)[0]
+                for w in range(lo, hi)]
 
-    def _fetches(self, lo, hi):
+    def _fetches(self, lo, hi, full_bleed=False):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
         r = self._r()
-        return [TileRenderer._banner_fetch_w(r, w) for w in self._layout(lo, hi)]
+        return [TileRenderer._banner_fetch_w(r, w)
+                for w in self._layout(lo, hi, full_bleed)]
+
+    def _fetch_shapes(self, lo, hi, full_bleed):
+        """Every (width, height) the server would be asked for as the window
+        is dragged from ``lo`` to ``hi``. Both axes, because the height is
+        the one full bleed makes independent."""
+        shapes = []
+        for w in range(lo, hi):
+            asked, _box = self._asked_for(w, full_bleed)
+            shapes.append((asked["width"], asked["height"]))
+        return shapes
 
     def test_the_drawn_banner_never_exceeds_the_space_it_has(self):
         """The regression the first attempt caused: a rounded-up layout
@@ -60,8 +83,34 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         r = self._r()
         for w in (500, 700, 913, 1024, 1280, 1600):
             with self.subTest(w=w):
-                got, _h = TileRenderer.banner_box(r, w)
+                got, _h = TileRenderer.banner_box(r, w, False)
                 self.assertLessEqual(got, w - 2 * chrome.CONTENT_PAD)
+
+    def test_a_full_bleed_banner_stops_at_the_scrollbar(self):
+        """The same property for the other mode. "Full width" is the
+        VIEWPORT's width -- the scroll view reserves SCROLLBAR_W whether or
+        not it is scrolling, so asking for the window's own width paints the
+        last 10px under the bar."""
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (500, 700, 913, 1024, 1280, 1600):
+            with self.subTest(w=w):
+                got, _h = TileRenderer.banner_box(r, w, True)
+                self.assertLessEqual(got, w - SCROLLBAR_W)
+
+    def test_full_bleed_is_wider_but_never_taller(self):
+        """The constraint the option is subject to: it may spend horizontal
+        space, which is free, and no vertical space at all -- everything
+        below the header moves down by whatever it takes."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        r = self._r()
+        for w in (500, 700, 913, 1024, 1280, 1600, 2560):
+            with self.subTest(w=w):
+                pw, ph = TileRenderer.banner_box(r, w, False)
+                fw, fh = TileRenderer.banner_box(r, w, True)
+                self.assertEqual(fh, ph)
+                self.assertGreaterEqual(fw, pw)
 
     def test_and_leaves_no_gap_beside_full_width_content(self):
         """Which is why the layout is not quantised at all: rounding down
@@ -71,19 +120,38 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         r = self._r()
         for w in (913, 1001, 1077):
             with self.subTest(w=w):
-                got, _h = TileRenderer.banner_box(r, w)
+                got, _h = TileRenderer.banner_box(r, w, False)
                 self.assertEqual(got, w - 2 * chrome.CONTENT_PAD)
 
     def test_a_long_drag_asks_for_only_a_handful_of_images(self):
-        self.assertLessEqual(len(set(self._fetches(400, 1600))), 10,
-                             "a resize still asks for an image per pixel")
+        for label, bleed in self.MODES:
+            with self.subTest(mode=label):
+                self.assertLessEqual(
+                    len(set(self._fetches(400, 1600, bleed))), 10,
+                    "a resize still asks for an image per pixel")
 
     def test_neighbouring_widths_share_a_fetch(self):
         """The property that matters: moving the edge by one pixel almost
         never costs a request."""
-        f = self._fetches(400, 1600)
-        changes = sum(1 for a, b in zip(f, f[1:]) if a != b)
-        self.assertLessEqual(changes, 10)
+        for label, bleed in self.MODES:
+            with self.subTest(mode=label):
+                f = self._fetches(400, 1600, bleed)
+                changes = sum(1 for a, b in zip(f, f[1:]) if a != b)
+                self.assertLessEqual(changes, 10)
+
+    def test_a_long_drag_asks_for_a_handful_of_SHAPES(self):
+        """Both axes. The width alone was enough while the fetch height was
+        a fixed multiple of it; a full-bleed header is wider than the banner
+        ratio, so its height is taken from the box -- and the box's height
+        follows the window continuously until the 1100 cap bites. An
+        unquantised height there is #592 all over again, invisible to every
+        assertion above because the WIDTH is still perfectly quantised."""
+        for label, bleed in self.MODES:
+            with self.subTest(mode=label):
+                shapes = self._fetch_shapes(600, 1200, bleed)
+                self.assertLessEqual(
+                    len(set(shapes)), 12,
+                    "a resize asks the server for a new shape per pixel")
 
     def test_the_fetch_is_never_smaller_than_the_drawn_banner(self):
         """compose_banner crops the fetched image into the banner, so larger
@@ -100,7 +168,7 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         self.assertEqual(TileRenderer._banner_fetch_w(self._r(), 0), 0)
         self.assertEqual(TileRenderer._banner_fetch_w(self._r(), -5), 0)
 
-    def _asked_for(self, width=1280):
+    def _asked_for(self, width=1280, full_bleed=False):
         """Drive the real backdrop_node and record what it asks the server
         for. `thumbs=None` stops _request_image before any fetch, which is
         all this needs — the URL is built first."""
@@ -137,7 +205,7 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         r = self._r()
         r.art = SimpleNamespace(server="srv1", source=_Source(), thumbs=None)
         r._requested, r._img_retry = set(), {}
-        box = TileRenderer.banner_box(r, width)
+        box = TileRenderer.banner_box(r, width, full_bleed)
         TileRenderer.backdrop_node(r, {"Id": "m1"}, box, "detail-bd")
         return asked, box
 
@@ -157,20 +225,52 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         self.assertAlmostEqual(asked["height"] / asked["width"],
                                TileRenderer.BANNER_RATIO, delta=0.01)
 
+    def test_a_full_bleed_header_is_not_fetched_at_the_banner_ratio(self):
+        """It is a different shape -- same height, more width -- so asking at
+        the banner ratio hands back nearly twice the height the cover-crop
+        keeps. Correct, and a third of a megabyte of backdrop per header
+        thrown away.
+
+        Measured against the ratio's answer AT THE SAME FETCH WIDTH, not
+        against the padded header's fetch: full bleed is a wider box, so it
+        legitimately asks for a wider (and in absolute terms taller) image
+        than the 1100-capped padded one. The saving is in the SHAPE.
+
+        Never taller at any width -- that is the cap in `backdrop_node`, and
+        without it a quantisation step that overshot would make full bleed
+        cost MORE than the mode it replaces. Substantially shorter once the
+        window is wide enough for the two shapes to diverge; at 1280 the
+        box is barely wider than the ratio and the 64px step eats most of it,
+        which is the honest answer rather than a threshold tuned to pass.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        for width in (1280, 1600, 1920, 2560):
+            with self.subTest(width=width):
+                asked, _box = self._asked_for(width, True)
+                at_ratio = int(asked["width"] * TileRenderer.BANNER_RATIO)
+                self.assertLessEqual(asked["height"], at_ratio)
+        asked, _box = self._asked_for(1920, True)
+        self.assertLess(asked["height"],
+                        int(asked["width"] * TileRenderer.BANNER_RATIO) * 0.8)
+
     def test_the_fetched_height_still_covers_the_drawn_banner(self):
         """The other half: a crop that came back shorter than the box would
-        have to be upscaled to cover it."""
-        for width in (700, 1024, 1280, 1600):
-            with self.subTest(width=width):
-                asked, box = self._asked_for(width)
-                from jellyfin_mpv_shim.mpvtk import scaling
-                self.assertGreaterEqual(asked["height"],
-                                        scaling.raster(*box)[1])
+        have to be upscaled to cover it. Asked in both modes, because the
+        full-bleed height is quantised on its own and a rule that rounded
+        DOWN would land exactly here."""
+        from jellyfin_mpv_shim.mpvtk import scaling
+        for label, bleed in self.MODES:
+            for width in (700, 1024, 1280, 1600):
+                with self.subTest(mode=label, width=width):
+                    asked, box = self._asked_for(width, bleed)
+                    self.assertGreaterEqual(asked["height"],
+                                            scaling.raster(*box)[1])
 
     def test_the_aspect_ratio_survives(self):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
         r = self._r()
-        w, h = TileRenderer.banner_box(r, 1280)
+        w, h = TileRenderer.banner_box(r, 1280, False)
         self.assertEqual(h, int(w * TileRenderer.BANNER_RATIO))
 
 
@@ -2929,15 +3029,19 @@ class TestFilterPanelMatchCount(unittest.TestCase):
 
 
 class TestFilterPanelSide(unittest.TestCase):
-    """The filter panel is pinned left, not centred.
+    """The filter panel is centred, like every other dialog.
 
-    Every other dialog in the app IS the task -- a confirm, a download, a
-    picker -- so there is nothing behind it worth seeing and centred is
-    right. This one exists to change what is behind it, and centred it
-    covered the two things you want to watch while filtering: the results,
-    and the spinner saying they are being re-queried. **[iw]**: "maybe it
-    might make sense to left align this modal? That would solve a lot of
-    the issues with the spinner being invisible."
+    It was pinned left for a while, and the reason was real: it is the one
+    dialog whose purpose is to change what is behind it, and centred it
+    covered the two things you want to watch while filtering -- the results,
+    and the spinner saying they are being re-queried.
+
+    That argument expired when the panel grew its own in-flight indicator
+    (`filters-pending`, on its title row). The second of those two things is
+    now *inside* the modal, so there is nothing left for the offset to buy
+    and a dialog sitting off to one side reads as one in the wrong place.
+    **[iw]**: "we might as well center that modal since we have a proper
+    loading spinner *inside* the modal now."
     """
 
     def _modal(self, width=1280):
@@ -2952,76 +3056,44 @@ class TestFilterPanelSide(unittest.TestCase):
         nodes, _h = build_scene(b, size=(width, 720))
         return b, nodes, [n for n in nodes if n.get("kind") == "modal"][0]
 
-    def test_it_sits_at_the_content_margin(self):
-        """The same margin the page content uses, so it lines up with the
-        title rather than floating at an arbitrary offset."""
-        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
-        _b, _n, modal = self._modal()
-        self.assertEqual(modal["x"], chrome.CONTENT_PAD)
-
-    def test_and_stays_left_however_wide_the_window_is(self):
-        """A centred dialog walks right as the window grows -- which is
-        exactly when there is most library beside it to look at."""
+    def test_it_is_centred(self):
         for width in (1280, 1920, 2560):
             with self.subTest(width=width):
                 _b, _n, modal = self._modal(width)
-                self.assertEqual(modal["x"], 16)
+                self.assertAlmostEqual(modal["x"] + modal["w"] / 2,
+                                       width / 2, delta=1)
 
     def test_a_window_narrower_than_the_panel_does_not_push_it_off(self):
-        """Clamped, not just placed.
-
-        A Dialog is never width-clamped to the window (``_clamp_wh``
-        applies the element's own min/max and nothing else), so a 520px
-        panel on a 480px window overflows whatever it is aligned to.
-        Centring at least splits that overflow in two; left-aligning it
-        at a 16px margin puts all of it on one side and pushes the Done
-        and Clear All buttons out. So the margin gives way rather than the
-        panel: it sits flush at 0 and overflows by as little as it can.
+        """Centring is also what keeps a 520px panel usable on a 480px
+        window: a Dialog is never width-clamped to the window
+        (``_clamp_wh`` applies the element's own min/max and nothing else),
+        so the overflow has to go somewhere. Split in two it costs 20px off
+        each edge; all on one side it pushed the Done and Clear All buttons
+        out of the window.
 
         Asserted as "overflows by no more than the panel is too wide",
-        not as ``x >= 0`` -- which is true of the unclamped placement too
-        and is how the first version of this test passed with the clamp
-        removed.
+        not as ``x >= 0`` -- which is true of an unclamped placement too and
+        is how the first version of this test passed with the clamp removed.
         """
         _b, _n, modal = self._modal(480)
-        self.assertLessEqual(modal["x"] + modal["w"], max(480, modal["w"]),
-                             "the margin pushed the panel further off "
-                             "the right edge than its width required")
-        self.assertEqual(modal["x"], 0)
+        overflow = modal["w"] - 480
+        self.assertLessEqual(abs(modal["x"]), overflow / 2 + 1)
 
-    def test_other_dialogs_are_still_centred(self):
-        """The side is per-dialog, not a new default: a confirm has
-        nothing behind it worth uncovering."""
+    def test_it_reports_its_own_in_flight_query(self):
+        """The thing that made centring affordable. Without an indicator on
+        the panel, a centred modal covers the grid's spinner and the count
+        on the title row is silently one query out of date."""
+        b, _n, _m = self._modal()
+        nodes, handlers = build_scene(b)
+        self.assertTrue([n for n in nodes if n.get("id") == "filters-count"],
+                        "the panel does not report the match count")
+        self.assertIn("flt-unplayed", handlers)
+
+    def test_other_dialogs_are_centred_too(self):
+        """No dialog is pinned to a side any more. The parameter survives;
+        nothing uses it."""
         from jellyfin_mpv_shim.mpvtk.widgets import Dialog, Text
         self.assertEqual(Dialog("d", Text("x")).side, "center")
-
-    def test_the_spinner_clears_the_panel_on_an_ordinary_window(self):
-        """Which is the point of the whole change -- the loading state is
-        centred in the content area, so on a narrow enough window it
-        lands under the panel however the panel is aligned. This pins
-        that the common sizes are not that."""
-        b = MpvtkBrowser(app=None, source=FakeSource(),
-                         controller=FakeController())
-        b._pool = _SyncPool()
-        b.server = "srv1"
-        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1",
-                    "collection_type": "movies", "title": "Movies"})
-        for width in (1280, 1920):
-            with self.subTest(width=width):
-                _n, handlers = build_scene(b, size=(width, 720))
-                handlers["grid-filter"]["click"]()
-                _n2, panel = build_scene(b, size=(width, 720))
-                b._pool = _DeferredPool()
-                panel["flt-unplayed"]["click"]()
-                nodes, _h = build_scene(b, size=(width, 720))
-                modal = [n for n in nodes if n.get("kind") == "modal"][0]
-                spinner = [n for n in nodes if n.get("t") == "busy"]
-                self.assertTrue(spinner, "no spinner while loading")
-                self.assertGreaterEqual(
-                    spinner[0]["x"], modal["x"] + modal["w"],
-                    "the spinner is hidden behind the filter panel")
-                b._pool = _SyncPool()
-                b._close_dialog()
 
 
 class TestVideoTypeFilters(unittest.TestCase):
@@ -3249,7 +3321,7 @@ class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
         keys = set()
         for _label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
             if kind == "checks":
-                keys |= {k for k, _t, _l in spec}
+                keys |= {k for k, _t, _l in dialogs.check_specs(spec)}
             else:
                 keys.add(spec[0])
         unapplied = sorted(keys - set(LibrarySource.supported_filters))
@@ -3257,3 +3329,406 @@ class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
             unapplied, [],
             "the panel offers filters the source cannot apply: %r"
             % unapplied)
+
+
+class GridFillTest(unittest.TestCase):
+    """`grid_fill`: where the width a whole number of tiles does not use goes.
+
+    A row of fixed-size covers almost never divides the viewport exactly.
+    The remainder used to land entirely on the right, which at some window
+    sizes is most of a tile's width of empty background down one side.
+    """
+
+    def _r(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer.__new__(TileRenderer)
+
+    def _mode(self, mode):
+        from jellyfin_mpv_shim.conf import settings
+        was = settings.grid_fill
+        self.addCleanup(setattr, settings, "grid_fill", was)
+        settings.grid_fill = mode
+
+    #: Widths that between them exercise a full period of the slack: the
+    #: remainder is a sawtooth in the window width, so a single width is a
+    #: sample of one point on it and says nothing.
+    WIDTHS = (1024, 1100, 1180, 1280, 1366, 1440, 1600, 1920, 2560)
+
+    def _margins(self, w, geom):
+        """``(left, right)`` for a grid of ``geom`` at window width ``w``."""
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        pad, g = TileRenderer.grid_layout(r, w, geom)
+        cols = TileRenderer.cols(r, w, g)
+        used = cols * g.tile_w + (cols - 1) * g.gap
+        return pad, w - SCROLLBAR_W - pad - used
+
+    def test_justify_pins_both_margins(self):
+        """The setting's whole point: the page margin is the edge every
+        heading, button and paragraph lines up against, so it is the number
+        that must not move as the window is dragged."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("justify")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, right = self._margins(w, POSTER_GEOM)
+                self.assertEqual(left, chrome.CONTENT_PAD)
+
+    def test_justify_takes_up_most_of_the_slack(self):
+        """"Pinned margins" alone is satisfied by doing nothing at all --
+        `off` pins them too. This is the half that says the setting works.
+
+        Not an exact figure: the gap is quantised, and capped at double so a
+        three-column row does not come out as tiles scattered across the
+        page. So the claim is a comparison against doing nothing, over a full
+        period of the sawtooth, plus a bound on the average.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("off")
+        plain = [self._margins(w, POSTER_GEOM)[1] for w in self.WIDTHS]
+        self._mode("justify")
+        full = [self._margins(w, POSTER_GEOM)[1] for w in self.WIDTHS]
+        for w, a, b in zip(self.WIDTHS, plain, full):
+            with self.subTest(w=w):
+                self.assertLessEqual(b, a, "justifying made it worse")
+        self.assertLess(sum(full), sum(plain) / 2,
+                        "justifying barely moved the leftover: %r -> %r"
+                        % (plain, full))
+
+    def test_a_gap_may_at_most_double(self):
+        """Uncapped, a 1024px window fitting three landscape tiles has 250px
+        of slack and two gaps to put it in -- a 126px gap, which is not a row
+        any more. Past the cap the remainder stays on the right; `center` is
+        the setting for somebody who would rather move the margins."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
+                                                            POSTER_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM):
+            for w in range(600, 2600, 11):
+                g = TileRenderer.justified_gap(r, w, geom)
+                self.assertLessEqual(g.gap, geom.gap * 2,
+                                     "gap %d at %dpx" % (g.gap, w))
+
+    def test_centre_splits_it_evenly(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("center")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, right = self._margins(w, POSTER_GEOM)
+                self.assertLessEqual(abs(left - right), 1)
+
+    def test_off_is_the_old_behaviour(self):
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("off")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, _right = self._margins(w, POSTER_GEOM)
+                self.assertEqual(left, chrome.CONTENT_PAD)
+
+    def test_an_unknown_value_falls_back_rather_than_raising(self):
+        """It is a plain string in a JSON file somebody can type into."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("sideways")
+        pad, geom = self._r().grid_layout(1280, POSTER_GEOM)
+        self.assertEqual(pad, chrome.CONTENT_PAD)
+        self.assertEqual(geom, POSTER_GEOM)
+
+    def test_justifying_never_changes_the_column_count(self):
+        """The trap. `justified_gap` picks its extra from a column count
+        measured on the ORIGINAL geometry, and hands back a geometry whose
+        gap is bigger -- but `grid_of` re-asks `cols()` with that one. If the
+        two ever disagreed the row would be composited for more tiles than
+        the layout believes fit, and the last column would be clipped.
+
+        Holds because the extra is rounded DOWN to a step, so the row can
+        only get shorter than the space it was measured into. Pinned rather
+        than argued, over every tile shape and a full period of widths.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (BANNER_GEOM,
+                                                            LANDSCAPE_GEOM,
+                                                            POSTER_GEOM,
+                                                            SQUARE_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        self._mode("justify")
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM, SQUARE_GEOM, BANNER_GEOM):
+            for scale in (0.75, 1.0, 1.7):
+                base = geom.scaled(scale)
+                for w in range(600, 2600, 7):
+                    before = TileRenderer.cols(r, w, base)
+                    after = TileRenderer.cols(
+                        r, w, TileRenderer.justified_gap(r, w, base))
+                    if before != after:
+                        self.fail("%dpx: %d cols became %d after justifying"
+                                  % (w, before, after))
+
+    def test_a_justified_row_never_overruns_the_viewport(self):
+        """The same property from the other side, in pixels rather than in
+        columns: a row wider than the space it is drawn in is a clipped
+        last column, and the strip is one bitmap so nothing crops it back."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
+                                                            POSTER_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        self._mode("justify")
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM):
+            for w in range(600, 2600, 13):
+                g = TileRenderer.justified_gap(r, w, geom)
+                cols = TileRenderer.cols(r, w, g)
+                used = cols * g.tile_w + (cols - 1) * g.gap
+                self.assertLessEqual(used, TileRenderer.body_w(r, w),
+                                     "row overruns at %dpx" % w)
+
+    def test_a_single_column_is_left_alone(self):
+        """There is no gap to widen, so the slack has nowhere to go and the
+        division would be by zero."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        self.assertIs(TileRenderer.justified_gap(r, 200, POSTER_GEOM),
+                      POSTER_GEOM)
+
+
+class BannerHeightCapTest(unittest.TestCase):
+    """A detail header may not eat the page.
+
+    Its height comes from its width, and on a short wide window that put a
+    2.67:1 box across most of the screen -- so the page opened on artwork
+    with everything you came for below the fold.
+    """
+
+    def _r(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer.__new__(TileRenderer)
+
+    def test_a_short_window_caps_the_header(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        for w, h in ((1920, 540), (2560, 600), (1600, 400)):
+            with self.subTest(size=(w, h)):
+                _bw, bh = TileRenderer.banner_box(r, w, False, h)
+                self.assertLessEqual(bh, h * TileRenderer.BANNER_MAX_H + 1)
+
+    def test_an_ordinary_window_is_untouched_by_it(self):
+        """The cap is a guard, not a resize: at 16:9 and taller the ratio's
+        own answer is already well under it, and a cap that bit there would
+        be silently redesigning every header."""
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        for w, h in ((1280, 720), (1920, 1080), (1366, 768), (2560, 1440)):
+            with self.subTest(size=(w, h)):
+                self.assertEqual(TileRenderer.banner_box(r, w, False, h),
+                                 TileRenderer.banner_box(r, w, False))
+
+    def test_the_cap_applies_in_both_header_modes(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        for bleed in (False, True):
+            with self.subTest(full_bleed=bleed):
+                _bw, bh = TileRenderer.banner_box(r, 1920, bleed, 540)
+                self.assertLessEqual(bh, 540 * TileRenderer.BANNER_MAX_H + 1)
+
+
+class InsetArtworkHeightTest(unittest.TestCase):
+    """The artwork inset into a detail header, and which limit binds.
+
+    A 2:3 poster is held by the slot's HEIGHT and a landscape still by its
+    WIDTH, so the still's height tracks the banner's width while the limit
+    it is nominally measured against tracks the banner's height. At the
+    padded banner's own 2.67:1 the two agree and the still lands around
+    37%. Widen the banner without heightening it -- which is exactly what
+    `backdrop_full_width` does -- and it grows until it is most of the
+    header with the heading squeezed into the rest.
+    """
+
+    def _drawn(self, box, art_size):
+        """Height the inset artwork is actually drawn at, in ``box``."""
+        top, bottom = self._extent(box, art_size)
+        return bottom - top + 1
+
+    def _extent(self, box, art_size):
+        """``(top, bottom)`` rows the inset artwork actually occupies."""
+        from PIL import Image as PILImage
+
+        from jellyfin_mpv_shim.mpvtk_browser.components import banner
+
+        slot = banner.poster_box(box)
+        self.assertIsNotNone(slot, "no room for an inset at %r" % (box,))
+        canvas = PILImage.new("RGBA", box, (0, 0, 0, 255))
+        art = PILImage.new("RGBA", art_size, (255, 0, 0, 255))
+        before = canvas.copy()
+        banner._paste_poster(canvas, art, slot)
+        # Measured off the composited canvas rather than recomputed, so this
+        # cannot agree with the code by repeating it.
+        rows = [y for y in range(box[1])
+                if canvas.crop((0, y, box[0], y + 1)).tobytes()
+                != before.crop((0, y, box[0], y + 1)).tobytes()]
+        self.assertTrue(rows, "nothing was drawn at all")
+        return min(rows), max(rows)
+
+    STILL = (1920, 1080)
+    POSTER = (600, 900)
+
+    #: (label, box). The padded header at two widths, then the shapes full
+    #: bleed produces: same height, much more width.
+    BOXES = (("padded", (1100, 412)),
+             ("padded-narrow", (900, 337)),
+             ("full-bleed", (1910, 412)),
+             ("full-bleed-wide", (2550, 412)))
+
+    def test_a_thumbnail_never_takes_more_than_its_share(self):
+        from jellyfin_mpv_shim.mpvtk_browser.components import banner
+
+        for label, box in self.BOXES:
+            with self.subTest(box=label):
+                h = self._drawn(box, self.STILL)
+                self.assertLessEqual(
+                    h, box[1] * banner.THUMB_H_FRAC + 1,
+                    "a still takes %d of %dpx of header" % (h, box[1]))
+
+    def test_and_the_cap_actually_bites_on_a_wide_header(self):
+        """Necessary, because every assertion above is also satisfied by a
+        still that is simply always small -- which is what the padded shape
+        makes it, and why a padded-only test proves nothing."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import banner
+
+        box = (1910, 412)
+        h = self._drawn(box, self.STILL)
+        uncapped = int(box[0] * banner.POSTER_W_FRAC / (16 / 9))
+        self.assertLess(h, uncapped,
+                        "the cap did not apply where it was needed")
+
+    def test_a_poster_is_not_capped(self):
+        """The "but not posters" half. A 2:3 poster is narrow -- it is what
+        the 78% height share was chosen for -- and shrinking it to a
+        thumbnail's share would be a redesign of every film and series
+        header to fix a problem only stills have."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import banner
+
+        for label, box in self.BOXES:
+            with self.subTest(box=label):
+                h = self._drawn(box, self.POSTER)
+                self.assertGreater(h, box[1] * banner.THUMB_H_FRAC)
+                self.assertLessEqual(h, box[1] * banner.POSTER_H_FRAC + 1)
+
+    def test_every_inset_sits_on_one_baseline(self):
+        """The heading is bottom-aligned in the banner, so artwork beside it
+        has to be too -- a poster and a still that end at different heights
+        read as two unrelated things placed near each other.
+
+        The bug this is here for: the cap was applied by shrinking the slot,
+        and the artwork was bottom-aligned INSIDE the shrunken slot. That
+        moves the box rather than the picture in it, so a capped thumbnail
+        floated in the middle of the header with nothing lined up with it.
+        The cap may move the artwork's top edge and nothing else.
+        """
+        for label, box in self.BOXES:
+            with self.subTest(box=label):
+                _t1, still = self._extent(box, self.STILL)
+                _t2, poster = self._extent(box, self.POSTER)
+                self.assertEqual(still, poster,
+                                 "a still and a poster end at different "
+                                 "heights in the same header")
+
+    def test_the_baseline_does_not_move_when_the_cap_applies(self):
+        """The same property against a header where the cap is NOT in play,
+        so this cannot pass by the two shapes being equally wrong."""
+        uncapped = self._extent((1100, 412), self.STILL)[1]
+        capped = self._extent((1910, 412), self.STILL)[1]
+        self.assertEqual(uncapped, capped)
+
+    def test_the_padded_header_is_unchanged_by_it(self):
+        """The cap is a guard on a shape that was wrong, not a resize of the
+        one that was right: the default header must draw its still exactly
+        as it did."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import banner
+
+        box = (1100, 412)
+        expected = int(box[0] * banner.POSTER_W_FRAC / (16 / 9))
+        self.assertAlmostEqual(self._drawn(box, self.STILL), expected,
+                               delta=2)
+
+
+class FilterPanelOrderTest(unittest.TestCase):
+    """The filter panel's section order and checkbox grouping."""
+
+    def _sections(self):
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+        return [(label, kind) for label, kind, _s, _l
+                in dialogs.FILTER_SECTIONS]
+
+    @staticmethod
+    def _label(text):
+        """A section label as FILTER_SECTIONS holds it -- through gettext,
+        so this still finds it under a translation."""
+        from jellyfin_mpv_shim.i18n import _
+
+        return _(text)
+
+    def test_features_comes_after_every_picker(self):
+        """A picker is one control and a check section is many, so in
+        jellyfin-web's position (straight after Status) Features pushed the
+        pickers below the fold of a 380px panel."""
+        order = [label for label, _k in self._sections()]
+        kinds = dict(self._sections())
+        last_pick = max(i for i, label in enumerate(order)
+                        if kinds[label] == "pick")
+        self.assertGreater(order.index(self._label("Features")), last_pick)
+
+    def test_and_before_video_types(self):
+        order = [label for label, _k in self._sections()]
+        self.assertLess(order.index(self._label("Features")),
+                        order.index(self._label("Video Types")))
+
+    def test_status_stays_at_the_top(self):
+        """The one check section that does not move: it is what people open
+        the panel for."""
+        self.assertEqual(self._sections()[0][0], self._label("Status"))
+
+    def test_play_state_is_grouped_apart_from_the_flags(self):
+        """Unplayed/Played are one question and are mutually exclusive --
+        the server answers `Filters=IsUnplayed,IsPlayed` with HTTP 400 --
+        so the layout pairs them before you can click both."""
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+
+        spec = dict((label, s) for label, _k, s, _l
+                    in dialogs.FILTER_SECTIONS)[self._label("Status")]
+        lines = [[key for key, _t, _l in line] for line in spec]
+        self.assertEqual(lines[0], ["unplayed", "played"])
+        self.assertEqual(lines[1], ["favorite", "resumable", "liked"])
+
+    def test_every_check_section_is_rows_of_boxes(self):
+        """The shape the renderer and both sweeps read. A section left flat
+        unpacks a 3-tuple as if it were a row and fails with "not enough
+        values to unpack" -- or, on a sweep that is more forgiving, passes
+        over nothing at all."""
+        from jellyfin_mpv_shim.mpvtk_browser import dialogs
+
+        for label, kind, spec, _libs in dialogs.FILTER_SECTIONS:
+            if kind != "checks":
+                continue
+            with self.subTest(section=label):
+                self.assertTrue(spec, "empty check section")
+                for line in spec:
+                    self.assertTrue(line, "empty row")
+                    for box in line:
+                        self.assertEqual(len(box), 3)
+                        self.assertIsInstance(box[0], str)

@@ -283,9 +283,15 @@ class LiveTvPage(Page):
         # thirteenth upcoming film was unreachable.
         see_all = self._see_all_programs(row)
         if row["key"] == "movies":
-            return art.tiles.tile_row(row["title"], row["items"],
-                                      "lt-" + row["key"], geom=art.geom,
-                                      image_type="Primary", see_all=see_all)
+            # caption_geom, not art.geom bare: this row is pinned to posters
+            # rather than shaped by auto_geom, so it is the one poster-width
+            # listing row that would not otherwise be asked whether its air
+            # times need a third line. They do -- it is a row of films with
+            # start and end times, at 150px.
+            return art.tiles.tile_row(
+                row["title"], row["items"], "lt-" + row["key"],
+                geom=art.tiles.caption_geom(row["items"], art.geom),
+                image_type="Primary", see_all=see_all)
         return self._auto_row(row["title"], row["items"], "lt-" + row["key"],
                               see_all=see_all)
 
@@ -522,11 +528,12 @@ class LiveTvPage(Page):
                 flex=1, align="stretch")
         art = self.ctx.art
         grid_size = (size[0], max(120, size[1] - self.CHANNEL_CHROME_H))
+        gpad, cgeom = art.tiles.grid_layout(size[0], art.geom_square)
         return Column([head, VScroll(
             Column(art.tiles.grid_of(items, "ltchan", grid_size,
-                                     geom=art.geom_square,
+                                     geom=cgeom,
                                      scroll_id="livetv-channels"),
-                   pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+                   pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP),
             id="livetv-channels", flex=1,
             offset=self.parked_scroll("livetv-channels"),
             snap=art.geom_square.strip_h + GRID_GAP,
@@ -649,11 +656,12 @@ class LiveTvPage(Page):
         if not items:
             return chrome.error(_("No series are set to record."))
         art = self.ctx.art
+        gpad, sgeom = art.tiles.grid_layout(size[0], art.geom)
         return VScroll(
-            Column(art.tiles.grid_of(items, "ltseries", size,
+            Column(art.tiles.grid_of(items, "ltseries", size, geom=sgeom,
                                      scroll_id="livetv-series",
                                      on_click=self._open_series_timer),
-                   pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+                   pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP),
             id="livetv-series", flex=1,
             offset=self.parked_scroll("livetv-series"),
             on_scroll=lambda off, mx: art.scroll.on_scroll("livetv-series",
@@ -794,7 +802,8 @@ class ProgramPage(Page):
             return chrome.busy()
         tiles = self.ctx.art.tiles
         w = size[0]
-        bw, bh = tiles.banner_box(w)
+        full_bleed = tiles.full_bleed_header(item)
+        bw, bh = tiles.banner_box(w, full_bleed, size[1])
         title = live_tv.program_title(item)
         meta = self._meta(item)
         banner = tiles.backdrop_node(item, (bw, bh), "program-bd",
@@ -828,7 +837,8 @@ class ProgramPage(Page):
         if item.get("Overview"):
             blocks.append(chrome.paragraph(item["Overview"], 18,
                                            tiles.body_w(w)))
-        return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=16),
+        return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
+                                          full_bleed=full_bleed),
                        id="program", flex=1,
                        offset=self.parked_scroll("program"))
 

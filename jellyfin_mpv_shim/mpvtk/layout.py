@@ -948,19 +948,34 @@ def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
     node = _base(el, "scroll", x, y, w, h, sc, path)
     node["axis"] = el.axis
     inner_w, inner_h = w, h
-    if el.scrollbar and el.axis == "y":
-        inner_w -= SCROLLBAR_W
-        node["bar"] = True
     if el.axis == "x":
         cw, ch = measure(el.child)
         cw, ch = max(cw, inner_w), inner_h
     else:
-        # measure_h, not measure: the child is about to be arranged at
-        # inner_w, and its wrapped text is only as tall as that width makes
-        # it. An intrinsic measure here reported a content height that
-        # stopped short of the content, and the scroll clamped to it.
-        cw = inner_w
+        # The gutter is reserved only when there is going to be a bar in it.
+        # renderer.lua's draw_scrollbar draws nothing when the content fits
+        # (`maxs <= 0`), so reserving unconditionally left every page that
+        # does not scroll with an empty 10px strip down its right-hand side
+        # -- which is invisible on a padded page and impossible to miss on a
+        # full-bleed one, where the backdrop stops short of an edge nothing
+        # is drawn at.
+        #
+        # Two measures, not one, and the order matters: content height is a
+        # function of width (wrapped text gets taller as the column narrows),
+        # so a page is asked whether it fits at the FULL width first. If it
+        # does, there is no bar and no gutter. If it does not, the gutter is
+        # reserved and the content re-measured against the narrower column --
+        # which can only make it taller, so the answer cannot flip back.
+        #
+        # measure_h, not measure: an intrinsic measure reported a content
+        # height that stopped short of the content, and the scroll clamped
+        # to it.
         ch = max(measure_h(el.child, inner_w), inner_h)
+        if el.scrollbar and ch > inner_h:
+            inner_w -= SCROLLBAR_W
+            node["bar"] = True
+            ch = max(measure_h(el.child, inner_w), inner_h)
+        cw = inner_w
     node["cw"] = _round(cw)
     node["ch"] = _round(ch)
     if el.follow:

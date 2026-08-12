@@ -69,13 +69,26 @@ class TestLayout(unittest.TestCase):
         page_n = by_id(nodes, "page")
         row_n = by_id(nodes, "row")
         self.assertEqual(page_n["axis"], "y")
-        self.assertTrue(page_n["bar"])
-        # v-scroll reserves scrollbar width for content
-        self.assertEqual(page_n["cw"], 790)
+        # 210px of content in a 400px viewport: nothing to scroll, so no bar
+        # and no gutter. renderer.lua's draw_scrollbar draws nothing when the
+        # content fits, so reserving the width anyway left an empty 10px
+        # strip down the right of every page that does not scroll -- which
+        # a full-bleed backdrop stops short of, at an edge with no bar on it.
+        self.assertNotIn("bar", page_n)
+        self.assertEqual(page_n["cw"], 800)
         self.assertEqual(row_n["sc"], "page")
         self.assertEqual(row_n["axis"], "x")
         # 10 tiles * 140 + 9 gaps * 10 = 1490
         self.assertEqual(row_n["cw"], 1490)
+        # ...and the other half: content that DOES overflow gets both.
+        tall = Column(
+            [VScroll(Column([Image("/x.bgra", 140, 200) for _ in range(6)],
+                            gap=10), id="tall", flex=1)],
+            w=800, h=400, align="stretch")
+        tall_n = by_id(layout(tall, 800, 400)[0], "tall")
+        self.assertTrue(tall_n["bar"])
+        self.assertEqual(tall_n["cw"], 790)
+
         # children of the row reference it
         imgs = [n for n in nodes if n["t"] == "img"]
         self.assertEqual(len(imgs), 10)

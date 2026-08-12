@@ -22,6 +22,43 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `grid_fill` - Where the width a whole number of covers does not use ends up.
+      One of `justify`, `center` or `off`. Default: `justify`
+  - A grid of fixed-size covers almost never divides the window exactly, and
+      the remainder used to land entirely on the right — at some sizes that is
+      most of a cover's width of empty background down one side.
+  - `justify` widens the gaps so the row runs margin to margin. The page
+      margins stay put at every window size, which is what makes it the
+      default: the margin is the edge every heading, button and paragraph
+      lines up against, so a margin that moves as you drag is more noticeable
+      than covers sitting a few pixels further apart.
+  - `center` splits the remainder between the two margins instead. The covers
+      keep their spacing and both margins move with the window.
+  - `off` is the old behaviour, all of it on the right.
+  - Rows of **landscape** artwork (episodes, home videos, Live TV) are the case
+      none of the three fully solves: a 16:9 tile is 240px, so at three or four
+      columns there can be 250px left over, and spreading that across two gaps
+      is further apart than a row can read. `justify` absorbs what it sanely
+      can — a gap may at most double — and leaves the rest.
+- `backdrop_full_width` - Run a detail page's backdrop to the edges of the
+      window, with no padding above or beside it, the way the web client does.
+      Default: `false`
+  - It costs no vertical space either way: the header keeps exactly the height
+      the padded version had and gets wider, so what changes is how much of the
+      backdrop is cropped away, not how far down the page the buttons start.
+  - Off by default because of what it asks of the artwork and of the window.
+      Backdrops are often low-resolution, and this is the mode that stretches
+      one furthest; and the scroll view reserves a gutter for its scrollbar, so
+      on any page long enough to scroll a "full-width" header stops 10px short
+      of the edge — a notch at the end of an edge-to-edge banner reads worse
+      than a margin does.
+  - Off for an item with no artwork at all whatever this is set to: there is
+      nothing to bleed, and the grey placeholder panel run edge to edge is just
+      a wider grey band.
+  - A header is capped at 60% of the window height in both modes. Its height
+      comes from its width, so on a short wide window the untamed 2.67:1 box
+      was most of the screen and the page opened on artwork with everything
+      below the fold.
 - `detail_poster` - Show a film's or series' own poster in a detail page's
       header, inset over the backdrop. Default: `true`
 - `detail_episode_image` - The same slot on an episode, where the artwork is a
@@ -297,6 +334,12 @@ You can use the config file to enable and disable features.
   - `default` - The stock look, unchanged from earlier versions.
   - `nebula` - A deep-violet, glowing theme with rounded cards and larger
     covers.
+  - `superdark` - Near-black surfaces, dark buttons, no colour anywhere. It
+    turns `badge_shadow` on, because that is the look it is for: an
+    accent-filled badge pill on a near-black card reads as a chip stuck to
+    the poster. Its accent is a light grey rather than a dark one — `ACCENT`
+    is the hover ring and focus border as well as the button fill, so a
+    colour dark enough to be a button is a hairline nobody can see.
   - `jf-blueradiance`, `jf-wmc`, `jf-purplehaze`, `jf-light`, `jf-appletv` -
     Translations of jellyfin-web's own Blue Radiance, Windows Media Center,
     Purple Haze, Light and Apple TV themes, so the shim can match the web
@@ -322,6 +365,11 @@ You can use the config file to enable and disable features.
   - `null` keeps the theme's own size; a number scales the cover tiles. The
     settings form offers `0.75`, `0.85`, `1.0`, `1.2`, `1.4` and `1.7`, but
     any number works.
+  - **The artwork, and only the artwork** — every shape of it: posters, square
+    music covers, 16:9 thumbnails and banners. Captions and badges keep their
+    size. Text has its own two controls (`ui_text_scale` and `ui_text_min`),
+    and `ui_scale` moves the whole interface including the type; a cover
+    setting that also moved text was a third, unlabelled text control.
   - **Applies immediately**, and is also on the View menu of any library —
     seeing the change is the point of the setting, and walking back to a
     library to look was the whole difficulty. Scroll positions are dropped
@@ -652,6 +700,7 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `glow` | Blurred accent halo behind bold titles and around the selected card. |
 | `rounded` | Rounded cards instead of square ones. Card shape only — the artwork is cover-cropped to fill its tile under every theme. |
 | `accent_buttons` | Accent-bordered top bar and settings tabs. |
+| `badge_shadow` | Tile badges (type marker, version count, unwatched count, downloaded, watched) as a bare white mark with a drop shadow instead of a mark on a filled pill. The mark goes white rather than keeping the accent: the pill is what makes an accent legible over artwork, so a dark or pale accent with no pill is a badge you cannot see. |
 | `arrow_mode` | `header` (jellyfin-web's: a flat pair in the section heading) or `overlay` (round translucent buttons floating on the artwork). |
 | `arrow_bg`, `arrow_alpha` | Fill and opacity (0–255) of the `overlay` page buttons. |
 | `hud_accent` | The accent as drawn over *video* — the seek bar's fill. `null` follows `ACCENT`, which is usually what you want; pin it if your accent is too dark or too pale to read against a moving picture. |
@@ -660,7 +709,7 @@ Colours are `"rrggbb"`, with or without a leading `#`.
 | `poster_scale` | Cover-size multiplier. The `poster_scale` *setting* overrides this. |
 | `heading_size` | Carousel section-title font size. |
 | `tile_landscape` | `[width, height]` of the landscape/library tile. |
-| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` scales them with the cover. |
+| `tile_title_size`, `tile_sub_size` | Tile caption font sizes; `null` is the stock size. Cover size does not move these. |
 
 Palette colours: `WINDOW_BG`, `CARD_BG`, `PANEL_BG`, `PLACEHOLDER_BG`,
 `BUTTON_BG`, `BUTTON_ACTIVE`, `ENTRY_BG`, `BORDER`, `TEXT_FG`, `SUBTLE_FG`,

@@ -35,6 +35,7 @@ rendering, and pulling it in would have made this class the god object with
 a new name.
 """
 
+import dataclasses
 import logging
 from collections import Counter
 import time
@@ -436,7 +437,8 @@ class TileRenderer:
                                     for i in items or () if i)
                         if isinstance(r, (int, float)) and r > 0)
         if not ratios:
-            return (default or self.art.geom), default_type
+            return (self.caption_geom(items, default or self.art.geom),
+                    default_type)
         middle = len(ratios) // 2
         median = (ratios[middle] if len(ratios) % 2
                   else (ratios[middle - 1] + ratios[middle]) / 2.0)
@@ -444,8 +446,37 @@ class TileRenderer:
         if median >= self.LANDSCAPE_RATIO:
             return self.art.geom_wide, "Thumb"
         if median > self.SQUARE_RATIO:
-            return self.art.geom_square, "Primary"
-        return self.art.geom, "Primary"
+            return self.caption_geom(items, self.art.geom_square), "Primary"
+        return self.caption_geom(items, self.art.geom), "Primary"
+
+    #: Widest tile that gets a listing's air time on its own line. The
+    #: landscape tile is 240 logical px and holds "BBC Two   ·   20:00 -
+    #: 20:30" comfortably; the poster is 150 and the square 170, and neither
+    #: does -- the channel name eats the line and the time, which is the
+    #: half a listing exists to tell you, is ellipsized off the end.
+    #:
+    #: A width rather than "is this the poster geometry", because Cover Size
+    #: and a theme both move these: at Extra Large a poster is 255 wide and
+    #: genuinely does fit the joined line, and at Extra Compact a landscape
+    #: tile is 180 and genuinely does not.
+    THIRD_LINE_MAX_W = 200
+
+    def caption_geom(self, items, geom):
+        """``geom``, widened to three caption lines if these items need it.
+
+        Idempotent and cheap, so it can be asked wherever a geometry meets a
+        list of items. It has to be asked by whoever *keeps* the geometry,
+        though, not deep inside the compositor: a grid computes its row
+        pitch, its scroll snap and its virtualization window from
+        ``strip_h``, so a band that grew after those were taken windows the
+        wrong rows and snaps to the wrong stops.
+        """
+        if geom.tile_w > self.THIRD_LINE_MAX_W:
+            return geom
+        for item in items or ():
+            if item and components.air_time_line(item):
+                return geom.with_caption_lines(3)
+        return geom
 
     def square_geom(self, items):
         """``geom_square`` when every item's art is square, else None.
@@ -721,16 +752,71 @@ class TileRenderer:
     #: which is invisible; one drawn narrower is soft.
     BANNER_STEP = 128
 
-    def banner_box(self, width):
+    def full_bleed_header(self, item=None):
+        """Whether this header runs edge to edge (``backdrop_full_width``).
+
+        Asked once per render and passed to both :meth:`banner_box` and
+        ``chrome.header_body``, so the box and the padding around it cannot
+        answer differently.
+
+        **No, when the item has no artwork of any kind.** There is nothing to
+        bleed: :meth:`backdrop_node` returns a rounded placeholder panel, and
+        running that to both edges is a full-width empty grey band across the
+        top of the page -- which is not the jellyfin-web look the option is
+        for, it is just a bigger version of the thing that look replaces. The
+        height is the same either way, so nothing below it moves whichever
+        answer this gives. ``item=None`` skips the question, for a caller
+        that has not got one.
+        """
+        from ..conf import settings
+
+        if not getattr(settings, "backdrop_full_width", True):
+            return False
+        return item is None or self.header_bakes_heading(item)
+
+    #: Most of the viewport a detail header may take. A header is a picture
+    #: you look past on the way to the buttons under it, and at the bottom
+    #: of the window's height range the 2.67:1 box below was most of the
+    #: screen -- so the page opened on artwork with nothing else in view and
+    #: everything you came for below the fold.
+    BANNER_MAX_H = 0.6
+
+    def banner_box(self, width, full_bleed=None, height=None):
         """The banner's LAID-OUT size: exactly the space it has.
 
         Deliberately not quantised. The header spans the content width, so
         rounding this up overhangs the scrollbar and rounding it down leaves
         a gap beside content that does reach the edge. What gets quantised is
         the *fetch* -- see ``_banner_fetch_w``.
+
+        Full bleed widens it to the whole scroll viewport -- the window less
+        the scrollbar the view reserves, which is the honest full width;
+        asking for ``width`` itself overhangs into the bar.
+
+        **The height does not change.** It is still computed from the padded,
+        1100-capped width, so a header takes exactly the vertical space it
+        took before and nothing below it moves. What the extra width buys is
+        more backdrop, not more page: the shape gets wider, and
+        ``compose_banner``'s cover-crop takes the difference off the top and
+        bottom of the artwork.
         """
         bw = min(width - 2 * chrome.CONTENT_PAD, 1100)
-        return bw, int(bw * self.BANNER_RATIO)
+        bh = int(bw * self.BANNER_RATIO)
+        if height:
+            # Capped against the WINDOW, not the artwork. A short, wide
+            # window (a 21:9 monitor, a half-height tiled pane) is exactly
+            # where the ratio's own answer eats the page, and the cap only
+            # ever bites there -- at 16:9 or taller the 2.67:1 box is already
+            # well under it.
+            bh = min(bh, int(height * self.BANNER_MAX_H))
+        if self.full_bleed_header() if full_bleed is None else full_bleed:
+            # -- widen; the height above is what the caller keeps.
+            from ..mpvtk.layout import SCROLLBAR_W
+
+            # max(), so a window narrow enough for the padded width to be the
+            # wider of the two never *shrinks* the header.
+            return max(bw, width - SCROLLBAR_W), bh
+        return bw, bh
 
     def _banner_fetch_w(self, physical_w):
         """Physical width to ask the server for, given the drawn width.
@@ -749,6 +835,22 @@ class TileRenderer:
         if physical_w <= 0:
             return 0
         return int(-(-physical_w // step) * step)
+
+    #: Quantisation step for a full-bleed header's fetch HEIGHT. Finer than
+    #: BANNER_STEP because it is quantising a smaller number -- the drawn
+    #: height is around 3/8 of the width -- and a 128px step there would
+    #: routinely overshoot by a third of the picture.
+    BANNER_H_STEP = 64
+
+    def _banner_fetch_h(self, physical_h):
+        """Physical height to ask for, given the drawn height. Same rounding
+        rule and the same reason as :meth:`_banner_fetch_w`: up to a step, so
+        a drag-resize asks for a handful of shapes rather than one per pixel.
+        """
+        step = self.BANNER_H_STEP
+        if physical_h <= 0:
+            return 0
+        return int(-(-physical_h // step) * step)
     def header_bakes_heading(self, item):
         """Whether :meth:`backdrop_node` will bake the heading into its
         bitmap — answerable *now*, before any image has arrived.
@@ -899,6 +1001,23 @@ class TileRenderer:
             # ~1.8x, in the commit whose point was making banners cheaper.
             fetch_w = self._banner_fetch_w(pbox[0])
             fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
+            if pbox[1] * fetch_w < fetch_h * pbox[0]:
+                # The drawn box is WIDER than the banner ratio, which is what
+                # a full-bleed header is: same height, more width. Asking at
+                # BANNER_RATIO there hands back close to twice the height
+                # `scale_to_cover` keeps -- correct, but a third of a
+                # megabyte of backdrop per header thrown away.
+                #
+                # Quantised, and that is the load-bearing half. The drawn
+                # height is continuous in the window width until the 1100 cap
+                # bites, so a fetch height taken exactly from the box would
+                # mint a fresh server request per pixel of a drag-resize --
+                # precisely what `_banner_fetch_w` exists to stop, reintroduced
+                # on the other axis. Capped at the ratio's answer so a step
+                # that overshoots can never ask for MORE than before.
+                fetch_h = max(1, min(
+                    fetch_h,
+                    self._banner_fetch_h(int(fetch_w * pbox[1] / pbox[0]))))
             fetch_key = make_key(owner_id, itype, tag, fetch_w, fetch_h)
             url = self.art.source.backdrop_url(self.art.server, item,
                                                width=fetch_w, height=fetch_h,
@@ -1031,8 +1150,15 @@ class TileRenderer:
         # labels: (show_title, show_year) from the library's view settings.
         # None means "as always", which is both on.
         show_title, show_year = labels or (True, True)
+        # Three-line captions are a property of the GEOMETRY, decided for the
+        # whole row by `caption_geom` -- a strip is composited at one tile
+        # size and one caption band, so it cannot be a per-tile answer. Here
+        # it only picks which of the two shapes this tile's text takes.
+        third = geom.caption_lines >= 3
         title, subtitle = components.tile_lines(item, parent_item,
-                                                show_year=show_year)
+                                                show_year=show_year,
+                                                air_time=not third)
+        subtitle2 = components.air_time_line(item) if third else ""
         if not show_title:
             title = ""
             if not show_year:
@@ -1042,10 +1168,12 @@ class TileRenderer:
                 # a listing's channel and time). Otherwise it draws into the
                 # row below.
                 subtitle = ""
+                subtitle2 = ""
         return Tile(
             key=item.get("Id", ""),
             title=title,
             subtitle=subtitle,
+            subtitle2=subtitle2,
             poster=poster,
             poster_tag=tag,
             glyph=components.placeholder_glyph(item),
@@ -1476,6 +1604,116 @@ class TileRenderer:
         if target is None:
             return
         app.scroll_to(row_id, target, ms=PAGE_SLIDE_MS)
+    #: How much width a justified row may leave over, in logical px. The
+    #: gap is quantised so that it changes about once per this many pixels
+    #: of window travel, and so that no more than this is left on the right.
+    #:
+    #: Both, from one number, and that is the point. The gap is part of the
+    #: strip cache key -- it is baked into the row's bitmap -- so a gap that
+    #: followed the window pixel-for-pixel would recomposite every visible
+    #: row on every frame of a drag-resize (7-19ms each, measured, on a
+    #: worker pool behind placeholder cards). Quantising fixes that, but a
+    #: FIXED step does not: the leftover it allows is the step times the
+    #: number of gaps, so at fifteen columns an 8px step swallowed the whole
+    #: correction and the row was not justified at all. Deriving the step
+    #: from the budget instead makes both the residual and the recomposite
+    #: cadence independent of how many columns there are.
+    JUSTIFY_SLACK = 32
+
+    def justified_gap(self, w, geom, cols=None):
+        """``geom`` with its gap widened to take up the slack, so a row runs
+        from margin to margin instead of leaving the remainder on one side.
+
+        The alternative to centring (:meth:`grid_pad`), and the difference is
+        which number stays still: centring keeps the tiles evenly placed and
+        makes BOTH margins move with the window, justifying keeps the margins
+        pinned at CONTENT_PAD and moves the tiles apart. A page margin that
+        changes as you resize is the more noticeable of the two, because it
+        is the edge every other element on the page lines up against.
+        """
+        cols = self.cols(w, geom) if cols is None else cols
+        if cols < 2:
+            return geom            # no gap to widen, and no division by zero
+        gaps = cols - 1
+        slack = max(0, self.body_w(w) - (cols * geom.tile_w
+                                         + gaps * geom.gap))
+        # A gap may at most double. With only three or four columns the
+        # slack per gap is enormous -- a 1024px window fits three landscape
+        # tiles and has 250px left over, which spread evenly is a 126px gap
+        # -- and tiles that far apart have stopped reading as a row. Past the
+        # cap the remainder stays on the right, which is the honest answer:
+        # at that column count nothing absorbs it, and "center" is the
+        # setting for somebody who would rather move the margins than look
+        # at it.
+        slack = min(slack, geom.gap * gaps)
+        step = max(1, self.JUSTIFY_SLACK // gaps)
+        # Rounded DOWN to a step: rounding up would make the row wider than
+        # the space it was measured to fit in, which is a clipped last
+        # column -- and `grid_of` re-asks cols() with the geometry handed
+        # back, so the two answers have to agree.
+        extra = (slack // gaps) // step * step
+        if extra <= 0:
+            return geom
+        return dataclasses.replace(geom, gap=geom.gap + extra)
+
+    def grid_layout(self, w, geom, cols=None):
+        """``(horizontal pad, geom)`` for a grid, per ``grid_fill``.
+
+        A grid of fixed-size tiles almost never divides the width exactly,
+        and the three settings are three answers to where the remainder goes:
+
+        * ``justify`` -- into the gaps. Margins stay pinned at CONTENT_PAD on
+          both sides, which is the edge every other element on the page lines
+          up against; the tiles move apart instead.
+        * ``center`` -- split between the two margins. The tiles keep their
+          spacing and both margins move with the window.
+        * ``off`` -- all of it on the right, which is what this did before
+          any of them existed.
+
+        One call rather than a pad here and a geometry there, because the two
+        answers are exclusive and a caller that mixed them would double-count
+        the same slack.
+        """
+        from ..conf import settings
+
+        mode = getattr(settings, "grid_fill", "justify")
+        if mode == "center":
+            return self.grid_pad(w, geom, cols), geom
+        if mode == "justify":
+            return chrome.CONTENT_PAD, self.justified_gap(w, geom, cols)
+        return chrome.CONTENT_PAD, geom
+
+    def grid_pad(self, w, geom, cols=None):
+        """Horizontal padding for a grid, so its two margins match.
+
+        A whole number of tiles rarely divides the available width exactly,
+        and the remainder used to land entirely on the right: at some window
+        sizes that is most of a tile's width of empty background down one
+        side, which reads as the page being misaligned rather than as a grid
+        fitting what it can fit. Split it evenly instead.
+
+        Measured against ``body_w`` -- inside the scrollbar gutter, when
+        there is one -- because the bar is furniture the reader can see.
+        Centring against the whole window would push the block half a
+        scrollbar to the left of centre, which is the same fault smaller.
+
+        Returned as a padding rather than applied to the rows, so the header
+        above the grid moves with it and the title stays aligned with the
+        first tile in the first column.
+
+        One residual: ``body_w`` subtracts the scrollbar gutter, and since
+        that gutter is now only reserved when the page actually scrolls
+        (``layout._arrange_scroll``), a grid SHORT enough not to scroll ends
+        up 10px left of centre. Unknowable here -- whether the bar appears is
+        a function of the laid-out height, which is decided after this. The
+        common case is the scrolling one, and this is right for it; being
+        right for the other instead would put the same 10px error on every
+        library.
+        """
+        cols = self.cols(w, geom) if cols is None else cols
+        used = cols * geom.tile_w + max(0, cols - 1) * geom.gap
+        return chrome.CONTENT_PAD + max(0, self.body_w(w) - used) // 2
+
     def cols(self, w, geom):
         # _body_w, not w - 32: grids sit in the same padded scroll column,
         # so ignoring the scrollbar fits one tile too many at some widths

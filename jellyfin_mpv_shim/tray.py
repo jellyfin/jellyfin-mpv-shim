@@ -376,6 +376,26 @@ class TrayProcess(Process):
 
         icon = Icon(APP_NAME, title=USER_APP_NAME, menu=Menu(*menu_items))
         try:
+            # 128px, not the 16px this shipped for years. Every pystray
+            # backend takes the image and produces the size IT wants, so the
+            # source being larger than the panel is the supported direction
+            # and the source being smaller is the one that cannot be
+            # recovered from -- a 16px icon on a HiDPI panel or a KDE tray
+            # asking for 32/48 is upscaled 2-3x and reads as mush:
+            #
+            # * win32 saves it as an ICO and calls LoadImage(LR_DEFAULTSIZE),
+            #   which picks a frame for the system metric. Pillow writes every
+            #   standard size up to the source, so a 16px source offered
+            #   exactly one frame and 128 offers 16/24/32/48/64/128. (256 is
+            #   ICO's ceiling; 128 stays clear of it.)
+            # * darwin resizes to the status bar thickness with LANCZOS,
+            #   xorg to the size the tray asks for.
+            # * gtk/appindicator write the PIL image out as a PNG and hand
+            #   the path over, so the panel scales it itself.
+            #
+            # The artwork is integration/jellyfin-128.png -- the same mark,
+            # on transparency. logo.png is NOT interchangeable: it carries an
+            # opaque dark background, which is a square tile in a light panel.
             icon.icon = Image.open(get_resource("systray.png"))
         except Exception:
             log.debug("tray icon image missing", exc_info=True)

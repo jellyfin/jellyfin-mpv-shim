@@ -702,3 +702,93 @@ class HeaderPosterTest(unittest.TestCase):
         self.assertTrue(passed)
         self.assertTrue(callable(passed[-1]),
                         "the banner was composed before the cache was asked")
+
+
+class FullBleedHeaderTest(_Case):
+    """`backdrop_full_width`: the header runs to the edges of the viewport.
+
+    Driven through the real page rather than through `banner_box` alone,
+    because the box is only half of it -- the other half is that the banner
+    has to come *out* of the content column's padding, and a wide box inside
+    a padded column is a header that overhangs its own scrollbar.
+
+    `has_backdrop=True` throughout. The mode is deliberately off for an item
+    with no artwork at all (there is nothing to bleed, and the placeholder
+    panel run edge to edge is a grey band across the page), so a fixture
+    without artwork would test the padded path under a full-bleed name --
+    which is the shape of green-but-worthless this file's siblings document.
+    """
+
+    def _bd(self, b):
+        for node in self.nodes(b):
+            if node.get("id") == "detail-bd":
+                return node
+        return None
+
+    def _open(self, has_backdrop=True, full=True):
+        from jellyfin_mpv_shim.conf import settings
+
+        was = settings.backdrop_full_width
+        settings.backdrop_full_width = full
+        self.addCleanup(setattr, settings, "backdrop_full_width", was)
+        b, thumbs = self.browser(has_backdrop=has_backdrop)
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1"})
+        self.deliver(b, thumbs)
+        return b
+
+    def test_the_header_starts_at_the_left_edge(self):
+        node = self._bd(self._open())
+        self.assertIsNotNone(node, "no header drawn at all")
+        self.assertEqual(node["x"], 0)
+
+    def test_the_header_stops_at_the_scrollbar(self):
+        """"Full width" is the scroll VIEWPORT's width. The view reserves
+        SCROLLBAR_W whether or not it is scrolling, so a header taking the
+        window's own width paints its last 10px underneath the bar."""
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        node = self._bd(self._open())
+        self.assertEqual(node["x"] + node["w"], SIZE[0] - SCROLLBAR_W)
+
+    def test_the_content_below_it_keeps_its_padding(self):
+        """Only the banner leaves the column. Everything else is still inset,
+        or the overview runs into the window frame."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        b = self._open()
+        # The FIRST control of each row -- a later one is offset by whatever
+        # precedes it and would agree with any padding at all.
+        for node_id in ("btn-resume", "act-watched"):
+            with self.subTest(node=node_id):
+                hit = [n for n in self.nodes(b) if n.get("id") == node_id]
+                self.assertTrue(hit, "the page never drew %s" % node_id)
+                self.assertEqual(hit[0]["x"], chrome.CONTENT_PAD)
+
+    def test_it_costs_no_vertical_space(self):
+        """The constraint the option is subject to. It may spend horizontal
+        space, which is free; it may not push the page down, because what is
+        below the header is what the user came for.
+
+        Measured at the first control below it, not at the header's own
+        height -- the height being equal is necessary and not sufficient,
+        since the padding *around* it is the other way a header takes space.
+        """
+        padded = self.y_of(self._open(full=False), "btn-play")
+        bleed = self.y_of(self._open(full=True), "btn-play")
+        self.assertIsNotNone(padded)
+        self.assertLessEqual(bleed, padded)
+
+    def test_an_item_with_no_artwork_stays_padded(self):
+        """There is nothing to bleed: the header is a placeholder panel, and
+        running that to both edges is a full-width empty grey band."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        node = self._bd(self._open(has_backdrop=False))
+        self.assertIsNotNone(node)
+        self.assertEqual(node["x"], chrome.CONTENT_PAD)
+
+    def test_turning_it_off_restores_the_padded_header(self):
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        node = self._bd(self._open(full=False))
+        self.assertEqual(node["x"], chrome.CONTENT_PAD)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-11 22:40-0400\n"
+"POT-Creation-Date: 2026-08-12 17:33-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1365,6 +1365,18 @@ msgid "Never hide while paused"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Widen the gaps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Centre the tiles"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Leave it on the right"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr ""
 
@@ -1547,6 +1559,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Full-Width Backdrops"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Grid Spacing"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1798,6 +1818,20 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Where the width a whole number of covers does not use ends up. Widening the "
+"gaps keeps the page margins the same on every screen size; centring keeps "
+"the covers evenly spaced and moves both margins instead."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Run the backdrop on a detail page to the edges of the window, as the web "
+"client does. It shows more of the artwork without taking any more vertical "
+"space."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Overrides the theme's cover size. Applies immediately, and is also on the "
 "View menu of any library."
 msgstr ""
@@ -1919,30 +1953,6 @@ msgid "Liked"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Features"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Subtitles"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Trailer"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Special Features"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Theme Song"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Theme Video"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Genres"
@@ -1967,6 +1977,30 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Subtitle Language"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Subtitles"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Trailer"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Special Features"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Song"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Video"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py

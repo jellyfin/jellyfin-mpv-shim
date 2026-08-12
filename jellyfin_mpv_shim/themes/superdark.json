@@ -1,0 +1,22 @@
+{
+    "name": "Super Dark",
+    "palette": {
+        "WINDOW_BG": "07080a",
+        "CARD_BG": "101114",
+        "PANEL_BG": "15171a",
+        "PLACEHOLDER_BG": "1a1c20",
+        "BUTTON_BG": "32343b",
+        "BUTTON_ACTIVE": "42454e",
+        "ENTRY_BG": "1a1c20",
+        "BORDER": "26282d",
+        "TEXT_FG": "e8e8e8",
+        "SUBTLE_FG": "9aa0a6",
+        "ACCENT": "717a88",
+        "ACCENT_HOVER": "8b95a3",
+        "ACCENT_SOFT": "272a30",
+        "ACCENT_FG": "ffffff"
+    },
+    "browse_bg": "#07080a",
+    "hud_accent": "e0e4ea",
+    "badge_shadow": true
+}

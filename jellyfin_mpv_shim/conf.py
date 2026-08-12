@@ -552,6 +552,11 @@ class Settings(SettingsBase):
     # Library-browser theme (see mpvtk_browser/themes.py). "default" is the
     # stock look; poster_scale overrides the theme's own cover size.
     theme: str = "default"
+    #: Cover Size: a multiplier on the tile ARTWORK, every shape of it
+    #: (poster, square, landscape/thumbnail, banner). Deliberately not a
+    #: text control -- captions and badges keep their size, because
+    #: ui_text_scale/ui_text_min are what move type and a second unlabelled
+    #: one is how "bigger covers" quietly became "bigger everything".
     poster_scale: Optional[float] = None
     # The in-window epub reader (mpvtk_browser/pages/reader.py). These are
     # settings rather than per-book state because they are a property of
@@ -584,6 +589,39 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
+    #: Where a grid's leftover width goes. A row of fixed-size tiles almost
+    #: never divides the available width exactly, and the remainder used to
+    #: land entirely on the right -- at some window sizes that is most of a
+    #: tile's width of empty background down one side.
+    #:
+    #: "justify" (the default) widens the gaps so the row runs margin to
+    #: margin; "center" splits the remainder between the two margins and
+    #: leaves the tiles evenly spaced; "off" is the old behaviour.
+    #:
+    #: justify rather than center because of WHICH number moves. Centring
+    #: makes both margins follow the window, and the page margin is the edge
+    #: every heading, button and paragraph on the screen lines up against --
+    #: a margin that changes as you drag is more noticeable than tiles that
+    #: sit a few pixels further apart.
+    grid_fill: str = "justify"
+    #: Detail, series and programme headers span the whole viewport, with
+    #: no padding above or beside them -- jellyfin-web's full-bleed
+    #: backdrop.
+    #:
+    #: **Off by default**, which is not what this shipped as. Two things
+    #: decided it, both only visible against a real library:
+    #:
+    #: * a lot of backdrop artwork is low-resolution, and full bleed is the
+    #:   mode that asks the most of it -- the same picture stretched over
+    #:   another few hundred pixels of width, cropped harder;
+    #: * the scroll view reserves a gutter for its scrollbar, so a
+    #:   "full-width" header stops 10px short of the window on any page long
+    #:   enough to scroll, and a notch at the end of an edge-to-edge banner
+    #:   reads worse than a margin does.
+    #:
+    #: It still costs no vertical space either way: the header keeps the
+    #: height the padded version had (see TileRenderer.banner_box).
+    backdrop_full_width: bool = False
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the

@@ -57,6 +57,29 @@ POSTER_H_FRAC = 0.78
 #: episode still is limited by this rather than by the height.
 POSTER_W_FRAC = 0.25
 
+#: Fraction of the banner's height a LANDSCAPE inset may take -- an
+#: episode still, a home video's frame -- against POSTER_H_FRAC's 0.78 for
+#: a poster.
+#:
+#: The two need different numbers because the width limit above is doing
+#: the work for one of them and not the other. A poster is height-limited
+#: at any banner shape; a still is width-limited, so its height is
+#: whatever `POSTER_W_FRAC * banner width / 1.78` comes to -- which tracks
+#: the banner's WIDTH while the cap it is measured against tracks its
+#: height. At the padded banner's own 2.67:1 that lands around 37% and
+#: nothing is wrong. Widen the banner without heightening it
+#: (`backdrop_full_width`, or a height capped by BANNER_MAX_H) and the
+#: still grows until it is most of the header, with the heading squeezed
+#: into what is left.
+THUMB_H_FRAC = 0.60
+
+#: Aspect at or above which inset artwork is a "thumbnail" rather than a
+#: poster. jellyfin-web's own landscape threshold (see
+#: TileRenderer.LANDSCAPE_RATIO); asked of the PICTURE rather than of the
+#: item type, because that is what decides which limit binds -- and a
+#: 4:3 still from an older show is as much a thumbnail as a 16:9 one.
+THUMB_RATIO = 1.33
+
 
 def poster_box(box):
     """``(x, y, max_w, max_h)`` the inset artwork is fitted inside.
@@ -165,12 +188,23 @@ def _paste_poster(canvas, poster, slot):
     from PIL import Image, ImageFilter
 
     x, y, max_w, max_h = slot
+    # The line every inset sits on, taken BEFORE the cap below. The heading
+    # sits at the bottom of the banner, and art whose baseline agrees with
+    # it reads as one block -- so what the cap may move is the artwork's
+    # top edge, never this. Reducing max_h and then bottom-aligning inside
+    # the reduced box moves the box, which left a capped thumbnail floating
+    # in the middle of the header with nothing lined up with it.
+    baseline = y + max_h
     art = poster.convert("RGBA")
+    if art.height and art.width / art.height >= THUMB_RATIO:
+        # A thumbnail, not a poster: hold it to a smaller share of the
+        # banner's height. See THUMB_H_FRAC -- the slot's height limit is a
+        # poster's, and a landscape picture reaches it only when the banner
+        # is wider than the shape that limit was chosen for.
+        max_h = min(max_h, int(canvas.height * THUMB_H_FRAC))
     art.thumbnail((max_w, max_h), Image.LANCZOS)
     aw, ah = art.size
-    # Bottom-aligned to the slot: the heading sits at the bottom of the
-    # banner, and art whose baseline agrees with it reads as one block.
-    ay = y + max_h - ah
+    ay = baseline - ah
 
     span = max(aw, ah)
     blur = max(2.0, span / 25.0)
