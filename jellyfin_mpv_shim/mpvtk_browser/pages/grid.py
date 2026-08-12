@@ -282,9 +282,10 @@ class GridPage(Page):
             return Column(self._header(None, size[0]) + [chrome.busy()],
                           pad=chrome.CONTENT_PAD, gap=GRID_GAP,
                           flex=1, align="stretch")
-        header = self._header(items, size[0])
         if view_prefs.is_list(self._view("imageType"), self._view("viewType")):
-            return self._list_view(items, header)
+            # A table stretches to fill, so it has no slack to centre and
+            # takes the plain content padding.
+            return self._list_view(items, self._header(items, size[0]))
         geom, image_type = self._grid_shape(items)
         labels = (bool(self._view("showTitle")),
                   bool(self._view("showYear")))
@@ -303,8 +304,15 @@ class GridPage(Page):
                 geom,
                 caption_h=(max(0, geom.caption_h - geom.title_size - 7)
                            if labels[1] else 0))
+        # Split the width a whole number of tiles does not use evenly
+        # between the two margins, and build the header against what is left
+        # -- the A-Z bar wraps to that width, and the title lines up with the
+        # first column because both live in this one padded column.
+        gpad, geom = tiles.grid_layout(size[0], geom)
+        header = self._header(items, size[0] - 2 * (gpad - chrome.CONTENT_PAD))
         if self._pages.enabled():
-            return self._paged_grid(size, header, geom, image_type, labels)
+            return self._paged_grid(size, header, geom, image_type, labels,
+                                    gpad)
         # Ask for the rows about to be drawn, from the SAME window the
         # renderer composites -- see TileRenderer.row_window.
         cols = tiles.cols(size[0], geom)
@@ -314,7 +322,7 @@ class GridPage(Page):
             items, "grid", size, geom=geom, image_type=image_type,
             scroll_id="grid", head_h=self.HEAD_H, labels=labels)
         return VScroll(
-            Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
+            Column(rows, pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP,
                    align="stretch"), id="grid",
             flex=1,
             # Back-nav lands where you left it (see Page.parked_scroll).
@@ -503,7 +511,7 @@ class GridPage(Page):
         return Column([bar, letters], gap=8)
 
     def _paged_grid(self, size, header, geom, image_type="Primary",
-                    labels=None):
+                    labels=None, gpad=None):
         """Paginated grid/person: one screenful of tiles, no scroll — the
         bottom pagination bar (drawn by the shell) moves between pages."""
         tiles = self.ctx.art.tiles
@@ -518,8 +526,10 @@ class GridPage(Page):
         else:
             body = tiles.grid_of(page_items, "grid", size, geom=geom,
                                  image_type=image_type, labels=labels)
-        return Column(header + body, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
-                      align="stretch", flex=1)
+        return Column(header + body,
+                      pad=(chrome.CONTENT_PAD if gpad is None else gpad,
+                           chrome.CONTENT_PAD),
+                      gap=GRID_GAP, align="stretch", flex=1)
 
     # -- data ---------------------------------------------------------------
 

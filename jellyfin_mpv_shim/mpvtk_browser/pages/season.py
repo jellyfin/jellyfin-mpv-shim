@@ -76,6 +76,7 @@ class SeasonPage(Page):
             server, "se")
         header = [Row(title_row, gap=12, align="center"),
                   Row(acts, gap=8, align="center")]
+        gpad, geom = tiles.grid_layout(size[0], geom)
         rows = header + tiles.grid_of(
             episodes, "ep", size, geom=geom, image_type="Thumb",
             # inherit=False: a season listing is a list of *episodes*, so
@@ -93,7 +94,8 @@ class SeasonPage(Page):
             # arises there.
             inherit=False,
             scroll_id="season", head_h=100)
-        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+        return VScroll(Column(rows, gap=GRID_GAP,
+                              pad=(gpad, chrome.CONTENT_PAD)),
                        id="season", flex=1,
                        offset=self.parked_scroll("season"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(

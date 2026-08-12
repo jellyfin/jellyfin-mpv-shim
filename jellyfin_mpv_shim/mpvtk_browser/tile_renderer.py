@@ -35,6 +35,7 @@ rendering, and pulling it in would have made this class the god object with
 a new name.
 """
 
+import dataclasses
 import logging
 from collections import Counter
 import time
@@ -1603,6 +1604,116 @@ class TileRenderer:
         if target is None:
             return
         app.scroll_to(row_id, target, ms=PAGE_SLIDE_MS)
+    #: How much width a justified row may leave over, in logical px. The
+    #: gap is quantised so that it changes about once per this many pixels
+    #: of window travel, and so that no more than this is left on the right.
+    #:
+    #: Both, from one number, and that is the point. The gap is part of the
+    #: strip cache key -- it is baked into the row's bitmap -- so a gap that
+    #: followed the window pixel-for-pixel would recomposite every visible
+    #: row on every frame of a drag-resize (7-19ms each, measured, on a
+    #: worker pool behind placeholder cards). Quantising fixes that, but a
+    #: FIXED step does not: the leftover it allows is the step times the
+    #: number of gaps, so at fifteen columns an 8px step swallowed the whole
+    #: correction and the row was not justified at all. Deriving the step
+    #: from the budget instead makes both the residual and the recomposite
+    #: cadence independent of how many columns there are.
+    JUSTIFY_SLACK = 32
+
+    def justified_gap(self, w, geom, cols=None):
+        """``geom`` with its gap widened to take up the slack, so a row runs
+        from margin to margin instead of leaving the remainder on one side.
+
+        The alternative to centring (:meth:`grid_pad`), and the difference is
+        which number stays still: centring keeps the tiles evenly placed and
+        makes BOTH margins move with the window, justifying keeps the margins
+        pinned at CONTENT_PAD and moves the tiles apart. A page margin that
+        changes as you resize is the more noticeable of the two, because it
+        is the edge every other element on the page lines up against.
+        """
+        cols = self.cols(w, geom) if cols is None else cols
+        if cols < 2:
+            return geom            # no gap to widen, and no division by zero
+        gaps = cols - 1
+        slack = max(0, self.body_w(w) - (cols * geom.tile_w
+                                         + gaps * geom.gap))
+        # A gap may at most double. With only three or four columns the
+        # slack per gap is enormous -- a 1024px window fits three landscape
+        # tiles and has 250px left over, which spread evenly is a 126px gap
+        # -- and tiles that far apart have stopped reading as a row. Past the
+        # cap the remainder stays on the right, which is the honest answer:
+        # at that column count nothing absorbs it, and "center" is the
+        # setting for somebody who would rather move the margins than look
+        # at it.
+        slack = min(slack, geom.gap * gaps)
+        step = max(1, self.JUSTIFY_SLACK // gaps)
+        # Rounded DOWN to a step: rounding up would make the row wider than
+        # the space it was measured to fit in, which is a clipped last
+        # column -- and `grid_of` re-asks cols() with the geometry handed
+        # back, so the two answers have to agree.
+        extra = (slack // gaps) // step * step
+        if extra <= 0:
+            return geom
+        return dataclasses.replace(geom, gap=geom.gap + extra)
+
+    def grid_layout(self, w, geom, cols=None):
+        """``(horizontal pad, geom)`` for a grid, per ``grid_fill``.
+
+        A grid of fixed-size tiles almost never divides the width exactly,
+        and the three settings are three answers to where the remainder goes:
+
+        * ``justify`` -- into the gaps. Margins stay pinned at CONTENT_PAD on
+          both sides, which is the edge every other element on the page lines
+          up against; the tiles move apart instead.
+        * ``center`` -- split between the two margins. The tiles keep their
+          spacing and both margins move with the window.
+        * ``off`` -- all of it on the right, which is what this did before
+          any of them existed.
+
+        One call rather than a pad here and a geometry there, because the two
+        answers are exclusive and a caller that mixed them would double-count
+        the same slack.
+        """
+        from ..conf import settings
+
+        mode = getattr(settings, "grid_fill", "justify")
+        if mode == "center":
+            return self.grid_pad(w, geom, cols), geom
+        if mode == "justify":
+            return chrome.CONTENT_PAD, self.justified_gap(w, geom, cols)
+        return chrome.CONTENT_PAD, geom
+
+    def grid_pad(self, w, geom, cols=None):
+        """Horizontal padding for a grid, so its two margins match.
+
+        A whole number of tiles rarely divides the available width exactly,
+        and the remainder used to land entirely on the right: at some window
+        sizes that is most of a tile's width of empty background down one
+        side, which reads as the page being misaligned rather than as a grid
+        fitting what it can fit. Split it evenly instead.
+
+        Measured against ``body_w`` -- inside the scrollbar gutter, when
+        there is one -- because the bar is furniture the reader can see.
+        Centring against the whole window would push the block half a
+        scrollbar to the left of centre, which is the same fault smaller.
+
+        Returned as a padding rather than applied to the rows, so the header
+        above the grid moves with it and the title stays aligned with the
+        first tile in the first column.
+
+        One residual: ``body_w`` subtracts the scrollbar gutter, and since
+        that gutter is now only reserved when the page actually scrolls
+        (``layout._arrange_scroll``), a grid SHORT enough not to scroll ends
+        up 10px left of centre. Unknowable here -- whether the bar appears is
+        a function of the laid-out height, which is decided after this. The
+        common case is the scrolling one, and this is right for it; being
+        right for the other instead would put the same 10px error on every
+        library.
+        """
+        cols = self.cols(w, geom) if cols is None else cols
+        used = cols * geom.tile_w + max(0, cols - 1) * geom.gap
+        return chrome.CONTENT_PAD + max(0, self.body_w(w) - used) // 2
+
     def cols(self, w, geom):
         # _body_w, not w - 32: grids sit in the same padded scroll column,
         # so ignoring the scrollbar fits one tile too many at some widths

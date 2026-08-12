@@ -96,6 +96,8 @@ class DocsCoverageTest(unittest.TestCase):
             "none", "null", "jellyfin", "nebula", "superdark",
             # scroll_mode values
             "continuous", "aligned", "row",
+            # grid_fill values
+            "justify", "center",
             # hud_scrim / hud_autohide values
             "panel", "hover", "always", "paused",
             # segment_* values

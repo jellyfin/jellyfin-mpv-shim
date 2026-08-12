@@ -589,6 +589,21 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
+    #: Where a grid's leftover width goes. A row of fixed-size tiles almost
+    #: never divides the available width exactly, and the remainder used to
+    #: land entirely on the right -- at some window sizes that is most of a
+    #: tile's width of empty background down one side.
+    #:
+    #: "justify" (the default) widens the gaps so the row runs margin to
+    #: margin; "center" splits the remainder between the two margins and
+    #: leaves the tiles evenly spaced; "off" is the old behaviour.
+    #:
+    #: justify rather than center because of WHICH number moves. Centring
+    #: makes both margins follow the window, and the page margin is the edge
+    #: every heading, button and paragraph on the screen lines up against --
+    #: a margin that changes as you drag is more noticeable than tiles that
+    #: sit a few pixels further apart.
+    grid_fill: str = "justify"
     #: Detail, series and programme headers span the whole viewport, with
     #: no padding above or beside them -- jellyfin-web's full-bleed
     #: backdrop.

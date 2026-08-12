@@ -22,6 +22,24 @@ You can specify a custom configuration folder with the `--config` option.
 
 You can adjust the basic transcoder settings via the menu.
 
+- `grid_fill` - Where the width a whole number of covers does not use ends up.
+      One of `justify`, `center` or `off`. Default: `justify`
+  - A grid of fixed-size covers almost never divides the window exactly, and
+      the remainder used to land entirely on the right — at some sizes that is
+      most of a cover's width of empty background down one side.
+  - `justify` widens the gaps so the row runs margin to margin. The page
+      margins stay put at every window size, which is what makes it the
+      default: the margin is the edge every heading, button and paragraph
+      lines up against, so a margin that moves as you drag is more noticeable
+      than covers sitting a few pixels further apart.
+  - `center` splits the remainder between the two margins instead. The covers
+      keep their spacing and both margins move with the window.
+  - `off` is the old behaviour, all of it on the right.
+  - Rows of **landscape** artwork (episodes, home videos, Live TV) are the case
+      none of the three fully solves: a 16:9 tile is 240px, so at three or four
+      columns there can be 250px left over, and spreading that across two gaps
+      is further apart than a row can read. `justify` absorbs what it sanely
+      can — a gap may at most double — and leaves the rest.
 - `backdrop_full_width` - Run a detail page's backdrop to the edges of the
       window, with no padding above or beside it, the way the web client does.
       Default: `false`

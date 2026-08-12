@@ -297,10 +297,13 @@ class MusicLibraryPage(MusicPage):
         cols = art.tiles.cols(size[0], geom)
         first, last = art.tiles.row_window(size, geom, "music-grid")
         self._window(first * cols, (last + 1) * cols)
+        # After the window, which is computed from the row PITCH -- and
+        # justifying moves the gap, not the pitch's tile height.
+        gpad, geom = art.tiles.grid_layout(size[0], geom, cols)
         return VScroll(
             Column(art.tiles.grid_of(data, "music", size, geom=geom,
                                      scroll_id="music-grid"),
-                   pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+                   pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP),
             id="music-grid", flex=1,
             offset=self.parked_scroll("music-grid"),
             # Row-snap the music library grid (see GridPage.render). The tabs
@@ -332,8 +335,9 @@ class MusicLibraryPage(MusicPage):
             rows = [Text(_("Loading…"), size="large", color=theme.SUBTLE_FG)]
         else:
             rows = art.tiles.grid_of(page_items, "music", size, geom=geom)
-        return Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP,
-                      align="stretch", flex=1)
+        gpad, _g = art.tiles.grid_layout(size[0], geom)
+        return Column(rows, gap=GRID_GAP, align="stretch", flex=1,
+                      pad=(gpad, chrome.CONTENT_PAD))
 
     def _page_fetcher(self):
         """``fetch(start, limit)`` for a paginated music tab. Only the

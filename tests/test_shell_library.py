@@ -3359,6 +3359,179 @@ class TestFilterPanelIsNotOfferedOffline(unittest.TestCase):
             % unapplied)
 
 
+class GridFillTest(unittest.TestCase):
+    """`grid_fill`: where the width a whole number of tiles does not use goes.
+
+    A row of fixed-size covers almost never divides the viewport exactly.
+    The remainder used to land entirely on the right, which at some window
+    sizes is most of a tile's width of empty background down one side.
+    """
+
+    def _r(self):
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+        return TileRenderer.__new__(TileRenderer)
+
+    def _mode(self, mode):
+        from jellyfin_mpv_shim.conf import settings
+        was = settings.grid_fill
+        self.addCleanup(setattr, settings, "grid_fill", was)
+        settings.grid_fill = mode
+
+    #: Widths that between them exercise a full period of the slack: the
+    #: remainder is a sawtooth in the window width, so a single width is a
+    #: sample of one point on it and says nothing.
+    WIDTHS = (1024, 1100, 1180, 1280, 1366, 1440, 1600, 1920, 2560)
+
+    def _margins(self, w, geom):
+        """``(left, right)`` for a grid of ``geom`` at window width ``w``."""
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        pad, g = TileRenderer.grid_layout(r, w, geom)
+        cols = TileRenderer.cols(r, w, g)
+        used = cols * g.tile_w + (cols - 1) * g.gap
+        return pad, w - SCROLLBAR_W - pad - used
+
+    def test_justify_pins_both_margins(self):
+        """The setting's whole point: the page margin is the edge every
+        heading, button and paragraph lines up against, so it is the number
+        that must not move as the window is dragged."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("justify")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, right = self._margins(w, POSTER_GEOM)
+                self.assertEqual(left, chrome.CONTENT_PAD)
+
+    def test_justify_takes_up_most_of_the_slack(self):
+        """"Pinned margins" alone is satisfied by doing nothing at all --
+        `off` pins them too. This is the half that says the setting works.
+
+        Not an exact figure: the gap is quantised, and capped at double so a
+        three-column row does not come out as tiles scattered across the
+        page. So the claim is a comparison against doing nothing, over a full
+        period of the sawtooth, plus a bound on the average.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("off")
+        plain = [self._margins(w, POSTER_GEOM)[1] for w in self.WIDTHS]
+        self._mode("justify")
+        full = [self._margins(w, POSTER_GEOM)[1] for w in self.WIDTHS]
+        for w, a, b in zip(self.WIDTHS, plain, full):
+            with self.subTest(w=w):
+                self.assertLessEqual(b, a, "justifying made it worse")
+        self.assertLess(sum(full), sum(plain) / 2,
+                        "justifying barely moved the leftover: %r -> %r"
+                        % (plain, full))
+
+    def test_a_gap_may_at_most_double(self):
+        """Uncapped, a 1024px window fitting three landscape tiles has 250px
+        of slack and two gaps to put it in -- a 126px gap, which is not a row
+        any more. Past the cap the remainder stays on the right; `center` is
+        the setting for somebody who would rather move the margins."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
+                                                            POSTER_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM):
+            for w in range(600, 2600, 11):
+                g = TileRenderer.justified_gap(r, w, geom)
+                self.assertLessEqual(g.gap, geom.gap * 2,
+                                     "gap %d at %dpx" % (g.gap, w))
+
+    def test_centre_splits_it_evenly(self):
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("center")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, right = self._margins(w, POSTER_GEOM)
+                self.assertLessEqual(abs(left - right), 1)
+
+    def test_off_is_the_old_behaviour(self):
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("off")
+        for w in self.WIDTHS:
+            with self.subTest(w=w):
+                left, _right = self._margins(w, POSTER_GEOM)
+                self.assertEqual(left, chrome.CONTENT_PAD)
+
+    def test_an_unknown_value_falls_back_rather_than_raising(self):
+        """It is a plain string in a JSON file somebody can type into."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+
+        self._mode("sideways")
+        pad, geom = self._r().grid_layout(1280, POSTER_GEOM)
+        self.assertEqual(pad, chrome.CONTENT_PAD)
+        self.assertEqual(geom, POSTER_GEOM)
+
+    def test_justifying_never_changes_the_column_count(self):
+        """The trap. `justified_gap` picks its extra from a column count
+        measured on the ORIGINAL geometry, and hands back a geometry whose
+        gap is bigger -- but `grid_of` re-asks `cols()` with that one. If the
+        two ever disagreed the row would be composited for more tiles than
+        the layout believes fit, and the last column would be clipped.
+
+        Holds because the extra is rounded DOWN to a step, so the row can
+        only get shorter than the space it was measured into. Pinned rather
+        than argued, over every tile shape and a full period of widths.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (BANNER_GEOM,
+                                                            LANDSCAPE_GEOM,
+                                                            POSTER_GEOM,
+                                                            SQUARE_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        self._mode("justify")
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM, SQUARE_GEOM, BANNER_GEOM):
+            for scale in (0.75, 1.0, 1.7):
+                base = geom.scaled(scale)
+                for w in range(600, 2600, 7):
+                    before = TileRenderer.cols(r, w, base)
+                    after = TileRenderer.cols(
+                        r, w, TileRenderer.justified_gap(r, w, base))
+                    if before != after:
+                        self.fail("%dpx: %d cols became %d after justifying"
+                                  % (w, before, after))
+
+    def test_a_justified_row_never_overruns_the_viewport(self):
+        """The same property from the other side, in pixels rather than in
+        columns: a row wider than the space it is drawn in is a clipped
+        last column, and the strip is one bitmap so nothing crops it back."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
+                                                            POSTER_GEOM)
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        self._mode("justify")
+        r = self._r()
+        for geom in (POSTER_GEOM, LANDSCAPE_GEOM):
+            for w in range(600, 2600, 13):
+                g = TileRenderer.justified_gap(r, w, geom)
+                cols = TileRenderer.cols(r, w, g)
+                used = cols * g.tile_w + (cols - 1) * g.gap
+                self.assertLessEqual(used, TileRenderer.body_w(r, w),
+                                     "row overruns at %dpx" % w)
+
+    def test_a_single_column_is_left_alone(self):
+        """There is no gap to widen, so the slack has nowhere to go and the
+        division would be by zero."""
+        from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        r = self._r()
+        self.assertIs(TileRenderer.justified_gap(r, 200, POSTER_GEOM),
+                      POSTER_GEOM)
+
+
 class BannerHeightCapTest(unittest.TestCase):
     """A detail header may not eat the page.
 

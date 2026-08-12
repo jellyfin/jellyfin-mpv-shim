@@ -528,11 +528,12 @@ class LiveTvPage(Page):
                 flex=1, align="stretch")
         art = self.ctx.art
         grid_size = (size[0], max(120, size[1] - self.CHANNEL_CHROME_H))
+        gpad, cgeom = art.tiles.grid_layout(size[0], art.geom_square)
         return Column([head, VScroll(
             Column(art.tiles.grid_of(items, "ltchan", grid_size,
-                                     geom=art.geom_square,
+                                     geom=cgeom,
                                      scroll_id="livetv-channels"),
-                   pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+                   pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP),
             id="livetv-channels", flex=1,
             offset=self.parked_scroll("livetv-channels"),
             snap=art.geom_square.strip_h + GRID_GAP,
@@ -655,11 +656,12 @@ class LiveTvPage(Page):
         if not items:
             return chrome.error(_("No series are set to record."))
         art = self.ctx.art
+        gpad, sgeom = art.tiles.grid_layout(size[0], art.geom)
         return VScroll(
-            Column(art.tiles.grid_of(items, "ltseries", size,
+            Column(art.tiles.grid_of(items, "ltseries", size, geom=sgeom,
                                      scroll_id="livetv-series",
                                      on_click=self._open_series_timer),
-                   pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+                   pad=(gpad, chrome.CONTENT_PAD), gap=GRID_GAP),
             id="livetv-series", flex=1,
             offset=self.parked_scroll("livetv-series"),
             on_scroll=lambda off, mx: art.scroll.on_scroll("livetv-series",

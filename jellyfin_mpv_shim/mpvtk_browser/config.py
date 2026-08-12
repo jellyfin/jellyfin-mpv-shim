@@ -114,6 +114,7 @@ TAB_SECTIONS = {
         (_("Library Browser"), ["library_image_cache_mb",
                                 "scroll_wheel_pixels",
                                 "scroll_mode", "paginated",
+                                "grid_fill",
                                 "backdrop_full_width",
                                 "detail_poster",
                                 "detail_episode_image",
@@ -326,6 +327,11 @@ LABELED_ENUMS = {
     # Every label points at the value it has always pointed at -- "Small" is
     # the base size, which reads oddly beside two smaller steps but is the
     # price of not silently re-pointing a string 86 locales have translated.
+    "grid_fill": [
+        (_("Widen the gaps"), "justify"),
+        (_("Centre the tiles"), "center"),
+        (_("Leave it on the right"), "off"),
+    ],
     "poster_scale": [
         (_("Theme default"), None),
         (_("Extra Compact"), 0.75),
@@ -387,6 +393,7 @@ LABEL_OVERRIDES = {
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
     "backdrop_full_width": _("Full-Width Backdrops"),
+    "grid_fill": _("Grid Spacing"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
     # Named for what they do to the page, not for the module they belong
@@ -566,6 +573,10 @@ NOTES = {
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),
+    "grid_fill": _("Where the width a whole number of covers does not use "
+                   "ends up. Widening the gaps keeps the page margins the "
+                   "same on every screen size; centring keeps the covers "
+                   "evenly spaced and moves both margins instead."),
     "backdrop_full_width": _("Run the backdrop on a detail page to the "
                              "edges of the window, as the web client does. "
                              "It shows more of the artwork without taking "
