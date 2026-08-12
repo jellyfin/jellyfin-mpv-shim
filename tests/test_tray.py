@@ -319,3 +319,64 @@ class TestX11BackendGate(unittest.TestCase):
         # broken, so change nothing.
         self.assertFalse(wants_x11_backend({}))
         self.assertFalse(wants_x11_backend({"WAYLAND_DISPLAY": "wayland-0"}))
+
+
+class TestTrayIconArtwork(unittest.TestCase):
+    """The bitmap handed to pystray.
+
+    Every backend takes this one image and produces the size IT wants -- an
+    ICO frame set on win32, a LANCZOS downscale to the status bar thickness
+    on darwin, a resize to the tray's request on xorg, a PNG on disk for the
+    panel to scale on gtk/appindicator. So the source being larger than any
+    panel is the supported direction, and the source being smaller is the one
+    nothing can recover from: this shipped at 16px for years and was mush on
+    every HiDPI panel and every KDE tray asking for 32 or 48.
+    """
+
+    def _icon(self):
+        from PIL import Image
+
+        from jellyfin_mpv_shim.utils import get_resource
+
+        return Image.open(get_resource("systray.png"))
+
+    def test_the_icon_is_big_enough_for_a_hidpi_panel(self):
+        icon = self._icon()
+        self.assertGreaterEqual(min(icon.size), 128)
+        # ICO's ceiling is 256, and win32 goes through one.
+        self.assertLessEqual(max(icon.size), 256)
+
+    def test_it_is_square(self):
+        """A tray slot is square, and every backend resizes to a square box;
+        a non-square source comes out stretched on the ones that do not
+        letterbox."""
+        icon = self._icon()
+        self.assertEqual(icon.size[0], icon.size[1])
+
+    def test_it_has_a_transparent_background(self):
+        """The mark, not the app logo. `logo.png` is the same artwork on an
+        opaque dark plate, which in a light panel is a black square with a
+        symbol in it -- and it is the obvious file to reach for."""
+        icon = self._icon().convert("RGBA")
+        corners = [icon.getpixel(p) for p in
+                   ((0, 0), (icon.width - 1, 0), (0, icon.height - 1),
+                    (icon.width - 1, icon.height - 1))]
+        for pixel in corners:
+            self.assertEqual(pixel[3], 0, "the tray icon carries a plate")
+
+    def test_saving_it_as_an_ico_offers_every_panel_size(self):
+        """What win32 actually does with it: pystray saves the image as an
+        ICO and calls LoadImage(LR_DEFAULTSIZE), which picks the frame
+        matching the system metric. Pillow writes every standard size UP TO
+        the source, so a 16px source offered exactly one frame and Windows
+        had nothing to pick."""
+        import io
+
+        from PIL import Image
+
+        buf = io.BytesIO()
+        self._icon().save(buf, format="ICO")
+        buf.seek(0)
+        sizes = set(Image.open(buf).info.get("sizes") or ())
+        for want in ((16, 16), (32, 32), (48, 48)):
+            self.assertIn(want, sizes)
