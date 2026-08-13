@@ -71,13 +71,20 @@ def icon_names():
 # hand-drawn approximation that drifts from it.
 
 #: Segments per cubic when flattening. 12 is indistinguishable from a curve
-#: at the sizes these are drawn (a ~34px badge, supersampled ×3).
+#: at the sizes these are drawn (a ~34px badge, supersampled ×_SS).
 _CURVE_STEPS = 12
 
 #: Supersample factor. The flattened polygons are aliased; PIL has no
 #: antialiased fill, so draw big and downscale — the same trick the
 #: carousel's round arrows use.
-_SS = 3
+#:
+#: 4, not 3, and the difference is only visible on the thin ones. The mask
+#: is binary, so ×N supersampling buys N² coverage levels: at 3 a 2-unit
+#: Material stroke (`check`, `add`) drawn ~1.7px wide had 9 of them to
+#: describe its two antialiased edges, which is what made that glyph read
+#: as a lighter weight than the solid ones beside it [iw]. Cached per
+#: (name, size, colour), so the cost is ~0.3ms once per distinct badge.
+_SS = 4
 
 _raster_cache: dict = {}
 

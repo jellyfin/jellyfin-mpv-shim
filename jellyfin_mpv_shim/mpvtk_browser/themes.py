@@ -58,7 +58,12 @@ DEFAULT = {
         "OK_GREEN": "7bd88f",     # "Connected" / "active" badges
         "WARN_AMBER": "e5c07b",
         # Semantic extras used by baked strip decorations.
-        "PROGRESS_TRACK": "000000",   # ~78% alpha behind the resume bar
+        # The groove behind the resume bar, drawn at PROGRESS_TRACK_ALPHA.
+        # jellyfin-web's own `.itemProgressBar` (rgba(51,51,51,.8)), and it
+        # is a SECONDARY rather than the window colour on purpose: black
+        # against a dark theme reads as a channel cut out of the card, which
+        # turns a progress bar into something that looks draggable [iw].
+        "PROGRESS_TRACK": "333333",
         "WATCHED_GREEN": "28a046",
     },
     "browse_bg": "#141414",

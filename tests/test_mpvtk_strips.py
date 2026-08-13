@@ -449,11 +449,15 @@ class TestCoverCrop(unittest.TestCase):
 class TestVersionCountBadge(unittest.TestCase):
     """The multi-version indicator -- jellyfin-web's `.mediaSourceIndicator`.
 
-    It shares the top-LEFT corner with the watched tick, which is the only
-    corner with room: the right-hand one already stacks a recording symbol,
-    a download arrow, a type marker and the unplayed count. So the two have
-    to sit beside each other rather than either winning the spot, which is
-    what the offset assertions here are about.
+    It has the top-LEFT corner to itself, which is where web puts it, and
+    the watched tick is on the RIGHT with the rest of `.cardIndicators`.
+    That is a change: the two used to share this corner, on the reasoning
+    that the right-hand stack was already three deep. What decided it is
+    that the tick is the badge people scan a season *for*, and having it on
+    the side no other client puts it costs a beat every time.
+
+    So the assertions here are about the corner staying the version count's
+    alone, and about the tick having left it.
     """
 
     ACCENT = theme.rgb(theme.ACCENT, 255)[:3]
@@ -474,6 +478,12 @@ class TestVersionCountBadge(unittest.TestCase):
         """
         return img.getpixel((17 + 26 * n, 17 - 9))
 
+    @staticmethod
+    def _right_slot(img, n):
+        """The same point on the n'th badge of the top-RIGHT stack, counted
+        from the corner leftwards (which is the order it is filled in)."""
+        return img.getpixel((img.width - 17 - 26 * n, 17 - 9))
+
     def test_two_versions_draw_a_badge_in_the_corner(self):
         self.assertEqual(self._slot(self._paint(sources=2), 0)[:3], self.ACCENT)
 
@@ -484,16 +494,26 @@ class TestVersionCountBadge(unittest.TestCase):
             with self.subTest(n):
                 self.assertEqual(self._slot(self._paint(sources=n), 0)[3], 0)
 
-    def test_a_watched_multiversion_film_shows_both(self):
+    def test_a_watched_multiversion_film_puts_them_in_facing_corners(self):
+        """Both are drawn -- the change moved the tick, it did not drop it."""
         img = self._paint(sources=3, watched=True)
-        # The tick keeps the corner; the count is pitched one slot right.
         self.assertEqual(self._slot(img, 0)[:3], self.ACCENT)
-        self.assertEqual(self._slot(img, 1)[:3], self.ACCENT)
+        self.assertEqual(self._right_slot(img, 0)[:3], self.ACCENT)
 
-    def test_the_second_slot_is_empty_without_a_tick(self):
-        """Otherwise the count would be drawn to the right of a badge that
-        is not there, leaving a gap in the corner."""
-        self.assertEqual(self._slot(self._paint(sources=2), 1)[3], 0)
+    def test_the_second_left_slot_is_never_used(self):
+        """The version count is the whole of the left-hand corner now, so
+        nothing is ever pitched beside it. A tick landing back here is the
+        regression this guards."""
+        for tile in ({"sources": 2}, {"sources": 2, "watched": True}):
+            with self.subTest(**tile):
+                self.assertEqual(self._slot(self._paint(**tile), 1)[3], 0)
+
+    def test_the_tick_takes_the_right_corner_not_the_left(self):
+        """jellyfin-web's `.cardIndicators` is top-right and its last child
+        -- the played indicator -- is the one in the corner."""
+        img = self._paint(watched=True)
+        self.assertEqual(self._right_slot(img, 0)[:3], self.ACCENT)
+        self.assertEqual(self._slot(img, 0)[3], 0)
 
     def test_the_count_is_part_of_the_cache_key(self):
         """It is baked into the composited strip like every other decoration,
