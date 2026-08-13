@@ -56,6 +56,8 @@ HEADERS = (
      "btn-play"),
     ("series", {"kind": "series", "server": "srv1", "item_id": "sr1",
                 "title": "Show"}, "sa-nextup"),
+    ("season", {"kind": "season", "server": "srv1", "item_id": "se1",
+                "series_id": "sr1", "title": "Season 1"}, "se-nextup"),
 )
 
 
@@ -847,6 +849,89 @@ class BannerFetchChurnTest(_Case):
 
     def test_a_full_bleed_header_does_not_refetch_per_pixel(self):
         self._assert_bounded(full=True)
+
+
+class SeasonHeaderTest(_Case):
+    """The season screen draws the header its series does -- when there is
+    artwork, and NOT when there isn't.
+
+    A season carries no backdrop of its own; what it carries is
+    `ParentBackdropImageTags` + `ParentBackdropItemId`, which `backdrop_spec`
+    already follows. That half is measured against a real server rather than
+    here: `FakeSource.backdrop_spec` answers from a flag and ignores the
+    item, so it can say whether the PAGE asks and draws, never whether a real
+    season DTO resolves.
+    """
+
+    ROUTE = {"kind": "season", "server": "srv1", "item_id": "se1",
+             "series_id": "sr1", "title": "Season 1"}
+
+    def _open(self, has_backdrop=True, full=False):
+        from jellyfin_mpv_shim.conf import settings
+
+        was = settings.backdrop_full_width
+        settings.backdrop_full_width = full
+        self.addCleanup(setattr, settings, "backdrop_full_width", was)
+        b, thumbs = self.browser(has_backdrop=has_backdrop)
+        b.navigate(dict(self.ROUTE))
+        self.deliver(b, thumbs)
+        return b
+
+    def _bd(self, b):
+        return next((n for n in self.nodes(b)
+                     if n.get("id") == "season-bd"), None)
+
+    def _title_text(self, b):
+        """"Season 1" drawn as text INSIDE the scroll. Scoped to the scroll
+        because the top bar carries the same string, and a search that finds
+        it there can never fail."""
+        return [n for n in self.nodes(b)
+                if n.get("t") == "text" and n.get("text") == "Season 1"
+                and n.get("sc") == "season"]
+
+    def test_a_season_with_artwork_draws_a_banner(self):
+        node = self._bd(self._open())
+        self.assertIsNotNone(node, "no header on the season screen")
+        self.assertEqual(node["t"], "img",
+                         "the banner never became artwork: %r" % node)
+
+    def test_the_heading_is_baked_in_rather_than_drawn_twice(self):
+        """The banner bakes the title into its bitmap, so a page that also
+        drew it as text would show the season name twice."""
+        self.assertFalse(self._title_text(self._open()))
+
+    def test_a_season_without_artwork_keeps_the_plain_title(self):
+        """No placeholder panel here, unlike a detail or series page: this
+        screen is a grid with a title over it, and 400px of empty grey
+        between the two is worse than the line of text it replaced."""
+        b = self._open(has_backdrop=False)
+        self.assertIsNone(self._bd(b), "a placeholder panel was drawn")
+        self.assertTrue(self._title_text(b), "and no title either")
+
+    def test_the_episode_grid_still_starts_below_the_header(self):
+        """The virtualizer is told how tall the header is (`head_h`). Get
+        that wrong and the rows on screen are the ones it decided were far
+        away, so they composite as blank spacers."""
+        b = self._open()
+        banner = self._bd(b)
+        tiles = [n for n in self.nodes(b)
+                 if str(n.get("id", "")).startswith("ep-0-e")]
+        self.assertTrue(tiles, "no episode tiles were drawn at all")
+        self.assertGreaterEqual(min(t["y"] for t in tiles),
+                                banner["y"] + banner["h"])
+
+    def test_full_bleed_reaches_the_edge_here_too(self):
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        node = self._bd(self._open(full=True))
+        self.assertEqual(node["x"], 0)
+        self.assertEqual(node["x"] + node["w"], SIZE[0] - SCROLLBAR_W)
+
+    def test_the_season_picker_survives_the_banner(self):
+        """It shared a row with the title, and the title is gone."""
+        b = self._open()
+        self.assertTrue([n for n in self.nodes(b)
+                         if n.get("id") == "season-switch"])
 
 
 class FullBleedHeaderTest(_Case):
