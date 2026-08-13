@@ -499,10 +499,15 @@ class TileRenderer:
             return self.art.geom_square
         return None
 
-    def _request_image(self, key, url, box):
+    def _request_image(self, key, url, box, cover=False):
         """Return a cached decoded PIL image for ``key`` (poster/backdrop/…),
         or None while it loads — requesting it once from the thumbnail pool.
         The next repaint (woken by the pool's notify) picks it up.
+
+        ``cover`` says the box will be FILLED rather than fitted, so the
+        decode crops to its shape instead of contain-ing inside it. Only the
+        one pairing ``_contains`` covers passes it; see there and
+        ``thumbnails._fit_into``.
 
         Read *through* the store's cache rather than keeping a copy: it is the
         thing the memory budget is enforced on, and a second dict here made
@@ -521,8 +526,10 @@ class TileRenderer:
             return None            # cooling off after a failed attempt
         self._requested.add(key)
         self.art.thumbs.request(key, url, box,
-                            lambda im, k=key: self._image_done(k, im))
+                                lambda im, k=key: self._image_done(k, im),
+                                cover=cover)
         return None
+
     def _image_done(self, key, image):
         """Thumbnail delivery, on the loop thread.
 
@@ -653,7 +660,13 @@ class TileRenderer:
                        fit="fit" if contain else "")
         url = self.art.source.image_url(self.art.server, item_id, itype, itag,
                                         w, h, fill=not contain)
-        return self._request_image(key, url, (w, h)), key, contain
+        # `cover` where the tile covers: the paint-time crop
+        # (strips._paint_poster) is what the artwork is finally shaped by,
+        # and a contain-ing decode in front of it discards the pixels that
+        # crop needs -- see thumbnails._fit_into for what that cost.
+        return (self._request_image(key, url, (w, h), cover=not contain),
+                key, contain)
+
     def art_cell(self, item, size=28):
         """Small square album-art bitmap for a table cell (track lists);
         a placeholder box while it loads or when the item has none.

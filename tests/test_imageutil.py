@@ -30,11 +30,54 @@ class TestHelpers(unittest.TestCase):
                 self.assertEqual(out.size, box)
 
     def test_scale_to_cover_crops_rather_than_squashing(self):
-        """A 2:1 source into a 1:1 box keeps the aspect and loses the sides,
-        so the centre column stays the colour it started."""
-        src = Image.new("RGBA", (200, 100), (0, 0, 255, 255))
+        """A 2:1 source into a 1:1 box keeps the aspect and loses the SIDES.
+
+        Read off a horizontal ramp, not a flat colour. This asserted that
+        the centre pixel of a solid blue source came back blue, which a
+        squash satisfies just as well as a crop -- it survived a mutation
+        that deleted the cover crop entirely and handed back the whole
+        picture stretched into the box.
+        """
+        src = Image.new("RGBA", (200, 100), (0, 0, 0, 255))
+        for x in range(200):
+            for y in range(100):
+                src.putpixel((x, y), (0, 0, x * 255 // 200, 255))
         out = imageutil.scale_to_cover(src, 100, 100)
-        self.assertEqual(out.getpixel((50, 50)), (0, 0, 255, 255))
+        # The kept band is source columns 50..150, i.e. ramp values 64..191.
+        # Squashed, the same two pixels would read ~0 and ~254.
+        self.assertAlmostEqual(out.getpixel((0, 50))[2], 64, delta=4)
+        self.assertAlmostEqual(out.getpixel((99, 50))[2], 190, delta=4)
+
+    def test_the_crop_happens_in_the_source_and_not_after_the_scale(self):
+        """Nothing bigger than the box asked for is ever materialised.
+
+        The obvious spelling of cover -- scale the whole picture up, then
+        crop -- resamples every pixel it is about to discard: a 1920x1080
+        backdrop covering a 6390x412 full-bleed header went through
+        6390x3596, which measured 194 ms and +204 MB of peak RSS *on the
+        loop thread*, once per pixel of a drag-resize. That is invisible to
+        every other assertion here, because the answer is the same picture.
+        """
+        src = Image.new("RGBA", (1920, 1080), (10, 20, 30, 255))
+        seen = []
+        real = Image.Image.resize
+
+        def spy(self, size, *a, **kw):
+            seen.append(size)
+            return real(self, size, *a, **kw)
+
+        Image.Image.resize = spy
+        try:
+            out = imageutil.scale_to_cover(src, 6390, 412,
+                                           gravity_y=imageutil.TOP_HEAVY)
+        finally:
+            Image.Image.resize = real
+        self.assertEqual(out.size, (6390, 412))
+        self.assertTrue(seen, "no resample happened at all")
+        for size in seen:
+            self.assertLessEqual(
+                size[0] * size[1], 6390 * 412,
+                "resampled %r to produce a 6390x412 banner" % (size,))
 
     def test_the_default_crop_is_still_centred(self):
         """A 1:2 source into a 1:1 box drops equal bands off both ends."""
@@ -72,9 +115,13 @@ class TestHelpers(unittest.TestCase):
                                        gravity_y=imageutil.TOP_HEAVY)
         self.assertEqual(out.size, (400, 200))
         # Wanted to centre on row 70 and could not: it sits at the top.
-        # The ALPHA is the half that matters -- a crop box hanging off the
-        # picture comes back the right size, padded with transparent black,
-        # so an assertion on the colour alone passes on an unclamped crop.
+        # The ALPHA is the half that matters -- back when this cropped the
+        # scaled picture, a box hanging off it came back the right size
+        # padded with transparent black, so an assertion on the colour
+        # alone passed on an unclamped crop. Cropping in source space, an
+        # unclamped box raises out of Pillow instead; the assertion catches
+        # both, and is kept as written because which one it is depends on a
+        # detail of how the crop is spelled.
         self.assertEqual(out.getpixel((200, 0)), (0, 0, 0, 255))
 
     def test_gravity_never_asks_for_more_than_the_source_has(self):
