@@ -42,16 +42,16 @@ You can adjust the basic transcoder settings via the menu.
       can — a gap may at most double — and leaves the rest.
 - `backdrop_full_width` - Run a detail page's backdrop to the edges of the
       window, with no padding above or beside it, the way the web client does.
-      Default: `false`
+      Default: `true`
   - It costs no vertical space either way: the header keeps exactly the height
       the padded version had and gets wider, so what changes is how much of the
       backdrop is cropped away, not how far down the page the buttons start.
-  - Off by default because of what it asks of the artwork and of the window.
-      Backdrops are often low-resolution, and this is the mode that stretches
-      one furthest; and the scroll view reserves a gutter for its scrollbar, so
-      on any page long enough to scroll a "full-width" header stops 10px short
-      of the edge — a notch at the end of an edge-to-edge banner reads worse
-      than a margin does.
+  - This shipped off, for two reasons that both turned out to be bugs
+      elsewhere: the header decoded its backdrop into a box shaped like the
+      banner, which threw away most of the picture's width before the crop
+      ever ran; and the scrollbar gutter was reserved here but only sometimes
+      by the layout, leaving an unpainted strip at the banner's edge. Both are
+      fixed, and the mode is on.
   - Off for an item with no artwork at all whatever this is set to: there is
       nothing to bleed, and the grey placeholder panel run edge to edge is just
       a wider grey band.

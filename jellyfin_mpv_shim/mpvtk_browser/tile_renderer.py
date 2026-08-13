@@ -887,6 +887,20 @@ class TileRenderer:
             return None
         return self.art.source.image_spec(item, "Primary", 0, inherit=False)
 
+    #: Quantisation step for a header inset poster's fetch. Finer than
+    #: BANNER_STEP because it quantises a quarter of the banner's width, so
+    #: a 128px step would routinely overshoot the slot by more than half.
+    POSTER_STEP = 64
+
+    def _poster_fetch(self, physical):
+        """Physical size to ask for, given a drawn size. Rounded UP to
+        :data:`POSTER_STEP` -- see :meth:`_banner_fetch_w` for the rule and
+        the reason."""
+        step = self.POSTER_STEP
+        if physical <= 0:
+            return 0
+        return int(-(-physical // step) * step)
+
     def _banner_poster(self, item, box, backdrop_spec):
         """``(image or None, cache tag)`` for the poster inset into a header.
 
@@ -925,7 +939,19 @@ class TileRenderer:
         # poster_box works in the same units -- so rastering again asked the
         # server for a poster at scale-squared on any HiDPI display, and
         # cached it under a key the drawn size never matches.
-        pw, ph = int(slot[2]), int(slot[3])
+        #
+        # Quantised for the same reason the backdrop's own width is
+        # (`_banner_fetch_w`), and this is the axis that was left uncovered:
+        # the slot is a FRACTION of the banner, so it moves with every pixel
+        # of the banner's width, and the banner's width is continuous in the
+        # window's. A drag-resize therefore minted a poster request roughly
+        # every four pixels. Padded headers hid most of it behind the 1100
+        # cap -- above that window width the slot stops moving -- but a
+        # full-bleed header has no cap, so there it ran for the whole drag.
+        # Up, never down, so the fetched poster is only ever shrunk into its
+        # slot by `_paste_poster`.
+        pw = self._poster_fetch(int(slot[2]))
+        ph = self._poster_fetch(int(slot[3]))
         key = make_key(item_id, itype, itag, pw, ph, fit="fit")
         url = self.art.source.image_url(self.art.server, item_id, itype,
                                         itag, pw, ph, fill=False)
@@ -1022,7 +1048,21 @@ class TileRenderer:
             url = self.art.source.backdrop_url(self.art.server, item,
                                                width=fetch_w, height=fetch_h,
                                                fill=True)
-            img = self._request_image(fetch_key, url, (fetch_w, fetch_h))
+            # **The decode box is square, and that is not a typo.** The store
+            # fits a decoded image INSIDE the box it is given
+            # (`Image.thumbnail`, i.e. contain), while everything below here
+            # COVERS -- so a box carrying the banner's own aspect throws away
+            # exactly the resolution the cover-crop is about to ask for.
+            # Measured against a real server (12.0): `fillWidth`/`fillHeight`
+            # scale the artwork to cover that box and do NOT crop to it, so a
+            # 1920x1080 backdrop arrived whole, was contained into a 2560x448
+            # box down to 796x448, and compose_banner then blew that back up
+            # 3.2x across a full-bleed header. Bounding the LONG EDGE alone
+            # leaves the width intact for anything landscape, which is all
+            # `backdrop_spec` will hand back; a server that really does crop
+            # to the ratio still lands well inside it, so this costs nothing
+            # where the old assumption held.
+            img = self._request_image(fetch_key, url, (fetch_w, fetch_w))
             # The poster is a SECOND fetch with its own arrival time, so it
             # goes in the key: without it the first composition -- backdrop
             # here, poster still loading -- is what the cache serves for

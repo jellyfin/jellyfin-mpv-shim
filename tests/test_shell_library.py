@@ -3595,14 +3595,22 @@ class InsetArtworkHeightTest(unittest.TestCase):
              ("full-bleed-wide", (2550, 412)))
 
     def test_a_thumbnail_never_takes_more_than_its_share(self):
+        """...of the space AVAILABLE, which is the banner less the margin it
+        keeps top and bottom -- not of the banner. Measured against the
+        whole height the fraction is generous by both margins at once, and
+        a "60%" still was taking 86% of the room there was on a wide
+        header [iw]."""
         from jellyfin_mpv_shim.mpvtk_browser.components import banner
 
         for label, box in self.BOXES:
             with self.subTest(box=label):
+                margin = banner.poster_box(box)[0]
+                avail = box[1] - 2 * margin
                 h = self._drawn(box, self.STILL)
                 self.assertLessEqual(
-                    h, box[1] * banner.THUMB_H_FRAC + 1,
-                    "a still takes %d of %dpx of header" % (h, box[1]))
+                    h, avail * banner.THUMB_H_FRAC + 1,
+                    "a still takes %d of the %dpx available in a %dpx "
+                    "header" % (h, avail, box[1]))
 
     def test_and_the_cap_actually_bites_on_a_wide_header(self):
         """Necessary, because every assertion above is also satisfied by a

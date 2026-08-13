@@ -608,20 +608,26 @@ class Settings(SettingsBase):
     #: no padding above or beside them -- jellyfin-web's full-bleed
     #: backdrop.
     #:
-    #: **Off by default**, which is not what this shipped as. Two things
-    #: decided it, both only visible against a real library:
+    #: **On by default -- and it shipped off.** Both of the things that
+    #: decided that turned out to be bugs elsewhere rather than costs of
+    #: this mode, and both are fixed:
     #:
-    #: * a lot of backdrop artwork is low-resolution, and full bleed is the
-    #:   mode that asks the most of it -- the same picture stretched over
-    #:   another few hundred pixels of width, cropped harder;
-    #: * the scroll view reserves a gutter for its scrollbar, so a
-    #:   "full-width" header stops 10px short of the window on any page long
-    #:   enough to scroll, and a notch at the end of an edge-to-edge banner
-    #:   reads worse than a margin does.
+    #: * "backdrop artwork is low-resolution and this stretches it
+    #:   furthest" was the header asking the thumbnail store to decode into
+    #:   a box shaped like the BANNER. That store contains where the
+    #:   compositor covers, so a 1920x1080 backdrop was contained down to
+    #:   796px wide and then blown back up over the header -- not a
+    #:   property of the artwork at all (TileRenderer.backdrop_node);
+    #: * "a full-width header stops 10px short of the window" was the
+    #:   scrollbar gutter being reserved by this side unconditionally and
+    #:   by the layout only when the content overflowed. The layout now
+    #:   reserves it always and renderer.lua paints the track whenever it
+    #:   exists, so the strip beside the banner is a scrollbar rather than
+    #:   a void (mpvtk.layout).
     #:
-    #: It still costs no vertical space either way: the header keeps the
-    #: height the padded version had (see TileRenderer.banner_box).
-    backdrop_full_width: bool = False
+    #: It costs no vertical space either way: the header keeps the height
+    #: the padded version had (see TileRenderer.banner_box).
+    backdrop_full_width: bool = True
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the

@@ -36,6 +36,81 @@ class TestHelpers(unittest.TestCase):
         out = imageutil.scale_to_cover(src, 100, 100)
         self.assertEqual(out.getpixel((50, 50)), (0, 0, 255, 255))
 
+    def test_the_default_crop_is_still_centred(self):
+        """A 1:2 source into a 1:1 box drops equal bands off both ends."""
+        src = Image.new("RGBA", (100, 400), (0, 0, 0, 255))
+        for y in range(400):                    # a vertical ramp to read off
+            for x in range(100):
+                src.putpixel((x, y), (y // 2, y // 2, y // 2, 255))
+        out = imageutil.scale_to_cover(src, 100, 100)
+        # The kept band is rows 150..250 of 400, whose ramp values are 75..125
+        self.assertAlmostEqual(out.getpixel((50, 50))[0], 100, delta=2)
+
+    def test_gravity_moves_the_crop_up_the_source(self):
+        """TOP_HEAVY keeps the band centred a third of the way down, which
+        on a wide banner is where the subject of a piece of key art is
+        rather than where its middle happens to fall [iw]."""
+        src = Image.new("RGBA", (100, 400), (0, 0, 0, 255))
+        for y in range(400):
+            for x in range(100):
+                src.putpixel((x, y), (y // 2, y // 2, y // 2, 255))
+        out = imageutil.scale_to_cover(src, 100, 100,
+                                       gravity_y=imageutil.TOP_HEAVY)
+        # Centred on row 133 of 400, i.e. a ramp value of ~66.
+        self.assertAlmostEqual(out.getpixel((50, 50))[0], 66, delta=3)
+
+    def test_gravity_is_clamped_to_the_picture(self):
+        """A box too tall for the bias to be honoured goes as far that way
+        as it can. Nothing may hang off the edge -- a crop box outside the
+        image comes back the wrong SIZE, which is the one thing every
+        caller here depends on."""
+        src = Image.new("RGBA", (400, 210), (0, 0, 0, 255))
+        for y in range(210):
+            for x in range(400):
+                src.putpixel((x, y), (y, y, y, 255))
+        out = imageutil.scale_to_cover(src, 400, 200,
+                                       gravity_y=imageutil.TOP_HEAVY)
+        self.assertEqual(out.size, (400, 200))
+        # Wanted to centre on row 70 and could not: it sits at the top.
+        # The ALPHA is the half that matters -- a crop box hanging off the
+        # picture comes back the right size, padded with transparent black,
+        # so an assertion on the colour alone passes on an unclamped crop.
+        self.assertEqual(out.getpixel((200, 0)), (0, 0, 0, 255))
+
+    def test_gravity_never_asks_for_more_than_the_source_has(self):
+        """Over the whole range of banner shapes, not one of them: the
+        clamp is a boundary and a single shape either hits it or does not.
+        """
+        src = Image.new("RGBA", (1920, 1080), (10, 20, 30, 255))
+        for w, h in ((1100, 412), (1910, 412), (2550, 412), (900, 337),
+                     (1280, 720), (400, 900)):
+            with self.subTest(box=(w, h)):
+                out = imageutil.scale_to_cover(
+                    src, w, h, gravity_y=imageutil.TOP_HEAVY)
+                self.assertEqual(out.size, (w, h))
+                # An out-of-bounds crop is padded with transparent black, so
+                # full opacity is the evidence it stayed inside -- and BOTH
+                # corners, because the bias only ever runs off the top, so
+                # the far corner alone is satisfied by a crop that does.
+                for corner in ((0, 0), (w - 1, h - 1)):
+                    self.assertEqual(out.getpixel(corner), (10, 20, 30, 255),
+                                     "cropped outside the picture at %r"
+                                     % (corner,))
+
+    def test_the_banner_asks_for_the_top_of_its_backdrop(self):
+        """The pure function having a knob proves nothing about the header
+        using it -- and the header is the only caller that wants it."""
+        src = Image.new("RGBA", (1920, 1080), (0, 0, 0, 255))
+        for y in range(1080):
+            for x in range(1920):
+                src.putpixel((x, y), (y // 5, y // 5, y // 5, 255))
+        box = (1910, 412)
+        out = components.banner.compose_banner(src, box)
+        centred = imageutil.scale_to_cover(src, *box)
+        self.assertLess(out.getpixel((box[0] // 2, box[1] // 2))[0],
+                        centred.getpixel((box[0] // 2, box[1] // 2))[0] - 5,
+                        "the banner still takes the middle band")
+
     def test_the_gradient_darkens_the_bottom_and_spares_the_top(self):
         src = Image.new("RGBA", (50, 100), (255, 255, 255, 255))
         out = imageutil.apply_dark_gradient(src, height_fraction=0.5,

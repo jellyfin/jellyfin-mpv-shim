@@ -1091,6 +1091,13 @@ class FakeThumbs:
         #: cached image being drawn — or an evicted one being re-fetched,
         #: which is the failure mode that goes with it.
         self.cached = {}
+        #: key -> the (w, h) box the caller asked the image to be decoded
+        #: into. The real store applies it with `Image.thumbnail`, i.e.
+        #: CONTAIN -- so this is what decides how much of the artwork
+        #: survives, and a stand-in that dropped it (which this did) makes
+        #: every "is the picture big enough" question unaskable while every
+        #: test still passes. See BannerResolutionTest.
+        self.boxes = {}
 
     def set_notify(self, notify):
         self._notify = notify
@@ -1103,6 +1110,7 @@ class FakeThumbs:
 
     def request(self, key, url, box, callback):
         self.requests.append((key, url))
+        self.boxes[key] = tuple(box)
         self._cbs[key] = callback
 
     def resolve(self, key, image):

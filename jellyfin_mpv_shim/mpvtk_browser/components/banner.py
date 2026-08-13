@@ -57,9 +57,18 @@ POSTER_H_FRAC = 0.78
 #: episode still is limited by this rather than by the height.
 POSTER_W_FRAC = 0.25
 
-#: Fraction of the banner's height a LANDSCAPE inset may take -- an
-#: episode still, a home video's frame -- against POSTER_H_FRAC's 0.78 for
-#: a poster.
+#: Fraction of the banner's AVAILABLE height a LANDSCAPE inset may take --
+#: an episode still, a home video's frame -- against POSTER_H_FRAC's 0.78
+#: for a poster.
+#:
+#: Available, and the two fractions are deliberately of different things.
+#: POSTER_H_FRAC is of the whole banner and *defines* the margin it leaves
+#: (0.11 of the height, top and bottom); this one is applied afterwards, to
+#: a picture already sitting inside that, so measuring it against the whole
+#: height too counted the margins twice over -- 60% of the banner is nearer
+#: 70% of the space there is [iw: "we're doing 60% including the margin,
+#: should be 60% of available space"]. The band it is a fraction of is the
+#: one the horizontal margin implies: `h - 2 * margin`.
 #:
 #: The two need different numbers because the width limit above is doing
 #: the work for one of them and not the other. A poster is height-limited
@@ -111,14 +120,18 @@ def compose_banner(image, box, title=None, meta=None, context=None,
     """
     from PIL import ImageDraw
 
-    from ...imageutil import (apply_dark_gradient, pil_font,
+    from ...imageutil import (TOP_HEAVY, apply_dark_gradient, pil_font,
                               scale_to_cover)
 
     # box is PHYSICAL here; the bare sizes below are logical constants,
     # so they convert. The h//6 and w//40 terms are already physical
     # because they derive from box.
     w, h = box
-    canvas = scale_to_cover(image.convert("RGBA"), w, h)
+    # TOP_HEAVY rather than a centre crop: the banner is a wide slot cut out
+    # of a 16:9 backdrop, so the middle band of one is chins and shoulders.
+    # See imageutil.TOP_HEAVY.
+    canvas = scale_to_cover(image.convert("RGBA"), w, h,
+                            gravity_y=TOP_HEAVY)
     if not title:
         return canvas
     canvas = apply_dark_gradient(canvas, height_fraction=0.7,
@@ -198,10 +211,14 @@ def _paste_poster(canvas, poster, slot):
     art = poster.convert("RGBA")
     if art.height and art.width / art.height >= THUMB_RATIO:
         # A thumbnail, not a poster: hold it to a smaller share of the
-        # banner's height. See THUMB_H_FRAC -- the slot's height limit is a
-        # poster's, and a landscape picture reaches it only when the banner
-        # is wider than the shape that limit was chosen for.
-        max_h = min(max_h, int(canvas.height * THUMB_H_FRAC))
+        # banner. See THUMB_H_FRAC -- the slot's height limit is a poster's,
+        # and a landscape picture reaches it only when the banner is wider
+        # than the shape that limit was chosen for.
+        #
+        # Of the height INSIDE the margins, which `x` is (poster_box puts
+        # the artwork's left edge exactly one margin in), not of the whole
+        # banner.
+        max_h = min(max_h, int((canvas.height - 2 * x) * THUMB_H_FRAC))
     art.thumbnail((max_w, max_h), Image.LANCZOS)
     aw, ah = art.size
     ay = baseline - ah
