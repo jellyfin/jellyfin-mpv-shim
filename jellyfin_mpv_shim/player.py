@@ -575,6 +575,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # sheet funnel through toggle_stats() so this stays truthful (the
         # mpvtk HUD's gear row is now our own Playback Info -- see #10).
         self._stats_shown = False
+        # The playback HUD's per-session deinterlace force: True while the
+        # gear menu has turned it on for what is being watched, None while
+        # `deinterlace_auto` decides. Cleared when the library comes back
+        # or the window goes away (clear_deinterlace_override), so it
+        # outlives a queue advance -- a badly-flagged season is one answer,
+        # not one per episode -- and nothing else.
+        self._deinterlace_override = None
+        # What `video-sync` was before motion interpolation first wrote it,
+        # so turning the feature off restores the user's value rather than
+        # mpv's default. See _apply_interpolation.
+        self._video_sync_saved = None
         # True while the in-window browser's solid background image is the
         # loaded file. Guards against reloading it on top of itself, which
         # tears the video output down and back up (a visible window
@@ -917,6 +928,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A fresh mpv starts with stats.lua's overlay off — don't let a stale
         # flag make clear_stats() toggle it back on.
         self._stats_shown = False
+        # ...and it starts with the user's own video-sync, so a value saved
+        # from the PREVIOUS mpv would be restored over it.
+        self._video_sync_saved = None
         # Likewise the colorspace hint: this mpv holds the user's own value,
         # so the flag must not claim it is already parked — the browser taking
         # the window back would then skip parking it (suspend_colorspace_hint).
@@ -2371,6 +2385,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # Never let a decode *preference* stop playback: mpv keeps
             # whatever it had, which is at worst the previous item's.
             log.debug("could not apply the hwdec setting", exc_info=True)
+        # Deinterlacing and motion interpolation, per item and for the same
+        # reason hwdec is: both are plain settings, and applying them only
+        # at construction would mean a change took effect on the next
+        # launch rather than the next thing played. Both are also cheap
+        # property writes rather than construction options, so there is
+        # nothing to gain by doing it earlier.
+        #
+        # Separately guarded from hwdec above, not folded into its try:
+        # they are unrelated preferences, and an mpv that rejects one has
+        # no bearing on the others. Sharing a block means the first failure
+        # silently drops the rest.
+        try:
+            from .mpv_options import deinterlace_value
+
+            self._apply_deinterlace(
+                deinterlace_value(self._deinterlace_override))
+        except Exception:
+            log.debug("could not apply the deinterlace setting",
+                      exc_info=True)
+        try:
+            self._apply_interpolation()
+        except Exception:
+            log.debug("could not apply motion interpolation", exc_info=True)
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
         # the duration wait below and the HUD's scrub bar both depend on it
@@ -2754,6 +2791,100 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self._stats_shown = not self._stats_shown
         except _mpv_errors:
             self._handle_mpv_disconnect()
+
+    # ------------------------------------------------- picture processing
+
+    def _apply_deinterlace(self, value):
+        """Write mpv's ``deinterlace``, tolerating a build without ``auto``.
+
+        ``auto`` is mpv 0.38+; older builds reject the value outright. The
+        fallback is ``no``, **never ``yes``** -- forcing deinterlacing on
+        every file is not a degraded version of "deinterlace what is
+        flagged", it is a different setting that softens progressive video.
+        Somebody on an old mpv gets the feature they cannot have turned off
+        rather than a worse one turned on, and a line in the log saying so.
+        """
+        try:
+            self._player.deinterlace = value
+        except Exception:
+            if value != "auto":
+                raise
+            log.info("this mpv has no deinterlace=auto; leaving it off")
+            self._player.deinterlace = "no"
+
+    def _apply_interpolation(self):
+        """Write the configured motion-interpolation preset, or undo ours.
+
+        The undo is what ``_video_sync_saved`` is for. Turning the feature
+        off cannot simply write ``video-sync=audio``: that is mpv's default
+        rather than necessarily *this user's*, and somebody who chose a
+        display-sync mode in their own mpv.conf would find us overriding it
+        every time an item started. So the first time we change it we keep
+        what was there, and "off" puts that back.
+        """
+        from .mpv_options import interpolation_props
+
+        props = interpolation_props()
+        if props:
+            if self._video_sync_saved is None:
+                # Read before writing, once. Reading it back later would
+                # return OUR value and make the restore a no-op.
+                self._video_sync_saved = str(self._player.video_sync)
+            for prop, value in props.items():
+                setattr(self._player, prop.replace("-", "_"), value)
+            return
+        self._player.interpolation = False
+        if self._video_sync_saved is not None:
+            self._player.video_sync = self._video_sync_saved
+            self._video_sync_saved = None
+
+    def set_deinterlace(self, on):
+        """Force deinterlacing on (or back to the configured default) for
+        this session -- the playback HUD's gear-menu toggle.
+
+        Deliberately not persisted. It is the answer to one file (or one
+        badly-flagged season) rather than a statement about the library,
+        and ``deinterlace_auto`` is where a durable answer goes.
+
+        Not ``@synchronous``, like ``set_night_mode`` and for the same
+        reason: every caller is the browser, and ``run_action`` has already
+        taken ``_lock`` (or deferred the whole call to the action thread)
+        before this runs.
+        """
+        self._deinterlace_override = True if on else None
+        if self._player is not None and self._mpv_alive:
+            try:
+                from .mpv_options import deinterlace_value
+
+                self._apply_deinterlace(
+                    deinterlace_value(self._deinterlace_override))
+            except Exception:
+                log.debug("could not set deinterlacing", exc_info=True)
+
+    def deinterlace_state(self):
+        """``(is_on, is_auto)`` for the gear menu's row, from MPV rather
+        than from our own override -- the two differ on a build with no
+        ``auto``, and what the menu has to describe is what is happening.
+        """
+        try:
+            value = self._player.deinterlace
+        except Exception:
+            return False, False
+        if isinstance(value, str):
+            return value == "yes", value == "auto"
+        return bool(value), False
+
+    def clear_deinterlace_override(self):
+        """Drop the per-session force. Called on the way back to the
+        library, like :meth:`clear_stats`, **and on minimize** -- closing
+        the window does not go through the first one. The next thing played
+        starts from the setting again, so the override lasts exactly as
+        long as the watching session it was set during.
+
+        Nothing is re-applied here: with playback over there is no picture
+        to change, and ``_play_media`` writes the setting for every item.
+        """
+        self._deinterlace_override = None
 
     def clear_stats(self):
         """Hide the Playback Data overlay if it is up. Called when returning

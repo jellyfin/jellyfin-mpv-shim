@@ -417,6 +417,54 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         self.assertIn(("set_speed", (2.0,)), ctl.transport)
         self.assertIsNone(b.hud.menu, "leaf selection closes the menu")
 
+    def test_the_gear_offers_deinterlace(self):
+        """A per-session force, for the file that IS interlaced and does
+        not say so. The durable answer is `deinterlace_auto` in Settings;
+        this is the one you reach for mid-episode."""
+        b, ctl = self._browser()
+        b.hud.menu = "root"
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        idx = next(i for i, l in enumerate(menu["items"])
+                   if "deinterlace" in l.lower())
+        self.assertFalse(menu["icons"][idx], "ticked before anyone asked")
+        handlers["hud-menu"]["select"](idx, menu["items"][idx])
+        self.assertIn(("toggle_deinterlace", ()), ctl.transport)
+
+    def test_the_deinterlace_row_reports_what_mpv_is_doing(self):
+        """Three states, and the middle one is why the row is not a plain
+        checkbox: with `deinterlace_auto` on, "not forced" is not "off"."""
+        for answer, ticked, label_has in (((False, False), False, None),
+                                          ((True, False), True, None),
+                                          ((False, True), False, "auto")):
+            with self.subTest(answer=answer):
+                b, ctl = self._browser()
+                ctl.deinterlace_answer = answer
+                b.hud.menu = "root"
+                nodes, _h = build_scene(b, (1280, 720))
+                menu = next(n for n in nodes if n.get("id") == "hud-menu")
+                idx = next(i for i, l in enumerate(menu["items"])
+                           if "deinterlace" in l.lower())
+                self.assertEqual(bool(menu["icons"][idx]), ticked)
+                if label_has:
+                    self.assertIn(label_has, menu["items"][idx].lower())
+
+    def test_the_deinterlace_row_does_not_toggle_from_a_stale_read(self):
+        """A gear menu can sit open across a queue advance. The tick is a
+        snapshot -- it is drawn -- but the ACTION must re-read, or a row
+        built when deinterlacing was off toggles it off again."""
+        b, ctl = self._browser()
+        b.hud.menu = "root"
+        nodes, handlers = build_scene(b, (1280, 720))
+        menu = next(n for n in nodes if n.get("id") == "hud-menu")
+        idx = next(i for i, l in enumerate(menu["items"])
+                   if "deinterlace" in l.lower())
+        # ...something else turns it on while the menu is up.
+        ctl.deinterlace_answer = (True, False)
+        handlers["hud-menu"]["select"](idx, menu["items"][idx])
+        self.assertEqual(ctl.deinterlace_answer, (False, False),
+                         "the row toggled from the state it was drawn with")
+
     def test_the_gear_does_not_repeat_the_bar(self):
         """SyncPlay and Video Quality have their own buttons on the bar, so
         a row for each in the gear's root is a second door to the same

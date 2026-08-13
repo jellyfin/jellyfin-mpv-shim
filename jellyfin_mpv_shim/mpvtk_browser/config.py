@@ -178,7 +178,9 @@ TAB_SECTIONS = {
         (_("Video Enhancement"), ["shader_pack_enable",
                                   "shader_pack_subtype",
                                   "shader_pack_remember",
-                                  "shader_pack_gpu_api"]),
+                                  "shader_pack_gpu_api",
+                                  "deinterlace_auto",
+                                  "motion_interpolation"]),
         (_("Skip Intro / Credits"), ["segment_intro", "segment_outro",
                                      "segment_commercial",
                                      "segment_preview", "segment_recap",
@@ -230,6 +232,15 @@ LABELED_ENUMS = {
         (_("Only above 1080p"), "over-1080p"),
         (_("On"), "auto"),
         (_("Copy (advanced)"), "auto-copy"),
+    ],
+    # Not quality tiers -- three different trades. See
+    # mpv_options.INTERPOLATION_PRESETS for what each writes and why the
+    # last one is labelled as the expensive one rather than the best one.
+    "motion_interpolation": [
+        (_("Off"), "off"),
+        (_("Smooth Motion"), "smooth"),
+        (_("Blend Frames"), "blend"),
+        (_("Smooth (high quality)"), "hq"),
     ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
@@ -370,6 +381,8 @@ LABEL_OVERRIDES = {
     "detail_poster": _("Show Posters on Detail Pages"),
     "detail_episode_image": _("Show Episode Thumbnails on Detail Pages"),
     "hwdec": _("Hardware Decoding"),
+    "deinterlace_auto": _("Deinterlace Automatically"),
+    "motion_interpolation": _("Motion Interpolation"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
     "auto_download_next_up_limit": _("Next Up Entries to Consider"),
@@ -479,6 +492,18 @@ NOTES = {
     # whether to change it is looking. mpv's own manual says to
     # "acknowledge that this may cause problems"; the tail it breaks for
     # is disproportionately the hardware that needed it.
+    "deinterlace_auto": _(
+        "Deinterlace video the file says is interlaced. Off by default, as "
+        "in MPV itself: the flag is not reliable in either direction, and "
+        "deinterlacing progressive video softens a picture that was fine. "
+        "To force it on for something that is interlaced without saying so, "
+        "use Deinterlace in the player's settings menu \u2014 that lasts "
+        "until you return to the library. Needs MPV 0.38 or newer."),
+    "motion_interpolation": _(
+        "Frame blending (blends frames together, not the same as "
+        "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "
+        "rate between content and display. May cause dropped frames if your "
+        "displays have mismatched frame rates."),
     "hwdec": _("Off by default because some graphics drivers handle it "
                "badly. \"Only above 1080p\" is the cautious way to turn "
                "it on: most hardware decodes 1080p in software without "

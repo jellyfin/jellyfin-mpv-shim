@@ -25,6 +25,13 @@ class PlaybackMixin(GatewayCore):
         # Put away the Playback Data overlay if playback left it up: it is ASS
         # OSD and would linger behind the library otherwise.
         playerManager.clear_stats()
+        # ...and drop the gear menu's per-session deinterlace force, for the
+        # same reason and at the same moment: it was turned on for the thing
+        # that just finished. It deliberately survives a queue advance --
+        # a season whose interlacing is not flagged is one answer, not one
+        # per episode -- so returning to the library is one of the two
+        # places it ends. The other is on_minimize; see there.
+        playerManager.clear_deinterlace_override()
 
     def on_minimize(self):
         """Drop to the windowless state. set_browse_window(False) releases
@@ -36,6 +43,13 @@ class PlaybackMixin(GatewayCore):
         # context. It comes back on the next play or when the tray reopens
         # the library (see UserInterface.on_mpv_recreated).
         playerManager.mpvtk_active = False
+        # The other end of the per-session deinterlace force, and it is not
+        # redundant with on_browse_enter: closing the window comes through
+        # HERE, not through there [iw], so an override set mid-episode and
+        # never returned from outlived the session that set it. mpv itself
+        # only goes away when the window is closed -- it renders the
+        # library -- which makes this the last moment anything is watching.
+        playerManager.clear_deinterlace_override()
         playerManager.enable_osc(playerManager.osc_enabled)
         playerManager.set_browse_window(False)
 

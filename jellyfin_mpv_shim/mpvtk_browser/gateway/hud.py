@@ -214,6 +214,26 @@ class HudMixin(GatewayCore):
                 out[key] = value
         return out
 
+    def deinterlace(self):
+        """``(is_on, is_auto)`` for the gear menu's Deinterlace row.
+
+        A direct read like ``get_speed``, not an ``_act``: it is asked on
+        the render path, and a deferred answer is no answer at all to a
+        menu that is being drawn now.
+        """
+        from ...player import playerManager
+        try:
+            return playerManager.deinterlace_state()
+        except Exception:
+            return False, False
+
+    def toggle_deinterlace(self):
+        """Force deinterlacing on for this session, or hand it back to the
+        setting. Applies to what is playing right now -- no reload."""
+        from ...player import playerManager
+        on = playerManager.deinterlace_state()[0]
+        self._act(lambda pm: pm.set_deinterlace(not on))
+
     def toggle_night_mode(self):
         """Night mode on/off from the playback HUD's gear menu. Applies to
         what is playing right now — no reload."""

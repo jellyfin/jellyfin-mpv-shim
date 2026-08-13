@@ -106,6 +106,60 @@ You can adjust the basic transcoder settings via the menu.
       opting in. The blanket `auto-copy` every profile carries is ignored —
       that is a policy about the machine, not a requirement of the profile.
   - The playback HUD's *Playback Info* panel reports what is actually in use.
+- `deinterlace_auto` - Deinterlace video whose file says it is interlaced.
+      Default: `false`
+  - This is mpv's `--deinterlace=auto`, and off is mpv's own default. The
+      interlaced flag is unreliable in both directions: plenty of DVD and
+      broadcast rips are interlaced without carrying it, and plenty of
+      progressive files carry it from whatever produced them. Deinterlacing
+      progressive video softens a picture that was fine, which is why this is
+      opt-in.
+  - For the other half — a file that *is* interlaced and does not say so —
+      there is a **Deinterlace** entry in the player's settings (gear) menu.
+      That forces it on for what you are watching and reverts when you go back
+      to the library, so it survives moving to the next episode of a badly
+      flagged season without becoming a permanent setting.
+  - `auto` needs **mpv 0.38 or newer**. On an older build the option is
+      refused and the setting behaves as off; it will not silently fall back
+      to deinterlacing everything, because that is a different and worse
+      setting rather than a degraded version of this one.
+- `motion_interpolation` - Blend frames to reduce judder. Default: `off`
+  - Values: `off`, `smooth`, `blend`, `hq`.
+  - Video whose framerate does not divide into your display's refresh rate has
+      to have frames repeated unevenly — 24fps on a 60Hz screen is the usual
+      case — and that unevenness is the judder. These modes resample along the
+      time axis so the frames land evenly instead.
+  - **This is frame blending, not motion synthesis.** It is not an SVP
+      replacement; SVP was looked at and rejected, because it is now paid on
+      Linux and its dependencies are heavy.
+  - `smooth` (mpv's `tscale=oversample`) blends only across the transition
+      between frames, so motion evens out and the picture stays sharp. `blend`
+      (`linear`) cross-fades between the two nearest frames: the smoothest
+      motion, visibly softer on a pan. `hq` (`mitchell`) is a wider kernel over
+      more frames — smoother again, and the one that costs enough GPU to
+      matter. On hardware that cannot keep up it drops frames, which looks like
+      the judder it was turned on to fix.
+  - All three switch mpv to `video-sync=display-resample`, because
+      `--interpolation` is *silently disabled* without a display-sync mode.
+      That mode follows the display clock and adjusts audio speed slightly to
+      match, which is not what you want if you are bitstreaming to a receiver.
+      Turning the setting back off restores whatever `video-sync` you had.
+  - **If it drops frames on hardware that should cope, suspect your
+      monitors rather than your GPU.** These modes follow one display's
+      refresh rate, and mpv's own manual warns that "on multi-monitor
+      systems, there is a chance that the detected value is from the wrong
+      monitor" and that even a slightly wrong value "can ruin video
+      playback". A desktop mixing a 144Hz screen with 60Hz ones is exactly
+      that case, and it was measured dropping frames badly on a 4090. The
+      first thing to try is mpv's own
+      `display-fps-override=<the refresh rate of the screen you watch on>`
+      in your `mpv.conf` — though that did **not** resolve it on the machine
+      above, so a mismatched desktop may be more than one problem. There is
+      deliberately no setting for it here: we would be guessing at which
+      monitor you meant, which is the thing that is already wrong.
+  - The playback HUD's *Playback Info* panel reports dropped frames, split
+      into decoder and output. Output drops are the ones this causes.
+  - Takes effect on the next thing you play, like `hwdec`.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile

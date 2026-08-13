@@ -155,6 +155,60 @@ class Settings(SettingsBase):
     #: the poster left alone.
     detail_episode_image: bool = True
     hwdec: str = "no"
+    #: mpv's ``--deinterlace=auto``: deinterlace only what the file says is
+    #: interlaced, rather than everything or nothing.
+    #:
+    #: **Off by default, which is also mpv's default**, and the reason is
+    #: that the flag is not reliable. Plenty of interlaced DVD and broadcast
+    #: rips are not marked, and plenty of progressive files carry the flag
+    #: from whatever produced them -- so auto is right much more often than
+    #: it is wrong, but the case where it is wrong (deinterlacing
+    #: progressive video) softens a picture that was fine. The per-session
+    #: toggle in the playback HUD's gear menu is the answer for the other
+    #: half, the file that IS interlaced and does not say so -- it lasts
+    #: until the library comes back or the window is closed.
+    #:
+    #: ``auto`` is mpv 0.38+. An older build rejects the value, and the
+    #: setting then behaves as off -- see PlayerManager._apply_deinterlace,
+    #: which will not substitute ``yes``: forcing deinterlacing on
+    #: everything is not a degraded version of this, it is a different and
+    #: worse setting.
+    deinterlace_auto: bool = False
+    #: mpv frame interpolation -- ``video-sync=display-resample`` plus
+    #: ``interpolation`` and a ``tscale`` filter. See
+    #: mpv_options.INTERPOLATION_PRESETS for what each value writes.
+    #:
+    #: **This is frame BLENDING, not motion compensation.** It resamples
+    #: along the time axis so a 24fps film on a 60Hz screen stops
+    #: repeating frames unevenly; it does not synthesise motion the way
+    #: SVP does. That was looked at and rejected [iw]: it is paid on Linux
+    #: now, and its dependencies are heavy enough that shipping them is
+    #: not on the table.
+    #:
+    #: Off by default, and the reason is not that it is expensive. Measured
+    #: on a 9950X3D + RTX 4090 [iw], it dropped frames badly -- on a
+    #: MULTI-MONITOR X11 desktop whose screens run at different refresh
+    #: rates (144Hz beside two at 60). That is not a hardware limit, it is
+    #: mpv reading the wrong clock: "on multi-monitor systems, there is a
+    #: chance that the detected value is from the wrong monitor", and
+    #: "setting an incorrect value (even if slightly incorrect) can ruin
+    #: video playback" (mpv's manual, --display-fps-override). All three
+    #: modes follow that clock, so all three inherit the problem, and it is
+    #: a common enough desktop for the default to have to assume it.
+    #:
+    #: The first thing to try is mpv's own
+    #: ``display-fps-override=<the refresh of the screen you watch on>`` in
+    #: the user's mpv.conf -- but it did NOT fix the machine above [iw], so
+    #: the mismatched-desktop case is not fully understood and this is not
+    #: a workaround to promise anyone. Deliberately not a setting of ours
+    #: either way: we would be guessing at which monitor, which is the
+    #: thing that is already wrong.
+    #:
+    #: It also costs GPU on every frame, mpv reverts to audio timing on its
+    #: own for low-framerate or VFR content, and ``display-resample``
+    #: adjusts audio speed to track the display -- which is exactly what
+    #: somebody bitstreaming to a receiver does not want.
+    motion_interpolation: str = "off"
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False

@@ -855,6 +855,13 @@ class HudController(FakeController):
                          "groups": []},
             "allow_screenshot": True,
         }
+        #: ``(is_on, is_auto)``, as PlayerManager.deinterlace_state answers
+        #: it. Declared rather than left to __getattr__ for the reason the
+        #: class docstring gives -- a recorder answers None, `_ctl_get`
+        #: substitutes its default, and the gear row is then permanently
+        #: unticked whatever the player is doing. Mutable, so a test can
+        #: put the row in each of its three states (off, forced on, auto).
+        self.deinterlace_answer = (False, False)
         self.chapter_list = [
             {"title": "Opening", "time": 0.0},
             {"title": "Middle", "time": 40.0},
@@ -888,6 +895,21 @@ class HudController(FakeController):
 
     def use_hud(self):
         return True
+
+    def deinterlace(self):
+        return self.deinterlace_answer
+
+    def toggle_deinterlace(self):
+        """Record it AND flip the state, like the real one does.
+
+        Recording alone would leave the answer above frozen, so nothing
+        could show the row's tick following the toggle -- and "the menu
+        agreed that it worked" is most of what this control has to get
+        right.
+        """
+        on, auto = self.deinterlace_answer
+        self.deinterlace_answer = (not on, auto)
+        self.transport.append(("toggle_deinterlace", ()))
 
     def hud_menu_state(self):
         return self.menu_state
