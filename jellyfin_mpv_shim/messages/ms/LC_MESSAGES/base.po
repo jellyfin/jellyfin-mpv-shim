@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2025-11-15 02:16+0000\n"
-"Last-Translator: Gopinath Muruti <gopinath.muruti@gmail.com>\n"
+"PO-Revision-Date: 2026-08-13 04:04+0000\n"
+"Last-Translator: ZeroAiden <zeroaiden.game@gmail.com>\n"
 "Language-Team: Malay <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ms/>\n"
+"jellyfin-mpv-shim/ms/>\n"
 "Language: ms\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.14\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
@@ -83,7 +83,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Membersihkan semua akaun sedia ada."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -94,8 +94,9 @@ msgid "Adding server failed."
 msgstr "Gagal menambahkan pelayan."
 
 #: jellyfin_mpv_shim/clients.py
+#, fuzzy
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Akaun sudah wujud. Mengemas kini kelayakan."
 
 #: jellyfin_mpv_shim/clients.py
 #, fuzzy
@@ -305,7 +306,7 @@ msgstr ""
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Screenshot"
-msgstr ""
+msgstr "Tangkapan skrin"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Video Playback Profiles"
@@ -328,12 +329,13 @@ msgid "Close Menu"
 msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
+#, fuzzy
 msgid "Select Audio Track"
-msgstr ""
+msgstr "Pilih Trek Audio"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Track"
-msgstr ""
+msgstr "Pilih Trek Sarikata"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -342,27 +344,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Transcode Quality"
-msgstr ""
+msgstr "Pilih Kualiti Transkod"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "No Transcode"
-msgstr ""
+msgstr "Tiada Transkod"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Maximum"
-msgstr ""
+msgstr "Maksimum"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Audio/Subtitle for Series"
-msgstr ""
+msgstr "Pilih Audio/Sarikata untuk Siri"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "English Audio"
-msgstr ""
+msgstr "Audio Bahasa Inggeris"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Japanese Audio w/ English Subtitles"
-msgstr ""
+msgstr "Audio Bahasa Jepun dengan sarikata Bahasa Inggeris"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Manual by Track Index (Less Reliable)"
@@ -378,7 +380,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Selalu"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -386,31 +388,31 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Color"
-msgstr ""
+msgstr "Pilih Warna Sarikata"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Size"
-msgstr ""
+msgstr "Pilih Saiz Sarikata"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Subtitle Position"
-msgstr ""
+msgstr "Pilih Kedudukan Sarikata"
 
 #: jellyfin_mpv_shim/menu.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Bottom"
-msgstr ""
+msgstr "Bawah"
 
 #: jellyfin_mpv_shim/menu.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Top"
-msgstr ""
+msgstr "Atas"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Middle"
-msgstr ""
+msgstr "Tengah"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -420,17 +422,17 @@ msgstr ""
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
 msgid "Subtitle Size: {0}"
-msgstr ""
+msgstr "Saiz Sarikata: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
 msgid "Subtitle Position: {0}"
-msgstr ""
+msgstr "Kedudukan Sarikata: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
 msgid "Subtitle Color: {0}"
-msgstr ""
+msgstr "Warna Sarikata: {0}"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Transcode Hi10p to 8bit"
@@ -479,7 +481,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Check for Updates"
-msgstr ""
+msgstr "Semak Kemas Kini"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Discord Rich Presence"
@@ -522,7 +524,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Halaman"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -533,7 +535,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Halaman pertama"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -547,11 +549,11 @@ msgstr "Pelayan berjaya ditambah."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Halaman seterusnya"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Halaman terakhir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -675,7 +677,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Masukkan PIN baharu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
