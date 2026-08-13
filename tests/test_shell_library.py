@@ -3721,7 +3721,7 @@ class FilterPanelOrderTest(unittest.TestCase):
                     in dialogs.FILTER_SECTIONS)[self._label("Status")]
         lines = [[key for key, _t, _l in line] for line in spec]
         self.assertEqual(lines[0], ["unplayed", "played"])
-        self.assertEqual(lines[1], ["favorite", "resumable", "liked"])
+        self.assertEqual(lines[1], ["favorite", "resumable"])
 
     def test_every_check_section_is_rows_of_boxes(self):
         """The shape the renderer and both sweeps read. A section left flat
