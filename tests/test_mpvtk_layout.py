@@ -69,18 +69,21 @@ class TestLayout(unittest.TestCase):
         page_n = by_id(nodes, "page")
         row_n = by_id(nodes, "row")
         self.assertEqual(page_n["axis"], "y")
-        # 210px of content in a 400px viewport: nothing to scroll, so no bar
-        # and no gutter. renderer.lua's draw_scrollbar draws nothing when the
-        # content fits, so reserving the width anyway left an empty 10px
-        # strip down the right of every page that does not scroll -- which
-        # a full-bleed backdrop stops short of, at an edge with no bar on it.
-        self.assertNotIn("bar", page_n)
-        self.assertEqual(page_n["cw"], 800)
+        # 210px of content in a 400px viewport: nothing to scroll -- and the
+        # gutter is reserved anyway. It has to be: a full-bleed header sizes
+        # itself during build, before any of this is measured, so it can only
+        # assume the gutter is there and the layout has to agree whichever
+        # way the content falls. What used to argue against reserving it (an
+        # unpainted 10px strip) is handled at the other end now -- renderer
+        # .lua paints the track whenever the gutter exists.
+        self.assertTrue(page_n["bar"])
+        self.assertEqual(page_n["cw"], 790)
         self.assertEqual(row_n["sc"], "page")
         self.assertEqual(row_n["axis"], "x")
         # 10 tiles * 140 + 9 gaps * 10 = 1490
         self.assertEqual(row_n["cw"], 1490)
-        # ...and the other half: content that DOES overflow gets both.
+        # ...and content that DOES overflow gets exactly the same width, so
+        # nothing re-wraps as a page grows past its viewport.
         tall = Column(
             [VScroll(Column([Image("/x.bgra", 140, 200) for _ in range(6)],
                             gap=10), id="tall", flex=1)],
