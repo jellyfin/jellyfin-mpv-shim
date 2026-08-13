@@ -196,6 +196,40 @@ class TestSettings(unittest.TestCase):
         b.open_settings("playback")
         return b
 
+    def test_the_playback_tab_can_reach_the_config_folder(self):
+        """Several notes on this tab end by telling you to put something in
+        mpv.conf. A page that names a file and gives you no way to reach it
+        assumes you know where the app keeps its config."""
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        b = MpvtkBrowser(app=None, source=FakeSource())
+        opened = []
+        b.controller = type("Ctl", (), {
+            "open_config_folder": lambda self: opened.append(True)})()
+        # The click goes through `_client_call`, which is deliberately
+        # asynchronous -- reaching outside the process must not stall the
+        # loop thread. Inline here, or the assertion below races the pool.
+        b._pool = _SyncPool()
+        b.open_settings("playback")
+        nodes, handlers = layout(b.build((1280, 720)), 1280, 720)
+        self.assertIn("set-open-config", {n.get("id") for n in nodes})
+        handlers["set-open-config"]["click"]()
+        self.assertEqual(len(opened), 1)
+
+    def test_the_other_config_tabs_do_not_carry_it(self):
+        """It is on Playback because that is where the notes point at
+        mpv.conf, not because every settings page needs a folder button --
+        the Logs tab already has one, and three would be clutter."""
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        for tab in ("general", "browse"):
+            with self.subTest(tab=tab):
+                b = MpvtkBrowser(app=None, source=FakeSource())
+                b.open_settings(tab)
+                nodes, _h = layout(b.build((1280, 720)), 1280, 720)
+                self.assertNotIn("set-open-config",
+                                 {n.get("id") for n in nodes})
+
     @staticmethod
     def _dropdown(b, node_id, size=(1280, 720)):
         from jellyfin_mpv_shim.mpvtk.layout import layout
