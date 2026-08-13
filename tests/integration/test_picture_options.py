@@ -159,6 +159,70 @@ class DeinterlacePerItemTest(_Base):
         self.play()
         self.assertEqual(self.pm._player.deinterlace, "auto")
 
+    def test_the_row_reports_what_mpv_is_doing_not_the_mode(self):
+        """Under `auto` the mode says only "decide per file". Reading it as
+        the answer left the row unticked while mpv was deinterlacing a
+        flagged file -- and since the row toggles against what it reports,
+        pressing it then did nothing visible."""
+        self.setting("deinterlace_auto", True)
+        self.play()
+        self.assertEqual(self.pm._player.deinterlace, "auto")
+        self.pm._player.deinterlace_active = True      # a flagged file
+        self.assertEqual(self.pm.deinterlace_state(), (True, True))
+        self.pm._player.deinterlace_active = False     # a progressive one
+        self.assertEqual(self.pm.deinterlace_state(), (False, True))
+
+    def test_the_menu_can_hand_the_decision_back_to_the_setting(self):
+        """Two presses, three states. A two-state toggle over a three-state
+        value meant that with `deinterlace_auto` on, unticking left a hard
+        "no" for the rest of the session -- so a later episode that IS
+        flagged played un-deinterlaced [reviewer]. Driven through the
+        gateway, because the cycle lives there."""
+        from jellyfin_mpv_shim.mpvtk_browser.gateway.hud import HudMixin
+
+        self.setting("deinterlace_auto", True)
+        self.play()
+        self.assertEqual(self.pm._player.deinterlace, "auto")
+        gw = HudMixin()
+        with mock.patch("jellyfin_mpv_shim.player.playerManager", self.pm):
+            self.pm._player.deinterlace_active = True   # a flagged file
+            gw.toggle_deinterlace()                     # -> force off
+            self.assertEqual(self.pm._player.deinterlace, "no")
+            gw.toggle_deinterlace()                     # -> back to auto
+            self.assertEqual(self.pm._player.deinterlace, "auto")
+        self.assertFalse(self.pm.deinterlace_forced())
+
+    def test_the_force_can_turn_deinterlacing_off_as_well_as_on(self):
+        """`False` was unreachable: the toggle mapped "off" onto "let the
+        setting decide", so with `deinterlace_auto` on there was no way to
+        stop mpv deinterlacing a file its flag gets wrong."""
+        self.setting("deinterlace_auto", True)
+        self.pm.set_deinterlace(False)
+        self.play()
+        self.assertEqual(self.pm._player.deinterlace, "no")
+        self.pm.set_deinterlace(True)
+        self.assertEqual(self.pm._player.deinterlace, "yes")
+
+    def test_an_old_mpv_is_only_asked_about_auto_once(self):
+        """The discovery is cached like `_lua_works`. Without it an old
+        build re-attempts and re-logs on every item played, forever."""
+        self.setting("deinterlace_auto", True)
+        attempts = []
+        real = type(self.pm._player).__setattr__
+
+        def count_auto(obj, name, value):
+            if name == "deinterlace" and value == "auto":
+                attempts.append(value)
+                raise ValueError("option not found")
+            real(obj, name, value)
+
+        with mock.patch.object(type(self.pm._player), "__setattr__",
+                               count_auto):
+            for _ in range(3):
+                self.play()
+        self.assertEqual(len(attempts), 1, attempts)
+        self.assertEqual(self.pm._player.deinterlace, "no")
+
     def test_the_toggle_applies_without_waiting_for_the_next_item(self):
         """It is offered while you are watching the thing it is for."""
         self.setting("deinterlace_auto", False)
@@ -207,15 +271,57 @@ class InterpolationPerItemTest(_Base):
         self.assertEqual(p.video_sync, "display-resample")
         self.assertEqual(p.tscale, "oversample")
 
-    def test_off_leaves_the_users_own_video_sync_alone(self):
-        """Somebody who chose a display-sync mode in their mpv.conf has said
-        something more specific than this setting. Off must not write over
-        it -- only turn interpolation off."""
+    def test_off_leaves_a_users_own_mpv_conf_entirely_alone(self):
+        """Every one of these is a property somebody may have set in their
+        own mpv.conf, and OFF IS THE DEFAULT -- so an off that wrote its
+        idea of "not interpolating" would reach out on the first item and
+        turn off frame blending the user configured themselves.
+
+        `interpolation` is the one that was wrong: it was written
+        unconditionally while `video-sync` was carefully preserved, which
+        left the worst pair -- display-resample's cost with the feature it
+        exists for switched off, and no setting here that put it back.
+        """
         self.pm._player.video_sync = "display-resample-vdrop"
+        self.pm._player.interpolation = True
+        self.pm._player.tscale = "catmull_rom"
         self.setting("motion_interpolation", "off")
-        self.play()
+        for _ in range(3):
+            self.play()
         self.assertEqual(self.pm._player.video_sync, "display-resample-vdrop")
+        self.assertTrue(self.pm._player.interpolation,
+                        "we turned off interpolation we never turned on")
+        self.assertEqual(self.pm._player.tscale, "catmull_rom")
+
+    def test_off_still_undoes_what_we_did_write(self):
+        """The other half, and why "off writes nothing" is not the whole
+        rule: once a preset HAS been applied, off has to put back what was
+        there rather than leaving ours behind."""
+        self.pm._player.interpolation = False
+        self.pm._player.video_sync = "audio"
+        self.setting("motion_interpolation", "smooth")
+        self.play()
+        self.assertTrue(self.pm._player.interpolation)
+        with mock.patch.object(player_module.settings,
+                               "motion_interpolation", "off"):
+            self.play()
         self.assertFalse(self.pm._player.interpolation)
+        self.assertEqual(self.pm._player.video_sync, "audio")
+
+    def test_every_property_a_preset_wrote_is_restored(self):
+        """Not just `video-sync`. Somebody who used the high-quality preset
+        and then switched off was left with its `tscale` for the life of
+        the mpv -- inert while interpolation is off, and wrong the moment
+        anything else turned it on."""
+        self.pm._player.tscale = "oversample"
+        self.pm._player.video_sync = "audio"
+        self.setting("motion_interpolation", "hq")
+        self.play()
+        self.assertEqual(self.pm._player.tscale, "mitchell")
+        with mock.patch.object(player_module.settings,
+                               "motion_interpolation", "off"):
+            self.play()
+        self.assertEqual(self.pm._player.tscale, "oversample")
 
     def test_turning_it_off_restores_what_was_there_before_we_wrote(self):
         """Not mpv's default: the value this user had. Over three plays,
@@ -241,7 +347,7 @@ class InterpolationPerItemTest(_Base):
         self.setting("motion_interpolation", "blend")
         for _ in range(3):
             self.play()
-        self.assertEqual(self.pm._video_sync_saved, "audio")
+        self.assertEqual(self.pm._interp_saved["video-sync"], "audio")
 
     def test_switching_between_presets_moves_the_filter(self):
         self.setting("motion_interpolation", "smooth")

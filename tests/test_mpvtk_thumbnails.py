@@ -143,3 +143,48 @@ class TestThumbnailStore(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ArtworkRequestHeadersTest(unittest.TestCase):
+    """What goes out with an artwork request.
+
+    Artwork is the highest-volume traffic this client makes, so a server's
+    access log is mostly these lines -- and without a user agent they are
+    anonymous `python-requests/x.y` entries that nothing ties back to the
+    shim [iw]. That is exactly the log somebody reads when working out
+    which client is hammering them.
+    """
+
+    def _store(self, auth=None):
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import ThumbnailStore
+
+        store = ThumbnailStore.__new__(ThumbnailStore)
+        store._auth = dict(auth or {})
+        return store
+
+    def test_our_user_agent_goes_out(self):
+        from jellyfin_mpv_shim.constants import USER_AGENT
+
+        headers = self._store()._headers_for("https://jf.example/Items/1")
+        self.assertEqual(headers.get("User-Agent"), USER_AGENT)
+
+    def test_the_token_still_only_goes_to_its_own_origin(self):
+        """The agent is unconditional; the token is not. Asserted together
+        because the change that added the first one had to not widen the
+        second."""
+        auth = {("https", "jf.example", None): "MediaBrowser Token=\"x\""}
+        store = self._store(auth)
+        mine = store._headers_for("https://jf.example/Items/1/Images/Primary")
+        self.assertIn("Authorization", mine)
+        for url in ("https://elsewhere.example/Items/1/Images/Primary",
+                    "http://jf.example/Items/1/Images/Primary"):
+            with self.subTest(url=url):
+                other = store._headers_for(url)
+                self.assertNotIn("Authorization", other)
+                self.assertIn("User-Agent", other,
+                              "the agent is not a secret and should still go")
+
+    def test_an_unparseable_url_still_gets_the_agent(self):
+        """`urlparse` failing is what the try is for, and the early return
+        there used to be the whole header dict."""
+        self.assertIn("User-Agent", self._store()._headers_for(None))

@@ -656,7 +656,12 @@ class LiveTvPage(Page):
         if not items:
             return chrome.error(_("No series are set to record."))
         art = self.ctx.art
-        gpad, sgeom = art.tiles.grid_layout(size[0], art.geom)
+        # caption_geom first: a SeriesTimer carries an air time too, and
+        # this screen never asked -- which left the SeriesTimer arm of
+        # components.air_time_line, with its deliberate RecordAnyTime
+        # handling, unreachable in production.
+        gpad, sgeom = art.tiles.grid_layout(
+            size[0], art.tiles.caption_geom(items, art.geom))
         return VScroll(
             Column(art.tiles.grid_of(items, "ltseries", size, geom=sgeom,
                                      scroll_id="livetv-series",

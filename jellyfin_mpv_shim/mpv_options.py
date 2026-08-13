@@ -285,6 +285,13 @@ INTERPOLATION_PRESETS = {
 }
 
 
+#: Every property any preset writes. What "off" has to put back is this
+#: whole set, not the ones the CURRENT preset happens to name -- somebody
+#: who used `hq` and then switched to off must get their `tscale` back too.
+INTERPOLATION_KEYS = tuple(sorted(
+    {key for props in INTERPOLATION_PRESETS.values() for key in props}))
+
+
 def interpolation_props():
     """``{mpv property: value}`` for the configured preset, or ``{}``.
 

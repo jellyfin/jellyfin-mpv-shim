@@ -55,7 +55,7 @@ class MusicPage(Page):
                 lambda: actions.instant_mix(seed_id, server)))
         return Row(btns, gap=8, align="center")
 
-    def header_text(self, item, tracks, width, indent=0):
+    def header_text(self, item, tracks, width, indent=0, pad=None):
         """Title / metadata / overview for an album or artist page.
 
         Both were a bare title: no cover, no year or genre, no Overview, and
@@ -81,9 +81,17 @@ class MusicPage(Page):
                             color=theme.SUBTLE_FG))
         overview = (item.get("Overview") or "").strip()
         if overview:
-            out.append(chrome.paragraph(
-                overview, 15,
-                max(120, self.ctx.art.tiles.body_w(width) - indent)))
+            # `pad` is the column's ACTUAL horizontal padding, which is not
+            # always CONTENT_PAD: a page whose body is a grid takes its pad
+            # from `grid_layout`, and under `grid_fill: center` that is much
+            # larger. `body_w` assumes CONTENT_PAD, so without this the
+            # overview wrapped 148px wider than the column holding it and ran
+            # off the window -- the exact defect this width exists to stop,
+            # arriving from a caller rather than from the scale.
+            avail = (self.ctx.art.tiles.body_w(width) if pad is None
+                     else chrome.body_width(width, pad))
+            out.append(chrome.paragraph(overview, 15,
+                                        max(120, avail - indent)))
         return out
 
 
@@ -331,11 +339,16 @@ class MusicLibraryPage(MusicPage):
                                  chrome.CONTENT_PAD)
         page_items = art.pages.ensure(self.route, ps, self._page_fetcher(),
                                       seed=self.route.get("_data"))
+        # Both halves of the answer, and the geometry half was being thrown
+        # away: `grid_of` was drawn with the UNJUSTIFIED geom while only the
+        # pad was taken, so `grid_fill: justify` -- the default -- reached
+        # the scrolling tab four lines up and not this one. Turning on
+        # "Paginate tile grids" silently changed the spacing.
+        gpad, geom = art.tiles.grid_layout(size[0], geom)
         if page_items is None:
             rows = [Text(_("Loading…"), size="large", color=theme.SUBTLE_FG)]
         else:
             rows = art.tiles.grid_of(page_items, "music", size, geom=geom)
-        gpad, _g = art.tiles.grid_layout(size[0], geom)
         return Column(rows, gap=GRID_GAP, align="stretch", flex=1,
                       pad=(gpad, chrome.CONTENT_PAD))
 

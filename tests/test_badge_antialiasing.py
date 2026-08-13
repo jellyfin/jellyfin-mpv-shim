@@ -18,7 +18,8 @@ import unittest
 from PIL import Image, ImageDraw
 
 from jellyfin_mpv_shim.mpvtk_browser import strips, theme
-from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore, Tile, TileGeom
+from jellyfin_mpv_shim.mpvtk_browser.strips import (
+    StripStore, Tile, TileGeom, _font)
 
 
 def _partial(img):
@@ -127,6 +128,33 @@ class ChipCornerPitchTest(unittest.TestCase):
         self.assertTrue(marker, "no type marker")
         self.assertLess(max(marker), min(accent),
                         "the type marker is under the unplayed chip")
+
+    def test_a_shadowed_chip_also_clears_the_badge_beside_it(self):
+        """The `badge_shadow` branch drew a bare NUMBER and returned the
+        disc pitch, which is narrower than two digits at the stock text
+        size -- so the count was drawn over its neighbour, both white, both
+        haloed. Unreachable until the chip moved into the corner and gained
+        a neighbour; found by two reviewers independently."""
+        from PIL import Image as PILImage
+
+        from jellyfin_mpv_shim.mpvtk_browser import theme as th
+
+        was = (th.active() or {}).get("id") or "default"
+        th.apply("superdark")
+        self.addCleanup(th.apply, was)
+        img = PILImage.new("RGBA", (240, 60), (0, 0, 0, 0))
+        dr = ImageDraw.Draw(img)
+        for count in ("1", "12", "128", "1984"):
+            with self.subTest(count=count):
+                pitch = StripStore._paint_count_chip(img, dr, 180, 17,
+                                                     count, 14)
+                width = StripStore._shadowed_text(
+                    PILImage.new("RGBA", (240, 60), (0, 0, 0, 0)), count,
+                    _font(14, bold=True), 180, 17, right=193)
+                self.assertGreaterEqual(
+                    pitch, width,
+                    "a %s-wide count reports a %d pitch, so the badge to "
+                    "its left is drawn under it" % (width, pitch))
 
     def test_a_watched_folder_shows_the_tick_instead_of_a_count(self):
         """jellyfin-web returns one or the other from

@@ -1123,10 +1123,11 @@ class StripStore:
         job of separating the mark from the artwork. **The mark stays white**
         rather than adopting ``fill``: the pill is what makes an accent
         legible on a photograph, so an accent-coloured mark with no pill is
-        legible only for themes whose accent happens to be bright -- and the
-        first theme to ask for this (Darker) has a near-black one on purpose.
-        White reads on everything, which is the property the option is being
-        bought for.
+        legible only for themes whose accent happens to be bright, and
+        nothing guarantees one is -- Super Dark, the first theme to ask for
+        this, has a light grey accent, but a theme is free to set a dark
+        one and the option must not depend on which. White reads on
+        everything, which is the property being bought here.
         """
         from ..mpvtk import vector
 
@@ -1177,8 +1178,17 @@ class StripStore:
         if StripStore.shadowed_badges():
             # Same right edge, so it still lines up with the stack; the
             # chip's own 14px of horizontal padding goes with the chip.
-            StripStore._shadowed_text(img, text, font, 0, cy, right=right)
-            return _px(StripStore.BADGE_PITCH)
+            width = StripStore._shadowed_text(img, text, font, 0, cy,
+                                              right=right)
+            # The measured width, exactly as the pill branch below returns
+            # one. Returning BADGE_PITCH here was the bug: this branch draws
+            # a bare shadowed NUMBER, which is wider than the disc the pitch
+            # describes as soon as it has two digits -- 5px of overlap at
+            # the stock text size, 15px at three digits -- so the count was
+            # drawn over the badge to its left, both in white, both haloed.
+            # It could not fire until the chip moved into the corner and
+            # gained a neighbour.
+            return max(_px(StripStore.BADGE_PITCH), width + _px(4))
         bw = max(_px(26), int(dr.textlength(text, font=font)) + _px(14))
         _aa_fill(img, [right - bw, _px(5), right, _px(25)],
                  theme.rgb(theme.ACCENT, 255), radius=_px(6))
@@ -1238,6 +1248,11 @@ class StripStore:
         if right is not None:
             cx = right - layer.width // 2
         StripStore._shadowed(img, layer, th, cx, cy)
+        # The drawn width, so a caller pinning by `right` can tell the badge
+        # beside it how far to move. There is no other way to know: the
+        # layer is sized from the rendered glyphs plus a shadow pad taken
+        # off the cap height, neither of which the caller can compute.
+        return layer.width
 
     @staticmethod
     def _paint_kind(img, dr, cx, cy, name):
@@ -1297,6 +1312,19 @@ class StripStore:
         colour = theme.rgb(theme.SUBTLE_FG if state == "series_inactive"
                            else theme.FAV_RED)
         size = _px(StripStore.RECORD_BOX)
+        if StripStore.shadowed_badges():
+            # It keeps its COLOUR where the state badges go white -- the red
+            # dot is the record symbol everywhere in the app and a white one
+            # would read as a different badge -- but it takes the shadow.
+            # This was the one mark in the corner that consulted neither, so
+            # on a badge_shadow theme it was the only badge with nothing at
+            # all separating it from the artwork: a red dot on red artwork.
+            # A half-applied option is worse than an unapplied one.
+            layer, pad = StripStore._mark_layer(size)
+            glyph = vector.icon_image(name, size, colour)
+            layer.paste(glyph, (pad, pad), glyph)
+            StripStore._shadowed(img, layer, size, cx, cy)
+            return
         glyph = vector.icon_image(name, size, colour)
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 

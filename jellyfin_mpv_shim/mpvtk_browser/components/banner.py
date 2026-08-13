@@ -67,8 +67,10 @@ POSTER_W_FRAC = 0.25
 #: a picture already sitting inside that, so measuring it against the whole
 #: height too counted the margins twice over -- 60% of the banner is nearer
 #: 70% of the space there is [iw: "we're doing 60% including the margin,
-#: should be 60% of available space"]. The band it is a fraction of is the
-#: one the horizontal margin implies: `h - 2 * margin`.
+#: should be 60% of available space"]. So it is a fraction of the SLOT,
+#: which is that available space and nothing else. Deriving the band from
+#: the horizontal margin instead is what made a wider window shrink the
+#: thumbnail -- see _paste_poster.
 #:
 #: The two need different numbers because the width limit above is doing
 #: the work for one of them and not the other. A poster is height-limited
@@ -89,6 +91,10 @@ THUMB_H_FRAC = 0.60
 #: 4:3 still from an older show is as much a thumbnail as a 16:9 one.
 THUMB_RATIO = 1.33
 
+#: Widest shape anything inset into a header can be drawn at: a 16:9
+#: still. Used to bound the slot's WIDTH by its height -- see poster_box.
+MAX_INSET_ASPECT = 16 / 9
+
 
 def poster_box(box):
     """``(x, y, max_w, max_h)`` the inset artwork is fitted inside.
@@ -100,7 +106,14 @@ def poster_box(box):
     """
     w, h = box
     max_h = int(h * POSTER_H_FRAC)
-    max_w = int(w * POSTER_W_FRAC)
+    # Capped against the slot's own HEIGHT as well as the banner's width.
+    # POSTER_W_FRAC grows without limit while `h` is fixed (widening a
+    # banner buys backdrop, not page), so on a very wide window the slot
+    # was 1597px wide for a picture that can never be drawn wider than
+    # ~570 -- and `_banner_poster` sizes its REQUEST from this, so a
+    # detail page pulled a 1000x1500 poster whole (185 KB) to draw it at
+    # 214px (19 KB). Nothing inset here is wider than a 16:9 still.
+    max_w = min(int(w * POSTER_W_FRAC), int(max_h * MAX_INSET_ASPECT))
     margin = max(px(18), w // 40)
     if max_w <= 0 or max_h <= 0 or max_w > w // 3:
         return None
@@ -215,10 +228,21 @@ def _paste_poster(canvas, poster, slot):
         # and a landscape picture reaches it only when the banner is wider
         # than the shape that limit was chosen for.
         #
-        # Of the height INSIDE the margins, which `x` is (poster_box puts
-        # the artwork's left edge exactly one margin in), not of the whole
-        # banner.
-        max_h = min(max_h, int((canvas.height - 2 * x) * THUMB_H_FRAC))
+        # Of the SLOT, which `max_h` already is -- not of the banner, and
+        # not of the banner less a margin taken from its width.
+        #
+        # It was the last of those, and that is a paradox rather than a
+        # rounding error: the vertical inset came from `x`, which is
+        # `max(18, w // 40)` and grows with the banner's WIDTH, while the
+        # banner's height is fixed (see banner_box -- widening buys more
+        # backdrop, not more page). So every pixel of extra width ate two
+        # pixels of the height the still was allowed, and a wider window
+        # made the thumbnail SMALLER: 214px at a 1100 banner, 64px at 6116
+        # [iw]. The slot is already the space there is -- POSTER_H_FRAC
+        # defines its own margins, top and bottom -- so a fraction of it is
+        # both the honest reading of "60% of what is available" and
+        # independent of the width.
+        max_h = int(max_h * THUMB_H_FRAC)
     art.thumbnail((max_w, max_h), Image.LANCZOS)
     aw, ah = art.size
     ay = baseline - ah

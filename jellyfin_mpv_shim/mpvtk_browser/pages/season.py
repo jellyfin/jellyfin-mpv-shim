@@ -66,9 +66,23 @@ class SeasonPage(Page):
         title = route.get("title", "")
         banner = None
         full_bleed = False
+        # The grid's own horizontal padding, needed BEFORE the banner: this
+        # page is the first header caller whose column is not padded with
+        # CONTENT_PAD, and `banner_box` sizes against that constant. With
+        # `grid_fill: center` a centred grid can hand back a much larger
+        # pad -- 94px at a 1200px window -- and the banner then overhangs
+        # the column it sits in by ~100px and clips at the viewport.
+        gpad, geom = tiles.grid_layout(size[0], geom)
         if tiles.header_bakes_heading(season_item):
             full_bleed = tiles.full_bleed_header(season_item)
             box = tiles.banner_box(size[0], full_bleed, size[1])
+            if not full_bleed:
+                # Full bleed leaves the padding entirely and is already the
+                # viewport's width; only the padded box has to agree with a
+                # pad that is not the one it assumed.
+                from ...mpvtk.layout import SCROLLBAR_W
+
+                box = (min(box[0], size[0] - 2 * gpad - SCROLLBAR_W), box[1])
             banner = tiles.backdrop_node(
                 season_item, box, "season-bd", title=title,
                 meta=detail_components.meta_line(season_item) or None,
@@ -116,7 +130,6 @@ class SeasonPage(Page):
         if title_row:
             header.append(Row(title_row, gap=12, align="center"))
         header.append(Row(acts, gap=8, align="center"))
-        gpad, geom = tiles.grid_layout(size[0], geom)
         # Measured, not the flat 100 this used to pass: head_h is what tells
         # the virtualizer which rows are near the viewport, and a header
         # that grew by 400px of artwork while the number stayed at 100

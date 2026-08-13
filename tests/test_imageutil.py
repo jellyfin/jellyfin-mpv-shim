@@ -97,6 +97,29 @@ class TestHelpers(unittest.TestCase):
                                      "cropped outside the picture at %r"
                                      % (corner,))
 
+    def test_no_width_leaves_a_transparent_hairline(self):
+        """`int()` truncates, and the scale is exactly `w / iw` on the
+        binding axis, so the product lands a hair under the target for
+        about one width in eighty -- 1920x1080 into 999px gave 998, a
+        negative `left`, and a crop reaching outside the picture, which
+        Pillow pads rather than refuses.
+
+        Swept rather than spot-checked: a full-bleed banner's width tracks
+        the window pixel for pixel, so this flickered in and out during a
+        drag-resize and any single width is overwhelmingly likely to miss
+        it."""
+        src = Image.new("RGBA", (1920, 1080), (10, 20, 30, 255))
+        bad = []
+        for w in range(900, 2600):
+            out = imageutil.scale_to_cover(src, w, 412,
+                                           gravity_y=imageutil.TOP_HEAVY)
+            if (out.size != (w, 412)
+                    or out.getpixel((0, 0))[3] != 255
+                    or out.getpixel((w - 1, 411))[3] != 255):
+                bad.append(w)
+        self.assertEqual(bad, [], "padded edge at %d widths, e.g. %r"
+                                  % (len(bad), bad[:5]))
+
     def test_the_banner_asks_for_the_top_of_its_backdrop(self):
         """The pure function having a knob proves nothing about the header
         using it -- and the header is the only caller that wants it."""

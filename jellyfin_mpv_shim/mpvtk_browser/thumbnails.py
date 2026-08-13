@@ -481,17 +481,31 @@ class ThumbnailStore:
         self._auth = dict(origins or {})
 
     def _headers_for(self, url):
-        """The Authorization header for ``url``, or none.
+        """Headers for an artwork request: our user agent always, and the
+        Authorization header when the origin is one we are signed in to.
 
-        Matched on scheme+host+port, so a token never travels to another
-        host -- nor over plain http to a server we reached by https.
+        The token is matched on scheme+host+port, so it never travels to
+        another host -- nor over plain http to a server we reached by
+        https. The user agent is unconditional: it identifies the client,
+        not the session, and there is nothing in it to leak.
+
+        **Artwork is the highest-volume traffic this client makes**, so
+        without the agent a server's access log is mostly anonymous
+        `python-requests/x.y` lines that nothing ties back to the shim
+        [iw] -- which is exactly the log somebody reads when they are
+        trying to work out which client is hammering them.
         """
+        from ..constants import USER_AGENT
+
+        headers = {"User-Agent": USER_AGENT}
         try:
             parts = urlparse(url)
         except Exception:
-            return {}
+            return headers
         header = self._auth.get((parts.scheme, parts.hostname, parts.port))
-        return {"Authorization": header} if header else {}
+        if header:
+            headers["Authorization"] = header
+        return headers
 
     def _load_remote(self, key, url):
         path = os.path.join(self.cache_dir, key + ".img")

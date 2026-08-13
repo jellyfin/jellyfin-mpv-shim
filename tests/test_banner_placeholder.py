@@ -920,6 +920,40 @@ class SeasonHeaderTest(_Case):
         self.assertGreaterEqual(min(t["y"] for t in tiles),
                                 banner["y"] + banner["h"])
 
+    def test_the_padded_banner_fits_the_column_it_sits_in(self):
+        """The season page is the first header caller whose column is NOT
+        padded with CONTENT_PAD -- its grid supplies the pad -- while
+        `banner_box` sizes against that constant. With a centred grid the
+        two disagree and the banner is wider than the column holding it.
+
+        Asserted on the WIDTH against the column, not on the banner's right
+        edge against the viewport: the overhang only reaches the viewport
+        at some window sizes, and the banner's left edge lines up either
+        way, so both of the obvious assertions pass while it is broken.
+        """
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        was = settings.grid_fill
+        settings.grid_fill = "center"
+        self.addCleanup(setattr, settings, "grid_fill", was)
+        b = self._open(full=False)
+        node = self._bd(b)
+        self.assertIsNotNone(node, "no header drawn at all")
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        chrome_pad = chrome.CONTENT_PAD
+        art = b._art_context()
+        gpad, _geom = art.tiles.grid_layout(SIZE[0], art.geom_wide)
+        inner = SIZE[0] - 2 * gpad - SCROLLBAR_W
+        self.assertGreater(gpad, chrome_pad,
+                           "grid_fill: center did not widen the pad, so "
+                           "this test is not exercising the case it names")
+        self.assertLessEqual(
+            node["w"], inner,
+            "the banner is %dpx wide in a %dpx column (pad %d)"
+            % (node["w"], inner, gpad))
+
     def test_full_bleed_reaches_the_edge_here_too(self):
         from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
 

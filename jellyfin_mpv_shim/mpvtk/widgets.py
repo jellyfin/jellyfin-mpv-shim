@@ -893,14 +893,20 @@ class Dialog(Element):
     re-rendering without the Dialog. No dimmed backdrop (bitmaps render
     above ASS, so a scrim cannot cover posters — see README z-order).
 
-    ``side`` moves it off centre. Centred is right for a dialog that IS
-    the task — a confirm, a download, a picker — because there is nothing
-    behind it worth seeing. It is wrong for one whose whole purpose is to
-    change what is behind it: a centred filter panel covers the middle of
-    the window, which is where the results and the loading spinner are,
-    so the one thing you want to watch while filtering is the one thing
-    it hides. ``"left"`` pins it to the same margin the page content
-    uses, leaving the library visible beside it.
+    ``side`` moves it off centre: ``"left"`` pins it to the same margin
+    the page content uses, leaving what is behind it visible down one
+    side.
+
+    **Nothing passes it any more, and the argument that put it here did
+    not survive contact.** The filter panel was the one caller, on the
+    reasoning that a panel whose purpose is to change what is behind it
+    should not cover the results — but off-centre bought a view of one
+    edge of the grid, at the cost of a modal that looked misplaced on
+    every window wide enough to have room for it, and the panel was
+    centred again. The option stays because it costs one branch in
+    ``layout._arrange_overlay`` and the reasoning may hold for some
+    future dialog; it is not a recommendation, and a new dialog should
+    default to centred.
     """
 
     def __init__(self, id, child, on_dismiss=None, side="center", **kw):

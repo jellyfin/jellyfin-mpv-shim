@@ -444,7 +444,14 @@ class TileRenderer:
                   else (ratios[middle - 1] + ratios[middle]) / 2.0)
         median = _snap_ratio(median)
         if median >= self.LANDSCAPE_RATIO:
-            return self.art.geom_wide, "Thumb"
+            # Through caption_geom like the other two exits. This one went
+            # bare, which made THIRD_LINE_MAX_W unreachable for exactly the
+            # geometry its own docstring justifies itself with -- "at Extra
+            # Compact a landscape tile is 180 and genuinely does not fit" --
+            # so a Live TV row at that cover size ellipsized the air time
+            # away again, which is the regression the third line exists to
+            # fix.
+            return (self.caption_geom(items, self.art.geom_wide), "Thumb")
         if median > self.SQUARE_RATIO:
             return self.caption_geom(items, self.art.geom_square), "Primary"
         return self.caption_geom(items, self.art.geom), "Primary"
@@ -657,8 +664,14 @@ class TileRenderer:
         if spec and self.art.server is not None:
             item_id, itype, itag = spec
             key = make_key(item_id, itype, itag, ps, ps)
+            # maxWidth, not fill. The server COVERS rather than crops
+            # (measured), and `_load_image` contains the result back into
+            # this same square box -- so both routes land on exactly the
+            # same picture, and fill differs only by forcing a server-side
+            # resize and sending the covering frame: a 400x100 channel logo
+            # comes back 136x34 instead of 34x8.
             url = self.art.source.image_url(self.art.server, item_id, itype,
-                                        itag, ps, ps, fill=True)
+                                        itag, ps, fill=False)
             img = self._request_image(key, url, (ps, ps))
             if img is not None:
                 # Derived here rather than asked of the caller: the guide's
@@ -836,21 +849,6 @@ class TileRenderer:
             return 0
         return int(-(-physical_w // step) * step)
 
-    #: Quantisation step for a full-bleed header's fetch HEIGHT. Finer than
-    #: BANNER_STEP because it is quantising a smaller number -- the drawn
-    #: height is around 3/8 of the width -- and a 128px step there would
-    #: routinely overshoot by a third of the picture.
-    BANNER_H_STEP = 64
-
-    def _banner_fetch_h(self, physical_h):
-        """Physical height to ask for, given the drawn height. Same rounding
-        rule and the same reason as :meth:`_banner_fetch_w`: up to a step, so
-        a drag-resize asks for a handful of shapes rather than one per pixel.
-        """
-        step = self.BANNER_H_STEP
-        if physical_h <= 0:
-            return 0
-        return int(-(-physical_h // step) * step)
     def header_bakes_heading(self, item):
         """Whether :meth:`backdrop_node` will bake the heading into its
         bitmap — answerable *now*, before any image has arrived.
@@ -952,7 +950,14 @@ class TileRenderer:
         # slot by `_paste_poster`.
         pw = self._poster_fetch(int(slot[2]))
         ph = self._poster_fetch(int(slot[3]))
-        key = make_key(item_id, itype, itag, pw, ph, fit="fit")
+        # `pw` only: the request is `maxWidth=pw` (image_url's non-fill
+        # branch sends no height -- the apiclient has no max_height), so a
+        # key carrying `ph` is a key carrying something the stored bytes do
+        # not depend on. `ph` moves with the banner height, which is
+        # continuous in the WINDOW height while BANNER_MAX_H bites, so a
+        # vertical drag re-downloaded one byte-identical poster under a
+        # fresh name per 64px step. Same defect the backdrop just lost.
+        key = make_key(item_id, itype, itag, pw, fit="fit")
         url = self.art.source.image_url(self.art.server, item_id, itype,
                                         itag, pw, ph, fill=False)
         img = self._request_image(key, url, (pw, ph))
@@ -1012,56 +1017,47 @@ class TileRenderer:
             if title:
                 key += "|" + make_key(title, meta or "", context or "",
                                       pbox[0], pbox[1])
-            # Request at the BANNER's aspect, at a quantised width so that
-            # dragging the window edge does not ask for a new image every
-            # pixel.
+            # Quantised, so that dragging the window edge does not ask for
+            # a new image every pixel (issue #592).
             #
-            # The height is not incidental. `fill=True` is fillWidth +
-            # fillHeight, i.e. the server *crops* to the shape asked for
-            # (it does not squash), and compose_banner's scale_to_cover
-            # then centre-crops to the same shape — so asking for the
-            # banner's own aspect is the identical picture for a third of
-            # the pixels. Asking for a square instead, as this briefly
-            # did, hands back the centre square of a 16:9 backdrop, which
-            # cover then blows up to the full width: every header zoomed
-            # ~1.8x, in the commit whose point was making banners cheaper.
+            # This block used to argue that `fill=True` makes the server
+            # CROP to the shape asked for, and that asking at the banner's
+            # aspect was therefore "the identical picture for a third of
+            # the pixels". That was measured and is false -- see below --
+            # so the reasoning is gone with the parameter it justified.
             fetch_w = self._banner_fetch_w(pbox[0])
-            fetch_h = max(1, int(fetch_w * self.BANNER_RATIO))
-            if pbox[1] * fetch_w < fetch_h * pbox[0]:
-                # The drawn box is WIDER than the banner ratio, which is what
-                # a full-bleed header is: same height, more width. Asking at
-                # BANNER_RATIO there hands back close to twice the height
-                # `scale_to_cover` keeps -- correct, but a third of a
-                # megabyte of backdrop per header thrown away.
-                #
-                # Quantised, and that is the load-bearing half. The drawn
-                # height is continuous in the window width until the 1100 cap
-                # bites, so a fetch height taken exactly from the box would
-                # mint a fresh server request per pixel of a drag-resize --
-                # precisely what `_banner_fetch_w` exists to stop, reintroduced
-                # on the other axis. Capped at the ratio's answer so a step
-                # that overshoots can never ask for MORE than before.
-                fetch_h = max(1, min(
-                    fetch_h,
-                    self._banner_fetch_h(int(fetch_w * pbox[1] / pbox[0]))))
-            fetch_key = make_key(owner_id, itype, tag, fetch_w, fetch_h)
+            # **maxWidth, not fill.** The fill parameters ask the server to
+            # produce a picture of a shape it does not have, and every part
+            # of that turned out to be a cost with no benefit:
+            #
+            # * it does not crop. Measured on 12.0, `fillWidth`/`fillHeight`
+            #   scale the artwork to COVER the box and hand back the whole
+            #   frame, so the shape we asked for bought nothing;
+            # * it forces a re-encode. The same backdrop is 115 KB as
+            #   `maxWidth` (the file, untouched) and 462 KB through fill --
+            #   four times the bytes and a server-side resize per header;
+            # * the height was in the cache key, and after the decode box
+            #   stopped depending on it, each 64px step of a drag-resize
+            #   stored another byte-identical copy of one picture.
+            #
+            # A reporter's access log is what turned this up: a
+            # `fillWidth=3328&fillHeight=576` for a backdrop that is 1920
+            # wide [iw]. The crop is ours to do -- `compose_banner`'s
+            # `scale_to_cover` was always going to redo it anyway -- so all
+            # we want from the server is "this picture, no wider than this".
+            fetch_key = make_key(owner_id, itype, tag, fetch_w)
             url = self.art.source.backdrop_url(self.art.server, item,
-                                               width=fetch_w, height=fetch_h,
-                                               fill=True)
+                                               width=fetch_w, fill=False)
             # **The decode box is square, and that is not a typo.** The store
             # fits a decoded image INSIDE the box it is given
             # (`Image.thumbnail`, i.e. contain), while everything below here
             # COVERS -- so a box carrying the banner's own aspect throws away
-            # exactly the resolution the cover-crop is about to ask for.
-            # Measured against a real server (12.0): `fillWidth`/`fillHeight`
-            # scale the artwork to cover that box and do NOT crop to it, so a
-            # 1920x1080 backdrop arrived whole, was contained into a 2560x448
-            # box down to 796x448, and compose_banner then blew that back up
-            # 3.2x across a full-bleed header. Bounding the LONG EDGE alone
-            # leaves the width intact for anything landscape, which is all
-            # `backdrop_spec` will hand back; a server that really does crop
-            # to the ratio still lands well inside it, so this costs nothing
-            # where the old assumption held.
+            # exactly the resolution the cover-crop is about to ask for: a
+            # 1920x1080 backdrop contained into 2560x448 comes out 796 wide,
+            # and compose_banner then blew that back up 3.2x across a
+            # full-bleed header. Bounding the LONG EDGE alone leaves the
+            # width intact for anything landscape, which is all
+            # `backdrop_spec` will hand back.
             img = self._request_image(fetch_key, url, (fetch_w, fetch_w))
             # The poster is a SECOND fetch with its own arrival time, so it
             # goes in the key: without it the first composition -- backdrop
@@ -1741,14 +1737,14 @@ class TileRenderer:
         above the grid moves with it and the title stays aligned with the
         first tile in the first column.
 
-        One residual: ``body_w`` subtracts the scrollbar gutter, and since
-        that gutter is now only reserved when the page actually scrolls
-        (``layout._arrange_scroll``), a grid SHORT enough not to scroll ends
-        up 10px left of centre. Unknowable here -- whether the bar appears is
-        a function of the laid-out height, which is decided after this. The
-        common case is the scrolling one, and this is right for it; being
-        right for the other instead would put the same 10px error on every
-        library.
+        There used to be a residual here: ``body_w`` subtracts the scrollbar
+        gutter, and the gutter was reserved only when a page actually
+        scrolled, so a grid short enough not to scroll sat 10px left of
+        centre -- unknowable at this point, because whether the bar appears
+        was a function of the laid-out height. ``layout._arrange_scroll``
+        reserves it unconditionally now (and renderer.lua paints the track
+        whenever it is reserved), so ``body_w`` is right either way and
+        there is nothing left to trade off.
         """
         cols = self.cols(w, geom) if cols is None else cols
         used = cols * geom.tile_w + max(0, cols - 1) * geom.gap

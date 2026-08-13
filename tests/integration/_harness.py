@@ -444,6 +444,11 @@ class FakeMPV:
         # `_apply_interpolation` raise into a broad except and take the
         # "mpv would not answer" branch with the test still green.
         self.deinterlace = "no"
+        # Read-only in mpv and DERIVED from the file (it is what `auto`
+        # resolves to for this stream), which a fake cannot know -- so it
+        # is a plain attribute here that a test sets to say "mpv is
+        # deinterlacing". The gear row reads this rather than the mode.
+        self.deinterlace_active = False
         self.interpolation = False
         self.video_sync = "audio"
         self.tscale = "oversample"
@@ -1070,7 +1075,8 @@ def build_player(player_module, video=None):
     # does not skip a write, it raises into `_play_media`'s broad except
     # and leaves the whole feature untested and green.
     pm._deinterlace_override = None
-    pm._video_sync_saved = None
+    pm._interp_saved = None
+    pm._no_deinterlace_auto = False
 
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False

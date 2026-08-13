@@ -12,6 +12,8 @@ dependencies has to degrade gracefully when its package is missing (see
 CONTRIBUTING.md).
 """
 
+import math
+
 from typing import NamedTuple
 
 from PIL import Image
@@ -44,9 +46,18 @@ def scale_to_cover(image: "Image.Image", w: int, h: int,
     """
     iw, ih = image.size
     scale = max(w / iw, h / ih)
-    new_w, new_h = max(1, int(iw * scale)), max(1, int(ih * scale))
+    # Rounded UP and floored at the box. `int()` truncates, and the scale is
+    # exactly `w / iw` on the binding axis, so the product lands a hair under
+    # the target for about one width in eighty: 1920x1080 into a 999px box
+    # gave new_w 998, `left` -1, and a crop reaching outside the picture --
+    # which Pillow pads with transparent black rather than refusing, so it
+    # came out as a 1px hairline down each side. A full-bleed banner's width
+    # tracks the window pixel for pixel, so it flickered in and out of
+    # existence during a drag-resize.
+    new_w = max(w, math.ceil(iw * scale))
+    new_h = max(h, math.ceil(ih * scale))
     image = image.resize((new_w, new_h), Image.LANCZOS)
-    left = (new_w - w) // 2
+    left = max(0, min((new_w - w) // 2, new_w - w))
     top = int(round(new_h * gravity_y - h / 2))
     top = max(0, min(top, new_h - h))
     return image.crop((left, top, left + w, top + h))

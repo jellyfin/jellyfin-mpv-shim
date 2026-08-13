@@ -79,8 +79,10 @@ DEFAULT = {
     #
     # The pill is what makes an accent-coloured badge legible over any
     # artwork, so the marks go WHITE when it is taken away rather than
-    # keeping the accent: a theme whose accent is dark (the whole point of
-    # "Darker") would otherwise put a near-black check on a photograph. See
+    # keeping the accent: an accent-coloured mark with no pill is legible
+    # only for themes whose accent happens to be bright, and nothing
+    # guarantees one is. White reads on everything, which is the property
+    # the option is being bought for. See
     # strips.StripStore._paint_glyph_badge.
     "badge_shadow": False,
     # Where a carousel's page buttons live. "header" is jellyfin-web's design
