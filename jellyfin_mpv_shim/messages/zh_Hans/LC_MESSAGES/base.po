@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-02 15:04+0000\n"
+"PO-Revision-Date: 2026-08-14 22:50+0000\n"
 "Last-Translator: 無情天 <kofzhanganguo@126.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hans/>\n"
@@ -20,28 +20,24 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
-#, fuzzy
-#| msgid "Unknown Series"
 msgid "Unknown format"
-msgstr "未知节目"
+msgstr "未知格式"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy, python-format
-#| msgid "%(shown)d of %(total)d"
+#, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "%(shown)d of %(total)d"
+msgstr "页码 %(page)d of %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "Page"
+#, python-format
 msgid "Page %d"
-msgstr "页码"
+msgstr "页码 %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% 阅读"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -517,7 +513,7 @@ msgstr "加载失败，请检查网络连接。"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr "页码"
+msgstr "页"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -821,8 +817,6 @@ msgid "Favorite"
 msgstr "收藏"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Videos"
 msgid "Video"
 msgstr "视频"
 
@@ -839,52 +833,41 @@ msgstr "字幕"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Lyric"
 msgstr "歌词"
 
 # seeded from jellyfin-web: Image
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Image"
 msgstr "图片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Container"
-msgstr "持续"
+msgstr "容器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "正常"
+msgstr "格式"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Path"
 msgstr "路径"
 
 # seeded from jellyfin-web: LabelSize
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Size"
 msgstr "大小"
 
 # seeded from jellyfin-web: Yes
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Yes"
 msgstr "是"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Now"
 msgid "No"
-msgstr "正在播放"
+msgstr "否"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -895,156 +878,129 @@ msgstr "标题"
 
 # seeded from jellyfin-web: LabelLanguage
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Language"
 msgstr "语言"
 
 # seeded from jellyfin-web: MediaInfoCodec
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec"
 msgstr "编码"
 
 # seeded from jellyfin-web: MediaInfoCodecTag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec tag"
 msgstr "编码标签"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Profile Group"
 msgid "Profile"
-msgstr "配置组"
+msgstr "配置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Level"
-msgstr ""
+msgstr "级别"
 
 # seeded from jellyfin-web: LabelChapterImageResolution
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Resolution"
 msgstr "分辨率"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Aspect Ratio"
 msgid "Aspect ratio"
-msgstr "画面比例"
+msgstr "长宽比"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic"
 msgstr "变形（视频）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Interface"
 msgid "Interlaced"
-msgstr "界面设置"
+msgstr "隔行扫描"
 
 # seeded from jellyfin-web: Framerate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Framerate"
 msgstr "帧率"
 
 # seeded from jellyfin-web: MediaInfoLayout
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Layout"
 msgstr "布局"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Channels"
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "频道"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy, python-format
-#| msgid "%d channels"
+#, python-format
 msgid "%d ch"
 msgstr "%d 频道"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bitrate"
 msgstr "比特率"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Sample rate"
 msgstr "采样率"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bit depth"
 msgstr "位深度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "视频偏好设置"
+msgstr "动态范围"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "视频配置子类别"
+msgstr "动态范围类型"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color space"
 msgstr "色彩空间"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
-msgstr ""
+msgstr "色彩传递"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "色彩原色"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Pixel format"
 msgstr "像素格式"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Ref frames"
 msgstr "参考帧"
 
 # seeded from jellyfin-web: MediaInfoRotation
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Rotation"
 msgstr "旋转"
 
@@ -1054,10 +1010,8 @@ msgid "Default"
 msgstr "默认"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " 强制"
+msgstr "强制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -1065,62 +1019,48 @@ msgid "External"
 msgstr "外置音轨"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Time"
 msgid "Timestamp"
-msgstr "时长"
+msgstr "时间戳"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Show titles"
 msgid "DV title"
-msgstr "显示标题"
+msgstr "杜比视界标题"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version major"
-msgstr "版本 %d"
+msgstr "杜比视界主要版本"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version minor"
-msgstr "版本 %d"
+msgstr "杜比视界次要版本"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV profile"
 msgstr "杜比视界配置"
 
 # seeded from jellyfin-web: MediaInfoDvLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV level"
 msgstr "杜比视界等级"
 
 # seeded from jellyfin-web: MediaInfoRpuPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV rpu preset flag"
 msgstr "杜比视界 RPU 存在标记"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV el preset flag"
 msgstr "杜比视界 EL 存在标记"
 
 # seeded from jellyfin-web: MediaInfoBlPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl preset flag"
 msgstr "杜比视界 BL 存在标记"
 
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl signal compatibility id"
 msgstr "杜比视界 BL 兼容性序号"
 
@@ -1131,22 +1071,18 @@ msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "直链"
+msgstr "直接播放"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "直接串流"
 
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Remuxing"
-msgstr "转封装"
+msgstr "无损重封装"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1155,161 +1091,133 @@ msgstr "转码中"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The container is not supported"
 msgstr "容器不支持"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The video codec is not supported"
-msgstr "无法发起下载任务。"
+msgstr "不支持该视频编解码器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The audio codec is not supported"
-msgstr "无法发起下载任务。"
+msgstr "不支持该音频编解码器"
 
 # seeded from jellyfin-web: SubtitleCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The subtitle codec is not supported"
 msgstr "字幕编码不支持"
 
 # seeded from jellyfin-web: AudioIsExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream is external"
 msgstr "外部音频流"
 
 # seeded from jellyfin-web: SecondaryAudioNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Secondary audio tracks are not supported"
 msgstr "次级音轨不支持"
 
 # seeded from jellyfin-web: VideoProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video codec's profile is not supported"
 msgstr "视频配置不支持"
 
 # seeded from jellyfin-web: VideoLevelNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video codec's level is not supported"
 msgstr "视频级别不支持"
 
 # seeded from jellyfin-web: VideoResolutionNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's resolution is not supported"
 msgstr "视频分辨率不支持"
 
 # seeded from jellyfin-web: VideoBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bit depth is not supported"
 msgstr "视频位深不支持"
 
 # seeded from jellyfin-web: VideoFramerateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's framerate is not supported"
 msgstr "视频帧率不支持"
 
 # seeded from jellyfin-web: RefFramesNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Reference frames are not supported"
 msgstr "参考帧不支持"
 
 # seeded from jellyfin-web: AnamorphicVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic video is not supported"
 msgstr "变形视频不支持"
 
 # seeded from jellyfin-web: InterlacedVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Interlaced video is not supported"
 msgstr "隔行扫描视频不支持"
 
 # seeded from jellyfin-web: AudioChannelsNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The number of audio channels is not supported"
 msgstr "音频声道数不支持"
 
 # seeded from jellyfin-web: AudioProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio codec's profile is not supported"
 msgstr "音频配置不支持"
 
 # seeded from jellyfin-web: AudioSampleRateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's sample rate is not supported"
 msgstr "音频采样率不支持"
 
 # seeded from jellyfin-web: AudioBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bit depth is not supported"
 msgstr "音频位深不支持"
 
 # seeded from jellyfin-web: ContainerBitrateExceedsLimit
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate exceeds the limit"
 msgstr "视频比特率超过限制"
 
 # seeded from jellyfin-web: VideoBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate is not supported"
 msgstr "视频的比特率不受支持"
 
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bitrate is not supported"
 msgstr "音频比特率不支持"
 
 # seeded from jellyfin-web: UnknownVideoStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video stream info is unknown"
 msgstr "视频流信息未知"
 
 # seeded from jellyfin-web: UnknownAudioStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream info is unknown"
 msgstr "音频流信息未知"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing here to play."
 msgid "There was an error starting direct playback"
-msgstr "这里没有内容可播放。"
+msgstr "启动直接播放时出错"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's range type is not supported"
 msgstr "视频动态范围不支持"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "此设备"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Window"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -1321,8 +1229,6 @@ msgid "Library Browser"
 msgstr "媒体库浏览"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Recording"
 msgid "Reading"
 msgstr "录制"
 
@@ -1333,16 +1239,12 @@ msgid "Downloads"
 msgstr "离线下载"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Download Tuning"
-msgstr "正在下载"
+msgstr "下载调试"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "Player Controls"
-msgstr "播放器控制界面样式"
+msgstr "播放器控制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1368,23 +1270,19 @@ msgstr "高级设置"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "关闭（软件解码）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "仅限 1080p 以上分辨率"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Open"
 msgid "On"
 msgstr "打开"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Advanced"
 msgid "Copy (advanced)"
-msgstr "高级设置"
+msgstr "复制（高级设置）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1404,15 +1302,15 @@ msgstr "无播放控制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
@@ -1420,7 +1318,7 @@ msgstr "100%（无缩放）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
@@ -1432,23 +1330,23 @@ msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "无最低限制"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
@@ -1472,34 +1370,32 @@ msgstr "每个凹槽一行"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "仅当窗口没有标题栏时"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "暗黑"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "深褐色"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "明亮"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "适应宽度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "页码"
+msgstr "适合页面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
@@ -1607,22 +1503,20 @@ msgstr "优先播放离线缓存文件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "单击鼠标左键暂停播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "在详情页上显示海报"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "在详情页显示剧集缩略图"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cancel Recording"
 msgid "Hardware Decoding"
-msgstr "取消录制"
+msgstr "硬件解码"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1658,15 +1552,15 @@ msgstr "自动检测间隔（分钟）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "当集数少于（指定集数）时补充"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "补充（集数）"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "每次检查的最大下载次数"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
@@ -1682,7 +1576,7 @@ msgstr "记住窗口尺寸"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "顶部栏中的窗口按钮"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
@@ -1697,14 +1591,12 @@ msgid "Interface Scale"
 msgstr "界面缩放比例"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Text Size"
-msgstr "封面尺寸"
+msgstr "文本大小"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "最小文本大小"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1713,29 +1605,27 @@ msgstr "封面尺寸"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "让直播电视标志更清晰"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "让媒体库标志更清晰"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Type Size"
-msgstr "封面尺寸"
+msgstr "字体大小"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "页面颜色"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "文本对齐"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "漫画阅读模式"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
@@ -1841,17 +1731,21 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"除非下载过于频繁导致磁盘被唤醒，否则请将这些选项留空。将前两项同时设置：这样"
+"，当剧集进度不足时，系统会一次性下载所有剧集，而不是逐集下载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
-msgstr ""
+msgstr "剧集缩略图是您可能尚未观看的剧集的一个画面。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
 msgstr ""
+"关闭此选项后，MPV 将采用其自身的鼠标操作方式：拖动视频窗口移动视频，右键单击"
+"暂停。双击则可全屏显示。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1862,6 +1756,11 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
+"默认情况下此功能关闭，因为某些显卡驱动程序处理不当。“仅高于 1080p”是一种谨慎"
+"的开启方式：大多数硬件无需额外设置即可通过软件解码 1080p 视频。“复制（高级设"
+"置）”模式速度较慢，但它是与视频滤镜兼容的模式，因此如果您运行 SVP 或其他 "
+"VapourSynth 滤镜，则应选择此模式。如果视频停止工作，请先使用 `--disable-"
+"hwdec` 参数，然后再将其改回原设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1894,6 +1793,10 @@ msgid ""
 "it. Left on \"Only when the window has no title bar\", MPV is asked whether "
 "this window got one, so desktops that do decorate it are left alone."
 msgstr ""
+"某些桌面环境（尤其是 Wayland 上的 GNOME）不会在播放器窗口上绘制标题栏，导致无"
+"法移动或关闭窗口。因此，最小化、最大化和关闭按钮会显示在顶部栏中，并允许用户"
+"拖动窗口。如果设置为“仅当窗口没有标题栏时”，MPV 会询问此窗口是否具有标题栏，"
+"因此不会影响那些带有标题栏的桌面环境。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1970,6 +1873,10 @@ msgid ""
 "it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
 "does."
 msgstr ""
+"频道标识以透明背景的墨水形式呈现，专为其他客户使用的白色背景而设计——因此在深"
+"色背景上，黑色标识会消失。在深色背景上，标识会以原本设计的浅色背景衬托，少数"
+"轮廓为白色的标识还会添加阴影，使其边缘清晰可见。在深色背景上，标识则会采用主"
+"题卡片的颜色，并且不添加阴影，就像 Jellyfin Web 的做法一样。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1978,6 +1885,9 @@ msgid ""
 "a dark background — the plate is what makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
+"对于用于绘制 Logo 图形的库，也采用相同的处理方式。默认情况下此功能处于关闭状"
+"态，因为按照惯例，电影或剧集的 Logo 为白色，并且在深色背景上已经清晰可见——正"
+"是底片才需要阴影。如果您的 Logo 为深色背景，请启用此功能。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2037,12 +1947,17 @@ msgid ""
 "captions are ellipsized and it is the whole interface that needs to be "
 "bigger -- which is Interface Scale, above."
 msgstr ""
+"仅缩放文本。上面的“界面缩放”会调整所有内容——包括图块、间距和控件——因此，当文"
+"字太小而不是整个界面太小时，请使用此选项。它的最大缩放比例为 150%，因为此时大"
+"多数图块标题都会被省略，需要放大的是整个界面——也就是上面的“界面缩放”。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"无论文本大小如何，没有什么比这个更小的渲染了。升起最小的标签而不放大标题，这"
+"是百分比无法做到的。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2079,12 +1994,14 @@ msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"以像素为单位，这是界面缩放之前的尺寸。阅读器中的 A- 和 A+ 按钮也会改变这个尺"
+"寸。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
-msgstr ""
+msgstr "当你打开漫画时，漫画页面会如何适应窗口大小？读者自己的按键也会改变这一点。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2097,7 +2014,6 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderStatus
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Status"
 msgstr "状态"
 
@@ -2107,8 +2023,6 @@ msgid "Unplayed"
 msgstr "未播放"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Play"
 msgid "Played"
 msgstr "播放"
 
@@ -2120,8 +2034,6 @@ msgstr "收藏"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Resume"
 msgid "Resumable"
 msgstr "恢复播放"
 
@@ -2131,33 +2043,28 @@ msgstr ""
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Features"
 msgstr "功能"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle"
 msgid "Has Subtitles"
-msgstr "字幕"
+msgstr "有字幕"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Trailer"
 msgid "Has Trailer"
-msgstr "预告片"
+msgstr "有预告片"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "具有特殊功能"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "有主题曲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "有主题视频"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2167,8 +2074,6 @@ msgid "Genres"
 msgstr "类型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Year"
 msgid "Years"
 msgstr "年份"
 
@@ -2180,31 +2085,24 @@ msgstr "家长分级"
 
 # seeded from jellyfin-web: Tags
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Tags"
 msgstr "标签"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Audio Language"
-msgstr "字幕与语言"
+msgstr "音频语言"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Subtitle Language"
-msgstr "字幕与语言"
+msgstr "字幕语言"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Videos"
 msgid "Video Types"
-msgstr "视频"
+msgstr "视频类型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "SD"
-msgstr ""
+msgstr "SD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
@@ -2213,27 +2111,25 @@ msgstr "HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "3D"
-msgstr "三维"
+msgstr "3D"
 
 # seeded from jellyfin-web: OptionDvd
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "DVD"
 msgstr "DVD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
-msgstr ""
+msgstr "Blu-ray"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -2288,22 +2184,17 @@ msgid "Back"
 msgstr "返回"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "unknown"
 msgid "Unknown"
 msgstr "未知"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "No channels available."
 msgid "No media information is available."
-msgstr "没有可用频道。"
+msgstr "无媒体信息可用。"
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Media Info"
 msgstr "媒体信息"
 
@@ -2338,7 +2229,7 @@ msgstr "已观看 %d 部"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%d of unknown size"
-msgstr ""
+msgstr "%d 未知大小"
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2360,11 +2251,10 @@ msgstr "无法发起下载任务。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
-msgstr ""
+msgstr "该媒体库不提供任何筛选功能。"
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Filters"
 msgstr "筛选"
 
@@ -2376,10 +2266,8 @@ msgid "%d items"
 msgstr "%d 项目"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Clear"
 msgid "Clear All"
-msgstr "清除"
+msgstr "清除全部"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -2387,7 +2275,7 @@ msgstr "完成"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "任何"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -2467,6 +2355,8 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"透明标志的背景会显示为与标志原设计相同的透光板颜色，而轮廓本身为白色的标志则"
+"会显示阴影。关闭此选项则会在标志后方显示主题卡片的颜色，且不显示阴影。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
@@ -2504,62 +2394,54 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
+"%s 记录您在电子书阅读器中的位置，但任何应用程序都不会显示具体的数字——因此手动"
+"设置这个位置并没有什么实际意义。它仍然会从服务器读取并显示在上方。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s 不存储读取位置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Recording Folders"
 msgid "Reading Progress"
-msgstr "录制文件夹"
+msgstr "阅读进度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "正在读取位置…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "拉"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "推"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "The position could not be read."
-msgstr "录制无法读取。"
+msgstr "无法读取位置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Enter a new PIN."
 msgid "Enter a number."
-msgstr "请输入新 PIN 码。"
+msgstr "请输入一个数字。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "请输入 1 到 %d 之间的页码。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "输入一页或多页内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Recording settings saved."
 msgid "Reading position saved."
-msgstr "录制设置已保存。"
+msgstr "阅读位置已保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "The position could not be saved."
-msgstr "PIN 码保存失败。"
+msgstr "该位置无法保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2582,7 +2464,6 @@ msgstr "创建新组"
 
 # seeded from jellyfin-web: LabelSyncPlayResumePlayback
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resume local playback"
 msgstr "恢复本地播放"
 
@@ -2609,10 +2490,8 @@ msgid "Could not leave the SyncPlay group."
 msgstr "无法退出同步播放群组。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Could not start playback."
 msgid "Could not resume SyncPlay playback."
-msgstr "无法开始播放。"
+msgstr "无法恢复 SyncPlay 播放。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Next Up"
@@ -2630,22 +2509,19 @@ msgstr "自动"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Audio"
 msgid "Audiobooks"
-msgstr "音频"
+msgstr "有声读物"
 
 # seeded from jellyfin-web: Books
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Books"
 msgstr "书籍"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "未分组"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2724,10 +2600,8 @@ msgstr "继续收听"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Continue Watching"
 msgid "Continue Reading"
-msgstr "继续观看"
+msgstr "继续阅读"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
@@ -2798,10 +2672,8 @@ msgid "Subtitle Color"
 msgstr "字幕颜色"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Playback"
 msgid "Playback Info"
-msgstr "播放设置"
+msgstr "播放信息"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
@@ -2810,97 +2682,78 @@ msgstr "无（已禁用）"
 
 # seeded from jellyfin-web: LabelHardwareAccelerationType
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Hardware acceleration"
 msgstr "硬件加速"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Video Quality"
 msgid "Video output"
-msgstr "视频画质"
+msgstr "视频输出"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Dropped frames"
-msgstr "丢弃的帧"
+msgstr "丢帧"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%(vo)d output, %(dec)d decoder"
-msgstr ""
+msgstr "%(vo)d 输出，%(dec)d 解码器"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "A/V 同步"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "缓冲"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy, python-format
-#| msgid "%.1f Mbps"
+#, python-format
 msgid "%.1f s"
-msgstr "%.1f Mbps"
+msgstr "%.1f s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "Download speed"
-msgstr "已缓存"
+msgstr "下载速度"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "媒体密钥搜索"
+msgstr "媒体类型"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "downloaded copy"
-msgstr "已缓存"
+msgstr "下载副本"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "本地文件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "从服务器流式传输"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Play method"
 msgstr "播放方式"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Seasons"
 msgid "Reasons"
-msgstr "季"
+msgstr "原因"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Play"
 msgid "Player"
 msgstr "播放"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "File"
 msgstr "文件"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Nothing to show yet."
 msgid "Nothing is playing."
-msgstr "暂无内容可显示。"
+msgstr "没有播放任何内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3016,26 +2869,24 @@ msgstr "录制设置无法保存。"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "从磁盘删除"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "删除此项目会将其从文件系统和媒体库中删除。您确定要继续吗（删除播放列表与合集不会删除文件）？"
+msgstr "删除此项目会将其从文件系统和媒体库中同时删除。您确定要继续吗？"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s 已被删除。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The playlist could not be deleted."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "无法删除播放列表。"
+msgstr "%s 无法删除。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3063,42 +2914,38 @@ msgstr "删除下载缓存失败。"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "打开 %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Nothing on this system could open %s."
-msgstr ""
+msgstr "此系统上的任何内容都无法打开 %s。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%d already downloaded"
+#, python-format
 msgid "%s is already downloaded."
-msgstr "已离线缓存 %d 部"
+msgstr "%s 已下载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
 "Your account is not allowed to download from this server, and a book can "
 "only be read by downloading it."
-msgstr ""
+msgstr "您的账户无权从此服务器下载内容，书籍只能通过下载后才能阅读。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Next episode is not downloaded."
+#, python-format
 msgid "%s has not been downloaded."
-msgstr "下一集未离线缓存。"
+msgstr "%s 尚未下载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "That user could not be added."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "无法添加该用户。"
+msgstr "%s 无法下载。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Downloading %d%%"
+#, python-format
 msgid "Downloading %s…"
-msgstr "下载进度 %d%%"
+msgstr "正在下载 %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -3328,10 +3175,9 @@ msgid "Repeat Off"
 msgstr "关闭循环"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Back 10 Seconds"
+#, python-format
 msgid "Back %d seconds"
-msgstr "回退 10 秒"
+msgstr "回退 %d 秒"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3346,10 +3192,9 @@ msgid "Pause"
 msgstr "暂停"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Forward 30 Seconds"
+#, python-format
 msgid "Forward %d seconds"
-msgstr "快进 30 秒"
+msgstr "快进 %d 秒"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Stop"
@@ -3372,10 +3217,9 @@ msgid "Volume"
 msgstr "音量"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy, python-format
-#| msgid "Chapters"
+#, python-format
 msgid "%d chapters"
-msgstr "章节"
+msgstr "%d 章节"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3386,7 +3230,6 @@ msgstr "恢复播放"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Restart"
 msgstr "重启"
 
@@ -3398,7 +3241,7 @@ msgstr "加入播放队列"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "完成"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3408,43 +3251,36 @@ msgstr "该项目不可用。"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "%s in"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Start"
 msgstr "开始"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d 页"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "阅读"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "External"
 msgid "Open Externally"
-msgstr "外置音轨"
+msgstr "外部打开"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Downloading…"
-msgstr "正在下载"
+msgstr "正在下载…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Programs"
 msgid "Progress…"
-msgstr "节目"
+msgstr "进度…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -3452,35 +3288,29 @@ msgid "Nothing here yet."
 msgstr "暂无内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "This comic could not be opened."
-msgstr "录制无法读取。"
+msgstr "这本漫画无法打开。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This page could not be read."
-msgstr "无法重命名该用户。"
+msgstr "此页面无法读取。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Moving the downloads failed."
 msgid "The download failed."
-msgstr "移动下载内容失败。"
+msgstr "下载失败。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "获取漫画…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "缩小"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "放大"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3591,11 +3421,10 @@ msgstr "合集"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "筛选（%d）"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Filter"
 msgstr "筛选"
 
@@ -3944,48 +3773,36 @@ msgid ""
 msgstr "正在从服务器读取此播放列表的可见性状态。请稍后再试。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This book could not be opened."
-msgstr "无法重命名该用户。"
+msgstr "这本书无法打开。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "复制段落"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Page"
 msgid "Copy Page"
-msgstr "页码"
+msgstr "复制页面"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "复制了该段落。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copied %d log lines."
 msgid "Copied the page."
-msgstr "已复制 %d 条日志记录。"
+msgstr "已复制页面。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "There is nothing to copy yet."
 msgid "There is nothing to copy."
-msgstr "目前还没有要复制的内容。"
+msgstr "没有可复制的。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copying to the clipboard is not available."
 msgid "Copying is not available."
-msgstr "无法复制到剪贴板。"
+msgstr "无法复制。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Could not copy the log."
 msgid "Could not copy the text."
-msgstr "无法复制日志。"
+msgstr "无法复制文本。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -3994,36 +3811,28 @@ msgid "No clipboard available — saved to %s"
 msgstr "剪贴板不可用 — 已保存至 %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Contents"
-msgstr "持续"
+msgstr "目录"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Contacting the server…"
 msgid "Getting the book…"
-msgstr "正在连接服务器……"
+msgstr "获取这本书……"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "This book could not be drawn."
-msgstr "录制无法读取。"
+msgstr "这本书无法绘制出来。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "较小的文本"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "大"
+msgstr "较大的文本"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "页面颜色"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
@@ -4138,10 +3947,8 @@ msgid "Downloaded Shows"
 msgstr "已缓存剧集"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Downloaded Shows"
 msgid "Downloaded Books"
-msgstr "已缓存剧集"
+msgstr "下载书籍"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
@@ -4216,7 +4023,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "Pinned by config: your mpv.conf sets hwdec=%s, which overrides this."
-msgstr ""
+msgstr "受配置限制：您的 mpv.conf 设置了 hwdec=%s，这会覆盖此设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
@@ -4282,16 +4089,14 @@ msgid "These settings are stored on your server and shared with Jellyfin Web."
 msgstr "这些设置存储在您的服务器上，并与 Jellyfin Web 共享。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Section %d"
 msgid "Sections"
-msgstr "部分 %d"
+msgstr "部分"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
-msgstr ""
+msgstr "主屏幕按顺序显示的行。此应用无法绘制的部分将保留您网页客户端的设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
@@ -4315,22 +4120,16 @@ msgstr ""
 "默认关闭：会使用剧集封面图，因为剧集图片可能会剧透你尚未观看的剧集内容。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Could not load the home screen layout."
 msgid "Could not load the home screen settings."
-msgstr "无法加载主屏幕布局。"
+msgstr "无法加载主屏幕设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Recording settings saved."
 msgid "Home screen settings saved."
-msgstr "录制设置已保存。"
+msgstr "主屏幕设置已保存。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Could not save the home screen layout."
 msgid "Could not save the home screen settings."
-msgstr "无法保存主屏幕布局。"
+msgstr "无法保存主屏幕设置。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
@@ -4347,7 +4146,6 @@ msgstr "常规"
 
 # seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Browse"
 msgstr "浏览"
 
@@ -4500,10 +4298,8 @@ msgstr "从头开始播放"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Play Count"
 msgid "Play Next"
-msgstr "播放次数"
+msgstr "播放下一个"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
@@ -4542,23 +4338,20 @@ msgstr "搜索"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "最小化"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restore"
 msgstr "恢复"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "最大"
+msgstr "最大化"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "调整大小"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Home"
@@ -4624,10 +4417,8 @@ msgid "Transcode"
 msgstr "转码"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Use the default folder"
 msgid "Use the default"
-msgstr "使用默认文件夹"
+msgstr "使用默认值"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "SyncPlay Enabled"
@@ -4766,12 +4557,17 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME 本身不会显示系统托盘。您可以安装“AppIndicator and KStatusNotifierItem "
+"Support”扩展程序来获取系统托盘，或者在“设置”中启用“允许后台运行”选项，这样就"
+"可以在不显示窗口的情况下运行 GNOME。"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"此桌面上没有系统托盘程序运行。请在“设置”中启用“允许后台运行”，即可在不显示窗"
+"口的情况下运行程序。"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
@@ -4863,33 +4659,27 @@ msgid "ArtCNN High (C4F32)"
 msgstr "ArtCNN High（C4F32）"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "默认（自动选择）"
+msgstr "默认（所有媒体）"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "本媒体库"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "To Series"
 msgid "This Series"
-msgstr "到节目"
+msgstr "本节目"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "未设置"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}  <-- 生效"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
 msgstr "视频播放预设"
 
