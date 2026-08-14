@@ -1672,6 +1672,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     # ------------------------------------------------------ the OSD menu
 
+    #: The flags every section of ours is enabled with -- the same string
+    #: mpv's own defaults.lua gives a script's bindings, and the same one
+    #: python-mpv gives every key we bind through it.
+    #:
+    #: A section's mouse area defaults to the WHOLE SCREEN (input.c:
+    #: get_bind_section starts it at INT_MIN..INT_MAX), and an enabled
+    #: section covering the pointer without ``allow-hide-cursor`` is how mpv
+    #: is told "a script's UI is under the mouse": every call to
+    #: mp_input_get_mouse_event_counter bumps the counter, which re-arms
+    #: handle_cursor_autohide's timer, so **the cursor never hides again**.
+    #: Ours hold keyboard keys and have no UI at all, so the fullscreen
+    #: standing claim -- installed at mpv creation and never released --
+    #: left a pointer sitting over every film for the whole session.
+    #: ``allow-vo-dragging`` is the same mistake in the other direction:
+    #: without it mp_input_test_dragging refuses to move the window from a
+    #: drag on the video, which is mpv's own behaviour everywhere else.
+    #: (renderer.lua withholds ``allow-hide-cursor`` from its own mouse
+    #: sections on purpose -- while the library or the HUD is up the pointer
+    #: really is over a UI -- and they are enabled only for as long as it
+    #: is. These are enabled for the life of the process.)
+    SECTION_FLAGS = "allow-hide-cursor+allow-vo-dragging"
+
     #: Section and message for the OSD menu's own arrow keys.
     MENU_SECTION = "jms_menu"
     MENU_MESSAGE = "jms-menu"
@@ -1706,7 +1728,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             )
             self._player.command("define-section", self.MENU_SECTION,
                                  lines, "force")
-            self._player.command("enable-section", self.MENU_SECTION)
+            self._player.command("enable-section", self.MENU_SECTION,
+                                 self.SECTION_FLAGS)
         except Exception:
             log.debug("could not update the menu key section", exc_info=True)
 
@@ -1805,7 +1828,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 "define-section", self.KEY_SECTION,
                 keysweep.section_lines(claims, self.KEY_MESSAGE, suppress),
                 "force")
-            self._player.command("enable-section", self.KEY_SECTION)
+            self._player.command("enable-section", self.KEY_SECTION,
+                                 self.SECTION_FLAGS)
         except Exception:
             log.debug("could not update the key section", exc_info=True)
 
