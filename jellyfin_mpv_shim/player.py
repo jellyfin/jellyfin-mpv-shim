@@ -57,7 +57,17 @@ if not settings.mpv_ext:
 
         log.info("Using libmpv playback backend.")
     except OSError:
-        log.warning("Could not find libmpv.")
+        # With the exception, not just the fact of it. "Could not find
+        # libmpv" is only one of the two things this OSError means, and on
+        # the Windows build it is never the right one: libmpv ships *inside*
+        # the installer, so what this reports there is that the DLL was
+        # found and would not load -- a dependency of its own that the
+        # machine does not have. 3.0.0pre12 shipped exactly that (a libmpv
+        # hard-linked against vulkan-1.dll), and the log said only that
+        # something was wrong with libmpv, while the traceback that reached
+        # the user blamed a missing mpv.exe. The chained cause carries the
+        # WinError and the path; it is the whole diagnosis.
+        log.warning("Could not load libmpv.", exc_info=True)
         python_mpv_available = False
 
 if settings.mpv_ext or not python_mpv_available:
@@ -65,6 +75,40 @@ if settings.mpv_ext or not python_mpv_available:
 
     log.info("Using external mpv playback backend.")
     is_using_ext_mpv = True
+
+
+def _explain_missing_mpv():
+    """Say why there is no mpv, before the traceback says something else.
+
+    The external backend starts an mpv binary, so its failure to find one is
+    reported by ``subprocess`` as a missing file -- accurate, and misleading
+    whenever this backend was not the user's choice. Two different situations
+    arrive here and they want opposite advice, and the one thing neither can
+    be told from the traceback is which of them it is.
+    """
+    if not is_using_ext_mpv:
+        # Nothing here spawns anything, so this is some other missing file
+        # and neither explanation below applies. Say nothing rather than
+        # guess -- the traceback is the better answer.
+        return
+    if settings.mpv_ext:
+        log.error(
+            "Could not start mpv. The external mpv backend is selected, so "
+            "an mpv binary has to be on PATH or named by the mpv_ext_path "
+            "setting."
+        )
+    else:
+        # Not the user's doing: libmpv failed to load and the fallback took
+        # over silently. On the Windows and Flatpak builds libmpv is what
+        # ships, and there is no mpv binary to fall back to, so this is
+        # fatal and the libmpv failure is the thing to go and read.
+        log.error(
+            "Could not start mpv. libmpv would not load (see the earlier "
+            "warning for why), and the external mpv backend it fell back to "
+            "found no mpv binary to run. This build ships libmpv, so the "
+            "earlier warning is the failure worth reporting."
+        )
+
 
 # Collect backend-specific exceptions for MPV disconnection/shutdown.
 # libmpv raises ShutdownError; external mpv (jsonipc) raises BrokenPipeError
@@ -780,6 +824,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         try:
             return mpv.MPV(**kwargs, **mpv_options)
+        except FileNotFoundError:
+            # There is no mpv binary to spawn. Handled ahead of the lua
+            # retry below rather than by it, for two reasons: dropping
+            # --osc cannot conjure one, so the retry only spends the
+            # start-retry budget and then reraises the same error; and the
+            # error it reraises comes from `subprocess`, which reads as
+            # "mpv is not installed" even when nobody was ever asked to
+            # install it. That is how the vulkan-1.dll regression presented
+            # -- libmpv would not load, this backend was chosen for us, and
+            # the traceback named a missing mpv.exe.
+            _explain_missing_mpv()
+            raise
         except Exception:
             if OSC_OPTION not in mpv_options:
                 raise
