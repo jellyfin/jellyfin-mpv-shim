@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-03 17:24+0000\n"
+"PO-Revision-Date: 2026-08-15 01:00+0000\n"
 "Last-Translator: dodog <preklady@mayday.sk>\n"
 "Language-Team: Slovak <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sk/>\n"
@@ -1186,9 +1186,8 @@ msgstr "Úroveň DV"
 
 # seeded from jellyfin-web: MediaInfoRpuPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV rpu preset flag"
-msgstr "Prednastavený príznak DV rpu"
+msgstr "DV RPU prednastavený príznak"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
