@@ -116,10 +116,21 @@ def header_body(banner, blocks, pad=CONTENT_PAD, gap=16, full_bleed=False):
 
     The trailing Spacer is the bottom padding the outer column's ``pad=0``
     gives up. There is no top padding to replace, which is the point.
+
+    ``pad`` may be an ``(x, y)`` pair, which is what a page whose body is a
+    GRID passes: the grid's own horizontal padding comes from
+    ``grid_layout`` and is not CONTENT_PAD (see SeasonPage). Only the y half
+    is the one full bleed gives up.
     """
+    px, py = pad if isinstance(pad, tuple) else (pad, pad)
     if not full_bleed:
-        return Column([banner] + list(blocks), pad=pad, gap=gap)
-    body = Column(list(blocks) + [Spacer(h=pad)], pad=(pad, 0), gap=gap)
+        return Column([banner] + list(blocks), pad=(px, py), gap=gap)
+    # `py - gap`, not `py`: the Spacer is a CHILD, so the column's own gap
+    # is laid out before it and a full-size spacer made the bottom padding
+    # gap + py where the padded path gives py. Floored at zero for a caller
+    # whose gap is larger than its padding.
+    body = Column(list(blocks) + [Spacer(h=max(0, py - gap))],
+                  pad=(px, 0), gap=gap)
     return Column([banner, body], gap=gap, align="stretch")
 
 

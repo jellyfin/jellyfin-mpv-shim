@@ -855,6 +855,13 @@ class HudController(FakeController):
                          "groups": []},
             "allow_screenshot": True,
         }
+        #: ``(is_on, is_auto)``, as PlayerManager.deinterlace_state answers
+        #: it. Declared rather than left to __getattr__ for the reason the
+        #: class docstring gives -- a recorder answers None, `_ctl_get`
+        #: substitutes its default, and the gear row is then permanently
+        #: unticked whatever the player is doing. Mutable, so a test can
+        #: put the row in each of its three states (off, forced on, auto).
+        self.deinterlace_answer = (False, False)
         self.chapter_list = [
             {"title": "Opening", "time": 0.0},
             {"title": "Middle", "time": 40.0},
@@ -888,6 +895,21 @@ class HudController(FakeController):
 
     def use_hud(self):
         return True
+
+    def deinterlace(self):
+        return self.deinterlace_answer
+
+    def toggle_deinterlace(self):
+        """Record it AND flip the state, like the real one does.
+
+        Recording alone would leave the answer above frozen, so nothing
+        could show the row's tick following the toggle -- and "the menu
+        agreed that it worked" is most of what this control has to get
+        right.
+        """
+        on, auto = self.deinterlace_answer
+        self.deinterlace_answer = (not on, auto)
+        self.transport.append(("toggle_deinterlace", ()))
 
     def hud_menu_state(self):
         return self.menu_state
@@ -1091,6 +1113,17 @@ class FakeThumbs:
         #: cached image being drawn — or an evicted one being re-fetched,
         #: which is the failure mode that goes with it.
         self.cached = {}
+        #: key -> the (w, h) box the caller asked the image to be decoded
+        #: into -- what decides how much of the artwork survives, and a
+        #: stand-in that dropped it (which this did) makes every "is the
+        #: picture big enough" question unaskable while every test still
+        #: passes. See BannerResolutionTest.
+        self.boxes = {}
+        #: key -> whether the box is to be FILLED rather than fitted. The
+        #: same box means two different pictures depending on this (see
+        #: thumbnails._fit_into), so recording only the box would answer
+        #: "big enough" and never "the right shape".
+        self.covers = {}
 
     def set_notify(self, notify):
         self._notify = notify
@@ -1101,8 +1134,10 @@ class FakeThumbs:
     def is_gone(self, key):
         return key in self.gone
 
-    def request(self, key, url, box, callback):
+    def request(self, key, url, box, callback, cover=False):
         self.requests.append((key, url))
+        self.boxes[key] = tuple(box)
+        self.covers[key] = bool(cover)
         self._cbs[key] = callback
 
     def resolve(self, key, image):

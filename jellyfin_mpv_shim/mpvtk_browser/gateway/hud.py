@@ -214,6 +214,44 @@ class HudMixin(GatewayCore):
                 out[key] = value
         return out
 
+    def deinterlace(self):
+        """``(is_on, is_auto)`` for the gear menu's Deinterlace row.
+
+        A direct read like ``get_speed``, not an ``_act``: it is asked on
+        the render path, and a deferred answer is no answer at all to a
+        menu that is being drawn now.
+        """
+        from ...player import playerManager
+        try:
+            return playerManager.deinterlace_state()
+        except Exception:
+            return False, False
+
+    def toggle_deinterlace(self):
+        """Force deinterlacing on or off for this session. Applies to what
+        is playing right now -- no reload.
+
+        The state is read INSIDE the action, like `toggle_night_mode` and
+        `toggle_mute` beside it. `_act` may DEFER to the action thread when
+        the player lock is busy, so a read out here is taken before the
+        write it decides -- and two presses landing during one playback
+        start would both compute the same answer, making the second a
+        no-op.
+        """
+        def toggle(pm):
+            # Three states, two presses: force -> back to the setting.
+            # Without the first arm this is a two-state toggle over a
+            # THREE-state value, so with `deinterlace_auto` on, unticking
+            # left a hard "no" for the rest of the session instead of
+            # handing the decision back per file.
+            if pm.deinterlace_forced():
+                pm.clear_deinterlace_override()
+                pm.reapply_deinterlace()
+            else:
+                pm.set_deinterlace(not pm.deinterlace_state()[0])
+
+        self._act(toggle)
+
     def toggle_night_mode(self):
         """Night mode on/off from the playback HUD's gear menu. Applies to
         what is playing right now — no reload."""

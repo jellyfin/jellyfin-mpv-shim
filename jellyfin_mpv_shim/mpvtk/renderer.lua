@@ -1943,7 +1943,13 @@ local function draw_scrollbar(ass, node)
     local g = state.geo[node.id]
     local maxs = scroll_max(node)
     state.bars[node.id] = nil
-    if not node.bar or maxs <= 0 or not g then return end
+    -- The TRACK is drawn whenever the gutter exists, including when there is
+    -- nothing to scroll. layout.py reserves that gutter unconditionally --
+    -- it has to, because a full-bleed header sizes itself before anything is
+    -- measured -- so bailing out here on `maxs <= 0` is what left the
+    -- reserved strip unpainted beside an edge-to-edge backdrop. The THUMB
+    -- and the drag target are still gated on there being a range, below.
+    if not node.bar or not g then return end
     local x1, y1, x2, y2 = g.x1, g.y1, g.x2, g.y2
     -- geometry of viewport (unclipped by ancestors for simplicity)
     -- Scaled for the same reason the seek bar and the popup's own thumb are
@@ -1958,6 +1964,16 @@ local function draw_scrollbar(ass, node)
     if p then track_x = track_x - p.dx end
     local ty = node.y - (p and p.dy or 0)
     local th = node.h
+    local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
+    draw_rect(ass, track_x, ty, bw, th,
+        { fill = state.tok.control_sunken, radius = bw / 2, clip = clip })
+    if maxs <= 0 then
+        -- An empty channel. No thumb, because a thumb filling the whole
+        -- track says "you are looking at all of it" in a control you cannot
+        -- move -- and no entry in state.bars, so nothing here answers a
+        -- drag either.
+        return
+    end
     local frac = node.h / node.ch
     local thumb_h = math.max(ui_px(24), th * frac)
     -- Default: the thumb rides the continuous offset, so it glides a notch at
@@ -1969,9 +1985,6 @@ local function draw_scrollbar(ass, node)
         and snap_round(node, state.scroll[node.id] or 0)
         or clamp(state.scroll[node.id] or 0, 0, maxs)
     local thumb_y = ty + (th - thumb_h) * (off / maxs)
-    local clip = p and { x1 = x1, y1 = y1, x2 = x2, y2 = y2 } or nil
-    draw_rect(ass, track_x, ty, bw, th,
-        { fill = state.tok.control_sunken, radius = bw / 2, clip = clip })
     draw_rect(ass, track_x, thumb_y, bw, thumb_h,
         { fill = state.tok.scrollbar_thumb, radius = bw / 2, clip = clip })
     state.bars[node.id] = {

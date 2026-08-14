@@ -501,7 +501,7 @@ class NobodyElseHoldsTheDecodedImagesTest(unittest.TestCase):
         self.addCleanup(store.shutdown)
         self.fetched = []
 
-        def request(key, url, box, callback):
+        def request(key, url, box, callback, cover=False):
             # Deliver synchronously, filing the image in the LRU exactly as
             # pump() does — the path under test is who *keeps* it afterwards.
             self.fetched.append(key)
@@ -571,7 +571,8 @@ class NobodyElseHoldsTheDecodedImagesTest(unittest.TestCase):
         """Read-through must not turn every frame into a new fetch while the
         first one is still running."""
         store = self._store(max_mem_mb=8)
-        store.request = lambda key, url, box, callback: self.fetched.append(key)
+        store.request = (lambda key, url, box, callback, cover=False:
+                         self.fetched.append(key))
         r = self._renderer(store)
         for _frame in range(5):
             self.assertIsNone(self._draw(r, "slow"))

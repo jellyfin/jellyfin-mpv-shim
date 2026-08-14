@@ -56,6 +56,8 @@ HEADERS = (
      "btn-play"),
     ("series", {"kind": "series", "server": "srv1", "item_id": "sr1",
                 "title": "Show"}, "sa-nextup"),
+    ("season", {"kind": "season", "server": "srv1", "item_id": "se1",
+                "series_id": "sr1", "title": "Season 1"}, "se-nextup"),
 )
 
 
@@ -702,6 +704,268 @@ class HeaderPosterTest(unittest.TestCase):
         self.assertTrue(passed)
         self.assertTrue(callable(passed[-1]),
                         "the banner was composed before the cache was asked")
+
+
+class BannerResolutionTest(_Case):
+    """The header must not throw away resolution the crop is about to want.
+
+    The thumbnail store fits what it decodes INSIDE the box it is handed
+    (`Image.thumbnail`, contain), while `compose_banner` COVERS -- so the
+    box has to be one that a landscape source will fill by its width. It was
+    the banner's own aspect, which is much wider than any backdrop: a
+    1920x1080 picture contained into 2560x448 comes out 796 wide, and the
+    compositor then blew that up 3.2x across a full-bleed header [iw:
+    "it stretches smaller background sizes when 1920p sizes are available"].
+
+    Asserted by replaying the store's own rule against the box the page
+    asked for, rather than by naming the box: the box is the mechanism and
+    "does a real backdrop still cover this header" is the property. The
+    server behaviour it is measured against (`fillWidth`/`fillHeight` cover
+    rather than crop, and never upscale) is from a live 12.0 server -- the
+    fake cannot answer that half.
+    """
+
+    #: What a Jellyfin backdrop actually is, and the ceiling: TMDB's are
+    #: 1920x1080 and the server will not upscale past the file it has.
+    SOURCE = (1920, 1080)
+
+    def _box(self, route, full):
+        """The last decode box the header asked for, and the browser.
+
+        Renders before reading: `navigate` schedules, `build` is what draws
+        and therefore what requests artwork.
+        """
+        from jellyfin_mpv_shim.conf import settings
+
+        was = settings.backdrop_full_width
+        settings.backdrop_full_width = full
+        self.addCleanup(setattr, settings, "backdrop_full_width", was)
+        b, thumbs = self.browser(has_backdrop=True)
+        b.navigate(dict(route))
+        self.nodes(b)
+        boxes = [thumbs.boxes[key] for key, url in thumbs.requests
+                 if url == "http://s/backdrop"]
+        self.assertTrue(boxes, "the header asked for no backdrop at all")
+        return b, boxes[-1]
+
+    @staticmethod
+    def _contained(size, box):
+        """What `Image.thumbnail(box)` leaves of ``size`` -- shrink-only,
+        aspect preserved."""
+        scale = min(box[0] / size[0], box[1] / size[1], 1.0)
+        return int(size[0] * scale), int(size[1] * scale)
+
+    def _check(self, kind, route, full):
+        b, box = self._box(route, full)
+        node = next(n for n in self.nodes(b) if n.get("id") == kind + "-bd")
+        got = self._contained(self.SOURCE, box)
+        upscale = max(node["w"] / got[0], node["h"] / got[1])
+        # Not 1.0: a 2550px-wide header genuinely cannot be filled from a
+        # 1920px file, and that is the artwork's limit rather than ours.
+        # What must not happen is paying for it twice -- so the ceiling is
+        # exactly what the source forces, and nothing on top.
+        forced = max(node["w"] / self.SOURCE[0], node["h"] / self.SOURCE[1],
+                     1.0)
+        self.assertLessEqual(
+            upscale, forced + 0.01,
+            "the banner is upscaled %.2fx where the artwork forces %.2fx: "
+            "box %r left %r for a %rx%r header"
+            % (upscale, forced, box, got, node["w"], node["h"]))
+
+    def test_a_padded_header_uses_the_whole_backdrop(self):
+        for kind, route, _button in HEADERS:
+            with self.subTest(page=kind):
+                self._check(kind, route, full=False)
+
+    def test_a_full_bleed_header_uses_the_whole_backdrop(self):
+        """The mode where it was worst: the banner keeps the padded height
+        and takes the whole width, so the box is wider still."""
+        for kind, route, _button in HEADERS:
+            with self.subTest(page=kind):
+                self._check(kind, route, full=True)
+
+    def test_the_box_does_not_bind_on_height(self):
+        """The direct statement of the rule, so a failure above says which
+        half is wrong: a landscape picture must be limited by the box's
+        WIDTH, never by its height."""
+        _b, box = self._box(dict(HEADERS[0][1]), full=True)
+        self.assertGreaterEqual(
+            box[1] * self.SOURCE[0], box[0] * self.SOURCE[1],
+            "the decode box is narrower than 16:9, so it crops the width")
+
+
+class BannerFetchChurnTest(_Case):
+    """Dragging the window edge must not mint a server request per pixel.
+
+    This is issue #592's rule, applied to every fetch a header makes rather
+    than to the backdrop's width alone. The backdrop was quantised; the
+    INSET POSTER was not, and it is sized as a fraction of the banner -- so
+    it moved with every pixel the banner did, at roughly one new request per
+    four [iw: "there is request spam when resizing the background"].
+    Full-bleed headers made it continuous at every window size, where a
+    padded one at least stops moving above the 1100 cap.
+
+    Counted over a drag rather than compared between two widths: a pair of
+    widths can agree by landing in the same step, which is a test that
+    passes on unquantised code most of the time.
+    """
+
+    #: Widths each drag covers, and they differ ON PURPOSE. A padded
+    #: banner is `min(width - 2*pad, 1100)`, so above a ~1150px window it
+    #: has stopped moving and NOTHING downstream of it can churn -- a
+    #: padded drag measured up there is a test that cannot fail. Below the
+    #: cap is where that mode is live.
+    WIDTHS = {False: range(880, 1140, 4), True: range(1200, 1520, 4)}
+
+    def _keys(self, full):
+        from jellyfin_mpv_shim.conf import settings
+
+        was = settings.backdrop_full_width
+        settings.backdrop_full_width = full
+        self.addCleanup(setattr, settings, "backdrop_full_width", was)
+        b, thumbs = self.browser(has_backdrop=True)
+        # The inset poster is the fetch under test, so it has to exist.
+        b.source.has_poster = True
+        b.navigate({"kind": "detail", "server": "srv1", "item_id": "m1"})
+        for w in self.WIDTHS[full]:
+            b.build((w, 720))
+        return [key for key, _url in thumbs.requests]
+
+    def _assert_bounded(self, full):
+        keys = self._keys(full)
+        self.assertTrue(keys, "the header fetched nothing at all")
+        # Every distinct key is a cache miss and a request. The header makes
+        # two fetches, each quantised to a step, and the drag crosses a
+        # handful of steps -- a dozen is generous for that and an order of
+        # magnitude under one-per-pixel.
+        self.assertLessEqual(
+            len(set(keys)), 12,
+            "%d distinct fetches over a %d-px drag"
+            % (len(set(keys)),
+               max(self.WIDTHS[full]) - min(self.WIDTHS[full])))
+
+    def test_a_padded_header_does_not_refetch_per_pixel(self):
+        self._assert_bounded(full=False)
+
+    def test_a_full_bleed_header_does_not_refetch_per_pixel(self):
+        self._assert_bounded(full=True)
+
+
+class SeasonHeaderTest(_Case):
+    """The season screen draws the header its series does -- when there is
+    artwork, and NOT when there isn't.
+
+    A season carries no backdrop of its own; what it carries is
+    `ParentBackdropImageTags` + `ParentBackdropItemId`, which `backdrop_spec`
+    already follows. That half is measured against a real server rather than
+    here: `FakeSource.backdrop_spec` answers from a flag and ignores the
+    item, so it can say whether the PAGE asks and draws, never whether a real
+    season DTO resolves.
+    """
+
+    ROUTE = {"kind": "season", "server": "srv1", "item_id": "se1",
+             "series_id": "sr1", "title": "Season 1"}
+
+    def _open(self, has_backdrop=True, full=False):
+        from jellyfin_mpv_shim.conf import settings
+
+        was = settings.backdrop_full_width
+        settings.backdrop_full_width = full
+        self.addCleanup(setattr, settings, "backdrop_full_width", was)
+        b, thumbs = self.browser(has_backdrop=has_backdrop)
+        b.navigate(dict(self.ROUTE))
+        self.deliver(b, thumbs)
+        return b
+
+    def _bd(self, b):
+        return next((n for n in self.nodes(b)
+                     if n.get("id") == "season-bd"), None)
+
+    def _title_text(self, b):
+        """"Season 1" drawn as text INSIDE the scroll. Scoped to the scroll
+        because the top bar carries the same string, and a search that finds
+        it there can never fail."""
+        return [n for n in self.nodes(b)
+                if n.get("t") == "text" and n.get("text") == "Season 1"
+                and n.get("sc") == "season"]
+
+    def test_a_season_with_artwork_draws_a_banner(self):
+        node = self._bd(self._open())
+        self.assertIsNotNone(node, "no header on the season screen")
+        self.assertEqual(node["t"], "img",
+                         "the banner never became artwork: %r" % node)
+
+    def test_the_heading_is_baked_in_rather_than_drawn_twice(self):
+        """The banner bakes the title into its bitmap, so a page that also
+        drew it as text would show the season name twice."""
+        self.assertFalse(self._title_text(self._open()))
+
+    def test_a_season_without_artwork_keeps_the_plain_title(self):
+        """No placeholder panel here, unlike a detail or series page: this
+        screen is a grid with a title over it, and 400px of empty grey
+        between the two is worse than the line of text it replaced."""
+        b = self._open(has_backdrop=False)
+        self.assertIsNone(self._bd(b), "a placeholder panel was drawn")
+        self.assertTrue(self._title_text(b), "and no title either")
+
+    def test_the_episode_grid_still_starts_below_the_header(self):
+        """The virtualizer is told how tall the header is (`head_h`). Get
+        that wrong and the rows on screen are the ones it decided were far
+        away, so they composite as blank spacers."""
+        b = self._open()
+        banner = self._bd(b)
+        tiles = [n for n in self.nodes(b)
+                 if str(n.get("id", "")).startswith("ep-0-e")]
+        self.assertTrue(tiles, "no episode tiles were drawn at all")
+        self.assertGreaterEqual(min(t["y"] for t in tiles),
+                                banner["y"] + banner["h"])
+
+    def test_the_padded_banner_fits_the_column_it_sits_in(self):
+        """The season page is the first header caller whose column is NOT
+        padded with CONTENT_PAD -- its grid supplies the pad -- while
+        `banner_box` sizes against that constant. With a centred grid the
+        two disagree and the banner is wider than the column holding it.
+
+        Asserted on the WIDTH against the column, not on the banner's right
+        edge against the viewport: the overhang only reaches the viewport
+        at some window sizes, and the banner's left edge lines up either
+        way, so both of the obvious assertions pass while it is broken.
+        """
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        was = settings.grid_fill
+        settings.grid_fill = "center"
+        self.addCleanup(setattr, settings, "grid_fill", was)
+        b = self._open(full=False)
+        node = self._bd(b)
+        self.assertIsNotNone(node, "no header drawn at all")
+        from jellyfin_mpv_shim.mpvtk_browser.components import chrome
+
+        chrome_pad = chrome.CONTENT_PAD
+        art = b._art_context()
+        gpad, _geom = art.tiles.grid_layout(SIZE[0], art.geom_wide)
+        inner = SIZE[0] - 2 * gpad - SCROLLBAR_W
+        self.assertGreater(gpad, chrome_pad,
+                           "grid_fill: center did not widen the pad, so "
+                           "this test is not exercising the case it names")
+        self.assertLessEqual(
+            node["w"], inner,
+            "the banner is %dpx wide in a %dpx column (pad %d)"
+            % (node["w"], inner, gpad))
+
+    def test_full_bleed_reaches_the_edge_here_too(self):
+        from jellyfin_mpv_shim.mpvtk.layout import SCROLLBAR_W
+
+        node = self._bd(self._open(full=True))
+        self.assertEqual(node["x"], 0)
+        self.assertEqual(node["x"] + node["w"], SIZE[0] - SCROLLBAR_W)
+
+    def test_the_season_picker_survives_the_banner(self):
+        """It shared a row with the title, and the title is gone."""
+        b = self._open()
+        self.assertTrue([n for n in self.nodes(b)
+                         if n.get("id") == "season-switch"])
 
 
 class FullBleedHeaderTest(_Case):

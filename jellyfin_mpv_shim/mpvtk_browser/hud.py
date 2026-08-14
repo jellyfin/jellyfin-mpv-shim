@@ -366,6 +366,22 @@ def _menu_rows(b, st, w=None):
                      None, lambda: _open_hud_menu(b, "speed")))
         rows.append((_("Aspect Ratio"), None,
                      lambda: _open_hud_menu(b, "aspect")))
+        # A per-session force, not a setting: the durable answer is
+        # `deinterlace_auto` in Settings, and this is for the file that IS
+        # interlaced and does not say so -- a DVD rip, a broadcast capture.
+        # It reverts on the way back to the library.
+        #
+        # The tick below is necessarily a snapshot -- it is drawn -- but
+        # the TOGGLE must not be, and is not: `toggle_deinterlace` re-reads
+        # mpv when it fires rather than closing over `on`. A gear menu can
+        # sit open across a queue advance, and a handler built from what
+        # was true when the row drew toggles from the wrong side (the
+        # browser's standing footgun; see CLAUDE.md).
+        on, auto = _ctl_get(b, "deinterlace", (False, False))
+        rows.append((with_current(_("Deinterlace"),
+                                  _("Auto") if auto and not on else None),
+                     "check" if on else None,
+                     leaf(lambda: b._ctl(lambda c: c.toggle_deinterlace()))))
         profiles = st.get("profiles") or {}
         if profiles.get("options"):
             rows.append((with_current(

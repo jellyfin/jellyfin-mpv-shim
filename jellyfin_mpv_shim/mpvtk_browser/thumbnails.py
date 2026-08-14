@@ -157,6 +157,42 @@ class MemoryCache:
         return self._bytes
 
 
+def _fit_into(image, box):
+    """Crop ``image`` to ``box``'s SHAPE, at the largest size it can manage.
+
+    The cover half of the pair ``Image.thumbnail`` is the contain half of.
+    Everything a poster tile draws is cover-cropped at paint time
+    (``strips._paint_poster`` -> ``ImageOps.fit``), and thumbnail-ing here
+    first threw away exactly the pixels that crop was about to want: a 4:5
+    poster in a 2:3 tile was contained to 200x250 and then blown back up to
+    200x300, and a square headshot -- which is every ``BaseItemPerson``,
+    since that DTO carries no ``PrimaryImageAspectRatio`` at all -- came out
+    of a 200x300 tile upscaled by half. Measured over the shapes a cover
+    tile actually sees, against a 200x300 tile: 4:5 art 1.20x, a square
+    1.50x, a 16:9 still 2.65x -- all of it on pixels the server had already
+    sent and this threw away.
+
+    **Never upscales**, which is the difference between this and asking
+    ``scale_to_cover`` for the box outright. A source too small to fill the
+    box is cropped to the shape and left at its own resolution; the paint-time
+    fit then resizes it, from the same pixels and by the same filter, so the
+    picture is identical and the decoded cache does not hold a magnified copy
+    of a small image.
+    """
+    from ..imageutil import scale_to_cover
+
+    bw, bh = max(1, box[0]), max(1, box[1])
+    iw, ih = image.size
+    if not iw or not ih:
+        return image
+    shrink = min(iw / bw, ih / bh)
+    if shrink < 1.0:
+        bw, bh = max(1, int(bw * shrink)), max(1, int(bh * shrink))
+    if (iw, ih) == (bw, bh):
+        return image
+    return scale_to_cover(image, bw, bh)
+
+
 def _image_bytes(image):
     """Approximate resident size of a decoded PIL image."""
     try:
@@ -319,8 +355,14 @@ class ThumbnailStore:
         with self._lock:
             return key in self._gone
 
-    def request(self, key, url, box, callback):
+    def request(self, key, url, box, callback, cover=False):
         """Fetch image for `key` from `url`, resized to fit `box` (w, h).
+
+        ``cover`` asks for the box FILLED rather than fitted -- see
+        :func:`_fit_into`. The caller has to say, because whether artwork is
+        cover-cropped is a property of the tile it is going into and not of
+        the picture (``TileRenderer._contains``), and the key it hands over
+        already distinguishes the two.
 
         `callback(image)` runs on the loop thread (via pump) when ready, with a
         decoded ``PIL.Image``. Multiple callers requesting the same key share
@@ -346,7 +388,7 @@ class ThumbnailStore:
                 return
             self._pending[key] = [callback]
 
-        self._pool.submit(self._work, key, url, box)
+        self._pool.submit(self._work, key, url, box, cover)
 
     def cancel(self, key, callback=None):
         """Drop a pending fetch (or a single waiter of one).
@@ -407,7 +449,7 @@ class ThumbnailStore:
 
     # -- worker thread -----------------------------------------------------
 
-    def _work(self, key, url, box):
+    def _work(self, key, url, box, cover=False):
         # Skip work cancelled before this task got a worker (a tile scrolled
         # off or its view was torn down) — clears the fast-scroll backlog
         # without touching the network.
@@ -415,7 +457,7 @@ class ThumbnailStore:
             if key not in self._pending:
                 return
         try:
-            image = self._load_image(key, url, box)
+            image = self._load_image(key, url, box, cover)
         except Exception as e:
             log.debug("Thumbnail load failed: %s", url, exc_info=True)
             image = None
@@ -434,7 +476,7 @@ class ThumbnailStore:
             except Exception:
                 log.debug("Thumbnail notify failed", exc_info=True)
 
-    def _load_image(self, key, url, box):
+    def _load_image(self, key, url, box, cover=False):
         if url.startswith("http://") or url.startswith("https://"):
             data = self._load_remote(key, url)
         else:
@@ -462,7 +504,15 @@ class ThumbnailStore:
         # exist at runtime and are invisible to any static analysis. Spelling
         # it Resampling.LANCZOS instead would require Pillow >= 9.1, which this
         # project does not pin.
-        image.thumbnail(box, Image.LANCZOS)  # type: ignore[attr-defined]
+        if cover and image.mode != "RGBA":
+            # Transparency opts back out: a mark on a transparent background
+            # is not a photograph, and the compositor refuses to crop one
+            # whatever the tile says (strips._paint_poster's `plate` arm).
+            # Cropping it here would be a decision taken before the thing
+            # that decides has looked.
+            image = _fit_into(image, box)
+        else:
+            image.thumbnail(box, Image.LANCZOS)  # type: ignore[attr-defined]
         if image.mode == "RGBA":
             # Measured here, on the worker, because the answer is a property of
             # the artwork and the callers that need it are the loop thread and
@@ -481,17 +531,31 @@ class ThumbnailStore:
         self._auth = dict(origins or {})
 
     def _headers_for(self, url):
-        """The Authorization header for ``url``, or none.
+        """Headers for an artwork request: our user agent always, and the
+        Authorization header when the origin is one we are signed in to.
 
-        Matched on scheme+host+port, so a token never travels to another
-        host -- nor over plain http to a server we reached by https.
+        The token is matched on scheme+host+port, so it never travels to
+        another host -- nor over plain http to a server we reached by
+        https. The user agent is unconditional: it identifies the client,
+        not the session, and there is nothing in it to leak.
+
+        **Artwork is the highest-volume traffic this client makes**, so
+        without the agent a server's access log is mostly anonymous
+        `python-requests/x.y` lines that nothing ties back to the shim
+        [iw] -- which is exactly the log somebody reads when they are
+        trying to work out which client is hammering them.
         """
+        from ..constants import USER_AGENT
+
+        headers = {"User-Agent": USER_AGENT}
         try:
             parts = urlparse(url)
         except Exception:
-            return {}
+            return headers
         header = self._auth.get((parts.scheme, parts.hostname, parts.port))
-        return {"Authorization": header} if header else {}
+        if header:
+            headers["Authorization"] = header
+        return headers
 
     def _load_remote(self, key, url):
         path = os.path.join(self.cache_dir, key + ".img")

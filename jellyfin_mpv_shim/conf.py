@@ -155,6 +155,60 @@ class Settings(SettingsBase):
     #: the poster left alone.
     detail_episode_image: bool = True
     hwdec: str = "no"
+    #: mpv's ``--deinterlace=auto``: deinterlace only what the file says is
+    #: interlaced, rather than everything or nothing.
+    #:
+    #: **Off by default, which is also mpv's default**, and the reason is
+    #: that the flag is not reliable. Plenty of interlaced DVD and broadcast
+    #: rips are not marked, and plenty of progressive files carry the flag
+    #: from whatever produced them -- so auto is right much more often than
+    #: it is wrong, but the case where it is wrong (deinterlacing
+    #: progressive video) softens a picture that was fine. The per-session
+    #: toggle in the playback HUD's gear menu is the answer for the other
+    #: half, the file that IS interlaced and does not say so -- it lasts
+    #: until the library comes back or the window is closed.
+    #:
+    #: ``auto`` is mpv 0.38+. An older build rejects the value, and the
+    #: setting then behaves as off -- see PlayerManager._apply_deinterlace,
+    #: which will not substitute ``yes``: forcing deinterlacing on
+    #: everything is not a degraded version of this, it is a different and
+    #: worse setting.
+    deinterlace_auto: bool = False
+    #: mpv frame interpolation -- ``video-sync=display-resample`` plus
+    #: ``interpolation`` and a ``tscale`` filter. See
+    #: mpv_options.INTERPOLATION_PRESETS for what each value writes.
+    #:
+    #: **This is frame BLENDING, not motion compensation.** It resamples
+    #: along the time axis so a 24fps film on a 60Hz screen stops
+    #: repeating frames unevenly; it does not synthesise motion the way
+    #: SVP does. That was looked at and rejected [iw]: it is paid on Linux
+    #: now, and its dependencies are heavy enough that shipping them is
+    #: not on the table.
+    #:
+    #: Off by default, and the reason is not that it is expensive. Measured
+    #: on a 9950X3D + RTX 4090 [iw], it dropped frames badly -- on a
+    #: MULTI-MONITOR X11 desktop whose screens run at different refresh
+    #: rates (144Hz beside two at 60). That is not a hardware limit, it is
+    #: mpv reading the wrong clock: "on multi-monitor systems, there is a
+    #: chance that the detected value is from the wrong monitor", and
+    #: "setting an incorrect value (even if slightly incorrect) can ruin
+    #: video playback" (mpv's manual, --display-fps-override). All three
+    #: modes follow that clock, so all three inherit the problem, and it is
+    #: a common enough desktop for the default to have to assume it.
+    #:
+    #: The first thing to try is mpv's own
+    #: ``display-fps-override=<the refresh of the screen you watch on>`` in
+    #: the user's mpv.conf -- but it did NOT fix the machine above [iw], so
+    #: the mismatched-desktop case is not fully understood and this is not
+    #: a workaround to promise anyone. Deliberately not a setting of ours
+    #: either way: we would be guessing at which monitor, which is the
+    #: thing that is already wrong.
+    #:
+    #: It also costs GPU on every frame, mpv reverts to audio timing on its
+    #: own for low-framerate or VFR content, and ``display-resample``
+    #: adjusts audio speed to track the display -- which is exactly what
+    #: somebody bitstreaming to a receiver does not want.
+    motion_interpolation: str = "off"
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False
@@ -608,20 +662,26 @@ class Settings(SettingsBase):
     #: no padding above or beside them -- jellyfin-web's full-bleed
     #: backdrop.
     #:
-    #: **Off by default**, which is not what this shipped as. Two things
-    #: decided it, both only visible against a real library:
+    #: **On by default -- and it shipped off.** Both of the things that
+    #: decided that turned out to be bugs elsewhere rather than costs of
+    #: this mode, and both are fixed:
     #:
-    #: * a lot of backdrop artwork is low-resolution, and full bleed is the
-    #:   mode that asks the most of it -- the same picture stretched over
-    #:   another few hundred pixels of width, cropped harder;
-    #: * the scroll view reserves a gutter for its scrollbar, so a
-    #:   "full-width" header stops 10px short of the window on any page long
-    #:   enough to scroll, and a notch at the end of an edge-to-edge banner
-    #:   reads worse than a margin does.
+    #: * "backdrop artwork is low-resolution and this stretches it
+    #:   furthest" was the header asking the thumbnail store to decode into
+    #:   a box shaped like the BANNER. That store contains where the
+    #:   compositor covers, so a 1920x1080 backdrop was contained down to
+    #:   796px wide and then blown back up over the header -- not a
+    #:   property of the artwork at all (TileRenderer.backdrop_node);
+    #: * "a full-width header stops 10px short of the window" was the
+    #:   scrollbar gutter being reserved by this side unconditionally and
+    #:   by the layout only when the content overflowed. The layout now
+    #:   reserves it always and renderer.lua paints the track whenever it
+    #:   exists, so the strip beside the banner is a scrollbar rather than
+    #:   a void (mpvtk.layout).
     #:
-    #: It still costs no vertical space either way: the header keeps the
-    #: height the padded version had (see TileRenderer.banner_box).
-    backdrop_full_width: bool = False
+    #: It costs no vertical space either way: the header keeps the height
+    #: the padded version had (see TileRenderer.banner_box).
+    backdrop_full_width: bool = True
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the

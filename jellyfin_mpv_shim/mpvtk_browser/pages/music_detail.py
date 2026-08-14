@@ -104,19 +104,25 @@ class ArtistPage(MusicPage):
         server = route.get("server") or self.ctx.server
         ids = [s.get("Id") for s in songs]
         item = data.get("item") or {}
+        # Before the header, which needs the pad to wrap its overview to the
+        # column it will actually sit in.
+        gpad, geom = art.tiles.grid_layout(size[0], art.geom_square)
         rows: list = [Row([
             art.tiles.art_cell(item, size=HEADER_ART) if item else Spacer(w=0),
             Column(self.header_text(item, songs, size[0],
                                     indent=(HEADER_ART if item else 0)
-                                    + HEADER_GAP) + [
+                                    + HEADER_GAP, pad=gpad) + [
                 self.action_bar(server, ids, route["item_id"], "art",
                                 items=songs),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")]
+        # (`gpad`/`geom` above.) Justified/centred like every other tile
+        # grid: this one asked for neither, so `grid_fill` did nothing here
+        # while the music library one tab away obeyed it -- ~148px of slack
+        # stacked on one side at a 1280px window.
         if albums:
             rows.append(Text(_("Albums"), size="large", bold=True))
-        rows += art.tiles.grid_of(albums, "artist", size,
-                                  geom=art.geom_square,
+        rows += art.tiles.grid_of(albums, "artist", size, geom=geom,
                                   scroll_id="artist", head_h=110)
         similar = data.get("similar") or []
         if similar:
@@ -124,7 +130,8 @@ class ArtistPage(MusicPage):
             rows.append(art.tiles.tile_row(_("Similar Artists"), similar,
                                            "artist-similar",
                                            geom=art.geom_square))
-        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+        return VScroll(Column(rows, pad=(gpad, chrome.CONTENT_PAD),
+                              gap=GRID_GAP),
                        id="artist", flex=1,
                        offset=self.parked_scroll("artist"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
@@ -175,10 +182,11 @@ class MusicGenrePage(MusicPage):
         first, last = art.tiles.row_window(size, art.geom_square,
                                            "mgenre", 110)
         self._window(first * cols, (last + 1) * cols)
-        rows += art.tiles.grid_of(albums, "mgenre", size,
-                                  geom=art.geom_square,
+        gpad, geom = art.tiles.grid_layout(size[0], art.geom_square, cols)
+        rows += art.tiles.grid_of(albums, "mgenre", size, geom=geom,
                                   scroll_id="mgenre", head_h=110)
-        return VScroll(Column(rows, pad=chrome.CONTENT_PAD, gap=GRID_GAP),
+        return VScroll(Column(rows, pad=(gpad, chrome.CONTENT_PAD),
+                              gap=GRID_GAP),
                        id="mgenre", flex=1,
                        offset=self.parked_scroll("mgenre"),
                        # Lets a window that FAILED be asked for again;

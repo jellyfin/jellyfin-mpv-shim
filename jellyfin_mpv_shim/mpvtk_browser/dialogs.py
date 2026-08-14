@@ -110,9 +110,12 @@ FILTER_SECTIONS = (
         # that pairs them says so before you click.
         (("unplayed", _("Unplayed"), _EXCEPT_MUSIC),
          ("played", _("Played"), _EXCEPT_MUSIC)),
+        # No "Liked" (`Filters=Likes`). The server still answers it, but
+        # nothing in this client can set a like -- the thumbs up/down UI was
+        # removed long ago [iw] -- so it is a filter for a state the app
+        # cannot produce, and on most libraries it matches nothing at all.
         (("favorite", _("Favorites"), None),
-         ("resumable", _("Resumable"), _EXCEPT_MUSIC),
-         ("liked", _("Liked"), None)),
+         ("resumable", _("Resumable"), _EXCEPT_MUSIC)),
     ), None),
     (_("Genres"), "pick", ("genre", "genres"), None),
     (_("Years"), "pick", ("year", "years"), None),

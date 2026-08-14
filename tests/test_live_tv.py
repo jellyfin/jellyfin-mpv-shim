@@ -1602,6 +1602,37 @@ class AirTimeThirdLine(unittest.TestCase):
         self.assertIs(self._geom([self.PROGRAM], LANDSCAPE_GEOM),
                       LANDSCAPE_GEOM)
 
+    def test_the_production_path_asks_too(self):
+        """Every other test here calls `caption_geom` DIRECTLY, so all of
+        them stayed green while `auto_geom` -- what the Live TV rows
+        actually go through -- returned the landscape geometry bare. That
+        made THIRD_LINE_MAX_W unreachable for exactly the geometry its own
+        docstring justifies itself with, and at Extra Compact
+        ("Channel 4 HD   ·   21:00 - 22:15" is 206px into a 180px tile) the
+        air time was ellipsized away again.
+
+        Two things have to be arranged or this cannot reach the branch:
+        the items need a LANDSCAPE aspect ratio (without one `auto_geom`
+        takes its no-ratios fallback, which already asks), and the cover
+        size has to make the tile narrow enough for the rule to bite --
+        at the stock 240 the right answer is "no third line" and the test
+        would pass either way.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import LANDSCAPE_GEOM
+
+        art = self.b.tiles.art
+        was = art.geom_wide
+        art.geom_wide = LANDSCAPE_GEOM.scaled(0.75)
+        self.addCleanup(setattr, art, "geom_wide", was)
+        self.assertLess(art.geom_wide.tile_w, self.b.tiles.THIRD_LINE_MAX_W)
+        listings = [dict(self.PROGRAM, PrimaryImageAspectRatio=16 / 9)]
+        geom, image_type = self.b.tiles.auto_geom(
+            listings, default=self.b.tiles.art.geom, default_type="Primary")
+        self.assertEqual(image_type, "Thumb", "not the landscape branch")
+        self.assertEqual(geom.caption_lines, 3,
+                         "auto_geom's landscape exit does not ask "
+                         "caption_geom")
+
     def test_a_poster_row_of_films_does_not(self):
         """The width is only half the test. An ordinary library row is
         posters too, and its second line is a year."""

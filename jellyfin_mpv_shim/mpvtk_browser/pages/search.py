@@ -200,9 +200,14 @@ class SearchPage(Page):
         # is on now is a result, a channel is a place to go and look.
         live = data.get("live") or {}
         if live.get("programs"):
-            rows.append(tiles.tile_row(_("On TV"), live["programs"],
-                                       "search-programs", geom=art.geom_wide,
-                                       image_type="Thumb"))
+            # caption_geom, because these are listings and carry an air
+            # time: without it the row keeps two caption lines and the time
+            # is joined onto the channel name, then ellipsized away on a
+            # narrow tile. Every other screen that draws programmes asks.
+            rows.append(tiles.tile_row(
+                _("On TV"), live["programs"], "search-programs",
+                geom=tiles.caption_geom(live["programs"], art.geom_wide),
+                image_type="Thumb"))
         if live.get("channels"):
             rows.append(tiles.tile_row(_("Channels"), live["channels"],
                                        "search-channels",

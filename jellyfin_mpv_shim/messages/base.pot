@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-12 17:33-0400\n"
+"POT-Creation-Date: 2026-08-13 11:47-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1232,6 +1232,22 @@ msgid "Copy (advanced)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Off"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth Motion"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Blend Frames"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth (high quality)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
 msgstr ""
 
@@ -1477,6 +1493,14 @@ msgid "Hardware Decoding"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Deinterlace Automatically"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Motion Interpolation"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
 msgstr ""
 
@@ -1704,6 +1728,24 @@ msgstr ""
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Deinterlace video the file says is interlaced. Off by default, as in MPV "
+"itself: the flag is not reliable in either direction, and deinterlacing "
+"progressive video softens a picture that was fine. To force it on for "
+"something that is interlaced without saying so, use Deinterlace in the "
+"player's settings menu — that lasts until you return to the library. Needs "
+"MPV 0.38 or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Frame blending (blends frames together, not the same as SVP/DLSS/framegen). "
+"Reduces juddering caused by mismatched frame rate between content and "
+"display. May cause dropped frames if your displays have mismatched frame "
+"rates."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1946,10 +1988,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Resumable"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Liked"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2544,6 +2582,10 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Aspect Ratio"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+msgid "Deinterlace"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -3827,6 +3869,19 @@ msgid "Some changes take effect after restarting."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
+msgid "Open Config Folder"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid ""
+"Advanced MPV options go in mpv.conf, in this folder. MPV reads it at startup "
+"and these settings are applied afterwards, so most of them override it. "
+"Hardware Decoding is the exception: set hwdec there and this app leaves it "
+"alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
 msgstr ""
 
@@ -3979,10 +4034,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Copy"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
-msgid "Open Config Folder"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py

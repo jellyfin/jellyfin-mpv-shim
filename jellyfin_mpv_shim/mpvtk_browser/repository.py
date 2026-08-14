@@ -390,13 +390,14 @@ class ServerConn:
 
 
 #: Status filters -- `setting key -> the member of Jellyfin's `Filters`
-#: enum`. web's FiltersStatus, minus IsFavorite, which has a parameter of
-#: its own (`is_favorite`) and would be sent twice.
+#: enum`. web's FiltersStatus, minus two: IsFavorite, which has a parameter
+#: of its own (`is_favorite`) and would be sent twice, and Likes, which the
+#: panel no longer offers because nothing in this client can set a like
+#: (see dialogs.FILTER_SECTIONS).
 STATUS_FILTERS = (
     ("unplayed", "IsUnplayed"),
     ("played", "IsPlayed"),
     ("resumable", "IsResumable"),
-    ("liked", "Likes"),
 )
 
 #: Feature filters -- each its own boolean query parameter. web's

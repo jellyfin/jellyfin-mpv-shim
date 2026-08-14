@@ -250,6 +250,79 @@ def mpv_binary_location():
 #: probe, and the app died constructing one.
 OSC_OPTION = "osc"
 
+
+#: What each ``motion_interpolation`` value writes, as mpv property names.
+#:
+#: All three ON values set ``video-sync`` as well, and that is not
+#: incidental: mpv's own manual says ``--interpolation`` "requires setting
+#: the --video-sync option to one of the display- modes, or it will be
+#: **silently disabled**". A setting that writes only ``interpolation`` is
+#: therefore a setting that does nothing and reports success, which is why
+#: the pair is a table here rather than two independent options -- and why
+#: `tests/test_motion_interpolation.py` asserts they travel together.
+#:
+#: The filters are mpv's, and they are three different trades rather than
+#: three quality tiers:
+#:
+#: * ``oversample`` is mpv's own default and barely blends at all -- it
+#:   holds each frame and crossfades only across the transition, which is
+#:   MPC's "smooth motion". Judder goes, sharpness stays.
+#: * ``linear`` is a true cross-fade between the two nearest frames. The
+#:   smoothest motion of the three and visibly softer on a pan, which some
+#:   people want and some cannot stand.
+#: * ``mitchell`` is a wider kernel over more frames: smoother still, and
+#:   the one that costs enough GPU to matter. On hardware that cannot keep
+#:   up it drops frames, which looks like the judder it was turned on to
+#:   fix -- so it is offered last and labelled as the expensive one.
+INTERPOLATION_PRESETS = {
+    "off": {},
+    "smooth": {"video-sync": "display-resample",
+               "interpolation": True, "tscale": "oversample"},
+    "blend": {"video-sync": "display-resample",
+              "interpolation": True, "tscale": "linear"},
+    "hq": {"video-sync": "display-resample",
+           "interpolation": True, "tscale": "mitchell"},
+}
+
+
+#: Every property any preset writes. What "off" has to put back is this
+#: whole set, not the ones the CURRENT preset happens to name -- somebody
+#: who used `hq` and then switched to off must get their `tscale` back too.
+INTERPOLATION_KEYS = tuple(sorted(
+    {key for props in INTERPOLATION_PRESETS.values() for key in props}))
+
+
+def interpolation_props():
+    """``{mpv property: value}`` for the configured preset, or ``{}``.
+
+    ``{}`` for "off" is deliberate and is NOT the same as writing the
+    defaults back: ``video-sync`` is a timing mode somebody may reasonably
+    have chosen in their own ``mpv.conf``, and an "off" that wrote
+    ``audio`` over it would be this setting overriding a more specific
+    statement -- the mistake ``hwdec_pinned_by_config`` exists to avoid.
+    Turning the feature off is the player's job, and it restores what was
+    there before it first wrote (PlayerManager._apply_interpolation).
+
+    An unrecognised value reads as off. It is a plain string in a JSON file
+    somebody can type into, and the alternative to a default is a KeyError
+    out of the middle of starting playback.
+    """
+    return dict(INTERPOLATION_PRESETS.get(
+        settings.motion_interpolation, INTERPOLATION_PRESETS["off"]))
+
+
+def deinterlace_value(override=None):
+    """mpv's ``deinterlace`` for the configured mode, or for ``override``.
+
+    ``override`` is the playback HUD's per-session toggle: ``True`` forces
+    it on for a file whose interlacing is not flagged, ``None`` means
+    nobody has said anything and the setting decides.
+    """
+    if override is not None:
+        return "yes" if override else "no"
+    return "auto" if settings.deinterlace_auto else "no"
+
+
 def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     """The full option set to construct mpv with.
 

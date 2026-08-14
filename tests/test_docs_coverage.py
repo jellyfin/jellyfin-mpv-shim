@@ -102,6 +102,8 @@ class DocsCoverageTest(unittest.TestCase):
             "panel", "hover", "always", "paused",
             # segment_* values
             "off", "ask",
+            # motion_interpolation values
+            "smooth", "blend", "hq",
             # mpv_log_level values (mpv's own, plus our "noise")
             "noise",
             # language_config rule keys

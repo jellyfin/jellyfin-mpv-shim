@@ -713,6 +713,14 @@ class ThumbnailAuthTest(unittest.TestCase):
     their query strings is a token in the access log of every one of them --
     and it means Jellyfin cannot sit behind a proxy that rejects
     unauthenticated requests, because every tile would 401.
+
+    Every assertion here is about the AUTHORIZATION header alone, not about
+    the whole dict. These read `assertEqual(got, {...})` until the user
+    agent was added beside it, and that broke all five at once -- an
+    equality on a header dict fails the day anything else legitimately
+    joins it, which makes it a test of the dict's membership rather than of
+    the property it is named after. See ArtworkRequestHeadersTest in
+    test_mpvtk_thumbnails for the agent's own tests.
     """
 
     def _store(self, origins):
@@ -730,18 +738,19 @@ class ThumbnailAuthTest(unittest.TestCase):
     def test_our_own_server_gets_the_header(self):
         store = self._store({("https", "example.com", None): self.HDR})
         got = store._headers_for("https://example.com/Items/1/Images/Primary")
-        self.assertEqual(got, {"Authorization": self.HDR})
+        self.assertEqual(got.get("Authorization"), self.HDR)
 
     def test_another_host_gets_nothing(self):
         store = self._store({("https", "example.com", None): self.HDR})
-        self.assertEqual(
-            store._headers_for("https://elsewhere.example/Items/1/Images/X"),
-            {})
+        self.assertNotIn(
+            "Authorization",
+            store._headers_for("https://elsewhere.example/Items/1/Images/X"))
 
     def test_a_downgrade_to_http_gets_nothing(self):
         store = self._store({("https", "example.com", None): self.HDR})
-        self.assertEqual(
-            store._headers_for("http://example.com/Items/1/Images/X"), {})
+        self.assertNotIn(
+            "Authorization",
+            store._headers_for("http://example.com/Items/1/Images/X"))
 
     def test_a_second_server_gets_its_own_token(self):
         """One store serves every connected server, and a token only ever
@@ -757,11 +766,12 @@ class ThumbnailAuthTest(unittest.TestCase):
         user has left stops receiving its old token."""
         store = self._store({("https", "example.com", None): self.HDR})
         store.set_auth({})
-        self.assertEqual(store._headers_for("https://example.com/i"), {})
+        self.assertNotIn("Authorization",
+                         store._headers_for("https://example.com/i"))
 
     def test_a_junk_url_is_not_an_exception(self):
         store = self._store({("https", "example.com", None): self.HDR})
-        self.assertEqual(store._headers_for("not a url"), {})
+        self.assertNotIn("Authorization", store._headers_for("not a url"))
 
     def test_image_urls_no_longer_carry_the_token(self):
         from jellyfin_mpv_shim.mpvtk_browser.repository import LibrarySource

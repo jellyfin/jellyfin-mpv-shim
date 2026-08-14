@@ -638,10 +638,18 @@ class GridPage(Page):
         # A hole draws as an empty row rather than being skipped: the row
         # index IS the item's position, which is what keeps the table its
         # full height and the scrollbar honest while the windows load.
+        # The year is drawn whatever `showYear` says, and `showTitle` is not
+        # asked either. Those two are CARD settings -- the checkboxes are
+        # "Show titles" and "Show years", and what they govern is the caption
+        # under a tile. The reason for turning them off does not survive the
+        # trip to a table: people switch them off because their artwork
+        # already carries the title and year [iw], and a table has no
+        # artwork. Consulting `showYear` here did not remove the column, it
+        # emptied it -- so a library browsed as a list kept a blank column
+        # holding its space, which is how the reporter met this.
         rows = [
             {"cells": [it.get("Name") or "",
-                       str(it.get("ProductionYear") or "")
-                       if self._view("showYear") else "",
+                       str(it.get("ProductionYear") or ""),
                        _fmt_runtime(it.get("RunTimeTicks"))],
              "item": it}
             if it else {"cells": ["", "", ""], "item": None}

@@ -227,6 +227,151 @@ class CoverOrContainTest(unittest.TestCase):
                          make_key("i", "Primary", "t", 150, 225, fit=""))
 
 
+class CoverDecodeTest(unittest.TestCase):
+    """A tile that COVERS must be decoded covering, not fitted and then
+    blown back up.
+
+    The pieces were each right and the pair was not: the request asks the
+    server to fill (``fill=not contain``), the paint cover-crops
+    (``strips._paint_poster`` -> ``ImageOps.fit``), and in between the decode
+    contained the result inside the tile -- throwing away precisely the
+    overflow the crop was about to want, so the fit had to magnify what was
+    left. Nothing here is visible to a size or a shape assertion: the answer
+    is the same picture, softer.
+    """
+
+    TILE = (200, 300)
+
+    #: What the shapes a cover tile actually sees cost, before this. Cover is
+    #: reached for a Primary in a poster tile whose ratio is portrait, square
+    #: or ABSENT -- and absent is the interesting one, because a
+    #: ``BaseItemPerson`` (every Cast & Crew tile) carries no
+    #: ``PrimaryImageAspectRatio`` at all, so a 16:9 headshot lands here.
+    SHAPES = (("2:3 key art", (1000, 1500), 1.00),
+              ("4:5 art", (1000, 1250), 1.20),
+              ("a square headshot", (1000, 1000), 1.50),
+              ("a 16:9 person still", (1920, 1080), 2.65))
+
+    @staticmethod
+    def _server_fill(source, box):
+        """``fillWidth``/``fillHeight``: COVER the box, hand back the whole
+        frame, never upscale past the file. Measured on a live 12.0 server
+        -- no stand-in here can answer it."""
+        iw, ih = source
+        scale = min(1.0, max(box[0] / iw, box[1] / ih))
+        return max(1, round(iw * scale)), max(1, round(ih * scale))
+
+    @staticmethod
+    def _paint_upscale(decoded, box):
+        """What ``ImageOps.fit`` has to magnify to fill the tile."""
+        return max(box[0] / decoded[0], box[1] / decoded[1])
+
+    def _decoded(self, sent):
+        from PIL import Image
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import _fit_into
+        return _fit_into(Image.new("RGB", sent), self.TILE).size
+
+    def test_the_paint_never_has_to_magnify_what_the_decode_kept(self):
+        for name, source, _was in self.SHAPES:
+            with self.subTest(art=name):
+                sent = self._server_fill(source, self.TILE)
+                up = self._paint_upscale(self._decoded(sent), self.TILE)
+                self.assertLessEqual(
+                    up, 1.01,
+                    "%s: the tile is filled by magnifying the decode %.2fx"
+                    % (name, up))
+
+    def test_it_was_the_contain_that_was_costing_this(self):
+        """The other half of the pair, so a failure above cannot be read as
+        "the numbers were never real". Replays what the decode used to do
+        -- ``Image.thumbnail``, contain -- and states what each shape paid.
+        """
+        from PIL import Image
+        for name, source, was in self.SHAPES:
+            with self.subTest(art=name):
+                sent = self._server_fill(source, self.TILE)
+                old = Image.new("RGB", sent)
+                old.thumbnail(self.TILE, Image.LANCZOS)
+                self.assertAlmostEqual(
+                    self._paint_upscale(old.size, self.TILE), was, delta=0.02,
+                    msg="%s no longer costs what this was written about"
+                        % name)
+
+    def test_it_never_upscales_into_the_cache(self):
+        """A source too small to fill the tile is cropped to the SHAPE and
+        left at its own resolution. Asking ``scale_to_cover`` for the box
+        outright would be simpler and would park a magnified copy of a small
+        image in a byte-bounded cache -- for no gain, since the paint-time
+        fit resizes it from the same pixels by the same filter either way.
+        """
+        got = self._decoded((100, 100))
+        self.assertLess(max(got), max(self.TILE))
+        self.assertAlmostEqual(got[0] / got[1],
+                               self.TILE[0] / self.TILE[1], delta=0.02)
+
+    def test_artwork_already_the_right_size_is_left_alone(self):
+        from PIL import Image
+        from jellyfin_mpv_shim.mpvtk_browser.thumbnails import _fit_into
+        src = Image.new("RGB", self.TILE)
+        self.assertIs(_fit_into(src, self.TILE), src)
+
+    # -- the wiring ---------------------------------------------------------
+
+    def _asked(self, ratio):
+        """``(box, cover)`` the renderer asks the store for, for a Primary
+        going into a poster tile."""
+        import types
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        asked = {}
+
+        class _Thumbs:
+            def get_cached(self, key):
+                return None
+
+            def is_gone(self, key):
+                return False
+
+            def request(self, key, url, box, callback, cover=False):
+                asked["box"], asked["cover"] = tuple(box), bool(cover)
+
+        class _Source:
+            def image_spec(self, item, image_type, width, inherit=True):
+                return item["Id"], "Primary", "tag"
+
+            def image_url(self, server, item_id, itype, itag, w, h=None,
+                          fill=False):
+                asked["fill"] = fill
+                return "http://s/art"
+
+        art = types.SimpleNamespace(source=_Source(), server=object(),
+                                    thumbs=_Thumbs())
+        item = {"Id": "i"}
+        if ratio is not None:
+            item["PrimaryImageAspectRatio"] = ratio
+        TileRenderer(art, None).poster_for(
+            item, TileGeom(tile_w=150, tile_h=225))
+        return asked
+
+    def test_a_covering_tile_asks_the_store_to_cover(self):
+        """The decision is ``_contains``'s and the store cannot infer it:
+        the same box means two different pictures, and which one is right
+        depends on the tile rather than on the artwork."""
+        self.assertTrue(self._asked(2 / 3)["cover"])
+
+    def test_a_contained_tile_does_not(self):
+        self.assertFalse(self._asked(16 / 9)["cover"])
+
+    def test_the_request_and_the_decode_still_agree(self):
+        """``fill`` and ``cover`` are the same answer asked of the server
+        and of the decode. They were allowed to disagree for one commit and
+        the result was a picture cropped by neither."""
+        for ratio in (2 / 3, 1.0, None, 16 / 9, 4 / 3):
+            with self.subTest(ratio=ratio):
+                asked = self._asked(ratio)
+                self.assertEqual(asked["fill"], asked["cover"])
+
+
 class GridAsksForItTest(unittest.TestCase):
     """The wiring: the grid's own query has to carry the view's image type,
     on the first page and on every page after it."""

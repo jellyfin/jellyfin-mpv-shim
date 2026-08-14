@@ -209,63 +209,60 @@ class TestBannerFetchIsQuantised(unittest.TestCase):
         TileRenderer.backdrop_node(r, {"Id": "m1"}, box, "detail-bd")
         return asked, box
 
-    def test_the_banner_is_fetched_at_the_banners_aspect(self):
-        """`fill=True` is fillWidth+fillHeight: the server CROPS to the shape
-        asked for. Asking for a square hands back the centre square of a
-        16:9 backdrop, and compose_banner's cover then blows that up to the
-        full width — every detail header zoomed ~1.8x, for 2.7x the pixels,
-        in the commit whose point was making banners cheaper.
+    def test_the_banner_is_fetched_by_width_alone(self):
+        """`maxWidth`, not `fillWidth`/`fillHeight`.
+
+        These tests used to assert the opposite, on the belief that fill
+        made the server crop to the shape asked for. Measured against a
+        real 12.0 server, it does not: it scales the artwork to COVER that
+        box and returns the whole frame. So the shape bought nothing, and
+        it cost a server-side re-encode -- the same backdrop is 115 KB as
+        `maxWidth` and 462 KB through fill -- plus a height in the cache key
+        that stored a byte-identical copy per step of a drag-resize.
+
+        A reporter's access log is what turned it up: a
+        `fillWidth=3328&fillHeight=576` for a 1920-wide backdrop.
         """
-        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
-
-        asked, _box = self._asked_for()
-        self.assertTrue(asked["fill"], "without fill the server squashes")
-        self.assertLess(asked["height"], asked["width"], "asked for a square")
-        r = self._r()
-        self.assertAlmostEqual(asked["height"] / asked["width"],
-                               TileRenderer.BANNER_RATIO, delta=0.01)
-
-    def test_a_full_bleed_header_is_not_fetched_at_the_banner_ratio(self):
-        """It is a different shape -- same height, more width -- so asking at
-        the banner ratio hands back nearly twice the height the cover-crop
-        keeps. Correct, and a third of a megabyte of backdrop per header
-        thrown away.
-
-        Measured against the ratio's answer AT THE SAME FETCH WIDTH, not
-        against the padded header's fetch: full bleed is a wider box, so it
-        legitimately asks for a wider (and in absolute terms taller) image
-        than the 1100-capped padded one. The saving is in the SHAPE.
-
-        Never taller at any width -- that is the cap in `backdrop_node`, and
-        without it a quantisation step that overshot would make full bleed
-        cost MORE than the mode it replaces. Substantially shorter once the
-        window is wide enough for the two shapes to diverge; at 1280 the
-        box is barely wider than the ratio and the 64px step eats most of it,
-        which is the honest answer rather than a threshold tuned to pass.
-        """
-        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
-
-        for width in (1280, 1600, 1920, 2560):
-            with self.subTest(width=width):
-                asked, _box = self._asked_for(width, True)
-                at_ratio = int(asked["width"] * TileRenderer.BANNER_RATIO)
-                self.assertLessEqual(asked["height"], at_ratio)
-        asked, _box = self._asked_for(1920, True)
-        self.assertLess(asked["height"],
-                        int(asked["width"] * TileRenderer.BANNER_RATIO) * 0.8)
-
-    def test_the_fetched_height_still_covers_the_drawn_banner(self):
-        """The other half: a crop that came back shorter than the box would
-        have to be upscaled to cover it. Asked in both modes, because the
-        full-bleed height is quantised on its own and a rule that rounded
-        DOWN would land exactly here."""
-        from jellyfin_mpv_shim.mpvtk import scaling
         for label, bleed in self.MODES:
-            for width in (700, 1024, 1280, 1600):
+            with self.subTest(mode=label):
+                asked, _box = self._asked_for(1920, bleed)
+                self.assertFalse(asked["fill"],
+                                 "still asking the server to reshape it")
+                self.assertIsNone(asked["height"],
+                                  "a height it does not need and we key on")
+                self.assertTrue(asked["width"])
+
+    def test_the_fetch_width_is_quantised(self):
+        """Issue #592's rule, and the only axis left to quantise now that
+        the height is gone: a continuous width mints a request per pixel of
+        a drag-resize, because the artwork cache keys on exact dimensions.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
+
+        for label, bleed in self.MODES:
+            widths = set()
+            for w in range(1200, 1500, 4):
+                widths.add(self._asked_for(w, bleed)[0]["width"])
+            with self.subTest(mode=label):
+                self.assertLessEqual(
+                    len(widths), 4,
+                    "%d distinct widths over a 300px drag: %r"
+                    % (len(widths), sorted(widths)))
+                for got in widths:
+                    self.assertEqual(got % TileRenderer.BANNER_STEP, 0)
+
+    def test_the_fetch_is_never_narrower_than_the_drawn_banner(self):
+        """Rounded UP, in both modes. A fetch narrower than the box has to
+        be upscaled to cover it, which is the whole defect this path was
+        rebuilt around."""
+        from jellyfin_mpv_shim.mpvtk import scaling
+
+        for label, bleed in self.MODES:
+            for width in (700, 1024, 1280, 1600, 2560):
                 with self.subTest(mode=label, width=width):
                     asked, box = self._asked_for(width, bleed)
-                    self.assertGreaterEqual(asked["height"],
-                                            scaling.raster(*box)[1])
+                    self.assertGreaterEqual(asked["width"],
+                                            scaling.raster(*box)[0])
 
     def test_the_aspect_ratio_survives(self):
         from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import TileRenderer
@@ -3595,14 +3592,44 @@ class InsetArtworkHeightTest(unittest.TestCase):
              ("full-bleed-wide", (2550, 412)))
 
     def test_a_thumbnail_never_takes_more_than_its_share(self):
+        """...of the space AVAILABLE, which is the banner less the margin it
+        keeps top and bottom -- not of the banner. Measured against the
+        whole height the fraction is generous by both margins at once, and
+        a "60%" still was taking 86% of the room there was on a wide
+        header [iw]."""
         from jellyfin_mpv_shim.mpvtk_browser.components import banner
 
         for label, box in self.BOXES:
             with self.subTest(box=label):
+                # The SLOT is the available space -- POSTER_H_FRAC defines
+                # its own margins. Measuring against `box[1] - 2*margin`
+                # instead is what this asserted first, and that margin is
+                # derived from the banner's WIDTH: it made this test agree
+                # with a rule under which a wider window shrank the still.
+                slot = banner.poster_box(box)[3]
                 h = self._drawn(box, self.STILL)
                 self.assertLessEqual(
-                    h, box[1] * banner.THUMB_H_FRAC + 1,
-                    "a still takes %d of %dpx of header" % (h, box[1]))
+                    h, slot * banner.THUMB_H_FRAC + 1,
+                    "a still takes %d of the %dpx slot in a %dpx header"
+                    % (h, slot, box[1]))
+
+    def test_widening_the_header_never_shrinks_the_still(self):
+        """The paradox this class did not catch: the vertical inset was
+        taken from `max(18, w // 40)`, a margin derived from the banner's
+        WIDTH -- while its height is fixed, because widening buys more
+        backdrop and not more page. So every pixel of width ate two of the
+        height the still was allowed and a wider window made the thumbnail
+        smaller: 214px at 1100, 64px at 6116 [iw].
+
+        Swept, and asserted as monotonic rather than at two points: the
+        shrink is gradual, so any single pair of widths can differ by less
+        than a pixel and pass.
+        """
+        heights = [self._drawn((w, 412), self.STILL)
+                   for w in range(1100, 6200, 220)]
+        for a, b in zip(heights, heights[1:]):
+            self.assertGreaterEqual(
+                b, a, "a wider banner drew a smaller still: %r" % (heights,))
 
     def test_and_the_cap_actually_bites_on_a_wide_header(self):
         """Necessary, because every assertion above is also satisfied by a
@@ -3713,7 +3740,7 @@ class FilterPanelOrderTest(unittest.TestCase):
                     in dialogs.FILTER_SECTIONS)[self._label("Status")]
         lines = [[key for key, _t, _l in line] for line in spec]
         self.assertEqual(lines[0], ["unplayed", "played"])
-        self.assertEqual(lines[1], ["favorite", "resumable", "liked"])
+        self.assertEqual(lines[1], ["favorite", "resumable"])
 
     def test_every_check_section_is_rows_of_boxes(self):
         """The shape the renderer and both sweeps read. A section left flat

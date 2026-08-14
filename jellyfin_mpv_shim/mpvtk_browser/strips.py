@@ -51,6 +51,70 @@ def _px(v):
     return px(v)
 
 
+#: Supersample factor for the badge shapes. PIL has no antialiased fill, so
+#: the disc and the chip behind a badge came out with a visible staircase on
+#: their curves -- next to a Material glyph that IS antialiased (vector._SS),
+#: which is what made the marks read as thin and hand-drawn rather than as
+#: the same furniture jellyfin-web puts there [iw]. 4 is enough at these
+#: sizes and the masks are cached by shape, so the cost is paid once per
+#: distinct badge geometry rather than per tile.
+_AA_SS = 4
+
+#: {(w, h, radius): L mask}. Bounded by the handful of badge shapes a theme
+#: and a scale factor produce, so no eviction: a badge is a fixed logical
+#: size, and the only thing that moves it is the HiDPI scale.
+_aa_masks: dict = {}
+
+
+def _aa_mask(w, h, radius=None):
+    """An antialiased ``L`` coverage mask of an ellipse (``radius`` None) or
+    a rounded rectangle, ``w`` x ``h``.
+
+    Drawn at ``_AA_SS`` times the size and box-averaged down -- BOX rather
+    than LANCZOS because the ratio is exact, which makes it the true area
+    coverage; LANCZOS's negative lobes put a faint dark ring outside a shape
+    whose mask should simply reach zero.
+    """
+    key = (int(w), int(h), radius if radius is None else int(radius))
+    mask = _aa_masks.get(key)
+    if mask is not None:
+        return mask
+    from PIL import Image as PILImage, ImageDraw
+
+    w, h = max(1, int(w)), max(1, int(h))
+    big = PILImage.new("L", (w * _AA_SS, h * _AA_SS), 0)
+    box = [0, 0, w * _AA_SS - 1, h * _AA_SS - 1]
+    draw = ImageDraw.Draw(big)
+    if radius is None:
+        draw.ellipse(box, fill=255)
+    else:
+        draw.rounded_rectangle(box, radius=int(radius) * _AA_SS, fill=255)
+    mask = big.resize((w, h), PILImage.BOX)  # type: ignore[attr-defined]
+    _aa_masks[key] = mask
+    return mask
+
+
+def _aa_fill(img, box, colour, radius=None):
+    """Fill ``box`` (``[x0, y0, x1, y1]``, inclusive) in ``img`` with an
+    antialiased ellipse or rounded rectangle.
+
+    ``colour`` is an ``(r, g, b)`` or ``(r, g, b, a)`` tuple; an alpha there
+    scales the coverage rather than replacing it, so a translucent badge
+    keeps its soft edge. Uses ``paste``, not ``alpha_composite``, because a
+    badge near the end of a strip may hang past its bounds and paste clips
+    where the other raises.
+    """
+    x0, y0, x1, y1 = (int(v) for v in box)
+    w, h = x1 - x0 + 1, y1 - y0 + 1
+    if w <= 0 or h <= 0:
+        return
+    mask = _aa_mask(w, h, radius)
+    alpha = colour[3] if len(colour) > 3 else 255
+    if alpha < 255:
+        mask = mask.point(lambda v, a=alpha: (v * a) // 255)
+    img.paste(tuple(colour[:3]) + (255,), (x0, y0), mask)
+
+
 def logo_plate(image, live=False):
     """The plate for transparent artwork, or ``None`` to leave it alone.
 
@@ -817,29 +881,26 @@ class StripStore:
         # into a physical bitmap, so it goes through _px(). g is already
         # physical (see _compose); mixing the two silently is how a scaled
         # tile ends up with 1x decorations pinned to its corner.
-        # The top-LEFT stack, filled from the corner rightwards. Two entries
-        # so far, and the check keeps the corner because it is the one the
-        # eye has been trained to look for. jellyfin-web splits these the
-        # same way round the other way (its played tick is top-right and its
-        # version count top-left); ours are both on the left because the
-        # right-hand corner is already three deep.
+        #
+        # The two corners are jellyfin-web's, and they were not: the watched
+        # tick used to share the top-LEFT one with the version count, on the
+        # reasoning that the right-hand corner was already three deep. That
+        # is the wrong trade. Web puts the played state top-right
+        # (`.cardIndicators`) and the version count top-left
+        # (`.mediaSourceIndicator`), and scanning a season for the episodes
+        # you have NOT seen is the thing this badge is looked at for -- so
+        # having it on the side no other client puts it costs a beat every
+        # time, on the one screen where it is read in bulk [iw].
         inset = _px(17)
-        lx = x + inset
-        if t.watched:
-            # A real Material `check`, not two hand-drawn strokes. Same
-            # reason _paint_record gives for the record dot: this glyph is
-            # drawn elsewhere in the app from `ui_icon_paths`, and a
-            # hand-rolled second copy of one symbol drifts from the first.
-            self._paint_glyph_badge(img, dr, lx, inset, "check",
-                                    theme.ACCENT)
-            lx += _px(self.BADGE_PITCH)
+        # The top-LEFT corner: web's `.mediaSourceIndicator`, and it holds
+        # this one thing.
         if t.sources > 1:
             # "This film is here twice" -- a 4K and a 1080p, a theatrical and
             # an extended. The count, not a symbol, because which of them
             # plays is a choice the detail page offers and the number is what
             # says there is one to make.
-            self._paint_count_badge(img, dr, lx, inset, str(t.sources),
-                                    g.badge_size)
+            self._paint_count_badge(img, dr, x + inset, inset,
+                                    str(t.sources), g.badge_size)
         # The top-right stack, filled from the corner leftwards. These used
         # to be an if/elif chain -- one badge won and the rest silently did
         # not draw, so a downloaded clip in a Home Videos library lost the
@@ -848,11 +909,34 @@ class StripStore:
         # the same reason: they answer different questions and any pair of
         # them can be true at once.
         #
-        # Precedence is what sits IN the corner, not what draws at all: a
-        # recording is the only one of these about something happening right
-        # now, so it keeps the spot the eye goes to first.
+        # The ORDER is web's, read backwards: `.cardIndicators` is a
+        # right-anchored flex row, so its last child is the one in the
+        # corner, and cardBuilder emits sync, timer, type, played. From the
+        # corner leftwards that is played, type, timer, sync -- below.
         cy = inset
         cx = x + g.tile_w - inset
+        if t.badge:
+            cx -= self._paint_count_chip(img, dr, cx, cy, str(t.badge),
+                                         g.badge_size)
+        elif t.watched:
+            # The one place two of these DO share a slot, and the exception
+            # is web's rather than a re-run of the bug above:
+            # `getPlayedIndicatorHtml` returns the unplayed count *or* the
+            # tick, never both, because they are two readings of one fact.
+            # Nothing can set both here either -- a container is watched at
+            # UnplayedItemCount == 0, which is exactly when there is no
+            # count to draw -- so the elif is a statement of that, not a
+            # precedence rule hiding a badge.
+            #
+            # A real Material `check`, not two hand-drawn strokes. Same
+            # reason _paint_record gives for the record dot: this glyph is
+            # drawn elsewhere in the app from `ui_icon_paths`, and a
+            # hand-rolled second copy of one symbol drifts from the first.
+            self._paint_glyph_badge(img, dr, cx, cy, "check", theme.ACCENT)
+            cx -= _px(self.BADGE_PITCH)
+        if t.kind:
+            self._paint_kind(img, dr, cx, cy, t.kind)
+            cx -= _px(self.BADGE_PITCH)
         if t.record:
             self._paint_record(img, cx, cy, t.record)
             cx -= _px(self.BADGE_PITCH)
@@ -860,40 +944,6 @@ class StripStore:
             self._paint_glyph_badge(img, dr, cx, cy, "file_download",
                                     theme.ACCENT)
             cx -= _px(self.BADGE_PITCH)
-        if t.kind:
-            self._paint_kind(img, dr, cx, cy, t.kind)
-            cx -= _px(self.BADGE_PITCH)
-        if t.badge:
-            # Sized to the number it carries, not to a guess about how big
-            # numbers get. This was a fixed 26 logical px, which is three
-            # physical px NARROWER than "123" draws at the default badge
-            # size -- so a three-digit count (routine on an unwatched anime
-            # series, and reachable by anyone who adds a show and never
-            # starts it) hung out of both ends of its own chip. Two digits
-            # fitted, with 3px of padding against the single digit's 8.
-            #
-            # jellyfin-web's `.countIndicator` is the same shape and grows
-            # the same way: `padding: 0 .5em` over a min-width. The chip is
-            # pinned by its RIGHT edge rather than its centre, because that
-            # edge is the one lined up with the badge stack beside it --
-            # growing from the middle would walk a wide chip off the corner
-            # of the card.
-            text = str(t.badge)
-            font = _font(g.badge_size, bold=True)
-            right = cx + _px(13)
-            if self.shadowed_badges():
-                # Same right edge, so it still lines up with the stack; the
-                # chip's own 14px of horizontal padding goes with the chip.
-                self._shadowed_text(img, text, font, 0, cy, right=right)
-            else:
-                bw = max(_px(26),
-                         int(dr.textlength(text, font=font)) + _px(14))
-                dr.rounded_rectangle(
-                    [right - bw, _px(5), right, _px(25)],
-                    radius=_px(6), fill=theme.rgb(theme.ACCENT, 255),
-                )
-                dr.text((right - bw / 2, _px(15)), text, font=font,
-                        anchor="mm", fill=(255, 255, 255))
         if t.progress and t.progress > 0:
             frac = max(0.0, min(1.0, t.progress))
             bar = _px(6)
@@ -912,7 +962,8 @@ class StripStore:
                                      (0, 0, 0, 0))
                 ld = ImageDraw.Draw(layer)
                 ld.rectangle([0, g.tile_h - bar, g.tile_w - 1, g.tile_h - 1],
-                             fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                             fill=theme.rgb(theme.PROGRESS_TRACK,
+                                            StripStore.PROGRESS_TRACK_ALPHA))
                 ld.rectangle(
                     [0, g.tile_h - bar,
                      int((g.tile_w - 1) * frac), g.tile_h - 1],
@@ -927,7 +978,8 @@ class StripStore:
             else:
                 dr.rectangle(
                     [x, g.tile_h - bar, x + g.tile_w - 1, g.tile_h - 1],
-                    fill=theme.rgb(theme.PROGRESS_TRACK, 200))
+                    fill=theme.rgb(theme.PROGRESS_TRACK,
+                                   StripStore.PROGRESS_TRACK_ALPHA))
                 dr.rectangle(
                     [x, g.tile_h - bar,
                      x + int((g.tile_w - 1) * frac), g.tile_h - 1],
@@ -943,6 +995,10 @@ class StripStore:
     #: across, so this is them plus a 4px gap.
     BADGE_PITCH = 26
 
+    #: Alpha the resume bar's groove is drawn at -- jellyfin-web's
+    #: `.itemProgressBar` is `rgba(51, 51, 51, .8)`, and both halves of that
+    #: matter (see the palette's PROGRESS_TRACK).
+    PROGRESS_TRACK_ALPHA = 204
 
     #: Glyph box for a LINE icon on a badge (check, file_download), and for
     #: a SOLID one (folder, photo, videocam). Different on purpose, in a
@@ -1067,10 +1123,11 @@ class StripStore:
         job of separating the mark from the artwork. **The mark stays white**
         rather than adopting ``fill``: the pill is what makes an accent
         legible on a photograph, so an accent-coloured mark with no pill is
-        legible only for themes whose accent happens to be bright -- and the
-        first theme to ask for this (Darker) has a near-black one on purpose.
-        White reads on everything, which is the property the option is being
-        bought for.
+        legible only for themes whose accent happens to be bright, and
+        nothing guarantees one is -- Super Dark, the first theme to ask for
+        this, has a light grey accent, but a theme is free to set a dark
+        one and the option must not depend on which. White reads on
+        everything, which is the property being bought here.
         """
         from ..mpvtk import vector
 
@@ -1083,10 +1140,64 @@ class StripStore:
             StripStore._shadowed(img, layer, size, cx, cy)
             return
         r = _px(11)
-        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
-                   fill=theme.rgb(fill, 255))
+        _aa_fill(img, [cx - r, cy - r, cx + r, cy + r], theme.rgb(fill, 255))
         glyph = vector.icon_image(name, size, (255, 255, 255))
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
+
+    @staticmethod
+    def _paint_count_chip(img, dr, cx, cy, text, size):
+        """The unplayed-episode chip, centred on ``cx`` and pinned by its
+        RIGHT edge. Returns the horizontal pitch the next badge must clear.
+
+        Sized to the number it carries, not to a guess about how big numbers
+        get. This was a fixed 26 logical px, which is three physical px
+        NARROWER than "123" draws at the default badge size -- so a
+        three-digit count (routine on an unwatched anime series, and
+        reachable by anyone who adds a show and never starts it) hung out of
+        both ends of its own chip. Two digits fitted, with 3px of padding
+        against the single digit's 8.
+
+        jellyfin-web's `.countIndicator` is the same shape and grows the same
+        way: `padding: 0 .5em` over a min-width. Pinned by its right edge
+        rather than its centre because that edge is the one lined up with the
+        badge stack beside it -- growing from the middle would walk a wide
+        chip off the corner of the card.
+
+        **A rounded rectangle where every other badge is a disc**, which is
+        web's split too: this one runs to three digits, while the version
+        count beside it is a count of files on disk and stays at one.
+
+        The returned pitch is the reason this is a function rather than four
+        lines inline. It sits IN the corner now (see
+        :meth:`_paint_decorations`), so unlike every disc in the stack the
+        badge to its left has to clear a width that depends on the text --
+        BADGE_PITCH is a floor here, not the answer.
+        """
+        font = _font(size, bold=True)
+        right = cx + _px(13)
+        if StripStore.shadowed_badges():
+            # Same right edge, so it still lines up with the stack; the
+            # chip's own 14px of horizontal padding goes with the chip.
+            width = StripStore._shadowed_text(img, text, font, 0, cy,
+                                              right=right)
+            # The measured width, exactly as the pill branch below returns
+            # one. Returning BADGE_PITCH here was the bug: this branch draws
+            # a bare shadowed NUMBER, which is wider than the disc the pitch
+            # describes as soon as it has two digits -- 5px of overlap at
+            # the stock text size, 15px at three digits -- so the count was
+            # drawn over the badge to its left, both in white, both haloed.
+            # It could not fire until the chip moved into the corner and
+            # gained a neighbour.
+            return max(_px(StripStore.BADGE_PITCH), width + _px(4))
+        bw = max(_px(26), int(dr.textlength(text, font=font)) + _px(14))
+        _aa_fill(img, [right - bw, _px(5), right, _px(25)],
+                 theme.rgb(theme.ACCENT, 255), radius=_px(6))
+        dr.text((right - bw / 2, _px(15)), text, font=font, anchor="mm",
+                fill=(255, 255, 255))
+        # The chip's own width plus the gap a disc's pitch leaves round it
+        # (BADGE_PITCH is 26 against a 22px disc), floored at that pitch so a
+        # narrow chip lines the stack up exactly as a disc would.
+        return max(_px(StripStore.BADGE_PITCH), bw + _px(4))
 
     @staticmethod
     def _paint_count_badge(img, dr, cx, cy, text, size):
@@ -1104,8 +1215,8 @@ class StripStore:
             StripStore._shadowed_text(img, str(text), font, cx, cy)
             return
         r = _px(11)
-        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
-                   fill=theme.rgb(theme.ACCENT, 255))
+        _aa_fill(img, [cx - r, cy - r, cx + r, cy + r],
+                 theme.rgb(theme.ACCENT, 255))
         dr.text((cx, cy), text, font=font, anchor="mm",
                 fill=(255, 255, 255))
 
@@ -1137,6 +1248,11 @@ class StripStore:
         if right is not None:
             cx = right - layer.width // 2
         StripStore._shadowed(img, layer, th, cx, cy)
+        # The drawn width, so a caller pinning by `right` can tell the badge
+        # beside it how far to move. There is no other way to know: the
+        # layer is sized from the rendered glyphs plus a shadow pad taken
+        # off the cap height, neither of which the caller can compute.
+        return layer.width
 
     @staticmethod
     def _paint_kind(img, dr, cx, cy, name):
@@ -1163,8 +1279,8 @@ class StripStore:
             StripStore._shadowed(img, layer, size, cx, cy)
             return
         r = _px(11)
-        dr.ellipse([cx - r, cy - r, cx + r, cy + r],
-                   fill=theme.rgb(theme.WINDOW_BG, 210))
+        _aa_fill(img, [cx - r, cy - r, cx + r, cy + r],
+                 theme.rgb(theme.WINDOW_BG, 210))
         glyph = vector.icon_image(name, size, theme.rgb(theme.TEXT_FG))
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 
@@ -1196,6 +1312,19 @@ class StripStore:
         colour = theme.rgb(theme.SUBTLE_FG if state == "series_inactive"
                            else theme.FAV_RED)
         size = _px(StripStore.RECORD_BOX)
+        if StripStore.shadowed_badges():
+            # It keeps its COLOUR where the state badges go white -- the red
+            # dot is the record symbol everywhere in the app and a white one
+            # would read as a different badge -- but it takes the shadow.
+            # This was the one mark in the corner that consulted neither, so
+            # on a badge_shadow theme it was the only badge with nothing at
+            # all separating it from the artwork: a red dot on red artwork.
+            # A half-applied option is worse than an unapplied one.
+            layer, pad = StripStore._mark_layer(size)
+            glyph = vector.icon_image(name, size, colour)
+            layer.paste(glyph, (pad, pad), glyph)
+            StripStore._shadowed(img, layer, size, cx, cy)
+            return
         glyph = vector.icon_image(name, size, colour)
         img.paste(glyph, (int(cx - size // 2), int(cy - size // 2)), glyph)
 

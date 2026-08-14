@@ -38,9 +38,61 @@ class SeasonPage(Page):
         geom = art.geom_wide   # episodes are landscape Thumb cards
         season_item: dict = next(
             (s for s in seasons if s.get("Id") == route["item_id"]), {})
+        # A season carries no backdrop of its own but does carry its
+        # series' (ParentBackdropImageTags + ParentBackdropItemId, measured
+        # against a real server -- `get_seasons` asks for no `Fields` and
+        # they are on the DTO regardless), which `backdrop_spec` already
+        # follows. So the header a series page draws is available here for
+        # the asking, and the screen this one leads to -- the episode grid
+        # -- was the one place in a show's chain that dropped to a bare line
+        # of text [iw].
+        #
+        # The series' NAME goes in the context line above the title, which
+        # is what makes "Season 1" mean something on a header whose artwork
+        # belongs to the show rather than to the season.
+        #
+        # **No banner at all when there is no artwork**, where a detail or
+        # series page still draws the placeholder panel. Those two ARE their
+        # header -- the page is about one item and the panel is where its
+        # name lives. This one is a grid with a title over it, and 400px of
+        # empty grey between the two is a worse screen than the line of text
+        # it replaced. Same reasoning `full_bleed_header` gives for refusing
+        # to run a placeholder to the edges, one step further.
+        #
+        # Asked of the DTO rather than of the returned node, as
+        # `backdrop_node` requires: a placeholder means "none" OR "not yet",
+        # and reading it as "none" would move the picker and the whole grid
+        # down the moment the artwork landed.
+        title = route.get("title", "")
+        banner = None
+        full_bleed = False
+        # The grid's own horizontal padding, needed BEFORE the banner: this
+        # page is the first header caller whose column is not padded with
+        # CONTENT_PAD, and `banner_box` sizes against that constant. With
+        # `grid_fill: center` a centred grid can hand back a much larger
+        # pad -- 94px at a 1200px window -- and the banner then overhangs
+        # the column it sits in by ~100px and clips at the viewport.
+        gpad, geom = tiles.grid_layout(size[0], geom)
+        if tiles.header_bakes_heading(season_item):
+            full_bleed = tiles.full_bleed_header(season_item)
+            box = tiles.banner_box(size[0], full_bleed, size[1])
+            if not full_bleed:
+                # Full bleed leaves the padding entirely and is already the
+                # viewport's width; only the padded box has to agree with a
+                # pad that is not the one it assumed.
+                from ...mpvtk.layout import SCROLLBAR_W
+
+                box = (min(box[0], size[0] - 2 * gpad - SCROLLBAR_W), box[1])
+            banner = tiles.backdrop_node(
+                season_item, box, "season-bd", title=title,
+                meta=detail_components.meta_line(season_item) or None,
+                context=(season_item.get("SeriesName")
+                         or route.get("bar_title") or None))
         # Annotated: the picker Dropdown and the To Series button join a list
-        # that starts with a Text, so mypy would infer list[Text] from it.
-        title_row: list = [Text(route.get("title", ""), size="page", bold=True)]
+        # that may start with a Text, so mypy would infer list[Text] from it.
+        title_row: list = []
+        if banner is None:
+            title_row.append(Text(title, size="page", bold=True))
         if len(seasons) > 1:
             names = [s.get("Name", "") for s in seasons]
             cur = next((i for i, s in enumerate(seasons)
@@ -74,9 +126,20 @@ class SeasonPage(Page):
             actions, tiles,
             season_item or {"Id": route["item_id"], "Type": "Season"},
             server, "se")
-        header = [Row(title_row, gap=12, align="center"),
-                  Row(acts, gap=8, align="center")]
-        gpad, geom = tiles.grid_layout(size[0], geom)
+        header = []
+        if title_row:
+            header.append(Row(title_row, gap=12, align="center"))
+        header.append(Row(acts, gap=8, align="center"))
+        # Measured, not the flat 100 this used to pass: head_h is what tells
+        # the virtualizer which rows are near the viewport, and a header
+        # that grew by 400px of artwork while the number stayed at 100
+        # leaves the rows you are looking at un-composited.
+        head_h = tiles.header_offset(
+            header if banner is None else [banner] + header)
+        if full_bleed:
+            # header_offset assumes the flat padded column; full bleed is
+            # the one that gives its top padding up (see chrome.header_body).
+            head_h -= chrome.CONTENT_PAD
         rows = header + tiles.grid_of(
             episodes, "ep", size, geom=geom, image_type="Thumb",
             # inherit=False: a season listing is a list of *episodes*, so
@@ -93,9 +156,17 @@ class SeasonPage(Page):
             # question of which artwork a season-page card takes never
             # arises there.
             inherit=False,
-            scroll_id="season", head_h=100)
-        return VScroll(Column(rows, gap=GRID_GAP,
-                              pad=(gpad, chrome.CONTENT_PAD)),
+            scroll_id="season", head_h=head_h)
+        # The plain column is not `header_body(None, ...)`: that helper is
+        # about a page that OPENS with a banner, and giving it a None to
+        # step over would put the question of whether there is one in two
+        # places.
+        body = (Column(rows, gap=GRID_GAP, pad=(gpad, chrome.CONTENT_PAD))
+                if banner is None else
+                chrome.header_body(banner, rows, gap=GRID_GAP,
+                                   pad=(gpad, chrome.CONTENT_PAD),
+                                   full_bleed=full_bleed))
+        return VScroll(body,
                        id="season", flex=1,
                        offset=self.parked_scroll("season"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(

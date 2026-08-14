@@ -952,29 +952,34 @@ def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
         cw, ch = measure(el.child)
         cw, ch = max(cw, inner_w), inner_h
     else:
-        # The gutter is reserved only when there is going to be a bar in it.
-        # renderer.lua's draw_scrollbar draws nothing when the content fits
-        # (`maxs <= 0`), so reserving unconditionally left every page that
-        # does not scroll with an empty 10px strip down its right-hand side
-        # -- which is invisible on a padded page and impossible to miss on a
-        # full-bleed one, where the backdrop stops short of an edge nothing
-        # is drawn at.
+        # **The gutter is reserved whenever the view has a bar at all**, not
+        # only when the content currently overflows. This was conditional,
+        # and the condition is not one every caller can ask: a full-bleed
+        # header sizes itself during BUILD (`TileRenderer.banner_box`), which
+        # is before anything has been measured, so it can only assume -- and
+        # it assumes the gutter is there. On a page that did not scroll the
+        # two disagreed and the banner stopped 10px short of an edge with
+        # nothing drawn at it [iw: "just a grey void on the right side"].
         #
-        # Two measures, not one, and the order matters: content height is a
-        # function of width (wrapped text gets taller as the column narrows),
-        # so a page is asked whether it fits at the FULL width first. If it
-        # does, there is no bar and no gutter. If it does not, the gutter is
-        # reserved and the content re-measured against the narrower column --
-        # which can only make it taller, so the answer cannot flip back.
+        # Reserving unconditionally is what makes the two agree, and the
+        # empty strip that argued against it before is gone from the other
+        # end: renderer.lua's draw_scrollbar now paints the track whenever
+        # the gutter exists, and adds the thumb only when there is something
+        # to scroll. Space allocated is space drawn in.
+        #
+        # One measure now rather than two. The old order existed because
+        # content height is a function of width -- narrowing the column makes
+        # wrapped text taller -- so it had to ask "does it fit?" at the full
+        # width before deciding. With the answer fixed in advance there is
+        # nothing to re-ask.
         #
         # measure_h, not measure: an intrinsic measure reported a content
         # height that stopped short of the content, and the scroll clamped
         # to it.
-        ch = max(measure_h(el.child, inner_w), inner_h)
-        if el.scrollbar and ch > inner_h:
+        if el.scrollbar:
             inner_w -= SCROLLBAR_W
             node["bar"] = True
-            ch = max(measure_h(el.child, inner_w), inner_h)
+        ch = max(measure_h(el.child, inner_w), inner_h)
         cw = inner_w
     node["cw"] = _round(cw)
     node["ch"] = _round(ch)

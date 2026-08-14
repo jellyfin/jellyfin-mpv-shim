@@ -93,6 +93,25 @@ class GeneralTabMixin:
                     size="caption", color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size="caption", color=theme.SUBTLE_FG))
+        if route.get("_tab", "general") == "playback":
+            # Playback only, and it is the same button the Logs tab carries
+            # -- the folder itself is not playback-specific. What is, is the
+            # reason to go there: `mpv.conf` lives in it, and several notes
+            # on this tab end by telling you to put something in it
+            # (display-fps-override, an hwdec pin). A settings page that
+            # names a file and gives you no way to reach it is a page that
+            # assumes you know where it keeps its config.
+            rows.append(Row([Button(_("Open Config Folder"),
+                                    id="set-open-config", icon="folder",
+                                    on_click=self._open_config_folder)],
+                            gap=8))
+            rows.append(Text(
+                _("Advanced MPV options go in mpv.conf, in this folder. "
+                  "MPV reads it at startup and these settings are applied "
+                  "afterwards, so most of them override it. Hardware "
+                  "Decoding is the exception: set hwdec there and this app "
+                  "leaves it alone."),
+                size="caption", color=theme.SUBTLE_FG, wrap=True))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings", flex=1)

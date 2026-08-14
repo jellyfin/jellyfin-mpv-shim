@@ -1507,6 +1507,62 @@ ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
    "browse came back from a summoned HUD with ENTER dead")
 fake.send("mpvtk-hud", "no")
 
+-- ============================================== scrollbar gutter is painted
+
+-- layout.py reserves the gutter whenever a view HAS a bar, not only when its
+-- content currently overflows -- it has no choice, because a full-bleed
+-- header sizes itself during build, before anything has been measured, and
+-- can only assume. So the reserved strip has to be painted here whether or
+-- not there is anything to scroll, or an edge-to-edge backdrop stops 10px
+-- short of an edge with nothing drawn at it [iw: "just a grey void on the
+-- right side"].
+
+local SUNKEN = "2a2a2a"                 -- state.tok.control_sunken
+local THUMB = "666666"                  -- state.tok.scrollbar_thumb
+
+local function filled(colour)
+    local n = 0
+    for _, sh in ipairs(fake.shapes()) do
+        if sh.fill == colour then n = n + 1 end
+    end
+    return n
+end
+
+--- Push a scene and return with only ITS rectangles recorded. The reset
+--- goes before the scene, not after the frame: the renderer paints when
+--- something changed, so resetting afterwards and waiting for another frame
+--- records nothing at all.
+local function paint(nodes)
+    fake.reset_draw()
+    scene(nodes)
+    fake.advance(0.1)
+    fake.fire_timers()
+end
+
+paint({ vscroll("fits", 600, 400, { bar = true }) })
+ok(filled(SUNKEN) == 1,
+   "nothing was drawn in the gutter of a view with nothing to scroll",
+   string.format("%d sunken rects", filled(SUNKEN)))
+ok(filled(THUMB) == 0,
+   "a thumb was drawn in a scrollbar that cannot be moved")
+
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok(((last_event("debug_state") or {}).bars or {})["fits"] == nil,
+   "an unscrollable bar left a drag target behind")
+
+-- ...and the scrollable case still draws both, so the assertions above are
+-- about the empty channel rather than about the scrollbar having gone away.
+paint({ vscroll("over", 600, 6000, { bar = true }) })
+ok(filled(SUNKEN) == 1 and filled(THUMB) == 1,
+   "a scrollable view lost its track or its thumb",
+   string.format("%d track, %d thumb", filled(SUNKEN), filled(THUMB)))
+
+-- A view with no bar at all reserves nothing and must paint nothing.
+paint({ vscroll("bare", 600, 6000) })
+ok(filled(SUNKEN) == 0 and filled(THUMB) == 0,
+   "a view with no scrollbar drew one anyway")
+
 -- ============================================== scrollbar drag anchoring
 
 -- The thumb is grabbed at a point, and that point stays under the pointer.

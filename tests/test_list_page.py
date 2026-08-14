@@ -1338,10 +1338,22 @@ class ViewLabelsAndListTest(unittest.TestCase):
         self.assertIn("1999", texts)
         self.assertIn("1h 42m", texts)
 
-    def test_showyear_off_empties_the_year_column(self):
+    def test_the_table_keeps_its_year_column_whatever_showyear_says(self):
+        """`showTitle`/`showYear` are CARD settings -- the checkboxes are
+        "Show titles" and "Show years" and what they govern is the caption
+        under a tile. People switch them off because their artwork already
+        carries the title and year, and a table has no artwork, so the
+        reason does not survive the trip.
+
+        This used to consult it, which did not remove the column -- it
+        emptied it, leaving a blank column holding its space, which is how
+        the reporter met it. `showTitle` was never asked here either, so
+        asking about the year was the odd one out as well as wrong."""
         b, _src = self._grid(viewType="List", showYear=False)
         nodes, _h, _t = self._scene(b)
-        self.assertNotIn("1999", {n.get("text") for n in nodes})
+        texts = {n.get("text") for n in nodes}
+        self.assertIn("1999", texts, "the year column is empty")
+        self.assertIn("Alpha", texts, "...and the name went with it")
 
     def _tile_h(self, b):
         nodes, _h = build_scene(b)
