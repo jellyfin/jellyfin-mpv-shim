@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-14 22:50+0000\n"
+"PO-Revision-Date: 2026-08-15 01:00+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -38,7 +38,7 @@ msgstr "صفحة %d"
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "قراءة %d%%"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -823,9 +823,8 @@ msgstr "مفضل"
 
 # seeded from jellyfin-web: Video
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Video"
-msgstr "الفيديو"
+msgstr "فيديو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -835,59 +834,46 @@ msgstr "الصوت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "حجم الترجمة: {0}"
+msgstr "ترجمة"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Lyric"
 msgstr "كلمات"
 
 # seeded from jellyfin-web: Image
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Image"
-msgstr "صورة"
+msgstr "الصورة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Container"
-msgstr "متواصل"
+msgstr "حاوية"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "عادي"
+msgstr "تهيئة"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Path"
 msgstr "المسار"
 
 # seeded from jellyfin-web: LabelSize
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Size"
 msgstr "الحجم"
 
 # seeded from jellyfin-web: Yes
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Yes"
 msgstr "نعم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "لا شيء"
+msgstr "لا"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -899,52 +885,42 @@ msgstr "عنوان"
 
 # seeded from jellyfin-web: LabelLanguage
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Language"
 msgstr "اللغة"
 
 # seeded from jellyfin-web: MediaInfoCodec
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec"
 msgstr "الترميز"
 
 # seeded from jellyfin-web: MediaInfoCodecTag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec tag"
 msgstr "وسم الترميز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "مجموعة جديدة"
+msgstr "ملف تعريف"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Level"
 msgstr "المستوى"
 
 # seeded from jellyfin-web: LabelChapterImageResolution
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Resolution"
 msgstr "الدقة"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Aspect Ratio"
 msgid "Aspect ratio"
 msgstr "نسبة العرض إلى الارتفاع"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic"
-msgstr "مشوّه عدسيًا (Anamorphic)"
+msgstr "مشوهة بصريا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -976,7 +952,7 @@ msgstr "قنوات"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d ch"
-msgstr ""
+msgstr "%d قناة"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -987,7 +963,7 @@ msgstr "معدل البت"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d ك ب ث"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -998,7 +974,7 @@ msgstr "معدل العينة"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d هيرتز"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1009,7 +985,7 @@ msgstr "عمق البت"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d بت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1140,7 +1116,7 @@ msgstr "معرّف توافق إشارة DV bl"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f م ب ث"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1315,11 +1291,11 @@ msgstr "نوع نطاق الفيديو غير مدعوم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "هذا الجهاز"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "نافذة"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1380,11 +1356,11 @@ msgstr "متقدم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "مطفي (فك ترميز برمجي)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "فقط أعلى من 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1417,15 +1393,15 @@ msgstr "لا متحكمات مشغّل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
@@ -1433,7 +1409,7 @@ msgstr "100% (لا تحجيم)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
