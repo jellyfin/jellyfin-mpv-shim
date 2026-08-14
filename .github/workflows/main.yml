@@ -25,7 +25,21 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        latest: true
+        # Pinned rather than `latest: true`, and the pin is load-bearing.
+        # shinchiro's builds from 20260808 onward link vulkan-1.dll as a HARD
+        # import -- twelve vk* symbols in the import table, delay-load
+        # directory empty -- and the Vulkan loader is a driver-installed
+        # system component, not something we ship. On a machine without one,
+        # Windows refuses to load libmpv at all; the shim reads that as "no
+        # libmpv", falls back to the external backend, finds no mpv.exe to
+        # spawn, and dies at startup before any UI exists. Their own mpv.exe
+        # archive carries no vulkan-1.dll either, so this is an upstream
+        # regression and not a redistributable we were meant to be carrying.
+        #
+        # 20260610 is the last release before it. Raising the pin is fine as
+        # soon as a release is clean -- the job checks, so an unpin that
+        # reintroduces this fails the build instead of shipping.
+        tag: '20260610'
         fileName: 'mpv-dev-x86_64-v3*.7z'
     - name: Install dependencies
       run: |
@@ -80,7 +94,8 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        latest: true
+        # Pinned for the vulkan-1.dll regression; see build-win64 above.
+        tag: '20260610'
         fileName: 'mpv-dev-x86_64-[0-9]*-git-*.7z'
     - name: Install dependencies
       run: |
@@ -143,7 +158,8 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        latest: true
+        # Pinned for the vulkan-1.dll regression; see build-win64 above.
+        tag: '20260610'
         fileName: 'mpv-dev-aarch64-*.7z'
     - name: Install dependencies
       run: |
@@ -221,7 +237,8 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        latest: true
+        # Pinned for the vulkan-1.dll regression; see build-win64 above.
+        tag: '20260610'
         fileName: 'mpv-dev-i686*.7z'
     - name: Install dependencies
       run: |
