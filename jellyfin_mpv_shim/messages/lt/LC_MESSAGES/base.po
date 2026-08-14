@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-13 22:59+0000\n"
-"Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
+"PO-Revision-Date: 2026-08-14 22:50+0000\n"
+"Last-Translator: Arinijus <arinijus@outlook.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
 "Language: lt\n"
@@ -613,7 +613,7 @@ msgstr "Atšaukti"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Pakeisti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
@@ -896,15 +896,15 @@ msgstr "Lygis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Resolution"
-msgstr ""
+msgstr "Ekrano raiška"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Aspect ratio"
-msgstr ""
+msgstr "Kraštinių santykis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic"
-msgstr ""
+msgstr "Anamorfinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Interlaced"
@@ -913,11 +913,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Framerate"
-msgstr ""
+msgstr "Kadrų dažnis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Layout"
-msgstr ""
+msgstr "Išdėstymas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgctxt "audio channel count"
@@ -931,7 +931,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr ""
+msgstr "Bitų dažnis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
@@ -949,7 +949,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bit depth"
-msgstr ""
+msgstr "Bitų gylis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
@@ -966,7 +966,7 @@ msgstr "Vaizdo įrašo diapazono tipas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color space"
-msgstr ""
+msgstr "Spalvų gama"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color transfer"
@@ -991,7 +991,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default"
-msgstr ""
+msgstr "Standartinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Forced"
@@ -1004,7 +1004,7 @@ msgstr "Išorinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Timestamp"
-msgstr ""
+msgstr "Laiko žyma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV title"
@@ -1020,11 +1020,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV profile"
-msgstr ""
+msgstr "DV profilis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV level"
-msgstr ""
+msgstr "DV lygis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
@@ -1040,7 +1040,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl signal compatibility id"
-msgstr ""
+msgstr "DV bl signalo suderinamumo id"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1054,7 +1054,7 @@ msgstr "Tiesioginis paleidimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct streaming"
-msgstr ""
+msgstr "Tiesioginis transliavimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
@@ -1071,15 +1071,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec is not supported"
-msgstr ""
+msgstr "Šis vaizdo formatas nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec is not supported"
-msgstr ""
+msgstr "Šis garso formatas nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The subtitle codec is not supported"
-msgstr ""
+msgstr "Šis subtitrų formatas nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio stream is external"
@@ -1087,27 +1087,27 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Secondary audio tracks are not supported"
-msgstr ""
+msgstr "Antriniai garso takeliai nepalaikomi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec's profile is not supported"
-msgstr ""
+msgstr "Vaizdo formato profilis nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video codec's level is not supported"
-msgstr ""
+msgstr "Vaizdo formato lygis nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's resolution is not supported"
-msgstr ""
+msgstr "Vaizdo įrašo rezoliucija nepalaikoma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bit depth is not supported"
-msgstr ""
+msgstr "Vaizdo įrašo bitų gylis nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's framerate is not supported"
-msgstr ""
+msgstr "Vaizdo įrašo kadrų sparta nepalaikoma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Reference frames are not supported"
@@ -1123,7 +1123,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The number of audio channels is not supported"
-msgstr ""
+msgstr "Garso kanalų kiekis nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec's profile is not supported"
@@ -1135,15 +1135,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bit depth is not supported"
-msgstr ""
+msgstr "Garso takelio bitų gylis nepalaikomas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bitrate exceeds the limit"
-msgstr ""
+msgstr "Vaizdo įrašo bitų sparta viršija limitą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The video's bitrate is not supported"
-msgstr ""
+msgstr "Vaizdo įrašo bitų sparta nepalaikoma"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio's bitrate is not supported"
