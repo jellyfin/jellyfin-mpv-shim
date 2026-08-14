@@ -209,5 +209,68 @@ class RediscoveryTest(unittest.TestCase):
         self.assertEqual(calls[0].kwargs["vo"], "gpu")
 
 
+class MissingMpvBinaryTest(unittest.TestCase):
+    """"There is no mpv to run" must not be read as "this mpv has no lua".
+
+    The external backend spawns an mpv binary, so when there is none it
+    raises `FileNotFoundError` from `subprocess` -- which lands in the same
+    `except` the lua retry lives in. Two things then go wrong, and 3.0.0pre12
+    shipped both: the retry spends the start-retry budget on an error that
+    dropping `--osc` cannot fix, and the traceback the user sees names a
+    missing mpv.exe on a build that ships libmpv and no mpv.exe by design.
+    """
+
+    def _construct(self, options):
+        from jellyfin_mpv_shim import player
+
+        me = mock.Mock()
+        me._lua_works = None
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.side_effect = FileNotFoundError(
+                2, "The system cannot find the file specified")
+            with self.assertRaises(FileNotFoundError):
+                player.PlayerManager._construct_mpv(me, options)
+        return fake_mpv.MPV.call_args_list, me
+
+    def test_it_is_not_retried_without_osc(self):
+        calls, _me = self._construct({"osc": False, "vo": "gpu"})
+        self.assertEqual(len(calls), 1, "it spent a start-retry budget "
+                         "retrying an error --osc cannot cause")
+
+    def test_it_does_not_claim_lua_is_absent(self):
+        _calls, me = self._construct({"osc": False})
+        self.assertIsNone(me._lua_works)
+
+    def _said(self, mpv_ext, external=True):
+        from jellyfin_mpv_shim import player
+
+        with mock.patch.object(player, "is_using_ext_mpv", external), \
+                mock.patch.object(player.settings, "mpv_ext", mpv_ext):
+            logging.getLogger("player").error("marker")
+            with self.assertLogs("player", level="ERROR") as caught:
+                logging.getLogger("player").error("marker")
+                self._construct({"osc": False})
+        return "\n".join(caught.output)
+
+    def test_the_fallback_case_points_at_libmpv(self):
+        # libmpv failed to load, this backend was chosen for us, and the
+        # thing worth reporting is the earlier warning -- not mpv.exe.
+        self.assertIn("libmpv", self._said(mpv_ext=False))
+
+    def test_the_deliberate_case_says_how_to_supply_one(self):
+        # The user asked for the external backend, so a missing binary is
+        # theirs to fix and the advice is the opposite one.
+        said = self._said(mpv_ext=True)
+        self.assertIn("mpv_ext_path", said)
+        self.assertNotIn("libmpv", said)
+
+    def test_the_libmpv_backend_is_told_nothing(self):
+        # Neither explanation is about libmpv, which spawns nothing -- a
+        # FileNotFoundError from there is some other missing file, and
+        # blaming a missing mpv binary would be a lie in the log.
+        said = self._said(mpv_ext=False, external=False)
+        self.assertNotIn("Could not start mpv", said)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,6 +36,15 @@ jobs:
         winget install --id JRSoftware.InnoSetup -e -s winget || true || true
         ./gen_pkg.sh --skip-build
       shell: bash
+    - name: Check what libmpv needs
+      # The pin on the download above exists because of a dependency this
+      # step reads. It runs on every build rather than only when raising the
+      # pin, because nothing else in the pipeline ever loads this file: an
+      # mpv-2.dll that Windows will refuse is not a build error, it is a
+      # client that dies at startup on the user's machine.
+      run: |
+        python tools/check_win_libmpv_deps.py mpv-2.dll
+      shell: bash
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; pip install .
@@ -81,6 +90,15 @@ jobs:
         pip install .[all] pywin32
         winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: Check what libmpv needs
+      # The pin on the download above exists because of a dependency this
+      # step reads. It runs on every build rather than only when raising the
+      # pin, because nothing else in the pipeline ever loads this file: an
+      # mpv-2.dll that Windows will refuse is not a build error, it is a
+      # client that dies at startup on the user's machine.
+      run: |
+        python tools/check_win_libmpv_deps.py mpv-2.dll
       shell: bash
     - name: PyInstaller Bootloader
       run: |
@@ -134,6 +152,15 @@ jobs:
         pip install wheel
         pip install .[all] pywin32
         ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: Check what libmpv needs
+      # The pin on the download above exists because of a dependency this
+      # step reads. It runs on every build rather than only when raising the
+      # pin, because nothing else in the pipeline ever loads this file: an
+      # mpv-2.dll that Windows will refuse is not a build error, it is a
+      # client that dies at startup on the user's machine.
+      run: |
+        python tools/check_win_libmpv_deps.py mpv-2.dll
       shell: bash
     - name: Verify the inputs are ARM64
       # Before anything is built, because nothing downstream can tell. Windows
@@ -204,6 +231,15 @@ jobs:
         pip install .[all] pywin32
         winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
+      shell: bash
+    - name: Check what libmpv needs
+      # The pin on the download above exists because of a dependency this
+      # step reads. It runs on every build rather than only when raising the
+      # pin, because nothing else in the pipeline ever loads this file: an
+      # mpv-2.dll that Windows will refuse is not a build error, it is a
+      # client that dies at startup on the user's machine.
+      run: |
+        python tools/check_win_libmpv_deps.py mpv-2.dll
       shell: bash
     - name: PyInstaller Bootloader
       run: |
