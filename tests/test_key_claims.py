@@ -392,3 +392,58 @@ class AfterMigrationTest(unittest.TestCase):
         pm = PlayerManager.__new__(PlayerManager)
         with mock.patch("jellyfin_mpv_shim.player.settings", s):
             self.assertTrue(pm._seek_is_ours())
+
+
+class SectionFlagsTest(unittest.TestCase):
+    """Every section we enable must carry ``allow-hide-cursor``.
+
+    mpv gives a section a mouse area of the whole screen unless one is set
+    (input.c: ``get_bind_section``), and ``mp_input_get_mouse_event_counter``
+    bumps its counter on every call while an enabled section without
+    ``allow-hide-cursor`` covers the pointer -- which is how a script says
+    "my UI is under the mouse". ``handle_cursor_autohide`` re-arms its timer
+    on every bump, so the mouse cursor never hides again. The fullscreen
+    claim is installed at mpv creation and never released, so this held the
+    cursor on screen over every film for the whole session.
+
+    ``allow-vo-dragging`` is the same mistake pointed the other way: without
+    it ``mp_input_test_dragging`` refuses to move the window from a drag on
+    the video. Asserted here because neither symptom shows up anywhere near
+    the key that was claimed.
+    """
+
+    #: What mpv's own defaults.lua enables a script's sections with.
+    WANT = {"allow-hide-cursor", "allow-vo-dragging"}
+
+    def _flags(self, pm):
+        return [set((c[2] if len(c) > 2 else "").split("+"))
+                for c in pm._player.commands if c[0] == "enable-section"]
+
+    def test_a_key_claim_lets_the_cursor_hide(self):
+        pm = _pm()
+        pm.claim_keys("syncplay", {PAUSE})
+        flags = self._flags(pm)
+        self.assertTrue(flags, "no section was enabled")
+        for got in flags:
+            self.assertTrue(self.WANT <= got,
+                            "%s is missing %s" % (got, self.WANT - got))
+
+    def test_the_menu_section_lets_the_cursor_hide(self):
+        pm = _pm()
+        settings = mock.Mock(kb_menu_left="LEFT", kb_menu_right="RIGHT",
+                             kb_menu_up="UP", kb_menu_down="DOWN")
+        with mock.patch("jellyfin_mpv_shim.player.settings", settings):
+            pm.claim_menu_keys(True)
+        flags = self._flags(pm)
+        self.assertTrue(flags, "no section was enabled")
+        for got in flags:
+            self.assertTrue(self.WANT <= got,
+                            "%s is missing %s" % (got, self.WANT - got))
+
+    def test_the_standing_fullscreen_claim_is_what_makes_this_matter(self):
+        """It is enabled once and never disabled, so a missing flag is not
+        a transient state -- it is the rest of the session."""
+        pm = _pm()
+        pm.claim_keys("fullscreen", {FULLSCREEN})
+        self.assertTrue(_sections(pm)[PlayerManager.KEY_SECTION])
+        self.assertTrue(self.WANT <= self._flags(pm)[-1])
