@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-09 17:47+0000\n"
+"PO-Revision-Date: 2026-08-14 22:50+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -22,19 +22,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "تهيئة مجهولة"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "صفحة %(صفحة)d of %(محموع)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "Page"
+#, python-format
 msgid "Page %d"
-msgstr "صفحة"
+msgstr "صفحة %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -568,7 +567,7 @@ msgstr "تم اختيار: %s"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr "تحميل…"
+msgstr "جاري التحميل…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -1066,10 +1065,8 @@ msgid "Default"
 msgstr "افتراضي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " فرض"
+msgstr "اجبار"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -1307,10 +1304,8 @@ msgid "The audio stream info is unknown"
 msgstr "معلومات مسار الصوت غير معروفة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There was an error starting direct playback"
-msgstr "لم يتم تنزيل شيء للمستعرض."
+msgstr "كان هناك خطأ في البدء بالشتغيل المباشر"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -3071,10 +3066,9 @@ msgid "%s was deleted."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be removed."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "تعذر ازالة الرمز."
+msgstr "تعذرت إزالة %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3113,10 +3107,9 @@ msgid "Nothing on this system could open %s."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Next episode is not downloaded."
+#, python-format
 msgid "%s is already downloaded."
-msgstr "لم يتم تحميل الحلقة التالية."
+msgstr "تم تحميل %s سابقا."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
@@ -3125,22 +3118,19 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Next episode is not downloaded."
+#, python-format
 msgid "%s has not been downloaded."
-msgstr "لم يتم تحميل الحلقة التالية."
+msgstr "لم تم تحميل %s سابقا."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be saved."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "تعذر حفظ الرمز."
+msgstr "يتعذر تحميل %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "حذف الخادم"
+msgstr "تحميل %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -3503,17 +3493,13 @@ msgid "Open Externally"
 msgstr "خارجي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "حذف الخادم"
+msgstr "يجري التحميل…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Programs"
 msgid "Progress…"
-msgstr "برامج"
+msgstr "تقدم…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -4723,7 +4709,7 @@ msgstr "إعدادات الخوادم"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تحميل%(اسم)اء — %(n)d الباقي"
+msgstr "%(اسم)تحميل %(اسم)اء— %(n)d باقي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
