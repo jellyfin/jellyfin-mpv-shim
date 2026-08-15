@@ -7,37 +7,37 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2024-07-13 22:07+0000\n"
-"Last-Translator: Filan Fisteku <motto_schillernd_01@icloud.com>\n"
+"PO-Revision-Date: 2026-08-15 01:00+0000\n"
+"Last-Translator: AlaronAndes <diaforeseggrafes@gmail.com>\n"
 "Language-Team: Albanian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/sq/>\n"
+"jellyfin-mpv-shim/sq/>\n"
 "Language: sq\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Format i panjohur"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Faqja %(page)d nga %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Faqja %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% të lexuara"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -59,10 +59,9 @@ msgid "Set Subbed: {0} ok, {1} fail"
 msgstr "Vendos Titrat: {0} ok, {1} dështoj"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
-#, fuzzy, python-brace-format
-#| msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
+#, python-brace-format
 msgid "Set Dubbed: {0} ok, {1} audio only, {2} fail"
-msgstr "Vendos Dublimin: ok, {1} vetëm zëri, {2} dështoj"
+msgstr "Vendosja e dublimit: {0} në rregull, {1} vetëm audio, {2} dështime"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 #, python-brace-format
@@ -77,14 +76,16 @@ msgstr "Duke vendosur aktualen..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Hapni Jellyfin, shkoni te menyja e përdoruesit → Lidhja e Shpejtë dhe "
+"vendosni këtë kod:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Në pritje të miratimit..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Duke fshirë të gjitha llogaritë ekzistuese."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -96,19 +97,15 @@ msgstr "Shtimi i serverit dështoi."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Llogaria ekziston tashmë. Po përditësohen të dhënat e hyrjes."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Serveri u shtua me sukses."
+msgstr "Të dhënat e hyrjes në server u përditësuan me mbarësi."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Shtimi i serverit dështoi."
+msgstr "Përditësimi i të dhënave të hyrjes në server dështoi."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -127,28 +124,20 @@ msgid "Add another server?"
 msgstr "Shto një server tjetër?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Nuk mund të shtohet serveri.\n"
-"Ju lutem shikoni informacionin e lidhjes."
+msgstr "Nuk u bë e mundur lidhja me serverin."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Lidhja e Shpejtë nuk është aktivizuar në këtë server."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Lidhja e Shpejtë nuk mund të nisej."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Anashkalo hyrjen"
+msgstr "Anashkalo titrat përfundimtarë"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -160,59 +149,43 @@ msgstr "Kërko të kalosh hyrjen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "Anashkalo reklamat"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Anashkalo hyrjen"
+msgstr "Reklama u anashkalua"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "Kërko të kalosh hyrjen"
+msgstr "Kërko për të anashkaluar reklamat"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Anashkalo hyrjen"
+msgstr "Anashkalo pamjen paraprake"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Anashkalo hyrjen"
+msgstr "Pamja paraprake u anashkalua"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "Kërko të kalosh hyrjen"
+msgstr "Kërko për të anashkaluar pamjen paraprake"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Anashkalo përmbledhjen"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "Anashkalo hyrjen"
+msgstr "Përmbledhja u anashkalua"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "Kërko të kalosh hyrjen"
+msgstr "Kërko për të anashkaluar përmbledhjen"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "Kaluam intron"
+msgstr "Anashkalo hyrjen"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -240,7 +213,7 @@ msgstr "E Zezë"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Cyan"
-msgstr "E Gjelbër në të Kaltër"
+msgstr "Cian"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Blue"
@@ -389,15 +362,15 @@ msgstr "Manual sipas indeksit të përcjellësit (Më pak i besueshëm)"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never"
-msgstr ""
+msgstr "Kurrë"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Pyet"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Gjithmonë"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -1152,7 +1125,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV rpu preset flag"
-msgstr ""
+msgstr "Shenja e paracaktuar e RPU-së së Dolby Vision"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV el preset flag"
@@ -1165,6 +1138,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl signal compatibility id"
 msgstr ""
+"Identifikuesi i përputhshmërisë së sinjalit të shtresës bazë të Dolby Vision"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
