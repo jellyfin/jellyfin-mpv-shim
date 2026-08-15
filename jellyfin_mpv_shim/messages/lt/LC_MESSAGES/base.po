@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-15 16:36+0000\n"
+"PO-Revision-Date: 2026-08-15 20:03+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -1050,11 +1050,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct playing"
-msgstr "Tiesioginis paleidimas"
+msgstr "Tiesioginis atkūrimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Direct streaming"
-msgstr "Tiesioginis transliavimas"
+msgstr "Tiesioginė srautinė transliacija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
@@ -1943,7 +1943,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Turi teminę dainą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
@@ -2324,7 +2324,7 @@ msgstr "Nėra aktyvių grupių."
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py
 msgid "New Group"
-msgstr "Nauja Grupė"
+msgstr "Nauja grupė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Resume local playback"
@@ -2608,7 +2608,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
-msgstr ""
+msgstr "Niekas neatkuriama."
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3468,7 +3468,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Songs"
-msgstr ""
+msgstr "Dainos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Could not start playback."
