@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-16 12:59+0000\n"
+"PO-Revision-Date: 2026-08-16 13:55+0000\n"
 "Last-Translator: YESNLars <neeneejaja35@gmail.com>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
@@ -199,7 +199,7 @@ msgstr "Terug- of vooruitspoelen om intro over te slaan"
 
 #: jellyfin_mpv_shim/media.py
 msgid " (Transcode)"
-msgstr " (transcoderen)"
+msgstr " (Transcoderen)"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "White"
@@ -2582,22 +2582,17 @@ msgid "The position could not be saved."
 msgstr "De PIN kon niet worden opgeslagen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} heeft toegetreden."
+msgstr "%s (heeft toegetreden)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Nieuwe Groep"
+msgstr "Groep"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Nieuwe Groep"
+msgstr "Geen actieve groepen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -2612,10 +2607,8 @@ msgid "Resume local playback"
 msgstr "Lokaal afspelen hervatten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Nieuwe Groep"
+msgstr "Verlaten"
 
 # seeded from jellyfin-web: Refresh
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2626,52 +2619,28 @@ msgid "Refresh"
 msgstr "Vernieuwen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"Kon server niet toevoegen.\n"
-"Controleer alstublieft je verbinding."
+msgstr "Kon niet tot SyncPlay groep toetreden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"Kon server niet toevoegen.\n"
-"Controleer alstublieft je verbinding."
+msgstr "Kon SyncPlay groep niet creëren."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"Kon server niet toevoegen.\n"
-"Controleer alstublieft je verbinding."
+msgstr "Kon SyncPlay groep niet verlaten."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Could not start Quick Connect."
 msgid "Could not resume SyncPlay playback."
-msgstr "Kon Quick Connect niet starten."
+msgstr "Kon SyncPlay niet hervatten."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Automatisch"
+msgstr "Automatisch: Volgende"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Automatic: Actively Watched"
-msgstr "Server verwijderen"
+msgstr "Automatisch: Actief Bekeken"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/svp_integration.py
