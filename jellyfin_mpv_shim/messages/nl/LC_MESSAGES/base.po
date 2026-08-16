@@ -2685,7 +2685,7 @@ msgstr "Specials"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
 msgid "Season %s"
-msgstr ""
+msgstr "Seizoen %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, python-format
