@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-17 07:55+0000\n"
+"PO-Revision-Date: 2026-08-17 08:10+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
@@ -2182,18 +2182,14 @@ msgid "Unplayed"
 msgstr "Neatskaņots"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "Atskaņots"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Noņemt serveri"
+msgstr "Favorīti"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2218,10 +2214,8 @@ msgid "Has Subtitles"
 msgstr "Subtitru izmērs: {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Neizdevās"
+msgstr "Ir treileris"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
@@ -2267,10 +2261,8 @@ msgid "Audio Language"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Language"
-msgstr "Subtitru izmērs: {0}"
+msgstr "Subtitru valoda"
 
 # seeded from jellyfin-web: HeaderVideoTypes
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2622,67 +2614,58 @@ msgid "%s stores no reading position."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Atvērt konfigurācijas mapi"
+msgstr "Lasīšanas progress"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "Nolasa pozīciju…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Vilkt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Stumt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
-msgstr ""
+msgstr "Pozīciju nevarēja nolasīt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Mainīt subtitrus"
+msgstr "Ievadi ciparu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "Ievadi lapas numuru starp 1 un %d."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
-msgstr ""
+msgstr "Ievadi lapas numuru - 1 vai lielāku."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading position saved."
-msgstr ""
+msgstr "Lasīšanas vieta saglabāta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be saved."
-msgstr ""
+msgstr "Pozīciju nevarēja saglabāt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} ir pievienojies."
+msgstr "%s ir pievienojies."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Jauna grupa"
+msgstr "Grupa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Jauna grupa"
+msgstr "Nav aktīvu grupu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -2741,14 +2724,8 @@ msgstr ""
 "Lūdzu, pārbaudiet savienojuma informāciju."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not resume SyncPlay playback."
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "Nevarēja atjaunot SyncPlay atskaņošanu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
@@ -2993,10 +2970,8 @@ msgid "Hardware acceleration"
 msgstr "Aparatūras paātrināšana"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Change Video Quality"
 msgid "Video output"
-msgstr "Mainīt video kvalitāti"
+msgstr "Video izeja"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3035,18 +3010,16 @@ msgid "Media type"
 msgstr "Mediju atslēgas meklēšana"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "downloaded copy"
-msgstr "Noņemt serveri"
+msgstr "lejupielādēta kopija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "lokāls fails"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "straume no servera"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3061,10 +3034,8 @@ msgid "Reasons"
 msgstr "Sezonas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "SyncPlay"
+msgstr "Atskaņotājs"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3284,14 +3255,9 @@ msgid "%s has not been downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "%s nevarēja lejupielādēt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
