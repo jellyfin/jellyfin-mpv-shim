@@ -43,8 +43,11 @@ for anything the registry does not claim, so this proceeds one page at a time
 with the app shippable throughout.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
+
+log = logging.getLogger("mpvtk_browser.pages.base")
 
 
 @dataclass(frozen=True)
@@ -169,6 +172,30 @@ class Page:
         from ..scroll_state import ScrollState
 
         return ScrollState.parked(self.route, scroll_id)
+
+    def open_link(self, url):
+        """Hand an external link to the desktop's browser.
+
+        On ``Page`` rather than on the one screen that first wanted it,
+        because three screens do (detail, series, season) and a copy per
+        screen is how the error handling ends up different on each.
+
+        Reports a failure rather than swallowing it: pressing a button and
+        having nothing at all happen is indistinguishable from a dead UI,
+        and that is the outcome on a box with no desktop opener -- or for a
+        scheme ``system_open`` refuses, which these links can carry because
+        the *server* composed them. The gateway answers ``(ok, method)`` for
+        exactly this.
+        """
+        from ...i18n import _
+
+        try:
+            ok, _method = self.ctx.player.open_url(url)
+        except Exception:
+            log.warning("could not open an external link", exc_info=True)
+            ok = False
+        if not ok:
+            self.ctx.status(_("Could not open that link."))
 
     def route_async(self, work, on_done, epoch) -> None:
         """``ctx.run`` for this page's data, recording a failure on the route

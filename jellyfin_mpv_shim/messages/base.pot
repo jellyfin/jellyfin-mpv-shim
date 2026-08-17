@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-13 11:47-0400\n"
+"POT-Creation-Date: 2026-08-17 12:17-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3216,6 +3216,10 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+msgid "Could not open that link."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py

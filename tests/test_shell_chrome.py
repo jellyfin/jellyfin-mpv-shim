@@ -218,11 +218,17 @@ class TestBanners(unittest.TestCase):
         self.assertNotIn("banner-dismiss", ids(nodes))
 
     def test_update_open_calls_controller(self):
+        """...with the release url, not merely at all.
+
+        Asserted against ``opened_urls`` rather than the ``transport``
+        catch-all: ``open_url`` is a real method on the fake now that the
+        detail screen's provider links go through it, so it no longer falls
+        through to the recorder -- and the url is the half worth pinning.
+        """
         self.b.notify_update("2.5.0", "http://example/rel")
         _n, handlers = build_scene(self.b)
         handlers["banner-open"]["click"]()
-        self.assertIn("open_url",
-                      [c[0] for c in getattr(self.ctl, "transport", [])])
+        self.assertEqual(self.ctl.opened_urls, ["http://example/rel"])
 
     def test_offline_banner_toggles(self):
         self.b.set_offline(True)

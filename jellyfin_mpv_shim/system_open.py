@@ -95,3 +95,60 @@ def open_path(path):
             return True, command
     log.warning("no desktop opener found for %s", path)
     return False, None
+
+
+#: Schemes a server-supplied link may use. An allowlist rather than a
+#: denylist, because what is on the other end of this is a desktop opener
+#: that will cheerfully hand ``file://``, ``smb://`` or a registered
+#: application scheme to whatever claims it -- and the strings reaching here
+#: are ``ExternalUrls`` off a Jellyfin item, i.e. metadata the *server*
+#: composed. A shim that browses a server it does not administer should not
+#: be a way for that server to open arbitrary handlers on this machine, and
+#: nothing about a metadata provider link needs a scheme outside these two.
+URL_SCHEMES = frozenset({"http", "https"})
+
+
+def open_url(url):
+    """Open ``url`` in the system's browser. Returns ``(ok, method)``.
+
+    The sibling of :func:`open_path`, and separate from it rather than a
+    branch inside it, because the two disagree about their whole precondition
+    -- that one *requires* the target to exist on disk, which is the check
+    that would reject every URL. Everything after the validation is shared.
+
+    ``(False, None)`` for a scheme outside :data:`URL_SCHEMES`, so a caller
+    can say "that link is not something we will open" rather than silently
+    doing nothing. Never raises, for the reason the module docstring gives.
+    """
+    from urllib.parse import urlsplit
+
+    if not url:
+        return False, None
+    try:
+        parts = urlsplit(url.strip())
+    except ValueError:
+        # A malformed URL is the server's problem, not a crash here.
+        log.warning("cannot open a malformed url", exc_info=True)
+        return False, None
+    if parts.scheme.lower() not in URL_SCHEMES or not parts.netloc:
+        # netloc as well as scheme: "https:///etc/passwd" parses with the
+        # right scheme and no host, and is not a link to anywhere.
+        log.warning("refusing to open a %r url", parts.scheme)
+        return False, None
+    url = parts.geturl()
+    if os.name == "nt":
+        try:
+            os.startfile(url)  # type: ignore[attr-defined]  # Windows only
+            return True, "startfile"
+        except Exception:
+            log.warning("startfile failed for a url", exc_info=True)
+            return False, None
+    if sys.platform == "darwin":
+        return (True, "open") if _spawn(["open", url]) else (False, None)
+    for command in _LINUX:
+        if shutil.which(command) is None:
+            continue
+        if _spawn(_argv(command, url)):
+            return True, command
+    log.warning("no desktop opener found for a url")
+    return False, None

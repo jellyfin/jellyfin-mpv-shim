@@ -134,3 +134,101 @@ def common_actions(actions, tiles, item, server, prefix):
             on=bool(ud.get("IsFavorite"))),
         download_button(actions, tiles, item, server, prefix),
     ]
+
+
+#: Most links we will draw for one item. Anime in particular is tagged by
+#: half a dozen databases at once (AniDB, AniList, MyAnimeList, Kitsu, TVDB,
+#: TMDB, IMDb, Trakt...), and past a couple of rows this stops being a
+#: reference and starts being the page. First wins, which is the server's
+#: own order -- ``ExternalUrls`` comes out in provider-priority order, so
+#: the ones it drops are the ones that library cares least about.
+MAX_PROVIDER_LINKS = 8
+
+
+#: Hosts whose links go nowhere, matched on the host and any subdomain of
+#: it. Jellyfin still ships a Zap2It external id and still composes
+#: ``https://tvlistings.zap2it.com/overview.html?programSeriesId=...`` for
+#: anything carrying one -- but that listings site was retired, so the
+#: button is an offer to leave the app for a page that does not exist. The
+#: whole domain rather than the one host: nothing under it serves listings
+#: any more, and the id we hold is only meaningful to that service.
+#:
+#: A *display* rule, not a safety one -- ``system_open.URL_SCHEMES`` is the
+#: safety boundary and this is not a second one. It says "do not offer
+#: this", and the honest place for that is next to the code that decides
+#: what to draw.
+DEAD_PROVIDER_HOSTS = ("zap2it.com",)
+
+
+def _is_dead(url):
+    """True for a link we will not offer. Host-only, so a query string
+    naming one of these does not take an unrelated provider down with it."""
+    from urllib.parse import urlsplit
+
+    try:
+        host = (urlsplit(url).hostname or "").lower()
+    except ValueError:
+        # Unparseable is its own kind of dead.
+        return True
+    return any(host == dead or host.endswith("." + dead)
+               for dead in DEAD_PROVIDER_HOSTS)
+
+
+def provider_link_buttons(item, on_open):
+    """The provider links as a plain list of buttons, or ``[]``.
+
+    Split from :func:`provider_links` because the season screen does not
+    want a row of its own: it has a header row already (the title, the
+    season picker, To Series) and these belong on the end of it, which
+    means it needs the buttons rather than something already packed.
+
+    ``ExternalUrls`` needs no ``Fields`` and costs no request: the server
+    fills it in unconditionally on the single-item routes, which is what the
+    detail page already fetches through (measured on 10.11 and 12.0, both
+    ``/Users/{uid}/Items/{id}`` and ``/Items/{id}``). It is absent from list
+    queries unless asked for, which is why this belongs to detail screens
+    and not to a tile.
+
+    Buttons rather than jellyfin-web's bare coloured text: the one thing the
+    user has to know before pressing is that it *leaves the application*,
+    and on a ten-foot UI a differently-coloured word does not say that. The
+    ``open_in_new`` glyph is the same one web puts on its own external links.
+
+    ``on_open`` takes the url. It is passed in rather than reached for
+    because opening one is the shell stepping outside the process, which is
+    the gateway's job and not a component's.
+    """
+    seen, links = set(), []
+    for entry in item.get("ExternalUrls") or ():
+        if not isinstance(entry, dict):
+            continue
+        url, name = entry.get("Url"), entry.get("Name")
+        # Both, and not just the url: a nameless link is a button captioned
+        # with nothing, and the name is the only thing that says where it
+        # goes. Deduped on the url because a server with two plugins for one
+        # database answers with the same link twice.
+        if not url or not name or url in seen or _is_dead(url):
+            continue
+        seen.add(url)
+        links.append((str(name), str(url)))
+        if len(links) >= MAX_PROVIDER_LINKS:
+            break
+    return [controls.action_btn(
+        "open_in_new", name, "detail-link-%d" % i,
+        # url bound as a default argument, not closed over: the loop
+        # variable would otherwise be whatever it ended on, and every
+        # button on the row would open the last provider.
+        lambda u=url: on_open(u), size=controls.ROW)
+        for i, (name, url) in enumerate(links)]
+
+
+def provider_links(item, avail, on_open):
+    """The provider links as a row of their own, or None when there are no
+    links to draw. What the detail and series screens want, both of which
+    place this under the synopsis with nothing else beside it."""
+    from . import chrome
+
+    buttons = provider_link_buttons(item, on_open)
+    if not buttons:
+        return None
+    return chrome.wrap_row(buttons, avail, gap=8, align="center")
