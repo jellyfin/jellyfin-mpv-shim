@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-16 13:55+0000\n"
-"Last-Translator: YESNLars <neeneejaja35@gmail.com>\n"
+"PO-Revision-Date: 2026-08-17 17:57+0000\n"
+"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -2939,16 +2939,12 @@ msgid "Download speed"
 msgstr "Descargas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Búsqueda de Tecla Multimedia"
+msgstr "Tipo de medio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Prefer Downloaded Copy"
 msgid "downloaded copy"
-msgstr "Preferir la copia descargada"
+msgstr "copia descargada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
@@ -2971,10 +2967,8 @@ msgid "Reasons"
 msgstr "Temporadas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Player"
-msgstr "SyncPlay"
+msgstr "Reproductor"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3134,10 +3128,9 @@ msgid "%s was deleted."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be removed."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "No se pudo eliminar el PIN."
+msgstr "No se pudo eliminar %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3176,10 +3169,9 @@ msgid "Nothing on this system could open %s."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%d already downloaded"
+#, python-format
 msgid "%s is already downloaded."
-msgstr "%d ya descargados"
+msgstr "%s ya descargado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
@@ -3188,22 +3180,19 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%d already downloaded"
+#, python-format
 msgid "%s has not been downloaded."
-msgstr "%d ya descargados"
+msgstr "%s no han sido descargados."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The PIN could not be saved."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "El PIN no pudo ser guardado."
+msgstr "%s no pudo ser descargado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Downloading %d%%"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Descargando %d%%"
+msgstr "Descargando %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, fuzzy
@@ -3488,10 +3477,9 @@ msgid "Repeat Off"
 msgstr "No repetir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Back 10 Seconds"
+#, python-format
 msgid "Back %d seconds"
-msgstr "Atrás 10 segundos"
+msgstr "Atrás %d segundos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3508,10 +3496,9 @@ msgid "Pause"
 msgstr "Pausa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Forward 30 Seconds"
+#, python-format
 msgid "Forward %d seconds"
-msgstr "Adelante 30 segundos"
+msgstr "Adelantar %d segundos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Stop"
@@ -3536,10 +3523,9 @@ msgid "Volume"
 msgstr "Volumen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy, python-format
-#| msgid "Chapters"
+#, python-format
 msgid "%d chapters"
-msgstr "Capítulos"
+msgstr "%d capítulos"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3599,10 +3585,8 @@ msgid "Open Externally"
 msgstr "Externo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Downloading…"
-msgstr "Eliminar servidor"
+msgstr "Descargando…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3616,23 +3600,17 @@ msgid "Nothing here yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "This comic could not be opened."
-msgstr "No se pudo aplicar el cambio."
+msgstr "No se pudo abrir este comic."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "This page could not be read."
-msgstr "No se pudo aplicar el cambio."
+msgstr "No se pudo leer esta página."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The download failed."
-msgstr "La descarga no pudo empezar."
+msgstr "Falló la descarga."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
@@ -4178,20 +4156,16 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The download could not be removed."
 msgid "This book could not be opened."
-msgstr "La descarga no pudo ser eliminada."
+msgstr "No se pudo abrir este libro."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Page"
 msgid "Copy Page"
-msgstr "Página"
+msgstr "Copiar página"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
@@ -4202,26 +4176,16 @@ msgid "Copied the page."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "There is nothing here to play."
 msgid "There is nothing to copy."
-msgstr "No hay nada que reproducir aquí."
+msgstr "No hay nada para copiar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copying to the clipboard is not available."
 msgid "Copying is not available."
-msgstr "Copiar en el portapapeles no está disponible."
+msgstr "Copiar no está disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the text."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudo copiar el texto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4230,32 +4194,24 @@ msgid "No clipboard available — saved to %s"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Contents"
-msgstr "Continuo"
+msgstr "Contenidos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Contacting the server…"
 msgid "Getting the book…"
-msgstr "Contactando con el servidor…"
+msgstr "Obteniendo el libro…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "This book could not be drawn."
-msgstr "No se pudo aplicar el cambio."
+msgstr "No se pudo renderizar este libro."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "Grande"
+msgstr "Texto más grande"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
@@ -4399,10 +4355,8 @@ msgid "Downloaded Shows"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Downloads"
 msgid "Downloaded Books"
-msgstr "Descargas"
+msgstr "Libros descargados"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
@@ -4551,10 +4505,8 @@ msgid "These settings are stored on your server and shared with Jellyfin Web."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Sections"
-msgstr "Eliminar servidor"
+msgstr "Secciones"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
@@ -4583,30 +4535,16 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudieron cargar las configuraciones de la pantalla de inicio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "The change could not be applied."
 msgid "Home screen settings saved."
-msgstr "No se pudo aplicar el cambio."
+msgstr "Se guardaron las configuraciones de la pantalla de inicio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se pudieron guardar las configuraciones de la pantalla de inicio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
@@ -4877,10 +4815,8 @@ msgid "Restore"
 msgstr "Restaurar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Máxima"
+msgstr "Máximizar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
@@ -4958,10 +4894,8 @@ msgid "Transcode"
 msgstr " (Transcodificar)"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Theme default"
 msgid "Use the default"
-msgstr "Tema por defecto"
+msgstr "Usar predeterminado"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -5200,10 +5134,8 @@ msgid "ArtCNN High (C4F32)"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "Por defecto (auto)"
+msgstr "Por defecto (todos los medios)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
@@ -5225,10 +5157,8 @@ msgid "{0}  <-- in effect"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Perfiles de Reproducción de Video"
+msgstr "Perfil de Reproducción de Video"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
