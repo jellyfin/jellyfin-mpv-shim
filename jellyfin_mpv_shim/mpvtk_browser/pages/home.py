@@ -17,6 +17,7 @@ from ...mpvtk.widgets import (
 from .. import components, home_sections, theme, user_prefs
 from ..components import chrome
 from .base import Page
+from .grid import sorts_for
 
 log = logging.getLogger("mpvtk_browser.pages.home")
 
@@ -158,10 +159,54 @@ class HomePage(Page):
                                 "filters": {"is_airing": True}},
     }
 
-    #: Sort index for "Date Added", descending. Named because a Latest row's
-    #: destination is its library in that order, and a bare 1 in the middle
-    #: of a navigate() says nothing.
-    _DATE_ADDED_SORT = 1
+    #: The server sort a Latest row's destination has to use, by collection
+    #: type. Anything absent gets ``_DEFAULT_LATEST_SORT_BY``.
+    #:
+    #: **A TV library is not "Date Added", and that is the whole point of
+    #: this table.** ``/Users/{id}/Items/Latest`` groups a TV library's
+    #: newest *episodes* into their series, so the row is a list of shows
+    #: ordered by when each last gained an episode. ``DateCreated`` on the
+    #: destination sorts those same shows by when the SERIES was added --
+    #: three years ago, for a show you have followed for three years -- so
+    #: the heading opened a list holding the same items in a completely
+    #: different order (#688). ``DateLastContentAdded`` is the matching sort,
+    #: and is what jellyfin-web offers there under "Date Episode Added"; see
+    #: ``grid.EXTRA_SORTS``, which exists for exactly this reason.
+    #:
+    #: Movies and music need no entry: ``/Latest`` really is DateCreated for
+    #: them, because a film gains no episodes.
+    _LATEST_SORT_BY = {"tvshows": "DateLastContentAdded"}
+
+    #: What every other library sorts its Latest destination by.
+    _DEFAULT_LATEST_SORT_BY = "DateCreated"
+
+    @classmethod
+    def _latest_sort(cls, collection_type):
+        """Index into ``sorts_for(collection_type)`` for a Latest heading.
+
+        An *index*, because that is what a grid route stores -- and it is an
+        index into whichever list that library's own screen offers, which is
+        why this cannot be a constant: ``EXTRA_SORTS`` appends to ``SORTS``,
+        so "Date Episode Added" exists only for the libraries that have it
+        and sits at a position no other library shares.
+
+        Resolved by looking the sort *name* up rather than by arithmetic on
+        ``len(SORTS)``: the tables are edited by hand and a new base sort
+        would silently re-point this at whatever landed on that index --
+        which is the same trap ``EXTRA_SORTS`` documents for stored routes.
+        Falling back to ``DateCreated`` rather than raising keeps a library
+        whose sort is missing on the old behaviour instead of on nothing.
+        """
+        want = cls._LATEST_SORT_BY.get(collection_type or "",
+                                       cls._DEFAULT_LATEST_SORT_BY)
+        sorts = sorts_for(collection_type)
+        for index, (_label, sort_by, _order) in enumerate(sorts):
+            if sort_by == want:
+                return index
+        for index, (_label, sort_by, _order) in enumerate(sorts):
+            if sort_by == cls._DEFAULT_LATEST_SORT_BY:
+                return index
+        return 0
 
     def _see_all(self, row_id, title, row=None):
         """``on_click`` for a row's heading, or None if it has no listing."""
@@ -169,13 +214,16 @@ class HomePage(Page):
         server = self.route.get("server") or self.ctx.server
         if kind == home_sections.LATEST and (row or {}).get("parent_id"):
             # Web opens the library on its Latest *tab*; we have no tabs, so
-            # the honest equivalent is that library sorted newest-first --
-            # the same items in the same order, without the 16-item cap.
+            # the honest equivalent is that library in the order the row was
+            # built in -- the same items in the same order, without the
+            # 16-item cap. Which order that IS depends on the library; see
+            # _latest_sort.
             return lambda: self.ctx.nav.navigate({
                 "kind": "grid", "server": server,
                 "parent_id": row["parent_id"],
                 "collection_type": row.get("collection_type"),
-                "title": title, "_sort": self._DATE_ADDED_SORT})
+                "title": title,
+                "_sort": self._latest_sort(row.get("collection_type"))})
         spec = self.SEE_ALL_ROWS.get(kind)
         if spec is None:
             return None

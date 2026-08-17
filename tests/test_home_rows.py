@@ -537,3 +537,59 @@ class ContinueWatchingStaysCurrentTest(unittest.TestCase):
         b, loads = self._browser()
         b.enter_browse()
         self.assertEqual(loads, [b.route])
+
+
+class LatestSeeAllSortTest(unittest.TestCase):
+    """Where a Latest heading lands, per library kind.
+
+    A Latest row on a TV library is the server's episode-grouped list --
+    shows ordered by when each last gained an episode -- and "Date Added"
+    on the destination orders those same shows by when the SERIES was
+    created. Same items, different order, which is what the row's own
+    heading promised it was showing more of (#688).
+
+    Asserted as the resolved ``(SortBy, SortOrder)`` rather than as an
+    index, because the index is the incidental half: it is a position in
+    whichever list that library's screen offers, and the tables it comes
+    from are edited by hand.
+    """
+
+    def _sort(self, collection_type):
+        from jellyfin_mpv_shim.mpvtk_browser.pages.grid import sorts_for
+        from jellyfin_mpv_shim.mpvtk_browser.pages.home import HomePage
+
+        index = HomePage._latest_sort(collection_type)
+        return sorts_for(collection_type)[index][1:]
+
+    def test_a_tv_library_lands_on_date_episode_added(self):
+        self.assertEqual(self._sort("tvshows"),
+                         ("DateLastContentAdded", "Descending"))
+
+    def test_everything_else_lands_on_date_added(self):
+        for collection_type in ("movies", "music", "books", "homevideos",
+                                "musicvideos", "mixed", None, ""):
+            with self.subTest(collection_type=collection_type):
+                self.assertEqual(self._sort(collection_type),
+                                 ("DateCreated", "Descending"))
+
+    def test_a_collection_type_nobody_has_heard_of_still_sorts(self):
+        """A server growing a new collection type must not land on Name."""
+        self.assertEqual(self._sort("holotapes"), ("DateCreated", "Descending"))
+
+    def test_the_index_is_looked_up_rather_than_counted(self):
+        """Inserting a base sort must not re-point the TV destination.
+
+        The failure this guards is silent: ``EXTRA_SORTS`` is appended to
+        ``SORTS``, so any arithmetic on ``len(SORTS)`` keeps returning a
+        valid index that now names a different sort.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.pages import grid
+
+        original = grid.SORTS
+        try:
+            grid.SORTS = [("Injected", "SomethingElse", "Ascending")] + original
+            self.assertEqual(self._sort("tvshows"),
+                             ("DateLastContentAdded", "Descending"))
+            self.assertEqual(self._sort("movies"), ("DateCreated", "Descending"))
+        finally:
+            grid.SORTS = original
