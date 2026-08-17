@@ -7,17 +7,17 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2025-01-26 07:41+0000\n"
+"PO-Revision-Date: 2026-08-17 07:49+0000\n"
 "Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/lv/>\n"
+"jellyfin-mpv-shim/lv/>\n"
 "Language: lv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n % 10 == 0 || n % 100 >= 11 && n % 100 <= "
 "19) ? 0 : ((n % 10 == 1 && n % 100 != 11) ? 1 : 2);\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
@@ -5295,10 +5295,8 @@ msgid "{0}  <-- in effect"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Video atskaņošanas profili"
+msgstr "Video atskaņošanas profils"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
