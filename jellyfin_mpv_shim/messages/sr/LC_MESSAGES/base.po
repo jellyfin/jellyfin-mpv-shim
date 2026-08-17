@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-17 07:49+0000\n"
+"PO-Revision-Date: 2026-08-17 17:57+0000\n"
 "Last-Translator: nenadsuperzmaj <nenadsuperzmaj@gmail.com>\n"
 "Language-Team: Serbian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/sr/>\n"
@@ -1805,36 +1805,36 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "Изглед контрола плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Покажи на Дискорду шта гледаш"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Скалирање интерфејса"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Text Size"
-msgstr ""
+msgstr "Величина текста"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Минимална величина текста"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
-msgstr ""
+msgstr "Величина омота"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Побољшај читљивост логотипа на телевизији"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Побољшај читљивост логотипа у библиотеци"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1844,63 +1844,63 @@ msgstr "Тип"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Боја странице"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Поравнај текст"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Режим читања за стрипове"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Режим без прегледа библиотеке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Кастовање отвара преглед библиотеке"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Преглед библиотеке преко целог екрана"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Увек вежи дугмиће са стрелицама за контроле плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Кључ за активацију контрола плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Сенчење иза контрола плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "Кад се сакривају контроле плејера"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Сакриј контроле плејера после (секунде)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Дугмад назад/напред на мишу прескачу поглавља"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Режим аудио излаза"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Уређај аудио излаза"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Користи ексклузивно овај уређај"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1916,35 +1916,35 @@ msgstr "Нова група"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Упамти последње коришћени профил"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "Графички АПИ за приказ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Пропусти кроз AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Пропусти кроз DTS"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Пропусти кроз E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Пропусти кроз DTS-HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Пропусти кроз TrueHD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Поново енкодирај остале у AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1952,6 +1952,9 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Са \"покрени минимизовано\" и \"пун екран\" апликација ће бити невидљива све "
+"док се нешто не кастује, а у току кастовања ће заузети читав екран. Притисак "
+"на тастер Q у току репродуције ће такоће минимизовати апликацију."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1959,17 +1962,21 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"Оставите ова два празним осим ако праузимања не користе често дискове. Ако "
+"подесите заједно прва два, епизоде се довлаче одједном уместо једна по једна."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
-msgstr ""
+msgstr "Сличица епизоде је слика из епозоде коју још није погледали."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
 msgstr ""
+"Искључено чини да се миш понаша као у MPV-у: вуците видео да помериоте "
+"прозор, десни клик за паузу и дупли клик за пун екран."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1980,6 +1987,10 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
+"Подразумевано је да буде искључено јер неки графички драјвери не раде добро. "
+"\"Само преко 1080p\" је опрезан начин да се укључи. \"Копирај\" је спорије, "
+"али је боље у комбинацији са видео филтерима. Ако видео престане да ради, "
+"покрените поново уз опцију --disable-hwdec да бисте поништили ово подешавање."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1988,6 +1999,10 @@ msgid ""
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
 "does that."
 msgstr ""
+"Искључено значи мод командне линије: без прозора, без систмсле касете и "
+"екрана са подешавањима. Једини начин да се поново укључи је ручна измена "
+"датотеке conf.json. Ово НИЈЕ опција за графичке контоле MPV-a. Пробајте "
+"\"Изглед контрола плејера\" у одељку \"Сучеље\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1997,6 +2012,10 @@ msgid ""
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
 msgstr ""
+"Прикажи само што се кастује на ову машину - без библиотеке и екрана за "
+"подешавања. Једини начин за повратак је ручна измена датотеке conf.json. Ова "
+"опција се користи само за телевизоре за које није предвиђена контрола и "
+"промена опција."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2006,6 +2025,9 @@ msgid ""
 "it. Left on \"Only when the window has no title bar\", MPV is asked whether "
 "this window got one, so desktops that do decorate it are left alone."
 msgstr ""
+"Не неким десктопима, као ГНОМ или Вејланд, не види се трака на врху прозора, "
+"па је немогуће померати или минизовати прозор. Оставите на \"Само кад прозор "
+"нема траку\" да бисте додали контроле мимо десктопа."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2014,6 +2036,10 @@ msgid ""
 "playback bare; the library, the keyboard shortcuts and the menu key still "
 "work."
 msgstr ""
+"Захтева поновно покретање да би се променило. Подразумевано понашање је да "
+"се користе интерне пречице са тастатуре за MPV. Ако се изабере \"без "
+"контрола плејера\", оставља само приказ медија на ком ће радити пречице и "
+"мени."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
