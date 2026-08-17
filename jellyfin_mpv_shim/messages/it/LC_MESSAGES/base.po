@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-17 08:11+0000\n"
+"PO-Revision-Date: 2026-08-17 17:57+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -2570,7 +2570,7 @@ msgstr "Cartella delle registrazioni"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
-msgstr ""
+msgstr "Lettura della posizione…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
@@ -2595,7 +2595,7 @@ msgstr "Digita un nuovo PIN."
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Enter a page between 1 and %d."
-msgstr ""
+msgstr "Inserisci una pagina tra 1 e %d."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Enter a page of 1 or more."
@@ -2697,7 +2697,7 @@ msgstr "Libri"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "Non raggruppato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2885,7 +2885,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "A/V sync"
-msgstr ""
+msgstr "Sincronizzazione A/V"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
@@ -2917,11 +2917,11 @@ msgstr "Scaricati"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
-msgstr ""
+msgstr "file locale"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "stream from server"
-msgstr ""
+msgstr "trasmissione dal server"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3068,7 +3068,7 @@ msgstr "Le impostazioni di registrazione non possono essere salvate."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Delete from Disk"
-msgstr ""
+msgstr "Elimina dal disco"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3081,7 +3081,7 @@ msgstr "L'eliminazione di questo elemento lo cancellerà sia dal disco che dalla
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "%s was deleted."
-msgstr ""
+msgstr "%s è stato eliminato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, fuzzy, python-format
@@ -3115,7 +3115,7 @@ msgstr "Lo scaricamento non può essere rimosso."
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
 msgid "Opening %s…"
-msgstr ""
+msgstr "Apertura di %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3450,7 +3450,7 @@ msgstr "Aggiungi alla coda"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "Terminato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3460,7 +3460,7 @@ msgstr "Elemento non disponibile."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%s in"
-msgstr ""
+msgstr "%s in"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3471,13 +3471,13 @@ msgstr "Avvia"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d pages"
-msgstr ""
+msgstr "%d pagine"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Leggi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, fuzzy
@@ -3524,15 +3524,15 @@ msgstr "Spostamento degli scaricamenti non riuscito."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
-msgstr ""
+msgstr "Recupero fumetto…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom out"
-msgstr ""
+msgstr "Rimpicciolisci"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Zoom in"
-msgstr ""
+msgstr "Ingrandisci"
 
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3644,7 +3644,7 @@ msgstr "Collezioni"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
 msgid "Filter (%d)"
-msgstr ""
+msgstr "Filtro (%d)"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -4009,7 +4009,7 @@ msgstr "Impossibile rinominare quell'utente."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
-msgstr ""
+msgstr "Copia paragrafo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4019,7 +4019,7 @@ msgstr "Pagina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
-msgstr ""
+msgstr "Copiato il paragrafo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4071,7 +4071,7 @@ msgstr "La registrazione non può essere letta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
-msgstr ""
+msgstr "Testo più piccolo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4081,7 +4081,7 @@ msgstr "Grande"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
-msgstr ""
+msgstr "Colore della pagina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Type in the search box above."
@@ -4616,7 +4616,7 @@ msgstr "Cerca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Minimizza"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4632,7 +4632,7 @@ msgstr "Massimo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Ridimensiona"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Home"
@@ -4952,7 +4952,7 @@ msgstr "Predefinito (auto)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Questa raccolta"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, fuzzy
@@ -4962,7 +4962,7 @@ msgstr "Alla serie"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Non impostato"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
