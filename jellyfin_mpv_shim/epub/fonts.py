@@ -90,6 +90,11 @@ _font_cache: Dict[Tuple[Any, ...], Any] = {}
 
 
 def _load(name, size):
+    # See mpvtk.pilfont._load. The reader paints with Pillow too, so a book
+    # in a right-to-left script needs this as much as the library does.
+    from ..win_fribidi import preload
+
+    preload()
     from PIL import ImageFont
 
     try:

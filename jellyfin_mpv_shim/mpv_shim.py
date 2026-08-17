@@ -93,6 +93,15 @@ def main():
 
     log = root_logger
 
+    # Before anything can import PIL.ImageFont, and after logging so the
+    # result is recorded. Pillow resolves FriBiDi once, at extension init,
+    # and a Windows build without it silently draws right-to-left text
+    # unshaped and measures every string unkerned -- see win_fribidi.
+    from .win_fribidi import describe, preload
+
+    preload()
+    log.info(describe())
+
     # Before anything builds a player: the settings this clears are applied
     # while one is being constructed, so clearing them afterwards would not
     # help the launch that had to ask for it.

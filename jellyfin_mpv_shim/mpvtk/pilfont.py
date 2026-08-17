@@ -146,6 +146,13 @@ def has_rtl(text):
 
 
 def _load(names, size):
+    # Before the import, not after: Pillow resolves FriBiDi once at
+    # extension init, so this is the last moment it can matter. Idempotent
+    # and a no-op off Windows; `mpv_shim.main` has normally done it already
+    # and this covers every other way a face gets loaded. See win_fribidi.
+    from ..win_fribidi import preload
+
+    preload()
     from PIL import ImageFont
 
     for name in names:
