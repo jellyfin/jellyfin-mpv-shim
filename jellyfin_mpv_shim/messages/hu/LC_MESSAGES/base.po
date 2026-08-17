@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-15 16:36+0000\n"
-"Last-Translator: KecskeTech <teonyitas@gmail.com>\n"
+"PO-Revision-Date: 2026-08-17 17:57+0000\n"
+"Last-Translator: Szilki077 <szilkimappa@gmail.com>\n"
 "Language-Team: Hungarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/hu/>\n"
 "Language: hu\n"
@@ -1728,11 +1728,11 @@ msgstr "A bal klikk megállítja a lejátszást"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Plakátok megjelenítése a részletes oldalakon"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Epizód-bélyegképek megjelenítése a részletező oldalakon"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1742,23 +1742,23 @@ msgstr "Rögzítés megszakítása"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Következő epizódok automatikus letöltése"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "A következő elem belefoglalása"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Következő lépés: megfontolandó nevezések"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Megtartandó epizódok száma (0 = kikapcsolva)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Automatikus letöltések tárhelykorlátja (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1768,15 +1768,15 @@ msgstr "Kiszolgáló eltávolítása"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Megtekintetlen elemek törlése ennyi nap után (0 = soha)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Ellenőrzés (percenként)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Feltöltés, ha kevesebb mint (epizód)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
@@ -4971,7 +4971,7 @@ msgstr "Maximális"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Átméretezés"
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4980,16 +4980,12 @@ msgid "Home"
 msgstr "Kezdőlap"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Kiszolgáló:"
+msgstr "Kiszolgáló"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Felhasználónév:"
+msgstr "Felhasználó"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -4998,19 +4994,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "Frissítés érhető el: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "Nyitott"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "Elvetés"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Offline – az elérhető elemek megjelenítése."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
@@ -5019,44 +5015,40 @@ msgstr "Kiszolgálók konfigurálása"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "%(name)s letöltése – %(n)d van hátra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "Letöltés – %(n)d van hátra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Letöltések megtekintése"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "ismeretlen"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "Lejátszási adatok"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Átkódolás)"
+msgstr "(Átkódolás)"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
-msgstr ""
+msgstr "Használja az alapértelmezettet"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay Enabled"
-msgstr "A SyncPlay engedélyezve."
+msgstr "A SyncPlay engedélyezve:"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Kérjük, várjon, betöltés..."
 
 #: jellyfin_mpv_shim/player.py
 msgid ""
@@ -5069,7 +5061,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "A következő epizód nincs letöltve."
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -5105,24 +5097,32 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"Letöltés közben nem módosítható a letöltési mappa. Várja meg a folyamat "
+"befejeződését, majd próbálja újra."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Az a mappa már tartalmaz letöltéseket. Válassz egy üres mappát."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
+"Nem hozható létre a mappa. Ellenőrizze az elérési utat és a hozzá tartozó "
+"jogosultságokat."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Még folyamatban van egy letöltés. Várja meg, amíg befejeződik, majd próbálja "
+"újra."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"A letöltések áthelyezése meghiúsult. A fájlok a helyükön maradtak; a "
+"letöltési mappa nem változott meg."
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
@@ -5188,16 +5188,23 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"A GNOME önmagában nem jelenít meg rendszertálcát. A megjelenítéséhez "
+"telepítsd az „AppIndicator and KStatusNotifierItem Support” bővítményt, vagy "
+"a Beállításokban kapcsold be az „Allow Background” (Háttérbeli futtatás "
+"engedélyezése) lehetőséget, ha ablak nélkül szeretnéd futtatni."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"Ezen az asztalon nem fut rendszertálca-alkalmazás. Az ablak nélküli "
+"futtatáshoz kapcsolja be a „Háttérbeli futtatás engedélyezése” opciót a "
+"Beállításokban."
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Könyvtárböngésző megjelenítése"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
@@ -5218,23 +5225,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(alapértelmezett)"
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Új felhasználó"
 
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Váltson át egy másik felhasználóra, mielőtt törölné ezt."
 
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Legalább egy felhasználó szükséges."
 
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "A felhasználó nem található."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
@@ -5278,19 +5285,19 @@ msgstr "Anime4K x2 észlelési + homályosítás eltüntetése (HD-hez)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN (Denoise + Sharpen)"
-msgstr ""
+msgstr "ArtCNN (Zajcsökkentés + Élesítés)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "ArtCNN High (C4F32)"
-msgstr ""
+msgstr "ArtCNN Magas (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Default (all media)"
-msgstr ""
+msgstr "Alapértelmezett (összes média)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
-msgstr ""
+msgstr "Ez a könyvtár"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/video_profile.py
@@ -5300,12 +5307,12 @@ msgstr "Sorozatok"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
-msgstr ""
+msgstr "Nincs beállítva"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, python-brace-format
 msgid "{0}  <-- in effect"
-msgstr ""
+msgstr "{0}  <-- hatályos"
 
 #: jellyfin_mpv_shim/video_profile.py
 #, fuzzy
