@@ -7,21 +7,21 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2024-12-14 12:01+0000\n"
-"Last-Translator: John Doe <diefor-93@hotmail.com>\n"
+"PO-Revision-Date: 2026-08-17 17:57+0000\n"
+"Last-Translator: aleksantero <roiha.aleksanteri@gmail.com>\n"
 "Language-Team: Finnish <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/fi/>\n"
+"jellyfin-mpv-shim/fi/>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.7.2\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Tuntematon formaatti"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -32,12 +32,12 @@ msgstr ""
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Sivu %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% lue"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -76,14 +76,15 @@ msgstr "Asetetaan nykyistä..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Avaa Jellyfin, mene käyttäjävalikkoon -> Pikayhdistys, ja syötä tämä koodi:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Odotetaan valtuutusta..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Pyyhitään kaikki olemassa olevat käyttäjätilit."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,19 +96,15 @@ msgstr "Palvelimen lisääminen epäonnistui."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Käyttäjätili on jo olemassa. Päivitetään tunnukset."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Palvelin lisättiin onnistuneesti."
+msgstr "Palvelimen tunnukset päivitettiin onnistuneesti."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Palvelimen lisääminen epäonnistui."
+msgstr "Palvelimen tunnusten päivittäminen epäonnistui."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -126,28 +123,20 @@ msgid "Add another server?"
 msgstr "Lisää toinen palvelin?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Ei voitu lisätä palvelinta.\n"
-"Tarkista yhteyden tiedot."
+msgstr "Palvelimeen ei voitu yhdistää."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Pikayhdistys ei ole käytössä tällä palvelimella."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Pikayhdistystä ei pystytty käynnistämään."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Lopputekstit ohitettiin"
+msgstr "Ohita lopputekstit"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -158,15 +147,12 @@ msgid "Seek to Skip Credits"
 msgstr "Vaihda toistokohtaa lopputekstien ohittamiseksi"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Erikoisjaksot"
+msgstr "Ohita Mainos"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Lopputekstit ohitettiin"
+msgstr "Mainos Ohitettiin"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -175,16 +161,12 @@ msgid "Seek to Skip Commercial"
 msgstr "Vaihda toistokohtaa lopputekstien ohittamiseksi"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "Lopputekstit ohitettiin"
+msgstr "Ohita Esikatselu"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "Lopputekstit ohitettiin"
+msgstr "Esikatselu Ohitettiin"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
