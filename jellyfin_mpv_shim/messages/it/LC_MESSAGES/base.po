@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-17 17:57+0000\n"
+"PO-Revision-Date: 2026-08-18 18:37+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -1030,7 +1030,7 @@ msgstr "Trasferimento dei colori"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color primaries"
-msgstr ""
+msgstr "Colori primari"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1371,7 +1371,7 @@ msgstr "Avanzate"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Disattivato (decodifica software)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
@@ -1618,7 +1618,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Mostra le miniature degli episodi nelle pagine dei dettagli"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1669,7 +1669,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Numero massimo di scaricamenti per controllo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
@@ -1716,11 +1716,11 @@ msgstr "Dimensione copertina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Rendi più leggibili i loghi delle trasmissioni televisive in diretta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Rendere più leggibili i loghi delle raccolte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1846,11 +1846,17 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"Lascia questi campi vuoti a meno che gli scaricamenti non attivino troppo "
+"spesso i dischi. Imposta entrambi i primi due insieme: in questo modo gli "
+"episodi di una serie saranno scaricati in un'unica soluzione quando ne "
+"stanno per finire, invece che uno alla volta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
+"L'anteprima di un episodio è un fotogramma di un episodio che potresti non "
+"aver ancora visto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
