@@ -1126,6 +1126,48 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
         b._pool.drain()
         self.assertIs(b.source, offline, "never fell back to the downloads")
 
+    def test_a_superseded_failure_does_not_land_on_a_route_that_reloaded(self):
+        """The guard above is an identity test — "is this route the screen" —
+        and it was sound only because a superseded load's route was always one
+        the user had navigated OFF. The Home button re-navigates the route
+        dict it finds in the stack (``go_home``), so the stale load can be
+        holding the screen again.
+
+        Against a server that hangs, the first request times out half a minute
+        later, by which time Home has been pressed and has loaded fine: the
+        late failure would write an error over a working screen and, for
+        anyone with downloads, swap the whole session onto the offline
+        catalog."""
+        b = self._browser()
+        offline = FakeSource()
+        b.controller.offline_source = lambda: offline
+        home = {"kind": "home", "server": "srv1"}
+        b.nav_stack = [home]
+
+        # Two source OBJECTS, not one with a patched method: HomePage.load
+        # captures ``self.ctx.source`` and calls through it, so patching the
+        # attribute in place would heal the in-flight load as well and the
+        # failure being tested would never happen.
+        hung = FakeSource()
+        hung.get_libraries = self._boom
+        b.source = hung
+        b._load_route(home)
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+
+        # ...and now Home, which puts the SAME dict back and loads it fine.
+        b.source = FakeSource()
+        b.go_home()
+        self.assertIs(b.route, home)
+        b._pool.release_last()                     # the good load lands
+        self.assertIsNotNone(home.get("_data"), "home did not load")
+
+        b._pool.drain()                            # the hung one finally dies
+        self.assertIsNot(b.source, offline,
+                         "a stale failure dropped a working session offline")
+        self.assertIsNone(home.get("_error"),
+                          "a stale failure errored a screen that had loaded")
+        self.assertEqual([r["kind"] for r in b.nav_stack], ["home"])
+
     def test_a_stale_page_failure_does_not_toast_over_another_screen(self):
         b = self._browser()
         b.source.get_library_items = self._boom

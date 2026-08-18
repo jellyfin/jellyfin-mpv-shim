@@ -245,9 +245,7 @@ def chrome_bar(b, compact, probe=False, servers=None,
             _("Back"), "nav-back", "arrow_back", b.go_back,
             on_context=lambda x, y: open_history_menu(b, x, y)))
     left.append(nav_button(
-        _("Home"), "nav-home", "home",
-        lambda: b.navigate({"kind": "home", "server": b.server},
-                              reset=True),
+        _("Home"), "nav-home", "home", b.go_home,
         # Home inherits the history menu at the root, where there is no
         # Back button to right-click — which is exactly where a forward
         # stack is most likely to exist, since backing all the way out is
