@@ -180,6 +180,128 @@ class GamepadConstructRetryTest(unittest.TestCase):
         self.assertIsNot(me._gamepad_works, False)
 
 
+class _FakeLibmpv:
+    """python-mpv's shape in the one respect that bites.
+
+    ``MPV.__init__`` sets the options inside a ``try`` whose ``finally`` is
+    ``mpv_initialize``, so a rejected option raises with the core already
+    **up** -- a running mpv owned by an object the constructor never
+    returned. Anything that models the failure by raising *instead of*
+    building cannot express that, and the retry looks fine right up to the
+    segfault.
+    """
+
+    def __init__(self, journal, reject, boom=None, **options):
+        self.handle = object()
+        self.journal = journal
+        self.stops = 0
+        journal.append(("start", self))
+        if boom is not None:
+            raise boom
+        if reject is not None and reject in options:
+            raise _libmpv_error(reject.replace("_", "-").encode())
+
+    def terminate(self):
+        self.stops += 1
+        self.handle = None
+        self.journal.append(("stop", self))
+
+
+class OrphanedCoreTest(unittest.TestCase):
+    """A construction that fails must not leave an mpv behind.
+
+    The crash this is about arrives *after* the retry has already logged
+    success, so it reads as the retry having failed. It is the previous
+    core: nothing holds it, so it runs until the collector reaches the
+    reference cycle the traceback made, and by then there are two of them on
+    one display.
+    """
+
+    def _construct(self, options, reject, stop_error=None):
+        from jellyfin_mpv_shim import player
+
+        journal = []
+
+        def factory(**kw):
+            core = _FakeLibmpv(journal, reject, **kw)
+            if stop_error is not None:
+                core.terminate = mock.Mock(side_effect=stop_error)
+            return core
+
+        me = mock.Mock()
+        me._lua_works = None
+        me._gamepad_works = None
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.side_effect = factory
+            got = player.PlayerManager._construct_mpv(me, options)
+        return got, journal
+
+    def test_the_orphan_is_stopped_before_the_retry_starts_another(self):
+        got, journal = self._construct(
+            {"input_gamepad": True, "vo": "gpu"}, "input_gamepad")
+
+        self.assertEqual([event for event, _core in journal],
+                         ["start", "stop", "start"])
+        orphan = journal[0][1]
+        self.assertIsNot(got, orphan)
+        self.assertIsNone(orphan.handle)
+        self.assertIs(journal[2][1], got)
+
+    def test_the_survivor_is_left_alone(self):
+        got, _journal = self._construct(
+            {"input_gamepad": True}, "input_gamepad")
+        self.assertEqual(got.stops, 0, "reaped the mpv it just started")
+
+    def test_the_lua_fallback_reaps_its_orphan_too(self):
+        # Older than the gamepad option and the same mistake: this path has
+        # been leaving a core behind since it shipped.
+        _got, journal = self._construct({"osc": False, "vo": "gpu"}, "osc")
+        self.assertEqual([event for event, _core in journal],
+                         ["start", "stop", "start"])
+
+    def test_a_failure_nobody_can_retry_still_reaps_on_the_way_out(self):
+        # The error leaves this method, and what it reaches is crash
+        # recovery -- which constructs another mpv. Raising with the last
+        # one still running is the two-cores state by another route.
+        from jellyfin_mpv_shim import player
+
+        journal = []
+
+        def factory(**kw):
+            # Raised from inside the constructor, which is where every real
+            # one comes from: `self` has to be a local of a frame in the
+            # traceback, because that is the only reference to it there is.
+            return _FakeLibmpv(journal, None,
+                               boom=RuntimeError("the display is on fire"),
+                               **kw)
+
+        me = mock.Mock()
+        me._lua_works = None
+        me._gamepad_works = None
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.side_effect = factory
+            with self.assertRaises(RuntimeError):
+                player.PlayerManager._construct_mpv(me, {"vo": "gpu"})
+
+        self.assertEqual([event for event, _core in journal], ["start", "stop"])
+
+    def test_a_core_that_will_not_stop_does_not_take_the_retry_with_it(self):
+        got, _journal = self._construct(
+            {"input_gamepad": True}, "input_gamepad",
+            stop_error=RuntimeError("mpv is wedged"))
+        self.assertIsInstance(got, _FakeLibmpv)
+
+    def test_an_error_holding_no_core_is_not_something_to_reap(self):
+        # Every jsonipc failure looks like this -- its mpv is a process, not
+        # a handle in here -- as does any error raised before the core came
+        # up. Walking the traceback must find nothing rather than terminate
+        # whatever `self` happened to be in frame.
+        from jellyfin_mpv_shim import player
+
+        try:
+            raise _libmpv_error()
+        except AttributeError as error:
+            player._reap_orphaned_core(error)
 
 
 class BindingTableTest(unittest.TestCase):

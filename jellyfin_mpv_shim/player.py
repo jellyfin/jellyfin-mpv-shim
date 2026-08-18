@@ -168,6 +168,49 @@ def _rejected_option(error):
     return None
 
 
+def _reap_orphaned_core(error):
+    """Destroy the mpv core a failed ``mpv.MPV(...)`` left running.
+
+    libmpv only, and it is not defensive: python-mpv sets every option
+    inside a ``try`` whose ``finally`` is ``mpv_initialize`` (mpv.py 1.0.8,
+    ``MPV.__init__``), so an option this build does not have raises *after*
+    the core has been brought up. What is left behind is not a stale handle
+    -- it is a **running mpv**, with its window, its scripts and its
+    threads, owned by a half-built object nobody holds a name for. Nothing
+    stops it until the garbage collector reaches the reference cycle the
+    traceback made, and by then the retry's mpv is up: two cores, two VOs on
+    one display, and the process dies in a thread that is not Python's.
+    Measured with ``--input-gamepad`` on a libmpv without it, three runs in
+    three, and the crash lands after the retry has already logged success --
+    which is what made it read as "the retry failed".
+
+    So the orphan is reaped where it is made, not left to the collector.
+    Both the option retries below depend on this: the lua fallback creates
+    one too, and has since it shipped.
+
+    The instance is recovered from the traceback because that is the only
+    place it exists -- the constructor never returned it. It is identified
+    by holding a live handle rather than by its class: ``mpv`` here is
+    whichever backend was imported, and the external one has no core in this
+    process to reap. Read out of ``__dict__`` directly, because libmpv's
+    ``__getattr__`` turns an unknown attribute into a property read on a
+    core that is in no state to answer one.
+    """
+    tb = getattr(error, "__traceback__", None)
+    while tb is not None:
+        owner = tb.tb_frame.f_locals.get("self")
+        handle = getattr(owner, "__dict__", {}).get("handle")
+        stop = getattr(owner, "terminate", None)
+        if handle is not None and callable(stop):
+            try:
+                stop()
+            except Exception:
+                log.debug("could not stop the mpv left by a failed "
+                          "construction", exc_info=True)
+            return
+        tb = tb.tb_next
+
+
 def _explain_missing_mpv():
     """Say why there is no mpv, before the traceback says something else.
 
@@ -940,6 +983,8 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 _explain_missing_mpv()
                 raise
             except Exception as error:
+                _reap_orphaned_core(error)
+
                 # **Which** option was refused, when mpv says so. This used
                 # to rest on "there is only one option this can be", and
                 # that argument retired the moment a second build-gated
