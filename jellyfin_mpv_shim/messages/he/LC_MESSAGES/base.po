@@ -7,22 +7,22 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2025-07-04 11:41+0000\n"
-"Last-Translator: Tal Sarid <sarid.tal@gmail.com>\n"
+"PO-Revision-Date: 2026-08-18 18:37+0000\n"
+"Last-Translator: Jonathan Biton <jonathannbiton@gmail.com>\n"
 "Language-Team: Hebrew <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/he/>\n"
+"jellyfin-mpv-shim/he/>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
 "n % 10 == 0) ? 2 : 3));\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "פורמט לא ידוע"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
@@ -33,7 +33,7 @@ msgstr ""
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "דף %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -77,14 +77,15 @@ msgstr "מגדיר נוכחי..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"יש לפתוח את ג'ליפין, להיכנס לתפריט משתמש -> חיבור מהיר, והכניס את הקוד הזה:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "ממתין לאישור ..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "מנקה את כל המשתמשים הקיימים."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -96,19 +97,15 @@ msgstr "הוספת השרת כשלה."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "החשבון כבר קיים. עדכון פרטי הגישה מתבצע."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "שרת נוסף בהצלחה."
+msgstr "פרטי הגישה לשרת עודכנו בהצלחה."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "הוספת השרת כשלה."
+msgstr "עדכון פרטי השרת נכשל."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -127,28 +124,20 @@ msgid "Add another server?"
 msgstr "להוסיף שרת נוסף?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן להתחבר לשרת."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "חיבור מהיר אינו מופעל בשרת זה."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
 msgstr ""
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "קרדיטים הועברו"
+msgstr "דלג על הקרדיטים"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -210,10 +199,8 @@ msgid "Seek to Skip Recap"
 msgstr "העברה לדילוג על הקרדיטים"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "דילג פתיח"
+msgstr "דילוג על הפתיח"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -631,14 +618,8 @@ msgid "Retry"
 msgstr "נסה שוב"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "עדיין לא מצליח ליצור קשר עם השרת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -669,10 +650,9 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "שרת:"
+msgstr "הגדרת סיסמה עבור %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -794,14 +774,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "יוצר קשר עם השרת…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -816,14 +790,8 @@ msgid "Connecting…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להתחבר. בדוק את הפרטים שלך."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
@@ -1154,10 +1122,8 @@ msgid "Default"
 msgstr "ברירת מחדל"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " כפוי"
+msgstr "כפוי"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -2404,14 +2370,8 @@ msgid "OK"
 msgstr "בסדר"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לבדוק מה דורש הורדה."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2665,10 +2625,9 @@ msgid "The position could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} הצטרף."
+msgstr "%s (הצטרף)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2709,44 +2668,20 @@ msgid "Refresh"
 msgstr "רענון"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להצטרף לקבוצת הצפייה המסונכרנת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה ליצור את קבוצת הצפייה המסונכרנת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא היה ניתן לעזוב את קבוצת הצפייה המסונכרנת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not resume SyncPlay playback."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לחדש את ניגון הצפייה המסונכרנת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #, fuzzy
@@ -3229,10 +3164,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "הסר שרת"
+msgstr "למחוק את העותק המורד של %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3282,20 +3216,14 @@ msgid "%s has not been downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להוריד את %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "הסר שרת"
+msgstr "מוריד %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -3545,14 +3473,8 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לנגן פריט זה"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -4129,14 +4051,8 @@ msgid "Songs"
 msgstr "שירים"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not start playback."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להתחיל את הניגון."
 
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -4223,16 +4139,13 @@ msgid "Public"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Delete Playlist"
-msgstr "הסר שרת"
+msgstr "מחיקת פלייליסט"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "הסר שרת"
+msgstr "למחוק את הפלייליסט %s?"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4292,14 +4205,8 @@ msgid "Copying is not available."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the text."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להעתיק את הטקסט."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4312,14 +4219,8 @@ msgid "Contents"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "משיג את הספר…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be drawn."
@@ -4344,10 +4245,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "שרת:"
+msgstr "תוצאות עבור \"%s\""
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4392,24 +4292,12 @@ msgid "Seasons"
 msgstr "עונות"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לטעון פריטים נוספים."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לטעון עמוד זה."
 
 # seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -4519,10 +4407,9 @@ msgid "watched"
 msgstr "צא וסמן כלא נצפה"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "הסר שרת"
+msgstr "למחוק את ההורדות שנצפו ב-%s?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4598,14 +4485,8 @@ msgid "Nothing downloaded to browse offline."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה ליצור קשר עם שרת."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4661,28 +4542,16 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לטעון את הגדרות מסך הבית."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen settings saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה לשמור את הגדרות מסך הבית."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
@@ -4742,14 +4611,8 @@ msgid "There is nothing to copy yet."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy the log."
-msgstr ""
-"השרת לא נוסף.\n"
-"אנא בדוק את החיבור."
+msgstr "לא ניתן היה להעתיק את הלוג."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -4787,10 +4650,9 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "שרת:"
+msgstr "שרתים עבור %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4838,10 +4700,9 @@ msgid "Auto-download"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s and its saved login?"
-msgstr "הסר שרת"
+msgstr "הסר את %s ואת פרטי ההתחברות שלו?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -4920,16 +4781,14 @@ msgid "Remove from Collection"
 msgstr "הסר שרת"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this playlist?"
-msgstr "הסר שרת"
+msgstr "הסר את %s מהפלייליסט הזה?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Remove %s from this collection?"
-msgstr "הסר שרת"
+msgstr "הסר את %s מאוסף זה?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -5028,10 +4887,8 @@ msgid "Playback Data"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (המרת קידוד)"
+msgstr "המרת קידוד"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
