@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-16 21:51+0000\n"
+"PO-Revision-Date: 2026-08-18 18:37+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -28,7 +28,7 @@ msgstr "تهيئة مجهولة"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "صفحة %(صفحة)d of %(محموع)d"
+msgstr "صفحة%(page)d of %(total)ات"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -786,7 +786,7 @@ msgstr "أو التحويل لمستخدم آخر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Ready to cast"
-msgstr "جاهز للإرسال"
+msgstr "جاهز للبث"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 msgid "Select your media in Jellyfin and play it here."
@@ -923,28 +923,22 @@ msgid "Anamorphic"
 msgstr "مشوهة بصريا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Interface"
 msgid "Interlaced"
-msgstr "واجهة"
+msgstr "متداخل"
 
 # seeded from jellyfin-web: Framerate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Framerate"
 msgstr "معدل الإطارات"
 
 # seeded from jellyfin-web: MediaInfoLayout
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Layout"
-msgstr "التخطيط"
+msgstr "المخطط"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Channels"
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "قنوات"
@@ -956,9 +950,8 @@ msgstr "%d قناة"
 
 # seeded from jellyfin-web: LabelBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bitrate"
-msgstr "معدل البت"
+msgstr "معدل البث"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
@@ -967,7 +960,6 @@ msgstr "%d ك ب ث"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Sample rate"
 msgstr "معدل العينة"
 
@@ -978,7 +970,6 @@ msgstr "%d هيرتز"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bit depth"
 msgstr "عمق البت"
 
@@ -988,52 +979,42 @@ msgid "%d bit"
 msgstr "%d بت"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "خصائص الفيديو"
+msgstr "نطاق الفيديو"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "النوع الفرعي لملف تعريف الفيديو"
+msgstr "نوع نطاق الفيديو"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color space"
 msgstr "مساحة الألوان"
 
 # seeded from jellyfin-web: ColorTransfer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color transfer"
 msgstr "نقل الألوان"
 
 # seeded from jellyfin-web: ColorPrimaries
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color primaries"
-msgstr "الألوان الأساسية"
+msgstr "اسس اللون"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Pixel format"
-msgstr "تنسيق البكسل"
+msgstr "تهيئة البكسل"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Ref frames"
-msgstr "الإطارات المرجعية"
+msgstr "مرجع الاطر"
 
 # seeded from jellyfin-web: MediaInfoRotation
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Rotation"
-msgstr "الدوران"
+msgstr "تدوير"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1051,64 +1032,50 @@ msgstr "خارجي"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Time"
 msgid "Timestamp"
-msgstr "وقت"
+msgstr "طابع زمني"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "DV title"
-msgstr "حجم الترجمة: {0}"
+msgstr "عنوان DV"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version"
 msgid "DV version major"
-msgstr "الإصدار"
+msgstr "إصدار DV رئيسي"
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version"
 msgid "DV version minor"
-msgstr "الإصدار"
+msgstr "إصدار DV فرعي"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV profile"
 msgstr "ملف تعريف DV"
 
 # seeded from jellyfin-web: MediaInfoDvLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV level"
 msgstr "مستوى DV"
 
 # seeded from jellyfin-web: MediaInfoRpuPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV rpu preset flag"
-msgstr "علامة التواجد rpu لـ DV"
+msgstr "علم تواجد rpu لـ DV"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV el preset flag"
-msgstr "علامة التواجد el لـ DV"
+msgstr "علم تواجد el لـ DV"
 
 # seeded from jellyfin-web: MediaInfoBlPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl preset flag"
-msgstr "علامة التواجد bl لـ DV"
+msgstr "علم تواجد bl لـ DV"
 
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl signal compatibility id"
 msgstr "معرّف توافق إشارة DV bl"
 
@@ -1119,14 +1086,11 @@ msgid "%.1f Mbps"
 msgstr "%.1f م ب ث"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "المسارات المباشرة"
+msgstr "تشغيل مباشر"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "بث مباشر"
 
