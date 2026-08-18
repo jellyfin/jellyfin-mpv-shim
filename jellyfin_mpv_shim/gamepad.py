@@ -137,11 +137,12 @@ DEFAULT_BINDS = (
 
 
 def bindings(swap_confirm=False):
-    """The binding table as a list of ``[key, kind, argument]``.
+    """The binding table as a list of ``[key, kind, argument, repeat]``.
 
     Lists rather than tuples because this is JSON on the way to the renderer,
     and a tuple would come back as a list anyway -- pinning the shape here
-    keeps the tests honest about what Lua actually receives.
+    keeps the tests honest about what Lua actually receives. The renderer
+    reads all four positionally, so the arity is part of the contract.
     """
     swapped = {}
     if swap_confirm:

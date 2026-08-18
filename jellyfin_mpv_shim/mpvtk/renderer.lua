@@ -5868,6 +5868,21 @@ mp.register_script_message('mpvtk-gamepad', function(json)
                 elseif wake[arg] and state.phud.mode
                     and not state.phud.shown then
                     state.phud_wake(arg == 'ENTER' and 'select' or 'nav')
+                elseif wake[arg] and state.phud.mode
+                    and not state.phud.kbd then
+                    -- The bar is UP but the MOUSE owns it: a pointer
+                    -- summon with hud_grab_keys off (the default) leaves
+                    -- the arrows to mpv deliberately, so `shown` is not
+                    -- the same question as "does the UI hold the keys".
+                    -- Asking only `shown` sent the left stick straight to
+                    -- mpv's own arrows -- i.e. seeking, over a visible HUD
+                    -- with no focus ring on it, which is the exact thing
+                    -- the wake set above exists to prevent.
+                    --
+                    -- Same function the keyboard's own wake binding uses
+                    -- in this state, so confirm and the directions behave
+                    -- here as ENTER and the arrows do.
+                    phud_kbd_take()
                 else
                     -- Whatever is bound to this key RIGHT NOW answers: the
                     -- browser's spatial nav while the library is up, the

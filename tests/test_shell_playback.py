@@ -72,6 +72,28 @@ class TestPlaybackHudLayout(unittest.TestCase):
                 grav = [n.get("id") for n in nodes if n.get("grav")]
                 self.assertEqual(grav, ["hud-pp"], size)
 
+    def test_a_photo_has_no_gravity_at_all(self):
+        """A photo HUD draws no seek row, so the transport row sits directly
+        under the top bar -- and gravity applies to any vertical arrival
+        into the row, not just one off the bar. With it on, every DOWN from
+        the close button or the SyncPlay button threw the ring a thousand
+        pixels left onto play/pause, and UP did not bring it back (play/
+        pause's UP goes to the top-LEFT).
+
+        The whole argument for the gravity is disambiguating a full-width
+        seek bar. Where there is no seek bar there is nothing to
+        disambiguate, so there is nothing to pull.
+        """
+        b, _ctl = self._browser()
+        b.hud.state = dict(b.hud.state, is_photo=True)
+        for size in ((1280, 720), (900, 520), (640, 400)):
+            with self.subTest(size=size):
+                nodes, _handlers = build_scene(b, size)
+                self.assertIn("hud-pp", ids(nodes),
+                              "a photo lost its play/pause button")
+                self.assertEqual(
+                    [n.get("id") for n in nodes if n.get("grav")], [], size)
+
     def _episode(self, b, **kw):
         st = dict(b.hud.state)
         st.update({"title": "Pilot", "series_name": "The Show",

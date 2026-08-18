@@ -885,9 +885,17 @@ def build_hud(b, size):
     # changes with the window size as the optional chapter and seek
     # buttons come and go -- so the same press does something different on
     # a narrow window than on a wide one.
+    #
+    # **Not on a photo**, which has no seek row at all (see `bar_rows`).
+    # Gravity is a property of arriving in this row from ABOVE, and with
+    # the bar gone the row above is the header -- so every DOWN from the
+    # close button or the SyncPlay button would jump the ring a thousand
+    # pixels left onto play/pause, and UP would not bring it back. The
+    # rationale for the gravity is the full-width seek bar; where there
+    # is no seek bar there is nothing to disambiguate.
     controls.append(tbtn(
         pp, "hud-pp", lambda: b._ctl(lambda c: c.toggle_pause()),
-        icon_size=36, nav_gravity=True))
+        icon_size=36, nav_gravity=not photo))
     if tiers["seek_btns"]:
         controls.append(tbtn(
             "forward_30", "hud-seek-fwd",

@@ -256,10 +256,19 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         # the window width, because the chapter and seek buttons come and
         # go with it. This used to press LEFT until it arrived, which is
         # what a user had to do too.
+        # ONE press, then wait. `_press_until` is the wrong instrument for
+        # a which-node claim: it presses again every 0.6s for six seconds,
+        # so without the gravity a later DOWN can walk out of the row and
+        # `nav_wrap` can bring focus back around to play/pause anyway --
+        # which would weaken "lands on play/pause" to "is reachable by
+        # mashing DOWN". The bind race `_press_until` exists for was
+        # already waited out by the seek-bar focus check above.
         self._press_until(
-            "DOWN", lambda: self._state().get("nav") == "hud-pp",
-            msg="DOWN off the seek bar did not land on play/pause: %r"
-            % self._state().get("nav"))
+            "DOWN", lambda: self._state().get("nav") != "hud-seek",
+            msg="DOWN never moved focus off the seek bar")
+        self.assertEqual(
+            self._state().get("nav"), "hud-pp",
+            "DOWN off the seek bar did not land on play/pause")
         self._press_until(
             "ENTER", lambda: "toggle_pause" in self.ctl.calls,
             msg="ENTER on play/pause never reached the controller")

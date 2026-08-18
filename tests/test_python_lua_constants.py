@@ -91,6 +91,89 @@ class TestCharWidthTable(unittest.TestCase):
                          set())
 
 
+class TestGamepadWireContract(unittest.TestCase):
+    """The gamepad table crosses the mpv boundary as JSON, and each side
+    pins its own end with its own literal.
+
+    `gamepad.py` names the kinds symbolically (`gamepad.SEEK`) and every
+    Python test uses those names; `renderer.lua` branches on the bare
+    strings. So renaming one of those constants leaves BOTH suites green
+    while the renderer's if/elseif chain falls through to its `else` -- and
+    the else is `keypress`, so the right stick would start issuing
+    `keypress up`, which during playback is mpv's own arrow seek: no
+    `use_web_seek`, no SyncPlay awareness, and over a hidden HUD it summons
+    the bar instead. Silent, and exactly the class of bug this file is for.
+
+    Same for the event names and the payload keys: Lua sends
+    `{t='gpseek', dir=...}` and app.py reads `evt.get("dir")`, with the
+    toolkit test feeding a dict of its own.
+
+    Assertions go through `assertTrue(needle in text)` rather than
+    `assertIn`: the haystack is a 265 KB source file and assertIn puts the
+    whole of it in the failure message.
+    """
+
+    renderer = _read(RENDERER)
+    app = _read(os.path.join(PKG, "mpvtk", "app.py"))
+
+    def _has(self, needle, where, why):
+        self.assertTrue(needle in where, "%s (looked for %r)" % (why, needle))
+
+    def test_the_dispatched_kinds_are_the_strings_the_renderer_matches(self):
+        from jellyfin_mpv_shim import gamepad
+
+        # SEEK and NAV have arms of their own. KEY deliberately does NOT --
+        # it is the `else`, which is why a *typo* in any kind silently
+        # becomes "treat the third field as a key name" rather than an
+        # error. That is the reason this test exists at all.
+        for const, name in ((gamepad.SEEK, "SEEK"), (gamepad.NAV, "NAV")):
+            with self.subTest(kind=name):
+                self._has("kind == '%s'" % const, self.renderer,
+                          "renderer.lua has no arm for gamepad.%s == %r"
+                          % (name, const))
+
+    def test_the_key_kind_is_the_fallthrough_and_nothing_else(self):
+        # If someone gives KEY an arm of its own, the else stops being
+        # unreachable-by-design and a mistyped kind starts doing nothing
+        # instead of something wrong. Either is fine -- but the comment in
+        # gamepad.py says which one this is, so pin it.
+        from jellyfin_mpv_shim import gamepad
+
+        self.assertFalse("kind == '%s'" % gamepad.KEY in self.renderer,
+                         "gamepad.KEY grew an explicit arm in renderer.lua; "
+                         "the fall-through reasoning in gamepad.py and in "
+                         "test_the_dispatched_kinds... needs revisiting")
+
+    def test_every_kind_in_the_table_is_one_of_the_three(self):
+        from jellyfin_mpv_shim import gamepad
+
+        kinds = {kind for _k, kind, _a, _r in gamepad.bindings()}
+        self.assertEqual(kinds, {gamepad.KEY, gamepad.SEEK, gamepad.NAV},
+                         "a kind was added or dropped without review")
+
+    def test_the_event_names_and_payload_keys_match(self):
+        # Lua: send({ t = 'gpseek', dir = arg })  /  { t = 'gpnav', a = arg }
+        for t, key in (("gpseek", "dir"), ("gpnav", "a")):
+            with self.subTest(event=t):
+                self._has("t = '%s', %s = arg" % (t, key), self.renderer,
+                          "renderer.lua does not send %r carrying %r"
+                          % (t, key))
+                self._has('if t == "%s":' % t, self.app,
+                          "mpvtk/app.py does not dispatch %r" % t)
+                self._has('evt.get("%s")' % key, self.app,
+                          "mpvtk/app.py does not read %r" % key)
+
+    def test_the_repeat_interval_is_read_from_the_field_python_writes(self):
+        # Python appends the interval as the FOURTH element; Lua reads b[4].
+        from jellyfin_mpv_shim import gamepad
+
+        row = gamepad.bindings()[0]
+        self.assertEqual(len(row), 4)
+        self._has("tonumber(b[4])", self.renderer,
+                  "renderer.lua does not read the repeat interval from the "
+                  "position gamepad.bindings() writes it to")
+
+
 class TestSkipButtonGeometry(unittest.TestCase):
     """hud.py's _SKIP_* vs renderer.lua's PHUD_SKIP_*.
 

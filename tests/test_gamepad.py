@@ -180,8 +180,6 @@ class GamepadConstructRetryTest(unittest.TestCase):
         self.assertIsNot(me._gamepad_works, False)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class BindingTableTest(unittest.TestCase):
@@ -231,8 +229,13 @@ class BindingTableTest(unittest.TestCase):
         from jellyfin_mpv_shim import gamepad
         from jellyfin_mpv_shim.player import PlayerManager
 
+        # No literal for "menu" in here. It is already in _NAV_KEYPRESS,
+        # and whitelisting it would make this a set-theory identity: `got`
+        # is exactly {"menu"}, so `got <= known` would hold however
+        # menu_action changed, including if the action stopped being
+        # handled at all.
         known = (set(PlayerManager._NAV_KEYPRESS)
-                 | set(PlayerManager._NAV_COMMANDS) | {"menu"})
+                 | set(PlayerManager._NAV_COMMANDS))
         got = {arg for _k, kind, arg, _r in gamepad.bindings()
                if kind == gamepad.NAV}
         self.assertTrue(got)
@@ -273,11 +276,35 @@ class BindingTableTest(unittest.TestCase):
                 self.assertGreaterEqual(rate, 1 / 15.0, key)
 
     def test_a_seek_repeats_more_slowly_than_a_selection_moves(self):
-        # A direction repeat moves one row; a seek repeat moves real time,
-        # so at the same rate a resting thumb crosses a film in seconds.
+        """A direction repeat moves one row; a seek repeat moves real time,
+        so at the same rate a resting thumb crosses a film in seconds.
+
+        Asserted on the TABLE, not on the two constants. Comparing
+        `SEEK_REPEAT > DIRECTION_REPEAT` says nothing about what the rows
+        actually carry -- putting DIRECTION_REPEAT on the right stick
+        satisfies it, and satisfies every other rate test here too
+        (`test_nothing_a_press_MEANS_auto_repeats` only asks for > 0, and
+        the mpv-rate one only for >= 1/15).
+        """
         from jellyfin_mpv_shim import gamepad
 
-        self.assertGreater(gamepad.SEEK_REPEAT, gamepad.DIRECTION_REPEAT)
+        rates = {}
+        for key, kind, arg, rate in gamepad.bindings():
+            if kind == gamepad.SEEK:
+                rates.setdefault("seek", set()).add(rate)
+            elif arg in ("UP", "DOWN", "LEFT", "RIGHT"):
+                rates.setdefault("direction", set()).add(rate)
+            elif arg in ("PGUP", "PGDWN"):
+                rates.setdefault("page", set()).add(rate)
+        # One rate per class, or "the seek is slower than a direction" is
+        # not a statement about the table.
+        for name, seen in rates.items():
+            self.assertEqual(len(seen), 1, "%s rows disagree: %r"
+                             % (name, seen))
+        self.assertGreater(min(rates["seek"]), min(rates["direction"]))
+        # A page is a jump, so it sits between them.
+        self.assertGreater(min(rates["page"]), min(rates["direction"]))
+        self.assertLess(min(rates["page"]), min(rates["seek"]))
 
     def test_it_is_json_safe(self):
         # It is sent to the renderer as JSON; a tuple would arrive as a
@@ -320,46 +347,65 @@ class SdlSignalHandlerTest(unittest.TestCase):
             fake_mpv.MPV.return_value = "player"
             player.PlayerManager._construct_mpv(me, options)
 
-    def test_it_is_set_before_an_mpv_that_has_gamepad_input(self):
+    def test_it_is_set_before_mpv_is_constructed(self):
         import os
 
         self._construct({"input_gamepad": True, "vo": "gpu"})
         self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "1")
 
-    def test_it_is_left_alone_when_no_sdl_will_be_loaded(self):
-        # Nothing in the process initialises SDL without this option, so
-        # there is nothing to disarm and no reason to touch the
-        # environment a user handed us.
+    def test_it_is_set_even_when_the_shim_passes_no_gamepad_option(self):
+        """Unconditional, and it has to be.
+
+        `input-gamepad` is an ordinary mpv option with no M_OPT_NOCFG, so a
+        line in the user's own mpv.conf starts the SDL thread with the
+        option absent from anything the shim built -- and that config file
+        is exactly what `mpv_ext_no_ovr` users are told to use. There is no
+        third place to ask, and no way to ask mpv in time: the gamepad
+        thread starts inside mpv_initialize.
+
+        This is the test the first version of this failed. It gated on the
+        option and read as obviously correct.
+        """
         import os
 
         self._construct({"vo": "gpu"})
-        self.assertIsNone(os.environ.get("SDL_NO_SIGNAL_HANDLERS"))
+        self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "1")
 
-    def test_an_mpv_already_known_to_lack_gamepad_input_is_left_alone(self):
-        # The option is dropped before mpv is constructed, so no SDL is
-        # loaded and there is nothing to disarm. Ordering, which is the
-        # only way this can be wrong: reading `options` before the pops
-        # passes every other test in this class.
+    def test_a_blank_value_counts_as_unset(self):
+        """SDL's own reading: `SDL_GetHintBoolean` returns the DEFAULT for
+        an empty string, so `""` means "install handlers" exactly as unset
+        does. Preserving one -- which an `is None` guard does -- leaves the
+        unkillable-app bug in place for anybody whose launcher or systemd
+        unit exports the variable empty.
+        """
         import os
 
-        from jellyfin_mpv_shim import player
-
-        me = mock.Mock()
-        me._lua_works = None
-        me._gamepad_works = False
-        with mock.patch.object(player, "mpv") as fake_mpv:
-            fake_mpv.MPV.return_value = "player"
-            player.PlayerManager._construct_mpv(me, {"input_gamepad": True})
-        self.assertIsNone(os.environ.get("SDL_NO_SIGNAL_HANDLERS"))
+        os.environ["SDL_NO_SIGNAL_HANDLERS"] = ""
+        self._construct({"input_gamepad": True})
+        self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "1")
 
     def test_an_explicit_value_from_the_user_is_not_overwritten(self):
-        # Including "0". Somebody who set this deliberately wants SDL's
-        # handlers, and quietly reversing them is worse than the bug.
+        # Somebody who wrote "0" wants SDL's handlers, and quietly
+        # reversing them is worse than the bug.
         import os
 
         os.environ["SDL_NO_SIGNAL_HANDLERS"] = "0"
         self._construct({"input_gamepad": True})
         self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "0")
+
+    def test_honouring_it_says_so_in_the_log(self):
+        """...and it is the one value where the shim knows the user is
+        about to lose SIGTERM. Obeying it silently turns a choice into a
+        mystery for whoever reads the bug report."""
+        import os
+
+        os.environ["SDL_NO_SIGNAL_HANDLERS"] = "0"
+        with self.assertLogs("player", level="WARNING") as caught:
+            self._construct({"input_gamepad": True})
+        self.assertTrue(
+            any("SIGTERM" in line for line in caught.output),
+            "the warning does not say what the user loses: %r"
+            % (caught.output,))
 
 
 class ControllerReachesThePlayerTest(unittest.TestCase):
@@ -394,6 +440,22 @@ class ControllerReachesThePlayerTest(unittest.TestCase):
         app.on_gamepad_nav("menu")
         controller.remote_action.assert_called_once_with("menu")
 
+    def test_the_handler_names_are_the_ones_a_real_app_offers(self):
+        """`set_app` guards each wire with `hasattr`, so a rename on the
+        MpvtkApp side does not fail -- it silently skips the wiring and the
+        stick goes dead.
+
+        `_browser` above builds the app as a Mock, where every hasattr is
+        true, so it cannot see this. Asserted against the real class.
+        """
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+
+        for name in ("on_gamepad_seek", "on_gamepad_nav"):
+            with self.subTest(handler=name):
+                self.assertIn(name, MpvtkApp.__init__.__code__.co_names,
+                              "MpvtkApp.__init__ no longer sets %r, so "
+                              "set_app's hasattr guard will skip it" % name)
+
     def test_the_gateway_hands_both_to_the_player(self):
         from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
 
@@ -405,3 +467,12 @@ class ControllerReachesThePlayerTest(unittest.TestCase):
                 gateway._act = lambda fn, pm=pm: fn(pm)
                 getattr(gateway, method)(arg)
                 getattr(pm, target).assert_called_once_with(arg)
+
+
+# At the END of the file, deliberately. It used to sit mid-file with later
+# test classes appended below it, so `python3 tests/test_gamepad.py` ran 13
+# of 29 and reported OK. `discover` was unaffected, which is what made it
+# invisible. See the "uncollected" shape in the notes on tests that cannot
+# fail.
+if __name__ == "__main__":
+    unittest.main()

@@ -19,6 +19,11 @@ M.log = {
     keybinds = {},
     forced = {},       -- keybind name -> was it add_FORCED_key_binding?
     keyopts = {},      -- keybind name -> the flags table it was bound with
+    -- keybind name -> the mpv KEY it was bound for. Everything else here
+    -- is keyed by name, so without this nothing can assert which key
+    -- carries which meaning -- and for the controller that is the whole
+    -- payload: the confirm/back swap changes nothing but that.
+    keykeys = {},
     sections = {},      -- set_key_bindings group name -> {key = true}
     enabled = {},       -- section name -> enable_key_bindings state
     section_flags = {}, -- section name -> the flags it was enabled with
@@ -252,18 +257,21 @@ function mp.add_key_binding(key, name, fn, opts)
     M.log.keybinds[name or key] = fn
     M.log.forced[name or key] = false
     M.log.keyopts[name or key] = opts or {}
+    M.log.keykeys[name or key] = key
 end
 
 function mp.add_forced_key_binding(key, name, fn, opts)
     M.log.keybinds[name or key] = fn
     M.log.forced[name or key] = true
     M.log.keyopts[name or key] = opts or {}
+    M.log.keykeys[name or key] = key
 end
 
 function mp.remove_key_binding(name)
     M.log.keybinds[name] = nil
     M.log.forced[name] = nil
     M.log.keyopts[name] = nil
+    M.log.keykeys[name] = nil
 end
 -- Whether a section is enabled cannot model mpv's section STACK, but it can
 -- model the flag, which is what a "this group was never turned on" bug looks

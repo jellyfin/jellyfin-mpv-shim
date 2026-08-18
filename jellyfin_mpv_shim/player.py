@@ -111,12 +111,45 @@ def _disarm_sdl_signal_handlers():
     init, and left set afterwards -- mpv is re-created and the second
     instance needs it just as much.
 
-    Harmless with an external mpv: the variable is inherited by the child,
-    where mpv's own handlers are already installed and SDL would have left
-    them alone anyway.
+    **Needed on the external backend too**, not merely harmless there. The
+    variable is inherited by the child, and it has to be: jsonipc spawns mpv
+    with ``terminal=no``, and mpv installs its SIGTERM handler from
+    ``terminal_setup_getch`` -- which that skips. So the child's SIGTERM is
+    at ``SIG_DFL`` as well, SDL takes it, and ``MPVProcess.stop()``, which
+    is a ``terminate()``, would be swallowed.
+
+    **Called unconditionally**, not only when the shim passes the option.
+    ``input-gamepad`` is an ordinary mpv option with no ``M_OPT_NOCFG``, so
+    a line in the user's own ``mpv.conf`` starts the SDL thread with the
+    option absent from anything we built -- and that config is exactly what
+    ``mpv_ext_no_ovr`` users are told to use. There is no third place to ask
+    and no way to ask mpv in time (the thread starts inside
+    ``mpv_initialize``), so the only correct gate is no gate. The variable
+    does nothing at all in a process that loads no SDL.
+
+    The cost of that is one real side effect: ``os.environ`` is
+    process-wide, and nothing spawns children with a scrubbed environment
+    (``system_open``, the clipboard helpers, the shell-command hooks), so an
+    SDL application launched from the shim inherits it and loses SDL's own
+    Ctrl-C handling. Accepted deliberately -- narrower gating buys a
+    silently unkillable app back.
+
+    A blank value counts as unset, which is SDL's own reading:
+    ``SDL_GetHintBoolean`` returns the *default* for ``""``, so preserving
+    one would leave the bug in place for anybody whose launcher exports an
+    empty variable. ``"0"`` is honoured -- somebody who wrote that wants
+    SDL's handlers, and quietly reversing them is worse than the bug -- so
+    it is logged rather than silently obeyed.
     """
-    if os.environ.get("SDL_NO_SIGNAL_HANDLERS") is None:
-        os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"
+    if os.environ.get("SDL_NO_SIGNAL_HANDLERS"):
+        if os.environ["SDL_NO_SIGNAL_HANDLERS"] not in ("1", "true", "yes"):
+            log.warning(
+                "SDL_NO_SIGNAL_HANDLERS=%r in the environment, so SDL keeps "
+                "its own signal handlers. With game controller input on, "
+                "that means SIGTERM will not stop this application.",
+                os.environ["SDL_NO_SIGNAL_HANDLERS"])
+        return
+    os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"
 
 
 def _rejected_option(error):
@@ -896,11 +929,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if self._lua_works is False:
             options.pop(OSC_OPTION, None)
 
-        # After the pops, not before: an mpv already known to have no
-        # --input-gamepad will load no SDL, so there is nothing to disarm
-        # and no reason to have touched the environment.
-        if GAMEPAD_OPTION in options:
-            _disarm_sdl_signal_handlers()
+        # Unconditional, and not gated on GAMEPAD_OPTION being in this
+        # dict: mpv reads `input-gamepad` from the user's own mpv.conf too,
+        # where we cannot see it. See the function.
+        _disarm_sdl_signal_handlers()
 
         dropped_gamepad = False
         dropped_osc = False
