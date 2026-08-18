@@ -120,6 +120,57 @@ def _claim_sigterm(halt):
                           exc_info=True)
 
 
+def _use_spawn_start_method():
+    """Force 'spawn' for the tray child, whatever already resolved a context.
+
+    - macOS: avoids Objective-C fork crashes with GUI frameworks (3.14's
+      'forkserver' also crashes with Obj-C, issue #473).
+    - Linux/Windows: the child is started *after* the timeline/action/sync
+      worker threads, so a plain fork can inherit a held lock (e.g. logging)
+      and deadlock the child. 'spawn' gives a clean interpreter; the child
+      relies only on its IPC-supplied options, not on inherited globals.
+
+    **``force=True``, because without it this call did nothing when launched
+    from ``run.py``.** ``set_start_method`` raises rather than overriding a
+    context that is already resolved -- and a context resolves on the first
+    *read*, not only on a set. ``run.py`` calls ``multiprocessing.freeze_
+    support()`` before ``main``, whose first line is ``self.get_start_
+    method()``, which materialises the platform default. So on Linux the
+    context was pinned to **fork** before this ran, the ``RuntimeError`` was
+    swallowed as "already set" -- which read as "somebody set it to what we
+    wanted" and was the opposite -- and every tray child was forked. The
+    installed console script has no ``freeze_support`` call and did spawn, so
+    this was a from-source and frozen-Windows-build bug only.
+
+    What that cost is not theoretical: a forked child inherits the parent's
+    signal handlers, so it took a copy of `_claim_sigterm`'s SIGTERM handler
+    -- which sets an `Event` that, in the child, nothing waits on. Every
+    ``TrayManager.stop()`` (a ``terminate()``, i.e. a SIGTERM) was therefore
+    swallowed, and the tray process outlived the app that started it and had
+    to be SIGKILLed. `tray._reset_inherited_signals` and the escalation in
+    ``TrayManager.stop`` are the layers under this.
+
+    Reported rather than merely attempted: a start method that is not spawn
+    is a real hazard on every platform, and the failure is silent.
+    """
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except (RuntimeError, ValueError):
+        # A platform without a spawn context. Nothing here is required for
+        # correct operation; the tray child is simply started the other way.
+        root_logger.debug("Could not select the spawn start method.",
+                          exc_info=True)
+    # allow_none=False: if the set above failed, the default is what the
+    # children will actually be started with, and naming it is the point.
+    actual = multiprocessing.get_start_method()
+    if actual != "spawn":
+        root_logger.warning(
+            "Child processes will be started with the %r method, not "
+            "'spawn'. They inherit this process's signal handlers and "
+            "locks, which can leave the system tray process behind on "
+            "the way out.", actual)
+
+
 def main():
     args = get_args()
 
@@ -190,19 +241,7 @@ def main():
 
     enable_manual_dumps()
 
-    try:
-        # Use 'spawn' for the tray/browser child processes on every platform.
-        # - macOS: avoids Objective-C fork crashes with GUI frameworks
-        #   (3.14's 'forkserver' also crashes with Obj-C, issue #473).
-        # - Linux/Windows: these children are forked *after* the timeline/action/
-        #   sync worker threads start, so a plain fork can inherit a held lock
-        #   (e.g. logging) and deadlock the child. 'spawn' gives a clean
-        #   interpreter; the children already rely only on their IPC-supplied
-        #   options, not inherited globals, so this is safe.
-        multiprocessing.set_start_method("spawn")
-    except RuntimeError:
-        # Context already set, ignore
-        pass
+    _use_spawn_start_method()
 
     from .single_instance import SingleInstance
 

@@ -18,6 +18,7 @@ warning and leaves the app running headless-but-functional.
 import logging
 import multiprocessing
 import os
+import signal
 import sys
 import threading
 from multiprocessing import Process, Queue
@@ -295,6 +296,38 @@ def wants_x11_backend(env):
         (env.get("XDG_SESSION_TYPE") or "").lower() == "wayland")
 
 
+def _reset_inherited_signals():
+    """Put this child's signal dispositions back to the default.
+
+    **SIGTERM** is the one that matters, and only a *forked* child has it to
+    undo. ``mpv_shim._claim_sigterm`` installs a handler that sets an
+    ``Event`` the run loop waits on; a fork copies it, and in the child that
+    ``Event`` is a private copy nothing reads -- so ``TrayManager.stop()``,
+    which is a ``terminate()``, i.e. a SIGTERM, is *received and ignored*,
+    and the tray outlives the app until somebody SIGKILLs it. The app asks
+    for ``spawn`` precisely so this cannot happen
+    (``mpv_shim._use_spawn_start_method``); this is the layer under that,
+    because the failure is a stray process and the cause is two files away.
+
+    **SIGINT** is reset in both kinds of child, and is cosmetic. Every child
+    arrives with CPython's ``default_int_handler`` (measured, fork and spawn
+    alike), so a Ctrl-C -- which the terminal sends to the whole process
+    group -- raises ``KeyboardInterrupt`` from wherever the GTK loop happens
+    to be and prints a traceback on the way out. The parent's own shutdown
+    is what stops the tray; the child just needs to go quietly.
+    """
+    for name in ("SIGTERM", "SIGINT"):
+        signum = getattr(signal, name, None)
+        if signum is None:
+            continue
+        try:
+            signal.signal(signum, signal.SIG_DFL)
+        except (ValueError, OSError, RuntimeError):
+            # Not the main thread, or a platform that will not take it.
+            log.debug("could not reset %s in the tray child", name,
+                      exc_info=True)
+
+
 class TrayProcess(Process):
     """The pystray loop. Everything it can do is "put a command name on the
     queue" — it holds no references to the player or the browser, because
@@ -309,6 +342,11 @@ class TrayProcess(Process):
         Process.__init__(self, daemon=True, name="jellyfin-mpv-shim-tray")
 
     def run(self):
+        # First, before anything can be interrupted or asked to stop: a
+        # forked child arrives holding the parent's handlers, and one of
+        # them makes SIGTERM a no-op here. See _reset_inherited_signals.
+        _reset_inherited_signals()
+
         # These variables only mean anything to GTK on Linux/BSD; pystray
         # uses native APIs on Windows and macOS, so leave the env alone.
         if sys.platform.startswith("linux") or sys.platform.startswith("freebsd"):
@@ -538,8 +576,11 @@ class TrayManager:
 
     def _pump(self):
         while not self._halt.is_set():
+            queue = self._queue
+            if queue is None:
+                return              # stop() released it; nothing left to read
             try:
-                command, param = self._queue.get(timeout=0.5)
+                command, param = queue.get(timeout=0.5)
             except Exception:
                 # Empty, or the queue died with the child. Which of those it
                 # was matters: a child that CRASHED sends nothing, and
@@ -598,11 +639,71 @@ class TrayManager:
         except Exception:
             log.error("tray handler %r failed", command, exc_info=True)
 
+    #: How long the child gets to act on the terminate() before it is
+    #: killed. Short on purpose: this runs inside the shutdown sequence,
+    #: which has its own deadline, and there is nothing the child can be
+    #: doing that is worth waiting on -- it holds no state of ours.
+    TERMINATE_GRACE = 2.0
+
     def stop(self):
+        """Terminate the tray child, and make sure it is really gone.
+
+        ``terminate()`` alone is a *request*: it is a SIGTERM, which a child
+        can be holding a handler for -- and one that was forked from this
+        process was, for exactly as long as the start method was not spawn
+        (see ``_reset_inherited_signals``). The parent then ``os._exit``s
+        from ``exit_watchdog.finish`` without reaping it, so what the user
+        is left with is a tray process with no app behind it, surviving
+        until it is SIGKILLed by hand.
+
+        So the request is checked and escalated. Both waits are bounded and
+        neither failure is fatal: a child that outlives even this is worth a
+        line in the log, not a shutdown that stalls.
+        """
         self._halt.set()
-        if self._process is not None:
-            try:
-                self._process.terminate()
-            except Exception:
-                log.debug("tray terminate failed", exc_info=True)
-            self._process = None
+        process, self._process = self._process, None
+        if process is None:
+            self._release_queue()
+            return
+        try:
+            process.terminate()
+            process.join(self.TERMINATE_GRACE)
+            if process.is_alive():
+                log.warning("The system tray process ignored SIGTERM; "
+                            "killing it.")
+                process.kill()
+                process.join(self.TERMINATE_GRACE)
+            if process.is_alive():
+                log.warning("The system tray process (pid %s) could not be "
+                            "stopped.", process.pid)
+        except Exception:
+            log.debug("tray terminate failed", exc_info=True)
+        self._release_queue()
+
+    def _release_queue(self):
+        """Drop the command queue once nothing is left to send on it.
+
+        Its POSIX semaphores are cleaned up by multiprocessing's resource
+        tracker, which then says so on stderr -- and since
+        ``exit_watchdog.finish`` leaves by ``os._exit``, that notice is the
+        last thing printed on every quit. Closing it here is what keeps the
+        end of a normal run quiet.
+
+        ``cancel_join_thread`` because the feeder is not worth waiting on:
+        anything still unsent is a command for a child that is already gone.
+
+        The pump is joined first, bounded by one poll interval: it reads
+        this queue, and closing it under a thread sitting in ``get()`` is a
+        race that costs nothing to remove.
+        """
+        thread, self._thread = self._thread, None
+        if thread is not None:
+            thread.join(1.0)
+        queue, self._queue = self._queue, None
+        if queue is None:
+            return
+        try:
+            queue.cancel_join_thread()
+            queue.close()
+        except Exception:
+            log.debug("tray queue close failed", exc_info=True)
