@@ -1552,9 +1552,27 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _park_scroll(self):
         """Stash the current screen's scroll offsets on its route dict, so
         coming back to it lands where it was left. No-op with no route (the
-        first navigate of the session)."""
+        first navigate of the session).
+
+        **Refuses to park while the browser is not on screen**, and that is
+        not an optimisation. A yielded scene holds no containers, so
+        ``scroll_offsets()`` answers ``None`` — indistinguishable from mpv
+        being too old to ask — and ``park`` falls through to its ``_recorded``
+        fallback, which only ever holds containers that installed a watch. A
+        page's own vertical scroll installs none. So parking from a yielded
+        state does not merely fail to record anything: it writes that
+        *partial* snapshot over the complete one ``_yield`` saved on the way
+        into playback, silently dropping the page position and keeping the
+        rows. Reachable because a remote's GoHome navigates before it stops
+        the video (see ``on_nav_command``), and on every mpv < 0.36, where
+        the live read is never available at all.
+
+        ``_park_on_leaving_browse`` is the one caller that runs at the
+        boundary, which is why it is invoked before ``_yield`` clears the
+        flag rather than after.
+        """
         route = self.route
-        if route is not None:
+        if route is not None and self._browsing:
             self._scroll.park(route, self.app)
 
     # ------------------------------------------------------------- pages
@@ -2089,13 +2107,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         top; whether it came back *blank* on the way depended on whether the
         live read still had the old offsets when the window was built.
 
-        Guarded on ``_browsing``: a video start parks here and then reaches
-        ``_yield`` once playback reports in, by which time the container has
-        already left the scene — and ``park`` treats an empty snapshot as
-        "nothing was scrolled" and drops the key.
+        The ``_browsing`` guard this needs lives in ``_park_scroll`` now, so
+        every caller gets it: a video start parks here and then reaches
+        ``_yield`` once playback reports in, by which time the containers
+        have left the scene and a park would write a partial snapshot over
+        this one.
         """
-        if self._browsing:
-            self._park_scroll()
+        self._park_scroll()
 
     def _yield(self):
         self._park_on_leaving_browse()

@@ -15,6 +15,7 @@ from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
 from .. import components, home_sections, theme, user_prefs
+from ..repository import OFFLINE_ROW_KIND
 from ..components import chrome
 from .base import Page
 from .grid import sorts_for
@@ -208,9 +209,15 @@ class HomePage(Page):
                 return index
         return 0
 
-    def _see_all(self, row_id, title, row=None):
-        """``on_click`` for a row's heading, or None if it has no listing."""
-        kind = row_id[4:].rsplit("-", 1)[0] if row_id.startswith("row-") else ""
+    def _see_all(self, kind, title, row=None):
+        """``on_click`` for a row's heading, or None if it has no listing.
+
+        Takes the kind rather than re-deriving it from the row id: the id now
+        carries a library id for the rows there can be several of (see
+        ``_row_id``), and pulling a section name back out of a string that
+        holds an arbitrary server GUID is a parse waiting to be wrong. The
+        caller has the kind in hand either way.
+        """
         server = self.route.get("server") or self.ctx.server
         if kind == home_sections.LATEST and (row or {}).get("parent_id"):
             # Web opens the library on its Latest *tab*; we have no tabs, so
@@ -276,9 +283,10 @@ class HomePage(Page):
                             # client.
                             art.geom_wide, "Primary", "row-libs", False, True,
                             None))
-        # Ids are derived from section kind and ordinal, not from position:
-        # they key the scroll containers, so an index-based id would hand a
-        # reordered section the previous occupant's scroll offset.
+        # Ids are derived from section kind, not from position: they key the
+        # scroll containers, so an index-based id would hand a reordered
+        # section the previous occupant's scroll offset. See ``_row_id`` for
+        # why the ordinal is not enough on its own.
         seen: dict = {}
         for hr in data["rows"]:
             if not hr.get("items"):
@@ -286,13 +294,13 @@ class HomePage(Page):
             kind = hr.get("kind") or "row"
             n = seen[kind] = seen.get(kind, -1) + 1
             geom, itype = self._row_shape(hr)
+            row_id = self._row_id(kind, n, hr)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
-                            geom, itype, "row-%s-%d" % (kind, n),
+                            geom, itype, row_id,
                             self._latest_tv(hr),
                             inherit if kind in self.EPISODE_IMAGE_ROWS
                             else True,
-                            self._see_all("row-%s-%d" % (kind, n),
-                                          hr["title"], hr)))
+                            self._see_all(kind, hr["title"], hr)))
         entries.sort(key=lambda e: e[0])
         rows = []
         for (_slot, title, items, geom, itype, row_id, pitem, inh,
@@ -351,6 +359,33 @@ class HomePage(Page):
                           "title": _("Live TV"), "_tab": k}))
                for key, label in LiveTvPage.TABS],
             gap=8, align="center")
+
+    #: For the kinds that produce MORE THAN ONE row, the row field that tells
+    #: them apart. Everything absent from here is a singleton, where the
+    #: ordinal is always 0 and cannot shift.
+    #:
+    #: The ordinal alone is not stable, and the scroll restore is what made
+    #: that matter. It counts the rows that *have items*, and the repository
+    #: drops an empty row entirely — so finishing everything new in one
+    #: library renumbers every Latest row after it, and a parked offset comes
+    #: back applied to a different library's carousel. Before the restore
+    #: existed the same shift only mis-lit the page buttons for one frame.
+    MULTI_ROW_KEYS = {
+        home_sections.LATEST: "parent_id",
+        OFFLINE_ROW_KIND: "collection_type",
+    }
+
+    @classmethod
+    def _row_id(cls, kind, ordinal, hr):
+        """The scroll-container id for a home row.
+
+        ``row-<kind>-<n>`` for a section that appears once, which is all of
+        them but two; those two are keyed by whatever identifies the row
+        instead, so the id survives a sibling row going away.
+        """
+        field = cls.MULTI_ROW_KEYS.get(kind)
+        key = (hr.get(field) if field else None) or ordinal
+        return "row-%s-%s" % (kind, key)
 
     @staticmethod
     def _latest_tv(hr):

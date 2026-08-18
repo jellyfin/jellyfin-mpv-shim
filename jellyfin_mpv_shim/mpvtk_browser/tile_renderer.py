@@ -1594,8 +1594,14 @@ class TileRenderer:
         if state is not None:
             watch = (lambda off, mx, rid=row_id:
                      self.scroll.on_scroll(rid, off, mx, edges_only=True))
+        # Restored, like any other container the browser parks on the way
+        # out -- a row you had paged to the end of comes back paged to the
+        # end. It is also what keeps ScrollState.offset honest on the frame a
+        # screen returns: it answers for an unmet container with the parked
+        # value, and that is only true of a container the scene puts back.
         scroll = HScroll(Box([content], pad=RING_PAD),
-                         id=row_id, h=h, flex=1, on_scroll=watch)
+                         id=row_id, h=h, flex=1, on_scroll=watch,
+                         offset=self.scroll.pending(row_id))
         if state is None or (theme.active() or {}).get(
                 "arrow_mode", "header") != "overlay":
             return Row([scroll], h=h)

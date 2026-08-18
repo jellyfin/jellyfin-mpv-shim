@@ -97,7 +97,8 @@ class SeriesPage(Page):
                 geom=sim_geom, image_type=sim_type))
         return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
                                           full_bleed=full_bleed),
-                       id="series", flex=1)
+                       id="series", flex=1,
+                       offset=self.parked_scroll("series"))
 
     def _series_actions(self, item, server, series_id, trailers=None):
         actions = self.ctx.actions
