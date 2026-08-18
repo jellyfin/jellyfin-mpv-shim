@@ -143,6 +143,37 @@ class EndStopRepaintTest(unittest.TestCase):
             self.st.on_scroll("row", offset, 5000, edges_only=True)
         self.assertEqual(self.hits, [])
 
+    def test_paging_from_one_end_straight_to_the_other_repaints(self):
+        """The regression the tri-state edge exists for. A row one page longer
+        than its viewport goes start-stop -> end-stop in a single click, which
+        reverses BOTH buttons -- and a boolean "is against an end" reads the
+        same on both sides, so the one move that changed everything was the one
+        move that repainted nothing. The row sat at its end with Next lit."""
+        self.st.on_scroll("row", 0, 300, edges_only=True)   # first, always
+        self.hits.clear()
+        self.st.on_scroll("row", 300, 300, edges_only=True)
+        self.assertEqual(len(self.hits), 1)
+
+    def test_and_back_again(self):
+        self.st.on_scroll("row", 300, 300, edges_only=True)
+        self.hits.clear()
+        self.st.on_scroll("row", 0, 300, edges_only=True)
+        self.assertEqual(len(self.hits), 1)
+
+    def test_a_move_within_the_same_end_stop_still_does_not_repaint(self):
+        """The slack is there to absorb the physical/logical rounding the
+        offset makes on its way back from the renderer, not to invite a
+        repaint per frame of a drag against the stop. Both ends: the far one
+        is where the rounding actually bites, because ``maximum`` is itself a
+        computed fractional."""
+        for maximum, base, then in ((5000, 0, 0.4), (5000, 5000, 4999.6)):
+            with self.subTest(base=base):
+                self.st = ScrollState(lambda: self.hits.append(1))
+                self.st.on_scroll("row", base, maximum, edges_only=True)
+                self.hits.clear()
+                self.st.on_scroll("row", then, maximum, edges_only=True)
+                self.assertEqual(self.hits, [])
+
     def test_the_distance_rule_still_applies_without_edges_only(self):
         """Virtualized containers keep the old behaviour: a window's worth of
         movement rebuilds, wherever it happens."""
@@ -194,6 +225,56 @@ class OffsetPrecedenceTest(unittest.TestCase):
     def test_a_container_with_nothing_parked_is_at_the_top(self):
         st = self._state(live={}, route={})
         self.assertEqual(st.offset("grid"), 0)
+
+    def test_pending_is_what_a_component_restores_a_container_with(self):
+        """``offset`` answers for an unmet container with the parked value
+        *because the scene is about to command it*. ``pending`` is the other
+        half of that bargain -- the value a shared component passes as off0 so
+        the claim is true."""
+        st = self._state(live={}, route=self._parked(**{"row-latest-0": 640}))
+        self.assertEqual(st.pending("row-latest-0"), 640)
+        self.assertEqual(st.offset("row-latest-0"), 640)
+
+    def test_nothing_parked_restores_nothing(self):
+        st = self._state(live={}, route={})
+        self.assertIsNone(st.pending("row-latest-0"))
+
+    def test_a_parked_zero_is_not_worth_restoring(self):
+        """off0 for 0 is what a fresh container does anyway, and passing it
+        would keep a scene node alive for every row that was never scrolled."""
+        st = self._state(live={}, route=self._parked(**{"row-latest-0": 0}))
+        self.assertIsNone(st.pending("row-latest-0"))
+
+    def test_a_confirmed_container_is_no_longer_offered_a_restore(self):
+        """A restore happens once. Once the renderer has answered for an id,
+        that container's position is its own — see ``pending``."""
+        st = self._state(live={"grid": 300}, route=self._parked(grid=1500))
+        self.assertIsNone(st.pending("grid"))
+
+    def test_the_next_screen_may_restore_the_same_id_again(self):
+        """Container ids are per-VIEW, not per route, so the same id turns up
+        on the next screen with a different offset parked for it. What the
+        renderer confirmed about the last screen says nothing about this one,
+        which is why ``reset()`` clears it."""
+        st = self._state(live={"grid": 300}, route=self._parked(grid=1500))
+        self.assertIsNone(st.pending("grid"))
+        st.reset()                                   # a route change
+        st.refresh(None, self._parked(grid=1500))
+        self.assertEqual(st.pending("grid"), 1500)
+
+    def test_parking_does_not_disturb_a_frame_in_progress(self):
+        """``park`` runs on whatever thread called the navigation — the
+        websocket thread delivering a DisplayContent, a remote sending GoHome
+        — while ``build()`` is mid-frame on the loop thread. A torn ``_live``
+        read is the one-frame glitch the browser tolerates by design; a
+        ``_pending`` emptied mid-frame is not, because ``off0`` is applied to
+        a container exactly once and the renderer has already seeded it at 0
+        by the time the next frame could correct it."""
+        st = self._state(live={"detail": 10}, route=self._parked(grid=1500))
+        self.assertEqual(st.pending("grid"), 1500)
+        st.park({}, self._App({"detail": 10}))       # the other thread
+        self.assertEqual(st.pending("grid"), 1500,
+                         "a park cleared the frame's parked offsets")
 
     def test_the_recorded_copy_is_still_a_whole_snapshot_fallback(self):
         """mpv < 0.36 has no live snapshot at all. It does NOT get consulted

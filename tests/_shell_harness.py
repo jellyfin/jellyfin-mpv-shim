@@ -292,6 +292,17 @@ class FakeSource:
             return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
+                # The server fills ExternalUrls in unconditionally on the
+                # single-item routes, so the real detail screen essentially
+                # always has some. Modelled here rather than on one fixture
+                # item because a stand-in that omits a field does not leave
+                # a path uncovered -- it makes the path unreachable while
+                # reporting a pass (see CLAUDE.md).
+                "ExternalUrls": [
+                    {"Name": "IMDb", "Url": "https://www.imdb.com/title/tt1/"},
+                    {"Name": "TheMovieDb",
+                     "Url": "https://www.themoviedb.org/movie/1"},
+                    {"Name": "Trakt", "Url": "https://trakt.tv/movies/one"}],
                 "RunTimeTicks": 90 * 600000000,
                 "UserData": {"PlaybackPositionTicks": 30 * 10000000},
                 "People": [{"Id": "pp1", "Name": "Actor One", "Type": "Actor"}],
@@ -336,10 +347,22 @@ class FakeSource:
         # SeriesName, because the season screen puts it in the title bar
         # and every Season stand-in omitting it left that path untestable
         # -- the field the feature is named after had nowhere to live.
+        # ExternalUrls, because the season screen draws provider links off
+        # these DTOs -- and because they are the reason `get_seasons` asks
+        # for a field the stock apiclient query does not (the list routes
+        # omit ExternalUrls unless asked; the single-item routes do not).
+        # A stand-in without them makes that row unreachable while the
+        # tests around it still pass.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
-                 "SeriesId": series_id, "SeriesName": "A Show"},
+                 "SeriesId": series_id, "SeriesName": "A Show",
+                 "ExternalUrls": [
+                     {"Name": "TheTVDB",
+                      "Url": "https://thetvdb.example/series/1/seasons/1"}]},
                 {"Id": "se2", "Name": "Season 2", "Type": "Season",
-                 "SeriesId": series_id, "SeriesName": "A Show"}]
+                 "SeriesId": series_id, "SeriesName": "A Show",
+                 "ExternalUrls": [
+                     {"Name": "TheTVDB",
+                      "Url": "https://thetvdb.example/series/1/seasons/2"}]}]
 
     def get_episodes(self, server_uuid, series_id, season_id):
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
@@ -621,6 +644,11 @@ class FakeController:
         self.book_downloads = {}
         self.opened = []
         self.open_result = (True, "fake")
+        #: Urls handed to the desktop browser, in order, and what
+        #: ``open_url`` answers -- settable so a test can drive the
+        #: "nothing on this box would open that" message as well.
+        self.opened_urls = []
+        self.open_url_result = (True, "fake")
         self.deleted_downloads = []
         self.enqueued = []
         #: item_id -> UserData dict, the server's side of the progress
@@ -781,6 +809,18 @@ class FakeController:
     def open_downloaded_file(self, item_id):
         self.opened.append(item_id)
         return self.open_result
+
+    def open_url(self, url):
+        """Every url handed to the desktop, in order, and what we answered.
+
+        Recorded rather than dropped for the same reason ``copied`` is: the
+        url is the *only* observable a link button has, and a fake that
+        returned success without keeping it would pass a test that opened
+        the wrong provider -- which is exactly the late-binding bug a row
+        of buttons built in a loop is prone to.
+        """
+        self.opened_urls.append(url)
+        return self.open_url_result
 
     def delete_downloads(self, item_ids):
         self.deleted_downloads.append(list(item_ids))

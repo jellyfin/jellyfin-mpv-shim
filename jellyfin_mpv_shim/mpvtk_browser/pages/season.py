@@ -7,6 +7,33 @@ from ..tile_renderer import GRID_GAP
 from .base import Page
 
 
+def _grouped(buttons, avail):
+    """The header's buttons as ONE item for the title row, spaced at 8.
+    ``[]`` for nothing, so a caller can add it unconditionally.
+
+    Through ``wrap_row`` rather than a bare ``Row``: this group can be To
+    Series plus a button per metadata database, which at a narrow window is
+    wider than the page. ``wrap_row`` hands back a plain Row when it all
+    fits -- the common case, and the same tree a bare Row would have built
+    -- and a Column of rows when it does not, so the gap inside the group
+    stays 8 at every width instead of degrading to the outer row's 12.
+
+    Passed the FULL content width rather than what is left beside the
+    season picker: the outer ``wrap_row`` will drop this whole item onto
+    its own line if it does not fit next to the picker, and sizing the
+    inner break to the remainder would wrap it early on the line it ends
+    up having to itself.
+
+    Module-level and tiny because it is a layout decision with one input and
+    one output; on the page it would read as state.
+    """
+    from ..components import chrome
+
+    if not buttons:
+        return []
+    return [chrome.wrap_row(buttons, avail, gap=8, align="center")]
+
+
 class SeasonPage(Page):
     kind = "season"
 
@@ -100,8 +127,18 @@ class SeasonPage(Page):
             title_row.append(Dropdown(
                 "season-switch", names, selected=cur, w=220,
                 on_select=lambda i, v: self._switch_season(seasons[i])))
+        # Every BUTTON on this row, collected before any of them is placed.
+        # To Series is one of them: the row's own gap separates the KINDS of
+        # control on it (the title, the season picker, the buttons), and 8
+        # is what the app puts between adjacent buttons -- the actions row
+        # right below, and these same link buttons on detail and series. The
+        # first version of this grouped only the links, which was the same
+        # mistake one step in: on a season with a banner and no picker the
+        # row is nothing BUT buttons, so the one wide gap was the only odd
+        # spacing on a screen of 8s [iw].
+        row_buttons: list = []
         if route.get("series_id"):
-            title_row.append(controls.action_btn(
+            row_buttons.append(controls.action_btn(
                 "movie", _("To Series"), "season-to-series",
                 lambda: self.ctx.nav.navigate({
                     "kind": "series", "server": server,
@@ -126,9 +163,25 @@ class SeasonPage(Page):
             actions, tiles,
             season_item or {"Id": route["item_id"], "Type": "Season"},
             server, "se")
+        # The provider links join that same button group, on the end of the
+        # title row rather than a row of their own. This screen has two
+        # bands above the grid already and the links would be a third, and a
+        # page whose header is taller than its first row of episodes has
+        # stopped being an episode list. Detail and series put them under
+        # the synopsis, which is where web has them -- there is no synopsis
+        # here.
+        row_buttons += detail_components.provider_link_buttons(
+            season_item, self.open_link)
+        title_row += _grouped(row_buttons, size[0] - 2 * gpad)
         header = []
         if title_row:
-            header.append(Row(title_row, gap=12, align="center"))
+            # wrap_row, not a bare Row: this one can now carry the season
+            # picker, To Series and a provider button per database, and a
+            # Row lets the tail run off the window. Measured against the
+            # grid's own padding rather than CONTENT_PAD -- this page
+            # centres its grid, so `gpad` can be 94px at a 1200px window.
+            header.append(chrome.wrap_row(
+                title_row, size[0] - 2 * gpad, gap=12, align="center"))
         header.append(Row(acts, gap=8, align="center"))
         # Measured, not the flat 100 this used to pass: head_h is what tells
         # the virtualizer which rows are near the viewport, and a header

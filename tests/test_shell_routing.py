@@ -14,6 +14,7 @@ from tests._shell_harness import (
     FakeConfig,
     FakeController,
     FakeSource,
+    _DeferredPool,
     _FailingSource,
     _SyncPool,
     build_scene,
@@ -325,6 +326,89 @@ class TestBuild(unittest.TestCase):
         self.b.nav_stack.append({"kind": "grid", "server": "srv1",
                                  "parent_id": "lib1"})
         self.assertIn("nav-home", ids(build_scene(self.b)[0]))
+
+class TestHomeButtonKeepsTheLoadedScreen(unittest.TestCase):
+    """Pressing Home lands on the rows that are already loaded.
+
+    The route dict is the page cache -- ``_data`` and the Page object both
+    hang off it -- so pushing a fresh one meant a full home fetch behind
+    ``chrome.busy()`` every time, on the screen the user is likeliest to
+    already have. The tests below are written against a pool that completes
+    nothing, because with the inline pool the refetch lands before anything
+    is drawn and a spinner could never be observed either way.
+    """
+
+    def setUp(self):
+        self.b = MpvtkBrowser(app=None, source=FakeSource())
+        self.b._pool = _SyncPool()
+        # Land on a loaded home, the way a session starts.
+        self.b.navigate({"kind": "home", "server": self.b.server}, reset=True)
+        self.home = self.b.route
+        self.assertIsNotNone(self.home.get("_data"))
+        # From here on nothing completes, so what is on screen is what was
+        # cached.
+        self.pool = self.b._pool = _DeferredPool()
+
+    def _leave_home(self):
+        self.b.navigate({"kind": "grid", "server": self.b.server,
+                         "parent_id": "lib1", "title": "Movies"})
+        self.pool.queued.clear()
+
+    def test_pressing_home_paints_the_cached_rows_not_a_spinner(self):
+        self._leave_home()
+        self.assertTrue(self.b.on_nav_command("home"))
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("busy", types(nodes))
+        self.assertIn("row-libs", ids(nodes))
+
+    def test_the_cached_route_is_the_one_that_comes_back(self):
+        """Same dict, so the Page instance and everything it keeps on itself
+        comes back with the data rather than being rebuilt."""
+        self._leave_home()
+        self.b.on_nav_command("home")
+        self.assertIs(self.b.route, self.home)
+        self.assertEqual(self.b.nav_stack, [self.home])
+
+    def test_it_still_re_reads_behind_the_cached_rows(self):
+        """Stale-while-revalidate, not a cache that goes cold: what makes
+        reuse safe is that Home refreshes in place, so the load must still be
+        dispatched."""
+        self._leave_home()
+        self.b.on_nav_command("home")
+        self.assertEqual(len(self.pool.queued), 1)
+        # ...and the rows are on screen while it is in flight. Named, not
+        # just "not busy": every other page in the app is also not busy.
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("busy", types(nodes))
+        self.assertIn("row-libs", ids(nodes))
+
+    def test_the_top_bar_button_goes_the_same_way(self):
+        """Two doors to the same screen; the one people actually click is the
+        one that must not have been left behind."""
+        self._leave_home()
+        _nodes, handlers = build_scene(self.b)
+        handlers["nav-home"]["click"]()
+        self.assertIs(self.b.route, self.home)
+
+    def test_another_server_home_is_not_reused(self):
+        """Switching servers pushes its own home. Landing on the previous
+        server's rows would look like a load and be someone else's library."""
+        self._leave_home()
+        self.b.server = "srv2"
+        self.b.on_nav_command("home")
+        self.assertIsNot(self.b.route, self.home)
+        self.assertIsNone(self.b.route.get("_data"))
+
+    def test_a_home_with_nothing_cached_still_spins(self):
+        """Reuse is not a claim that the screen is ready. An empty home comes
+        back as the empty home it was -- pushing a second one would differ
+        only in throwing away the Page object."""
+        self._leave_home()
+        self.home.pop("_data")
+        self.b.on_nav_command("home")
+        self.assertIs(self.b.route, self.home)
+        self.assertIn("busy", types(build_scene(self.b)[0]))
+
 
 class TestPhase1Views(unittest.TestCase):
     def setUp(self):

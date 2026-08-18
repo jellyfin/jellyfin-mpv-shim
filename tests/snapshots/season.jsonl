@@ -16,8 +16,11 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0.0", "sc": "season", "size": 26, "t": "text", "text": "", "w": 0.0, "x": 16.0, "y": 79.8}
 {"h": 32.3, "id": "season-switch", "items": ["Season 1", "Season 2"], "sc": "season", "sel": 0, "size": 17, "t": "dropdown", "w": 220.0, "x": 28.0, "y": 79.8}
 {"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "season-to-series", "radius": 6, "sc": "season", "t": "rect", "w": 112.5, "x": 260.0, "y": 76.0}
-{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.0.2.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 18 4 l 20 8 l 17 8 l 15 4 l 13 4 l 15 8 l 12 8 l 10 4 l 8 4 l 10 8 l 7 8 l 5 4 l 4 4 b 2.9 4 2.01 4.9 2.01 6 l 2 18 b 2 19.1 2.9 20 4 20 l 20 20 b 21.1 20 22 19.1 22 18 l 22 4 l 18 4", "sc": "season", "t": "icon", "w": 18.0, "x": 270.0, "y": 87.0}
-{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.2.1", "sc": "season", "size": 16, "t": "text", "text": "To Series", "w": 67.5, "x": 295.0, "y": 86.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.0.2.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 18 4 l 20 8 l 17 8 l 15 4 l 13 4 l 15 8 l 12 8 l 10 4 l 8 4 l 10 8 l 7 8 l 5 4 l 4 4 b 2.9 4 2.01 4.9 2.01 6 l 2 18 b 2 19.1 2.9 20 4 20 l 20 20 b 21.1 20 22 19.1 22 18 l 22 4 l 18 4", "sc": "season", "t": "icon", "w": 18.0, "x": 270.0, "y": 87.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.2.0.1", "sc": "season", "size": 16, "t": "text", "text": "To Series", "w": 67.5, "x": 295.0, "y": 86.0}
+{"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "detail-link-0", "radius": 6, "sc": "season", "t": "rect", "w": 105.5, "x": 380.5, "y": 76.0}
+{"c": "e8e8e8", "h": 18.0, "id": "r.1.0.0.2.1.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19 19 l 5 19 l 5 5 l 12 5 l 12 3 l 5 3 b 3.9 3 3 3.9 3 5 l 3 19 b 3 20.1 3.9 21 5 21 l 19 21 b 20.1 21 21 20.1 21 19 l 21 12 l 19 12 l 19 19 m 14 3 l 14 5 l 17.59 5 l 7.76 14.83 l 9.17 16.24 l 19 6.41 l 19 10 l 21 10 l 21 3 l 14 3", "sc": "season", "t": "icon", "w": 18.0, "x": 390.5, "y": 87.0}
+{"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.2.1.1", "sc": "season", "size": 16, "t": "text", "text": "TheTVDB", "w": 60.5, "x": 415.5, "y": 86.0}
 {"click": true, "fill": "00a4dc", "h": 40.0, "hover": {"fill": "1cb6e8"}, "id": "se-nextup", "radius": 6, "sc": "season", "t": "rect", "w": 98.4, "x": 16.0, "y": 128.0}
 {"c": "ffffff", "h": 18.0, "id": "r.1.0.1.0.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 8 5 l 8 19 l 19 12", "sc": "season", "t": "icon", "w": 18.0, "x": 26.0, "y": 139.0}
 {"align": "left", "c": "ffffff", "h": 20.0, "id": "r.1.0.1.0.1", "sc": "season", "size": 16, "t": "text", "text": "Next Up", "w": 53.4, "x": 51.0, "y": 138.0}

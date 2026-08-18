@@ -35,6 +35,11 @@ _MEASURE_SIZE = 128
 
 
 def _load_font():
+    # See pilfont._load -- same reason, and this one matters twice over:
+    # what is measured here becomes layout.text_width's model of libass.
+    from ..win_fribidi import preload
+
+    preload()
     try:
         from PIL import ImageFont
     except ImportError:
@@ -159,7 +164,35 @@ def _cache_key(font):
         from PIL import __version__ as pilver
     except ImportError:
         pilver = "?"
-    return "%s|%s|%s|%s" % (path, mtime, pilver, _METRICS_VERSION)
+    # The layout engine is part of the key, because it changes the numbers
+    # and NOTHING else here moves when it does. Raqm applies the font's GPOS
+    # kerning and Basic does not -- measured, DejaVuSans at 20px: "AVATAR" is
+    # 81.94px unkerned against 75.20px kerned, 9% apart -- and Pillow picks
+    # between them on whether FriBiDi could be loaded, which is a property of
+    # the machine rather than of the font or of Pillow's version.
+    #
+    # So this is exactly the kind of change that would land as a stale cache
+    # hit: a Windows user updating into a build that ships FriBiDi (#689) has
+    # the same font, same mtime, same Pillow, and would keep measuring with
+    # the old unkerned numbers forever. Same in reverse for a Linux user who
+    # installs libfribidi later.
+    engine = _layout_engine()
+    return "%s|%s|%s|%s|%s" % (path, mtime, pilver, engine, _METRICS_VERSION)
+
+
+def _layout_engine():
+    """``"raqm"`` / ``"basic"`` / ``"?"`` -- which one Pillow will use.
+
+    Asked of Pillow rather than of ``win_fribidi.preload``'s result: a system
+    FriBiDi on the search path counts, and so does a distro Pillow built
+    against raqm outright.
+    """
+    try:
+        from PIL import features
+
+        return "raqm" if features.check("raqm") else "basic"
+    except Exception:
+        return "?"
 
 
 def measure_font():

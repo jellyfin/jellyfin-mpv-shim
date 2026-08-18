@@ -13,11 +13,28 @@ log = logging.getLogger("mpvtk_browser.gateway.diagnostics")
 
 class DiagnosticsMixin(GatewayCore):
     def open_url(self, url):
-        import webbrowser
+        """Open a link in the desktop's browser. ``(ok, method)``.
+
+        Through ``system_open`` rather than ``webbrowser``, for three
+        reasons. It applies a scheme allowlist -- this now carries links the
+        *server* composed (``ExternalUrls`` on the detail page), not only our
+        own release URL, and a desktop opener hands ``file://`` or a
+        registered application scheme to whatever claims it. It uses the same
+        opener list the rest of the app does, which in a Flatpak means
+        ``xdg-open`` and therefore the portal, where ``webbrowser`` looks for
+        a browser *inside* the sandbox and finds none. And it answers whether
+        it worked, so a caller can say so; ``webbrowser.open``'s return value
+        is famously optimistic and this one ignored it anyway.
+        """
+        from ...system_open import open_url
         try:
-            webbrowser.open(url)
+            return open_url(url)
         except Exception:
-            log.error("could not open url %s", url, exc_info=True)
+            # system_open promises not to raise; this is the belt to its
+            # braces, because the caller here is a click handler on the
+            # render loop.
+            log.error("could not open url", exc_info=True)
+            return (False, None)
 
     def check_updates(self):
         """One-shot update check at startup.

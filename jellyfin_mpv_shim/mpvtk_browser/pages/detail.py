@@ -99,6 +99,14 @@ class DetailPage(Page):
         if item.get("Overview"):
             blocks.append(chrome.paragraph(item["Overview"], 18,
                                            tiles.body_w(w)))
+        # Under the synopsis and above the rows, which is where
+        # jellyfin-web puts them: they are the tail of the metadata, not an
+        # action on the item. No headless gate -- a detail page is already
+        # unreachable in that mode (MpvtkBrowser.navigate).
+        links = detail_components.provider_links(item, tiles.body_w(w),
+                                                 self.open_link)
+        if links is not None:
+            blocks.append(links)
         scenes = self._scenes_row(item, server)
         if scenes is not None:
             blocks.append(scenes)
@@ -124,6 +132,7 @@ class DetailPage(Page):
                        offset=self.parked_scroll("detail"))
 
     # -- actions -----------------------------------------------------------
+
 
     def _detail_actions(self, item, server):
         btns = detail_components.common_actions(

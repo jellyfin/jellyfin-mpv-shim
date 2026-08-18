@@ -687,6 +687,48 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             return False
 
 
+    def go_home(self):
+        """Go to the home screen, reusing the one the stack already holds.
+
+        The route dict *is* the page cache: the loaded rows hang off it as
+        ``_data`` and the Page object with them, so pushing a fresh dict means
+        ``chrome.busy()`` until a whole home fetch lands -- on the one screen
+        the user almost always already has, and reached by the one button that
+        should feel free.
+
+        Reuse is safe rather than stale because Home re-reads itself in place.
+        ``HomePage.load`` publishes over what is there (its partial first
+        batch is withheld once ``_data`` exists, precisely so a refresh does
+        not take the Latest rows away and put them back), and ``_publish``
+        drops the write entirely when nothing changed. So the rows paint
+        instantly and the refresh lands behind them -- which is exactly what
+        going *Back* to Home has always done (see ``_land_back``); this is the
+        Home button being told the same thing.
+
+        The scroll position comes back with it, for the same reason it does on
+        a Back press: it is parked on the route, and the route is the one being
+        restored.
+
+        Pressing Home while already on Home still goes the whole way round —
+        the epoch and ``_screen_seq`` both move, so the caches shed and the
+        rows re-read — and that is deliberate rather than an oversight in the
+        reuse. Home-on-Home is the one gesture in the app that means "reload
+        this", and ``_shed_caches_on_screen_change`` is what a reload should
+        do. Do not "fix" it by skipping the bump when the route is unchanged.
+
+        The server is part of the match, not an afterthought: switching
+        servers pushes its own home (see ``_switch_server``) and must not
+        land on the previous one's rows. A stack with no usable home falls
+        through to a fresh route, which is also what keeps headless refusing
+        -- the Navigator sees the same "home" it always did.
+        """
+        for route in reversed(self.nav_stack):
+            if (route.get("kind") == "home"
+                    and route.get("server") == self.server):
+                self.navigate(route, reset=True)
+                return
+        self.navigate({"kind": "home", "server": self.server}, reset=True)
+
     def go_back(self):
         self._park_scroll()
         left = self._nav.pop()
@@ -927,7 +969,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # stopping hands the window to a screen that has already
             # arrived rather than to a spinner. Same reason the HUD's own
             # Back button just stops: what is underneath is already right.
-            self.navigate({"kind": "home", "server": self.server}, reset=True)
+            self.go_home()
             # Audio and video are tracked in different places: `_now_playing`
             # is the now-playing BAR's state and is None for video, whose
             # playstate lives in hud.state. Asking either one alone stops
@@ -1295,19 +1337,44 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._async.run(work, on_done, epoch,
                         on_error=on_error, always=always)
 
+    #: Epoch of the newest load dispatched for a route, stamped on its dict.
+    LOAD_EP_KEY = "_load_ep"
+
     def _route_async(self, route, work, on_done, ep):
         """run_async for a route's data, recording a failure on the route so
         the view can say so and offer a retry instead of spinning."""
+        # Which load owns this route's outcome. `failed` is deliberately not
+        # epoch-gated (it is a rollback, and a route you have navigated off
+        # must still be holding its error when you come back to it), and that
+        # was only ever safe because a superseded load's route dict was one
+        # the user had navigated AWAY from. The Home button now re-navigates
+        # the dict it finds in the stack (see go_home), so a stale load can
+        # be holding the route that is the screen again.
+        route[self.LOAD_EP_KEY] = ep
+
         def failed(exc):
-            route["_error"] = _("Failed to load. Check the connection.")
             # Paging guards must not survive the failure or the view stops
-            # requesting anything for the rest of the session.
+            # requesting anything for the rest of the session. Unconditional,
+            # like before: the guard belongs to the request, not the screen.
             route.pop("_loading", None)
             log.info("route %r failed to load: %s", route.get("kind"), exc)
-            # Everything above is a rollback on this route's own dict, so it
-            # runs whenever the failure lands. The fallback is not: set_source
-            # throws the nav stack away and drops the user on the offline
-            # home. Only do that while this route is still the screen —
+            if route.get(self.LOAD_EP_KEY) != ep:
+                # A newer load owns this route, and the screen should reflect
+                # that one's outcome. Without this, a hung server's request
+                # timing out half a minute later writes an error over a home
+                # screen that has since loaded fine -- and, for anyone with
+                # downloads, drops them onto the offline catalog from a
+                # working screen, because the identity test below is true
+                # again.
+                return
+            # A rollback on this route's own dict, so it runs whether or not
+            # the route is on screen: navigate off a view that then fails and
+            # come back, and it must be holding the error and a Retry rather
+            # than spinning.
+            route["_error"] = _("Failed to load. Check the connection.")
+            # The fallback is not a rollback: set_source throws the nav stack
+            # away and drops the user on the offline home. Only do that while
+            # this route is still the screen —
             # against a server that hangs rather than refuses, the failure can
             # arrive tens of seconds after the user has moved on, and yanking
             # them out of Settings mid-edit is worse than the error they
@@ -1485,9 +1552,27 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _park_scroll(self):
         """Stash the current screen's scroll offsets on its route dict, so
         coming back to it lands where it was left. No-op with no route (the
-        first navigate of the session)."""
+        first navigate of the session).
+
+        **Refuses to park while the browser is not on screen**, and that is
+        not an optimisation. A yielded scene holds no containers, so
+        ``scroll_offsets()`` answers ``None`` — indistinguishable from mpv
+        being too old to ask — and ``park`` falls through to its ``_recorded``
+        fallback, which only ever holds containers that installed a watch. A
+        page's own vertical scroll installs none. So parking from a yielded
+        state does not merely fail to record anything: it writes that
+        *partial* snapshot over the complete one ``_yield`` saved on the way
+        into playback, silently dropping the page position and keeping the
+        rows. Reachable because a remote's GoHome navigates before it stops
+        the video (see ``on_nav_command``), and on every mpv < 0.36, where
+        the live read is never available at all.
+
+        ``_park_on_leaving_browse`` is the one caller that runs at the
+        boundary, which is why it is invoked before ``_yield`` clears the
+        flag rather than after.
+        """
         route = self.route
-        if route is not None:
+        if route is not None and self._browsing:
             self._scroll.park(route, self.app)
 
     # ------------------------------------------------------------- pages
@@ -2022,13 +2107,13 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         top; whether it came back *blank* on the way depended on whether the
         live read still had the old offsets when the window was built.
 
-        Guarded on ``_browsing``: a video start parks here and then reaches
-        ``_yield`` once playback reports in, by which time the container has
-        already left the scene — and ``park`` treats an empty snapshot as
-        "nothing was scrolled" and drops the key.
+        The ``_browsing`` guard this needs lives in ``_park_scroll`` now, so
+        every caller gets it: a video start parks here and then reaches
+        ``_yield`` once playback reports in, by which time the containers
+        have left the scene and a park would write a partial snapshot over
+        this one.
         """
-        if self._browsing:
-            self._park_scroll()
+        self._park_scroll()
 
     def _yield(self):
         self._park_on_leaving_browse()

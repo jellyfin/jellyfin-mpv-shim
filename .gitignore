@@ -21,3 +21,8 @@ flatpak/shared-modules
 repo
 
 .vscode/
+
+# Built by tools/build_win_fribidi.py for the Windows installer; a build
+# input like mpv-2.dll, not a source file.
+fribidi-0.dll
+build/fribidi/

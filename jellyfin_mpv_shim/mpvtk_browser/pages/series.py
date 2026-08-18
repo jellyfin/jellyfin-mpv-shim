@@ -68,6 +68,13 @@ class SeriesPage(Page):
         if item.get("Overview"):
             blocks.append(chrome.paragraph(item["Overview"], 18,
                                            tiles.body_w(w)))
+        # Same place as the detail screen: the tail of the metadata, above
+        # the rows. Free here -- this page loads through `get_item`, and the
+        # single-item routes fill ExternalUrls in without being asked.
+        links = detail_components.provider_links(item, tiles.body_w(w),
+                                                 self.open_link)
+        if links is not None:
+            blocks.append(links)
         seasons = data.get("seasons") or []
         if seasons:
             blocks.append(tiles.tile_row(_("Seasons"), seasons,
@@ -90,7 +97,8 @@ class SeriesPage(Page):
                 geom=sim_geom, image_type=sim_type))
         return VScroll(chrome.header_body(blocks[0], blocks[1:], gap=16,
                                           full_bleed=full_bleed),
-                       id="series", flex=1)
+                       id="series", flex=1,
+                       offset=self.parked_scroll("series"))
 
     def _series_actions(self, item, server, series_id, trailers=None):
         actions = self.ctx.actions

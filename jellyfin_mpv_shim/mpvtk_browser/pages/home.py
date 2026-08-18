@@ -15,8 +15,10 @@ from ...i18n import _
 from ...mpvtk.widgets import (
     Box, Busy, Button, Column, Row, Spacer, Text, VScroll)
 from .. import components, home_sections, theme, user_prefs
+from ..repository import OFFLINE_ROW_KIND
 from ..components import chrome
 from .base import Page
+from .grid import sorts_for
 
 log = logging.getLogger("mpvtk_browser.pages.home")
 
@@ -158,24 +160,77 @@ class HomePage(Page):
                                 "filters": {"is_airing": True}},
     }
 
-    #: Sort index for "Date Added", descending. Named because a Latest row's
-    #: destination is its library in that order, and a bare 1 in the middle
-    #: of a navigate() says nothing.
-    _DATE_ADDED_SORT = 1
+    #: The server sort a Latest row's destination has to use, by collection
+    #: type. Anything absent gets ``_DEFAULT_LATEST_SORT_BY``.
+    #:
+    #: **A TV library is not "Date Added", and that is the whole point of
+    #: this table.** ``/Users/{id}/Items/Latest`` groups a TV library's
+    #: newest *episodes* into their series, so the row is a list of shows
+    #: ordered by when each last gained an episode. ``DateCreated`` on the
+    #: destination sorts those same shows by when the SERIES was added --
+    #: three years ago, for a show you have followed for three years -- so
+    #: the heading opened a list holding the same items in a completely
+    #: different order (#688). ``DateLastContentAdded`` is the matching sort,
+    #: and is what jellyfin-web offers there under "Date Episode Added"; see
+    #: ``grid.EXTRA_SORTS``, which exists for exactly this reason.
+    #:
+    #: Movies and music need no entry: ``/Latest`` really is DateCreated for
+    #: them, because a film gains no episodes.
+    _LATEST_SORT_BY = {"tvshows": "DateLastContentAdded"}
 
-    def _see_all(self, row_id, title, row=None):
-        """``on_click`` for a row's heading, or None if it has no listing."""
-        kind = row_id[4:].rsplit("-", 1)[0] if row_id.startswith("row-") else ""
+    #: What every other library sorts its Latest destination by.
+    _DEFAULT_LATEST_SORT_BY = "DateCreated"
+
+    @classmethod
+    def _latest_sort(cls, collection_type):
+        """Index into ``sorts_for(collection_type)`` for a Latest heading.
+
+        An *index*, because that is what a grid route stores -- and it is an
+        index into whichever list that library's own screen offers, which is
+        why this cannot be a constant: ``EXTRA_SORTS`` appends to ``SORTS``,
+        so "Date Episode Added" exists only for the libraries that have it
+        and sits at a position no other library shares.
+
+        Resolved by looking the sort *name* up rather than by arithmetic on
+        ``len(SORTS)``: the tables are edited by hand and a new base sort
+        would silently re-point this at whatever landed on that index --
+        which is the same trap ``EXTRA_SORTS`` documents for stored routes.
+        Falling back to ``DateCreated`` rather than raising keeps a library
+        whose sort is missing on the old behaviour instead of on nothing.
+        """
+        want = cls._LATEST_SORT_BY.get(collection_type or "",
+                                       cls._DEFAULT_LATEST_SORT_BY)
+        sorts = sorts_for(collection_type)
+        for index, (_label, sort_by, _order) in enumerate(sorts):
+            if sort_by == want:
+                return index
+        for index, (_label, sort_by, _order) in enumerate(sorts):
+            if sort_by == cls._DEFAULT_LATEST_SORT_BY:
+                return index
+        return 0
+
+    def _see_all(self, kind, title, row=None):
+        """``on_click`` for a row's heading, or None if it has no listing.
+
+        Takes the kind rather than re-deriving it from the row id: the id now
+        carries a library id for the rows there can be several of (see
+        ``_row_id``), and pulling a section name back out of a string that
+        holds an arbitrary server GUID is a parse waiting to be wrong. The
+        caller has the kind in hand either way.
+        """
         server = self.route.get("server") or self.ctx.server
         if kind == home_sections.LATEST and (row or {}).get("parent_id"):
             # Web opens the library on its Latest *tab*; we have no tabs, so
-            # the honest equivalent is that library sorted newest-first --
-            # the same items in the same order, without the 16-item cap.
+            # the honest equivalent is that library in the order the row was
+            # built in -- the same items in the same order, without the
+            # 16-item cap. Which order that IS depends on the library; see
+            # _latest_sort.
             return lambda: self.ctx.nav.navigate({
                 "kind": "grid", "server": server,
                 "parent_id": row["parent_id"],
                 "collection_type": row.get("collection_type"),
-                "title": title, "_sort": self._DATE_ADDED_SORT})
+                "title": title,
+                "_sort": self._latest_sort(row.get("collection_type"))})
         spec = self.SEE_ALL_ROWS.get(kind)
         if spec is None:
             return None
@@ -228,9 +283,10 @@ class HomePage(Page):
                             # client.
                             art.geom_wide, "Primary", "row-libs", False, True,
                             None))
-        # Ids are derived from section kind and ordinal, not from position:
-        # they key the scroll containers, so an index-based id would hand a
-        # reordered section the previous occupant's scroll offset.
+        # Ids are derived from section kind, not from position: they key the
+        # scroll containers, so an index-based id would hand a reordered
+        # section the previous occupant's scroll offset. See ``_row_id`` for
+        # why the ordinal is not enough on its own.
         seen: dict = {}
         for hr in data["rows"]:
             if not hr.get("items"):
@@ -238,13 +294,13 @@ class HomePage(Page):
             kind = hr.get("kind") or "row"
             n = seen[kind] = seen.get(kind, -1) + 1
             geom, itype = self._row_shape(hr)
+            row_id = self._row_id(kind, n, hr)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
-                            geom, itype, "row-%s-%d" % (kind, n),
+                            geom, itype, row_id,
                             self._latest_tv(hr),
                             inherit if kind in self.EPISODE_IMAGE_ROWS
                             else True,
-                            self._see_all("row-%s-%d" % (kind, n),
-                                          hr["title"], hr)))
+                            self._see_all(kind, hr["title"], hr)))
         entries.sort(key=lambda e: e[0])
         rows = []
         for (_slot, title, items, geom, itype, row_id, pitem, inh,
@@ -303,6 +359,33 @@ class HomePage(Page):
                           "title": _("Live TV"), "_tab": k}))
                for key, label in LiveTvPage.TABS],
             gap=8, align="center")
+
+    #: For the kinds that produce MORE THAN ONE row, the row field that tells
+    #: them apart. Everything absent from here is a singleton, where the
+    #: ordinal is always 0 and cannot shift.
+    #:
+    #: The ordinal alone is not stable, and the scroll restore is what made
+    #: that matter. It counts the rows that *have items*, and the repository
+    #: drops an empty row entirely — so finishing everything new in one
+    #: library renumbers every Latest row after it, and a parked offset comes
+    #: back applied to a different library's carousel. Before the restore
+    #: existed the same shift only mis-lit the page buttons for one frame.
+    MULTI_ROW_KEYS = {
+        home_sections.LATEST: "parent_id",
+        OFFLINE_ROW_KIND: "collection_type",
+    }
+
+    @classmethod
+    def _row_id(cls, kind, ordinal, hr):
+        """The scroll-container id for a home row.
+
+        ``row-<kind>-<n>`` for a section that appears once, which is all of
+        them but two; those two are keyed by whatever identifies the row
+        instead, so the id survives a sibling row going away.
+        """
+        field = cls.MULTI_ROW_KEYS.get(kind)
+        key = (hr.get(field) if field else None) or ordinal
+        return "row-%s-%s" % (kind, key)
 
     @staticmethod
     def _latest_tv(hr):

@@ -2349,8 +2349,37 @@ class LibrarySource:
             return {}
 
     def get_seasons(self, server_uuid, series_id):
+        """A show's seasons, with the field the season screen's provider
+        links need.
+
+        Issued here rather than through ``api.get_seasons``, which hardcodes
+        ``Fields=info()`` and takes no override. The alternative was a whole
+        extra ``get_item`` round trip on a screen that already makes two,
+        for one row of links -- this is the same request with one more field.
+
+        ``info()`` is kept and added to rather than replaced: the season
+        screen reads UserData, artwork tags and item counts off these DTOs,
+        and trimming the set to what the links need would quietly take those
+        away. ``ExternalUrls`` is absent from list queries unless asked for
+        (measured on 10.11 and 12.0 -- the single-item routes fill it in
+        unconditionally, list routes do not), which is why this is needed at
+        all and why the series and detail screens need nothing.
+
+        Falls back to the plain call if this apiclient does not expose the
+        helper. An older one costs the links, not the screen.
+        """
         api = self._conn(server_uuid).api
-        result = api.get_seasons(series_id) or {}
+        try:
+            from jellyfin_apiclient_python.api import info
+
+            result = api.shows("/%s/Seasons" % series_id, params={
+                "UserId": "{UserId}",
+                "EnableImages": True,
+                "Fields": info() + ",ExternalUrls",
+            }) or {}
+        except Exception:
+            log.debug("falling back to the stock seasons query", exc_info=True)
+            result = api.get_seasons(series_id) or {}
         return result.get("Items", [])
 
     def get_episodes(self, server_uuid, series_id, season_id):

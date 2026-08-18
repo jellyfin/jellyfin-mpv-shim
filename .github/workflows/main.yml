@@ -59,6 +59,24 @@ jobs:
       run: |
         python tools/check_win_libmpv_deps.py mpv-2.dll
       shell: bash
+    - name: Build FriBiDi
+      # Pillow's wheels load FriBiDi at runtime and Windows has none, so
+      # without this the installer ships with Raqm off: right-to-left titles
+      # render reversed and disconnected, and NO script gets GPOS kerning --
+      # which the UI's own text measurements are built from (#689). Under a
+      # second to build, no dependencies. See tools/build_win_fribidi.py.
+      run: |
+        pip install meson ninja
+        python tools/build_win_fribidi.py
+      shell: bash
+    - name: Check text shaping is available
+      # Asked directly, because nothing downstream can tell: Pillow falls
+      # back to the unshaped layout engine silently, and an English library
+      # looks perfect either way. --require-bundled so a FriBiDi that happens
+      # to be on the runner cannot pass for one we ship.
+      run: |
+        python tools/check_win_raqm.py --require-bundled
+      shell: bash
     - name: PyInstaller Bootloader
       run: |
         ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; pip install .
@@ -114,6 +132,24 @@ jobs:
       # client that dies at startup on the user's machine.
       run: |
         python tools/check_win_libmpv_deps.py mpv-2.dll
+      shell: bash
+    - name: Build FriBiDi
+      # Pillow's wheels load FriBiDi at runtime and Windows has none, so
+      # without this the installer ships with Raqm off: right-to-left titles
+      # render reversed and disconnected, and NO script gets GPOS kerning --
+      # which the UI's own text measurements are built from (#689). Under a
+      # second to build, no dependencies. See tools/build_win_fribidi.py.
+      run: |
+        pip install meson ninja
+        python tools/build_win_fribidi.py
+      shell: bash
+    - name: Check text shaping is available
+      # Asked directly, because nothing downstream can tell: Pillow falls
+      # back to the unshaped layout engine silently, and an English library
+      # looks perfect either way. --require-bundled so a FriBiDi that happens
+      # to be on the runner cannot pass for one we ship.
+      run: |
+        python tools/check_win_raqm.py --require-bundled
       shell: bash
     - name: PyInstaller Bootloader
       run: |
@@ -184,6 +220,24 @@ jobs:
       # installer and upload it under the ARM64 name without one step failing.
       run: |
         python tools/check_win_arch.py mpv-2.dll
+      shell: bash
+    - name: Build FriBiDi
+      # Pillow's wheels load FriBiDi at runtime and Windows has none, so
+      # without this the installer ships with Raqm off: right-to-left titles
+      # render reversed and disconnected, and NO script gets GPOS kerning --
+      # which the UI's own text measurements are built from (#689). Under a
+      # second to build, no dependencies. See tools/build_win_fribidi.py.
+      run: |
+        pip install meson ninja
+        python tools/build_win_fribidi.py
+      shell: bash
+    - name: Check text shaping is available
+      # Asked directly, because nothing downstream can tell: Pillow falls
+      # back to the unshaped layout engine silently, and an English library
+      # looks perfect either way. --require-bundled so a FriBiDi that happens
+      # to be on the runner cannot pass for one we ship.
+      run: |
+        python tools/check_win_raqm.py --require-bundled
       shell: bash
     - name: PyInstaller Bootloader
       # Built from source for the same reason as the other jobs: the stock
@@ -257,6 +311,24 @@ jobs:
       # client that dies at startup on the user's machine.
       run: |
         python tools/check_win_libmpv_deps.py mpv-2.dll
+      shell: bash
+    - name: Build FriBiDi
+      # Pillow's wheels load FriBiDi at runtime and Windows has none, so
+      # without this the installer ships with Raqm off: right-to-left titles
+      # render reversed and disconnected, and NO script gets GPOS kerning --
+      # which the UI's own text measurements are built from (#689). Under a
+      # second to build, no dependencies. See tools/build_win_fribidi.py.
+      run: |
+        pip install meson ninja
+        python tools/build_win_fribidi.py
+      shell: bash
+    - name: Check text shaping is available
+      # Asked directly, because nothing downstream can tell: Pillow falls
+      # back to the unshaped layout engine silently, and an English library
+      # looks perfect either way. --require-bundled so a FriBiDi that happens
+      # to be on the runner cannot pass for one we ship.
+      run: |
+        python tools/check_win_raqm.py --require-bundled
       shell: bash
     - name: PyInstaller Bootloader
       run: |

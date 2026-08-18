@@ -230,7 +230,10 @@ class LatestAndOnNowSeeAllTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.pages.grid import SORTS
         b = self._home(self.LATEST)
         _n, handlers = build_scene(b)
-        handlers["row-latestmedia-0-more"]["click"]()
+        # Keyed by the library, not by an ordinal: a Latest row's position
+        # among its siblings shifts when one of them empties (see
+        # HomePage.MULTI_ROW_KEYS), and these ids key the scroll containers.
+        handlers["row-latestmedia-lib9-more"]["click"]()
         self.assertEqual(b.route.get("kind"), "grid")
         self.assertEqual(b.route.get("parent_id"), "lib9")
         self.assertEqual(SORTS[b.route["_sort"]][1:], ("DateCreated",
@@ -243,6 +246,8 @@ class LatestAndOnNowSeeAllTest(unittest.TestCase):
         del rows[0]["parent_id"]
         b = self._home(rows)
         nodes, _h = build_scene(b)
+        # With no library to key on, the id falls back to the ordinal.
+        self.assertIn("row-latestmedia-0", ids(nodes), "test premise")
         self.assertNotIn("row-latestmedia-0-more", ids(nodes))
 
     def test_on_now_opens_the_plain_guide_query(self):

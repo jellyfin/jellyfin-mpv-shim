@@ -788,6 +788,232 @@ class TestTileShapes(unittest.TestCase):
         self.assertTrue(imgs)
         self.assertEqual(imgs[0]["ih"], LANDSCAPE_GEOM.strip_h)
 
+class _Renderer:
+    """The renderer's scroll bookkeeping, and only that.
+
+    Two rules out of ``renderer.lua``, and the restore lives entirely between
+    them: an offset is published only for a container that is **on screen**,
+    and a container that leaves the scene has its offset **dropped** — so one
+    that comes back comes back at the top unless something puts it back.
+
+    Driven by hand here rather than derived from the scene, so a test can say
+    "the row left" (a tab flip through the busy screen, a yield to playback)
+    without having to produce one.
+    """
+
+    def __init__(self):
+        self.scroll = {}
+        self.on_screen = set()
+
+    def invalidate(self, *a, **k):
+        pass
+
+    def scroll_offsets(self):
+        # None, not {} — an empty Lua table serialises as an array, so this
+        # is what the real one answers for a scene with no containers in it.
+        live = {k: v for k, v in self.scroll.items() if k in self.on_screen}
+        return live or None
+
+
+class TestCarouselRestore(unittest.TestCase):
+    """Leaving a screen and coming back to it, for the rows the pages do not
+    build by hand.
+
+    A carousel's id is generated per row inside ``tile_row``, so no page ever
+    passed one an ``offset=``, so nothing restored it — while ``_park_scroll``
+    parked it along with everything else. That gap is not just a lost scroll
+    position: ``ScrollState.offset`` answers for a container the renderer has
+    not met yet with the parked value, on the grounds that the scene is about
+    to put it there. For these rows it was not, so on the frame the screen
+    came back the page buttons were derived from where the row had been left
+    while the row itself drew at the start.
+    """
+
+    ROW = "row-libs"
+
+    def setUp(self):
+        self.r = _Renderer()
+        self.b = MpvtkBrowser(app=self.r, source=FakeSource())
+        self.b._pool = _SyncPool()
+
+    def _long_row(self, n=30):
+        many = [dict(self.b.source.libraries[0], Id="lib%d" % i,
+                     Name="Library %d" % i) for i in range(n)]
+        self.b.route["_data"] = {"libraries": many, "rows": []}
+        nodes, _h = build_scene(self.b)
+        return {n["id"]: n for n in nodes}
+
+    def _scrolled_to(self, offset):
+        """Put the row where the user put it, as the renderer would report."""
+        self.r.on_screen.add(self.ROW)
+        self.r.scroll[self.ROW] = offset
+
+    def _leave(self):
+        """What navigating away does: park, then the containers go."""
+        self.b._park_scroll()
+        self.b._scroll.reset()
+        self.r.on_screen.clear()
+
+    def test_a_paged_row_comes_back_where_it_was_left(self):
+        self._long_row()
+        self._scrolled_to(900)
+        self._leave()
+        self.assertAlmostEqual(self._long_row()[self.ROW]["off0"], 900)
+
+    def test_the_buttons_come_back_agreeing_with_the_row(self):
+        """The half that is a bug rather than a missing nicety: whatever the
+        row is restored to, the pair in the heading is derived from the same
+        number. Pre-fix the buttons were already read off the parked value —
+        that asymmetry, buttons right and row wrong, WAS the bug."""
+        by_id = self._long_row()
+        strip = by_id[self.ROW]
+        max_offset = strip["cw"] - strip["w"]
+        self._scrolled_to(max_offset)
+        self._leave()
+
+        by_id = self._long_row()
+        self.assertAlmostEqual(by_id[self.ROW]["off0"], max_offset)
+        self.assertIn("hover", by_id[self.ROW + "-pl"])       # back is live
+        self.assertNotIn("hover", by_id[self.ROW + "-pr"])    # forward is not
+
+    def test_the_scene_never_commands_a_row_the_renderer_already_holds(self):
+        """``pending()`` and ``offset()`` are different questions, and this is
+        the test that can tell them apart.
+
+        ``offset=self.scroll.offset(row_id)`` passes every other test here and
+        is wrong: it feeds the renderer's own live position back into the
+        scene that commands it, which makes ``ScrollState.offset``'s contract
+        circular. A restore is for a container the renderer has NOT got."""
+        self._long_row()
+        self._scrolled_to(300)                # renderer holds it, at 300
+        self.b.route[self.b._scroll.PARK_KEY] = {self.ROW: 900}  # parked: 900
+
+        self.assertIsNone(self._long_row()[self.ROW].get("off0"))
+
+    def test_a_row_that_leaves_and_returns_mid_visit_is_not_yanked_back(self):
+        """A restore happens once. The parked value is not a standing order:
+        a Live TV tab flip drops its rows through ``chrome.busy()`` and a
+        reconnect does the same, and re-applying the parked offset there
+        discards everything the user did after the restore."""
+        self._long_row()
+        self._scrolled_to(900)
+        self._leave()
+        self._long_row()                      # ...restored to 900
+
+        self._scrolled_to(900)                # the renderer confirms it
+        self._long_row()
+        self._scrolled_to(0)                  # and the user pages back
+        self._long_row()
+
+        self.r.on_screen.clear()              # the row leaves the scene
+        self.assertIsNone(self._long_row()[self.ROW].get("off0"),
+                          "re-applied a restore the user had scrolled past")
+
+    def test_the_offset_does_not_walk_over_repeated_visits(self):
+        """Driven through real navigation, three times: state that feeds the
+        input that produced it is the recurring bug shape here, and one hop
+        cannot see it."""
+        self._long_row()
+        self._scrolled_to(660)
+        for _ in range(3):
+            self.b.navigate({"kind": "grid", "server": self.b.server,
+                             "parent_id": "lib1", "title": "Movies"})
+            self.r.on_screen.clear()
+            self.b.go_back()
+            by_id = self._long_row()
+            self.assertAlmostEqual(by_id[self.ROW]["off0"], 660)
+            self._scrolled_to(660)            # the renderer honours it
+
+    def test_the_home_button_brings_the_rows_back_where_they_were(self):
+        """The seam where this branch's two features meet: ``go_home`` reuses
+        the route dict, and the restore rides on that dict's parked offsets.
+        Neither half is any use to the user without the other."""
+        self._long_row()
+        self._scrolled_to(720)
+        self.b.navigate({"kind": "grid", "server": self.b.server,
+                         "parent_id": "lib1", "title": "Movies"})
+        self.r.on_screen.clear()
+
+        self.b.go_home()
+        by_id = self._long_row()
+        self.assertAlmostEqual(by_id[self.ROW]["off0"], 720)
+        self.assertIn("hover", by_id[self.ROW + "-pl"])
+
+    def _latest_rows(self, *libs):
+        """A home screen with one Latest row per named library."""
+        self.b.route["_data"] = {
+            "libraries": [], "rows": [
+                {"title": "Latest %s" % name, "kind": "latestmedia",
+                 "parent_id": lib, "collection_type": "movies", "slot": i,
+                 "items": [{"Id": "%s-i%d" % (lib, j), "Name": "N%d" % j,
+                            "Type": "Movie"} for j in range(30)]}
+                for i, (lib, name) in enumerate(libs)]}
+        nodes, _h = build_scene(self.b)
+        return {n["id"]: n for n in nodes}
+
+    def test_a_row_keeps_its_own_offset_when_a_sibling_row_empties(self):
+        """Row ids used to be ``row-<kind>-<ordinal>`` over the rows that
+        HAVE items, and the repository drops an empty row entirely — so
+        finishing everything new in one library renumbered every Latest row
+        after it, and the offset parked for one came back applied to
+        another's carousel. Invisible until the restore existed: the same
+        shift used to mis-light the page buttons for a single frame."""
+        by_id = self._latest_rows(("lib1", "Movies"), ("lib2", "Shows"))
+        shows = "row-latestmedia-lib2"
+        self.assertIn(shows, by_id, "the id does not identify the library")
+
+        self.r.on_screen.add(shows)
+        self.r.scroll[shows] = 840
+        self._leave()
+
+        # Everything new in Movies gets watched, so that row stops existing.
+        by_id = self._latest_rows(("lib2", "Shows"))
+        self.assertAlmostEqual(by_id[shows]["off0"], 840,
+                               "the Shows row lost its own scroll position")
+
+    def test_a_singleton_row_is_still_keyed_by_its_ordinal(self):
+        """The change is scoped to the kinds that can appear more than once;
+        every other id is what it always was.
+
+        Asserted on the Live TV row specifically, because that id is
+        load-bearing rather than cosmetic: the button row is drawn for
+        ``row-livetv-0`` and nothing else. And it is the singleton that DOES
+        carry a collection_type, so a rule that keyed every row by whatever
+        field it happened to have would rename this one."""
+        self.b.route["_data"] = {
+            "libraries": [], "rows": [
+                {"title": "On Now", "kind": "livetv", "slot": 0,
+                 "collection_type": "livetv",
+                 "items": [{"Id": "p1", "Name": "A", "Type": "Program"}]}]}
+        nodes, _h = build_scene(self.b)
+        self.assertIn("row-livetv-0", ids(nodes))
+        self.assertIn("home-lt-guide", ids(nodes),
+                      "the Live TV button row keys off that exact id")
+
+    def test_parking_is_refused_while_the_browser_is_yielded(self):
+        """A yielded scene holds no containers, so ``scroll_offsets()``
+        answers None — which ``park`` cannot tell from "mpv is too old to be
+        asked" and so falls through to ``_recorded``. That holds only the
+        containers that installed a watch, and a page's own vertical scroll
+        installs none, so parking from a yielded state overwrites a complete
+        snapshot with a partial one. Reachable because a remote's GoHome
+        navigates before it stops the video."""
+        self._long_row()
+        self.b._scroll.on_scroll(self.ROW, 900, 4000, edges_only=True)
+        self._scrolled_to(900)
+        self.r.scroll["home"] = 400           # the page scroll: no watch
+        self.r.on_screen.add("home")
+        self.b._park_scroll()
+        parked = dict(self.b.route[self.b._scroll.PARK_KEY])
+        self.assertEqual(parked, {self.ROW: 900, "home": 400})
+
+        self.r.on_screen.clear()              # playback takes the window
+        self.b._browsing = False
+        self.b._park_scroll()
+        self.assertEqual(self.b.route[self.b._scroll.PARK_KEY], parked,
+                         "a yielded park overwrote the real snapshot")
+
+
 class TestDetailActions(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()
@@ -1974,6 +2200,23 @@ class TestSeriesExtras(unittest.TestCase):
     def test_shuffle_plays_the_whole_show(self):
         self.b._shuffle_series("sh1", "srv1")
         self.assertEqual(self.played, [["e1", "e2", "e3"]])
+
+    def test_the_page_comes_back_where_it_was_left(self):
+        """The one page in the detail family whose main scroller was never
+        given its parked offset — so backing onto a show you had scrolled
+        down to "More Like This" landed at the top, while its carousels
+        restored underneath and sat mid-row with no gesture from the user."""
+        route = {"kind": "series", "server": "srv1", "item_id": "sh1",
+                 "title": "Show"}
+        self.b.nav_stack = [route]
+        self.b._load_route(route)
+        route[self.b._scroll.PARK_KEY] = {"series": 900}
+        self.b._scroll.reset()
+
+        nodes, _h = build_scene(self.b)
+        node = next(n for n in nodes
+                    if n.get("id") == "series" and n.get("t") == "scroll")
+        self.assertAlmostEqual(node.get("off0"), 900)
 
     def test_more_like_this_reaches_the_series_page(self):
         self.b.nav_stack = [{"kind": "series", "server": "srv1",

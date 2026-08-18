@@ -6,7 +6,7 @@ own it privately: the *renderer* is the authority on where a container is
 scrolled, and the shell reads its live snapshot once per frame. A page
 holding its own copy would drift from the thing actually drawing.
 
-Three pieces of state, and each exists for a different failure:
+Five pieces of state, and each exists for a different failure:
 
 ``_live``
     The renderer's own offsets, read synchronously at the top of every
@@ -34,6 +34,21 @@ Three pieces of state, and each exists for a different failure:
     container the renderer has not heard of yet, this outranks its silence:
     the scene is telling it where to go, so that is where it will be by the
     time anything is drawn.
+
+``_seeded``
+    The ids the renderer has answered for **since the parked snapshot was
+    taken**. A restore is a one-shot, not a standing order, and this is what
+    makes it one: without it a parked offset was re-applied every time its
+    container left the scene and came back — a Live TV tab flip through the
+    busy screen, a reconnect — undoing whatever the user had done since.
+
+    "Since the parked snapshot was taken" is the whole of it, and the two
+    ways a container's offset can vanish are what force that wording. A
+    yield to playback empties the scene, but ``park`` runs on the way out,
+    so the parked values ARE where the user is and have to be re-armed. A
+    tab flip through the busy screen empties it too, and nothing parks, so
+    the parked values are from the last navigation and re-applying them
+    would undo the visit. Hence ``park`` clears this and a repaint does not.
 """
 
 
@@ -58,6 +73,7 @@ class ScrollState:
         self._rendered = {}
         self._live = None
         self._pending = {}
+        self._seeded = set()
 
     # -- per-frame ---------------------------------------------------------
 
@@ -65,22 +81,53 @@ class ScrollState:
         """Take the renderer's live offsets. Call once at the top of
         ``build()``.
 
-        Cleared first, so a failed read degrades to the recorded fallback
-        rather than silently reusing last frame's numbers against this
-        frame's content.
+        A failed read degrades to the recorded fallback rather than
+        silently reusing last frame's numbers against this frame's content.
 
         ``route`` is the route about to be built, and it is read for one
         thing: the offsets parked on it, which its page is about to pass as
-        ``Scroll(offset=…)``. See ``offset``.
+        ``Scroll(offset=…)``. See ``offset`` and ``pending``.
         """
-        self._live = None
-        self._pending = (route or {}).get(self.PARK_KEY) or {}
+        self._live = self._read(app)
+        # A parked offset RESTORES a container, and a restore happens once.
+        # Once the renderer has answered for an id, that container's position
+        # is its own: re-offering the parked value would re-apply it the next
+        # time the container left the scene and came back -- a Live TV tab
+        # flip through the busy screen, a reconnect, an offline drop -- and
+        # discard everything the user did after the restore.
+        #
+        # `_seeded` and not a pop from `_pending`, because `_pending` is
+        # re-read from the route on every frame: a pop would last one build,
+        # and the frame that matters is a later one. It is cleared by
+        # `reset()` and by `park()`, which is what re-arms a restore for the
+        # next visit and for the return from playback.
+        if self._live:
+            self._seeded.update(self._live)
+        parked = (route or {}).get(self.PARK_KEY) or {}
+        self._pending = {scroll_id: offset
+                         for scroll_id, offset in parked.items()
+                         if scroll_id not in self._seeded}
+
+    def _read(self, app):
+        """The renderer's live offsets, or None when it cannot be asked.
+
+        Split out of ``refresh`` because ``park`` needs the same read
+        *without* the per-frame state. Park runs on whatever thread called
+        the navigation -- the websocket thread delivering a DisplayContent, a
+        remote sending GoHome -- and calling ``refresh`` there clears
+        ``_pending`` out from under a ``build()`` in progress on the loop
+        thread. A torn read of ``_live`` is the one-frame glitch the browser
+        tolerates by design; a ``_pending`` emptied mid-build is not, because
+        ``off0`` is applied to a container exactly once and the renderer has
+        already seeded it at 0 by the time the next frame could correct it.
+        """
         if app is None or not hasattr(app, "scroll_offsets"):
-            return
+            return None
         try:
-            self._live = app.scroll_offsets()
+            return app.scroll_offsets()
         except Exception:
             log.debug("scroll_offsets failed", exc_info=True)
+            return None
 
     def offset(self, scroll_id):
         """Where ``scroll_id`` is scrolled to, in logical pixels.
@@ -118,13 +165,48 @@ class ScrollState:
             return float(self._recorded[scroll_id])
         return float(self._pending.get(scroll_id) or 0.0)
 
+    def pending(self, scroll_id):
+        """The offset this frame's route has parked for ``scroll_id``, or None
+        -- i.e. what to pass as ``Scroll(offset=...)`` to restore it.
+
+        The same value :meth:`Page.parked_scroll` returns, read from the route
+        ``refresh`` was handed. It is here for the containers a page does not
+        build by hand: the home screen's carousels are one ``tile_row`` call
+        each and their ids are generated per row, so the only code that can
+        restore them is the shared component that builds them.
+
+        That is not a convenience. ``offset`` answers for a container the
+        renderer has not met with the parked value *because the scene is about
+        to command it* -- so a parked offset that nothing restores makes that
+        answer a lie for exactly one frame, and it is the frame a screen comes
+        back on. The carousel drew at 0 with its page buttons derived from
+        wherever it had been left, and nothing invalidated afterwards to
+        correct them.
+        """
+        offset = self._pending.get(scroll_id)
+        return float(offset) if offset else None
+
     # -- events ------------------------------------------------------------
 
     #: Slack for "is this container against an end stop".
     EDGE = 1.0
 
-    def _at_edge(self, offset, maximum):
-        return offset <= self.EDGE or offset >= maximum - self.EDGE
+    def _edge(self, offset, maximum):
+        """Which end stop this offset is against: -1 start, 1 end, 0 neither.
+
+        Three states rather than a boolean, because the two ends are not
+        interchangeable to the thing that reads this. A carousel one page
+        longer than its viewport goes from the start stop to the end stop in
+        a single click, and a boolean "is at an end" cannot tell those apart
+        -- so the move that reverses both buttons was the one move that
+        repainted neither, and the row sat at its end with Next lit and
+        Previous dim until something else happened to invalidate.
+        """
+        if offset <= self.EDGE:
+            return -1
+        if offset >= maximum - self.EDGE:
+            return 1
+        return 0
 
     def on_scroll(self, scroll_id, offset, maximum, then=None,
                   edges_only=False):
@@ -134,11 +216,12 @@ class ScrollState:
         infinite scroll asks for the next page, and that must not be gated on
         the repaint threshold.
 
-        Crossing into or out of an end stop always repaints, whatever the
-        distance: the carousel page buttons derive their disabled state from
-        the offset, and the last few px of a drag to the end are usually well
-        under ``STEP``, so the button that just became useless would otherwise
-        stay lit until something else happened to invalidate.
+        Crossing into, out of, or straight across an end stop always
+        repaints, whatever the distance: the carousel page buttons derive
+        their disabled state from the offset, and the last few px of a drag
+        to the end are usually well under ``STEP``, so the button that just
+        became useless would otherwise stay lit until something else happened
+        to invalidate.
 
         ``edges_only`` drops the distance rule and keeps just that one, for a
         container whose *only* offset-dependent content is at the ends. The
@@ -152,8 +235,8 @@ class ScrollState:
         base = self._rendered.get(scroll_id)
         moved = not edges_only and abs(offset - (base or 0)) >= self.STEP
         if (base is None or moved
-                or self._at_edge(offset, maximum)
-                != self._at_edge(base, maximum)):
+                or self._edge(offset, maximum)
+                != self._edge(base, maximum)):
             self._rendered[scroll_id] = offset
             self._invalidate()
 
@@ -175,15 +258,36 @@ class ScrollState:
         Reads the renderer live rather than trusting the last frame's
         snapshot: a scroll shorter than ``STEP`` never triggered a rebuild,
         so ``_live`` can be up to that far behind at the moment of a click.
+
+        **Only call this while the browser is on screen.** A yielded scene
+        has no containers in it, and the renderer answers that with ``None``
+        (an empty Lua table serialises as an array, not a map) — which is
+        indistinguishable from "cannot be asked", so this falls through to
+        ``_recorded``. That holds only the containers that installed a watch,
+        which is a *subset*: a page's own vertical scroll has none. Parking
+        it would therefore overwrite a complete snapshot with a partial one.
+        ``MpvtkBrowser._park_scroll`` is guarded on ``_browsing`` for exactly
+        this, and it is why ``_park_on_leaving_browse`` runs before
+        ``_yield`` clears the flag rather than after.
         """
-        if app is not None:
-            self.refresh(app)
-        live = self._live
+        live = self._read(app) if app is not None else self._live
         offsets = dict(live) if live is not None else dict(self._recorded)
         if offsets:
             store[self.PARK_KEY] = offsets
         else:
             store.pop(self.PARK_KEY, None)
+        # These offsets are current as of now, so every container is owed a
+        # restore from them again -- including the ones already on screen,
+        # whose ids `refresh` has been marking as seeded all along.
+        #
+        # This is what makes coming back from playback work. That is not a
+        # navigation: `enter_browse` rebuilds the same route, so `reset()`
+        # never runs, and without this the returning grid was *windowed* at
+        # the top while `off0` put the container at the bottom -- a
+        # screenful of holes, which is the exact defect
+        # tests/test_shell_paging.py:TestAReturningScrollContainerStartsAtTheTop
+        # exists to catch.
+        self._seeded.clear()
 
     @classmethod
     def parked(cls, store, scroll_id):
@@ -219,3 +323,6 @@ class ScrollState:
         """
         self._recorded.clear()
         self._rendered.clear()
+        # A new screen may legitimately restore the same container ids, so
+        # what the renderer confirmed about the last one says nothing here.
+        self._seeded.clear()
