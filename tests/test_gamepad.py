@@ -394,18 +394,99 @@ class SdlSignalHandlerTest(unittest.TestCase):
         self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "0")
 
     def test_honouring_it_says_so_in_the_log(self):
-        """...and it is the one value where the shim knows the user is
-        about to lose SIGTERM. Obeying it silently turns a choice into a
-        mystery for whoever reads the bug report."""
+        """...and says what it costs.
+
+        Since `mpv_shim._claim_sigterm` took the signal for this process,
+        the remaining exposure is the EXTERNAL backend's child mpv, which
+        has no handler of its own -- so the warning has to name that, not
+        this process. Obeying the value silently turns a choice into a
+        mystery for whoever reads the bug report.
+        """
         import os
 
         os.environ["SDL_NO_SIGNAL_HANDLERS"] = "0"
         with self.assertLogs("player", level="WARNING") as caught:
             self._construct({"input_gamepad": True})
-        self.assertTrue(
-            any("SIGTERM" in line for line in caught.output),
-            "the warning does not say what the user loses: %r"
-            % (caught.output,))
+        blob = " ".join(caught.output)
+        self.assertIn("external mpv", blob)
+        self.assertIn("cannot stop", blob)
+
+
+class SigtermClaimTest(unittest.TestCase):
+    """`mpv_shim._claim_sigterm` -- the primary fix, and an improvement that
+    stands on its own.
+
+    Two properties: SIGTERM asks for the orderly shutdown instead of killing
+    the process mid-report, and claiming it is what stops SDL taking it (SDL
+    only replaces a handler still at SIG_DFL). Pinned here rather than in a
+    subprocess because the interesting half is *which* signal is claimed and
+    *what* the handler does; that SDL then leaves it alone is a property of
+    SDL, measured once and recorded in the docstring.
+    """
+
+    def setUp(self):
+        import signal
+
+        was = signal.getsignal(signal.SIGTERM)
+        self.addCleanup(signal.signal, signal.SIGTERM, was)
+
+    def test_it_sets_the_event_the_run_loop_waits_on(self):
+        import signal
+        import threading
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        halt = threading.Event()
+        mpv_shim._claim_sigterm(halt)
+        handler = signal.getsignal(signal.SIGTERM)
+        self.assertTrue(callable(handler),
+                        "SIGTERM was left at its default")
+        handler(signal.SIGTERM, None)
+        self.assertTrue(halt.is_set(),
+                        "SIGTERM did not ask for a shutdown")
+
+    def test_it_does_not_exit_the_process_itself(self):
+        """Everything that makes a shutdown orderly is in main's `finally`.
+        A handler that exited would skip the final progress report, the
+        window geometry and the credential flush -- which is the bug, not
+        the fix."""
+        import signal
+        import threading
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        mpv_shim._claim_sigterm(threading.Event())
+        # Would raise SystemExit / never return if the handler exited.
+        signal.getsignal(signal.SIGTERM)(signal.SIGTERM, None)
+
+    def test_it_is_installed_before_anything_can_create_mpv(self):
+        """Ordering is the whole point: SDL initialises inside mpv, and
+        `playerManager` is a module-level singleton whose import creates it.
+        So the claim has to happen above every import that reaches the
+        player -- checked as source order, because a runtime test would need
+        a real mpv to be meaningful."""
+        import inspect
+        import re
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        src = inspect.getsource(mpv_shim.main)
+        claim = src.index("_claim_sigterm(halt)")
+        player_imports = [m.start() for m in
+                          re.finditer(r"from \.player import", src)]
+        self.assertTrue(player_imports, "main no longer imports the player")
+        self.assertLess(claim, min(player_imports),
+                        "the player is imported before SIGTERM is claimed, "
+                        "so SDL gets the signal first")
+
+    def test_a_platform_without_sigterm_does_not_break_startup(self):
+        import threading
+        from unittest import mock
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        with mock.patch("signal.signal", side_effect=ValueError("no")):
+            mpv_shim._claim_sigterm(threading.Event())
 
 
 class ControllerReachesThePlayerTest(unittest.TestCase):

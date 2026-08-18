@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import platform
+import signal
 import sys
 import multiprocessing
 from threading import Event
@@ -50,6 +51,73 @@ def scratch_namespace():
                       os.path.abspath(conffile.confdir(APP_NAME)))
     digest = hashlib.sha1(key.encode("utf-8", "replace")).hexdigest()
     return "%s.%s" % (APP_NAME, digest[:8])
+
+
+def _claim_sigterm(halt):
+    """Make SIGTERM run the orderly shutdown, and take the signal before SDL
+    can.
+
+    Two things at once, and the second is why this is here rather than in the
+    player.
+
+    **SIGTERM had no handler at all**, so `kill` skipped the whole shutdown
+    sequence: no final progress report (the server goes on showing the
+    session as playing until the websocket times out), no window geometry
+    saved, no credentials flushed. `jellyfin-mpv-shim stop` has always been
+    the orderly path -- it goes through the instance lock, not a signal --
+    but `kill` is what a person reaches for, and systemd and a session logout
+    both send exactly this.
+
+    **And claiming it is what keeps it.** SDL installs its own SIGINT/SIGTERM
+    handlers when mpv's gamepad support initialises, but
+    ``SDL_AddSignalHandler`` only replaces a handler that is still
+    ``SIG_DFL`` -- which is precisely why standalone mpv is unaffected (it
+    installs its own first) and we were not. CPython claims SIGINT and leaves
+    SIGTERM at the default, so SDL took it, turned it into an ``SDL_QUIT``,
+    and mpv's gamepad loop -- which handles controller events and nothing
+    else -- dropped it. The app could not be stopped by anything short of
+    SIGKILL.
+
+    Measured, gamepad on, with ``SDL_NO_SIGNAL_HANDLERS`` deliberately NOT
+    set, so this is the handler doing the work and not the environment:
+
+        no handler installed -> SIGTERM never arrives
+        this                 -> handler runs, shutdown proceeds
+
+    So it is a fix that does not depend on a ``putenv`` in this interpreter
+    being visible to a ``getenv`` inside SDL2 -- which is certain on glibc
+    and was never verified on Windows. The environment variable survives for
+    the *child* mpv of the external backend, which has no handler of its own;
+    see ``player._disarm_sdl_signal_handlers``.
+
+    Installed here rather than beside the mpv construction because ordering
+    is the whole point: it has to be in place before SDL initialises, and
+    `playerManager` is a module-level singleton whose import creates mpv. The
+    imports that reach it are all below this line. The main thread is also
+    the only thread `signal.signal` may be called from, and this is it.
+
+    Sets the event the run loop waits on rather than exiting: everything that
+    makes a shutdown orderly happens in `main`'s `finally`, and
+    `exit_watchdog` is already armed there to force the exit if a step wedges.
+    """
+    def on_sigterm(signum, frame):
+        # No logging from inside a signal handler -- it can land while the
+        # logging lock is held on another thread, and a deadlock here is a
+        # process that cannot be stopped, which is the bug being fixed.
+        halt.set()
+
+    try:
+        signal.signal(signal.SIGTERM, on_sigterm)
+    except (ValueError, OSError, AttributeError):
+        # Not the main thread, or a platform without SIGTERM. Nothing here is
+        # required for correct operation on a machine that never sends one.
+        #
+        # `root_logger`, not `log`: that name is a LOCAL inside main(), and
+        # reaching for it here raised NameError on exactly the platforms this
+        # branch exists to tolerate -- i.e. the handler failing to install
+        # would have taken startup down with it.
+        root_logger.debug("Could not install a SIGTERM handler.",
+                          exc_info=True)
 
 
 def main():
@@ -171,6 +239,7 @@ def main():
     # startup is honoured rather than acknowledged and dropped.
     halt = Event()
     single.on_stop = halt.set
+    _claim_sigterm(halt)
 
     # Give this configuration's scratch caches their own directory, and with
     # it the right to reclaim everything already in it: anything else in

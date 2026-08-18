@@ -78,75 +78,62 @@ if settings.mpv_ext or not python_mpv_available:
 
 
 def _disarm_sdl_signal_handlers():
-    """Stop SDL taking SIGTERM off us when gamepad input is on.
+    """Keep SDL's signal handlers out of the *external* mpv's child process.
 
     mpv's gamepad support is SDL2, and ``SDL_Init`` installs its own
-    SIGINT/SIGTERM handlers unless ``SDL_NO_SIGNAL_HANDLERS`` says not to.
-    It only replaces a handler that is still ``SIG_DFL`` -- which is why
-    **standalone mpv is unaffected and the shim is not**. mpv installs its
-    handlers before it ever starts the gamepad thread; CPython installs one
-    for SIGINT and leaves SIGTERM at the default, so with libmpv in-process
-    SDL takes SIGTERM, turns it into an ``SDL_QUIT`` event, and mpv's gamepad
-    loop -- which handles controller events and nothing else -- drops it on
-    the floor.
+    SIGINT/SIGTERM handlers unless ``SDL_NO_SIGNAL_HANDLERS`` says not to. It
+    only replaces a handler still at ``SIG_DFL``, which is why standalone mpv
+    is unaffected: it installs its own first.
 
-    The result is an app that **cannot be terminated**: ``kill`` does
-    nothing, the window stays up, and SIGKILL is the only thing left. Not a
-    shutdown that hangs, so `exit_watchdog` never sees it either; the
-    shutdown is simply never asked for. Measured on this box with no
-    controller attached -- SDL initialises for hotplug, so a pad is not
-    needed to lose the signal:
+    **This process is no longer the case that needs it.**
+    ``mpv_shim._claim_sigterm`` installs a real handler before anything can
+    import the player, so SDL finds SIGTERM already taken and leaves it --
+    measured with this variable deliberately unset. That fix is preferable
+    because it does not depend on a ``putenv`` here being visible to a
+    ``getenv`` inside SDL2, which is certain on glibc and unverified on
+    Windows. This stays as the layer under it, and for the case the handler
+    cannot reach:
 
-        input_gamepad off, SIGTERM -> exit in 0.00s
-        input_gamepad on,  SIGTERM -> ignored, still running after 8s
-        input_gamepad on + this,    -> exit in 0.00s
-
-    SIGINT survives either way (CPython has already claimed it), which is
-    what made this look like a Ctrl-C-only bug in testing.
-
-    An environment variable rather than a hint call because SDL is loaded
-    inside libmpv and there is no SDL handle to call ``SDL_SetHint`` on; SDL
-    reads ``SDL_<HINT>`` from the environment for exactly this case. Set
-    before mpv is constructed, since the gamepad thread starts during its
-    init, and left set afterwards -- mpv is re-created and the second
-    instance needs it just as much.
-
-    **Needed on the external backend too**, not merely harmless there. The
-    variable is inherited by the child, and it has to be: jsonipc spawns mpv
-    with ``terminal=no``, and mpv installs its SIGTERM handler from
-    ``terminal_setup_getch`` -- which that skips. So the child's SIGTERM is
-    at ``SIG_DFL`` as well, SDL takes it, and ``MPVProcess.stop()``, which
-    is a ``terminate()``, would be swallowed.
+    **The child mpv of the external backend has no handler of its own.**
+    jsonipc spawns it with ``terminal=no``, and mpv installs its SIGTERM
+    handler from ``terminal_setup_getch``, which that path skips. So the
+    child's SIGTERM is at ``SIG_DFL``, SDL takes it, and
+    ``MPVProcess.stop()`` -- which is a ``terminate()``, i.e. a SIGTERM --
+    would be swallowed, leaving an orphaned mpv window behind. The variable
+    is inherited by the child, which is the only lever this side has.
+    (Sending mpv ``quit`` over the IPC socket instead of signalling it is the
+    better answer and belongs in python-mpv-jsonipc; until then, this.)
 
     **Called unconditionally**, not only when the shim passes the option.
-    ``input-gamepad`` is an ordinary mpv option with no ``M_OPT_NOCFG``, so
-    a line in the user's own ``mpv.conf`` starts the SDL thread with the
-    option absent from anything we built -- and that config is exactly what
+    ``input-gamepad`` is an ordinary mpv option with no ``M_OPT_NOCFG``, so a
+    line in the user's own ``mpv.conf`` starts the SDL thread with the option
+    absent from anything we built -- and that config is exactly what
     ``mpv_ext_no_ovr`` users are told to use. There is no third place to ask
     and no way to ask mpv in time (the thread starts inside
     ``mpv_initialize``), so the only correct gate is no gate. The variable
     does nothing at all in a process that loads no SDL.
 
-    The cost of that is one real side effect: ``os.environ`` is
-    process-wide, and nothing spawns children with a scrubbed environment
+    The cost of that is one real side effect: ``os.environ`` is process-wide,
+    and nothing spawns children with a scrubbed environment
     (``system_open``, the clipboard helpers, the shell-command hooks), so an
     SDL application launched from the shim inherits it and loses SDL's own
-    Ctrl-C handling. Accepted deliberately -- narrower gating buys a
-    silently unkillable app back.
+    Ctrl-C handling. Accepted deliberately -- narrower gating buys a silently
+    orphaned mpv back.
 
     A blank value counts as unset, which is SDL's own reading:
-    ``SDL_GetHintBoolean`` returns the *default* for ``""``, so preserving
-    one would leave the bug in place for anybody whose launcher exports an
-    empty variable. ``"0"`` is honoured -- somebody who wrote that wants
-    SDL's handlers, and quietly reversing them is worse than the bug -- so
-    it is logged rather than silently obeyed.
+    ``SDL_GetHintBoolean`` returns the *default* for ``""``, so preserving one
+    would leave the bug in place for anybody whose launcher exports an empty
+    variable. ``"0"`` is honoured -- somebody who wrote that wants SDL's
+    handlers -- and logged, because on the external backend it is the one
+    value that can still strand an mpv window.
     """
     if os.environ.get("SDL_NO_SIGNAL_HANDLERS"):
         if os.environ["SDL_NO_SIGNAL_HANDLERS"] not in ("1", "true", "yes"):
             log.warning(
                 "SDL_NO_SIGNAL_HANDLERS=%r in the environment, so SDL keeps "
-                "its own signal handlers. With game controller input on, "
-                "that means SIGTERM will not stop this application.",
+                "its own signal handlers. With game controller input and an "
+                "external mpv, that means this application cannot stop its "
+                "mpv process on the way out.",
                 os.environ["SDL_NO_SIGNAL_HANDLERS"])
         return
     os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"

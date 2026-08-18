@@ -692,9 +692,9 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
   window, so the shim responds to your pad even when another application is
   in front. And **most builds of mpv cannot do this at all** — the feature is
   compiled out unless mpv was built with `-Dsdl2-gamepad=enabled`, which is
-  not its default. Debian's mpv has it, and so do the Windows builds this
-  client ships. If yours does not, the setting is ignored with a line in the
-  log and nothing else changes.
+  not its default. Debian's mpv has it, the Windows builds this client ships
+  have it, and the Flatpak builds its own mpv with it. If yours does not, the
+  setting is ignored with a line in the log and nothing else changes.
 
   mpv supports one controller at a time, and only pads it recognises through
   SDL's controller database; an unrecognised stick is ignored rather than
