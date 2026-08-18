@@ -470,7 +470,8 @@ true in MPV's own meson options), so no extra configuration is needed. Afterward
 
 Note, if it has been a while since you have compiled mpv, modern copies of `mpv-build` don't
 support `--enable-libmpv-shared` in the `mpv_options` file, you can clear the file as `libmpv`
-is now enabled by default.
+is now enabled by default. Add `-Dsdl2-gamepad=enabled` to `mpv_options` if you want gamepad
+support.
 
 ## <h2 id="osx-installation">macOS Installation</h2>
 Currently on macOS only the external MPV backend seems to be working. I cannot test on macOS, so please report any issues you find.
