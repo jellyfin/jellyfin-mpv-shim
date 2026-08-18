@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-17 17:57+0000\n"
-"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
+"PO-Revision-Date: 2026-08-18 22:07+0000\n"
+"Last-Translator: TheRedCyclops <miguel@mpacheco.net>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1733,11 +1733,11 @@ msgstr "Tamaño de la portada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Hacer los logotipos de televisión en vivo más legibles"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Hacer los logotipos de la biblioteca más legibles"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1767,43 +1767,43 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Navegador de biblioteca en pantalla completa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Siempre asignar las teclas de dirección a los controles del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Tecla de activación de los controles del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Sombreado tras los controles del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "Cuando se esconden los controles del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Esconder los controles del reproductor tras (segundos)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Los botones de atrás y adelante del ratón saltan capítulos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Modo de salida de audio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Dispositivo de salida de audio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Tomar el dispositivo de forma exclusiva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1819,35 +1819,35 @@ msgstr "Nuevo Grupo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Recordar el último perfil utilizado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "API de gráficos para shaders"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Transmitir AC3 directamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Transmitir DTS directamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Transmitir E-AC3 directamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Transmitir DTS-HD directamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Transmitir TrueHD directamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Recodificar otros a AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1862,17 +1862,26 @@ msgid ""
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
 msgstr ""
+"Deje estas en blanco excepto si las descargas están despertando a sus discos "
+"con demasiada frecuencia. Configure los dos primeros juntos: entonces los "
+"episodios son obtenidos en un solo lote cuando una serie se esta quedando "
+"vacía, en vez de individualmente."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "An episode's thumbnail is a frame of an episode you may not have watched yet."
 msgstr ""
+"La miniatura de un episodio es un fotograma del mismo que puede no haber "
+"visto aún."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
 msgstr ""
+"Cuando esta desactivado se utiliza el comportamiento de ratón de MPV: "
+"arrastra el video para mover la ventana, click derecho para pausar. Doble "
+"click es pantalla completa de ambas maneras."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1883,6 +1892,13 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
+"Desactivado por defecto por que algunos drivers de gráficos lo manejan mal. "
+"\"Solo por encima de 1080p\" es la manera cautelosa de encenderlo: la "
+"mayoría de hardware puede descodificar 1080p en software sin ayuda. \"Copiar "
+"(avanzado)\" es más lento, pero es el modo que funciona con filtros de video "
+"por lo que es el que debe elegir si ejecuta SVP o otro filtro de "
+"VapourSynth. Si el video para de funcionar, inicie con --disable-hwdec y "
+"cambie esto de vuelta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1891,6 +1907,11 @@ msgid ""
 "get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
 "does that."
 msgstr ""
+"Desactivado significa modo de linea de comandos: no hay ventana, no hay "
+"icono en la bandeja del sistema y no hay pantalla de ajustes, por lo tanto "
+"la única de manera de volver atrás es editando conf.json a mano. No es como "
+"conseguir los controles en pantalla propios de MPV, \"Estilo de controles de "
+"reproductor\" bajo interfaz hace eso."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1900,6 +1921,12 @@ msgid ""
 "want the Interface settings instead; this is for a shared TV nobody should "
 "be able to browse from."
 msgstr ""
+"Mostrar solo lo que es transmitido a esta maquina, la biblioteca, incluyendo "
+"esta pantalla de configuración, no es accesible por aquí. Sin un icono en la "
+"bandeja del sistema la única manera de volver atrás es editamdp conf.json, "
+"Para el sistema clasico de transmisión-objetivo quiere la configuración de "
+"interfaz en su lugar; esto es para una televisión compartida desde la que "
+"nadie debería poder navegar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
