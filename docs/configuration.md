@@ -506,6 +506,11 @@ You can use the config file to enable and disable features.
 - `check_updates` - Check for updates via GitHub. Default: `true`
   - This requests the GitHub releases page and checks for a new version.
   - Update checks are performed when playing media, once per day.
+  - If the repository is ever renamed or moved, the check follows GitHub's
+    redirect so existing installs keep hearing about updates — but only to
+    `jellyfin`, `jellyfin-labs` or `iwalton3`. A redirect anywhere else is
+    logged and ignored, so an account takeover cannot re-home your update
+    notice.
 - `notify_updates` - Display update notification when playing media. Default: `true`
   - Notification will only display once until the application is restarted.
 - `discord_presence` - Enable Discord rich presence support. Default: `false`
