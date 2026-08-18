@@ -247,16 +247,18 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.assertTrue(st.get("active"))
         self.assertIn("refresh", self.ctl.calls)
 
-        # --- DOWN steps off the bar into the transport row (spatial
-        # nav picks the nearest control below); LEFT walks to
-        # play/pause and ENTER activates it
+        # --- DOWN steps off the bar and lands ON play/pause, then
+        # ENTER activates it.
+        #
+        # On it, not merely somewhere in the transport row: the button
+        # declares nav_gravity, so the arrow no longer depends on which
+        # control happens to sit nearest the middle -- which moved with
+        # the window width, because the chapter and seek buttons come and
+        # go with it. This used to press LEFT until it arrived, which is
+        # what a user had to do too.
         self._press_until(
-            "DOWN", lambda: self._state().get("nav")
-            not in (None, "hud-seek"),
-            msg="DOWN never moved focus off the seek bar")
-        self._press_until(
-            "LEFT", lambda: self._state().get("nav") == "hud-pp",
-            msg="LEFT never reached play/pause: %r"
+            "DOWN", lambda: self._state().get("nav") == "hud-pp",
+            msg="DOWN off the seek bar did not land on play/pause: %r"
             % self._state().get("nav"))
         self._press_until(
             "ENTER", lambda: "toggle_pause" in self.ctl.calls,

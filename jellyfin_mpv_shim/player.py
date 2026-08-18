@@ -77,6 +77,48 @@ if settings.mpv_ext or not python_mpv_available:
     is_using_ext_mpv = True
 
 
+def _disarm_sdl_signal_handlers():
+    """Stop SDL taking SIGTERM off us when gamepad input is on.
+
+    mpv's gamepad support is SDL2, and ``SDL_Init`` installs its own
+    SIGINT/SIGTERM handlers unless ``SDL_NO_SIGNAL_HANDLERS`` says not to.
+    It only replaces a handler that is still ``SIG_DFL`` -- which is why
+    **standalone mpv is unaffected and the shim is not**. mpv installs its
+    handlers before it ever starts the gamepad thread; CPython installs one
+    for SIGINT and leaves SIGTERM at the default, so with libmpv in-process
+    SDL takes SIGTERM, turns it into an ``SDL_QUIT`` event, and mpv's gamepad
+    loop -- which handles controller events and nothing else -- drops it on
+    the floor.
+
+    The result is an app that **cannot be terminated**: ``kill`` does
+    nothing, the window stays up, and SIGKILL is the only thing left. Not a
+    shutdown that hangs, so `exit_watchdog` never sees it either; the
+    shutdown is simply never asked for. Measured on this box with no
+    controller attached -- SDL initialises for hotplug, so a pad is not
+    needed to lose the signal:
+
+        input_gamepad off, SIGTERM -> exit in 0.00s
+        input_gamepad on,  SIGTERM -> ignored, still running after 8s
+        input_gamepad on + this,    -> exit in 0.00s
+
+    SIGINT survives either way (CPython has already claimed it), which is
+    what made this look like a Ctrl-C-only bug in testing.
+
+    An environment variable rather than a hint call because SDL is loaded
+    inside libmpv and there is no SDL handle to call ``SDL_SetHint`` on; SDL
+    reads ``SDL_<HINT>`` from the environment for exactly this case. Set
+    before mpv is constructed, since the gamepad thread starts during its
+    init, and left set afterwards -- mpv is re-created and the second
+    instance needs it just as much.
+
+    Harmless with an external mpv: the variable is inherited by the child,
+    where mpv's own handlers are already installed and SDL would have left
+    them alone anyway.
+    """
+    if os.environ.get("SDL_NO_SIGNAL_HANDLERS") is None:
+        os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"
+
+
 def _rejected_option(error):
     """The mpv option an exception blames, as an mpv_options key, or None.
 
@@ -853,6 +895,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             options.pop(GAMEPAD_OPTION, None)
         if self._lua_works is False:
             options.pop(OSC_OPTION, None)
+
+        # After the pops, not before: an mpv already known to have no
+        # --input-gamepad will load no SDL, so there is nothing to disarm
+        # and no reason to have touched the environment.
+        if GAMEPAD_OPTION in options:
+            _disarm_sdl_signal_handlers()
 
         dropped_gamepad = False
         dropped_osc = False

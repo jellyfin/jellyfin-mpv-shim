@@ -103,6 +103,24 @@ class TransportMixin(GatewayCore):
             pm.seek(float(secs))
         self._act(do)
 
+    def kb_seek(self, action):
+        """Seek as the keyboard's arrow ``action`` ("up"/"down"/"left"/
+        "right") would, for the game controller's right stick.
+
+        Not `seek_relative`: the distance is not ours to pick. `kb_seek`
+        reads it out of whatever the user has bound that arrow to in their
+        own input.conf, applies use_web_seek, and routes through a seek the
+        SyncPlay group is told about."""
+        self._act(lambda pm: pm.kb_seek(action))
+
+    def remote_action(self, action):
+        """Run a Jellyfin remote-control action ("menu", "home", ...).
+
+        The gateway's door onto `menu_action`, which is the one place that
+        knows a given action means different things with the library up and
+        over a playing video."""
+        self._act(lambda pm: pm.menu_action(action))
+
     def set_volume(self, pct, notify=True):
         self._act(lambda pm: pm.set_volume(float(pct), notify=notify))
 

@@ -723,6 +723,40 @@ class TestWorkOfflineToggle(unittest.TestCase):
         b._set_setting("player_name", "Bud")
         self.assertIs(b.source, before)
 
+class TestGamepadSwapAppliesLive(unittest.TestCase):
+    """The confirm/back swap re-pushes the binding table.
+
+    It has to apply without a restart, because the setting exists for
+    somebody who has just pressed A and gone *back*: pressing it again is
+    how they find out whether they picked the right switch. (`input_gamepad`
+    beside it genuinely does need one -- mpv reads that option at startup.)
+    """
+
+    def _browser(self):
+        from unittest import mock
+
+        cfg = FakeConfig()
+        cfg.schema["gamepad_swap_confirm"] = "bool"
+        cfg.values["gamepad_swap_confirm"] = False
+        cfg.schema["player_name"] = "str"
+        cfg.values["player_name"] = "x"
+        b = MpvtkBrowser(app=mock.Mock(), source=FakeSource(),
+                         controller=mock.Mock(), config=cfg)
+        b._pool = _SyncPool()
+        b.app.push_gamepad.reset_mock()
+        return b
+
+    def test_saving_it_re_pushes_the_table(self):
+        b = self._browser()
+        b._set_setting("gamepad_swap_confirm", True)
+        b.app.push_gamepad.assert_called_once_with()
+
+    def test_an_unrelated_setting_does_not(self):
+        b = self._browser()
+        b._set_setting("player_name", "Bud")
+        b.app.push_gamepad.assert_not_called()
+
+
 class TestPinStartupSeeding(unittest.TestCase):
     """Changing a PIN silently cleared "require at startup": the dialog
     always opened with the box unticked and saved that back."""

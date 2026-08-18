@@ -2050,6 +2050,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             app.on_forward = self._on_mouse_forward
         if hasattr(app, "on_key"):
             app.on_key = self._on_claimed_key
+        if hasattr(app, "on_gamepad_seek"):
+            # The right stick. `kb_seek` and not a distance of ours: it
+            # reads the amount off the user's own input.conf arrow binding,
+            # applies use_web_seek, and seeks in a way a SyncPlay group
+            # hears about.
+            app.on_gamepad_seek = lambda d: self._ctl(
+                lambda c: c.kb_seek(d))
+        if hasattr(app, "on_gamepad_nav"):
+            # A pad button whose meaning differs between the library and a
+            # playing video, handed to the remote control's own ladder
+            # rather than to a second copy of it.
+            app.on_gamepad_nav = lambda a: self._ctl(
+                lambda c: c.remote_action(a))
         app.on_picture_gesture = self._on_picture_gesture
         if hasattr(app, "on_scene_pushed"):
             # The strip cache's clock. Not build(): see StripStore.

@@ -182,3 +182,226 @@ class GamepadConstructRetryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BindingTableTest(unittest.TestCase):
+    """`gamepad.bindings` -- the table itself."""
+
+    def test_swap_moves_the_two_face_buttons_and_nothing_else(self):
+        from jellyfin_mpv_shim import gamepad
+
+        plain = {k: rest for k, *rest in gamepad.bindings()}
+        swapped = {k: rest
+                   for k, *rest in gamepad.bindings(swap_confirm=True)}
+        self.assertEqual(set(plain), set(swapped))
+        moved = {k for k in plain if plain[k] != swapped[k]}
+        self.assertEqual(moved, {gamepad.CONFIRM_BUTTON, gamepad.BACK_BUTTON})
+        # ...and they trade, rather than both becoming one thing. A swap
+        # that assigned instead of exchanging would leave the pad with two
+        # back buttons and no way to select anything.
+        self.assertEqual(swapped[gamepad.CONFIRM_BUTTON],
+                         plain[gamepad.BACK_BUTTON])
+        self.assertEqual(swapped[gamepad.BACK_BUTTON],
+                         plain[gamepad.CONFIRM_BUTTON])
+
+    def test_every_key_is_bound_once(self):
+        from jellyfin_mpv_shim import gamepad
+
+        for swap in (False, True):
+            keys = [row[0] for row in gamepad.bindings(swap)]
+            self.assertEqual(len(keys), len(set(keys)), swap)
+
+    def test_the_seek_directions_are_ones_kb_seek_answers(self):
+        # The renderer hands these straight to PlayerManager.kb_seek, which
+        # sends anything it does not recognise to the OSD menu instead --
+        # so a typo here is a stick that silently opens a menu rather than
+        # seeking, and nothing else would notice.
+        from jellyfin_mpv_shim import gamepad
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        known = set(PlayerManager._DEFAULT_SEEK)
+        got = {arg for _k, kind, arg, _r in gamepad.bindings()
+               if kind == gamepad.SEEK}
+        self.assertTrue(got)
+        self.assertLessEqual(got, known)
+
+    def test_the_nav_actions_are_ones_menu_action_answers(self):
+        # Same shape of risk one door along: menu_action's final fallback
+        # is kb_seek, so an action it does not know reaches the OSD menu.
+        from jellyfin_mpv_shim import gamepad
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        known = (set(PlayerManager._NAV_KEYPRESS)
+                 | set(PlayerManager._NAV_COMMANDS) | {"menu"})
+        got = {arg for _k, kind, arg, _r in gamepad.bindings()
+               if kind == gamepad.NAV}
+        self.assertTrue(got)
+        self.assertLessEqual(got, known)
+
+    def test_the_right_stick_seeks_and_the_left_one_does_not(self):
+        # The asymmetry IS the feature: a controller has two sticks and
+        # does not have to share one set of directions the way a keyboard
+        # does. Binding the left stick to a seek is the bug this replaced.
+        from jellyfin_mpv_shim import gamepad
+
+        for key, kind, _arg, _rate in gamepad.bindings():
+            if "RIGHT_STICK" in key:
+                self.assertEqual(kind, gamepad.SEEK, key)
+            elif "LEFT_STICK" in key or "DPAD" in key:
+                self.assertEqual(kind, gamepad.KEY, key)
+
+    def test_nothing_a_press_MEANS_auto_repeats(self):
+        # Holding a button is not a request to press it again. An
+        # auto-repeating Select activates whatever it lands on over and
+        # over, and an auto-repeating Back walks out of the app.
+        from jellyfin_mpv_shim import gamepad
+
+        held = {"UP", "DOWN", "LEFT", "RIGHT", "PGUP", "PGDWN"}
+        for key, kind, arg, rate in gamepad.bindings():
+            repeats = rate > 0
+            wanted = kind == gamepad.SEEK or arg in held
+            self.assertEqual(repeats, wanted, key)
+
+    def test_a_held_control_is_slower_than_mpvs_own_repeat(self):
+        # mpv's --input-ar-rate default is 40 a second. Anything at or
+        # near that is the bug: [iw] "it spams inputs way faster than I can
+        # control them".
+        from jellyfin_mpv_shim import gamepad
+
+        for key, _kind, _arg, rate in gamepad.bindings():
+            if rate:
+                self.assertGreaterEqual(rate, 1 / 15.0, key)
+
+    def test_a_seek_repeats_more_slowly_than_a_selection_moves(self):
+        # A direction repeat moves one row; a seek repeat moves real time,
+        # so at the same rate a resting thumb crosses a film in seconds.
+        from jellyfin_mpv_shim import gamepad
+
+        self.assertGreater(gamepad.SEEK_REPEAT, gamepad.DIRECTION_REPEAT)
+
+    def test_it_is_json_safe(self):
+        # It is sent to the renderer as JSON; a tuple would arrive as a
+        # list anyway, so the table says so here rather than round-tripping
+        # into a different shape than the tests assert on.
+        import json
+
+        from jellyfin_mpv_shim import gamepad
+
+        table = gamepad.bindings()
+        self.assertEqual(json.loads(json.dumps(table)), table)
+
+
+class SdlSignalHandlerTest(unittest.TestCase):
+    """SIGTERM survives having gamepad input on.
+
+    SDL installs its own SIGINT/SIGTERM handlers, but only over a handler
+    still at SIG_DFL -- which is why standalone mpv is fine and the shim is
+    not: mpv installs its handlers first, and CPython leaves SIGTERM at the
+    default. In process, SDL took it and turned it into an SDL_QUIT that
+    mpv's gamepad loop drops, so the app could not be killed by anything
+    short of SIGKILL. Measured, with no controller attached.
+    """
+
+    def setUp(self):
+        import os
+
+        self.env = dict(os.environ)
+        self.addCleanup(lambda: (os.environ.clear(),
+                                 os.environ.update(self.env)))
+        os.environ.pop("SDL_NO_SIGNAL_HANDLERS", None)
+
+    def _construct(self, options):
+        from jellyfin_mpv_shim import player
+
+        me = mock.Mock()
+        me._lua_works = None
+        me._gamepad_works = None
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.return_value = "player"
+            player.PlayerManager._construct_mpv(me, options)
+
+    def test_it_is_set_before_an_mpv_that_has_gamepad_input(self):
+        import os
+
+        self._construct({"input_gamepad": True, "vo": "gpu"})
+        self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "1")
+
+    def test_it_is_left_alone_when_no_sdl_will_be_loaded(self):
+        # Nothing in the process initialises SDL without this option, so
+        # there is nothing to disarm and no reason to touch the
+        # environment a user handed us.
+        import os
+
+        self._construct({"vo": "gpu"})
+        self.assertIsNone(os.environ.get("SDL_NO_SIGNAL_HANDLERS"))
+
+    def test_an_mpv_already_known_to_lack_gamepad_input_is_left_alone(self):
+        # The option is dropped before mpv is constructed, so no SDL is
+        # loaded and there is nothing to disarm. Ordering, which is the
+        # only way this can be wrong: reading `options` before the pops
+        # passes every other test in this class.
+        import os
+
+        from jellyfin_mpv_shim import player
+
+        me = mock.Mock()
+        me._lua_works = None
+        me._gamepad_works = False
+        with mock.patch.object(player, "mpv") as fake_mpv:
+            fake_mpv.MPV.return_value = "player"
+            player.PlayerManager._construct_mpv(me, {"input_gamepad": True})
+        self.assertIsNone(os.environ.get("SDL_NO_SIGNAL_HANDLERS"))
+
+    def test_an_explicit_value_from_the_user_is_not_overwritten(self):
+        # Including "0". Somebody who set this deliberately wants SDL's
+        # handlers, and quietly reversing them is worse than the bug.
+        import os
+
+        os.environ["SDL_NO_SIGNAL_HANDLERS"] = "0"
+        self._construct({"input_gamepad": True})
+        self.assertEqual(os.environ.get("SDL_NO_SIGNAL_HANDLERS"), "0")
+
+
+class ControllerReachesThePlayerTest(unittest.TestCase):
+    """The two buttons that are not synthetic keypresses, end to end from
+    the renderer's event to the player.
+
+    Everything else on the pad is a keypress the renderer issues itself, so
+    these two are the whole of the wiring -- and a handler left unwired is
+    silent: the stick simply does nothing.
+    """
+
+    def _browser(self):
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+        from tests._shell_harness import FakeSource
+
+        app = mock.Mock()
+        controller = mock.Mock()
+        b = MpvtkBrowser(app=None, source=FakeSource(), controller=controller)
+        b.set_app(app)
+        return app, controller
+
+    def test_the_right_stick_seeks_the_way_the_arrow_keys_do(self):
+        app, controller = self._browser()
+        app.on_gamepad_seek("left")
+        controller.kb_seek.assert_called_once_with("left")
+        # NOT seek_relative: the distance is the user's own input.conf
+        # number, which only kb_seek reads.
+        controller.seek_relative.assert_not_called()
+
+    def test_start_goes_through_the_remote_controls_ladder(self):
+        app, controller = self._browser()
+        app.on_gamepad_nav("menu")
+        controller.remote_action.assert_called_once_with("menu")
+
+    def test_the_gateway_hands_both_to_the_player(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
+
+        for method, target, arg in (("kb_seek", "kb_seek", "up"),
+                                    ("remote_action", "menu_action", "menu")):
+            with self.subTest(method=method):
+                gateway = PlayerGateway.__new__(PlayerGateway)
+                pm = mock.Mock()
+                gateway._act = lambda fn, pm=pm: fn(pm)
+                getattr(gateway, method)(arg)
+                getattr(pm, target).assert_called_once_with(arg)

@@ -4149,6 +4149,18 @@ local function nav_pick_row(cur, cands, dy, filter)
     if not nearest then return nil end
     local _, nyy = eff(nearest)
     local best, score
+    -- A node in the row may declare `grav` -- "this is the one an arrow
+    -- arriving here meant". Tracked separately and preferred outright,
+    -- because the alternative (a distance bonus) is a number that is
+    -- right at one window width and wrong at another, which is the very
+    -- thing this fixes: coming DOWN off the full-width seek bar, nearest
+    -- to the middle is whichever transport button the current width
+    -- happens to have centred. Ties among several fall back to distance.
+    --
+    -- Vertical only, by construction: this function IS the vertical case.
+    -- Horizontal navigation steps ALONG a row, and a control with gravity
+    -- there could never be stepped past.
+    local gbest, gscore
     for _, c in ipairs(cands) do
         if c.id ~= cur.id and (filter == nil or filter(c)) then
             local ok = beyond(c)
@@ -4157,10 +4169,13 @@ local function nav_pick_row(cur, cands, dy, filter)
             if ok and ey < nyy + nearest.h and nyy < ey + c.h then
                 local s = math.abs(ex + c.w / 2 - cx)
                 if score == nil or s < score then best, score = c, s end
+                if c.grav and (gscore == nil or s < gscore) then
+                    gbest, gscore = c, s
+                end
             end
         end
     end
-    return best
+    return gbest or best
 end
 
 -- One entry point: row-based for vertical, overlap-confined for
@@ -4363,7 +4378,20 @@ local function nav_activate()
         state.dd_scroll = dd_state(node).sel or 0
         request_render()
     elseif node.t == 'slider' then
-        if state.nav_adjust then
+        if state.nav_adjust and node.aadj and not state.nav_scrubbed then
+            -- **An always-adjust bar is live the moment it is focused**,
+            -- so "in adjust mode" does not mean a gesture is in flight --
+            -- `nav_scrubbed` is what means that. With nothing pending,
+            -- committing seeks to the position playback is already at: a
+            -- round trip, and on a transcode a restart, to arrive where
+            -- you were. Select on an untouched seek bar means play/pause,
+            -- which is what it means everywhere else on a player and what
+            -- a ten-foot UI does with it.
+            --
+            -- pause_now rather than `cycle pause`, because in a SyncPlay
+            -- group a local pause is not a pause -- see its definition.
+            state.pause_now()
+        elseif state.nav_adjust then
             -- commit BEFORE dropping adjust mode: sl_state treats a
             -- scrubbing slider as busy, so clearing first would let
             -- force=true snap the value back to the scene position
@@ -4580,35 +4608,6 @@ local NAV_KEYS = {
     { 'HOME', function() if not keyclaim.take('HOME') then key_scroll('HOME') end end },
     { 'END', function() if not keyclaim.take('END') then key_scroll('END') end end },
 
-    -- Game controller. Aliases, not a second input model: each one runs the
-    -- handler its keyboard equivalent runs and claims under the keyboard
-    -- name, so a page that claimed 'UP' gets the d-pad too and nothing has
-    -- to learn about controllers.
-    --
-    -- Bound unconditionally, and that is safe: the GAMEPAD_* names live in
-    -- mpv's keycode table whether or not SDL2 gamepad support was compiled
-    -- in, so on a build without it these resolve and simply never fire.
-    -- Whether events arrive at all is `--input-gamepad`, which the shim only
-    -- sets when the user asks (mpv_options.GAMEPAD_OPTION).
-    --
-    -- ACTION_DOWN is A/cross and ACTION_RIGHT is B/circle -- mpv names them
-    -- by position, so this is the same physical pair on every pad. B routes
-    -- through a synthetic ESC for the reason the mouse back button does:
-    -- ESC already steps out exactly one layer, and a second implementation
-    -- of that ladder would drift from it.
-    { 'GAMEPAD_DPAD_UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
-    { 'GAMEPAD_DPAD_DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
-    { 'GAMEPAD_DPAD_LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
-    { 'GAMEPAD_DPAD_RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
-    { 'GAMEPAD_LEFT_STICK_UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
-    { 'GAMEPAD_LEFT_STICK_DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
-    { 'GAMEPAD_LEFT_STICK_LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
-    { 'GAMEPAD_LEFT_STICK_RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
-    { 'GAMEPAD_ACTION_DOWN', function() if not keyclaim.take('ENTER') then nav_activate() end end },
-    { 'GAMEPAD_ACTION_RIGHT', function() mp.commandv('keypress', 'ESC') end },
-    { 'GAMEPAD_START', function() nav_context() end },
-    { 'GAMEPAD_LEFT_SHOULDER', function() if not keyclaim.take('PGUP') then key_scroll('PGUP') end end },
-    { 'GAMEPAD_RIGHT_SHOULDER', function() if not keyclaim.take('PGDWN') then key_scroll('PGDWN') end end },
 }
 
 -- Every key in NAV_KEYS is already force-bound, so claiming one only changes
@@ -5797,7 +5796,100 @@ end)
 -- Move*/Select here because keypresses would hit mpv defaults (only
 -- the configured wake key is grabbed). 'select' = wake + pause/play,
 -- anything else = plain wake.
-mp.register_script_message('mpvtk-hud-summon', function(kind)
+-- Game controller bindings, pushed by Python (gamepad.py) and re-pushed
+-- when the layout setting changes, so swapping the face buttons takes
+-- effect without a restart.
+--
+-- **Bound here rather than in NAV_KEYS**, which is where they started and
+-- where they were wrong: those bindings are torn down by `ui_suspend` the
+-- moment a video starts, because playback wants the arrows back. The
+-- controller does not share that problem -- it has a whole second stick --
+-- so it must not share the teardown, and the first version of this went
+-- completely dead the moment anything played.
+--
+-- **add_key_binding, NOT add_forced_key_binding**: a non-forced binding is
+-- one the user's own input.conf overrides just by naming the key, which is
+-- the whole remapping story and costs nothing to provide. Forced bindings
+-- would have to be disabled before a remap could be written.
+--
+-- Safe to bind on a build with no SDL2 gamepad support: the GAMEPAD_* names
+-- live in mpv's keycode table either way, so these resolve and simply never
+-- fire. Whether events arrive at all is `--input-gamepad`, which the shim
+-- only passes when the user asks for it.
+mp.register_script_message('mpvtk-gamepad', function(json)
+    local list = utils.parse_json(json) or {}
+    -- The keys that WAKE a hidden playback HUD instead of being delivered.
+    -- Same set the remote's Move*/Select summon path uses, and the same
+    -- reason: with hud_grab_keys off (the default) only the wake key is
+    -- bound during playback, so a keypress here would fall through to
+    -- mpv's own arrows and the left stick would seek. It is the RIGHT
+    -- stick that seeks; the left one drives the UI in every mode, which is
+    -- the whole point of there being two.
+    local wake = { UP = true, DOWN = true, LEFT = true, RIGHT = true,
+                   ENTER = true }
+    for key in pairs(state.gp_bound or {}) do
+        mp.remove_key_binding('mpvtk_gp_' .. key)
+    end
+    state.gp_bound = {}
+    state.gp_last = {}
+    for _, b in ipairs(list) do
+        local key, kind, arg = b[1], b[2], b[3]
+        local rate = tonumber(b[4]) or 0
+        if type(key) == 'string' and type(kind) == 'string'
+            and type(arg) == 'string' then
+            state.gp_bound[key] = true
+            mp.add_key_binding(key, 'mpvtk_gp_' .. key, function(e)
+                -- `complex`, so an auto-repeat is distinguishable from a
+                -- press and a release does nothing. Held controls are
+                -- thinned to `rate` because mpv repeats at
+                -- --input-ar-rate, 40 a second, which on a stick is forty
+                -- library rows a second and unaimable.
+                if type(e) == 'table' and e.event == 'up' then return end
+                if rate > 0 then
+                    -- Every event, not just the ones marked 'repeat': an
+                    -- analog axis resting near its threshold chatters
+                    -- across it, and each crossing arrives as a fresh
+                    -- press. A first press after a pause is always
+                    -- through, because the gap is what is measured.
+                    local now = mp.get_time()
+                    if now - (state.gp_last[key] or -1e9) < rate then
+                        return
+                    end
+                    state.gp_last[key] = now
+                end
+                if kind == 'seek' then
+                    -- Python's kb_seek: the distance out of the user's own
+                    -- input.conf, use_web_seek applied, and a seek the
+                    -- SyncPlay group hears about. A `seek 5` from here
+                    -- would be none of those.
+                    send({ t = 'gpseek', dir = arg })
+                elseif kind == 'nav' then
+                    send({ t = 'gpnav', a = arg })
+                elseif wake[arg] and state.phud.mode
+                    and not state.phud.shown then
+                    state.phud_wake(arg == 'ENTER' and 'select' or 'nav')
+                else
+                    -- Whatever is bound to this key RIGHT NOW answers: the
+                    -- browser's spatial nav while the library is up, the
+                    -- summoned HUD's, a page's own claim, mpv's default
+                    -- when nothing else wants it.
+                    mp.commandv('keypress', arg)
+                end
+            end, { repeatable = rate > 0, complex = true })
+        end
+    end
+end)
+
+-- What Select or a direction means while the bar is HIDDEN. One
+-- function, three callers -- the remote's mpvtk-hud-summon below, the
+-- controller's confirm and direction buttons, and the skip overlay's own
+-- ENTER binding is the keyboard's copy of the first branch.
+--
+-- A field on `state` rather than a local: this chunk is at LuaJIT's
+-- 200-local ceiling. The controller had its own copy of the middle branch
+-- and only that one, so pressing A over a showing Skip Intro button
+-- summoned the bar while the keyboard and the remote both skipped.
+state.phud_wake = function(kind)
     if not state.phud.mode or state.phud.shown then return end
     if state.phud.skip_show and kind == 'select' then
         -- overlay showing: Select accepts the skip, like local ENTER
@@ -5808,6 +5900,10 @@ mp.register_script_message('mpvtk-hud-summon', function(kind)
     else
         phud_summon('key')
     end
+end
+
+mp.register_script_message('mpvtk-hud-summon', function(kind)
+    state.phud_wake(kind)
 end)
 
 -- Skippable-segment label ('' = no segment). Pushed by the browser

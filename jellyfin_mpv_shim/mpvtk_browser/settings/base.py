@@ -74,6 +74,15 @@ class SettingsBase:
             # and seeing nothing happen.
             if self.app is not None and hasattr(self.app, "push_scroll_config"):
                 self.app.push_scroll_config()
+        if ok and key == "gamepad_swap_confirm":
+            # Applies live: the renderer just rebinds. Worth doing rather
+            # than adding it to the restart-required pile, because the
+            # setting exists for somebody who has just pressed A and gone
+            # back instead of forward -- pressing it again is how they check
+            # they picked the right switch. (`input_gamepad` beside it does
+            # need a restart; mpv reads that one once, at startup.)
+            if self.app is not None and hasattr(self.app, "push_gamepad"):
+                self.app.push_gamepad()
         if ok and key == "poster_scale":
             # Applies live, unlike the theme's own cover size below: this
             # control is *labelled* Cover Size, so watching it happen is the

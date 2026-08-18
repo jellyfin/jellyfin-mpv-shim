@@ -1477,6 +1477,10 @@ msgid "Game Controller"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Swap Confirm and Back Buttons"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
 msgstr ""
 
@@ -1722,11 +1726,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Takes effect after a restart. Move with the d-pad or left stick, A to "
-"select, B to go back, shoulder buttons to page, Start for the menu. A "
-"controller is not focus-aware, so it will reach this app even when another "
-"window is in front. Needs an mpv built with SDL2 gamepad support; if yours "
-"lacks it this setting is ignored and the log says so."
+"Takes effect after a restart. Move with the d-pad or left stick, seek with "
+"the right stick, shoulder buttons to page, Start for the menu. A controller "
+"is not focus-aware, so it will reach this app even when another window is in "
+"front. Needs an mpv built with SDL2 gamepad support; if yours lacks it this "
+"setting is ignored and the log says so. Any button can be reassigned in your "
+"input.conf."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Turn this on for a controller whose A button is on the right rather than at "
+"the bottom (Switch Pro, most 8BitDo pads). Applies immediately."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

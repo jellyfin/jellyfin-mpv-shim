@@ -1068,6 +1068,10 @@ def build_player(player_module, video=None):
     pm._lua_works = None
     pm._lua_probe = None
     pm._osc_style_override = None
+    # ...and its sibling, the gamepad build gate. Read by _construct_mpv on
+    # the same path and for the same reason, so a missing one is not a
+    # skipped branch -- it is an AttributeError out of every mpv creation.
+    pm._gamepad_works = None
 
     # Picture processing. Both are read BEFORE they are written -- the
     # deinterlace override on every load, the saved video-sync the first

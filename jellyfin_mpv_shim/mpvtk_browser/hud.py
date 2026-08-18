@@ -824,10 +824,11 @@ def build_hud(b, size):
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=HUD_ICON,
              tip=None,
-             repeat=False, fg="eeeeee"):
+             repeat=False, fg="eeeeee", nav_gravity=False):
         return Button("", id=node_id, icon=icon, flat=True, fg=fg,
                       icon_size=sz(icon_size), autofocus=autofocus,
-                      tip=tip, repeat=repeat, on_click=cb)
+                      tip=tip, repeat=repeat, on_click=cb,
+                      nav_gravity=nav_gravity)
 
     # Scrub semantics: 'change' only moves the preview + clock; the seek
     # happens once on 'commit' (drag release / adjust-mode exit), so
@@ -878,9 +879,15 @@ def build_hud(b, size):
             "replay_10", "hud-seek-back",
             lambda: b._ctl(lambda c: c.seek_relative(-10)),
             tip=_("Back 10 Seconds"), repeat=True))
+    # DOWN off the seek bar lands here, whatever else the current width
+    # is drawing beside it. Without the gravity the arrow picks whichever
+    # button happens to sit nearest the middle, and which one that is
+    # changes with the window size as the optional chapter and seek
+    # buttons come and go -- so the same press does something different on
+    # a narrow window than on a wide one.
     controls.append(tbtn(
         pp, "hud-pp", lambda: b._ctl(lambda c: c.toggle_pause()),
-        icon_size=36))
+        icon_size=36, nav_gravity=True))
     if tiers["seek_btns"]:
         controls.append(tbtn(
             "forward_30", "hud-seek-fwd",

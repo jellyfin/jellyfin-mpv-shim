@@ -53,6 +53,25 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertEqual(seek.get("marks"), [0.4, 0.8],
                          "chapter slits should be the interior chapters")
 
+    def test_play_pause_is_where_a_vertical_arrow_lands(self):
+        """DOWN off the seek bar has to reach play/pause at every width.
+
+        The renderer otherwise takes whichever control in the row is
+        nearest the x the arrow left the bar with -- and which one that is
+        moves with the window, because the chapter and seek buttons come
+        and go with it. `nav_gravity` names the control instead, and this
+        asserts the *scene* carries it: the renderer half is pinned in
+        tests/lua/test_renderer.lua, and it is pinned against a
+        hand-written node, so nothing there would notice this attribute
+        never being emitted.
+        """
+        b, _ctl = self._browser()
+        for size in ((1280, 720), (900, 520), (640, 400)):
+            with self.subTest(size=size):
+                nodes, _handlers = build_scene(b, size)
+                grav = [n.get("id") for n in nodes if n.get("grav")]
+                self.assertEqual(grav, ["hud-pp"], size)
+
     def _episode(self, b, **kw):
         st = dict(b.hud.state)
         st.update({"title": "Pilot", "series_name": "The Show",

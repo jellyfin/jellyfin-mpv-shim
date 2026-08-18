@@ -497,6 +497,14 @@ class Settings(SettingsBase):
     menu_mouse: bool = True
     media_keys: bool = True
     input_gamepad: bool = False
+    #: Which face button confirms. mpv reports the face buttons by POSITION
+    #: -- ACTION_DOWN is the bottom one whatever is printed on it -- and the
+    #: two common layouts disagree about where A lives: Xbox-style pads put
+    #: it at the bottom, Nintendo-style ones (Switch Pro, most 8BitDo) put it
+    #: on the right. There is no way to tell them apart from the button
+    #: events, so this is the user saying which pad is in their hands. See
+    #: gamepad.py.
+    gamepad_swap_confirm: bool = False
     connect_retry_mins: int = 0
     transcode_warning: bool = True
     lang_filter: str = "und,eng,jpn,mis,mul,zxx"

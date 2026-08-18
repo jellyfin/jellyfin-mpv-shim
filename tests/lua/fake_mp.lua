@@ -17,6 +17,8 @@ M.log = {
     props = {},         -- set_property_native by name
     timers = {},        -- live timers, so a test can fire them
     keybinds = {},
+    forced = {},       -- keybind name -> was it add_FORCED_key_binding?
+    keyopts = {},      -- keybind name -> the flags table it was bound with
     sections = {},      -- set_key_bindings group name -> {key = true}
     enabled = {},       -- section name -> enable_key_bindings state
     section_flags = {}, -- section name -> the flags it was enabled with
@@ -241,15 +243,28 @@ end
 function mp.register_script_message(name, fn) msg_handlers[name] = fn end
 function mp.unregister_script_message(name) msg_handlers[name] = nil end
 
+-- Forced-ness is recorded, not just the handler. It is the whole
+-- difference between a binding the user's own input.conf can override by
+-- naming the key and one they cannot touch without disabling it first --
+-- and with both functions writing the same row, "these are remappable" was
+-- a claim no test could see, let alone fail on.
 function mp.add_key_binding(key, name, fn, opts)
     M.log.keybinds[name or key] = fn
+    M.log.forced[name or key] = false
+    M.log.keyopts[name or key] = opts or {}
 end
 
 function mp.add_forced_key_binding(key, name, fn, opts)
     M.log.keybinds[name or key] = fn
+    M.log.forced[name or key] = true
+    M.log.keyopts[name or key] = opts or {}
 end
 
-function mp.remove_key_binding(name) M.log.keybinds[name] = nil end
+function mp.remove_key_binding(name)
+    M.log.keybinds[name] = nil
+    M.log.forced[name] = nil
+    M.log.keyopts[name] = nil
+end
 -- Whether a section is enabled cannot model mpv's section STACK, but it can
 -- model the flag, which is what a "this group was never turned on" bug looks
 -- like. M.log.enabled[name] is nil until someone enables or disables it.
