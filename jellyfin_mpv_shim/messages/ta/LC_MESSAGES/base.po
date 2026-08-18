@@ -7,27 +7,27 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2025-06-26 13:51+0000\n"
-"Last-Translator: Oatavandi <oatavandi@gmail.com>\n"
+"PO-Revision-Date: 2026-08-18 18:37+0000\n"
+"Last-Translator: deepak r <deepak.r232629@gmail.com>\n"
 "Language-Team: Tamil <https://translate.jellyfin.org/projects/jellyfin/"
-"jellyfin-desktop/ta/>\n"
+"jellyfin-mpv-shim/ta/>\n"
 "Language: ta\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.4\n"
+"X-Generator: Weblate 5.15.1\n"
 "Generated-By: pygettext.py 1.5\n"
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "அறியப்படாத வடிவம்"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "பக்கம்%(page)d/%(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -304,7 +304,7 @@ msgstr "வீடியோ தரத்தை மாற்றவும்"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #: jellyfin_mpv_shim/syncplay.py
 msgid "SyncPlay"
-msgstr "ஒத்திசைவு"
+msgstr "ஒத்திசைவு இயக்கி"
 
 #: jellyfin_mpv_shim/menu.py
 #, python-brace-format
@@ -3526,9 +3526,8 @@ msgstr "நேரலை"
 # seeded from jellyfin-web: Premiere
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Premiere"
-msgstr "பிரீமியர்"
+msgstr "முதல் திரையிடல்"
 
 # seeded from jellyfin-web: New
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3747,10 +3746,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Trailer"
-msgstr "தோல்வி"
+msgstr "முன்னோட்டம்"
 
 # seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
