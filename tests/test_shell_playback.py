@@ -53,6 +53,47 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertEqual(seek.get("marks"), [0.4, 0.8],
                          "chapter slits should be the interior chapters")
 
+    def test_play_pause_is_where_a_vertical_arrow_lands(self):
+        """DOWN off the seek bar has to reach play/pause at every width.
+
+        The renderer otherwise takes whichever control in the row is
+        nearest the x the arrow left the bar with -- and which one that is
+        moves with the window, because the chapter and seek buttons come
+        and go with it. `nav_gravity` names the control instead, and this
+        asserts the *scene* carries it: the renderer half is pinned in
+        tests/lua/test_renderer.lua, and it is pinned against a
+        hand-written node, so nothing there would notice this attribute
+        never being emitted.
+        """
+        b, _ctl = self._browser()
+        for size in ((1280, 720), (900, 520), (640, 400)):
+            with self.subTest(size=size):
+                nodes, _handlers = build_scene(b, size)
+                grav = [n.get("id") for n in nodes if n.get("grav")]
+                self.assertEqual(grav, ["hud-pp"], size)
+
+    def test_a_photo_has_no_gravity_at_all(self):
+        """A photo HUD draws no seek row, so the transport row sits directly
+        under the top bar -- and gravity applies to any vertical arrival
+        into the row, not just one off the bar. With it on, every DOWN from
+        the close button or the SyncPlay button threw the ring a thousand
+        pixels left onto play/pause, and UP did not bring it back (play/
+        pause's UP goes to the top-LEFT).
+
+        The whole argument for the gravity is disambiguating a full-width
+        seek bar. Where there is no seek bar there is nothing to
+        disambiguate, so there is nothing to pull.
+        """
+        b, _ctl = self._browser()
+        b.hud.state = dict(b.hud.state, is_photo=True)
+        for size in ((1280, 720), (900, 520), (640, 400)):
+            with self.subTest(size=size):
+                nodes, _handlers = build_scene(b, size)
+                self.assertIn("hud-pp", ids(nodes),
+                              "a photo lost its play/pause button")
+                self.assertEqual(
+                    [n.get("id") for n in nodes if n.get("grav")], [], size)
+
     def _episode(self, b, **kw):
         st = dict(b.hud.state)
         st.update({"title": "Pilot", "series_name": "The Show",

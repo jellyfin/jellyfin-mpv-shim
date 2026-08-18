@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import platform
+import signal
 import sys
 import multiprocessing
 from threading import Event
@@ -50,6 +51,124 @@ def scratch_namespace():
                       os.path.abspath(conffile.confdir(APP_NAME)))
     digest = hashlib.sha1(key.encode("utf-8", "replace")).hexdigest()
     return "%s.%s" % (APP_NAME, digest[:8])
+
+
+def _claim_sigterm(halt):
+    """Make SIGTERM run the orderly shutdown, and take the signal before SDL
+    can.
+
+    Two things at once, and the second is why this is here rather than in the
+    player.
+
+    **SIGTERM had no handler at all**, so `kill` skipped the whole shutdown
+    sequence: no final progress report (the server goes on showing the
+    session as playing until the websocket times out), no window geometry
+    saved, no credentials flushed. `jellyfin-mpv-shim stop` has always been
+    the orderly path -- it goes through the instance lock, not a signal --
+    but `kill` is what a person reaches for, and systemd and a session logout
+    both send exactly this.
+
+    **And claiming it is what keeps it.** SDL installs its own SIGINT/SIGTERM
+    handlers when mpv's gamepad support initialises, but
+    ``SDL_AddSignalHandler`` only replaces a handler that is still
+    ``SIG_DFL`` -- which is precisely why standalone mpv is unaffected (it
+    installs its own first) and we were not. CPython claims SIGINT and leaves
+    SIGTERM at the default, so SDL took it, turned it into an ``SDL_QUIT``,
+    and mpv's gamepad loop -- which handles controller events and nothing
+    else -- dropped it. The app could not be stopped by anything short of
+    SIGKILL.
+
+    Measured, gamepad on, with ``SDL_NO_SIGNAL_HANDLERS`` deliberately NOT
+    set, so this is the handler doing the work and not the environment:
+
+        no handler installed -> SIGTERM never arrives
+        this                 -> handler runs, shutdown proceeds
+
+    So it is a fix that does not depend on a ``putenv`` in this interpreter
+    being visible to a ``getenv`` inside SDL2 -- which is certain on glibc
+    and was never verified on Windows. The environment variable survives for
+    the *child* mpv of the external backend, which has no handler of its own;
+    see ``player._disarm_sdl_signal_handlers``.
+
+    Installed here rather than beside the mpv construction because ordering
+    is the whole point: it has to be in place before SDL initialises, and
+    `playerManager` is a module-level singleton whose import creates mpv. The
+    imports that reach it are all below this line. The main thread is also
+    the only thread `signal.signal` may be called from, and this is it.
+
+    Sets the event the run loop waits on rather than exiting: everything that
+    makes a shutdown orderly happens in `main`'s `finally`, and
+    `exit_watchdog` is already armed there to force the exit if a step wedges.
+    """
+    def on_sigterm(signum, frame):
+        # No logging from inside a signal handler -- it can land while the
+        # logging lock is held on another thread, and a deadlock here is a
+        # process that cannot be stopped, which is the bug being fixed.
+        halt.set()
+
+    try:
+        signal.signal(signal.SIGTERM, on_sigterm)
+    except (ValueError, OSError, AttributeError):
+        # Not the main thread, or a platform without SIGTERM. Nothing here is
+        # required for correct operation on a machine that never sends one.
+        #
+        # `root_logger`, not `log`: that name is a LOCAL inside main(), and
+        # reaching for it here raised NameError on exactly the platforms this
+        # branch exists to tolerate -- i.e. the handler failing to install
+        # would have taken startup down with it.
+        root_logger.debug("Could not install a SIGTERM handler.",
+                          exc_info=True)
+
+
+def _use_spawn_start_method():
+    """Force 'spawn' for the tray child, whatever already resolved a context.
+
+    - macOS: avoids Objective-C fork crashes with GUI frameworks (3.14's
+      'forkserver' also crashes with Obj-C, issue #473).
+    - Linux/Windows: the child is started *after* the timeline/action/sync
+      worker threads, so a plain fork can inherit a held lock (e.g. logging)
+      and deadlock the child. 'spawn' gives a clean interpreter; the child
+      relies only on its IPC-supplied options, not on inherited globals.
+
+    **``force=True``, because without it this call did nothing when launched
+    from ``run.py``.** ``set_start_method`` raises rather than overriding a
+    context that is already resolved -- and a context resolves on the first
+    *read*, not only on a set. ``run.py`` calls ``multiprocessing.freeze_
+    support()`` before ``main``, whose first line is ``self.get_start_
+    method()``, which materialises the platform default. So on Linux the
+    context was pinned to **fork** before this ran, the ``RuntimeError`` was
+    swallowed as "already set" -- which read as "somebody set it to what we
+    wanted" and was the opposite -- and every tray child was forked. The
+    installed console script has no ``freeze_support`` call and did spawn, so
+    this was a from-source and frozen-Windows-build bug only.
+
+    What that cost is not theoretical: a forked child inherits the parent's
+    signal handlers, so it took a copy of `_claim_sigterm`'s SIGTERM handler
+    -- which sets an `Event` that, in the child, nothing waits on. Every
+    ``TrayManager.stop()`` (a ``terminate()``, i.e. a SIGTERM) was therefore
+    swallowed, and the tray process outlived the app that started it and had
+    to be SIGKILLed. `tray._reset_inherited_signals` and the escalation in
+    ``TrayManager.stop`` are the layers under this.
+
+    Reported rather than merely attempted: a start method that is not spawn
+    is a real hazard on every platform, and the failure is silent.
+    """
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except (RuntimeError, ValueError):
+        # A platform without a spawn context. Nothing here is required for
+        # correct operation; the tray child is simply started the other way.
+        root_logger.debug("Could not select the spawn start method.",
+                          exc_info=True)
+    # allow_none=False: if the set above failed, the default is what the
+    # children will actually be started with, and naming it is the point.
+    actual = multiprocessing.get_start_method()
+    if actual != "spawn":
+        root_logger.warning(
+            "Child processes will be started with the %r method, not "
+            "'spawn'. They inherit this process's signal handlers and "
+            "locks, which can leave the system tray process behind on "
+            "the way out.", actual)
 
 
 def main():
@@ -122,19 +241,7 @@ def main():
 
     enable_manual_dumps()
 
-    try:
-        # Use 'spawn' for the tray/browser child processes on every platform.
-        # - macOS: avoids Objective-C fork crashes with GUI frameworks
-        #   (3.14's 'forkserver' also crashes with Obj-C, issue #473).
-        # - Linux/Windows: these children are forked *after* the timeline/action/
-        #   sync worker threads start, so a plain fork can inherit a held lock
-        #   (e.g. logging) and deadlock the child. 'spawn' gives a clean
-        #   interpreter; the children already rely only on their IPC-supplied
-        #   options, not inherited globals, so this is safe.
-        multiprocessing.set_start_method("spawn")
-    except RuntimeError:
-        # Context already set, ignore
-        pass
+    _use_spawn_start_method()
 
     from .single_instance import SingleInstance
 
@@ -171,6 +278,7 @@ def main():
     # startup is honoured rather than acknowledged and dropped.
     halt = Event()
     single.on_stop = halt.set
+    _claim_sigterm(halt)
 
     # Give this configuration's scratch caches their own directory, and with
     # it the right to reclaim everything already in it: anything else in

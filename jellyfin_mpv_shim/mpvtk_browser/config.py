@@ -98,6 +98,15 @@ TAB_SECTIONS = {
         (_("This Device"), ["player_name", "raise_mpv",
                             "discord_presence",
                             "check_updates", "notify_updates"]),
+        # A controller drives the *library* as much as playback -- it is the
+        # couch input for the whole app, not a player control -- so it sits
+        # here rather than under Player Controls on the playback tab.
+        #
+        # `media_keys` deliberately stays uncurated: it is not what most
+        # people are looking for, and on Linux desktops that route media
+        # keys through MPRIS it is likely broken anyway. Promoting it would
+        # be offering a switch we cannot say works.
+        (_("Input"), ["input_gamepad", "gamepad_swap_confirm"]),
         # Everything about the window itself, in the order you meet it:
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
@@ -375,6 +384,8 @@ LABELED_ENUMS = {
 }
 
 LABEL_OVERRIDES = {
+    "input_gamepad": _("Game Controller"),
+    "gamepad_swap_confirm": _("Swap Confirm and Back Buttons"),
     "sync_path": _("Download Folder"),
     "prefer_downloaded": _("Prefer Downloaded Copy"),
     "mouse_click_pauses": _("Left Click Pauses Playback"),
@@ -466,6 +477,25 @@ CAST_TARGET_NOTE = _(
 # Explanatory line rendered under a setting, for the ones whose default
 # isn't self-explanatory from the label alone.
 NOTES = {
+    # Both caveats are ones a user would otherwise report as bugs: input
+    # arriving while another window is focused, and the setting appearing to
+    # do nothing at all on an mpv that cannot do it.
+    "input_gamepad": _("Takes effect after a restart. Move with the d-pad "
+                       "or left stick, seek with the right stick, shoulder "
+                       "buttons to page, Start for the menu. A controller "
+                       "is not focus-aware, so it will reach this app even "
+                       "when another window is in front. Needs an mpv built "
+                       "with SDL2 gamepad support; if yours lacks it this "
+                       "setting is ignored and the log says so. Any button "
+                       "can be reassigned in your input.conf."),
+    # The buttons are reported by POSITION, so this is not something the
+    # shim can detect -- see gamepad.py. Worth spelling the layouts out:
+    # somebody with a Switch-style pad is looking for "my A button goes
+    # back", not for the word "swap".
+    "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
+                              "is on the right rather than at the bottom "
+                              "(Switch Pro, most 8BitDo pads). Applies "
+                              "immediately."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.

@@ -9,12 +9,14 @@
         "--socket=fallback-x11",
         "--socket=wayland",
         "--device=dri",
+        "--device=input",
         "--share=network",
         "--socket=pulseaudio",
         "--filesystem=xdg-run/pipewire-0:ro",
         "--talk-name=org.gnome.SessionManager",
         "--env=LC_NUMERIC=C"
     ],
+    "//gamepad-note": "Game controller support needs BOTH of these and is silent without either. mpv's `sdl2-gamepad` is `value: 'disabled'` in its own meson.options -- not `auto` -- so having SDL2 present changes nothing and the flag is required; without it `--input-gamepad` does not exist and the shim drops it with a warning at every launch. And `--device=input` is required for the sandbox to expose /dev/input at all, which is where SDL finds the pad: with the build flag but not the device, mpv starts its SDL thread, sees no controller ever, and nothing anywhere says why. SDL2 itself needs no module -- 2.32.x ships in both org.gnome.Sdk (headers) and org.gnome.Platform (libSDL2-2.0.so.0), checked, so libmpv resolves it at runtime. `--device=input` rather than `--device=all`: this needs joysticks, not the camera and everything else.",
     "//build-options-note": "flatpak-builder only passes a libdir to meson and cmake by default from 1.4.4 on; Ubuntu 24.04 ships 1.4.2, which lets each build system pick. Both then choose lib64 -- meson on x86_64, cmake on aarch64 -- and the .pc files land off the pkg-config path, so mpv cannot find libplacebo and libayatana-indicator cannot find ayatana-ido. Pinning it here makes every builder version agree, and would put libmpv.so where python-mpv looks for it even if nothing failed at build time.",
     "build-options": {
         "libdir": "/app/lib"
@@ -52,7 +54,8 @@
                 "-Dlcms2=enabled",
                 "-Djpeg=enabled",
                 "-Dlibarchive=enabled",
-                "-Dcplugins=enabled"
+                "-Dcplugins=enabled",
+        "-Dsdl2-gamepad=enabled"
             ],
             "sources": [
                 {

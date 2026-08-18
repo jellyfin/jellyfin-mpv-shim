@@ -29,7 +29,7 @@ class Element:
     def __init__(self, id=None, w=None, h=None, flex=0,
                  anchor=None, dx=0, dy=0, occlude=False, tip=None,
                  min_w=None, max_w=None, min_h=None, max_h=None,
-                 autofocus=False, disabled=False):
+                 autofocus=False, disabled=False, nav_gravity=False):
         self.id = id
         self.w = w
         self.h = h
@@ -59,6 +59,20 @@ class Element:
         # colours here, because those are baked into child nodes the
         # renderer cannot recognise as parts of a control.
         self.disabled = disabled
+
+        # Where a VERTICAL arrow lands when it arrives at this node's row.
+        # Spatial navigation otherwise picks whichever control in the row
+        # is nearest the x it came from, which is right for a grid of
+        # tiles and wrong for a row of transport buttons: coming DOWN off
+        # a full-width seek bar, "nearest the middle" depends on how many
+        # optional buttons the current width happens to be drawing, so the
+        # same press lands somewhere different at different window sizes.
+        # A row may name the control the user actually meant.
+        #
+        # Vertical only. Horizontal navigation is *stepping along* a row,
+        # and a control that pulled every LEFT/RIGHT to itself could not
+        # be stepped past.
+        self.nav_gravity = nav_gravity
 
 
 class Box(Element):

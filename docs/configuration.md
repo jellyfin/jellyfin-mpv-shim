@@ -651,6 +651,65 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
 - `kb_kill_shader` - Disable shader packs. (Default: `k`)
 - `media_keys` - Enable binding of MPV to media keys. Default: `true`
+- `input_gamepad` - Enable game controller input, so a pad can drive the
+  library and playback. Also in Settings → General → Input. mpv reads
+  this once when it starts, so it takes effect on the next launch.
+  Default: `false`
+
+  The d-pad and **left stick** move the selection; the **right stick**
+  seeks, by the same distances your arrow keys do. The bottom face button
+  (A on an Xbox-style pad) selects, the right one (B) goes back, the left
+  one (X) pauses, the shoulder buttons page through long lists, and Start
+  opens the context menu — the player's settings menu while something is
+  playing. The two sticks are deliberately different: a keyboard has one
+  set of arrows and has to share them between navigating and seeking, and a
+  controller does not.
+
+  Held controls repeat, but much more slowly than mpv repeats a held key
+  (`--input-ar-rate`, 40 a second by default) — a direction about seven
+  times a second, the shoulder buttons about three, the right stick's seek
+  about two and a half. Confirm, back, play/pause and Start do not repeat at
+  all. If you rebind a control in `input.conf` you get mpv's own repeat
+  behaviour for it instead, since the binding is then yours.
+
+  Every button is an ordinary mpv binding, so **you can reassign any of them
+  in your own `input.conf`** by naming the key:
+
+  ```
+  GAMEPAD_ACTION_UP       cycle fullscreen
+  GAMEPAD_BACK            keypress ESC
+  GAMEPAD_RIGHT_STICK_UP  seek 600
+  GAMEPAD_LEFT_TRIGGER    add speed -0.1
+  ```
+
+  A line there wins over the shim's own binding for that key, and nothing
+  has to be disabled first. `GAMEPAD_ACTION_UP` (Y/triangle), `GAMEPAD_BACK`
+  (Select/View) and both triggers are left unbound on purpose, so they are
+  free for whatever you want on them.
+
+  Off by default for two reasons, both worth knowing before turning it on.
+  **A controller is not focus-aware**: mpv reads it through SDL without a
+  window, so the shim responds to your pad even when another application is
+  in front. And **most builds of mpv cannot do this at all** — the feature is
+  compiled out unless mpv was built with `-Dsdl2-gamepad=enabled`, which is
+  not its default. Debian's mpv has it, the Windows builds this client ships
+  have it, and the Flatpak builds its own mpv with it. If yours does not, the
+  setting is ignored with a line in the log and nothing else changes.
+
+  mpv supports one controller at a time, and only pads it recognises through
+  SDL's controller database; an unrecognised stick is ignored rather than
+  mapped to something arbitrary.
+
+- `gamepad_swap_confirm` - Put the confirm button on the **right** face
+  button and back on the bottom one, instead of the other way round. Also in
+  Settings → General → Input, and it applies immediately. Default: `false`
+
+  mpv reports the face buttons by *position*, not by the letter printed on
+  them, and the two common layouts disagree about where A is: an Xbox-style
+  pad puts it at the bottom, a Nintendo-style one (Switch Pro, most 8BitDo
+  pads) puts it on the right. Nothing in the button events distinguishes
+  them, so this is you telling the shim which pad is in your hands. It moves
+  those two buttons and nothing else on the controller.
 
 - `ui_text_scale` - Multiply the size of every piece of text in the
   interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike

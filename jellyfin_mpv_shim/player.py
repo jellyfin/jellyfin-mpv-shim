@@ -77,6 +77,140 @@ if settings.mpv_ext or not python_mpv_available:
     is_using_ext_mpv = True
 
 
+def _disarm_sdl_signal_handlers():
+    """Keep SDL's signal handlers out of the *external* mpv's child process.
+
+    mpv's gamepad support is SDL2, and ``SDL_Init`` installs its own
+    SIGINT/SIGTERM handlers unless ``SDL_NO_SIGNAL_HANDLERS`` says not to. It
+    only replaces a handler still at ``SIG_DFL``, which is why standalone mpv
+    is unaffected: it installs its own first.
+
+    **This process is no longer the case that needs it.**
+    ``mpv_shim._claim_sigterm`` installs a real handler before anything can
+    import the player, so SDL finds SIGTERM already taken and leaves it --
+    measured with this variable deliberately unset. That fix is preferable
+    because it does not depend on a ``putenv`` here being visible to a
+    ``getenv`` inside SDL2, which is certain on glibc and unverified on
+    Windows. This stays as the layer under it, and for the case the handler
+    cannot reach:
+
+    **The child mpv of the external backend has no handler of its own.**
+    jsonipc spawns it with ``terminal=no``, and mpv installs its SIGTERM
+    handler from ``terminal_setup_getch``, which that path skips. So the
+    child's SIGTERM is at ``SIG_DFL``, SDL takes it, and
+    ``MPVProcess.stop()`` -- which is a ``terminate()``, i.e. a SIGTERM --
+    would be swallowed, leaving an orphaned mpv window behind. The variable
+    is inherited by the child, which is the only lever this side has.
+    (Sending mpv ``quit`` over the IPC socket instead of signalling it is the
+    better answer and belongs in python-mpv-jsonipc; until then, this.)
+
+    **Called unconditionally**, not only when the shim passes the option.
+    ``input-gamepad`` is an ordinary mpv option with no ``M_OPT_NOCFG``, so a
+    line in the user's own ``mpv.conf`` starts the SDL thread with the option
+    absent from anything we built -- and that config is exactly what
+    ``mpv_ext_no_ovr`` users are told to use. There is no third place to ask
+    and no way to ask mpv in time (the thread starts inside
+    ``mpv_initialize``), so the only correct gate is no gate. The variable
+    does nothing at all in a process that loads no SDL.
+
+    The cost of that is one real side effect: ``os.environ`` is process-wide,
+    and nothing spawns children with a scrubbed environment
+    (``system_open``, the clipboard helpers, the shell-command hooks), so an
+    SDL application launched from the shim inherits it and loses SDL's own
+    Ctrl-C handling. Accepted deliberately -- narrower gating buys a silently
+    orphaned mpv back.
+
+    A blank value counts as unset, which is SDL's own reading:
+    ``SDL_GetHintBoolean`` returns the *default* for ``""``, so preserving one
+    would leave the bug in place for anybody whose launcher exports an empty
+    variable. ``"0"`` is honoured -- somebody who wrote that wants SDL's
+    handlers -- and logged, because on the external backend it is the one
+    value that can still strand an mpv window.
+    """
+    if os.environ.get("SDL_NO_SIGNAL_HANDLERS"):
+        if os.environ["SDL_NO_SIGNAL_HANDLERS"] not in ("1", "true", "yes"):
+            log.warning(
+                "SDL_NO_SIGNAL_HANDLERS=%r in the environment, so SDL keeps "
+                "its own signal handlers. With game controller input and an "
+                "external mpv, that means this application cannot stop its "
+                "mpv process on the way out.",
+                os.environ["SDL_NO_SIGNAL_HANDLERS"])
+        return
+    os.environ["SDL_NO_SIGNAL_HANDLERS"] = "1"
+
+
+def _rejected_option(error):
+    """The mpv option an exception blames, as an mpv_options key, or None.
+
+    Both backends can name it, and neither does so the same way:
+
+    * **libmpv** raises ``AttributeError('mpv option does not exist', -5,
+      (handle, b'input-gamepad', b'yes'))`` -- the name is in the third arg.
+    * **python-mpv-jsonipc >= 1.3.0** raises ``MPVProcessError`` with
+      ``bad_option`` set, having asked mpv why it refused to start. Older
+      versions flattened every start failure into "MPV process retry limit
+      reached." after spending the whole budget, which is why the shim's
+      floor is 1.3.0.
+
+    Returns the *underscored* form, because that is how the option appears
+    in the dict handed to ``mpv.MPV``.
+    """
+    bad = getattr(error, "bad_option", None)
+    if isinstance(bad, str) and bad:
+        return bad.replace("-", "_")
+    args = getattr(error, "args", ())
+    if len(args) >= 3 and isinstance(args[2], tuple) and len(args[2]) >= 2:
+        name = args[2][1]
+        if isinstance(name, bytes):
+            return name.decode("utf-8", "replace").replace("-", "_")
+        if isinstance(name, str):
+            return name.replace("-", "_")
+    return None
+
+
+def _reap_orphaned_core(error):
+    """Destroy the mpv core a failed ``mpv.MPV(...)`` left running.
+
+    libmpv only, and it is not defensive: python-mpv sets every option
+    inside a ``try`` whose ``finally`` is ``mpv_initialize`` (mpv.py 1.0.8,
+    ``MPV.__init__``), so an option this build does not have raises *after*
+    the core has been brought up. What is left behind is not a stale handle
+    -- it is a **running mpv**, with its window, its scripts and its
+    threads, owned by a half-built object nobody holds a name for. Nothing
+    stops it until the garbage collector reaches the reference cycle the
+    traceback made, and by then the retry's mpv is up: two cores, two VOs on
+    one display, and the process dies in a thread that is not Python's.
+    Measured with ``--input-gamepad`` on a libmpv without it, three runs in
+    three, and the crash lands after the retry has already logged success --
+    which is what made it read as "the retry failed".
+
+    So the orphan is reaped where it is made, not left to the collector.
+    Both the option retries below depend on this: the lua fallback creates
+    one too, and has since it shipped.
+
+    The instance is recovered from the traceback because that is the only
+    place it exists -- the constructor never returned it. It is identified
+    by holding a live handle rather than by its class: ``mpv`` here is
+    whichever backend was imported, and the external one has no core in this
+    process to reap. Read out of ``__dict__`` directly, because libmpv's
+    ``__getattr__`` turns an unknown attribute into a property read on a
+    core that is in no state to answer one.
+    """
+    tb = getattr(error, "__traceback__", None)
+    while tb is not None:
+        owner = tb.tb_frame.f_locals.get("self")
+        handle = getattr(owner, "__dict__", {}).get("handle")
+        stop = getattr(owner, "terminate", None)
+        if handle is not None and callable(stop):
+            try:
+                stop()
+            except Exception:
+                log.debug("could not stop the mpv left by a failed "
+                          "construction", exc_info=True)
+            return
+        tb = tb.tb_next
+
+
 def _explain_missing_mpv():
     """Say why there is no mpv, before the traceback says something else.
 
@@ -496,6 +630,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._swept_ptr = None
         #: Whether this mpv can run lua, once asked. See lua_works.
         self._lua_works = None
+        self._gamepad_works = None
         #: An OSC style a fallback forced, or None. Survives mpv
         #: re-creation -- see _init_mpv.
         self._osc_style_override = None
@@ -809,49 +944,88 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         workaround: the OSC being turned off is itself lua, so a build
         without it has none to turn off.
         """
-        from .mpv_options import OSC_OPTION
+        from .mpv_options import GAMEPAD_OPTION, OSC_OPTION
 
-        if self._lua_works is False and OSC_OPTION in mpv_options:
-            # Already discovered, on a previous mpv. Re-learning it costs a
-            # failed construction every time, and on the external backend a
-            # failed construction is the whole start-retry budget --
-            # measured at ~31s with the shipped defaults, paid on every
-            # re-open (idle-quit then a cast, set_browse_window,
-            # force_window) before anything plays.
-            mpv_options = {k: v for k, v in mpv_options.items()
-                           if k != OSC_OPTION}
-            return mpv.MPV(**kwargs, **mpv_options)
+        options = dict(mpv_options)
 
-        try:
-            return mpv.MPV(**kwargs, **mpv_options)
-        except FileNotFoundError:
-            # There is no mpv binary to spawn. Handled ahead of the lua
-            # retry below rather than by it, for two reasons: dropping
-            # --osc cannot conjure one, so the retry only spends the
-            # start-retry budget and then reraises the same error; and the
-            # error it reraises comes from `subprocess`, which reads as
-            # "mpv is not installed" even when nobody was ever asked to
-            # install it. That is how the vulkan-1.dll regression presented
-            # -- libmpv would not load, this backend was chosen for us, and
-            # the traceback named a missing mpv.exe.
-            _explain_missing_mpv()
-            raise
-        except Exception:
-            if OSC_OPTION not in mpv_options:
+        # Already discovered, on a previous mpv. Re-learning either costs a
+        # failed construction every time, and on the external backend a
+        # failed construction used to be the whole start-retry budget --
+        # measured at ~31s with the shipped defaults, paid on every re-open
+        # (idle-quit then a cast, set_browse_window, force_window) before
+        # anything plays.
+        if self._gamepad_works is False:
+            options.pop(GAMEPAD_OPTION, None)
+        if self._lua_works is False:
+            options.pop(OSC_OPTION, None)
+
+        # Unconditional, and not gated on GAMEPAD_OPTION being in this
+        # dict: mpv reads `input-gamepad` from the user's own mpv.conf too,
+        # where we cannot see it. See the function.
+        _disarm_sdl_signal_handlers()
+
+        dropped_gamepad = False
+        dropped_osc = False
+
+        while True:
+            try:
+                player = mpv.MPV(**kwargs, **options)
+            except FileNotFoundError:
+                # There is no mpv binary to spawn. Handled ahead of the
+                # retries rather than by them, for two reasons: dropping an
+                # option cannot conjure one, so the retry only spends the
+                # start-retry budget and then reraises the same error; and
+                # the error it reraises comes from `subprocess`, which reads
+                # as "mpv is not installed" even when nobody was ever asked
+                # to install it. That is how the vulkan-1.dll regression
+                # presented -- libmpv would not load, this backend was
+                # chosen for us, and the traceback named a missing mpv.exe.
+                _explain_missing_mpv()
                 raise
-            options = {k: v for k, v in mpv_options.items()
-                       if k != OSC_OPTION}
-            # Retry first, log second. If --osc was not the problem this
-            # raises the real error (chained to the first), and saying
-            # "built without lua" on the way to an unrelated failure would
-            # send the next person reading the log somewhere else entirely.
-            player = mpv.MPV(**kwargs, **options)
-            log.warning("This mpv has no --%s option, so it was built "
-                        "without lua. The library browser, the playback HUD "
-                        "and the on-screen controls all need it; falling "
-                        "back to the command line and the OSD menu.",
-                        OSC_OPTION)
-            self._lua_works = False
+            except Exception as error:
+                _reap_orphaned_core(error)
+
+                # **Which** option was refused, when mpv says so. This used
+                # to rest on "there is only one option this can be", and
+                # that argument retired the moment a second build-gated
+                # option existed. Both backends can be asked -- libmpv puts
+                # the name in the exception, python-mpv-jsonipc >= 1.3.0
+                # sets `bad_option` -- so a gamepad build gate is identified
+                # rather than guessed at.
+                if (_rejected_option(error) == GAMEPAD_OPTION
+                        and GAMEPAD_OPTION in options):
+                    del options[GAMEPAD_OPTION]
+                    dropped_gamepad = True
+                    continue
+
+                # --osc is not identified by name, deliberately: an mpv
+                # built without lua is old enough that the name may not
+                # reach us, and it stays the fallback for *any*
+                # unexplained failure while it is still present. Dropped
+                # once, then a second failure is the real error.
+                if OSC_OPTION in options and not dropped_osc:
+                    del options[OSC_OPTION]
+                    dropped_osc = True
+                    continue
+                raise
+
+            # Log after success, never before. If the option was not the
+            # problem this loop has already reraised, and saying "built
+            # without lua" on the way to an unrelated failure would send the
+            # next person reading the log somewhere else entirely.
+            if dropped_gamepad:
+                log.warning("This mpv has no --%s option, so it was built "
+                            "without SDL2 gamepad support. Game controller "
+                            "input is unavailable; nothing else is "
+                            "affected.", GAMEPAD_OPTION.replace("_", "-"))
+                self._gamepad_works = False
+            if dropped_osc:
+                log.warning("This mpv has no --%s option, so it was built "
+                            "without lua. The library browser, the playback "
+                            "HUD and the on-screen controls all need it; "
+                            "falling back to the command line and the OSD "
+                            "menu.", OSC_OPTION)
+                self._lua_works = False
             return player
 
     def _init_mpv(self):

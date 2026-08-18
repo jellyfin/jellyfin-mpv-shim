@@ -255,3 +255,79 @@ class DisabledControlsAbsorbThePointer(unittest.TestCase):
                                  on_click=lambda: None))
         self.assertTrue(node.get("click"))
         self.assertFalse(node.get("dis"))
+
+
+class TestGamepadPush(unittest.TestCase):
+    """The controller binding table on its way to the renderer."""
+
+    def _push(self, **settings):
+        import json
+
+        from jellyfin_mpv_shim import conf
+
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        saved = {k: getattr(conf.settings, k) for k in settings}
+        for key, value in settings.items():
+            setattr(conf.settings, key, value)
+        try:
+            app.push_gamepad()
+        finally:
+            for key, value in saved.items():
+                setattr(conf.settings, key, value)
+        payload = next(c for c in app.backend.mpv.commands
+                       if c[0] == "script-message" and c[1] == "mpvtk-gamepad")
+        return json.loads(payload[2])
+
+    def test_it_sends_the_table_the_settings_ask_for(self):
+        from jellyfin_mpv_shim import gamepad
+
+        self.assertEqual(self._push(gamepad_swap_confirm=False),
+                         gamepad.bindings(False))
+        self.assertEqual(self._push(gamepad_swap_confirm=True),
+                         gamepad.bindings(True))
+
+    def test_the_swap_actually_changes_what_is_sent(self):
+        # Guards the assertion above against both calls resolving to the
+        # same thing: a payload built from a captured or defaulted flag
+        # would satisfy it and change nothing on the pad.
+        self.assertNotEqual(self._push(gamepad_swap_confirm=False),
+                            self._push(gamepad_swap_confirm=True))
+
+    def test_a_fresh_renderer_is_told_without_being_asked(self):
+        # mpv is re-created (idle-quit, a cast, force_window), and each new
+        # handle gets a brand-new renderer with no bindings at all. If the
+        # table only ever went out on a settings change, the controller
+        # would work until the first re-open and then stop.
+        #
+        # `_push_metrics` is stubbed out, and has to be: it measures the
+        # real font stack and installs the result through layout.set_metrics,
+        # which is a MODULE GLOBAL. Letting a `ready` land for real here
+        # leaves every later test in the process laying text out against
+        # measured widths instead of the heuristic table -- which is not an
+        # error anywhere, it just silently moves every scene snapshot in the
+        # suite by a few percent. (Found exactly that way: seven snapshot
+        # tests failed in the full run and passed on their own.)
+        from unittest import mock
+
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        with mock.patch.object(app, "_push_metrics"):
+            app._dispatch({"t": "ready", "w": 1280, "h": 720})
+        self.assertTrue(any(c[0] == "script-message"
+                            and c[1] == "mpvtk-gamepad"
+                            for c in app.backend.mpv.commands))
+
+    def test_the_sticks_report_through_their_own_handlers(self):
+        # The renderer sends these two rather than a keypress, so a missing
+        # dispatch arm is a stick that does nothing at all.
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        seen = []
+        app.on_gamepad_seek = lambda d: seen.append(("seek", d))
+        app.on_gamepad_nav = lambda a: seen.append(("nav", a))
+        app._dispatch({"t": "gpseek", "dir": "left"})
+        app._dispatch({"t": "gpnav", "a": "menu"})
+        self.assertEqual(seen, [("seek", "left"), ("nav", "menu")])
+
+    def test_an_unwired_app_ignores_them(self):
+        app = MpvtkApp.attach(FakeMPV(), ext=False)
+        app._dispatch({"t": "gpseek", "dir": "left"})
+        app._dispatch({"t": "gpnav", "a": "menu"})

@@ -2478,6 +2478,328 @@ ok(not did("cycle", "fullscreen"),
    "double-clicking empty library background toggled full screen")
 fake.send("mpvtk-active", "no")
 
+-- ================================================ HUD nav + seek bar
+
+-- Leave HUD mode with a known syncplay answer: `pause_now` hands the
+-- pause to Python inside a group and does it locally otherwise, and the
+-- flag survives until the next engage.
+fake.send("mpvtk-hud", "yes",
+          fake.token({ hide = 4, mode = "hover", syncplay = false }))
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- Coming DOWN off the full-width seek bar, spatial nav lands on whichever
+-- control in the row is nearest the x it came from -- and which one that
+-- is changes with the window width, because the chapter and seek buttons
+-- appear and disappear with it. A row may name the control the arrow
+-- actually meant.
+-- The bar spans 100..1180, so the x an arrow leaves it with is 640.
+-- `near` is centred on exactly that and `pp` is nowhere near it: without
+-- the gravity, distance alone picks `near` -- which is the point, because
+-- a version of this row where the play button happens to sit under the
+-- middle proves nothing at all.
+local function hudrow()
+    scene({
+        { id = "bar", t = "slider", x = 100, y = 600, w = 1080, h = 26,
+          min = 0, max = 600, value = 0, aadj = true, ctx = true },
+        { id = "far", t = "rect", x = 300, y = 660, w = 40, h = 40,
+          click = true, ctx = true },
+        { id = "near", t = "rect", x = 620, y = 660, w = 40, h = 40,
+          click = true, ctx = true },
+        { id = "pp", t = "rect", x = 900, y = 660, w = 40, h = 40,
+          click = true, ctx = true, grav = true },
+    })
+end
+
+--- Which node has spatial focus, read the way the rest of this file does:
+--- MENU opens the focused node's context menu and the event names it.
+local function focused()
+    fake.reset_events()
+    navkey("MENU")
+    local e = last_event("context")
+    return e and e.id or nil
+end
+
+hudrow()
+fake.send("mpvtk-focus", fake.token({ id = "bar" }))
+navkey("DOWN")
+eq(focused(), "pp", "DOWN off the bar ignored the row's gravity")
+
+-- ...and gravity is VERTICAL only. Two presses, because the honest test
+-- is the one that steps TOWARD the gravity node: leaving it can be
+-- satisfied by ordinary distance, but arriving has to stop at `near`
+-- rather than being pulled past it to `pp`. (The leaving direction is
+-- kept as well -- it is the one a user notices.)
+navkey("LEFT")
+eq(focused(), "near", "gravity swallowed a sideways step away from it")
+navkey("LEFT")
+eq(focused(), "far", "...and the step after that")
+navkey("RIGHT")
+eq(focused(), "near", "a sideways step was pulled past its neighbour to "
+                      .. "the gravity node")
+
+-- Select on an always-adjust bar with no scrub pending. Adjust mode is
+-- not a gesture -- the bar is live the moment it is focused -- so a
+-- commit here seeks to where playback already is. It means play/pause.
+hudrow()
+fake.send("mpvtk-focus", fake.token({ id = "bar" }))
+fake.reset_events()
+fake.log.commands = {}
+navkey("ENTER")
+eq(last_event("commit"), nil, "Select on an untouched seek bar seeked")
+local cycled = false
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "cycle" and c[2] == "pause" then cycled = true end
+end
+ok(cycled, "Select on an untouched seek bar did not play/pause")
+
+-- ...but once something IS pending, Select accepts it. That half is the
+-- whole point of the bar and must not regress.
+navkey("RIGHT")                        -- scrub: a gesture is now in flight
+fake.reset_events()
+navkey("ENTER")
+local done = last_event("commit")
+eq(done and done.id, "bar", "Select did not accept a pending seek")
+
+
+-- ========================================================== game controller
+
+-- The whole point of the mpvtk-gamepad message: these bindings are NOT nav
+-- keys and must not share their lifecycle. NAV_KEYS is torn down by
+-- ui_suspend the moment a video starts, because playback wants the arrows
+-- back -- which is where the first version of this lived, and why every
+-- button on the pad went dead as soon as anything played.
+fake.send("mpvtk-active", "yes")
+fake.send("mpvtk-gamepad", fake.token({
+    { "GAMEPAD_DPAD_UP", "key", "UP", 0.15 },
+    { "GAMEPAD_ACTION_DOWN", "key", "ENTER", 0 },
+    { "GAMEPAD_ACTION_RIGHT", "key", "ESC", 0 },
+    { "GAMEPAD_START", "nav", "menu", 0 },
+    { "GAMEPAD_RIGHT_STICK_LEFT", "seek", "left", 0.4 },
+}))
+ok(fake.log.keybinds["mpvtk_gp_GAMEPAD_DPAD_UP"] ~= nil,
+   "the pushed table did not bind the d-pad")
+
+-- Remappable by the user's own input.conf, which is the whole answer to
+-- "how do I change what a button does" -- and is true only because these
+-- are NON-forced. A forced binding would have to be disabled first.
+eq(fake.log.forced["mpvtk_gp_GAMEPAD_DPAD_UP"], false,
+   "gamepad bindings were forced, so input.conf could not override them")
+
+-- Browse: the button is a synthetic keypress, so whatever owns the keyboard
+-- right now answers it and the pad needs to know about none of them.
+fake.log.commands = {}
+fake.advance(1)
+fake.key("mpvtk_gp_GAMEPAD_DPAD_UP")
+local pressed = nil
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "keypress" then pressed = c[2] end
+end
+eq(pressed, "UP", "the d-pad did not press the keyboard key it stands for")
+
+-- Now play something. The nav keys go, as they must...
+fake.send("mpvtk-active", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+eq(fake.log.keybinds["mpvtk_nav_UP"], nil,
+   "playback left the browser's arrow binding in place")
+-- ...and the controller stays, because it has a second stick and does not
+-- need to give the first one back.
+ok(fake.log.keybinds["mpvtk_gp_GAMEPAD_DPAD_UP"] ~= nil,
+   "playback tore down the gamepad bindings with the nav keys")
+
+-- With the bar hidden the left stick WAKES the HUD rather than being
+-- delivered: with hud_grab_keys off only the wake key is bound, so a
+-- keypress would fall through to mpv's own arrows and the left stick would
+-- seek. Seeking is the right stick's job.
+fake.log.commands = {}
+fake.advance(1)
+fake.key("mpvtk_gp_GAMEPAD_DPAD_UP")
+local fellthrough = false
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "keypress" then fellthrough = true end
+end
+ok(not fellthrough,
+   "the left stick fell through to mpv's arrows over a hidden HUD")
+-- ...and it WOKE the bar. Asserting only the absence of a keypress cannot
+-- tell "drives the UI" from "swallowed the press", and swallowing it is
+-- the likelier bug -- so the negative alone guards the headline behaviour
+-- of the whole asymmetric-stick design with a message that would lie.
+eq(fake.log.props["user-data/mpvtk/active"], true,
+   "the left stick swallowed the press instead of waking the HUD")
+
+-- A pointer summon with hud_grab_keys off leaves the arrows to mpv on
+-- purpose, so the bar is SHOWN while the renderer holds no nav keys --
+-- `shown` is not the same question as "the UI has the keyboard". Asking
+-- only `shown` sent the stick to mpv's arrows over a visible HUD.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 312, hover = true })   -- summons
+ok(fake.log.keybinds["mpvtk_nav_UP"] == nil,
+   "the mouse summon took the arrows, so this case cannot be tested")
+fake.log.commands = {}
+fake.advance(1)
+fake.key("mpvtk_gp_GAMEPAD_DPAD_UP")
+local seeped = false
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "keypress" then seeped = true end
+end
+ok(not seeped,
+   "over a MOUSE-summoned HUD the left stick reached mpv's own arrows")
+ok(fake.log.keybinds["mpvtk_nav_UP"] ~= nil,
+   "the pad did not take the keyboard from the pointer")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+
+-- The right stick asks Python, because the distance is the user's own
+-- input.conf number and the seek has to be one a SyncPlay group hears
+-- about -- neither of which a `seek 5` from here would be.
+fake.reset_events()
+fake.advance(1)
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT")
+local sk = last_event("gpseek")
+eq(sk and sk.dir, "left", "the right stick did not ask Python to seek")
+
+-- START is a 'nav', not a keypress: the MENU *key* is a browser nav
+-- binding, so over a playing video it is bound to nothing at all and a
+-- keypress would go nowhere.
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_START")
+local nv = last_event("gpnav")
+eq(nv and nv.a, "menu", "Start did not reach the remote-control ladder")
+
+-- Over a showing Skip Intro button, confirm SKIPS -- it does not summon
+-- the bar. The keyboard's ENTER and the remote's Select both did this
+-- already; the pad had its own copy of the summon and only that, so A did
+-- the one thing the button on screen said it would not.
+-- Re-engage first: the direction press above SUMMONED the bar, and the
+-- skip button is only an offer while it is down.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_ACTION_DOWN")
+ok(last_event("hudskip") ~= nil, "A over the Skip button summoned instead")
+
+-- ...and a DIRECTION over the same button still brings the bar up, which
+-- is the way back to the rest of the controls.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.send("mpvtk-hud-skip", "Skip Intro")
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_DPAD_UP")
+eq(last_event("hudskip"), nil, "a direction accepted the skip")
+eq(fake.log.props["user-data/mpvtk/active"], true,
+   "a direction over the Skip button did not bring the bar up")
+fake.send("mpvtk-hud-skip", "")
+
+-- Auto-repeat. mpv repeats a held key at --input-ar-rate -- 40 a second by
+-- default -- which on a stick is forty library rows a second and is not
+-- something anybody can aim. Held controls are thinned to their own rate.
+--
+-- Each block counts from a RESET, not cumulatively: "3" as a running total
+-- of a limit that let one through reads exactly like a limit that let three
+-- through, and the failure message would be lying either way.
+local function seeks_sent()
+    local n = 0
+    for _, e in ipairs(fake.log.events) do
+        if type(e) == "table" and e.t == "gpseek" then n = n + 1 end
+    end
+    return n
+end
+
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT")           -- lands
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT", { event = "repeat" })
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT", { event = "repeat" })
+eq(seeks_sent(), 1, "a held stick fired every repeat mpv sent")
+
+-- ...and it is a THINNING, not a lockout: past the interval it fires again.
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT", { event = "repeat" })
+eq(seeks_sent(), 1, "the stick stayed muted after waiting out the interval")
+
+-- An analog axis resting on its threshold chatters across it, and each
+-- crossing arrives as a fresh PRESS rather than a repeat -- so limiting
+-- only the events mpv marks as repeats would leave the sticks as bad as
+-- they were.
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT")
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT")
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT")
+eq(seeks_sent(), 1, "stick chatter was delivered press for press")
+
+-- A release is not an action. With `complex` bindings mpv reports it, and
+-- acting on it would double every press.
+fake.advance(1)
+fake.reset_events()
+fake.key("mpvtk_gp_GAMEPAD_RIGHT_STICK_LEFT", { event = "up" })
+eq(seeks_sent(), 0, "letting go of the stick counted as a seek")
+
+-- Confirm does not repeat AT ALL, and that is mpv's flag rather than a
+-- rate: holding a button is not a request to press it again, and an
+-- auto-repeating Select activates whatever it lands on over and over.
+eq(fake.log.keyopts["mpvtk_gp_GAMEPAD_ACTION_DOWN"].repeatable, false,
+   "the confirm button was left auto-repeating")
+eq(fake.log.keyopts["mpvtk_gp_GAMEPAD_DPAD_UP"].repeatable, true,
+   "the d-pad cannot be held to scroll")
+-- ...and a rate of 0 must not become a rate limit, or a double press of
+-- Select would be swallowed.
+fake.log.commands = {}
+fake.key("mpvtk_gp_GAMEPAD_ACTION_DOWN")
+fake.key("mpvtk_gp_GAMEPAD_ACTION_DOWN")
+local enters = 0
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "keypress" and c[2] == "ENTER" then enters = enters + 1 end
+end
+eq(enters, 2, "a second press of Select was swallowed as a repeat")
+
+-- Re-pushing rebinds, which is what makes the confirm/back swap apply
+-- without a restart. The keys that LEAVE the table have to go with it, or
+-- the old meaning survives underneath the new one.
+fake.send("mpvtk-gamepad", fake.token({
+    { "GAMEPAD_ACTION_RIGHT", "key", "ENTER", 0 },
+}))
+eq(fake.log.keybinds["mpvtk_gp_GAMEPAD_DPAD_UP"], nil,
+   "a re-push left a binding the new table does not have")
+fake.log.commands = {}
+fake.advance(1)
+fake.key("mpvtk_gp_GAMEPAD_ACTION_RIGHT")
+local swapped = nil
+for _, c in ipairs(fake.log.commands) do
+    if c[1] == "keypress" then swapped = c[2] end
+end
+eq(swapped, "ENTER", "the re-pushed table kept the old meaning of the key")
+-- ...and it is bound for the mpv key the table names. Every other log
+-- here is keyed by BINDING NAME, which the renderer derives from the key
+-- itself -- so a renderer that bound one fixed key under all the right
+-- names would satisfy the whole suite, and the confirm/back swap is
+-- nothing but a change of which key carries which meaning.
+eq(fake.log.keykeys["mpvtk_gp_GAMEPAD_ACTION_RIGHT"], "GAMEPAD_ACTION_RIGHT",
+   "the binding was made for a different key than the table named")
+
+-- Malformed rows are skipped rather than binding something that errors on
+-- press. This arrives from another process, so "cannot happen" is not a
+-- property of this file.
+fake.send("mpvtk-gamepad", fake.token({
+    { "GAMEPAD_ACTION_UP" }, { 1, 2, 3 }, "nonsense",
+    { "GAMEPAD_BACK", "key", "ESC", 0 },
+}))
+eq(fake.log.keybinds["mpvtk_gp_GAMEPAD_ACTION_UP"], nil,
+   "a row with no kind was bound anyway")
+ok(fake.log.keybinds["mpvtk_gp_GAMEPAD_BACK"] ~= nil,
+   "a bad row stopped the good ones after it being bound")
+
+-- Leave the renderer browsing for the teardown block below.
+fake.send("mpvtk-gamepad", fake.token({}))
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 -- ========================================================== teardown
 
 scene({})

@@ -305,6 +305,17 @@ class MpvtkApp:
         # to it. Runs on the loop thread.
         self.on_key = None
         self._claimed_keys = ()
+        # Game controller, both called on the loop thread. The pad's UI
+        # buttons are NOT routed here -- they are synthetic keypresses the
+        # renderer issues locally, so a d-pad held down does not queue a
+        # round trip per repeat. These two are the ones a keypress cannot
+        # express: `on_gamepad_seek` with a "up"/"down"/"left"/"right"
+        # direction (the arrows' seek, which is the user's input.conf
+        # distance and has to be SyncPlay-aware), and `on_gamepad_nav` with
+        # a remote-control action name for a button whose meaning differs
+        # between the library and a playing video. See gamepad.py.
+        self.on_gamepad_seek = None
+        self.on_gamepad_nav = None
         # called with no arguments immediately after a scene has been PUSHED
         # to the renderer. Runs on the loop thread.
         #
@@ -446,6 +457,29 @@ class MpvtkApp:
             json.dumps({"s": scaling.scale(),
                         "t": theme.text_factor(),
                         "m": theme.min_size()})
+        )
+
+    def push_gamepad(self):
+        """Forward the game controller binding table to the renderer.
+
+        Sent on ready and again whenever the button layout setting changes,
+        which is what lets a swap apply without a restart -- unlike
+        ``input_gamepad`` itself, which mpv reads once at startup.
+
+        Pushed unconditionally, not gated on ``input_gamepad``. The bindings
+        are inert without it (mpv delivers no GAMEPAD_* events at all), and
+        gating would add a state to get wrong for no gain: a user who turns
+        the setting on still has to restart before anything arrives, so
+        there is nothing the gate could make correct that the restart does
+        not already.
+        """
+        from ..conf import settings
+        from ..gamepad import bindings
+
+        self.backend.command(
+            "script-message", "mpvtk-gamepad",
+            json.dumps(bindings(
+                bool(getattr(settings, "gamepad_swap_confirm", False))))
         )
 
     def push_scroll_config(self):
@@ -660,6 +694,7 @@ class MpvtkApp:
                 self.push_theme()
                 self.push_scale()
                 self.push_scroll_config()
+                self.push_gamepad()
                 self.ready.set()
             return
         if t == "debug_state":
@@ -694,6 +729,20 @@ class MpvtkApp:
                     self.on_hud_skip()
                 except Exception:
                     log.exception("on_hud_skip handler failed")
+            return
+        if t == "gpseek":
+            if self.on_gamepad_seek is not None:
+                try:
+                    self.on_gamepad_seek(evt.get("dir") or "")
+                except Exception:
+                    log.exception("on_gamepad_seek handler failed")
+            return
+        if t == "gpnav":
+            if self.on_gamepad_nav is not None:
+                try:
+                    self.on_gamepad_nav(evt.get("a") or "")
+                except Exception:
+                    log.exception("on_gamepad_nav handler failed")
             return
         if t == "key":
             if self.on_key is not None:
