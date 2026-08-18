@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 12:17-0400\n"
+"POT-Creation-Date: 2026-08-18 13:23-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1163,6 +1163,10 @@ msgid "This Device"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Input"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
 msgstr ""
 
@@ -1469,6 +1473,10 @@ msgid "Custom (set in config)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Game Controller"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
 msgstr ""
 
@@ -1710,6 +1718,15 @@ msgid ""
 "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target "
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Takes effect after a restart. Move with the d-pad or left stick, A to "
+"select, B to go back, shoulder buttons to page, Start for the menu. A "
+"controller is not focus-aware, so it will reach this app even when another "
+"window is in front. Needs an mpv built with SDL2 gamepad support; if yours "
+"lacks it this setting is ignored and the log says so."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3121,6 +3138,10 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
+msgid "Could not open that link."
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
 msgid "%d chapters"
@@ -3216,10 +3237,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-msgid "Could not open that link."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py

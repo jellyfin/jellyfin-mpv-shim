@@ -4579,6 +4579,36 @@ local NAV_KEYS = {
     { 'PGDWN', function() if not keyclaim.take('PGDWN') then key_scroll('PGDWN') end end },
     { 'HOME', function() if not keyclaim.take('HOME') then key_scroll('HOME') end end },
     { 'END', function() if not keyclaim.take('END') then key_scroll('END') end end },
+
+    -- Game controller. Aliases, not a second input model: each one runs the
+    -- handler its keyboard equivalent runs and claims under the keyboard
+    -- name, so a page that claimed 'UP' gets the d-pad too and nothing has
+    -- to learn about controllers.
+    --
+    -- Bound unconditionally, and that is safe: the GAMEPAD_* names live in
+    -- mpv's keycode table whether or not SDL2 gamepad support was compiled
+    -- in, so on a build without it these resolve and simply never fire.
+    -- Whether events arrive at all is `--input-gamepad`, which the shim only
+    -- sets when the user asks (mpv_options.GAMEPAD_OPTION).
+    --
+    -- ACTION_DOWN is A/cross and ACTION_RIGHT is B/circle -- mpv names them
+    -- by position, so this is the same physical pair on every pad. B routes
+    -- through a synthetic ESC for the reason the mouse back button does:
+    -- ESC already steps out exactly one layer, and a second implementation
+    -- of that ladder would drift from it.
+    { 'GAMEPAD_DPAD_UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
+    { 'GAMEPAD_DPAD_DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
+    { 'GAMEPAD_DPAD_LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
+    { 'GAMEPAD_DPAD_RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
+    { 'GAMEPAD_LEFT_STICK_UP', function() if not keyclaim.take('UP') then nav_move(0, -1) end end },
+    { 'GAMEPAD_LEFT_STICK_DOWN', function() if not keyclaim.take('DOWN') then nav_move(0, 1) end end },
+    { 'GAMEPAD_LEFT_STICK_LEFT', function() if not keyclaim.take('LEFT') then nav_move(-1, 0) end end },
+    { 'GAMEPAD_LEFT_STICK_RIGHT', function() if not keyclaim.take('RIGHT') then nav_move(1, 0) end end },
+    { 'GAMEPAD_ACTION_DOWN', function() if not keyclaim.take('ENTER') then nav_activate() end end },
+    { 'GAMEPAD_ACTION_RIGHT', function() mp.commandv('keypress', 'ESC') end },
+    { 'GAMEPAD_START', function() nav_context() end },
+    { 'GAMEPAD_LEFT_SHOULDER', function() if not keyclaim.take('PGUP') then key_scroll('PGUP') end end },
+    { 'GAMEPAD_RIGHT_SHOULDER', function() if not keyclaim.take('PGDWN') then key_scroll('PGDWN') end end },
 }
 
 -- Every key in NAV_KEYS is already force-bound, so claiming one only changes

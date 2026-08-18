@@ -18,7 +18,7 @@ dynamic = ["version"]
 dependencies = [
     "python-mpv>=1.0.8",
     "jellyfin-apiclient-python>=1.18.0",
-    "python-mpv-jsonipc>=1.2.2",
+    "python-mpv-jsonipc>=1.3.0",
     "requests",
     # Not optional since the in-player library browser replaced the Tk one:
     # every tile, the playback HUD and the cast screen are rasterized with

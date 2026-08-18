@@ -651,6 +651,24 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_fullscreen` - Toggle fullscreen. (Default: `f`)
 - `kb_kill_shader` - Disable shader packs. (Default: `k`)
 - `media_keys` - Enable binding of MPV to media keys. Default: `true`
+- `input_gamepad` - Enable game controller input, so a pad can drive the
+  library and playback. Also in Settings → General → Input. mpv reads
+  this once when it starts, so it takes effect on the next launch. The d-pad and left stick move the selection, A
+  (cross) activates, B (circle) goes back, the shoulder buttons page, and
+  Start opens the context menu. Default: `false`
+
+  Off by default for two reasons, both worth knowing before turning it on.
+  **A controller is not focus-aware**: mpv reads it through SDL without a
+  window, so the shim responds to your pad even when another application is
+  in front. And **most builds of mpv cannot do this at all** — the feature is
+  compiled out unless mpv was built with `-Dsdl2-gamepad=enabled`, which is
+  not its default. Debian's mpv has it, and so do the Windows builds this
+  client ships. If yours does not, the setting is ignored with a line in the
+  log and nothing else changes.
+
+  mpv supports one controller at a time, and only pads it recognises through
+  SDL's controller database; an unrecognised stick is ignored rather than
+  mapped to something arbitrary.
 
 - `ui_text_scale` - Multiply the size of every piece of text in the
   interface. `1.25` is a quarter larger, `0.9` a tenth smaller. Unlike

@@ -251,6 +251,27 @@ def mpv_binary_location():
 OSC_OPTION = "osc"
 
 
+#: The option mpv only registers when it was built with SDL2 gamepad support.
+#:
+#: `sdl2-gamepad` is `value: 'disabled'` in mpv's own `meson.options` -- not
+#: `auto` -- so having SDL2 installed is not enough and most builds simply do
+#: not have this. Debian's does; shinchiro's Windows builds pass
+#: `-Dsdl2-gamepad=enabled` explicitly, so the mpv-2.dll CI ships does too.
+#:
+#: Like `OSC_OPTION`, an mpv without it does not ignore the flag -- it refuses
+#: to start -- so `_construct_mpv` drops it and remembers. Only ever present
+#: when the user asked for it, so nobody who leaves the setting alone can be
+#: affected by any of this.
+#:
+#: It must be set at construction. mpv reads `use_gamepad` exactly once, in
+#: `mp_input_load_config` (input/input.c) called once from player/main.c, and
+#: `load-config-file` does not re-read it -- but the option group carries
+#: UPDATE_INPUT, so a runtime write *succeeds and reads back yes* while the
+#: SDL thread is never started. Measured; the setting would look applied and
+#: do nothing.
+GAMEPAD_OPTION = "input_gamepad"
+
+
 #: What each ``motion_interpolation`` value writes, as mpv property names.
 #:
 #: All three ON values set ``video-sync`` as well, and that is not
@@ -467,5 +488,10 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     if sys.platform not in ("win32", "darwin"):
         mpv_options["x11_name"] = DESKTOP_ID
         mpv_options["wayland_app_id"] = DESKTOP_ID
+
+    # Game controllers. Only added when asked for, so the default path never
+    # carries a build-gated option and can never pay for one.
+    if settings.input_gamepad:
+        mpv_options[GAMEPAD_OPTION] = True
 
     return mpv_options

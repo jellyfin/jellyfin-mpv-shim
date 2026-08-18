@@ -496,6 +496,7 @@ class Settings(SettingsBase):
     ignore_ssl_cert: bool = False
     menu_mouse: bool = True
     media_keys: bool = True
+    input_gamepad: bool = False
     connect_retry_mins: int = 0
     transcode_warning: bool = True
     lang_filter: str = "und,eng,jpn,mis,mul,zxx"
