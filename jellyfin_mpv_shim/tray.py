@@ -132,23 +132,19 @@ def xembed_tray_present():
     """
     if not os.environ.get("DISPLAY"):
         return False        # no X server to hold the selection at all
-    # ctypes against libX11 rather than python-xlib, which is not a
-    # dependency of ours or of the backends that need this answer, and
-    # rather than GDK, which cannot give it: gdk_selection_owner_get_for_
-    # display resolves the owner window through GDK's own table and returns
-    # NULL for a window belonging to another client -- which every tray is.
-    # Verified against a real i3bar: Xlib says 0x0010000d, GDK says None.
+    # ctypes against libX11, because GDK cannot answer this:
+    # gdk_selection_owner_get_for_display returns NULL for a window
+    # belonging to another client, which every tray is.
+    # docs/architecture.md section 3.2.
     x11 = None
     try:
         import ctypes
         import ctypes.util
 
-        # By SONAME first. ctypes.util.find_library shells out to
-        # `ldconfig -p` on every call -- a fork out of the tray's GTK main
-        # loop, since the watch callbacks reach here -- and in a bundle with
-        # no ldconfig and no compiler it returns None, which would make this
-        # answer "cannot ask" inside a process that has libX11 mapped
-        # already. That is the i3 case this exists for, silently reverted.
+        # By SONAME first: find_library shells out to `ldconfig -p`, which
+        # is a fork out of the tray's GTK main loop and returns None in a
+        # bundle -- answering "cannot ask" from a process that already has
+        # libX11 mapped. docs/architecture.md section 3.2.
         for name in ("libX11.so.6", "libX11.so", "libX11.6.dylib"):
             try:
                 x11 = ctypes.CDLL(name)
@@ -221,17 +217,11 @@ def tray_will_render(backend, sni=None, xembed=None):
             # XEmbed tray on the same desktop is irrelevant -- asking would
             # turn an invisible icon into a confident yes.
             return False
-        # No watcher is NOT the end of the story, and reading it that way is
-        # what made this wrong on X11 (#4). libappindicator and its
-        # ayatana fork both keep a GtkStatusIcon fallback -- see
-        # `start_fallback_timer` in libayatana-appindicator3 -- and use it
-        # exactly when no StatusNotifierWatcher owns the name. So on a
-        # desktop with an old-style XEmbed tray and no D-Bus host (i3 with
-        # i3bar's tray, xfce4-panel, tint2, most of X11 that is not KDE)
-        # the icon appears perfectly well, and the app was offering
-        # "Keep Running in Background" to people who had a working tray in
-        # front of them. Confirmed by watching the icon dock into i3bar
-        # while the watcher name was unowned.
+        # No watcher is NOT the end of the story, and reading it that way
+        # is what made this wrong on X11 (#4): libappindicator keeps a
+        # GtkStatusIcon fallback and uses it in exactly this case, so an
+        # XEmbed tray still draws the icon. Fall through and ask.
+        # docs/architecture.md section 3.2.
         fallback = (xembed or xembed_tray_present)()
         if fallback:
             return True
@@ -261,21 +251,13 @@ def tray_unavailable_advice(env=None):
 def wants_x11_backend(env):
     """Whether to force GTK onto X11 (XWayland) for the tray process.
 
-    GNOME's Wayland session only: pystray's GTK loop crashes there at
-    startup, and forcing the X11 backend dodges it (#506). Forcing it
-    *everywhere* is what #646 is -- on every other Wayland compositor the
-    indicator then reports ``visible = True``, raises nothing, and simply
-    never registers with the StatusNotifierWatcher, so the tray silently
-    does not appear. Wayfire + wf-panel-pi was the report; the same code
-    registers immediately with the backend left alone.
-
-    So both halves have to hold. GNOME on X11 needs nothing forced (it is
-    already there), and a non-GNOME Wayland session must be left to use its
-    own backend. ``XDG_CURRENT_DESKTOP`` is a colon-separated list and names
-    GNOME variously ("GNOME", "ubuntu:GNOME", "GNOME-Classic:GNOME"), hence
-    the substring test rather than an equality one.
-
-    Takes the environment as an argument so it is answerable without one.
+    **GNOME's Wayland session only, and both halves are load-bearing**:
+    pystray's GTK loop crashes there (#506), while forcing X11 anywhere
+    else stops the indicator registering with the StatusNotifierWatcher at
+    all, silently (#646). ``XDG_CURRENT_DESKTOP`` is a colon-separated list
+    naming GNOME variously, hence a substring test. Takes the environment
+    as an argument so it is answerable without one.
+    docs/architecture.md section 3.3.
     """
     desktop = env.get("XDG_CURRENT_DESKTOP") or ""
     if "gnome" not in desktop.lower():

@@ -601,44 +601,26 @@ class Settings(SettingsBase):
     # While a video plays with the HUD hidden, grab UP/DOWN/LEFT/RIGHT
     # (and ENTER) to summon/drive the HUD. Off by default: mpv's own
     # seek keys keep working and only hud_wake_key is taken over.
-    #: Where a grid's leftover width goes. A row of fixed-size tiles almost
-    #: never divides the available width exactly, and the remainder used to
-    #: land entirely on the right -- at some window sizes that is most of a
-    #: tile's width of empty background down one side.
+    #: Where a grid's leftover width goes when a whole number of fixed-size
+    #: tiles does not divide it: "justify" (the default) widens the gaps so
+    #: the row runs margin to margin, "center" splits the remainder between
+    #: the two margins, "off" leaves it all on the right.
     #:
-    #: "justify" (the default) widens the gaps so the row runs margin to
-    #: margin; "center" splits the remainder between the two margins and
-    #: leaves the tiles evenly spaced; "off" is the old behaviour.
-    #:
-    #: justify rather than center because of WHICH number moves. Centring
-    #: makes both margins follow the window, and the page margin is the edge
-    #: every heading, button and paragraph on the screen lines up against --
-    #: a margin that changes as you drag is more noticeable than tiles that
-    #: sit a few pixels further apart.
+    #: Justify rather than center because of WHICH number moves -- centring
+    #: makes the page margin follow the window, and that margin is the edge
+    #: every heading, button and paragraph lines up against.
+    #: See docs/artwork-pipeline.md §7.
     grid_fill: str = "justify"
     #: Detail, series and programme headers span the whole viewport, with
     #: no padding above or beside them -- jellyfin-web's full-bleed
-    #: backdrop.
+    #: backdrop. Costs no vertical space either way: the header keeps the
+    #: height the padded version had (TileRenderer.banner_box), so what
+    #: changes is how much of the backdrop is cropped.
     #:
-    #: **On by default -- and it shipped off.** Both of the things that
-    #: decided that turned out to be bugs elsewhere rather than costs of
-    #: this mode, and both are fixed:
-    #:
-    #: * "backdrop artwork is low-resolution and this stretches it
-    #:   furthest" was the header asking the thumbnail store to decode into
-    #:   a box shaped like the BANNER. That store contains where the
-    #:   compositor covers, so a 1920x1080 backdrop was contained down to
-    #:   796px wide and then blown back up over the header -- not a
-    #:   property of the artwork at all (TileRenderer.backdrop_node);
-    #: * "a full-width header stops 10px short of the window" was the
-    #:   scrollbar gutter being reserved by this side unconditionally and
-    #:   by the layout only when the content overflowed. The layout now
-    #:   reserves it always and renderer.lua paints the track whenever it
-    #:   exists, so the strip beside the banner is a scrollbar rather than
-    #:   a void (mpvtk.layout).
-    #:
-    #: It costs no vertical space either way: the header keeps the height
-    #: the padded version had (see TileRenderer.banner_box).
+    #: On by default, and it shipped off -- both reasons turned out to be
+    #: bugs elsewhere (a backdrop decoded into a banner-shaped box, and a
+    #: scrollbar gutter reserved on only one side of the layout) and both
+    #: are fixed. docs/configuration.md and docs/artwork-pipeline.md §7.
     backdrop_full_width: bool = True
     #: Left-click on the video toggles pause (#669).
     #:
