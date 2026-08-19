@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-19 13:29+0000\n"
+"PO-Revision-Date: 2026-08-19 13:38+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -1254,16 +1254,12 @@ msgid "Downloads"
 msgstr "Downloads"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Server entfernen"
+msgstr "Tuning downloaden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "Player Controls"
-msgstr "Stil der Wiedergabesteuerung"
+msgstr "Wiedergabesteuerung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1285,29 +1281,25 @@ msgstr "Intro / Abspann überspringen"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Advanced"
 msgstr "Erweitert"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Aus (Softwaredekodierung)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Nur über 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Open"
 msgid "On"
-msgstr "Öffnen"
+msgstr "An"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Copy (advanced)"
-msgstr "Erweitert"
+msgstr "Kopieren (Erweitert)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1319,7 +1311,7 @@ msgstr "MPV UI mit Vorschaubildern"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV built-in default"
-msgstr "MPV Standardeinstellung"
+msgstr "MPV integrierter Standard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -1327,15 +1319,15 @@ msgstr "Keine Wiedergabesteuerung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
@@ -1343,7 +1335,7 @@ msgstr "100% (keine Skalierung)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
@@ -1355,23 +1347,23 @@ msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "Kein Minimum"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
@@ -1383,7 +1375,7 @@ msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr "Nahtlos"
+msgstr "Fortlaufend"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
@@ -1391,38 +1383,36 @@ msgstr "An Zeilen ausgerichtet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr "Eine Reihe pro Segment"
+msgstr "Eine Zeile pro Segment"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Nur wenn das Fenster keine Titelleiste hat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Dunkel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Sepia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Hell"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "Breite anpassen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "Seite"
+msgstr "Seite anpassen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
@@ -1434,7 +1424,7 @@ msgstr "Keine (Text mit Schatten)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr "Ausgeblendet bis zum Darüberhalten"
+msgstr "Ausgeblendet, außer beim Darüberfahren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always hide"
@@ -1442,7 +1432,7 @@ msgstr "Immer ausblenden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr "Niemals ausblenden, wenn pausiert"
+msgstr "Wenn pausiert, niemals ausblenden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -1450,11 +1440,11 @@ msgstr "Standardthema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr "Extra klein"
+msgstr "Extra kompakt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr "Sehr klein"
+msgstr "Kompakt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
