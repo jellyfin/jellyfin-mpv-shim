@@ -1,59 +1,23 @@
 """Load FriBiDi on Windows, so Pillow's Raqm layout engine is available.
 
-**Pillow's binary wheels do not ship FriBiDi on any platform.** Its own
-installation docs say so outright ("Raqm support requires FriBiDi to be
-installed separately"), and the Windows wheel really does contain nothing but
-eight ``.pyd`` files. libraqm and HarfBuzz *are* compiled into
-``_imagingft``; FriBiDi alone is loaded at runtime, by a vendored shim
-(``src/thirdparty/fribidi-shim/fribidi.c``) that tries::
+**Pillow's binary wheels ship no FriBiDi on any platform**, and its absence is
+silent: ``ImageFont.truetype`` downgrades to ``Layout.BASIC`` with no exception
+and no warning. That loses bidi and shaping (#689) and -- the half with reach --
+all GPOS kerning, which ``mpvtk.metrics`` then feeds to every ellipsize and wrap
+decision. See docs/packaging.md section 1 for the measurements.
 
-    LoadLibrary("fribidi")  ->  "fribidi-0"  ->  "libfribidi-0"   /* MSYS2 */
-
-and then sets ``have_raqm = !!p_fribidi``. Windows ships no such DLL, so on
-a stock box ``have_raqm`` is 0 and ``ImageFont.truetype`` **silently**
-downgrades to ``Layout.BASIC`` -- no exception, no warning (``ImageFont.py``
-only warns when RAQM is asked for by name, which nothing here does).
-
-Two things break, and the second is the larger:
-
-* **Bidi and shaping are gone.** Arabic and Hebrew render in logical order
-  with isolated letterforms -- visually reversed, and with the cursive
-  joining absent. That is issue #689: the same string drawn as an ASS text
-  node (libass, which has its own FriBiDi and HarfBuzz) is correct on the
-  same page, while anything baked into a bitmap by Pillow -- tile captions,
-  Cast & Crew, the hero heading over a backdrop -- is not.
-
-* **HarfBuzz is only reachable THROUGH Raqm**, so a Windows build applies no
-  GPOS shaping to any script, Latin included. Measured on DejaVuSans at
-  20px: "AVATAR" comes out 81.94px unkerned against 75.20px kerned, 9% wide.
-  That matters beyond looks, because ``mpvtk.metrics`` measures with Pillow
-  to build the model ``mpvtk.layout.text_width`` uses to *predict* what
-  libass will draw -- so on Windows every ellipsize, wrap and pack decision
-  was computed against widths that are too wide, and captions truncated
-  earlier than they needed to.
-
-So the fix is one ~150KB DLL, built from source in CI and shipped beside the
-app (see ``tools/check_win_raqm.py``, which fails the build if it goes
-missing -- nothing downstream would notice, because English looks perfect
-either way).
-
-**Why an explicit load rather than just dropping the file in.** The shim
-calls ``LoadLibrary`` with a *bare name*, so whether Pillow finds our copy
-depends on the process's DLL search path -- which under PyInstaller is a
-property of the bootloader and the onedir/onefile layout, not something this
-app states. Loading it here by absolute path settles it: Windows resolves a
-subsequent ``LoadLibrary("libfribidi-0")`` against modules already in the
-process **by base name**, without searching, so Pillow's own call gets this
-handle. Verified against a real Windows Pillow wheel with the DLL in a
-directory deliberately left off the search path.
+**Loaded by absolute path, not left to the DLL search path.** Pillow's shim
+calls ``LoadLibrary`` with a bare name, so otherwise this becomes a property of
+PyInstaller's bootloader rather than something the app states. Windows resolves
+a later bare-name load against modules already in the process, so Pillow's own
+call gets this handle.
 
 **Ordering is the whole contract.** ``load_fribidi()`` runs once, from
-``PyInit__imagingft``, so this has to happen before the first
-``import PIL.ImageFont`` anywhere in the process. Every Pillow import in
-this package is function-local, which is what makes that achievable at all;
-``preload()`` is called from ``mpv_shim.main`` and, belt-and-braces, from
-the three modules that load faces (they call it immediately before their own
-import, and it is idempotent).
+``PyInit__imagingft``, so this must happen before the first
+``import PIL.ImageFont`` anywhere in the process. Every Pillow import in this
+package is function-local, which is what makes that achievable; ``preload()``
+is called from ``mpv_shim.main`` and, belt-and-braces, from the three modules
+that load faces. It is idempotent.
 """
 
 import logging

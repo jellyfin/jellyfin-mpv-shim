@@ -1,33 +1,17 @@
 """Single-instance guard.
 
-Primary election is an OS file lock (flock on POSIX, msvcrt.locking on
-Windows) held on a persistent fd for the process lifetime — atomic, and
-released automatically if the process crashes, so there is no stale-lock
-takeover logic to race. The lock lives in the config directory, so two
-instances pointed at different config dirs coexist by design.
+Primary election is an OS file lock held on a persistent fd for the process
+lifetime; the same channel carries the ``stop`` command, which is why that is
+a subcommand rather than a signal — it reaches exactly the instance owning
+*this* config directory.
 
-The same channel carries the ``stop`` command, which is why it exists as a
-subcommand rather than a signal: it reaches exactly the instance owning *this*
-configuration directory, without needing to find a pid or guess which of
-several copies to kill.
+``acquire()`` fails open, so returning True does not by itself promise there
+is only one of us: ``holds_lock`` is the stronger statement (the OS lock was
+really taken), and anything whose safety rests on that uniqueness rather than
+merely preferring it must read that instead.
 
-Two files are used so Windows' mandatory region locks never interact with
-content reads: ``instance.lock.guard`` is only ever locked (never read), and
-``instance.lock`` carries the primary's activation endpoint — a loopback
-port and a random token. A second launch finds the guard held, connects, and
-(if the token matches) asks the primary to raise its window, then exits. The
-token protects against the port having been recycled by an unrelated
-process.
-
-If the guard file can't even be opened we fail open (run without the guard);
-if the lock is held but the primary doesn't answer, we still refuse to run a
-second instance — a wedged listener must not lead to two catalog writers.
-
-Failing open means ``acquire()`` returning True does not by itself promise
-there is only one of us. ``holds_lock`` is the stronger statement — the OS
-lock was actually taken — and anything whose safety rests on that uniqueness
-rather than merely preferring it (the scratch-cache namespace does: it
-reclaims every directory it finds) must read that instead.
+Why two files, why the token, and why the guard file is never unlinked: see
+docs/architecture.md section 1.
 """
 
 import logging

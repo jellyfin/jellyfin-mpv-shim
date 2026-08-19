@@ -1,9 +1,9 @@
 """Home-screen section layout, compatible with jellyfin-web's.
 
-The layout lives server-side in DisplayPreferences under the ``usersettings``
-id and the ``emby`` client namespace (the legacy name jellyfin-web still
-writes; using anything else gets you a different, empty preference set). Each
-slot is one string in ``CustomPrefs`` under ``homesection0``..``homesection9``.
+The layout lives server-side in DisplayPreferences, one string per slot in
+``CustomPrefs`` under ``homesection0``..``homesection9``. The document's id
+and client namespace are load-bearing and not obvious:
+``docs/jellyfin-api-notes.md`` section 7.1.
 
 Everything here is pure: no network, no settings singleton. The I/O lives in
 repository.LibrarySource, which reads/writes the DTO and hands the CustomPrefs

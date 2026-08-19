@@ -1,3 +1,19 @@
+# ---------------------------------------------------------------------------
+# BEFORE EDITING THIS FILE, READ docs/mpv-backends.md.
+#
+# It carries the constraints that have no line to sit on -- the danger is in
+# the line you are about to add, so no inline comment can warn you:
+#
+#   * mpv is NOT re-created between queue items, so any global option written
+#     for one item is still set for the next, including a next item we
+#     deliberately refuse to set it for;
+#   * a bound method cannot be a libmpv ``property_observer`` (use _observe);
+#   * an input section without ``allow-hide-cursor`` stops the mouse cursor
+#     ever hiding again;
+#   * the two backends raise different things and answer property reads at
+#     wildly different cost.
+# ---------------------------------------------------------------------------
+
 import logging
 import os
 import re
@@ -80,52 +96,22 @@ if settings.mpv_ext or not python_mpv_available:
 def _disarm_sdl_signal_handlers():
     """Keep SDL's signal handlers out of the *external* mpv's child process.
 
-    mpv's gamepad support is SDL2, and ``SDL_Init`` installs its own
-    SIGINT/SIGTERM handlers unless ``SDL_NO_SIGNAL_HANDLERS`` says not to. It
-    only replaces a handler still at ``SIG_DFL``, which is why standalone mpv
-    is unaffected: it installs its own first.
+    mpv's gamepad support is SDL2, and ``SDL_Init`` takes any SIGINT/SIGTERM
+    handler still at ``SIG_DFL`` unless this says otherwise. The external
+    backend's child mpv has none of its own -- jsonipc spawns it with
+    ``terminal=no``, which skips the handler install -- so SDL takes its
+    SIGTERM and ``MPVProcess.stop()`` is swallowed, orphaning the window.
 
-    **This process is no longer the case that needs it.**
-    ``mpv_shim._claim_sigterm`` installs a real handler before anything can
-    import the player, so SDL finds SIGTERM already taken and leaves it --
-    measured with this variable deliberately unset. That fix is preferable
-    because it does not depend on a ``putenv`` here being visible to a
-    ``getenv`` inside SDL2, which is certain on glibc and unverified on
-    Windows. This stays as the layer under it, and for the case the handler
-    cannot reach:
+    **Called unconditionally.** ``input-gamepad`` is an ordinary mpv option,
+    so the user's own ``mpv.conf`` can start the SDL thread with the option
+    absent from anything we built; there is no way to ask mpv in time, so the
+    only correct gate is no gate. A blank value counts as unset
+    (``SDL_GetHintBoolean`` returns the default for ``""``); ``"0"`` is
+    honoured and logged.
 
-    **The child mpv of the external backend has no handler of its own.**
-    jsonipc spawns it with ``terminal=no``, and mpv installs its SIGTERM
-    handler from ``terminal_setup_getch``, which that path skips. So the
-    child's SIGTERM is at ``SIG_DFL``, SDL takes it, and
-    ``MPVProcess.stop()`` -- which is a ``terminate()``, i.e. a SIGTERM --
-    would be swallowed, leaving an orphaned mpv window behind. The variable
-    is inherited by the child, which is the only lever this side has.
-    (Sending mpv ``quit`` over the IPC socket instead of signalling it is the
-    better answer and belongs in python-mpv-jsonipc; until then, this.)
-
-    **Called unconditionally**, not only when the shim passes the option.
-    ``input-gamepad`` is an ordinary mpv option with no ``M_OPT_NOCFG``, so a
-    line in the user's own ``mpv.conf`` starts the SDL thread with the option
-    absent from anything we built -- and that config is exactly what
-    ``mpv_ext_no_ovr`` users are told to use. There is no third place to ask
-    and no way to ask mpv in time (the thread starts inside
-    ``mpv_initialize``), so the only correct gate is no gate. The variable
-    does nothing at all in a process that loads no SDL.
-
-    The cost of that is one real side effect: ``os.environ`` is process-wide,
-    and nothing spawns children with a scrubbed environment
-    (``system_open``, the clipboard helpers, the shell-command hooks), so an
-    SDL application launched from the shim inherits it and loses SDL's own
-    Ctrl-C handling. Accepted deliberately -- narrower gating buys a silently
-    orphaned mpv back.
-
-    A blank value counts as unset, which is SDL's own reading:
-    ``SDL_GetHintBoolean`` returns the *default* for ``""``, so preserving one
-    would leave the bug in place for anybody whose launcher exports an empty
-    variable. ``"0"`` is honoured -- somebody who wrote that wants SDL's
-    handlers -- and logged, because on the external backend it is the one
-    value that can still strand an mpv window.
+    Why this is the layer under ``mpv_shim._claim_sigterm`` rather than the
+    fix, and the process-wide ``os.environ`` side effect that was accepted to
+    get it: docs/mpv-backends.md section 4.
     """
     if os.environ.get("SDL_NO_SIGNAL_HANDLERS"):
         if os.environ["SDL_NO_SIGNAL_HANDLERS"] not in ("1", "true", "yes"):
@@ -142,18 +128,14 @@ def _disarm_sdl_signal_handlers():
 def _rejected_option(error):
     """The mpv option an exception blames, as an mpv_options key, or None.
 
-    Both backends can name it, and neither does so the same way:
+    Both backends can name it and neither does so the same way -- libmpv puts
+    it in an ``AttributeError``'s third arg, jsonipc >= 1.3.0 exposes
+    ``bad_option``. (That version is the shim's floor: older ones flattened
+    every start failure into "MPV process retry limit reached." after spending
+    the whole retry budget.) See docs/mpv-backends.md section 2.
 
-    * **libmpv** raises ``AttributeError('mpv option does not exist', -5,
-      (handle, b'input-gamepad', b'yes'))`` -- the name is in the third arg.
-    * **python-mpv-jsonipc >= 1.3.0** raises ``MPVProcessError`` with
-      ``bad_option`` set, having asked mpv why it refused to start. Older
-      versions flattened every start failure into "MPV process retry limit
-      reached." after spending the whole budget, which is why the shim's
-      floor is 1.3.0.
-
-    Returns the *underscored* form, because that is how the option appears
-    in the dict handed to ``mpv.MPV``.
+    Returns the *underscored* form, because that is how the option appears in
+    the dict handed to ``mpv.MPV``.
     """
     bad = getattr(error, "bad_option", None)
     if isinstance(bad, str) and bad:
@@ -171,30 +153,18 @@ def _rejected_option(error):
 def _reap_orphaned_core(error):
     """Destroy the mpv core a failed ``mpv.MPV(...)`` left running.
 
-    libmpv only, and it is not defensive: python-mpv sets every option
-    inside a ``try`` whose ``finally`` is ``mpv_initialize`` (mpv.py 1.0.8,
-    ``MPV.__init__``), so an option this build does not have raises *after*
-    the core has been brought up. What is left behind is not a stale handle
-    -- it is a **running mpv**, with its window, its scripts and its
-    threads, owned by a half-built object nobody holds a name for. Nothing
-    stops it until the garbage collector reaches the reference cycle the
-    traceback made, and by then the retry's mpv is up: two cores, two VOs on
-    one display, and the process dies in a thread that is not Python's.
-    Measured with ``--input-gamepad`` on a libmpv without it, three runs in
-    three, and the crash lands after the retry has already logged success --
-    which is what made it read as "the retry failed".
+    libmpv only, and not defensive: python-mpv initializes in a ``finally``,
+    so an option this build lacks raises *after* the core is up. What is left
+    is not a stale handle but a **running mpv** -- window, scripts, threads --
+    that nothing stops before the retry's mpv is up, giving two VOs on one
+    display and a crash in a thread that is not Python's. Both option retries
+    below depend on this reaping. See docs/mpv-backends.md section 2.
 
-    So the orphan is reaped where it is made, not left to the collector.
-    Both the option retries below depend on this: the lua fallback creates
-    one too, and has since it shipped.
-
-    The instance is recovered from the traceback because that is the only
-    place it exists -- the constructor never returned it. It is identified
-    by holding a live handle rather than by its class: ``mpv`` here is
-    whichever backend was imported, and the external one has no core in this
-    process to reap. Read out of ``__dict__`` directly, because libmpv's
-    ``__getattr__`` turns an unknown attribute into a property read on a
-    core that is in no state to answer one.
+    The instance is recovered from the traceback because the constructor never
+    returned it, and identified by holding a live handle rather than by class
+    (the external backend has no core here to reap). Read out of ``__dict__``
+    directly: libmpv's ``__getattr__`` turns an unknown attribute into a
+    property read on a core in no state to answer one.
     """
     tb = getattr(error, "__traceback__", None)
     while tb is not None:
@@ -255,21 +225,14 @@ else:
     _mpv_errors = (BrokenPipeError, TimeoutError)
 
 # How long to wait for an mpv command's reply once the window is going
-# away. Only the external (jsonipc) backend needs this: every command
-# there is a request/response over a socket, and the reply is waited for
-# with python_mpv_jsonipc.TIMEOUT, which is 120s.
-#
-# A closing window puts that squarely in the failure path. mpv can accept
-# a command, run it, and exit before its reply is written back — we saw
-# exactly that on the close path, where trickplay's overlay-clear reached
-# mpv (it logged "Clearing trickplay") but the reply never came, parking
-# the action thread for two minutes with the whole shutdown queued behind
-# it. libmpv has no equivalent: a dead handle raises immediately, which
-# is why the same close is instant there.
-#
-# Bounding the wait is the fix rather than hunting individual calls: any
-# command issued while the window is disappearing can lose its reply, and
-# during teardown there is no command whose answer is worth minutes.
+# away. Only the external (jsonipc) backend needs it: a command there is a
+# request/response over a socket waited for with
+# python_mpv_jsonipc.TIMEOUT, which is 120s -- and mpv can accept a
+# command, run it, and exit before writing the reply back, parking the
+# action thread with the whole shutdown queued behind it. libmpv raises
+# immediately on a dead handle. Bounded rather than hunting individual
+# calls: during teardown no command's answer is worth minutes.
+# See docs/mpv-backends.md section 1.
 IPC_TEARDOWN_TIMEOUT = 5
 
 def bound_ipc_replies(seconds=IPC_TEARDOWN_TIMEOUT):
@@ -316,22 +279,15 @@ def _source_height(video):
 def runtime_force_window_works(version):
     """Whether this mpv acts on a force-window change made while idle.
 
-    Every mpv *stores* the property; only 0.41 and newer create or destroy
-    the video output for it. Older builds decide at startup and then never
-    revisit it, which is why the window has to be asked for on the command
-    line (see ``_init_mpv``) and why releasing it later does nothing.
+    Every mpv *stores* the property; only 0.41+ creates or destroys the video
+    output for it. Older builds decide at startup, so the window must be asked
+    for on the command line (see ``_init_mpv``) and releasing it later does
+    nothing.
 
-    Historically none of this mattered: the window was summoned by loading
-    a file and released by unloading one, so force_window was only ever a
-    flag alongside real media. ``PlayerManager.force_window`` still works
-    that way. The browser stopped loading anything -- deliberately, since
-    reloading a background file tears the video output down and reads as
-    the window closing and reopening -- and inherited the newer behaviour
-    without anyone noticing the version it needs.
-
-    An unreadable version is treated as old, because the two ways of being
-    wrong are not symmetric: assuming old costs a fallback that works
-    everywhere, assuming new costs a window that will not go away.
+    An unreadable version is treated as old: assuming old costs a fallback
+    that works everywhere, assuming new costs a window that will not go away.
+    Why the browser is the first caller to need this: docs/mpv-backends.md
+    section 3.
     """
     m = re.search(r"(\d+)\.(\d+)", version or "")
     if not m:
@@ -542,36 +498,21 @@ def chapter_target(chapters, pos, direction):
 
     ``chapters`` is a list of dicts with a ``time`` in seconds, in order.
 
-    The asymmetry is mpv's ``add chapter -1``, and every player's: going
-    back restarts the chapter you are in, unless you are still in its first
-    couple of seconds, in which case you meant the one before. Going forward
-    has no grace at all: it is the next boundary strictly ahead of you, and
-    not "ahead by half a second" -- a position is a float from mpv and is
-    never exactly a boundary, while the half second before one is half a
-    second of real playback in which the button would do nothing.
+    Back restarts the chapter you are in unless you are in its first couple of
+    seconds; forward has no grace at all and takes the next boundary strictly
+    ahead. Rationale for the asymmetry: docs/mpv-backends.md section 3.
 
-    **The answer is clamped to 0**, which is what #614 turned out to be. A
-    matroska chapter can start at a slightly NEGATIVE timestamp -- container
-    start-time offsets put the first one at -0.005 on an ordinary episode --
-    and mpv reads a negative ABSOLUTE seek as the END of the file rather
-    than clamping it. Measured on mpv v0.41.0: `seek -0.005 absolute+exact`
-    on a 30s file lands at 29.96 with eof-reached true. So "previous
-    chapter" hit EOF and the shim's own EOF observer advanced the queue --
-    the reported "prev chapter plays the next episode". It predates this
-    branch: master's hud._chapter_jump passes ch["time"] on just as
-    unclamped. seek() refuses a negative absolute seek as well, because the
-    chapter PICKER hands it the very same value.
+    **The answer is clamped to 0** (#614). A matroska chapter can start at a
+    slightly negative timestamp, and mpv reads a negative ABSOLUTE seek as the
+    END of the file -- so "previous chapter" hit EOF and the EOF observer
+    advanced the queue. ``seek()`` refuses one as well, because the chapter
+    PICKER hands it the very same value.
 
-    **Both directions can also answer None, and the caller must not seek.**
-    Back seeds its search with None rather than 0.0 for the same reason
-    forward ends with it: before the first boundary there is nowhere to go,
-    and a button that quietly restarts the file is worse than one that
-    declines. That covers the first seconds of any file, and a file with no
-    chapters at all, where every press used to jump to 0.0.
+    **Both directions can answer None, and the caller must not seek.** A
+    button that quietly restarts the file is worse than one that declines.
 
-    One definition, because there are two callers with two different reasons
-    to jump: the HUD's chapter buttons and the mouse's back/forward buttons
-    (mouse_chapter_nav).
+    One definition, because two callers jump for different reasons: the HUD's
+    chapter buttons and the mouse's back/forward buttons (mouse_chapter_nav).
     """
     if direction < 0:
         target = None
@@ -780,25 +721,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # the in-window UI owns it. Set by mpvtk_browser.ui, which decides
         # between minimizing to the tray and quitting. Unset -> stop_and_close.
         self.on_window_closed = None
-        # mpv is torn down and re-created across idle-quit and crash recovery.
-        # Anything holding the raw handle has to follow it — the OSD menu does
-        # this via menu.update_player(); the in-window UI attaches a whole
-        # renderer, so it gets explicit hooks.
-        #
+        # mpv is torn down and re-created across idle-quit and crash
+        # recovery, so anything holding the raw handle has to follow it.
         # TWO phases, and the distinction is load-bearing:
         #
-        #   on_mpv_gone       - the handle is no longer OURS. Stop pushing to
-        #                       it. mpv itself may still be running: terminate
-        #                       happens on its own thread, so this fires while
-        #                       the process is on its way out.
+        #   on_mpv_gone       - the handle is no longer OURS; stop pushing to
+        #                       it. mpv may still be running.
         #   on_mpv_terminated - mpv is actually dead. Only now is it safe to
         #                       free anything mpv reads BY ADDRESS, i.e. the
-        #                       in-process BGRA tile buffers. Freeing them at
-        #                       on_mpv_gone time released memory a live mpv
-        #                       was still compositing from every frame, which
-        #                       is a segfault on quit.
+        #                       in-process BGRA tile buffers -- freeing them
+        #                       any earlier is a segfault on quit.
         #
         # on_mpv_recreated fires once a fresh handle is ready.
+        # See docs/mpv-backends.md section 8.
         self.on_mpv_gone = None
         self.on_mpv_terminated = None
         self.on_mpv_recreated = None
@@ -892,22 +827,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _effective_osc_style(self):
         """The OSC style this mpv should be built with.
 
-        `resolve_osc_style()` answers from settings, which know nothing
-        about the machine -- so a fallback that discovered something about
-        *this* mpv (no lua, no Pillow) has to be applied on top, and has to
-        keep being applied.
+        `resolve_osc_style()` answers from settings, which know nothing about
+        the machine -- so a fallback that discovered something about *this*
+        mpv (no lua, no Pillow) has to be applied on top, and **has to keep
+        being applied**: `_init_mpv` runs again on every re-creation, and
+        re-resolving from settings there undoes the whole fallback (see
+        docs/mpv-backends.md section 8).
 
-        **The override outlives the mpv it was decided on.** `_init_mpv`
-        runs again on every re-creation -- an idle-quit then a cast,
-        `set_browse_window`, `force_window` -- and re-resolving from
-        settings there put the style back to "mpvtk" with no renderer
-        behind it and `on_hud_menu` still None, so `toggle_settings_menu`
-        went back to refusing: no HUD, no OSD menu, no way to reach either.
-        One idle timeout undid the whole fallback.
-
-        Its answer feeds `mpv_scripts` and `build_mpv_options` as well as
-        `_osc_style_resolved`, because there is no point handing lua
-        scripts to an mpv already known not to run them.
+        Its answer feeds `mpv_scripts` and `build_mpv_options` too, because
+        there is no point handing lua scripts to an mpv known not to run them.
         """
         if self._osc_style_override is not None:
             return self._osc_style_override
@@ -918,31 +846,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         option -- which means it was built without lua.
 
         **A build without lua does not ignore ``--osc``, it refuses to
-        start**, and that made the whole lua fallback unreachable:
-        `lua_works` needs a live mpv to probe, and the app died
-        constructing one. Measured against a `-Dlua=disabled` mpv 0.41, on
-        both backends: libmpv raises ``AttributeError`` from the
-        constructor, and the external binary exits with "Error parsing
-        option osc (option not found)", arriving here as
-        ``MPVError("MPV process retry limit reached.")``.
+        start**, which made the whole lua fallback unreachable. The two
+        backends report entirely different errors and none of it has to be
+        parsed, because ``--osc`` is the only lua-gated option the shim sets:
+        failing with it and succeeding without it *is* the answer.
 
-        The two backends report entirely different things, and none of that
-        has to be parsed, because **there is only one option this can be**.
-        ``--osc`` is the single lua-gated option the shim sets, so failing
-        to construct *with* it and succeeding *without* it is not evidence
-        that needs interpreting -- it is the answer. [iw]: "we don't even
-        need the detector, osc not being available means lua wasn't
-        compiled in."
-
-        So the answer is recorded rather than rediscovered: `lua_works`
-        skips its probe and its timeout. It is recorded only in this
-        direction. mpv having ``--osc`` says lua was *compiled in*, not that
-        it runs -- lua that loads and then errors is exactly what the probe
-        is for -- so the ordinary path is left to ask.
-
-        Dropping the option is also the right answer rather than a
-        workaround: the OSC being turned off is itself lua, so a build
-        without it has none to turn off.
+        Recorded rather than rediscovered (`lua_works` then skips its probe),
+        and **only in this direction** -- mpv having ``--osc`` says lua was
+        compiled in, not that it runs. Measurements and the retry-budget cost
+        of re-learning: docs/mpv-backends.md section 2.
         """
         from .mpv_options import GAMEPAD_OPTION, OSC_OPTION
 
@@ -1271,24 +1183,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self._bind_key(settings.kb_menu, self._on_menu_key)
         self._bind_key(settings.kb_menu_esc, self._on_menu_esc)
         self._bind_key(settings.kb_menu_ok, self._on_menu_ok)
-        # #16: `kb_menu_*` are MENU keys. They are not bound here at all --
+        # #16: `kb_menu_*` are MENU keys and are not bound here at all --
         # the OSD menu installs them itself for exactly as long as it is on
         # screen (claim_menu_keys), and the rest of the time the key is
-        # mpv's.
-        #
-        # **[iw]** on why that is the right split rather than a smaller one:
-        # "people probably configured arrow keys to something else *so that
-        # our seek bindings weren't messing with the mpv defaults*; the menu
-        # logically uses arrow keys and the only other thing I could see
-        # someone binding those to are wasd." One setting meant two things
-        # -- which key drives the menu, and which key seeks -- and almost
-        # everybody who ever touched it was reaching for the second to get
-        # rid of it. Split, the name it has always had is finally the whole
-        # truth.
-        #
-        # Seeking is mpv's too, unless the shim's own seek does something
-        # mpv's cannot; then it is *claimed*, which follows a remapped key
-        # where the fixed binding never did. See _seek_is_ours.
+        # mpv's. Seeking is mpv's too, unless the shim's own seek does
+        # something mpv's cannot; then it is *claimed*, which follows a
+        # remapped key where the fixed binding never did. See _seek_is_ours,
+        # and docs/mpv-backends.md section 5 for why the split is here.
         self._bind_key(settings.kb_pause, self._on_pause_key)
         # #16: `f` is mpv's own key with mpv's own meaning, so it is no
         # longer bound here -- the fullscreen claim below takes whatever key
@@ -1488,21 +1389,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _on_menu_ok(self):
         """ENTER: confirm the OSD menu, and nothing else.
 
-        This was the one handler in its group with no ``is_menu_shown``
-        guard, so ENTER did not mean "confirm" -- it meant *open* the OSD
-        menu, because ``menu_action("ok")`` on a hidden menu is
-        ``show_menu()``. Under mpvtk that is the exact thing
-        ``toggle_settings_menu`` refuses a few lines above, and for the
-        reason stated there: the OSD menu draws as mpv OSD text, so it
-        lands under the overlay bitmaps and takes the arrow keys with it.
+        It must not *open* it: ``menu_action("ok")`` on a hidden menu is
+        ``show_menu()``, and under mpvtk the OSD menu draws as mpv OSD text,
+        so it lands under the overlay bitmaps and takes the arrow keys with
+        it -- the same thing ``toggle_settings_menu`` refuses above.
 
-        **[iw]**: "ENTER doesn't need to open the menu, `c` is fine for
-        that." So it opens nothing under either OSC. Swallowed rather than
-        left to mpv, which binds ENTER to ``playlist-next`` -- our mpv
-        playlist holds one file, so what that does depends on ``keep-open``
-        and is not a behaviour to inherit by accident. Part of #16's
-        "stop intercepting keys whose meaning we did not change", except
-        that here the honest answer is that we mean nothing by it at all.
+        Swallowed rather than left to mpv, which binds ENTER to
+        ``playlist-next``: our mpv playlist holds one file, so what that does
+        depends on ``keep-open`` and is not a behaviour to inherit by
+        accident. Part of #16, except that here we mean nothing by the key at
+        all.
         """
         if self.menu.is_menu_shown:
             self.menu.menu_action("ok")
@@ -1668,23 +1564,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _on_volume_change(self, _name, _value):
         """Volume or mute moved -- tell the UI now rather than on the tick.
 
-        The playback HUD's mute icon and volume bar read the playstate
-        snapshot, and nothing pushed one when either changed: the only
-        thing that did was the browser's own 1s ticker, so clicking mute
-        left the button showing the old icon for up to a second and a bit
-        while the audio had already stopped (#618). Pause never had this
-        because `pause` has been observed all along.
+        The HUD's mute icon and volume bar read the playstate snapshot, and
+        nothing pushed one when either changed, so the button showed the old
+        icon for up to a second after the audio stopped (#618).
 
-        push_playstate() directly, not timeline_handle(): the timeline
-        thread also POSTs progress to the server, and a volume nudge is not
-        worth a request. The snapshot is local and cheap, and it is what the
-        bar actually reads.
+        push_playstate() directly, not timeline_handle(): the timeline thread
+        also POSTs progress to the server, and a volume nudge is not worth a
+        request.
 
-        Both properties share a handler because they answer the same
-        question for the UI ("what does the volume control look like?"), and
-        observing mpv rather than patching the state at our own button is
-        what makes mpv's OWN bindings -- `m`, the wheel, a script -- move it
-        too.
+        Observing mpv rather than patching state at our own button is what
+        makes mpv's OWN bindings -- `m`, the wheel, a script -- move it too.
         """
         self.push_playstate()
 
@@ -1753,24 +1642,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         )
         self._terminate_thread.start()
 
-    #: What makes the shim's seek different from mpv's. The distances and
-    #: exactness are here for the run BEFORE the migration carries them into
-    #: input.conf; afterwards they are back at their defaults and only
-    #: ``use_web_seek`` can keep a claim alive.
-    #:
-    #: **`skip_intro_on_seek` is deliberately absent** ([iw] asked). It does
-    #: not need a key at all: `_on_seeking` observes the `seeking` property
-    #: and applies it to *any* forward seek, mpv's own bindings included --
-    #: which is what its comment there has always said. Claiming a key for
-    #: it would double-handle, since the claim's own `self.seek()` raises
-    #: that same observer.
-    #: Only `use_web_seek` now. The six seek settings that used to be here
-    #: are gone from the config entirely (see conf.Settings): a distance
-    #: lives in the user's input.conf since #16, and while they existed
-    #: they were actively misleading -- a changed distance made this return
-    #: True, and the resulting claim then seeks by the amount in *mpv's*
-    #: binding rather than by the setting. Web seek is the one thing left
-    #: that mpv cannot express, so it is the one thing that still claims.
+    #: What makes the shim's seek different from mpv's, and so what is worth
+    #: claiming a key for. Only ``use_web_seek`` is left: the six seek
+    #: distance settings moved into the user's input.conf in #16, and while
+    #: they were here they were actively misleading (a changed distance made
+    #: this return True, and the claim then seeked by the amount in *mpv's*
+    #: binding). ``skip_intro_on_seek`` is deliberately absent -- `_on_seeking`
+    #: applies it to any forward seek, mpv's own included, so a claim would
+    #: double-handle. See docs/mpv-backends.md section 5.
     _MPV_EQUIVALENT_SEEK = {"use_web_seek": False}
 
     def _seek_is_ours(self):
@@ -1807,22 +1686,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def lua_works(self, timeout: float = 2.0):
         """Whether this mpv can run a lua script at all. Cached.
 
-        **Everything the shim draws needs this.** The library browser and
-        the playback HUD are rendered by ``renderer.lua``; the stock OSC is
-        lua; ``mouse.lua`` is lua. An mpv built without it, or with it
-        broken, leaves the app running and drawing nothing but video --
-        and, until this existed, with no menu either, because
-        ``toggle_settings_menu`` refuses the OSD menu whenever the
-        *configured* style is mpvtk, live renderer or not.
+        **Everything the shim draws needs this** -- the browser and the HUD
+        are renderer.lua, the stock OSC is lua, mouse.lua is lua.
 
-        A probe, not a capability string: `mpv-configuration` does not
-        mention lua on every build (measured on this one), and `load-script`
-        on a script that cannot run raises nothing on either backend. Only a
-        script reporting back is proof -- which also catches lua that loads
-        and then errors.
-
-        Costs ~10 ms when lua works (measured), and the full timeout once
-        when it does not.
+        A probe, not a capability string: ``mpv-configuration`` does not
+        mention lua on every build, and ``load-script`` on a script that
+        cannot run **raises nothing on either backend**. Only a script
+        reporting back is proof, which also catches lua that loads and then
+        errors. Costs ~10 ms when lua works, and the full timeout once when it
+        does not. See docs/mpv-backends.md section 2.
         """
         if self._lua_works is not None:
             return self._lua_works
@@ -1847,25 +1719,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # ------------------------------------------------------ the OSD menu
 
     #: The flags every section of ours is enabled with -- the same string
-    #: mpv's own defaults.lua gives a script's bindings, and the same one
-    #: python-mpv gives every key we bind through it.
+    #: mpv's own defaults.lua gives a script's bindings.
     #:
-    #: A section's mouse area defaults to the WHOLE SCREEN (input.c:
-    #: get_bind_section starts it at INT_MIN..INT_MAX), and an enabled
-    #: section covering the pointer without ``allow-hide-cursor`` is how mpv
-    #: is told "a script's UI is under the mouse": every call to
-    #: mp_input_get_mouse_event_counter bumps the counter, which re-arms
-    #: handle_cursor_autohide's timer, so **the cursor never hides again**.
-    #: Ours hold keyboard keys and have no UI at all, so the fullscreen
-    #: standing claim -- installed at mpv creation and never released --
-    #: left a pointer sitting over every film for the whole session.
-    #: ``allow-vo-dragging`` is the same mistake in the other direction:
-    #: without it mp_input_test_dragging refuses to move the window from a
-    #: drag on the video, which is mpv's own behaviour everywhere else.
-    #: (renderer.lua withholds ``allow-hide-cursor`` from its own mouse
-    #: sections on purpose -- while the library or the HUD is up the pointer
-    #: really is over a UI -- and they are enabled only for as long as it
-    #: is. These are enabled for the life of the process.)
+    #: Without ``allow-hide-cursor`` an enabled section covering the pointer
+    #: tells mpv a script's UI is under the mouse, which re-arms the autohide
+    #: timer on every poll, so **the cursor never hides again** -- and ours
+    #: cover the whole screen by default while holding only keyboard keys.
+    #: Without ``allow-vo-dragging`` mpv refuses to move the window from a
+    #: drag on the video. renderer.lua withholds the first from its own mouse
+    #: sections on purpose; these are enabled for the life of the process.
+    #: See docs/mpv-backends.md section 5.
     SECTION_FLAGS = "allow-hide-cursor+allow-vo-dragging"
 
     #: Section and message for the OSD menu's own arrow keys.
@@ -2109,19 +1972,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def run_action(self, func):
         """Run a UI-originated player action without ever blocking the caller.
 
-        ``_lock`` is held for the whole of a playback start — the mpv load
-        plus the duration wait, which is bounded only by playback_timeout
-        (30s by default) and is routinely the full timeout when a stream
-        fails to open. UI actions run inline on the browser's loop thread, so
-        calling a @synchronous method straight through froze the entire
-        window for that whole stretch: the loading screen painted, and then
-        the first press of pause/seek/stop wedged it.
+        ``_lock`` is held for the whole of a playback start -- the mpv load
+        plus the duration wait, bounded only by playback_timeout (30s) and
+        routinely the full timeout when a stream fails to open. UI actions run
+        inline on the browser's loop thread, so calling a @synchronous method
+        straight through froze the window for that whole stretch.
 
-        Fast path is unchanged — if the lock is free the action runs inline
-        and synchronously, so normal transport control keeps its exact
-        current behaviour. Only when something else holds the lock does the
-        action defer onto the action thread, applying once that work
-        finishes. ``func`` takes the PlayerManager.
+        Fast path is unchanged: a free lock means the action runs inline and
+        synchronously. Only a contended lock defers onto the action thread.
+        ``func`` takes the PlayerManager.
+
+        NB the deferred path holds **no** lock, which is why targets that
+        mutate the player carry their own ``@synchronous``.
         """
         if self._lock.acquire(blocking=False):
             try:
@@ -2404,32 +2266,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _apply_auth_headers(self, video):
         """Hand mpv this server's Authorization header. True if it took.
 
-        Everything mpv fetches for this file goes through it -- the stream,
-        any external subtitle sidecar -- so one option covers them all, and
-        none of those URLs then needs a token in its query string.
+        Everything mpv fetches for this file goes through it -- stream and
+        subtitle sidecar alike -- so no URL needs a token in its query string.
+        ``Authorization: MediaBrowser Token="..."`` is the one scheme not gated
+        behind ``EnableLegacyAuthorization``; the apiclient already builds it.
 
-        ``Authorization: MediaBrowser Token="…"`` is the one header scheme
-        the server does not gate behind ``EnableLegacyAuthorization``
-        (``AuthorizationContext``); ``X-Emby-Token`` and friends are all
-        legacy. The apiclient already builds exactly this line for its own
-        requests, so it is borrowed rather than re-spelled here.
+        Returns False rather than raising, and the caller falls back to the
+        url; the cost of being wrong is that nothing plays at all.
 
-        Returns False rather than raising on any failure, and the caller
-        falls back to putting the token in the url. mpv has had
-        ``http-header-fields`` for over a decade so this should not happen,
-        but the cost of being wrong is that nothing plays at all.
-
-        **The clear at the top is load-bearing.** ``http-header-fields`` is
-        a global, persistent mpv option and mpv is not re-created between
-        queue items, so a header installed for one item is still installed
-        for the next — including a next item we deliberately *refuse* to
-        set it for. That refusal is this guard's entire purpose, and
-        without the clear it defeated itself: auto-advance from a normal
-        item to one whose subtitle lives on a third-party host, and mpv
-        sent the previous item's ``Authorization`` to that host while the
-        log said it had not. Clearing here rather than on each ``return
-        False`` is the point — every exit path past this line leaves mpv
-        holding nothing, including the ones nobody has written yet.
+        **The clear at the top is load-bearing.** ``http-header-fields`` is a
+        global, persistent option and mpv is not re-created between queue
+        items, so without it a refusal to send the header defeats itself and
+        leaks the previous item's token to a third-party host. Clearing here
+        rather than on each ``return False`` covers every exit path past this
+        line, including the ones nobody has written yet.
+        See docs/mpv-backends.md section 6.
         """
         if not self._mpv_alive:
             # mpv is DOWN — idle-quit, a crash, a window the user closed —
@@ -2504,24 +2355,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _needs_copy_hwdec(self):
         """Whether anything downstream needs frames in system RAM.
 
-        The direct hardware-decoding modes hand mpv frames that live on the
-        GPU, which a video filter cannot read -- so where there is a filter,
-        hardware decoding has to be the copy-back kind or it silently does
-        not apply. Three sources, and none of them is a guess:
+        Direct hardware decoding hands mpv frames on the GPU, which a video
+        filter cannot read -- so where there is a filter, hwdec has to be the
+        copy-back kind or it silently does not apply. Three sources:
 
-        * the active shader profile said so (``wants_copy_hwdec`` -- the
-          pack names a ``-copy`` mode because it knows what it will do with
-          the frames);
-        * SVP is enabled, which means a VapourSynth filter in the user's
-          own mpv.conf;
-        * mpv reports a filter chain. This is the general case and catches
-          the other two as well once playback is running, but it is asked
-          separately because it is the only one that sees a filter the app
-          knows nothing about.
+        * the active shader profile said so (``wants_copy_hwdec``);
+        * SVP is enabled, i.e. a VapourSynth filter in the user's mpv.conf;
+        * mpv reports a filter chain -- the general case, asked separately
+          because it is the only one that sees a filter we know nothing about.
 
-        Never raises: an unanswerable question here means "no filter", and
-        the cost of being wrong is a filter that does not apply -- not a
-        player that fails to start.
+        Never raises: unanswerable means "no filter", and the cost of being
+        wrong is a filter that does not apply, not a player that fails.
         """
         try:
             profiles = self.menu.profile_manager if self.menu else None
@@ -2777,21 +2621,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         if hold_still:
             # A photo is a video that happens to be still: mpv holds it for
             # --image-display-duration and then advances, which is a
-            # slideshow nobody asked for when they opened one picture. Paused
-            # it is a viewer; unpause and the album plays through, which is
-            # the slideshow they *would* ask for.
+            # slideshow nobody asked for when they opened one picture.
             #
             # Both guards earn their place, and neither did on its own:
-            #
-            # `is_initial_play` -- this used to pause on EVERY load, so the
-            # queue advanced onto the next picture and paused there too. The
-            # slideshow moved exactly one frame and stopped. Pausing is about
-            # the picture you opened, not about every picture after it.
-            #
-            # `pause_stills` -- what the *request* asked for. Clicking one
-            # photo is "show me this", and pausing is the whole point; Play
-            # All on an album is "run the slideshow", and pausing on frame
-            # one would be a queue that never starts.
+            # `is_initial_play` -- pausing is about the picture you opened,
+            # not every picture after it, or the slideshow advances one frame
+            # and stops. `pause_stills` -- what the *request* asked for; Play
+            # All on an album is "run the slideshow", and pausing on frame one
+            # would be a queue that never starts.
             try:
                 self._player.pause = True
             except _mpv_errors:
@@ -2914,19 +2751,18 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _release_syncplay(self):
         """Stopping playback while in a SyncPlay group: halt, or leave.
 
-        Halting is what jellyfin-web does — membership is not a property of
+        Halting is what jellyfin-web does -- membership is not a property of
         playback, and dropping the group every time somebody went back to the
         library made SyncPlay unusable for anything but one film start to
-        finish. But halting only works if the group is still reachable
+        finish. But halting only works if the group is still **reachable**
         afterwards, and on two surfaces it is not: with no GUI at all, and
-        when playback was cast to a shim whose browser was never opened (the
-        window goes away with the video, and the SyncPlay menu lives in the
-        browser's chrome). Leaving is right there — the alternative is a group
-        the user is in, is not watching, and has no way to get out of.
+        when playback was cast to a shim whose browser was never opened. The
+        alternative there is a group the user is in, is not watching, and has
+        no way to get out of.
 
-        Already halted is nothing to release: a halted member can go on to
-        play something of their own, and that video ending is not an event the
-        group has any business hearing about.
+        Already halted is nothing to release: a halted member may go on to
+        play something of their own, and that ending is not the group's
+        business.
         """
         if not self.syncplay.is_enabled():
             return
@@ -3006,17 +2842,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         Always LEAVES a SyncPlay group rather than halting it. Halting is for
         a stop you can come back from -- back to the library, where the
-        SyncPlay menu is. A closing window has no library behind it: the app
-        is quitting or going to the tray, and either way a halted membership
-        is one nobody can see, leave or resume, while the group goes on
-        waiting for a member who is not there.
+        SyncPlay menu is. A closing window has no library behind it, so a
+        halted membership is one nobody can see, leave or resume while the
+        group goes on waiting for a member who is not there.
 
-        Explicit rather than left to `syncplay_menu_reachable`. That hook
-        does answer "no" here, but only because the browser happens to call
-        minimize() before it stops -- two lines apart, in the other module,
-        with nothing saying they must stay in that order. Deciding it here
-        makes every way of closing the window agree without depending on
-        that.
+        Explicit rather than left to `syncplay_menu_reachable`: that hook does
+        answer "no" here, but only because the browser happens to call
+        minimize() first, with nothing saying those two lines must stay in
+        that order.
         """
         if self.syncplay.in_group():
             log.info("Leaving the SyncPlay group: the window is closing.")
@@ -3086,23 +2919,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _apply_interpolation(self):
         """Write the configured motion-interpolation preset, or undo ours.
 
-        **"Off" writes nothing until we have written something.** Every one
-        of these is a property somebody may have set in their own mpv.conf,
-        and the default of this setting is off -- so an off that wrote its
-        idea of "not interpolating" would reach out on the very first item
-        and turn off frame blending the user configured themselves, for
-        everyone, with no setting here that puts it back. That is the
-        mistake ``hwdec_pinned_by_config`` exists to avoid, and it is not
-        enough to avoid it for ``video-sync`` alone: writing
-        ``interpolation=no`` while carefully preserving
-        ``video-sync=display-resample`` leaves the WORST pair, paying that
-        mode's cost with the feature it exists for switched off.
+        **"Off" writes nothing until we have written something.** Every one of
+        these is a property somebody may have set in their own mpv.conf, and
+        the default of this setting is off -- so an off that wrote its idea of
+        "not interpolating" would reach out on the first item and turn off
+        frame blending the user configured, with no setting here to put it
+        back. (``hwdec_pinned_by_config`` exists to avoid the same mistake.)
 
-        So the undo is symmetric with the do: the first time a preset is
-        applied, the previous value of every property any preset touches is
-        kept, and off restores exactly those. ``_interp_saved`` is None
-        while we have never written, which is also the "leave it alone"
-        signal.
+        So the undo is symmetric with the do: the first apply keeps the
+        previous value of every property any preset touches, and off restores
+        exactly those. ``_interp_saved`` is None while we have never written,
+        which is also the "leave it alone" signal.
+
+        Why preserving ``video-sync`` alone is worse than useless:
+        docs/mpv-backends.md section 6.
         """
         from .mpv_options import INTERPOLATION_KEYS, interpolation_props
 
@@ -3133,17 +2963,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         state, "let the setting decide".
 
         Deliberately not persisted. It is the answer to one file (or one
-        badly-flagged season) rather than a statement about the library,
-        and ``deinterlace_auto`` is where a durable answer goes.
+        badly-flagged season) rather than a statement about the library, and
+        ``deinterlace_auto`` is where a durable answer goes.
 
-        ``@synchronous``, like every other ``run_action`` target that
-        mutates the player (``seek``, ``stop``, ``set_paused``). It was
-        modelled on ``set_night_mode``, which is unlocked -- but that one
-        is serialized by ``_audio_lock`` inside ``apply_audio_settings``,
-        so it was the wrong exemplar. ``run_action``'s DEFERRED path holds
-        no lock at all (``update`` drains the queue undecorated), so
-        without this the toggle could land between ``_play_media`` reading
-        the override and writing it, and the press would be silently lost.
+        ``@synchronous``, like every other ``run_action`` target that mutates
+        the player: ``run_action``'s DEFERRED path holds no lock at all, so
+        without this the toggle could land between ``_play_media`` reading the
+        override and writing it, and the press would be silently lost.
         """
         self._deinterlace_override = bool(on)
         self.reapply_deinterlace()
@@ -3219,26 +3045,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.toggle_stats()
 
     def stop_to_browser(self):
-        """Stop playback but keep the window, so the in-window browser can take
-        it back (the 'q' key while the in-window browser is up). push_playstate(stopped)
-        is what tells the browser to re-enter browse mode.
+        """Stop playback but keep the window, so the in-window browser can
+        take it back (the 'q' key while the browser is up).
+        push_playstate(stopped) is what tells the browser to re-enter browse.
 
         That notification is also why the browse re-assert below is
-        conditional. ``stop()`` ends in ``push_playstate(stopped=True)``, so
-        the browser gets to act *inside* this call, and re-entering browse is
-        only one of the things it may decide: told that playback stopped with
-        nothing to show, it minimizes instead, clearing ``mpvtk_active`` and
-        dropping force_window. Re-asserting unconditionally then summoned a
-        window nobody wanted -- a blank one, since nothing is loaded -- which
-        the browser tore down again a moment later. That is the "closes,
-        briefly re-opens blank, closes again" flicker, and it needed the
-        browser to be *quick* to show at all: lose the race and the re-assert
-        lands first, on a window that still exists, and does nothing.
+        **conditional**. ``stop()`` ends in ``push_playstate(stopped=True)``,
+        so the browser acts *inside* this call, and re-entering browse is only
+        one of the things it may decide -- told that playback stopped with
+        nothing to show, it minimizes instead. Re-asserting unconditionally
+        then summoned a blank window the browser tore down a moment later.
 
         So the browser gets the last word. ``mpvtk_active`` is the same flag
         ``_set_force_window`` treats as the authority on who owns the window,
-        and ``on_minimize`` clears it before releasing anything, which is what
-        makes reading it here reliable.
+        and ``on_minimize`` clears it before releasing anything.
         """
         log.info("stop_to_browser: stopping playback, keeping the window")
         self.stop()
@@ -3502,26 +3322,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _widen_queue_backwards(self, video):
         """Put the episodes *before* this one into the queue. True if it grew.
 
-        Starting an episode from Next Up or Continue Watching builds the
-        queue with ``StartItemId``, which is inclusive -- so the queue is
-        this episode onward and there is nothing behind it to step to
-        (#650). jellyfin-web has the same gap; the issue asks for "load
-        more/full list, so going back is possible", and this is that, done
-        lazily: nothing is fetched until someone actually presses previous,
-        and then once for the rest of the session.
+        Starting an episode from Next Up or Continue Watching builds the queue
+        with ``StartItemId``, which is inclusive -- so there is nothing behind
+        it to step to (#650). jellyfin-web has the same gap. Done lazily:
+        nothing is fetched until someone presses previous, then once for the
+        session.
 
-        **Prepends rather than rebuilding.** The entries after the current
-        one already exist, already carry their PlaylistItemIds, and may
-        have been edited (``insert_items`` from the queue screen, a
-        websocket Play command) -- reconstructing them from the server's
-        episode list would silently discard all of that. So the server's
-        answer is used only for the part we do not have.
+        **Prepends rather than rebuilding.** The entries after the current one
+        already carry their PlaylistItemIds and may have been edited
+        (``insert_items``, a websocket Play command); reconstructing them from
+        the server's episode list would silently discard that.
 
-        Runs under the player lock, like every other blocking server call
-        on this path (``get_playback_url`` is one), and returns False on
-        anything unexpected: this is a convenience on a keypress, and the
-        worst honest outcome is the previous button doing nothing, which is
-        what it did before.
+        Runs under the player lock, like every other blocking server call on
+        this path, and returns False on anything unexpected -- this is a
+        convenience on a keypress, and the worst honest outcome is the button
+        doing nothing.
         """
         from .utils import get_seq
 
@@ -3779,22 +3594,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def cancel_load(self):
         """Abandon a playback start that is still in flight.
 
-        Reuses the abort the end-file handler sets, so the duration wait
-        gives up within a poll interval instead of running out
-        playback_timeout — which is the whole point, since the case worth
-        cancelling is the one where mpv sits on a stalled stream for 30s.
+        Reuses the abort the end-file handler sets, so the duration wait gives
+        up within a poll interval instead of running out playback_timeout --
+        the case worth cancelling is mpv sitting on a stalled stream for 30s.
         The cancelled flag keeps the failure path silent: the user asked for
-        this, so there is nothing to report and nothing to retry.
+        this.
 
-        Deliberately takes no lock, so it is safe to call straight from the
-        UI thread while _play_media holds one. Returns whether a start was
-        actually in flight.
+        Deliberately takes no lock, so it is safe from the UI thread while
+        _play_media holds one. Returns whether a start was in flight.
 
-        Gated on _start_in_progress rather than _loading: _loading only covers
-        the mpv-side duration wait, but the start begins one PlaybackInfo
-        round trip earlier — and the UI has shown a spinner (with this Cancel
-        on it) since the click. Gating on _loading made the button do nothing
-        for that whole window.
+        Gated on _start_in_progress, not _loading: _loading covers only the
+        mpv-side duration wait, but the start begins one PlaybackInfo round
+        trip earlier -- and the spinner carrying this Cancel has been up since
+        the click.
         """
         if not self._start_in_progress:
             return False
@@ -4093,21 +3905,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _check_stalled_finish(self, video):
         """Whether playback has silently died at the end of a remote stream.
 
-        The observers and the poll rescue all wait for mpv to *say* the file
-        ended. A remote origin that stops delivering without closing the
-        connection produces no such statement: the demuxer blocks in read, so
-        there is no end-file event, eof-reached stays False and playback-abort
-        stays False. With keep_open holding the last frame mid-queue, that is
-        indistinguishable from a normal hold — the queue just stops forever.
-        Reported against .strm items, whose origins are arbitrary third-party
-        servers, but nothing here is .strm-specific.
+        A remote origin that stops delivering **without closing the
+        connection** makes no statement at all: the demuxer blocks in read, so
+        there is no end-file event and eof-reached stays False. With keep_open
+        holding the last frame mid-queue that is indistinguishable from a
+        normal hold -- the queue just stops forever.
 
         Deliberately requires the position to be at the END of the media, not
-        merely frozen. A bare stall is far more likely to be rebuffering on a
-        slow origin, and advancing through that would silently skip the rest
-        of an episode — a worse outcome than the freeze this fixes. Items with
-        no known duration therefore get no rescue; _finished_at_eof cannot
-        place them, and guessing is not worth the risk of skipping content.
+        merely frozen: a bare stall is far more likely to be rebuffering, and
+        advancing through that would silently skip the rest of an episode.
+        Items with no known duration therefore get no rescue.
+        See docs/mpv-backends.md section 9.
         """
         # Live streams have no end to arrive at: a stall there is an outage,
         # and "finishing" one would advance the queue past a channel the user

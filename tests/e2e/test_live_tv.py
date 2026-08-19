@@ -6,8 +6,8 @@ green while `4bc952c1` shipped: category flags derived as `"is_" + name`, so
 before reaching the server — **the unit test asserted the wrong spelling,
 which is why it passed**. That is the case for doing this against a server,
 and it is not a hypothetical: Live TV is where the shim makes the most claims
-about server behaviour, and `CLAUDE.md` records a dozen of them as prose that
-nothing executes.
+about server behaviour, and `docs/jellyfin-api-notes.md` records a dozen of them
+as prose that nothing executes.
 
 The claims pinned here, each of which failed silently when it was wrong:
 

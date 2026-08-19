@@ -1,13 +1,13 @@
-"""Layout engine: element tree -> flat scene node list.
+"""Layout engine: element tree -> flat scene node list (GUIDE.md sec. 3).
 
-Coordinates are OSD pixels, origin top-left. Children of a scroll
-container are laid out in content space as if the offset were 0; the
-renderer subtracts the live scroll offset and clips to the viewport.
+Coordinates are logical pixels, origin top-left; ``scaling.scale_scene``
+converts on the way out. Children of a scroll container are laid out in
+content space as if the offset were 0; the renderer subtracts the live
+offset and clips to the viewport.
 
-Text measurement is an approximation (per-char advance as a fraction of
-the font size); the same table lives in renderer.lua for cursor
-positioning — keep them in sync. Real glyph metrics are a known
-limitation of the spike.
+Text is measured from real glyph advances pushed in by ``metrics.py``,
+falling back to the per-char heuristic table below. renderer.lua carries
+the same table for cursor positioning -- keep the two in sync.
 """
 
 from . import theme
@@ -92,14 +92,11 @@ def char_w(ch):
 
 #: How much wider the bold face is than the regular one. Only the regular
 #: face is measured (metrics.py), so bold is derived from it by this factor.
-#:
-#: Was 1.04, which is not close: measuring DejaVuSans against
-#: DejaVuSans-Bold with Pillow gives 1.122 aggregate over ASCII, and
-#: 1.119-1.130 across real UI strings. At size 17 the old value
-#: under-measured a bold heading by ~14px, so whatever the layout put next
-#: to it overlapped — the downloads screen's group titles ran into their
-#: item counts. renderer.lua carries the same constant and
-#: tests/test_python_lua_constants.py pins them together.
+#: Measured at 1.122 aggregate over ASCII for DejaVuSans; under-measuring
+#: it overlaps whatever layout puts beside a bold heading. renderer.lua
+#: carries the same constant, and both the value and the pairing are pinned
+#: by tests/test_python_lua_constants.py (see
+#: ``test_it_is_not_the_old_underestimate``).
 BOLD_FACTOR = 1.12
 
 
@@ -246,19 +243,15 @@ def natural_size(el):
 def measure_h(el, avail_w):
     """Natural height of ``el`` when the width it will get is known.
 
-    ``measure`` is *intrinsic*: with no width to wrap against, a
-    ``wrap=True`` Text with no explicit ``w`` measures one line tall. That
-    is the right answer to "how wide would this like to be" and the wrong
-    one for "how tall will this end up", and the gap is not cosmetic — a
-    scroll viewport takes its content height from a measure, so a column of
-    wrapped notes reported a content height short by however much the text
-    wrapped, and the scrollbar stopped before the last rows. The settings
-    form was unreachable below its notes.
+    Use this and not ``measure`` for anything that decides a scroll extent.
+    ``measure`` is *intrinsic* -- with no width to wrap against, a
+    ``wrap=True`` Text measures one line tall -- which is the right answer
+    to "how wide would this like to be" and short by every wrapped line for
+    "how tall will this end up", so a viewport clamps above its own content.
 
     ``_arrange_children`` stays the authority on the final geometry; this
-    agrees with it for the cases that decide a scroll extent (columns,
-    wrapped text, nesting) and approximates a Row's flex distribution
-    without re-running it.
+    agrees with it for columns, wrapped text and nesting, and approximates
+    a Row's flex distribution without re-running it.
     """
     if el.h is not None:
         return _clamp_wh(el, 0.0, float(el.h), avail_w)[1]
@@ -634,13 +627,10 @@ def _arrange_image_map(ctx, el, x, y, w, h, sc, path):
             # other way.
             rnode["af"] = True
         if reg.get("zone"):
-            # A click ZONE, not a control: the whole bitmap does one thing
-            # and half of it does another, so there is nothing on screen for
-            # a ring to point AT. Ringing half a page is not an affordance,
-            # it is a blue box over the paragraph being read — and the same
-            # goes for the spatial-nav ring, which is why this also takes
-            # the region out of the focus order (`nnav`). A zone is reached
-            # by pointing at it or by the keys the page claims, never by
+            # A click ZONE, not a control (`nnav`, GUIDE.md section 3):
+            # no hover ring and out of the focus order, because both rings
+            # exist to say "this one" and half a page of prose is not a
+            # "this". Reached by pointing or by a claimed key, never by
             # walking to it.
             rnode["nnav"] = True
         else:
@@ -955,29 +945,15 @@ def _arrange_scroll(ctx, el, x, y, w, h, sc, path):
         cw, ch = max(cw, inner_w), inner_h
     else:
         # **The gutter is reserved whenever the view has a bar at all**, not
-        # only when the content currently overflows. This was conditional,
-        # and the condition is not one every caller can ask: a full-bleed
-        # header sizes itself during BUILD (`TileRenderer.banner_box`), which
-        # is before anything has been measured, so it can only assume -- and
-        # it assumes the gutter is there. On a page that did not scroll the
-        # two disagreed and the banner stopped 10px short of an edge with
-        # nothing drawn at it [iw: "just a grey void on the right side"].
+        # only when the content currently overflows -- a full-bleed header
+        # sizes itself during BUILD, before anything is measured, so it can
+        # only assume the gutter is there and layout has to agree whichever
+        # way the content falls. renderer.lua's draw_scrollbar paints the
+        # track whenever the gutter exists, so space allocated is space drawn
+        # in. Pinned by tests/test_mpvtk_layout.py.
         #
-        # Reserving unconditionally is what makes the two agree, and the
-        # empty strip that argued against it before is gone from the other
-        # end: renderer.lua's draw_scrollbar now paints the track whenever
-        # the gutter exists, and adds the thumb only when there is something
-        # to scroll. Space allocated is space drawn in.
-        #
-        # One measure now rather than two. The old order existed because
-        # content height is a function of width -- narrowing the column makes
-        # wrapped text taller -- so it had to ask "does it fit?" at the full
-        # width before deciding. With the answer fixed in advance there is
-        # nothing to re-ask.
-        #
-        # measure_h, not measure: an intrinsic measure reported a content
-        # height that stopped short of the content, and the scroll clamped
-        # to it.
+        # measure_h and not measure, or the content height stops short of
+        # the content and the scroll clamps to it.
         if el.scrollbar:
             inner_w -= SCROLLBAR_W
             node["bar"] = True
@@ -1055,19 +1031,13 @@ def _arrange_stack(ctx, el, x, y, w, h, sc, path):
 
 def _arrange_box(ctx, el, x, y, w, h, sc, path):
     """The workhorse: a padded flex row or column. Also the fallthrough."""
-    # `el.disabled` counts as something to draw even when nothing else
-    # does. A disabled Button(flat=True) has no bg, no border and no
-    # handler -- it mutes itself by dropping all three (widgets.Button) --
-    # and a Checkbox never had a bg on its outer row. Without a node the
-    # renderer has nothing to absorb the pointer with, so the press reaches
-    # whatever sits under it: over the playback HUD, that is bare video and
-    # a toggled pause. The node also carries the `tip` explaining why the
-    # control is off, and its id.
-    # `window_drag` counts as something to draw for the same reason
-    # `disabled` does: it needs a node for the pointer to land on. It cannot
-    # ride on `bg` -- the top bar drops its fill entirely on themes that paint
-    # a gradient behind it, which is exactly when there would be no rect and
-    # the title bar would silently stop being draggable.
+    # `disabled` and `window_drag` each count as something to draw even when
+    # nothing else does, because both need a node for the pointer to land
+    # on: a disabled control absorbs the press (GUIDE.md section 2) and a
+    # flat disabled Button has no bg, border or handler left to make one.
+    # Neither may ride on `bg` -- a top bar drops its fill entirely on
+    # themes that paint a gradient behind it, which is exactly when the
+    # title bar would silently stop being draggable.
     if (el.bg or el.border or el.on_click or el.disabled
             or getattr(el, "window_drag", False)
             or getattr(el, "window_resize", None)):
@@ -1110,10 +1080,6 @@ def _arrange(ctx, el, x, y, w, h, sc, path):
     and HScroll subclass Scroll, so an exact-type lookup would silently
     miss the two container types the browser uses most. Order is part of
     the contract, and Box stays last because it is the fallthrough.
-
-    Was one 432-line function. The sixteen branches below were already
-    independent -- each ended in ``return``, none had an ``else`` -- which
-    is what made splitting it a move rather than a rewrite.
     """
     if isinstance(el, Text):
         return _arrange_text(ctx, el, x, y, w, h, sc, path)
@@ -1186,14 +1152,10 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             nl = len(_wrap_lines(c, wrap_w))
             sizes.append(float(nl * c.size * LINE_H))
         elif not row:
-            # measure_h, not measure: intrinsic height answers "how tall
-            # would this like to be with no width to wrap against", which
-            # for anything CONTAINING wrapped text is one line short per
-            # wrap. The line above catches a wrapped Text that is a direct
-            # child; a wrapped Text one Column deeper was measured at a
-            # single line, so whatever followed its container was laid out
-            # over the top of it -- the View Settings dialog's Done button
-            # sat on the note above it.
+            # measure_h, not measure. The branch above catches a wrapped
+            # Text that is a direct child; one a Column deeper measures at a
+            # single line, and whatever follows its container is then laid
+            # out on top of it.
             sizes.append(clamp_main(c, measure_h(c, inner_cross)))
         else:
             sizes.append(clamp_main(c, float(measure(c)[0])))
@@ -1204,12 +1166,9 @@ def _arrange_children(ctx, box, x, y, w, h, sc, path):
             sizes[i] = clamp_main(
                 c, max(0.0, leftover * c.flex / flex_total))
 
-    # flex-shrink, ROWS only: fixed/natural children used to overflow
-    # silently and push content off-screen in narrow windows. Shrink
-    # proportionally, floored at each child's min (bitmaps/icons floor
-    # at natural — pixels never squeeze; Text just re-ellipsizes).
-    # Columns keep overflowing on purpose: vertical overflow is normal
-    # pre-scroll content, not a layout error.
+    # flex-shrink, ROWS only -- columns keep overflowing on purpose, since
+    # vertical overflow is pre-scroll content and not an error. GUIDE.md
+    # section 2 has the floors.
     total = sum(sizes)
     if row and total > inner_main > 0:
         floors = []

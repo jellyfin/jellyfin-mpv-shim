@@ -1,25 +1,18 @@
 """Per-library and per-series shader profile overrides.
 
-There is no one right Anime4K profile — there is a right one *per kind of
-source*. A poorly compressed anime wants different treatment from a crisp
-one, which wants different treatment from a live-action film, and a single
-global choice makes the user re-pick by hand or accept the wrong one.
-
-**Its own file, not a config key, and for two reasons.** ``settings_base``
-has no ``dict`` in ``object_types``, so a mapping cannot be a setting
-without being encoded as a list of pairs. More importantly these overrides
-are **device-local**: which profile runs well depends on this machine's
-GPU, so unlike the home-screen layout (DisplayPreferences, server-side)
-this must *not* follow the user to another device.
-
-Keys carry the server uuid, because item ids are only unique per server and
-a multi-server setup is the normal case here.
+There is no one right Anime4K profile -- there is a right one *per kind of
+source* -- and a single global choice makes the user re-pick by hand or
+accept the wrong one. Its own JSON file rather than a config key because
+``settings_base`` has no ``dict`` type and, more importantly, because these
+overrides are **device-local**: which profile runs well depends on this
+machine's GPU. Keys carry the server uuid, since item ids are only unique per
+server. Both decisions are recorded in ``docs/UI_FIXES_4.md`` §15.
 
 **Absent and null mean different things.** A key that is not in the file
-inherits from the next scope out; a key holding ``null`` is an override
-that says "no shaders for this", which is a thing a user can want and is
-not the same as saying nothing. Everything here turns on keeping those
-apart, so the read API answers with a sentinel rather than with ``None``.
+inherits from the next scope out; a key holding ``null`` is an override that
+says "no shaders for this", which is a thing a user can want. Everything here
+turns on keeping those apart, so the read API answers with a sentinel rather
+than with ``None``.
 """
 
 import json

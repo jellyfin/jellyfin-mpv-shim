@@ -199,23 +199,14 @@ def type_indicator_icon(item):
 #:
 #: A first initial is a decent label when the name distinguishes things --
 #: films, shows, people. It is useless where the name does not: a Home Videos
-#: library is folders and albums named "2019", "2020", "Holiday", and a wall
-#: of digits says nothing about which tiles you can open and which will start
-#: playing. jellyfin-web draws an icon for exactly these
-#: (``getItemTypeIcon``, ``utils/image.ts:130-161``).
+#: library is folders named "2019", "2020", "Holiday", and a wall of digits
+#: says nothing about which tiles you can open and which will start playing.
 #:
-#: **Material icon names**, drawn by the strip compositor.
-#:
-#: A comment here used to say these had to be characters "because this is
-#: baked into the tile bitmap by the strip compositor, which draws text,
-#: not icon fonts". That was never true -- `strips._paint_glyph_badge` has
-#: rasterized icon paths through `vector.icon_image` since the home-video
-#: type badges landed. **[iw]**: "that comment is a lie."
-#:
-#: Taken from jellyfin-web rather than chosen, so a library with no
-#: artwork looks like the same library does in every other client:
-#: `getItemTypeIcon` for an item, `getLibraryIcon` for a library tile
-#: (both `src/utils/image.ts`).
+#: **Material icon names**, rasterized by the strip compositor through
+#: `vector.icon_image`. Taken from jellyfin-web rather than chosen, so a
+#: library with no artwork looks like the same library does in every other
+#: client: `getItemTypeIcon` for an item, `getLibraryIcon` for a library
+#: tile (both `src/utils/image.ts`).
 _TYPE_GLYPHS = {
     "MusicAlbum": "album",
     "MusicArtist": "person",

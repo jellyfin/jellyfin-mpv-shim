@@ -4,23 +4,12 @@ The screen is one bitmap and two bars. The bitmap is the page, rasterized
 by :mod:`jellyfin_mpv_shim.epub` at the exact size it will be drawn (mpv
 never resamples an overlay — mpvtk GUIDE §5) and handed to the scene as a
 single `Image`; the bars are ordinary widgets. Nothing about the book's
-typography is expressed as toolkit nodes, and that is the design, not a
-stage of one — see ``epub/paint.py`` for the four reasons.
+typography is expressed as toolkit nodes (``docs/readers.md`` §4.6).
 
-**The book cannot be read from the server.** There is no endpoint that
-serves a page, a spine document or an archive entry; ``/Items/{id}/Download``
-is the whole API (``jellyfin_mpv_shim/books.py``). So this page is only
-reachable once the file is on disk, and it says so and fetches it when it
-is not — the same two-step Read has always been, with the reader on the end
-of it instead of the desktop.
-
-**Position is written back on every turn, and it is the number every other
-client uses.** ``epub/locations.py`` reimplements epub.js's locations
-index, so the fraction stored here resumes correctly in jellyfin-web and
-vice versa. This is what changed the old "epub progress is not settable"
-rule: that rule was about a *manual* control, where the objection was that
-no reader shows the user a number to type. A reader that observes its own
-progress has no such problem — it is the reader.
+**The book cannot be read from the server**, so this page is reachable only
+once the file is on disk and it fetches it when it is not (§1). **Position
+is written back on every turn**, as the same number jellyfin-web writes,
+which is what changed the old "epub progress is not settable" rule (§4.3).
 
 Everything expensive happens on the pool: opening the archive, building the
 locations index, paginating a chapter, rasterizing a page. The loop thread
@@ -48,12 +37,9 @@ BOTTOM_BAR_H = 48
 PAGE_PAD = 8
 
 #: Font sizes the +/- buttons step through, in logical pixels. A list rather
-#: than an increment so every step is one somebody chose to read at.
-#:
-#: The stored setting is a plain number, not an index into this: somebody
-#: who types 22 into Settings gets 22, and A+ takes them to the next step
-#: above it. An index would silently rewrite their number to the nearest
-#: entry, and would mean something different if this list ever changed.
+#: than an increment so every step is one somebody chose to read at. The
+#: stored setting is a plain **number, not an index into this** — a typed 22
+#: stays 22 and A+ steps to 24 (``docs/readers.md`` §4.7).
 FONT_STEPS = (15, 17, 19, 21, 24, 27, 31, 36)
 
 #: What a type size is allowed to be, however it was set. The floor is
@@ -72,15 +58,11 @@ class ReaderPage(Page):
     kind = "reader"
 
     #: Keys this page takes over while it is on screen (see
-    #: ``MpvtkApp.claim_keys``). The page turn is the reason the mechanism
-    #: exists: LEFT/RIGHT on a page whose content is a single bitmap mean
-    #: "turn", and spatial navigation has nothing to move between.
-    #: ...and the wheel, which is a claim like any other: WHEEL_UP and
-    #: WHEEL_DOWN are mpv key names, so this needed no new protocol. A
-    #: notch turns a page, as it does in every other reader — there is
-    #: nothing here to scroll, the page is one bitmap and the next one is
-    #: a different bitmap. The renderer accumulates hi-res deltas so a
-    #: trackpad flick is a page rather than a chapter.
+    #: ``MpvtkApp.claim_keys``, and ``docs/readers.md`` §4.6 for why a page
+    #: turn has to be a claim). The wheel is a claim like any other —
+    #: WHEEL_UP/WHEEL_DOWN are mpv key names, so this needed no new
+    #: protocol — and the renderer accumulates hi-res deltas so a trackpad
+    #: flick is a page rather than a chapter.
     claimed_keys = ("LEFT", "RIGHT", "PGUP", "PGDWN", "SPACE", "HOME", "END",
                     "WHEEL_UP", "WHEEL_DOWN")
 
@@ -203,9 +185,8 @@ class ReaderPage(Page):
         """One config read, tolerant of a hand-edited value.
 
         Read at the moment it is used rather than captured when the page
-        was built: Settings is reachable while the reader is open (the tray
-        gets there), and a page that cached these would keep drawing at the
-        old size until it was navigated away from and back.
+        was built, because Settings is reachable from the tray while a book
+        is open (``docs/readers.md`` §4.7).
         """
         from ...conf import settings
 
@@ -237,9 +218,8 @@ class ReaderPage(Page):
         Fire and forget: a failed write costs the position on other
         clients, and blocking a page turn on a round trip would cost the
         reading. ``record_reading_position`` rather than ``set_position``,
-        so the local catalog and the offline replay queue get it too — a
-        downloaded book is the one thing that can be read with the server
-        away, and an offline page turn used to be written nowhere at all.
+        so the local catalog and the offline replay queue get it too — see
+        ``docs/readers.md`` §2.2.
         """
         doc = doc or self.route.get("_doc")
         if doc is None:
@@ -322,10 +302,9 @@ class ReaderPage(Page):
         """Move to the next size in ``FONT_STEPS`` past the current one.
 
         Past, not "index + delta": the stored value is a number and may be
-        one nobody stepped to. Stepping up from a typed 22 has to land on
-        24, and stepping down on 21 — which is what searching the list for
-        the neighbours of the current size does, and what an index into it
-        cannot do without first rewriting the user's number.
+        one nobody stepped to, so stepping up from a typed 22 has to land on
+        24 and down on 21. An index cannot do that without first rewriting
+        the user's number.
         """
         current = self.font_size()
         if delta > 0:
@@ -353,10 +332,8 @@ class ReaderPage(Page):
         """Persist a reader preference.
 
         Through ``config.set_setting`` rather than by assigning to
-        ``settings``, so the value is coerced and written to disk the same
-        way the Settings form writes it — the two controls are the same
-        setting, and a size set here that did not survive a restart would be
-        a worse answer than not offering the buttons.
+        ``settings``, so the control on screen and the row in Settings are
+        one value seen twice (``docs/readers.md`` §4.7).
         """
         from .. import config
 
@@ -370,12 +347,9 @@ class ReaderPage(Page):
     def _open_menu(self, x, y):
         """Right-click on the page: offer to copy what is under it.
 
-        **This is what stands in for selecting text.** The page is a single
-        bitmap (see ``epub/paint.py`` for why), so there is nothing to drag
-        a selection across and nothing to hit-test a character with. What a
-        pointer *can* name is the paragraph it landed in, and what a reader
-        wants from a book is almost always exactly one of two things: the
-        sentence they are looking at, or the page.
+        **This is what stands in for selecting text** — the page is a
+        single bitmap, so a pointer can name the paragraph it landed in and
+        nothing finer. See ``docs/readers.md`` §4.9.
 
         The paragraph is resolved **here, at the click**, not when the menu
         is drawn: the point is the only thing that knows which paragraph is
@@ -604,12 +578,10 @@ class ReaderPage(Page):
         """Adopt the settings if they have moved since the last frame.
 
         The A−/A+ buttons already re-style the document themselves, so this
-        is for the other way in: Settings is reachable from the tray while
-        a book is open, and the reader is a *route*, so it can also be sat
-        in the history with a document already built at the old size. Asked
-        every frame and answered by comparing keys, which is a tuple
-        compare; ``set_style`` is what costs, and it only runs when the
-        answer changed.
+        is for the other way in: Settings from the tray, and a route sat in
+        the history with a document built at the old size. Asked every frame
+        and answered by comparing keys, which is a tuple compare;
+        ``set_style`` is what costs, and it only runs when that changed.
         """
         style = self._reader_style()
         if doc.style.key() != style.key():
@@ -634,12 +606,8 @@ class ReaderPage(Page):
         # (GUIDE §6). A click on the right-hand side turns forward, on the
         # left back — the gesture every reader has.
         #
-        # ``zone`` because these are the exception the flag exists for. A
-        # region's hover ring says "this tile is what you are pointing at",
-        # which is worth having when the bitmap holds twelve of them; here
-        # the bitmap holds a page of prose and the ring is an accent box
-        # over the sentence being read. Nothing is gained by pointing at
-        # half a page — the reader can see where the pointer is.
+        # ``zone`` because a hover ring over half a page of prose is an
+        # accent box over the sentence being read — readers.md §4.9.
         lw, lh = entry["lw"], entry["lh"]
         half = lw // 2
         regions = [

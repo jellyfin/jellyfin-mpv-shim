@@ -1,46 +1,19 @@
-"""``Page`` and ``PageContext`` — one class per screen instead of two methods
-on a 358-method object.
+"""``Page`` and ``PageContext`` — one class per screen.
 
-Step 6 of ``docs/archive/ARCHITECTURE_TARGET.md`` §3, and the one the earlier steps
-existed to make safe. A route kind is currently a ``(loader, renderer)`` pair
-of method *names* on ``MpvtkBrowser``, resolved with ``getattr``, operating on
-a shared mutable ``route`` dict that navigation and five mixins can all reach
-into. A page becomes a class that owns its own state and receives what it
-needs.
+A page owns its own state and is handed what it needs: ``load(epoch)`` on
+navigation, ``render(size)`` on the loop thread, both against a
+``PageContext`` of ten names rather than the 413 distinct ``self.*`` the
+mixins can reach.
 
-**The escape hatch is deliberate, documented and measured.**
+**``ctx.shell`` is an escape hatch, and what makes it one rather than a
+loophole is that it is counted** — ``tests/test_page_contract.py`` pins the
+number of references and it can only go down. The page budget is zero; the
+one use left is ``route_async`` below, which is pinned by ``BASE_SHELL_USES``
+rather than budgeted because it is not transitional.
 
-A page needs six services (below) — and, today, a handful of helpers that are
-still methods on the shell: the tile/row/grid builders, the chrome's busy and
-error nodes. Those are genuinely component-shaped (``docs/ARCHITECTURE_TARGET``
-§1.4) but they still close over ``self.strips`` / ``self._posters``, so
-extracting them is its own step. Rather than pretend otherwise, ``ctx.shell``
-exposes the browser and pages may use it *for those helpers only*.
-
-That is a strangler-fig seam, not a loophole, and the difference is that it is
-counted: ``tests/test_page_contract.py`` pins the number of ``ctx.shell``
-references and fails if it grows. It can only go down.
-
-As of step 6c the page budget is **zero** — every converted page takes what
-it needs from its context. One use remains, in this file: ``route_async``
-below. That one is not transitional. Recording a load failure has to decide
-whether this route is *still the screen* before dropping the user to the
-offline home, and only the shell knows that. It is pinned by
-``BASE_SHELL_USES`` rather than budgeted, so the framework's hatch cannot
-quietly become the place new coupling goes.
-
-Converting a route is mechanical:
-
-1. subclass :class:`Page`, set ``kind``;
-2. move the loader body into ``load()`` and the renderer body into
-   ``render(size)``, replacing ``self.X`` with ``self.ctx.X`` or
-   ``self.ctx.shell.X``;
-3. register it in ``pages/__init__.py``;
-4. delete the two methods and the ``ROUTES`` entry.
-
-Unconverted kinds keep working: the shell falls back to its ``ROUTES`` table
-for anything the registry does not claim, so this proceeds one page at a time
-with the app shippable throughout.
+Adding a view means adding a page, and converting an unconverted route is a
+four-step recipe with the app shippable throughout. Both, and why the hatch
+and the budget are shaped this way: see docs/browser-shell.md section 1.
 """
 
 import logging
@@ -54,13 +27,10 @@ log = logging.getLogger("mpvtk_browser.pages.base")
 class PageContext:
     """Everything a page is allowed to depend on.
 
-    Six names instead of the 413 distinct ``self.*`` the mixins can reach.
+    Ten names instead of the 413 distinct ``self.*`` the mixins can reach.
     Small enough to fake, which is the point: a page test constructs the page
-    and nothing else.
-
-    Frozen because a page must not rewire its own dependencies — that is the
-    shell's job, and a page that swapped its own source would be invisible to
-    everything that reasons about navigation.
+    and nothing else. Frozen because a page that rewired its own dependencies
+    would be invisible to everything that reasons about navigation.
     """
 
     #: Data. A ``LibrarySource`` or an ``OfflineLibrarySource``; a page must
@@ -141,20 +111,12 @@ class Page:
     def close(self) -> None:
         """This page has stopped being the screen. Loop thread.
 
-        Called once, when the shell renders a *different* page — not on
-        navigation, because navigation happens on threads the render loop
-        does not own (a websocket, mpv's event thread) and this may touch
-        the player.
-
-        Almost no page needs it. It exists for the two that take something
-        the window can only hold one of: the comic reader hands mpv a
-        picture, which nothing else would take down, and it extracts pages
-        to files, which nothing else would delete. A page that only holds
-        memory should let the caches do their job instead.
-
-        It may be followed by another ``load()`` — going back returns to a
-        route whose dict is still here — so it must leave the page usable
-        rather than spent.
+        Called once, when the shell renders a *different* page -- not on
+        navigation, which happens on threads the render loop does not own and
+        this may touch the player. Almost no page needs it, and it may be
+        followed by another ``load()``, so it must leave the page usable
+        rather than spent. Which pages need it: see docs/browser-shell.md
+        section 1.
         """
 
     # -- convenience -------------------------------------------------------
@@ -163,11 +125,9 @@ class Page:
         """Where ``scroll_id`` was when this route was last navigated away
         from, for passing to ``VScroll(offset=...)``. None on a first visit.
 
-        The shell parks the offsets on the route dict, which is what lets
+        The shell parks the offsets on the route dict, which is what makes
         them survive the ``ScrollState.reset()`` that stops one view's
-        offsets bleeding into the next under the same container id. The
-        renderer applies it once, clamped to the content it actually has —
-        see ``Scroll``.
+        offsets bleeding into the next; see docs/browser-shell.md section 7.
         """
         from ..scroll_state import ScrollState
 

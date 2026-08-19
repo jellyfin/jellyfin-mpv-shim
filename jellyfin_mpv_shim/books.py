@@ -3,16 +3,13 @@
 `CollectionType.books` holds two unrelated entity types, and almost every
 rule below exists because of that split:
 
-* **`AudioBook : Audio`** is an ordinary audio item. Real duration, real
-  `MediaSources`, real transcode negotiation, real progress reporting. It
-  needs nothing from this module beyond being recognised, and the rest of
-  the app already knows how to play it.
-* **`Book : BaseItem`** is *not* `IHasMediaSources`. Its DTO carries no
-  `MediaSources`, no `Container`, and no size under any `Fields` value —
-  measured, not assumed. The only path to its bytes is
-  `/Items/{id}/Download`, and the only statement of its format is `Path`,
-  which is exactly what jellyfin-web reads (`bookPlayer` gates on
-  ``item.Path?.endsWith('epub')``).
+* **`AudioBook : Audio`** is an ordinary audio item — real duration, real
+  `MediaSources`, real progress reporting. It needs nothing from this
+  module beyond being recognised.
+* **`Book : BaseItem`** is *not* `IHasMediaSources`: no `MediaSources`, no
+  `Container`, no size under any `Fields` value, `/Items/{id}/Download` as
+  the only path to its bytes, and `Path` as the only statement of its
+  format. See ``docs/readers.md`` §1.
 
 The awkward half is progress. `RunTimeTicks` is overloaded as a fake unit
 and the encoding depends on the *format*, so a single number means three
@@ -26,42 +23,11 @@ epub         ``10_000_000`` (one second)     ``location / locations``
 mobi / azw   absent                          meaningless
 ===========  ==============================  =========================
 
-Both spellings are pinned against the two implementations that define
-them: `ProbeProvider.FetchAsync(Book)` writes the durations, and
-jellyfin-web's players write the positions through
-``PositionTicks = 10000 * player.currentTime()`` — where `comicsPlayer`
-and `pdfPlayer` report a page index and `bookPlayer` reports
-``fraction * 1000``. The server's own comments call this a placeholder for
-"multiple progress types"; treat it as a wire format to interoperate with,
-never as a design to build on.
-
-**An epub's number is not a percentage anyone can name, which is why the
-user cannot be asked to type it.** It is ``location / total`` over epub.js's
-*locations index* — the book's text cut into ~1024-character runs, counted per spine
-section with a partial tail at each boundary. Two consequences, and both
-are fatal to a "type where you are" control:
-
-* the denominator is a property of how the book was *typeset into sections*,
-  not of its length, so the same fraction means different amounts of reading
-  in different books, and it is not ``chars_read / chars_total`` either;
-* there is nothing on screen in any reader that shows it. A page number is
-  something a PDF viewer puts in front of you. A location index is an
-  implementation detail of one JavaScript library, so the user has no
-  number to type and no way to check the one we would show them.
-
-So the stored fraction is **readable, shown, and not something the user
-can be asked to type**. That is what ``progress_settable`` answers, and it
-is a question about the *manual* control only.
-
-**The built-in reader is the exception, and it is the exception that
-proves the rule.** ``jellyfin_mpv_shim/epub/`` reimplements epub.js's
-locations index, so when the shim is the thing displaying the book it
-knows exactly which location the visible page starts at and writes that
-back — the same number jellyfin-web would have written, which is the whole
-reason the index was ported rather than approximated. The objection above
-was never "this number cannot be computed"; it was "no reader shows the
-user a number to read off and type here". A reader that observes its own
-progress does not have that problem, because it is the reader.
+Treat that table as a wire format to interoperate with, never as a design
+to build on. Which server and web-client code each spelling is pinned
+against, why an epub's fraction cannot be asked of the user (which is what
+``progress_settable`` answers, about the *manual* control only), and why the
+built-in reader is not subject to that rule: ``docs/readers.md`` §2 and §2.1.
 
 Kept out of the browser package because the download manager needs the same
 answers and must not import a UI module.
@@ -116,16 +82,11 @@ def is_audiobook(item):
 def book_format(item):
     """Lowercase extension of a book's file (``"epub"``), or ``None``.
 
-    Read from `Path`, because a `Book` DTO states its format nowhere else —
-    there is no `Container`, and `MediaSources` is empty. `Path` is served
-    to ordinary users under `Fields=Path` (verified against a non-admin
-    account), which is what makes this viable rather than an admin-only
-    trick.
-
-    Returns None rather than guessing for a path we cannot read: every
-    caller has a sane "unknown format" branch, and inventing ``.epub`` would
-    put the wrong extension on a downloaded file and hand the wrong app a
-    PDF.
+    Read from `Path`, because a `Book` DTO states its format nowhere else
+    and `Path` *is* served to non-admins (``docs/readers.md`` §1). Returns
+    None rather than guessing for a path we cannot read: inventing ``.epub``
+    puts the wrong extension on a downloaded file and hands the wrong
+    application a PDF.
     """
     path = (item or {}).get("Path") or ""
     ext = os.path.splitext(path)[1].lstrip(".").lower()
@@ -158,11 +119,10 @@ def progress_mode(item):
 def page_count(item):
     """Pages in a paged book, or ``None``.
 
-    ``None`` covers two different things on purpose — a format that has no
+    ``None`` covers two different things on purpose — a format with no
     pages, and a paged format the server could not count (page counts need
-    the `PDFtoImage` probe that landed in Jellyfin 12.0, so a 10.11 server
-    returns no runtime for PDFs or comics at all). Both mean the same thing
-    to a caller: there is no denominator to show.
+    the `PDFtoImage` probe that landed in Jellyfin 12.0). Both mean the same
+    thing to a caller: there is no denominator to show.
     """
     if progress_mode(item) != PROGRESS_PAGES:
         return None
@@ -231,13 +191,10 @@ IN_WINDOW_FORMATS = {"epub": "reader", "cbz": "comic", "cbt": "comic"}
 def reader_route(item):
     """The route kind that reads this book here, or None for the desktop.
 
-    ``None`` is the answer for pdf, mobi, azw, cbr and cb7, and the
-    reasons differ: a PDF needs a page rasterizer that costs a heavy
-    dependency until the server grows one (Jellyfin 12's PDFtoImage probe
-    is for page *counts*); mobi and azw are formats nothing in the
-    Jellyfin ecosystem opens; and cbr and cb7 are RAR and 7-Zip, which
-    Python does not ship a reader for. All of them still Read — the button
-    means "open this book", and off the machine is where it opens.
+    ``None`` is the answer for pdf, mobi, azw, cbr and cb7, for reasons
+    that differ per format (``docs/readers.md`` §1). All of them still Read
+    — the button means "open this book", and off the machine is where it
+    opens.
     """
     return IN_WINDOW_FORMATS.get(book_format(item))
 
@@ -245,22 +202,13 @@ def reader_route(item):
 def progress_settable(item):
     """Whether the user can meaningfully *state* where they are in this book.
 
-    Reading is the only case in the app where the app cannot observe its own
-    progress: the file is opened in some other application, which reports to
-    nobody. So the position has to come from the user — and that only works
-    where the unit is one they can see.
+    A page is a unit the user can see and the stored value is exactly that
+    page; an epub's fraction is neither (``docs/readers.md`` §2.1), so the
+    manual Progress… dialog is offered for paged formats alone.
 
-    A page is: a PDF viewer and a comic reader both put the page number in
-    front of you, and the stored value is exactly that page. An epub's is
-    not — see the module docstring — so a box asking for a percentage would
-    be asking for a number nobody has, against a scale that is not the one
-    they think it is. Answering "no" here is what leaves that control out
-    rather than shipping a plausible-looking way to record the wrong place.
-
-    Not the same question as :func:`progress_mode`. The stored fraction is
-    still *read* for an epub and still shown; only asking the user for one
-    is refused. Nor does it gate the built-in reader, which reports its own
-    position through :func:`ticks_for_fraction` — see the module docstring.
+    Not the same question as :func:`progress_mode`: an epub's fraction is
+    still *read* and still shown, and this does not gate the built-in
+    reader, which reports through :func:`ticks_for_fraction`.
     """
     return progress_mode(item) == PROGRESS_PAGES
 
@@ -278,12 +226,12 @@ def ticks_for_page(page):
 def ticks_for_percent(percent):
     """Ticks for a whole percentage, in the server's epub encoding.
 
-    Whole percent, for a control that deals in whole percent. There is no
-    such control — see :func:`progress_settable` — so the only caller of
-    this spelling is its own test; the reader reports through
-    :func:`ticks_for_fraction`, which does not round. It stays because it
-    is the inverse of the read path in the same units the read path shows,
-    and losing it would leave that pairing undocumented in executable form.
+    The inverse of :func:`progress_of`'s percent mode, in the units that
+    mode shows. Anything reporting a real position uses
+    :func:`ticks_for_fraction`, which does not round.
+
+    Not dead: the round trip is pinned by tests/test_books.py and the live
+    position is set through it by tests/e2e/test_books.py.
     """
     pct = max(0.0, min(float(percent), 100.0))
     return int(round(pct * EPUB_FULL_TICKS / 100.0))

@@ -1,22 +1,14 @@
 """``GET /Items``, which is where every item query should go.
 
-`jellyfin-apiclient-python`'s ``get_user_items`` calls
-``GET /Users/{userId}/Items``. That action is ``[Obsolete("Kept for
-backwards compatibility")]`` in Jellyfin's ``ItemsController``, upstream
-plans to remove the legacy endpoints, and it already costs us: it delegates
-to ``GetItems`` **positionally** and passes a literal ``[]`` for the
-language arrays, so of 88 parameters it silently drops three --
-``audioLanguages``, ``subtitleLanguages`` and ``indexNumber``. A filter can
-therefore be perfectly well formed, perfectly supported by the server, and
-do nothing (`docs/UI_FIXES_4.md` §19).
-
-**This is the same handler, not a different one.** The legacy action's whole
-body is `=> await GetItems(...)`, so moving a query here changes which
-parameters survive the trip and nothing else. The user is passed as a query
-parameter instead of a path segment: ``{UserId}`` is a template the http
-layer substitutes into params as well as into the URL
-(`http.py:_replace_user_info`), so it stays a client-side concern and no
-caller has to hold a user id.
+`jellyfin-apiclient-python`'s ``get_user_items`` calls the ``[Obsolete]``
+``GET /Users/{userId}/Items``. **That is the same handler**, but the legacy
+action delegates **positionally** and passes a literal ``[]`` for the
+language arrays, so it silently drops ``audioLanguages``,
+``subtitleLanguages`` and ``indexNumber`` -- a filter can be perfectly well
+formed, perfectly supported by the server, and do nothing. Moving a query
+here changes which parameters survive the trip and nothing else. The
+measurements, and why the user goes in as a query parameter, are in
+docs/jellyfin-api-notes.md section 2.
 
 Signature-compatible with ``get_user_items`` on purpose -- most call sites
 spread a kwargs dict built somewhere else, and a rename that also reshuffled

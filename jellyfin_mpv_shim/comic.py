@@ -5,33 +5,16 @@ metadata, no reading order but the filenames. So this module is much
 smaller than ``epub/``: it lists the pictures and hands one over as a file
 on disk. It never decodes an image and never scales one.
 
-**That is the whole design decision.** A comic page is 1600x2400 or larger
-and the zoom goes well past fit-width, so drawing one the way the epub
-reader draws a page — Pillow decodes it, we scale the visible part, and the
-result goes through the overlay transport — costs a full decode per page
-and a viewport-sized BGRA buffer per pan frame, in a bitmap cache sized for
-a library's worth of artwork (``strips.StripStore.MAX_BYTES`` is 96-128 MB,
-and 32 MB on a machine short of RAM). mpv already decodes pictures, keeps
-them on the GPU, and has ``video-zoom`` / ``video-pan-x`` / ``video-pan-y``
-— so the page is *played*, the gestures are properties, and none of it
-touches Python per frame. Measured: mpv holds an image indefinitely with
-``keep-open`` and ``image-display-duration=inf``, and both properties take
-effect on it.
+**A page is *played*, not drawn** — handed to mpv as a file, with the
+gestures expressed as ``video-zoom`` / ``video-pan-x`` / ``video-pan-y``,
+so nothing touches Python per frame. The measurements behind that, and the
+cost (one temporary file per page, because mpv cannot read inside an
+archive), are ``docs/readers.md`` §5.
 
-What that costs is one temporary file per page, because mpv cannot read
-inside an archive. Extraction is a copy of already-compressed bytes, not a
-decode.
-
-**Zip and tar only.** ``.cbz`` is a zip and ``.cbt`` is a tar, both of
-which Python ships. ``.cbr`` is RAR and ``.cb7`` is 7-Zip, and neither has
-a stdlib reader — adding one means a dependency for a format the desktop
-already opens, which is not a trade this project makes (CONTRIBUTING.md).
-Those keep handing off to whatever the user has.
-
-**Reading order is a natural sort of the filenames**, which is the whole of
-what a CBZ says about it. Digits compare as numbers, so ``page2`` comes
-before ``page10`` — which a plain sort gets backwards, and which is the
-single most visible way to get a comic wrong.
+**Zip and tar only**, and **reading order is a natural sort of the
+filenames** — digits compared as numbers, which a plain sort gets exactly
+backwards and which is the single most visible way to get a comic wrong.
+See ``docs/readers.md`` §5.1.
 """
 
 import logging
@@ -93,10 +76,9 @@ def is_readable_comic(path):
 def natural_key(name):
     """Sort key that reads runs of digits as numbers.
 
-    ``page2`` before ``page10``, which is the whole of a CBZ's reading
-    order and the one thing that is easy to get exactly backwards. Case is
-    folded because archives are built on every platform; the path is split
-    on ``/`` first so a directory never sorts into the middle of another
+    ``page2`` before ``page10`` (``docs/readers.md`` §5.1). Case is folded
+    because archives are built on every platform; the path is split on
+    ``/`` first so a directory never sorts into the middle of another
     directory's contents.
     """
     out = []
@@ -118,9 +100,7 @@ class ComicArchive:
     """The pages of one comic, extracted on demand.
 
     Holds no open file handle between reads, for the reasons in
-    ``epub.archive``: a route can sit in the browser's history for as long
-    as the user keeps browsing, and on Windows an open handle is a lock on
-    a file the downloads screen may want to delete.
+    ``epub.archive`` and ``docs/readers.md`` §4.5.
     """
 
     def __init__(self, path, cache_dir=None):

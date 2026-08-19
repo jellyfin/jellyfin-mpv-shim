@@ -1,29 +1,21 @@
 """Writing the user's own key choices into mpv's ``input.conf`` (#16).
 
-The shim used to express "which key pauses" as a config setting of its own
-and then bind that key in Python. #16 gives those keys back to mpv — but a
-user who *changed* one made a real choice, and dropping the binding without
-carrying it across would silently undo it.
-
-So a one-time migration: the settings that mpv can express become real mpv
-bindings, in the shim's own config directory, and the settings are cleared
+#16 gives the player keys back to mpv, but a user who *changed* one made a
+real choice, so a one-time migration turns the settings mpv can express into
+real mpv bindings in the shim's own config directory and clears the settings
 so nothing binds them twice.
 
-**Two things are load-bearing.**
+**Two things are load-bearing.** *Where it writes*: before the first ``[``,
+because everything after a section header belongs to that section until the
+next, so appending to the end of the file would put the bindings somewhere
+they apply conditionally or never while the file looked right.
+(``mpv_options.hwdec_pinned_by_config`` reads the same rule from the other
+side.) *What it declines to write*: a setting whose meaning mpv cannot
+express -- ``use_web_seek`` and ``skip_intro_on_seek`` -- because a migration
+that quietly dropped a feature would be worse than none.
 
-*Where it writes.* mpv's ``input.conf`` has ``[section]`` headers and
-**everything after one belongs to it until the next**, so appending to the
-end of a file that has any section puts the new bindings *inside* it, where
-they apply conditionally or never. The file would look right and the keys
-would silently not work. It writes before the first ``[``, and says so in
-the file. ``mpv_options.hwdec_pinned_by_config`` reads the same rule from
-the other side.
-
-*What it declines to write.* Only a setting whose meaning mpv can express.
-``use_web_seek`` (jellyfin-web's variable seek) and ``skip_intro_on_seek``
-have no mpv equivalent at all, so where either is on the arrows keep their
-Python binding and are not migrated — a migration that quietly dropped a
-feature would be worse than none.
+See docs/architecture.md section 6, and docs/mpv-backends.md section 5 for
+which keys the shim claims at all.
 """
 
 import logging
@@ -65,13 +57,6 @@ SEEKS = (("up", "seek_up", "seek_v_exact"),
 
 #: The seek settings' old defaults, kept here because the settings
 #: themselves are **gone** from ``conf.Settings``.
-#:
-#: They were never in the settings UI or the README -- hand-edited config
-#: only -- and once #16 gave the arrows back to mpv they could not work
-#: anyway: a changed distance made `_seek_is_ours` claim the key, and the
-#: claim then seeks by the amount in *mpv's* binding, not by the setting.
-#: So they were dead the moment the migration landed. **[iw]**: "should
-#: drop the dead settings post-migration."
 #:
 #: Dropped from the schema, kept readable here: an upgrading user's value
 #: still has to be carried into their input.conf, and by the time

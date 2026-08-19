@@ -7,37 +7,10 @@ servers and users, the offline catalog, SyncPlay. Nothing else under
 ``userManager`` or ``syncManager`` — ``tests/test_source_invariants.py``
 enforces that.
 
-This was ``ui.py``'s private ``_PlayerController``, which is where 61 of the
-browser's 68 cross-package imports lived. It was already the boundary in
-practice; extracting it made that a fact about the module graph rather than a
-convention, which is what lets the page objects be constructed (and tested)
-without dragging ``player.py`` in. See ``docs/archive/ARCHITECTURE_TARGET.md`` §1.2.
-
-**Why this is a package now.** One class had grown to 102 methods and 1,154
-lines. It was never one responsibility — its own section banners named ten
-domains, and one of them ("tile actions") had silently accumulated the whole
-server-management surface underneath it. Splitting by those seams is the
-cheapest structural win available: the facade below composes thirteen mixins,
-so every existing ``gateway.X()`` call is unchanged, and each domain is now a
-file you can read in one sitting.
-
-The facade is **composition by inheritance, deliberately**. A nested-namespace
-gateway (``gw.users.add``) would have been a wider change at every call site
-for no gain here — these are a flat vocabulary of operations, not a tree. The
-cost of flattening is that two mixins could define the same name and one
-would silently win; ``tests/test_gateway_mixins.py`` refuses that, the same
-way ``tests/test_mpvtk_browser_mixins.py`` does for the browser.
-
-**Imports stay lazy, deliberately.** Every method imports its collaborator
-inside the call rather than at module scope. That keeps ``mpvtk_browser``
-importable without ``player.py`` — which selects an mpv backend at import
-time and wires interdependent singletons — and it is also the seam that lets
-``tests/test_player_controller.py`` substitute a broken collaborator and
-sweep the whole class. ``deps.py`` holds the single exception and says why.
-
-**The failure contract.** Almost every method catches ``Exception`` and
-returns a documented fallback, because callers are the render loop (where an
-escape kills the UI) or a pool worker (where it kills the worker with nobody
+**The failure contract: a gateway method does not raise, and the three that
+do are named.** Almost every method catches ``Exception`` and returns a
+documented fallback, because callers are the render loop (where an escape
+kills the UI) or a pool worker (where it kills the worker with nobody
 watching). Three deliberately do not:
 
 * ``add_user`` / ``rename_user`` let the failure through — catching made the
@@ -46,6 +19,14 @@ watching). Three deliberately do not:
   actions built on it need the caller to see the failure.
 
 ``tests/test_player_controller.py`` pins all three categories.
+
+**Imports stay lazy, deliberately.** Every method imports its collaborator
+inside the call rather than at module scope, which is what keeps
+``mpvtk_browser`` importable without ``player.py`` and is also the seam the
+tests substitute at. ``deps.py`` holds the single exception and says why.
+
+Why this is a package, and why the facade composes by inheritance rather
+than nesting namespaces: see docs/browser-shell.md section 1.
 """
 
 from .diagnostics import DiagnosticsMixin
@@ -85,9 +66,7 @@ class PlayerGateway(
     independent of them for unit tests.
 
     Holds no state of its own — every method reaches a singleton and
-    returns. That is what makes the flat composition above safe to read:
-    there is no initialisation order between the mixins because there is
-    nothing to initialise.
+    returns, which is what makes the flat composition above safe to read.
     """
 
 

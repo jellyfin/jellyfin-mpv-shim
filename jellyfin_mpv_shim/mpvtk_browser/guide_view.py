@@ -2,22 +2,13 @@
 
 A component in the ``components/`` sense (render resources and callbacks, no
 ``nav``/``source``/``route``) but its own module rather than a file in there,
-because nothing else draws anything like it — putting a 200-line grid next to
-``busy()`` and ``action_btn()`` would swamp them.
+because nothing else draws anything like it.
 
-**Why the window is paged rather than scrolled.** jellyfin-web renders a full
-24-hour grid and scrolls it horizontally, with the channel column and the
-time header scroll-synced to it by hand. Two things make that the wrong shape
-here: mpvtk's scroll containers are owned by the renderer (Python is told
-about a scroll after the fact, debounced), so keeping three of them in step
-would mean a Python round-trip in the wheel path and visible tearing between
-the header and the grid; and this UI is driven as often by a remote as by a
-mouse, where "page forward two hours" is a better verb than "scroll right".
-
-So the grid draws one window — two hours by default, fewer on a narrow
-surface — and the page moves it. Everything else the guide does (date
-selection, category filtering, indicators, colour coding, click-to-watch on
-what is airing) is unchanged.
+**The window is paged, not scrolled.** The renderer owns its scroll
+containers, so keeping the header and the grid in step would mean a Python
+round trip in the wheel path; and on a remote "page forward two hours" is the
+better verb. So the grid draws one window and the page moves it — see
+``docs/live-tv.md`` section 4 for the rest of the grid's arithmetic.
 """
 
 from ..i18n import _
@@ -25,15 +16,9 @@ from ..mpvtk.widgets import Box, Column, Icon, Row, Spacer, Text, VScroll
 from . import live_tv, theme
 from .components import chrome
 
-#: Width of the fixed channel column.
-#:
-#: 30% wider than it was, because it was ellipsizing names it had room for:
-#: at 168 the label got 114px after the logo and the padding, and anything
-#: past about "Channel 4 +1" was cut — "Sky Sports Main Event" needs 142.
-#: It costs the grid nothing. The window is a whole number of 30-minute
-#: cells capped at MAX_CELLS, so what the grid does with the extra 50px is
-#: make each cell 5-7px narrower, not drop one: the count is unchanged from
-#: 800px up (see live_tv.cells_for_width, floor MIN_CELL_W = 120).
+#: Width of the fixed channel column. Widened from 168, where it ellipsized
+#: names it had room for; it costs the grid no columns, only 5-7px off each
+#: (``docs/live-tv.md`` section 4).
 CHANNEL_W = 218
 
 #: Height of one channel row, and the gap between rows/cells.
@@ -61,13 +46,12 @@ def grid_width(size):
 #: composite nothing at all.
 LOGO = 34
 
-#: Narrowest cell that gets a second line of text. Below this the programme
-#: name alone barely fits, and a truncated time under a truncated title reads
-#: as noise.
+#: Narrowest cell that gets a second line of text — below it a truncated time
+#: under a truncated title reads as noise.
 SUBLINE_MIN_W = 150
 
-#: Narrowest cell that gets any text at all. A five-minute filler in a
-#: two-hour window is ~10px wide; an ellipsis in it is worse than nothing.
+#: Narrowest cell that gets any text at all — an ellipsis in a ~10px filler is
+#: worse than nothing.
 TEXT_MIN_W = 34
 
 
@@ -103,18 +87,11 @@ def _cell(program, width, prefs, airing, on_click, categories=(),
     """One programme in a channel row."""
     inner_w = max(1, width - GAP)
     if program is None:
-        # Dead air. Drawn as a recessed box rather than skipped, so the row
-        # still spans the window and the cells after it stay aligned with
-        # the time header.
+        # Dead air, drawn as a recessed box rather than skipped so the row
+        # still spans the window and the later cells stay aligned.
         return _slot(Box(w=inner_w, h=ROW_H,
                          bg=theme.mix(theme.WINDOW_BG, theme.CARD_BG, 0.4),
                          radius=4), width)
-    # Filtered out by the category selection: the cell stays — with its
-    # size, its place in the row and its click — but says nothing. That is
-    # jellyfin-web's ``displayInnerContent``, and it is what keeps a
-    # filtered guide legible as a grid: dropping the programmes instead
-    # leaves a row of gaps with no way to tell a filtered showing from a
-    # hole in the listings.
     shown = live_tv.program_displayed(program, categories)
     bg = theme.CARD_BG
     if prefs.get("color_coded") and shown:
@@ -165,9 +142,8 @@ def _cell(program, width, prefs, airing, on_click, categories=(),
 def _channel_cell(channel, tiles, on_channel=None, on_context=None):
     """The fixed left column: logo, number, name.
 
-    Clickable, like jellyfin-web's ``guide-channelHeaderCell`` — which is a
-    button with ``data-action="link"``, i.e. it opens the channel rather than
-    tuning to it. Same destination the channel grid's tiles have.
+    Clickable, and it **opens the channel rather than tuning to it** — the
+    same destination a channel tile has (``docs/live-tv.md`` section 3).
 
     Only ever called for a row inside the virtual window. That is not an
     optimisation: an art cell composites a bitmap into the strip cache as it
@@ -224,14 +200,11 @@ def guide_grid(channels, programs_by_channel, start, end, size, prefs, tiles,
     ``programs_by_channel`` maps channel id -> that channel's programmes;
     grouping is the caller's because it also holds the raw fetch.
 
-    ``categories`` is the session's category filter. It reaches the cells
-    rather than the fetch on purpose — see ``_cell`` and
-    ``LibrarySource.get_guide``.
+    ``categories`` is the session's category filter; it reaches the cells
+    rather than the fetch on purpose (``live_tv.category_kwargs``).
 
-    ``size`` is the content area. Rows are virtualized against ``scroll``:
-    a 900-channel line-up is 900 rows, and compositing a logo for each would
-    blow both the strip cache and mpv's overlay budget long before the user
-    scrolled to any of them.
+    ``size`` is the content area, and rows are virtualized against ``scroll``
+    — a screen either side of the viewport (``docs/live-tv.md`` section 4).
     """
     grid_w = grid_width(size)
     header = Row([Spacer(w=CHANNEL_W + GAP), time_header(start, end, grid_w)])

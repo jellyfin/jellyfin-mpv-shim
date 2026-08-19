@@ -1,21 +1,15 @@
 """epub.js's locations index, reimplemented so our position means theirs.
 
-Jellyfin stores an epub's reading position as ``PlaybackPositionTicks``
-against a ``RunTimeTicks`` of exactly one second, i.e. as a fraction (see
-``jellyfin_mpv_shim/books.py``). That fraction is not "how far through the
-text you are" in any sense you could derive from first principles — it is
-``location / total`` over **epub.js's locations index**, the structure
-jellyfin-web's book player builds with ``locations.generate(1024)`` before
-it reports anything. Any other reading of the number disagrees with every
-other Jellyfin client, which is the one thing a stored position must not
-do.
+Jellyfin stores an epub's position as ``location / total`` over **epub.js's
+locations index** — not "how far through the text you are" in any sense you
+could derive from first principles, and any other reading of the number
+disagrees with every other client. See ``docs/readers.md`` §4.3.
 
-So this module is a port, and it is a port of behaviour rather than of
-code — no CFIs, no `EpubCFI`, no DOM. What epub.js is really doing is
-cutting each linear spine document into runs of ~1024 characters of text
-and counting the runs; the position is the number of complete runs before
-you, and the total is the number of runs in the book, less one. Everything
-below is that, with the four details that make the numbers agree:
+This is a port of *behaviour*, written against
+``node_modules/epubjs/src/locations.js``: no CFIs, no `EpubCFI`, no DOM.
+Each linear spine document is cut into runs of ~1024 characters of text and
+the runs are counted. The four details that make the numbers agree, and
+each of which fails silently when it is wrong:
 
 1. **The counter resets at every section boundary, and each section closes
    its partial tail as a whole location.** This is the big divergence from
@@ -35,10 +29,7 @@ excluded from the index entirely, as they are in epub.js, which walks only
 sections whose ``linear`` is truthy.
 
 **Granularity is absolute, not relative**: ~1024 characters per step in
-every book. A 600 KB novel gets 0.17% steps; a 20 KB short story gets 5%.
-That is a property of the format we are interoperating with, and the
-reason the UI never shows the user this number as a percentage of anything
-without also showing them a page.
+every book, so a short story steps in 5% and a novel in 0.17%.
 """
 
 import bisect

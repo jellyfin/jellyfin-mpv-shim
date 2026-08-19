@@ -1,37 +1,13 @@
 """``HudController`` — the playback HUD's state and the events that move it.
 
-``hud.py`` builds the HUD's widget tree; this owns what that tree reads. The
-two halves were split across two files for no reason other than history: the
-builders went into ``hud.py`` when it was written, and the state plus the
-handlers stayed on ``MpvtkBrowser`` because that is where ``__init__`` was.
-
-Nothing here is browser chrome. The HUD belongs to *video playback* — the
+``hud.py`` builds the HUD's widget tree; this owns what that tree reads.
+Nothing here is browser chrome: the HUD belongs to *video playback*, the
 renderer owns its summon/auto-hide lifecycle and reports it through
-``on_hud``; the browser's only interest is that it must not push a HUD scene
-at a renderer that is not showing one.
+``on_hud``, and the browser's only interest is that it must not push a HUD
+scene at a renderer that is not showing one.
 
-**State, and why each piece exists**
-
-``shown``
-    The renderer's summon flag, not ours. It is echoed here so ``build()``
-    knows whether to produce a HUD scene at all.
-``state``
-    Latest video playstate snapshot (position, duration, chapters …), pushed
-    from the player's thread via ``on_playstate``. ``None`` means no video.
-``scrub`` / ``scrub_paused``
-    A seek gesture in flight: the pending target in seconds, and whether
-    *we* paused playback to make the position inspectable. The second flag
-    is what stops a commit from resuming playback the user had paused
-    themselves.
-``menu`` / ``menu_anchor``
-    The open settings-menu level ("root", "speed", …) and the node it hangs
-    off. One level at a time.
-``tc_remaining``
-    Clock shows remaining rather than total. A click toggles it.
-
-The scrub preview bubble is deliberately absent: the renderer draws it from
-the trickplay tiles and mpv's chapter list, so no hover state reaches here
-at all (#618).
+What each piece of state answers, and why there is no scrub preview bubble:
+see docs/browser-shell.md section 14.
 """
 
 import logging
@@ -67,10 +43,9 @@ class HudController:
     def reset(self):
         """Forget everything the renderer told us.
 
-        Called when a *fresh* renderer is attached: it has no HUD state, so
-        keeping ours would have ``build()`` pushing a HUD scene at an idle
-        renderer. ``state`` deliberately survives — it comes from the player,
-        not the renderer.
+        Called when a *fresh* renderer is attached, which is showing no HUD.
+        ``state`` deliberately survives -- it comes from the player, not the
+        renderer. See docs/browser-shell.md section 14.
         """
         self.shown = False
         self.scrub = None
@@ -94,13 +69,12 @@ class HudController:
                 and c.use_hud())
 
     def engage(self):
-        """``set_hud(True)`` with everything the renderer owns attached:
-        the keyboard policy (grab arrows vs. wake-key-only), the auto-hide
-        delay and mode, and whether the glyphs carry their own shadow.
+        """``set_hud(True)`` with everything the renderer owns attached: the
+        keyboard policy, the auto-hide delay and mode, the glyph shadow.
 
-        Idempotent, and that matters — re-engaging is the ONLY thing that
-        carries a changed setting to the renderer, so those settings apply
-        without a restart."""
+        Idempotent, and that matters -- re-engaging is the ONLY thing that
+        carries a changed setting to the renderer, so those apply without a
+        restart. Full list: see docs/browser-shell.md section 14."""
         opts = None
         get = getattr(self.controller, "hud_key_opts", None)
         if get is not None:

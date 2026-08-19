@@ -5,25 +5,15 @@ the locations index and the current position, and it is the only place in
 the package that keeps state across a call.
 
 **Position is `(spine_index, char_offset)`, and everything else is
-derived.** The page number is derived (re-paginating after a resize
-produces different ones), the fraction reported to the server is derived
-(via ``locations.py``), the chapter title is derived. That is the shape
-that makes a resize a non-event: re-measure, re-paginate, find the page
-containing the offset, carry on. A reader that stored "page 74" would have
-to answer what page 74 means at a different window size, and there is no
-answer.
-
-**Everything expensive is cached by content key, and the keys are exact.**
-A parsed section keys on the spine index; its pagination keys additionally
-on the layout (font, size, spacing, column width), so nothing survives a
-change that would move a line. The caches are small and bounded — a reader
-moves through a book one section at a time and never wants the whole of it
-resident.
+derived** — the page number, the fraction reported to the server, the
+chapter title. That is what makes a resize a non-event; see
+``docs/readers.md`` §4.4, which also covers the cache keys (a parsed
+section on the spine index, its pagination additionally on the layout, so
+nothing survives a change that would move a line).
 
 Thread safety is one lock around the mutable state, because the UI calls
 into this from the loop thread (what page am I on) and from a worker (open
-the book, build the index, paginate the next section) and a `ZipFile` has
-one shared file handle underneath it.
+the book, build the index, paginate the next section).
 """
 
 import logging
@@ -114,13 +104,11 @@ class EpubDocument:
     def close(self):
         """Drop the parsed book, keeping the object usable.
 
-        There is no handle to release — the archive holds none (see
-        ``archive.EpubArchive``) — so this is only about memory: the parsed
-        sections, their pagination and the decoded images, which for an
-        illustrated book is the largest thing the reader owns. Everything
-        it drops is rebuilt on demand, so calling it early costs a re-parse
-        and nothing else. That is what makes it safe for the shell to call
-        without knowing whether the page is coming back.
+        There is no handle to release — the archive holds none
+        (``docs/readers.md`` §4.5) — so this is only about memory, and
+        everything it drops is rebuilt on demand. That is what makes it safe
+        for the shell to call without knowing whether the page is coming
+        back.
         """
         with self._lock:
             self._sections.clear()
@@ -377,17 +365,9 @@ class EpubDocument:
         """The paragraphs on the visible page, as text.
 
         **The paragraphs on it, each whole** — not the exact characters
-        drawn. A paragraph the page ends in the middle of is copied
-        entire, which is the same answer :meth:`paragraph_at` gives and
-        for the same reason: half a paragraph is a fragment starting
-        mid-sentence, and nobody pastes one on purpose.
-
-        It also happens to be the only version that can be *right*.
-        Rebuilding the visible text from the laid-out lines cannot put the
-        spaces back: a space is not a run — the breaker drops space tokens
-        and justification turns them into a gap between two pieces' x — so
-        the lines yield their words joined together. Going back to the
-        blocks asks the layer that still has the author's text.
+        drawn — and taken from the *blocks*, which is the only version that
+        can put the spaces back. Same answer :meth:`paragraph_at` gives, for
+        the reasons in ``docs/readers.md`` §4.9.
         """
         with self._lock:
             return "\n\n".join(
@@ -409,20 +389,13 @@ class EpubDocument:
         """The whole paragraph at a height on the page, as text, or None.
 
         ``y`` is in physical pixels from the top of the **text column** —
-        the same space :meth:`render` lays out in, so a caller converts
-        from the window by subtracting the bitmap's origin and the column's
-        own top. There is no text selection in this reader (the page is one
-        bitmap), so a pointer can ask for a paragraph and nothing finer;
-        this is the whole of what it can ask.
+        the same space :meth:`render` lays out in, so a caller converts from
+        the window by subtracting the bitmap's origin and the column's own
+        top.
 
-        A height, not a point: every line spans the whole measure, so the
-        horizontal position says nothing a paragraph could be picked by.
-        Taking an x as well would be a parameter that is quietly ignored,
-        and the first caller to compute it wrongly would never find out.
-
-        The paragraph, not the line: a line is an artefact of this window
-        at this type size, and pasting one would produce a fragment that
-        means nothing on its own.
+        **A height, not a point**, because every line spans the whole
+        measure and an x would be a parameter that is quietly ignored; and
+        the paragraph, not the line. See ``docs/readers.md`` §4.9.
         """
         with self._lock:
             block = self._block_at(y)

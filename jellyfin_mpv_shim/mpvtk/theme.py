@@ -1,34 +1,16 @@
-"""The toolkit's design tokens.
+"""The toolkit's design tokens and type scale.
 
-mpvtk used to know exactly one colour — the app's accent — and hardcode
-everything else. That made it themeable in the narrow sense that a checkbox
-fill and a hover ring could follow the app, and not at all in the sense that
-matters: a button, a dropdown, a text field, a scrollbar and a tooltip were
-fixed shades of grey chosen for a dark UI, so an app with a light palette got
-near-white text on a near-white page.
+Colours and sizes are semantic tokens, not literals; an embedding app calls
+:func:`set_tokens` (or :func:`set_accent`) once at startup and every widget
+and renderer-drawn control follows. Values are bare ``"rrggbb"``, matching
+every other colour field in mpvtk, and are served through the module
+``__getattr__`` rather than as globals so a theme can never redefine the
+functions here.
 
-So: a small set of **semantic tokens**, defaulting to exactly the greys that
-were hardcoded before. An embedding app calls :func:`set_tokens` once at
-startup (or again later — see below) and every widget and renderer-drawn
-control follows.
-
-Two rules make this work:
-
-* **Semantic, not literal.** ``ON_SURFACE_MUTED``, not ``grey_aaaaaa``. There
-  are deliberately fewer tokens than there were literals; four near-identical
-  greys collapsing into one is the point, because a theme author cannot reason
-  about seventeen shades and will not try.
-* **Two surfaces.** Everything named ``*_SURFACE*`` is chrome drawn on the
-  app's own background and follows the theme. The ``SCRIM_*`` / ``CHIP_*``
-  tokens are for things drawn over **video** — the playback HUD, the Skip
-  Intro chip, the cast backdrop. Those stay dark whatever the theme does,
-  because a white HUD over a dark film is wrong no matter how light the rest
-  of the app is. jellyfin-web keeps its player OSD dark for the same reason.
-
-Values are bare ``"rrggbb"``, matching every other colour field in mpvtk.
-They are read through the module ``__getattr__`` rather than being module
-globals, so a theme can never redefine the functions here and an unknown name
-raises instead of silently resolving.
+Why the token set is shaped this way -- semantic-not-literal, the two
+surfaces (app chrome vs over-video), tier names rather than numbers, `Px`
+and the exactly-once multiplier, and the floor-not-a-scale argument -- is in
+`mpvtk/GUIDE.md` section 7.
 """
 
 DEFAULT_ACCENT = "7aa2f7"
@@ -69,14 +51,10 @@ TOKENS = {
     "ON_ACCENT": None,              # None -> derived by readable_on()
 
     # --- drawn over VIDEO, not over the app ---------------------------------
-    # Deliberately not themed by default: see the module docstring.
-    # The accent as drawn ON VIDEO -- the seek bar's fill, its chapter
-    # marks. Defaults to ACCENT, because one accent everywhere is what makes
-    # a theme read as a theme. It is separable because the two jobs differ:
-    # over app chrome the accent only has to beat a known background, over
-    # video it has to stay visible against an unknown and moving one. (This
-    # is where we diverge from jellyfin-web, which hardcodes its player
-    # slider to Jellyfin blue and lets no theme near it.)
+    # Deliberately not themed by default; these stay dark whatever the theme
+    # does. ACCENT_ON_VIDEO defaults to ACCENT but is separable, because over
+    # video the accent has to beat an unknown and moving background rather
+    # than a known one -- see GUIDE.md section 7.
     "ACCENT_ON_VIDEO": None,        # None -> ACCENT
     "SCRIM": "000000",              # HUD gradients, cast backdrop wash
     "CHIP_BG": "202020",            # Skip Intro / Credits button
@@ -84,19 +62,10 @@ TOKENS = {
     "CHIP_FG": "ffffff",
 }
 
-#: The type scale, as multiples of the base size.
-#:
-#: **Surveyed, not invented.** Every explicit ``size=`` in the app was
-#: counted (237 call sites) and grouped by what the text actually is, and
-#: these ratios are the result: with a base of 17 they reproduce 236 of
-#: those 237 to within a pixel. ``HEADING`` landing on 24 -- which is what
-#: ``heading_size`` has always been -- is the check that the ratios are
-#: real rather than fitted.
-#:
-#: The tiers are named for the JOB, like the colour tokens above and for
-#: the same reason: an author can pick "this is a caption" and cannot pick
-#: between 13 and 14. That was the actual problem -- 161 of the 237 sizes
-#: sat in the 3px band 14-18 with no rule saying which.
+#: The type scale, as multiples of the base size. Surveyed from the app's
+#: 237 explicit ``size=`` call sites rather than invented, and named for the
+#: JOB so an author picks "caption" instead of picking between 13 and 14;
+#: see GUIDE.md section 7. Pinned by tests/test_type_scale.py.
 TYPE_SCALE = {
     "MICRO": 0.70,     # guide badges ("HD"), the densest chrome
     "CAPTION": 0.80,   # help text under a settings row
@@ -109,56 +78,36 @@ TYPE_SCALE = {
     "HERO": 1.70,      # onboarding: "Connect to Jellyfin"
 }
 
-#: The base every tier is a multiple of, in logical px.
-#:
-#: 17 because that is what the app was already written at: the survey's
-#: best fit, and the size six of the shim's own buttons pass explicitly
-#: when their author bothered to pick one. The widget defaults were 20 --
-#: a value **no call site ever chose**, arrived at 194 times by not
-#: passing one -- which is why unstyled controls read a whole tier larger
-#: than the text beside them. **[iw]**: "I'd probably default to the size
-#: we use for buttons as Normal."
+#: The base every tier is a multiple of, in logical px. 17 is the survey's
+#: best fit and what the app was already written at; the old widget default
+#: of 20 was a value no call site ever chose, arrived at only by not passing
+#: one, which is why unstyled controls used to read a tier larger than the
+#: text beside them.
 DEFAULT_BASE_SIZE = 17
 
 _base_size = DEFAULT_BASE_SIZE
 
 #: Nothing renders below this, whatever a tier or a call site asked for.
-#: 0 = no floor, which is stock.
-#:
-#: For low vision: a scale multiplies everything, so the smallest text
-#: stays the smallest text and a guide badge at 0.70x base is still the
-#: hardest thing on screen to read. A floor is the other control -- it
-#: compresses the bottom of the scale instead of moving all of it, which
-#: is what somebody who cannot read 12px actually wants.
+#: 0 = no floor, which is stock. The accessibility control is a FLOOR and
+#: not a scale on purpose -- GUIDE.md section 7 has the argument.
 _min_size = 0
 
 #: The user's text multiplier, applied to EVERY size the toolkit resolves
-#: -- tiers and explicit sizes alike.
-#:
-#: Not folded into the base, which is what it did first: that scaled the
-#: tiers and left the several hundred call sites that still pass a literal
-#: exactly where they were, so turning text up enlarged the controls and
-#: not the body text -- recreating the mismatch the scale exists to fix,
-#: in the other direction. The base is the theme's design; this is the
-#: user's preference about all of it.
+#: -- tiers and explicit sizes alike, and deliberately NOT folded into the
+#: base, which would leave every literal call site where it was. The base is
+#: the theme's design; this is the user's preference about all of it.
 _text_factor = 1.0
 
 
 class Px(int):
     """A size that has already been resolved by :func:`text_size`.
 
-    The user's multiplier has to be applied **exactly once**. A composite
-    widget resolves its own size and then hands the number to a child --
-    `Button` builds a `Text` and an `Icon`, `Checkbox` builds a `Text`,
-    `Form` builds a `Grid` which builds a `Text` per cell -- and each of
-    those resolved again. At "150%" a button label came out 39px against
-    body copy at 20 (a Form cell, 76px), which is the size mismatch this
-    scale exists to remove, arriving from inside it.
-
-    An int subclass rather than a flag, so it stores, compares and
-    arithmetics exactly like the number it replaces. **Arithmetic returns
-    a plain int**, which is the right default: `int(size * 0.95)` is a
-    NEW size derived from this one, and deriving is not resolving.
+    The user's multiplier is applied **exactly once**, and this is the
+    marker that says so -- composite widgets resolve their own size and hand
+    the number to a child, which would otherwise resolve it again. An int
+    subclass rather than a flag, so it stores and compares like the number
+    it replaces; **arithmetic returns a plain int**, because a derived size
+    is a new size. See GUIDE.md section 7.
     """
 
     __slots__ = ()
@@ -167,12 +116,10 @@ class Px(int):
 def set_type_scale(base=None, minimum=None, factor=None):
     """Set the base size every tier derives from. ``None`` restores stock.
 
-    Wholesale like :func:`set_tokens`, and for the same reason: a theme
-    that says nothing about type must get the default back rather than
-    keep the last theme's.
-
-    ``minimum`` floors every size the toolkit resolves and ``factor``
-    multiplies it; see ``_min_size`` and ``_text_factor``.
+    Wholesale like :func:`set_tokens`, so a theme that says nothing about
+    type gets the default back rather than the last theme's. ``minimum``
+    floors every size the toolkit resolves and ``factor`` multiplies it; see
+    ``_min_size`` and ``_text_factor``.
     """
     global _base_size, _min_size, _text_factor
     try:
@@ -215,14 +162,11 @@ def size_of_tier(tier):
     except KeyError:
         raise KeyError("unknown type tier %r. Tiers are %s"
                        % (tier, ", ".join(TYPE_SCALE))) from None
-    # Rounded, because a font size that is not a whole number of logical px
-    # gives layout a fractional line height to divide the page by. The
-    # logical->physical conversion deliberately does NOT round (see
-    # scaling._EXACT_KEYS); this is the other end of that.
-    # Never below 1: a zero font size divides by zero in layout's line
-    # fitting, and `ui_text_scale` is a documented float, so 0.05 in a
-    # hand-edited config reaches here even though the drop-down stops at
-    # 0.75. The base is guarded the same way, for the same reason.
+    # Rounded here (a fractional logical line height would divide the page
+    # by a fraction) even though the logical->physical conversion is
+    # deliberately exact -- see scaling._EXACT_KEYS, the other end of it.
+    # Never below 1: `ui_text_scale` is a documented float, so a hand-edited
+    # 0.05 reaches here and a zero font size divides by zero in line fitting.
     return Px(max(int(round(_base_size * _text_factor * ratio)),
                   int(_min_size), 1))
 
@@ -236,20 +180,12 @@ size = size_of_tier
 def text_size(size):
     """A size as the toolkit will actually render it.
 
-    Accepts a **tier name** (``"caption"``) or a number. The name is the
-    preferred spelling at a call site: an author can tell whether a line
-    is a caption and cannot tell whether it is 13 or 14, and picking
-    between those was the whole of what made the type "feel a little
-    random" [iw]. A number still works, for the genuine one-off that no
-    tier describes.
-
-    Numbers are multiplied and floored;
-
-    applied where a widget resolves its size, **before layout measures
-    it**. Flooring later -- at the logical-to-physical boundary, where
-    `scaling` already touches every size -- would draw bigger text inside
-    boxes measured for the smaller kind, which is overflow everywhere
-    rather than a readability setting.
+    Accepts a **tier name** (``"caption"``) or a number; the name is the
+    preferred spelling at a call site (GUIDE.md section 7). Numbers are
+    multiplied and floored HERE, where a widget resolves its size and
+    before layout measures it -- flooring at the logical-to-physical
+    boundary instead would draw bigger text inside boxes measured for the
+    smaller kind.
     """
     if isinstance(size, Px):
         # Already resolved, by whichever widget owns this subtree.

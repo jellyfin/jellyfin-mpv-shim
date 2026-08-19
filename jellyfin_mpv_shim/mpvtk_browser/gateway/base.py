@@ -1,28 +1,15 @@
 """What every gateway domain shares, and the coupling that survived the split.
 
-Two things live here.
-
-**``_act``** — the guarded "do something to the player" primitive. Transport,
-HUD and queue all reach for it, so it is not a transport concern; it is the
-gateway's own vocabulary.
-
-**The cross-domain declarations below.** Splitting the gateway made something
-visible that a single 1,154-line class had hidden: four calls cross a domain
-boundary. Inside one class they were invisible; as separate mixins, mypy
-names them. They are legitimate — a queue "add these and play" genuinely
-needs playback, and a user switch genuinely needs the source rebuilt — so the
-answer is to *declare* them rather than baseline the finding or pretend the
-domains are independent.
-
-Keeping them in one place means the coupling has a length. It is four:
-
-    QueueMixin  -> play_list        (PlaybackMixin)
-    UsersMixin  -> rebuild_source   (ServersMixin)
-    UsersMixin  -> offline_source   (ServersMixin)
-    ServersMixin-> offline_source   (its own; listed for symmetry)
-
-If that list grows, the split is drifting back toward one class and the next
-person can see it happening.
+Two things live here. **``_act``**, the guarded "do something to the player"
+primitive -- transport, HUD and queue all reach for it, so it is the
+gateway's own vocabulary rather than a transport concern. And **the
+cross-domain declarations below**: the three calls that cross a domain
+boundary, declared under ``TYPE_CHECKING`` rather than baselined, so the
+coupling has a length. If that list grows, the split is drifting back toward
+one class and the next person can see it happening. The count is pinned by
+tests/test_gateway_coupling.py, because a stale one makes the guard useless --
+it said four from the day of the split and there were never more than three.
+Why each is legitimate: see docs/browser-shell.md section 1.
 """
 
 import logging

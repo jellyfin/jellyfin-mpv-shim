@@ -6,20 +6,12 @@ Pillow drawing in it and no toolkit imports — it measures text through
 :class:`Measurer` and emits geometry, which is what makes it testable
 without a window and what keeps it out of ``renderer.lua``.
 
-**Pagination is per spine document, and a document always starts a page.**
-That is what every reader does (it is also what a ``page-break-before`` on
-a chapter would force anyway), and it is what makes opening a book cheap:
-only the current document is parsed, measured and paginated, so a 1.2 MB
-book opens in the time its first chapter takes. The cost is that "page 4 of
-312" cannot be answered without paginating everything — which is why the
-reader shows progress as a fraction of the book (from ``locations.py``, a
-much cheaper index) and a page number within the chapter.
-
-**The unit of position is a character offset, not a page.** Every line
-carries the offset it starts at, so a resize — which invalidates every page
-boundary in the book — can be answered by re-paginating and finding the
-page containing the offset the reader was on. Pages are derived; the offset
-is the state.
+**Pagination is per spine document, and a document always starts a page**,
+which is what makes opening a book cheap and what stops "page 4 of 312"
+being answerable. **The unit of position is a character offset, not a
+page**: every line carries the offset it starts at, so a resize is answered
+by re-paginating and finding the page containing it. Pages are derived; the
+offset is the state. Both, and what they cost, are ``docs/readers.md`` §4.4.
 """
 
 import logging
@@ -71,15 +63,10 @@ class ReaderStyle:
         self.line_spacing = line_spacing
         self.margin_x = margin_x
         self.margin_y = margin_y
-        #: Cap on the measure, **in ems**, or 0 for none. A line of prose
-        #: is readable up to about 75 characters and painful past it, and a
-        #: maximised window is several times that; every reader caps it.
-        #:
-        #: Ems rather than pixels because the thing being capped is a count
-        #: of characters, and that is what an em tracks — 34em is roughly
-        #: 68 characters in any face at any size. A pixel cap would be the
-        #: right column at one type size and the wrong one at every other,
-        #: which is precisely the setting the reader offers.
+        #: Cap on the measure, **in ems**, or 0 for none. Ems because what
+        #: is being capped is a count of characters — 34em is roughly 68 in
+        #: any face at any size, where a pixel cap would be the right column
+        #: at one type size only. See ``docs/readers.md`` §4.7.
         self.max_measure = max_measure
         self.justify = justify
         #: Whether a paragraph with no CSS opinion gets a first-line indent
@@ -90,11 +77,9 @@ class ReaderStyle:
     def column(self, width):
         """``(column width, left offset)`` for ``width`` px of drawable area.
 
-        The offset centres the column rather than leaving it at the left
-        margin: a capped measure in a wide window is a page, and a page
-        sits in the middle of what it is drawn on. Callers that convert a
-        pointer position back into the text must use the same offset — see
-        ``ReaderPage._column_point``.
+        The offset centres the column. **Callers that convert a pointer
+        position back into the text must use this offset, not ``margin_x``**
+        — see ``ReaderPage._column_point`` and ``docs/readers.md`` §4.7.
         """
         inner = max(1, int(width) - 2 * self.margin_x)
         if self.max_measure:
@@ -203,22 +188,18 @@ class Line:
         self.pieces = pieces
         self.char_offset = char_offset
         #: The :class:`~.content.Block` this line was broken out of. Kept
-        #: so a click on the page can name the paragraph it landed in —
-        #: there is no text selection here (the page is one bitmap), so
-        #: "copy this paragraph" is the whole of what a pointer can ask
-        #: for, and it needs to get back to the source text rather than to
-        #: the wrapped fragments.
+        #: so a click can name the paragraph it landed in and copy it from
+        #: the *source* text rather than the wrapped fragments — readers.md
+        #: §4.9.
         self.block = block
 
     def text(self):
         """The runs on this line, concatenated.
 
-        **Not readable text**: a space is not a run — the breaker drops
-        space tokens and justification turns them into a gap between two
-        pieces' x — so words come out joined. It is what the line breaking
-        tests assert against, which is exactly what it is for. Anything
-        that wants text a person will read wants the *block* (see
-        ``book.page_text``).
+        **Not readable text**: a space is not a run, so words come out
+        joined. It is what the line-breaking tests assert against. Anything
+        that wants text a person will read wants the *block* — see
+        ``book.page_text`` and ``docs/readers.md`` §4.9.
         """
         return "".join(p.text for p in self.pieces)
 
@@ -433,14 +414,10 @@ def _px(length, avail, em):
 def _image_size(box, natural_w, natural_h, avail, em):
     """How big to draw an image: what the book asked for, or the file.
 
-    Aspect ratio is preserved whenever the book named only one dimension,
-    which is the usual case and is also what ``height: auto`` means. Naming
-    both is taken at its word — an author who gave two numbers meant them,
-    and a reader that quietly corrected one would be second-guessing the
-    only explicit statement in play.
-
-    The caps go on last and re-derive the other side, so ``max-height:
-    1.2em`` on a tall icon narrows it rather than squashing it.
+    Naming one side keeps the aspect ratio; naming both is taken at its
+    word (``docs/readers.md`` §4.7). The caps go on last and re-derive the
+    other side, so ``max-height: 1.2em`` on a tall icon narrows it rather
+    than squashing it.
     """
     width = height = None
     if "width" in box:
@@ -768,13 +745,10 @@ def _place_line(tokens, used, start_x, limit, align, last, measurer,
                 block=None):
     """Place one line's runs between ``start_x`` and ``limit``.
 
-    ``limit`` is the **absolute** right edge, not the block's measure. It
-    used to be the measure, which is the same number only for a block at
-    the left margin: every indented one — a list item, a block quote, a
-    verse — was justified to a right edge one indent short of its own, so
-    it set ragged on the right while the line breaker was still filling to
-    the real width. The symptom was that quoted matter looked as though it
-    had lost its justification.
+    ``limit`` is the **absolute** right edge, never the block's measure —
+    the two agree only for a block at the left margin, and using the measure
+    sets every indented block (list item, quotation, verse) ragged one
+    indent short. See ``docs/readers.md`` §4.8.
     """
     height = max(measurer.line_height(t.style) for t in tokens)
     ascent = max(measurer.ascent(t.style) for t in tokens)

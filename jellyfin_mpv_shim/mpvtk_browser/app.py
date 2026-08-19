@@ -1,73 +1,42 @@
-"""MpvtkBrowser — the app shell: route stack, async data loading, and the
+"""MpvtkBrowser -- the app shell: route stack, async data loading, and the
 ``build(size)`` that turns the current route into an mpvtk widget tree.
 
-This is the mpvtk analogue of the Tk ``BrowserApp``. It runs in the main
-process next to ``playerManager`` (no ``multiprocessing`` child), attaches
-its UI to the player's mpv window via ``mpvtk.MpvtkApp.attach`` (see
-``mpvtk/GUIDE.md``), and reproduces the load-bearing paradigms of the
-Tk browser: a route-dict nav stack (``navigate``/``go_back``), background
-API calls with epoch-guarded staleness, and full-scene rebuilds driven by
-``invalidate()`` (renderer-local state — scroll, focus — survives).
+Runs in the main process next to ``playerManager`` and attaches its UI to the
+player's mpv window via ``mpvtk.MpvtkApp.attach`` (see ``mpvtk/GUIDE.md``).
 
 This module is the *core*: ``__init__``, the nav stack, the epoch and
-``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome,
-the browse<->playback lifecycle and HUD glue, and ``shutdown``.
+``run_async``, ``_load_route``, ``build``/``_render_route``, the chrome, the
+browse<->playback lifecycle and HUD glue, and ``shutdown``. Around it are the
+Pages (``pages/``, where a route should go) and the mixins (what has not been
+converted yet, plus the app-wide surfaces that are not routes). The class
+composition, the Page/ROUTES fallback and the mixin partition rule are in
+docs/browser-shell.md section 1.
 
-Around it are two things, and the split is a **migration in progress**
-(``docs/archive/ARCHITECTURE_TARGET.md`` §3.2), not a design:
+**Adding a view means adding a Page**: subclass ``pages.base.Page``, give it a
+``kind``, register it in ``pages/PAGES``.
 
-*Pages* (``pages/``) own a route each — a class with ``load`` and ``build``
-and its own state, registered in ``pages/PAGES``. This is where a route
-should go. Home, grid, detail, series, season, search, playlists, the queue
-editor, music browsing and Live TV are all Pages now.
+Three invariants hold the whole thing together, and each has a test:
 
-*Mixins* are what has not been converted, plus the app-wide surfaces that
-are not routes at all. The class is::
+**The thread contract.** Renderer event handlers and ``build()`` run on the loop
+thread. ``on_playstate``, ``notify_update``, ``set_download_status``,
+``display_item`` and ``on_downloads_changed`` are called from foreign threads, as
+are the pool workers behind ``run_async`` -- everything they touch must be
+write-then-``invalidate()``, never a direct scene change.
 
-    MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
-                 MusicMixin, ViewsMixin, TilesMixin, CastMixin)
+**Epoch discipline.** ``_epoch`` and ``_lock`` live *only* here. Dispatchers read
+``ep = self._epoch`` on the loop thread and hand it to ``run_async``, which drops
+the result if navigation has moved on. Caching an ``ep`` and passing it across a
+module boundary reads fine and is subtly wrong.
 
-    dialogs.py        modal shell, add-to picker, download + SyncPlay dialogs
-    livetv_dialogs.py the guide/timer dialogs
-    auth.py           login / Quick Connect, lock screen, user switching
-    settings/         the Settings routes and the downloads panel (a package)
-    music.py          the now-playing bar and music playback glue
-    tiles.py          tile art, rows and grids, the tile context menu
-    cast.py           the cast screen route
-    views.py          forwarders left behind by the Page conversion; it
-                      shrinks to nothing as its callers move
+**``_lock`` protects writers from each other, not from the reader.** ``build()``
+reads route data unlocked. That is safe only because every writer ends with
+``invalidate()``, so a torn read is a one-frame glitch the next build heals.
+Don't "fix" it by locking ``build()``.
 
-The mixins are a partition, not a layering: they all operate on the same
-``self``, so the split makes the shared state visible rather than reducing
-it. No name may be defined by two of them — MRO would silently pick a
-winner — and ``tests/test_mpvtk_browser_mixins.py`` enforces that.
-
-**Adding a view** means adding a Page: subclass ``pages.base.Page``, give it
-a ``kind``, and register it in ``pages/PAGES``. A kind absent from that
-registry falls back to the mixins' merged ``ROUTES`` tables
-(``kind: (loader, renderer)``), which is what lets the conversion proceed one
-route at a time; ``tests/test_page_contract.py`` fails a kind claimed by
-both, because it would resolve by whichever the shell consulted first.
-
-Three invariants hold the whole thing together:
-
-**The thread contract.** Renderer event handlers and ``build()`` run on the
-loop thread. ``on_playstate``, ``notify_update``, ``set_download_status``,
-``display_item`` and ``on_downloads_changed`` are called from foreign
-threads, as are the pool workers behind ``run_async`` — everything they
-touch must be write-then-``invalidate()``, never a direct scene change.
-
-**Epoch discipline.** ``_epoch`` and ``_lock`` live *only* here.
-Dispatchers read ``ep = self._epoch`` on the loop thread and hand it to
-``run_async``, which drops the result if navigation has moved on since.
-Caching an ``ep`` and passing it across a module boundary reads fine and is
-subtly wrong.
-
-**``_lock`` protects writers from each other, not from the reader.**
-``build()`` reads route data unlocked. That is deliberate and safe only
-because every writer ends with ``invalidate()``, so a torn read is a
-one-frame glitch that the next build heals. Don't "fix" it by locking
-``build()``.
+A widget tree is a snapshot, so a handler must read mutable state *inside*
+itself, and a handler that changes state must ask for a repaint -- a Checkbox
+cannot update itself. Both have shipped as bugs; see docs/browser-shell.md
+section 3.
 """
 
 import logging
@@ -557,35 +526,18 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """Re-fetch the Live TV screen, if that is what is showing.
 
         Reached from the websocket thread (a timer created or cancelled,
-        possibly by another client entirely) and from the poller above, so
-        it must be safe off the loop thread and cheap when it does not apply.
+        possibly by another client entirely) and from the poller above, so it
+        must be safe off the loop thread and cheap when it does not apply.
 
-        A **load, not a reload**: the epoch stays where it is, so nothing in
-        flight is cancelled and — because every Live TV loader writes its
-        result in place rather than clearing first — the screen keeps the
-        data it has until the new data lands. A refresh nobody asked for
-        must not blink a spinner over what they are reading. Scroll survives
-        for the same reason plus one more: the container id does not change,
-        and the renderer applies a parked offset only to a container it has
-        no offset for yet (``off0`` in renderer.lua), so a repaint of a
-        scrolled list leaves it where it is.
+        A **load, not a reload**: the epoch stays put, nothing in flight is
+        cancelled, and every Live TV loader writes in place -- a refresh nobody
+        asked for must not blink a spinner over what they are reading.
 
-        **Deferred, never forced, while the user is mid-interaction.** An
-        open context menu or dialog means they are acting on what is on
-        screen, and ``_loading`` means a page-in is in flight whose merge was
-        computed against the list length at submit time — replacing the list
-        under it would duplicate or drop a page. Skipping costs at most one
-        poll interval; the next tick picks it up.
-
-        **And it says so while it runs**, which is the other half of that and
-        was missing: a refresh took no guard of its own, so a scroll landing
-        *after* it was submitted paged in against a list this refresh was
-        about to replace wholesale. Whichever order the two answers arrived
-        in, the list was wrong — a page fetched twice and another never, or
-        (the likelier way round, since the refresh is the larger query) 100
-        rows dropping out from under a scroll already past them, which is
-        exactly what ``_load_channels`` re-reads every page to prevent.
-        ``_route_async`` clears it however that load ends.
+        **Deferred, never forced, while the user is mid-interaction**, and it
+        marks the route ``_loading`` while it runs so a scroll cannot page in
+        against a list this is about to replace. ``_route_async`` clears it
+        however the load ends. Both halves, and why scroll survives:
+        docs/browser-shell.md section 4.
         """
         route = self.route
         if route.get("kind") not in LIVE_KINDS or self.source is None:
@@ -616,24 +568,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def refresh_home(self, _client=None, now=False):
         """Re-read the home screen, if that is what is showing.
 
-        Continue Watching and Next Up are the only rows in the library that a
-        *third party* changes while you are looking at them: finishing an
-        episode on a phone, or removing a film from Continue Watching in a
-        browser (#560). A stale row there is not cosmetic -- it offers to
-        resume something already watched, and pressing it starts it over.
+        Continue Watching and Next Up are the only library rows a *third party*
+        changes while you are looking at them (#560), and a stale one is not
+        cosmetic -- it offers to resume something already watched, and pressing
+        it starts it over.
 
-        A **load, not a reload**, exactly like refresh_live_tv: the epoch
-        stays put so nothing in flight is cancelled, and the home loader
-        writes ``_data`` only when its result lands, so the screen keeps the
-        rows it has instead of blinking a spinner over what is being read.
+        A **load, not a reload**, exactly like refresh_live_tv. Reached from the
+        websocket thread, so it must be safe off the loop thread.
 
-        Reached from the websocket thread, so it must be safe off the loop
-        thread and cheap when it does not apply.
-
-        ``now`` skips the debounce, for the caller that is not a burst:
-        coming back from playback (see enter_browse). That is the local half
-        of the same bug -- watching something in the shim ITSELF left the
-        rows stale, because Home only re-read on a Back press.
+        ``now`` skips the debounce, for the caller that is not a burst: coming
+        back from playback (see enter_browse). See docs/browser-shell.md
+        section 4.
         """
         if self.route.get("kind") != "home" or not self._browsing:
             return
@@ -690,37 +635,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def go_home(self):
         """Go to the home screen, reusing the one the stack already holds.
 
-        The route dict *is* the page cache: the loaded rows hang off it as
-        ``_data`` and the Page object with them, so pushing a fresh dict means
-        ``chrome.busy()`` until a whole home fetch lands -- on the one screen
-        the user almost always already has, and reached by the one button that
-        should feel free.
+        The route dict *is* the page cache, so pushing a fresh one means
+        ``chrome.busy()`` until a whole home fetch lands -- on the screen the
+        user almost always already has. Reuse is safe rather than stale because
+        Home re-reads itself in place. Scroll comes back with the route.
 
-        Reuse is safe rather than stale because Home re-reads itself in place.
-        ``HomePage.load`` publishes over what is there (its partial first
-        batch is withheld once ``_data`` exists, precisely so a refresh does
-        not take the Latest rows away and put them back), and ``_publish``
-        drops the write entirely when nothing changed. So the rows paint
-        instantly and the refresh lands behind them -- which is exactly what
-        going *Back* to Home has always done (see ``_land_back``); this is the
-        Home button being told the same thing.
+        Pressing Home while already on Home still goes the whole way round: the
+        epoch and ``_screen_seq`` both move, so the caches shed and the rows
+        re-read. That is deliberate -- it is the one gesture that means "reload
+        this". **Do not "fix" it by skipping the bump when the route is
+        unchanged.**
 
-        The scroll position comes back with it, for the same reason it does on
-        a Back press: it is parked on the route, and the route is the one being
-        restored.
-
-        Pressing Home while already on Home still goes the whole way round —
-        the epoch and ``_screen_seq`` both move, so the caches shed and the
-        rows re-read — and that is deliberate rather than an oversight in the
-        reuse. Home-on-Home is the one gesture in the app that means "reload
-        this", and ``_shed_caches_on_screen_change`` is what a reload should
-        do. Do not "fix" it by skipping the bump when the route is unchanged.
-
-        The server is part of the match, not an afterthought: switching
-        servers pushes its own home (see ``_switch_server``) and must not
-        land on the previous one's rows. A stack with no usable home falls
-        through to a fresh route, which is also what keeps headless refusing
-        -- the Navigator sees the same "home" it always did.
+        The server is part of the match: switching servers pushes its own home
+        (``_switch_server``) and must not land on the previous one's rows. A
+        stack with no usable home falls through to a fresh route, which is also
+        what keeps headless refusing. See docs/browser-shell.md section 5.
         """
         for route in reversed(self.nav_stack):
             if (route.get("kind") == "home"
@@ -1056,30 +985,20 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _shed_caches_on_screen_change(self):
         """Drop the decoded artwork of the screen just left.
 
-        Decoded images are the most expensive thing this app holds per
-        picture -- a 4K backdrop is 33 MB decoded against ~400 KB on the
-        wire -- and they exist for one job: compositing tile strips. Once a
-        row has been composited they are not needed again, and once the
-        screen is behind you neither is the row. So the moment the screen
-        changes is the moment nearly all of that memory has nothing left to
-        do, and holding it to a 96 MiB ceiling means holding it until
-        something else needs the room.
+        Decoded images are the most expensive thing held per picture -- a 4K
+        backdrop is 33 MB decoded against ~400 KB on the wire -- and they exist
+        only to composite tile strips. Once the screen is behind you they have
+        nothing left to do.
 
-        **Observed here, not done in the navigation itself.** navigate() is
-        reachable from mpv's event thread and from the websocket (a remote's
-        GoHome, a phone's DisplayContent), and this cache has no lock --
-        every other access to it is on the loop thread, where build() runs.
-        A counter bumped there and read here turns a cross-thread call into
-        a loop-thread observation, and costs nothing on the frames where
-        nothing happened, which is nearly all of them.
+        **Observed here, not done in navigate().** navigate() is reachable from
+        mpv's event thread and the websocket, and this cache has no lock; a
+        counter bumped there and read here turns a cross-thread call into a
+        loop-thread observation.
 
-        **Not the async epoch**, which was the first thing tried and is a
-        different question. _bump_epoch means "cancel what is in flight",
-        and four things do it without leaving the screen at all: a sort or
-        filter change, a collections toggle, a retry after a failure, and a
-        server switch that keeps its place. Shedding on those cut the cache
-        for the page the user is still looking at, so toggling a sort
-        re-decoded the visible screenful for nothing.
+        **Keyed on _screen_seq, not the async epoch** -- four things bump the
+        epoch without leaving the screen, and shedding on those re-decoded the
+        page the user was still looking at. See docs/browser-shell.md
+        section 6.
         """
         seq = self._screen_seq
         if seq == self._shed_seq:
@@ -1138,22 +1057,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def set_theme(self, name):
         """Change theme without restarting.
 
-        Three things have to happen beyond re-applying the palette, and each
-        is a place the old design could not have gone:
+        Three things happen beyond re-applying the palette: the renderer needs
+        the new tokens pushed (it draws text fields, dropdowns, scrollbars and
+        tooltips itself), mpv's own ``background-color`` is a property rather
+        than something the scene paints, and every composited strip has the old
+        colours baked in, so the strip store is **retagged, not cleared** (see
+        StripStore.tag).
 
-        * the renderer needs the new tokens pushed, because it draws text
-          fields, dropdowns, scrollbars and tooltips itself;
-        * mpv's own ``background-color`` is what shows behind the browser,
-          and it is a property, not something the scene paints;
-        * every composited strip has the old theme's colours baked into its
-          bitmap, so the strip store is retagged (not cleared -- see
-          StripStore.tag) and the rows recomposite as they are next drawn.
-
-        Tile *geometry* is deliberately not re-derived. poster_scale and
-        tile_landscape feed sizes that a live rebuild would have to
-        rediscover through every cached row, and the payoff is a cover size
-        changing under the pointer. Those stay restart-only; the colours,
-        which are what a theme is mostly made of, do not.
+        Tile *geometry* is deliberately not re-derived here -- see
+        apply_cover_size and docs/browser-shell.md section 9.
         """
         cfg = self._apply_theme(name)
         if self.app is not None:
@@ -1262,24 +1174,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def apply_cover_size(self):
         """Adopt a changed Cover Size without a restart.
 
-        Theme-driven geometry is still restart-only (see set_theme): there
-        the size is a side effect of a colour change nobody asked to resize
-        for. A control LABELLED Cover Size is the opposite case -- seeing it
-        happen is the whole point, which is why the setting sat behind a
-        restart and nobody could tell what the values meant (#616).
+        Theme-driven geometry stays restart-only (see set_theme); a control
+        LABELLED Cover Size is the opposite case -- seeing it happen is the
+        whole point, which is why it sat behind a restart and nobody could tell
+        what the values meant (#616).
 
-        Parked scroll offsets have to go: they are pixel positions into a
-        list whose row pitch just changed, so keeping them would land the
-        user somewhere they never scrolled to.
-
-        So does every route's parked GRID SHAPE. ``GridPage._grid_shape``
-        computes the median-artwork geometry once per route and keeps the
-        resolved ``TileGeom`` on the route dict -- deliberately, so a grid
-        does not change shape as you page through it -- which means the
-        library on screen went on drawing at the old cover size until it was
-        reloaded. That is why this looked like it needed you to leave the
-        page and come back. Cleared for the whole stack, not just the
-        current route, or going back lands on a stale one.
+        Two things must be cleared for the **whole stack**, not just the current
+        route, or going back lands on a stale one: parked scroll offsets (pixel
+        positions into a list whose row pitch just changed) and every route's
+        parked ``_grid_shape``, which GridPage resolves once per route on
+        purpose. See docs/browser-shell.md section 9.
         """
         self._derive_cover_size()
         if self.strips is not None:
@@ -1554,22 +1458,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         coming back to it lands where it was left. No-op with no route (the
         first navigate of the session).
 
-        **Refuses to park while the browser is not on screen**, and that is
-        not an optimisation. A yielded scene holds no containers, so
-        ``scroll_offsets()`` answers ``None`` — indistinguishable from mpv
-        being too old to ask — and ``park`` falls through to its ``_recorded``
-        fallback, which only ever holds containers that installed a watch. A
-        page's own vertical scroll installs none. So parking from a yielded
-        state does not merely fail to record anything: it writes that
-        *partial* snapshot over the complete one ``_yield`` saved on the way
-        into playback, silently dropping the page position and keeping the
-        rows. Reachable because a remote's GoHome navigates before it stops
-        the video (see ``on_nav_command``), and on every mpv < 0.36, where
-        the live read is never available at all.
+        **Refuses to park while the browser is not on screen**, and that is not
+        an optimisation: a yielded scene holds no containers, so the live read
+        answers None and ``park`` falls through to a fallback that holds only
+        watched containers -- writing that *partial* snapshot over the complete
+        one ``_yield`` saved on the way into playback. Reachable via a remote's
+        GoHome, and on every mpv < 0.36. See docs/browser-shell.md section 7.
 
-        ``_park_on_leaving_browse`` is the one caller that runs at the
-        boundary, which is why it is invoked before ``_yield`` clears the
-        flag rather than after.
+        ``_park_on_leaving_browse`` is the one caller that runs at the boundary,
+        which is why it is invoked before ``_yield`` clears the flag.
         """
         route = self.route
         if route is not None and self._browsing:
@@ -1809,26 +1706,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         """Dispatch to the route kind's loader, if it has one.
 
         Kinds are declared in each mixin's ROUTES table alongside their
-        renderer, so adding a view is one edit in one place — this used to
-        be a 215-line elif chain here and a dict a thousand lines away.
+        renderer, so adding a view is one edit in one place.
 
         The epoch is re-read here rather than threaded down from the
-        ``_bump_epoch()`` that every caller performs immediately above.
-        **That is deliberate and it is not the race it looks like.**
-
-        A review flagged the two statements as non-atomic and concluded a
-        foreign bump in between would strand the route. It is the other way
-        round: re-reading yields the *newest* epoch, so a loader can never
-        capture one that is already superseded. Threading the navigation's
-        value down is what breaks it — an interloping bump then makes the
-        captured epoch stale, ``run_async`` drops the ``on_done``, and
-        because no ``_error`` is set the view spins forever with no retry.
-        That was tried, and ``TestNavigationSurvivesAConcurrentBump``
-        (tests/test_shell_*.py) is what caught it.
-
-        The residue is benign: if a foreign thread bumps *and* navigates in
-        between, this load applies into a route dict that is no longer on
-        screen. A wasted write, not a wrong one.
+        ``_bump_epoch()`` every caller performs immediately above. **That is
+        deliberate and it is not the race it looks like**: re-reading yields the
+        newest epoch, so a loader can never capture one already superseded,
+        whereas threading the value down lets an interloping bump strand the
+        view spinning with no retry. ``TestNavigationSurvivesAConcurrentBump``
+        pins it; the reasoning is in docs/browser-shell.md section 2.
 
         ``epoch`` therefore exists only for callers that genuinely have their
         own (none today). Leave it None.
@@ -2411,35 +2297,21 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _start_daemon(self, attr, name, body, restartable=False):
         """Run ``body`` on a daemon thread, at most one per ``attr``.
 
-        The check and the assignment have to be atomic. Every caller used to
-        write ``if self._x_thread is not None: return`` and then assign, but
-        they are reachable from the loop thread *and* from foreign ones
-        (``on_playstate``, ``on_downloads_changed``), so two callers could
-        both see None and both start a thread. Doubling a poller is only a
-        wasted refresh today, which is exactly why it would have gone
-        unnoticed.
+        **The check and the assignment have to be atomic.** Callers are
+        reachable from the loop thread *and* from foreign ones
+        (``on_playstate``, ``on_downloads_changed``), so two could both see None
+        and both start a thread -- and a doubled poller is only a wasted refresh
+        today, which is exactly why it would go unnoticed.
 
-        ``attr`` is cleared when the thread exits, so the next call starts a
-        fresh one. Returns True if this call started the thread, False if one
-        was already running — callers driven by a *user action* should say so
-        rather than appear to do nothing.
+        ``attr`` is cleared when the thread exits. Returns True if this call
+        started the thread, False if one was already running -- callers driven
+        by a *user action* should say so rather than appear to do nothing.
 
-        ``restartable=True`` closes a gap that bit the logs tail. A poller
-        decides to exit by noticing the route it was started for is no longer
-        current, but it only notices on its next tick — up to a full poll
-        interval later. Leave the tab and come straight back inside that
-        window and the sequence is: the view starts a poller for the new
-        route, this returns False because the old thread is still registered,
-        then the old thread wakes, sees a stale route, exits and clears the
-        slot. Nobody is left polling, and since only the render path starts
-        one, the panel is frozen until something else rebuilds it.
-
-        ``restartable`` makes the departing thread ``invalidate()`` once it
-        has released the slot. That re-runs the view, which starts a poller
-        iff it still wants one — no queued body to re-arm, so a request that
-        has itself gone stale simply isn't honoured. Opt-in because
-        ``_arm_toast_clear`` releases its slot early by design and would
-        invalidate on a timer that is still live.
+        ``restartable=True`` makes a departing thread ``invalidate()`` once it
+        has released the slot, closing the window in which a poller exits just
+        after a re-entering view was refused one and leaves the panel frozen.
+        Opt-in, because ``_arm_toast_clear`` releases its slot early by design.
+        See docs/browser-shell.md section 8.
         """
         with self._poller_lock:
             if getattr(self, attr) is not None:

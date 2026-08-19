@@ -1,15 +1,17 @@
-"""Declarative element tree for mpvtk.
+"""Declarative element tree for mpvtk. The catalog is `mpvtk/GUIDE.md`
+section 2; this file is the parameter contracts.
 
 Widgets are plain descriptions; nothing here talks to mpv. A tree is
-turned into a flat paint-ordered scene by layout.layout(), pushed to the
-in-mpv Lua renderer as JSON, and rebuilt from scratch on every render
-(there is no retained widget state on the Python side — renderer-local
-state like scroll offsets, textbox contents and dropdown selection
-survives scene pushes keyed by element id).
+rebuilt from scratch on every render, so there is no retained widget state
+on the Python side -- give stateful widgets (scrolls, textboxes,
+dropdowns) explicit ids so the renderer-local state keyed by id survives
+structural changes to the tree.
 
-Ids: elements get a stable tree-path id automatically. Stateful widgets
-(scrolls, textboxes, dropdowns) should be given explicit ids so their
-renderer-side state survives structural changes to the tree.
+Every ``x = theme.Y if x is None else ...`` line here is the rule that
+sizes and colours are resolved in the constructor BODY and never as a
+default argument, since a default is evaluated once at import while the
+palette and type scale are set at startup and on every theme swap. See
+GUIDE.md section 7.
 """
 
 from . import theme
@@ -20,11 +22,8 @@ class Element:
     of a :class:`Stack` (see its docstring); they are inert elsewhere.
 
     ``min_w``/``max_w``/``min_h``/``max_h`` bound the laid-out size: an
-    int is pixels, a float in (0, 1] is a fraction of the available
-    space (dialog children resolve fractions against the window). When
-    a Box's fixed/natural children overflow it, they now shrink
-    proportionally down to their min (bitmaps and icons floor at their
-    natural size — pixels never squeeze)."""
+    int is pixels, a float in (0, 1] is a fraction of the available space
+    (dialog children resolve fractions against the window)."""
 
     def __init__(self, id=None, w=None, h=None, flex=0,
                  anchor=None, dx=0, dy=0, occlude=False, tip=None,
@@ -47,31 +46,20 @@ class Element:
         # first scene lands (renderer: phud want_focus). Inert outside
         # that flow — ordinary scenes never steal focus.
         self.autofocus = autofocus
-        # A control that is on screen but cannot be used right now: the
-        # renderer draws it muted and it takes no hover, no click and no
-        # spatial-nav focus. It still ABSORBS the pointer -- node_at keeps
-        # returning it and each consumer drops it (renderer.lua's
-        # on_mouse_move / on_mouse_down), so a press stops there instead of
-        # reaching whatever the control sits over. Say WHY next to the
-        # control -- a disabled thing with no explanation reads as broken.
-        #
-        # Composite widgets (Button, Checkbox) additionally mute their own
-        # colours here, because those are baked into child nodes the
-        # renderer cannot recognise as parts of a control.
+        # On screen but unusable right now: drawn muted, inert, and it still
+        # ABSORBS the pointer. Say WHY next to the control -- a disabled
+        # thing with no explanation reads as a broken one. GUIDE.md sec. 2.
         self.disabled = disabled
 
-        # Where a VERTICAL arrow lands when it arrives at this node's row.
-        # Spatial navigation otherwise picks whichever control in the row
-        # is nearest the x it came from, which is right for a grid of
-        # tiles and wrong for a row of transport buttons: coming DOWN off
-        # a full-width seek bar, "nearest the middle" depends on how many
-        # optional buttons the current width happens to be drawing, so the
-        # same press lands somewhere different at different window sizes.
-        # A row may name the control the user actually meant.
-        #
-        # Vertical only. Horizontal navigation is *stepping along* a row,
-        # and a control that pulled every LEFT/RIGHT to itself could not
-        # be stepped past.
+        # Where a VERTICAL arrow lands when it reaches this node's row.
+        # Spatial nav otherwise takes whichever control is nearest the x it
+        # came from, which is right for a grid of tiles and wrong for a row
+        # of transport buttons: off a full-width seek bar, "nearest the
+        # middle" depends on how many optional buttons the current width
+        # happens to draw, so the same press lands elsewhere at another
+        # window size. Vertical ONLY -- horizontal navigation is stepping
+        # along a row, and a control that pulled every LEFT/RIGHT to itself
+        # could not be stepped past.
         self.nav_gravity = nav_gravity
 
 
@@ -102,13 +90,9 @@ class Box(Element):
         # safe to request unconditionally and the stock look stays flat.
         hover=None,
         repeat=False,  # hold-repeat: on_click refires while held down
-        # Client-side decorations: pressing this box drags the whole window
-        # and double-clicking it toggles maximized, the way a title bar does.
-        # Handled renderer-side (mpv's begin-vo-dragging) rather than as an
-        # event, because a drag has to start on the PRESS, while the button is
-        # still down -- a round trip to Python and back is not a gesture mpv
-        # will still accept. Children keep their own clicks: node_at returns
-        # the topmost node, so a button on the bar is hit before the bar is.
+        # This box IS the title bar (GUIDE.md section 2). Children keep
+        # their own clicks: node_at returns the topmost node, so a button on
+        # the bar is hit before the bar is.
         window_drag=False,
         # Client-side decorations, the other half: pressing this box and
         # dragging resizes the window from the edge(s) named here -- "e",
@@ -186,9 +170,6 @@ class Text(Element):
         max_lines=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('TITLE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.text = text
@@ -204,21 +185,15 @@ class Text(Element):
 
 def _check_raster(src, iw, ih, kw):
     """Fill in the logical footprint, or verify a declared one matches the
-    bitmap. This is the enforcement behind mpvtk.scaling's rule that only
-    rasterization thinks in physical pixels.
+    bitmap -- the enforcement behind GUIDE.md section 8's rule that only
+    rasterization thinks in physical pixels. A bitmap that is not
+    ``scaling.raster()`` of its declared box means the producer skipped the
+    conversion, and the renderer crops rather than resamples, so it would
+    silently draw a fragment.
 
-    A caller that declares w/h is telling us the logical box it sized this
-    image for; if the bitmap isn't scaling.raster() of that box, the
-    producer skipped the conversion and the renderer -- which crops rather
-    than resamples -- would silently show a fragment. Raising here surfaces
-    it at build time, where app._render's guard logs it with a traceback
-    and keeps the last good frame up.
-
-    **Only declare w/h for a canvas you sized yourself** (a composited
-    strip, the cast backdrop, a banner). Decoded artwork must NOT: the
-    server preserves aspect, so a square request comes back 56x52 and the
-    footprint is whatever the bitmap turned out to be. What has to be
-    scaled for those is the *request*, which this cannot see.
+    **Only declare w/h for a canvas you sized yourself.** Decoded artwork
+    must not: the server preserves aspect, so a square request comes back
+    56x52 and what has to be scaled is the *request*, which this cannot see.
     """
     from . import scaling
 
@@ -249,12 +224,9 @@ class Image(Element):
     """A pre-rasterized BGRA image (see rawimage.write_bgra).
 
     ``src`` is the path to the raw file, ``iw``/``ih`` its **physical**
-    pixel size. w/h are the **logical** footprint it occupies in layout;
-    the renderer does not scale, so the two must agree through
-    ``scaling.raster`` — a producer that rasterized at 1x under a 2x UI
-    scale fails here rather than rendering a cropped or sheared image.
-    Omit w/h only when the image is inherently physical (nothing derived
-    it from a logical box).
+    pixel size, w/h the **logical** footprint — see ``_check_raster``
+    above, and omit w/h only for an image nothing derived from a logical
+    box.
 
     ``v`` is a content version: bump it when rewriting the same path in
     place so the renderer re-reads it. On the libmpv path src is a malloc
@@ -311,12 +283,10 @@ class ImageMap(Element):
     Regions become transparent hit-rects whose hover ring draws OUTSIDE
     their bounds (the bitmap would cover an inline ring).
 
-    ``"zone": True`` is the opt-out, for a region that is a *place on the
-    bitmap* rather than a thing in it — the reader's page-turn halves. It
-    takes no hover ring and leaves the spatial-nav order, because both
-    rings exist to say "this one", and half a page of prose is not a
-    "this". Use it only where the bitmap has no cells; a strip of tiles
-    needs both rings and always will.
+    ``"zone": True`` marks a region that is a *place on the bitmap* rather
+    than a thing in it (the reader's page-turn halves): no hover ring, out
+    of the spatial-nav order — the ``nnav`` flag of GUIDE.md section 3. Use
+    it only where the bitmap has no cells.
     """
 
     def __init__(self, src, iw, ih, regions=None, v=0, **kw):
@@ -339,17 +309,10 @@ class Icon(Element):
 
     def __init__(self, name, size=None, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
-        # An EXPLICIT size is geometry and stays put: scaling the whole
-        # interface -- controls, artwork, spacing -- is what `ui_scale`
-        # does, and having the text multiplier resize icons too would make
-        # it a second, partial copy of that. [iw]: "that would basically
-        # just be the dpi setting which we already have."
-        #
-        # No size at all still resolves to a tier, because an icon with no
-        # opinion is standing in for a line of text and should match it.
+        # An explicit size is GEOMETRY, not type -- it does not take the
+        # text multiplier, because scaling controls is `ui_scale`'s job. No
+        # size still resolves to a tier: an icon with no opinion stands in
+        # for a line of text. See GUIDE.md section 7.
         size = theme.size('NORMAL') if size is None else int(size)
         kw.setdefault("w", size)
         kw.setdefault("h", size)
@@ -373,12 +336,6 @@ class Button(Box):
 
     def __init__(self, label, on_click=None, size=None, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
-        # Resolved here rather than as a default argument: a default is
-        # evaluated once at import, so it could never follow a theme
-        # applied later -- let alone one swapped at runtime.
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
@@ -439,9 +396,6 @@ class TextBox(Element):
         force=False,  # override renderer-local edit state with ``text``
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         kw.setdefault("w", 240)
         super().__init__(id=id, **kw)
@@ -525,9 +479,6 @@ class Checkbox(Row):
         # see Button for why a composite cannot leave this to the draw side.
         # The check itself still shows -- a disabled setting has a value, and
         # hiding it would say the opposite of what it is.
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         off = bool(kw.get("disabled"))
         # Sized from the label it sits beside, not a constant. The 20 it
@@ -593,9 +544,6 @@ class Grid(Element):
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
                  row_pad=0, size=None, fg=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.rows = rows
@@ -616,9 +564,6 @@ class Form(Grid):
 
     def __init__(self, rows, label_w=None, size=None,
                  label_fg=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
@@ -634,14 +579,11 @@ class Form(Grid):
 
 
 class Gradient(Element):
-    """A vertical fade (ASS, so ordinary ASS content still draws on
-    top — a bitmap gradient would cover everything). Drawn as one
-    solid box with a gaussian-blurred fading edge, not stacked alpha
-    bands (those show visible banding — the lua OSC's gradient learned
-    this the hard way). The playback HUD's bottom scrim:
-    ``Gradient(color="000000", top=0, bottom=200)`` fades from
-    transparent at the top edge to mostly-opaque at the bottom.
-    Opacities are 0–255. Non-interactive.
+    """A vertical fade — one solid ASS box with a gaussian-blurred fading
+    edge, never stacked alpha bands (GUIDE.md section 2). The playback
+    HUD's bottom scrim is ``Gradient(color="000000", top=0, bottom=200)``:
+    transparent at the top edge, mostly-opaque at the bottom. Opacities
+    are 0-255. Non-interactive.
 
     ``stops`` switches it from an alpha fade of one colour to a multi-stop
     COLOUR ramp: ``[(0.0, "0f3562"), (0.5, "1162a4"), (1.0, "03215f")]``,
@@ -694,22 +636,15 @@ class Stack(Element):
     child's own ``anchor`` ("nw" "n" "ne" "w" "c" "e" "sw" "s" "se", or
     None to fill the whole rect) plus ``dx``/``dy`` pixel offsets.
 
-    Z-order caveats (GUIDE §6): a bitmap child over a bitmap sibling
-    works (the renderer keeps overlay slots in paint order). An
-    ASS-drawn child (Text/Icon/Box) can NOT composite over an Image
-    sibling directly — mark it ``occlude=True`` and its rect is
-    subtracted from earlier image siblings, so it draws in the hole
-    (give it an opaque bg; whatever the hole reveals is the window
-    background). Without ``occlude`` the image wins.
+    Z-order caveats (GUIDE.md section 6): a bitmap child over a bitmap
+    sibling works, an ASS-drawn one (Text/Icon/Box) does not — mark it
+    ``occlude=True`` to punch a hole in the image siblings below it and
+    give it an opaque bg. Without ``occlude`` the image wins.
 
-    ``occlude`` suits chrome that is *meant* to cover what is under it —
-    popups, dropdowns, dialogs. It is the wrong tool for a control that
-    should look like it floats ON the image: the punched rect is
-    hard-edged and opaque by necessity, so the control reads as a notch
-    cut out of the artwork, and it can be neither translucent nor
-    non-rectangular. Make that control an :class:`Image` instead (it can
-    carry ``on_click``/``repeat`` like a Box) and let it alpha-blend —
-    see ``mpvtk_browser.tile_renderer._arrow_bitmap``.
+    ``occlude`` suits chrome MEANT to cover what is under it. A control
+    that should look like it floats ON the artwork wants to be an
+    :class:`Image` instead (it carries ``on_click``/``repeat`` like a Box)
+    so it can alpha-blend -- see ``tile_renderer._arrow_bitmap``.
     """
 
     def __init__(self, children=None, **kw):
@@ -783,9 +718,6 @@ class Table(Column):
         virtual=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         header_size = (theme.size('SMALL')
                        if header_size is None else theme.text_size(header_size))
@@ -861,18 +793,13 @@ class Table(Column):
         super().__init__([header] + body, **kw)
         if (virtual is not None and self.w is None and not self.flex
                 and self.min_w is None):
-            # A virtualized table's built rows depend on the scroll
-            # offset, so a measured natural width would jitter as you
-            # scroll — a trap for any non-stretch parent. Pin min_w
-            # instead, from the column spec alone.
-            #
-            # Fixed columns contribute their width; flex columns
-            # contribute only a small floor, NOT their widest content.
-            # Sizing flex columns to their content made one long song
-            # title pin the table at ~3100px inside a 1000px window —
-            # min_w is a floor, so the table could never shrink back and
-            # the whole thing ran off the edge instead of ellipsizing,
-            # which is exactly what a flex column is for.
+            # A virtualized table's rows depend on the scroll offset, so a
+            # measured natural width would jitter as you scroll. Pin min_w
+            # from the column spec alone: fixed columns contribute their
+            # width, flex columns only a small floor and NOT their widest
+            # content -- sizing them to content pinned the table at ~3100px
+            # inside a 1000px window, and min_w is a floor, so it could
+            # never shrink back and ran off the edge instead of ellipsizing.
             from .layout import text_width
 
             total = 2 * pad_x + gap * (len(columns) + 1)
@@ -907,20 +834,8 @@ class Dialog(Element):
     re-rendering without the Dialog. No dimmed backdrop (bitmaps render
     above ASS, so a scrim cannot cover posters — see README z-order).
 
-    ``side`` moves it off centre: ``"left"`` pins it to the same margin
-    the page content uses, leaving what is behind it visible down one
-    side.
-
-    **Nothing passes it any more, and the argument that put it here did
-    not survive contact.** The filter panel was the one caller, on the
-    reasoning that a panel whose purpose is to change what is behind it
-    should not cover the results — but off-centre bought a view of one
-    edge of the grid, at the cost of a modal that looked misplaced on
-    every window wide enough to have room for it, and the panel was
-    centred again. The option stays because it costs one branch in
-    ``layout._arrange_overlay`` and the reasoning may hold for some
-    future dialog; it is not a recommendation, and a new dialog should
-    default to centred.
+    ``side="left"`` pins it to the page content's margin instead of
+    centring it. No current caller; a new dialog should be centred.
     """
 
     def __init__(self, id, child, on_dismiss=None, side="center", **kw):
@@ -976,33 +891,14 @@ class Dropdown(Element):
         popup_w=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         if trigger_icon:
-            # The trigger's BOX, from the icon rather than from the text.
-            #
-            # `size` on a Dropdown means two unrelated things -- the type
-            # size of the popup's rows, and (here) the dimensions of the
-            # control. Only the first belongs on a type scale, and tying
-            # the second to it shrank the playback HUD's Chapters,
-            # Subtitles, Audio and Video-quality buttons when the control
-            # default moved 20 -> 17, while every other HUD button (a real
-            # Icon, sized on its own) stayed put [iw].
-            #
-            # ICON_TRIGGER is the size those buttons were, so the control
-            # is stable under a theme's type choices -- and a user who
-            # wants a bigger touch target has Interface Scale, which is
-            # what scales controls.
-            # Sized from the ICON, not from the type. `size` on a
-            # Dropdown means two unrelated things -- the type size of the
-            # popup's rows and, here, the button -- and only the first
-            # belongs on a type scale.
-            # Geometry, like `Icon`'s explicit size: the trigger is a
-            # control, and controls follow `ui_scale`, not the text
-            # multiplier. This is what keeps it the same size as the HUD
-            # transport buttons beside it at every setting.
+            # The trigger's BOX, sized from the ICON. `size` on a Dropdown
+            # means two unrelated things -- the popup rows' type size and
+            # this control's dimensions -- and only the first belongs on a
+            # type scale; the box is GEOMETRY and follows `ui_scale`
+            # (GUIDE.md section 7), which is what keeps it the same size as
+            # the HUD transport buttons beside it at every setting.
             glyph = int(icon_size or ICON_TRIGGER * 1.2)
             box = int(glyph / 1.2 * 1.9)
             kw.setdefault("w", box)
@@ -1041,9 +937,6 @@ class Menu(Element):
         on_dismiss=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         super().__init__(id=id, **kw)
         self.items = list(items)
@@ -1072,15 +965,11 @@ class Scroll(Element):
     boundary. The internal offset stays continuous, so virtualization and
     paging are unaffected — only what's drawn snaps.
 
-    **It is a capability, not a mode.** The renderer applies it only when a
-    gesture is asking for frames faster than it can measurably draw them, or
-    when the user forces it on — see ``snap_round`` and ``state.rcost`` in
-    renderer.lua. Ordinary scrolling glides.
-    Declaring ``snap`` therefore costs nothing on a machine that keeps up,
-    and the quantization is there for one that does not: a changed offset
-    re-lays the whole OSD at output resolution and re-issues every visible
-    overlay, and quantizing is what makes consecutive frames identical so
-    both are skipped.
+    **It is a capability, not a mode**, so declaring it costs nothing on a
+    machine that keeps up: the renderer applies it only when a gesture asks
+    for frames faster than it can measurably draw them (``snap_round`` /
+    ``state.rcost`` in renderer.lua). Quantizing makes consecutive frames
+    identical, which is what lets both be skipped.
 
     ``snaps`` is the same idea for **unequal** breakpoints: an explicit list
     of logical offsets (e.g. the content-y of each home-screen section

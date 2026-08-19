@@ -1747,8 +1747,8 @@ class TestPlaybackInfoPanel(unittest.TestCase):
         b.hud.info = True
         nodes, _h = build_scene(b, (1280, 720))
         # Whitespace-stripped: a wrapped Text is several nodes and the
-        # breaker drops the space it broke at (CLAUDE.md, "a space is not
-        # a run"). On screen that is a line break; only a rebuild loses it.
+        # breaker drops the space it broke at (docs/readers.md, "a space is
+        # not a run"). On screen that is a line break; a rebuild loses it.
         flat = "".join(self._texts(nodes)).replace(" ", "")
         self.assertIn(path, flat)
         self.assertNotIn("…", flat)

@@ -1,9 +1,8 @@
 """Scheduling and cancelling recordings.
 
-The mutating half of Live TV; the reads live in ``repository.LibrarySource``.
-The split is the same one playlist editing follows and for the same reason:
-the repository is the seam an offline source stands in for, and an offline
-source cannot schedule a recording.
+The mutating half of Live TV; the reads live in ``repository.LibrarySource``,
+because an offline source cannot schedule a recording (``docs/live-tv.md``
+section 1).
 
 **Every method here RAISES on failure.** These are all button presses, and a
 swallowed error looks exactly like a recording that was scheduled — the

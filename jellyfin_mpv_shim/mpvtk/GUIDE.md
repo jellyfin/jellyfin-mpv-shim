@@ -221,7 +221,7 @@ hit-rects over bitmaps whose hover ring draws *outside* their bounds.
 
 Other messages: `mpvtk-metrics` (measured glyph widths + font family,
 pushed once at ready), `mpvtk-focus` (below), `mpvtk-keys` (below),
-`mpvtk-debug` (test hooks, §7).
+`mpvtk-debug` (test hooks, §10).
 
 `mpvtk-keys {"keys": ["LEFT", …]}` — the app CLAIMS those mpv keys for
 as long as it keeps the claim; each arrives back as a `key` event
@@ -261,6 +261,9 @@ handlers registered during layout:
 | nav | active | keyboard/remote navigation engaged / mouse took over (`MpvtkApp.on_nav`) |
 | forward | — | the mouse's forward button, while the UI owns the pointer (`MpvtkApp.on_forward`) |
 | key | key | a key claimed via `mpvtk-keys`, when nothing on screen outranks the claim (`MpvtkApp.on_key`) |
+| gpseek | dir | a game controller's seek gesture, "up"/"down"/"left"/"right" (`MpvtkApp.on_gamepad_seek`) |
+| gpnav | a | a game controller button whose meaning differs between the library and a playing video, as a remote-control action name (`MpvtkApp.on_gamepad_nav`) |
+| vpan / vzoom | (no id) | a wheel notch that ran off the end of a panned picture, and ctrl+wheel over one (`MpvtkApp.on_picture_gesture`, called as `(t, evt)`) |
 | context | id, x, y | right-click on a node with on_context |
 | change | id, value | textbox keystrokes; slider (throttled) |
 | submit | id, value | textbox ENTER |
@@ -269,6 +272,17 @@ handlers registered during layout:
 | scroll | id, offset, max | watched scrolls, ≤ every 150ms |
 | clipboard | op, need | a textbox copy/paste found no clipboard at all (`MpvtkApp.on_clipboard_error`); once per renderer |
 | debug_state | … | reply to the `state` debug hook |
+
+The last four are **windowless** — no node id, delivered to the app
+rather than to the handler registry, because none of them is about
+something in the scene. History belongs to the app (`forward`), and a
+panned picture is mpv's video, not a node (`vpan`/`vzoom`; see §9). The
+pad's **UI buttons are NOT routed through the gamepad hooks** — those are
+synthetic keypresses the renderer issues locally, so a d-pad held down
+does not queue a round trip per repeat. `gpseek` and `gpnav` are the two
+a keypress cannot express: the arrows' seek is the user's own `input.conf`
+distance and has to be SyncPlay-aware, and a nav button's meaning depends
+on what is on screen. Both run on the loop thread.
 
 Click handlers opt into the modifier payload by declaring one
 **required** positional parameter (`def f(mods)` / `lambda m: …`);
@@ -281,8 +295,12 @@ workers (thumbnails, downloads, playback timers) repaint through it.
 Scroll offsets are also mirrored into the `user-data/mpvtk/scroll`
 property on every change; `MpvtkApp.scroll_offsets()` reads it
 synchronously, so a build() can window virtualized content against the
-renderer's LIVE offset instead of trailing the throttled scroll event
-(mpv ≥ 0.36; returns `{}` on older builds).
+renderer's LIVE offset instead of trailing the throttled scroll event.
+`{}` and `None` mean different things and callers rely on it: `{}` is an
+*answer* (the renderer is there, nothing is scrolled), `None` means it could
+not be asked at all (mpv < 0.36 has no `user-data`), so a caller keeping its
+own copy of scroll positions must fall back to that. Conflating the two makes
+the fallback outvote the renderer — see `MpvtkApp.scroll_offsets`.
 
 ## 5. Images: strips, files, memory
 
@@ -335,6 +353,15 @@ renderer's LIVE offset instead of trailing the throttled scroll event
    above an earlier one; and an ASS child marked `occlude=True` is
    subtracted from image siblings *below it* and draws in the hole
    (give it an opaque bg — the hole reveals the window background).
+   `occlude` suits chrome that is *meant* to cover what is under it —
+   popups, dropdowns, dialogs. It is the **wrong tool for a control
+   that should look like it floats ON artwork**: the punched rect is
+   hard-edged and opaque by necessity, so the control reads as a notch
+   cut out of the picture, and it can be neither translucent nor
+   non-rectangular. Make that control an `Image` instead — it carries
+   `on_click`/`repeat` like a Box — and let it alpha-blend; see
+   `jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py`'s
+   `_arrow_bitmap`.
 2. Overlay flush is hole-free by construction: adds/replacements are
    issued before removes and new images take over departing slots
    (slots are sticky per node id — don't regress this; index-shifted
@@ -396,7 +423,225 @@ renderer's LIVE offset instead of trailing the throttled scroll event
    background (don't paint full-screen ASS rects — they'd sit under
    images anyway).
 
-## 7. Testing
+## 7. Tokens and the type scale (`jellyfin_mpv_shim/mpvtk/theme.py`)
+
+Colours and sizes are **tokens**, not literals. An embedding app calls
+`theme.set_tokens()` once at startup — or `set_accent()`, still the right
+entry point for an app whose only opinion is its brand colour — and every
+widget and renderer-drawn control follows. Replacement is wholesale, which
+is what makes a *runtime* theme swap safe: a token the new theme does not
+mention resets to stock instead of keeping the old theme's value. Tokens
+are served through the module's `__getattr__` rather than being module
+globals, so a theme can never redefine the functions in there and an
+unknown name raises instead of silently resolving.
+
+Two rules shape the token set:
+
+- **Semantic, not literal.** `ON_SURFACE_MUTED`, not `grey_aaaaaa`. There
+  are deliberately fewer tokens than there were literals; four
+  near-identical greys collapsing into one is the point, because a theme
+  author cannot reason about seventeen shades and will not try.
+- **Two surfaces.** Everything named `*_SURFACE*` is chrome drawn on the
+  app's own background and follows the theme. The `SCRIM_*` / `CHIP_*`
+  tokens are for things drawn over **video** — the playback HUD, the Skip
+  Intro chip, the cast backdrop — and stay dark whatever the theme does,
+  because a white HUD over a dark film is wrong no matter how light the
+  rest of the app is. jellyfin-web keeps its player OSD dark for the same
+  reason.
+
+`ACCENT_ON_VIDEO` (the seek bar's fill, its chapter marks) defaults to
+`ACCENT`, because one accent everywhere is what makes a theme read as a
+theme — but it is **separable**, because the two jobs differ: over app
+chrome the accent only has to beat a known background, over video it has
+to stay visible against an unknown and moving one. This is a deliberate
+divergence from jellyfin-web, which hardcodes its player slider to
+Jellyfin blue and lets no theme near it.
+
+### The type scale
+
+**Pass a tier name, not a number.** `Text("…", size="caption")` — every
+widget's `size=` goes through `theme.text_size`, which takes a tier name
+or a number. The name is the preferred spelling at a call site: an author
+can tell whether a line is a caption and cannot tell whether it is 13 or
+14. A number still works, for the genuine one-off no tier describes. An
+unknown tier is an error, not a silent default — a typo'd tier would
+otherwise render as body text and look almost right.
+
+| tier | × base | what it is |
+|---|---|---|
+| MICRO | 0.70 | guide badges ("HD"), the densest chrome |
+| CAPTION | 0.80 | help text under a settings row |
+| SMALL | 0.88 | dense body: guide, music, comic, reader |
+| NORMAL | 1.00 | body text, and every control label |
+| LARGE | 1.12 | meta and secondary lines on a detail page |
+| TITLE | 1.30 | dialog titles |
+| HEADING | 1.42 | carousel section headings |
+| PAGE | 1.53 | page titles |
+| HERO | 1.70 | onboarding: "Connect to Jellyfin" |
+
+The base is **17 logical px**, and the ratios are surveyed rather than
+invented: every explicit `size=` in the app was counted (237 call sites)
+and grouped by what the text actually is, and with a base of 17 these
+ratios reproduce 236 of those 237 to within a pixel. `HEADING` landing on
+24 — what `heading_size` has always been — is the check that the ratios
+are real rather than fitted. The tiers are named for the JOB, like the
+colour tokens, and for the same reason: 161 of the 237 sizes sat in the
+3px band 14–18 with no rule saying which.
+
+`theme.set_type_scale(base, minimum, factor)` sets all three; `None`
+restores stock, wholesale like `set_tokens` and for the same reason.
+`factor` is the user's text multiplier and applies to **every** size the
+toolkit resolves, tiers and explicit numbers alike — it is not folded into
+the base, because that would scale the tiers and leave every call site
+still passing a literal exactly where it was, recreating the mismatch the
+scale exists to fix in the other direction.
+
+**The multiplier is applied exactly once.** `theme.size()` / `text_size()`
+return a `Px` — an `int` subclass meaning "already resolved" — and
+`text_size(Px)` returns it untouched. Composite widgets resolve their own
+size and hand the number to a child (`Button` builds a `Text` and an
+`Icon`, `Checkbox` builds a `Text`, `Form` builds a `Grid` which builds a
+`Text` per cell), and without this each of those resolved again: at 150% a
+button label came out 39px against body copy at 20. Arithmetic on a `Px`
+returns a plain `int`, which is the right default — `int(size * 0.95)` is
+a NEW size derived from this one, and deriving is not resolving.
+
+**The accessibility control is a floor, not a scale.** A scale multiplies
+everything, so the smallest text stays the smallest text and a guide badge
+at 0.70× base is still the hardest thing on screen to read. A floor
+compresses the bottom of the scale instead of moving all of it, which is
+what somebody who cannot read 12px actually wants. It is capped at the
+**largest tier**, not at the base: capping at the base swallowed every
+useful value (with a base of 17, a floor of 18 came out as 17, so the
+setting appeared to do nothing at all to buttons or body text — exactly
+what it is for). So a floor set above the largest tier caps *there*, and
+flattens the whole scale into one size.
+
+Two rules for anyone writing a widget or a view:
+
+- **Sizes and colours are resolved in the constructor BODY, never as
+  default arguments.** A default is evaluated once at import, and the type
+  scale and palette are set by the app at startup and again on every theme
+  swap. Every `x = theme.Y if x is None else …` line in
+  `jellyfin_mpv_shim/mpvtk/widgets.py` is that rule, not an oversight.
+- **An explicit `size=` on a widget is GEOMETRY, not type**, and does not
+  take the text multiplier: `Icon(size=…)`, `Dropdown(trigger_icon=…)`'s
+  button box. Scaling the whole interface — controls, artwork, spacing —
+  is what `ui_scale` does, and having the text multiplier resize controls
+  too would make it a second, partial copy of that. An icon with *no*
+  size still resolves to a tier, because one with no opinion is standing
+  in for a line of text and should match it.
+
+## 8. Logical vs physical pixels (`jellyfin_mpv_shim/mpvtk/scaling.py`)
+
+**Every number in Python view code is logical.** Views author at 1×,
+`layout()` runs in logical space, and `scale_scene()` converts the
+finished scene to physical on the way out. `app` hands `build()` a
+*logical* size, which keeps derived math (the HUD's responsive sizing,
+anything computed off the surface width) logical automatically instead of
+double-scaling. The only code that thinks in physical pixels is bitmap
+rasterization — because the renderer never resamples (§5) — plus the Lua
+side itself. The factor is resolved once at startup (on `ready`) and is
+not reactive: changing it needs a restart, because rescaling live would
+mean dropping every cached bitmap.
+
+`px()` is **the** rounding rule, shared by layout and every rasterizer;
+never inline it. If the two ever rounded differently — 150×1.5 to 225 on
+one side and 224 on the other — the mismatch lands in overlay-add's stride
+and shears the image. Its companions: `dip()` back the other way (mouse
+positions, surface size), `raster(w, h)` for a producer about to rasterize
+a logical box, `logical_size()` for the surface (deliberately float —
+truncating there loses up to a pixel of usable width per axis).
+
+**Font sizes scale exactly; line boxes round.** `size` is scaled and *not*
+rounded: nothing is rasterized at it, no stride depends on it, and libass
+takes a fractional `\fs` happily. What does depend on it is that the text
+comes out the width layout wrapped and ellipsized it to. At 0.75×, an 18px
+run rounded to 14 is 18.67 logical — every line renders 3.7% wider than
+the width it was fitted to, so a full-width paragraph overruns its column
+and disappears under the scrollbar. The error is worst at fractional
+scales (0 at 1× and 2×), which is why it only ever showed up on a scaled
+display. The one thing that must round exactly like every other rasterizer
+is the LINE BOX, and that still does.
+
+Images are the leak in the abstraction — a decoded bitmap is physical — so
+they get an explicit boundary. `Image`/`ImageMap` take `iw`/`ih` (physical
+bitmap size) and `w`/`h` (the logical footprint), and check the two agree
+through `raster()`. Declaring one axis and not the other is an error.
+
+- **Only declare `w`/`h` on a canvas you sized yourself** — a composited
+  strip, the cast backdrop, a banner. Decoded artwork must NOT: the server
+  preserves aspect, so a square request comes back 56×52 and the footprint
+  is whatever the bitmap turned out to be. What has to be scaled for those
+  is the *request*, which `Image` cannot see. Getting it backwards asks
+  the server for artwork at scale-squared on any HiDPI display, and caches
+  it under a key the drawn size never matches.
+
+Two traps in `scale_scene` itself:
+
+- **`"rh"` vs `"ih"`.** A menu's row height is a logical row height and
+  must scale; an `img` node's `ih` is the physical bitmap height and must
+  not. One key meaning both is how the menu ended up drawing 1× rows under
+  2× text. The scale tables are keyed on name alone, which is only safe
+  while a key means the same thing on every node type — check before you
+  add a field. (Full version inline in `jellyfin_mpv_shim/mpvtk/layout.py`.)
+- **Hover dicts are frequently shared module constants** (layout's region
+  default, theme-ish literals in the settings pages). `scale_scene` copies
+  before scaling the pixel keys inside one; scaling in place would
+  compound on it every single frame.
+
+## 9. Playback HUD mode (`MpvtkApp.set_hud`)
+
+`set_hud(on, opts)` enters and leaves the playback-HUD lifecycle, which is
+**attached-but-idle with a blank scene**. That is the distinction that
+matters: `set_active(False)` gets the renderer entirely out of the way for
+another OSC — it unbinds its forced mouse/wheel sections, and pushing an
+empty scene is *not* enough, because the bindings are what swallow the
+clicks. HUD mode keeps the renderer attached during playback with only a
+lightweight summon surface bound (the wake key + mouse motion). Summoning
+rebinds the full input sections and fires `on_hud(True)`; the inactivity
+timer drops back to idle with `on_hud(False)`. `set_active` in either
+direction also leaves HUD mode. A summoned HUD lands its focus on whatever
+the scene marks `af` (§3); `MpvtkApp.summon_hud()` wakes an idle one as if
+a nav key were pressed, with no pause toggle.
+
+`opts` is everything the renderer owns about the HUD, and is re-sent on
+every engage — which is what lets a settings change stick without a
+restart:
+
+| key | meaning |
+|---|---|
+| `grab` | keyboard policy: summon on all arrows/ENTER while idle |
+| `key` | otherwise only this mpv key is taken over (ENTER also pause-toggles on wake) |
+| `hide` | auto-hide delay in seconds; absent means the toolkit's own default (`PHUD_HIDE.def`), and `0` is not absent — it forces "hover" |
+| `mode` | auto-hide policy: `"hover"` / `"always"` / `"paused"` |
+| `shadow` | draw the glyphs with their own dark halo, for the app that paints no scrim behind them |
+
+`MpvtkApp.set_hud_skip(label)` tells the renderer whether a skippable
+segment is live (falsy = none). While the HUD is idle, entering one shows
+a standalone renderer-drawn skip button for a few seconds (pointer
+movement re-shows it) and ENTER / remote Select / a click fires
+`on_hud_skip`; while summoned, the scene's own button is authoritative and
+this only tracks the label.
+
+**Panned pictures.** `MpvtkApp.set_picture_pan(config)` hands the renderer
+the gesture model for a picture mpv is displaying — `{"unitx", "unity",
+"minx", "maxx", "miny", "maxy", "step"}`, or `None` to stop. While it is
+set, a drag over the empty part of the window and the wheel move mpv's
+`video-pan-x/y` **in the renderer**, with no round trip: a page turn is
+one message, but a scroll is sixty a second and the app has nothing to add
+to one. The units are the **displayed picture's** pixel size, not the
+window's, because that is what mpv's pan is measured in (the measurement
+is in `jellyfin_mpv_shim/mpvtk_browser/gateway/picture.py`). The clamp
+comes from the app, because it depends on the page's size and the reader's
+own chrome, neither of which the renderer knows; re-send it whenever
+either moves. What comes back is the `vpan` / `vzoom` events (§4).
+
+Both the key claim (§3) and the pan model are compare-and-skip caches, and
+the renderer drops both of its own accord when it goes inactive without
+saying so — `set_active` forgets them for that reason.
+
+## 10. Testing
 
 - `python3 -m jellyfin_mpv_shim.mpvtk [--backend libmpv]` — demo with
   Browse / Widgets / Logs pages exercising every widget.
@@ -418,7 +663,7 @@ renderer's LIVE offset instead of trailing the throttled scroll event
 - **F12** toggles the input-diagnostics HUD (wheel count/scale/target,
   mouse state). INFO logs time strip composition and render pushes.
 
-## 8. The real browser (`mpvtk_browser/`)
+## 11. The real browser (`mpvtk_browser/`)
 
 The toolkit here is app-agnostic; `jellyfin_mpv_shim.mpvtk_browser` is
 the application built on it — the Jellyfin library browser, rendered in

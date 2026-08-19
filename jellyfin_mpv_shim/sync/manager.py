@@ -1026,31 +1026,18 @@ class SyncManager:
     def _sweep_if_due(self, now):
         """Run a pending catalog sweep, unless one ran too recently.
 
-        The floor **defers, it does not drop**. A suppressed trigger would
-        be a stretch of time nobody ever looks at again -- the flag is set
-        because something happened that the websocket could not report, and
-        that does not stop being true because a sweep happened to run three
-        minutes ago. So `_sweep_due` stays up and the sweep goes out as
-        soon as it is allowed to, which is what makes a flapping server
-        cost one sweep per floor rather than one per flap.
+        The floor **defers, it does not drop** -- the flag is set because
+        something happened the websocket could not report, and that does not
+        stop being true because a sweep ran three minutes ago. So a flapping
+        server costs one sweep per floor rather than one per flap.
 
-        Two things hold a due sweep back besides the floor, and neither
-        consumes it. **The settle**: nothing sweeps in the first
-        `USERDATA_SWEEP_SETTLE` seconds after the catalog opens, so the
-        first screen has the network to itself. And **having nobody to
-        ask**: the worker's first pass happens before `login_servers()` has
-        registered a single client, and a sweep there reaches no server, so
-        counting it burned the startup trigger and left the floor to defer
-        the real one by five minutes. A pass with no clients is not a sweep
-        that found nothing -- it is a sweep that did not happen.
-
-        The floor is skipped while `_last_userdata` is zero for the same
-        reason it is measured with `time.monotonic()`: that clock counts
-        from boot on every platform we run on, so on a machine launching
-        this at startup "five minutes since the epoch" is a real comparison
-        and it used to suppress the first sweep of the session.
+        Two other things hold a due sweep back and **neither consumes it**: the
+        settle (the first screen gets the network to itself) and having nobody
+        to ask (a pass with no clients is not a sweep that found nothing, it is
+        a sweep that did not happen).
 
         Returns whether it swept, which is what the tests read.
+        See docs/offline-sync.md section 3.
         """
         if not self._sweep_due:
             return False
@@ -1075,29 +1062,19 @@ class SyncManager:
         """Watch for a server appearing, and mark a sweep due when one does.
 
         This is the whole schedule. A sweep covers a stretch during which
-        nothing was listening, and a server *becoming reachable* is the end
-        of exactly such a stretch -- so it is the trigger, in place of the
-        interval this used to have. Startup is the same event (every server
-        transitions into the set on the first pass) and needs no special
-        case, though `_sweep_due` starts True anyway so a catalog is swept
-        even on a machine with no servers configured yet.
+        nothing was listening, and a server *becoming reachable* is the end of
+        exactly such a stretch -- so it is the trigger, in place of the
+        interval this used to have.
 
-        **Watched here rather than subscribed to.** `clientManager` has an
-        `on_server_connected` hook that means almost precisely this, and
-        two things argue against hanging the sweep off it. It is a single
-        slot that `mpvtk_browser/ui.py` already assigns, and it is assigned
-        *after* `syncManager.start()` runs -- so taking it would mean either
-        clobbering the browser's use of it or growing a fan-out for one more
-        listener. And it is a notification: it fires from five call sites,
-        and a sixth path that reconnects without calling it would leave a
-        gap that is invisible until somebody's catalog is stale. The
-        registry is the state itself, so a comparison against it cannot
-        miss a transition however the server came back -- health check,
-        websocket redial, or the user logging in -- and it is a set
-        comparison on a loop that already runs every five seconds.
+        **Watched here rather than subscribed to.** `clientManager`'s
+        `on_server_connected` is a single slot the browser already assigns, and
+        it is a notification fired from five call sites -- a sixth reconnect
+        path would leave a gap invisible until somebody's catalog is stale. The
+        registry is the state itself, so a set comparison cannot miss a
+        transition however the server came back.
 
-        Disappearances are recorded but trigger nothing: there is nothing to
-        catch up on with a server that just went away.
+        Disappearances are recorded but trigger nothing.
+        See docs/offline-sync.md section 3.
         """
         try:
             connected = set(self.get_clients() or {})
@@ -1170,28 +1147,19 @@ class SyncManager:
     def mirror_watched(self, item_id, played):
         """Record a *deliberate* watched mark in the catalog, immediately.
 
-        The counterpart to :meth:`mirror_playstate`, and deliberately not
-        the same rule. That one is playback, where advance-only is right:
-        reports arrive out of order and a position that went backwards is a
-        stale one. This one is a person choosing Mark Watched or Mark
-        Unwatched, which is the only signal in the app that is authoritative
-        in **both** directions -- so it writes verbatim, through
-        ``db.set_watched``.
+        The counterpart to :meth:`mirror_playstate` and deliberately not the
+        same rule. That one is playback, where advance-only is right. This is a
+        person choosing Mark Watched or Mark Unwatched -- **the only signal in
+        the app authoritative in both directions** -- so it writes verbatim
+        through ``db.set_watched``. Before this, every writer was advance-only
+        and an item un-watched here stayed watched on disk forever.
 
-        Un-watching is the half that did not work before. Every writer of
-        this column was advance-only, so a downloaded item un-watched from
-        this app's own menu stayed watched on the copy on disk, forever: the
-        sweep is advance-only too, so nothing would ever have corrected it.
-        Offline browsing showed a tick the user had just removed, and
-        "delete watched downloads" was still willing to throw the item away.
-
-        Unconditional at the call sites, like ``mirror_playstate``: no check
-        of whether the item is downloaded, because ``db.watched_targets``
-        answers with nothing for an item we hold no copy of. That is what
-        keeps it from being forgotten at a call site again.
+        Unconditional at the call sites, like ``mirror_playstate``:
+        ``db.watched_targets`` answers with nothing for an item we hold no copy
+        of, which is what keeps the check from being forgotten again.
 
         Fans out over a series or season id. Never raises; returns how many
-        rows moved.
+        rows moved. See docs/offline-sync.md section 1.
         """
         db = self.db
         if db is None:
@@ -1219,32 +1187,19 @@ class SyncManager:
     def apply_userdata_event(self, arguments):
         """Apply a ``UserDataChanged`` push to the catalog. No requests.
 
-        This is how watched state normally arrives, and it is free: the
-        server sends the changed values themselves, so the item finished on
-        a phone is written here from the message that announced it rather
-        than from a sweep that goes and asks. `_refresh_userdata` is what
-        covers the gap where nobody was listening.
+        This is how watched state normally arrives, and it is free: the server
+        sends the changed values themselves. Payload is
+        ``{UserId, ServerId, UserDataList: [UserItemDataDto...]}``.
 
-        The payload is ``{UserId, ServerId, UserDataList: [...]}``, each
-        entry a ``UserItemDataDto`` -- ``ItemId``, ``Played``,
-        ``PlaybackPositionTicks``, ``PlayCount``, ``IsFavorite``. Measured
-        against 10.11.11 and 12.0.0, which agree.
+        **Not every save produces one.** The server drops ``PlaybackProgress``
+        saves before it ever builds this message, so a client streaming
+        elsewhere announces its *start* and its *stop* and nothing in between --
+        which is why this does not replace the sweep.
 
-        **Not every save produces one**, and the exception is the one that
-        would otherwise matter most: the server drops ``PlaybackProgress``
-        saves before it ever builds this message
-        (``UserDataChangeNotifier.OnUserDataManagerUserDataSaved``), so a
-        client streaming somewhere else announces its *start* and its
-        *stop* and nothing in between. That is why this does not replace
-        the sweep, and why it is not a problem that it does not: a position
-        this client did not see move is caught at the stop, and our own
-        playback is mirrored locally without the server's help.
-
-        Ids not in the catalog cost one indexed SELECT and are dropped --
-        which is most of them, since the server adds each item's *parent*
-        to the list for its own indicator refresh. Runs on the websocket
-        thread, so a list long enough to hold that thread up is handed to
-        the sweep instead of walked here.
+        Ids not in the catalog cost one indexed SELECT and are dropped, which
+        is most of them. Runs on the websocket thread, so a long list is handed
+        to the sweep instead of walked here.
+        See docs/offline-sync.md section 2.
         """
         entries = (arguments or {}).get("UserDataList") or []
         if not entries:
@@ -1284,31 +1239,19 @@ class SyncManager:
     def _refresh_userdata(self):
         """Pull the server's watched state for what we hold, and store it.
 
-        The other direction from :meth:`_sync_playstate`, and **the
-        fallback rather than the mechanism**. An episode watched on a phone
-        is normally applied here for free, by `apply_userdata_event`, the
-        moment the server pushes it. What this covers is what the socket
-        cannot: the stretch where nothing was listening -- offline, logged
-        out, not running -- after which there is nothing to replay and only
-        asking will do, and the narrower case of another client that
-        finished something and never reported its stop, which the server
-        records and announces to nobody (see `apply_userdata_event`).
-        Without it the catalog would be a download-time snapshot across
-        exactly that gap, so offline browsing shows a series you finished on
-        the flight out as untouched, and "delete watched downloads" (which
-        reads ``userdata_json`` with no server fallback) quietly skips it.
+        The other direction from :meth:`_sync_playstate`, and **the fallback
+        rather than the mechanism** -- `apply_userdata_event` applies most of
+        this for free. What this covers is the stretch where nothing was
+        listening, after which there is nothing to replay and only asking will
+        do.
 
-        Batched: one request per ``USERDATA_BATCH`` ids per server, rather
-        than the per-item call the auto-download reaper makes, and spaced by
-        ``USERDATA_BATCH_PAUSE`` so a large catalog does not arrive as a
-        burst. Nothing is waiting on it, so the spacing costs nothing that
-        anyone can see.
+        Batched one request per ``USERDATA_BATCH`` ids per server and spaced by
+        ``USERDATA_BATCH_PAUSE``; nothing is waiting on it.
 
-        **Advance-only**, because it goes through ``db.update_userdata``:
-        the local copy is a floor, not a mirror. An item un-watched on
-        another device therefore stays watched here. That is the existing
-        rule rather than a decision taken here, and it is the one thing
-        about this worth revisiting.
+        **Advance-only**, via ``db.update_userdata``: an item un-watched on
+        another device stays watched here. That is the inherited rule rather
+        than a decision taken here, and it is the one thing about this worth
+        revisiting. See docs/offline-sync.md section 1.
         """
         try:
             rows = self.db.list(status=STATUS_COMPLETE)

@@ -1,52 +1,21 @@
 """Off-thread work with epoch-guarded staleness.
 
-Extracted from ``MpvtkBrowser`` (step 2 of ``docs/archive/ARCHITECTURE_TARGET.md``
-§3). The browser previously owned the epoch counter, its lock, and the
-worker pool as three attributes among seventy-three; they are one mechanism
-and now have one owner.
-
-**The epoch.** A monotonic counter meaning "navigation has moved on".
-Dispatchers read it on the loop thread and hand it to :meth:`run`, which
-drops the result if it no longer matches. That is a property of the app, not
-of any one screen, which is why it stays global rather than moving into the
-eventual page objects.
-
-Reading the epoch from anywhere is fine and expected. *Advancing* it is
-this module's job alone — ``tests/test_source_invariants.py`` enforces that,
-because ``app.py`` asserted it in prose for a long time with nothing
-checking.
+Owns the epoch — a monotonic counter meaning "navigation has moved on" — its
+lock and the worker pool. Reading the epoch from anywhere is fine and
+expected; *advancing* it is this module's job alone, which
+``tests/test_source_invariants.py`` enforces.
 
 **The lock protects writers from each other, not from the reader.** The
-browser's ``build()`` reads route data unlocked. That is deliberate and safe
-only because every writer ends with ``invalidate()``, so a torn read is a
-one-frame glitch the next build heals. Do not "fix" it by locking the
+browser's ``build()`` reads route data unlocked, which is safe only because
+every writer ends with ``invalidate()``. Do not "fix" it by locking the
 reader.
 
-**Callback contract** (all three arms have bitten, and
-``tests/test_async_runner.py`` pins each):
-
-``on_done(result)``
-    Applied only if the epoch still matches. Runs under the lock.
-
-``on_error(exc)``
-    Runs when ``work()`` raises, and **is deliberately not epoch-gated**. A
-    rollback undoes an optimistic edit in the route dict it captured, or
-    clears a paging guard — neither is a claim about what is currently on
-    screen. Gating it meant navigating away before the failure landed
-    dropped the rollback, so the route kept a change the server had refused
-    and showed it again on the way back.
-
-    That puts the burden on the handler: anything in an ``on_error`` that
-    touches the live screen must check for itself.
-
-``always()``
-    Runs after every outcome — success, failure, *and a result dropped
-    because the epoch moved*. Use it for a guard that must not outlive the
-    call. ``on_error`` alone is not enough: a stale success calls neither
-    callback, so a flag cleared only in ``on_done`` stays set forever.
-
-Every callback is individually guarded because they run on a pool worker,
-where an escaping exception kills the thread with no caller to see it.
+``run()`` has three arms and all three have bitten. The rule to have before
+writing a callback: a guard that must not outlive the call goes in
+``always=``, never in ``on_done`` or ``on_error`` -- past the epoch BOTH of
+those are dropped. ``on_error`` is deliberately not epoch-gated at all, which
+puts the burden on the handler. Each arm and the bug behind it: see
+docs/browser-shell.md section 2; ``tests/test_async_runner.py`` pins them.
 """
 
 import logging

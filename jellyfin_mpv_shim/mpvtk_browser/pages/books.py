@@ -1,22 +1,17 @@
 """The two screens a books library needs, which are not one screen.
 
 `CollectionType.books` holds two unrelated entity types (see
-``jellyfin_mpv_shim/books.py``), and they want opposite things:
+``jellyfin_mpv_shim/books.py`` and ``docs/readers.md`` §1), and they want
+opposite things:
 
 * an **audiobook** is ordinary audio. Its folder is an album in everything
   but name, so :class:`BooksPage` draws it as one — header, action bar,
   tabular track list — and the existing playback machinery does the rest.
-* a **book** cannot be played, streamed, paged or rendered. The server
-  offers one endpoint that yields its bytes and nothing that yields part of
-  it, so :class:`BookPage` is a download-and-open screen, and admits it.
+* a **book** cannot be played, streamed, paged or rendered, so
+  :class:`BookPage` is a download-and-open screen, and admits it.
 
-**A books library browses by folder**, which is jellyfin-web's own default
-tab for one (``constants/views/books.ts``: slot 0 is Folders) and, more to
-the point, the only structure these libraries have — nothing joins a
-multi-file audiobook rip except the directory it sits in. `SeriesName` is
-populated for books and null for audiobooks; `Album` is the reverse and is
-tag-derived, so an untagged rip has nothing at all joining it but its
-parent. That is why the *folder* is the unit here and not a metadata field.
+**A books library browses by folder**, because the folder is the only
+structure these libraries have — see ``docs/readers.md`` §3.
 """
 
 import logging
@@ -45,25 +40,16 @@ def one_book(tracks):
     """Whether these audiobook files are chapters of ONE book.
 
     The distinction the browser has to make and the DTO almost does not
-    support: `Books/Kai Kowalski/The Slow Crossing/` holding three parts of
-    one book must be a chapter list, and `Books/Elena Farrow/` holding four
-    different novels as one file each must be a gallery of four books. Both
-    are "a folder of AudioBooks" and nothing about the folder tells them
-    apart.
+    support: three parts of one recording and four unrelated novels are both
+    "a folder of AudioBooks", and nothing about the folder tells them apart.
 
-    **`Album` is the only field that ever joins a rip.** `SeriesName` is
-    null on an audiobook (only `BookResolver` populates it, and that runs
-    for `Book`), there is no album *entity* to point at, and the parts are
-    N unrelated items that survive the scanner by falling through its
-    stacking resolver one at a time. So: one distinct album is one book,
-    several albums are several books.
-
-    An untagged rip has no album at all, and there the folder is genuinely
-    the only thing joining the files — which is the *reason* the folder is
-    the unit everywhere else here — so "nobody has one" reads as one book
-    rather than as N. A folder where only some are tagged is several: the
-    tagged ones name a book the untagged ones are not claiming to be part
-    of.
+    **`Album` is the only field that ever joins a rip** (``docs/readers.md``
+    §3, §3.1), so one distinct album is one book and several albums are
+    several books. Two cases the field cannot answer: an untagged rip has no
+    album at all, and there the folder really is the only thing joining the
+    files, so "nobody has one" reads as one book rather than as N; a folder
+    where only *some* are tagged is several, because the tagged ones name a
+    book the untagged ones are not claiming to be part of.
     """
     albums = {(t.get("Album") or "").strip() for t in tracks}
     return len(albums) == 1
@@ -124,15 +110,12 @@ class BooksPage(GridPage):
         """The chapters, in playing order — or ``None`` when this folder is
         not an audiobook and should be drawn as a grid.
 
-        Three conditions, and the middle one is the subtle one:
+        Four conditions, and the second is the subtle one:
 
         1. there is something loaded;
-        2. **all** of it is loaded. A windowed list is full of holes
-           (``pagination.spread``), and a track list is a claim about a
-           whole book: playing "from track 4" out of a list whose tracks 5
-           and 6 have not arrived would queue two blanks. A folder too big
-           to hold at once is not an audiobook anyone rips, so it falls
-           back to the grid rather than growing a paged track list;
+        2. **all** of it is loaded — a windowed list is full of holes
+           (``pagination.spread``) and playing "from track 4" out of one
+           queues blanks (``docs/readers.md`` §3);
         3. every item is an `AudioBook`. A folder mixing a book with an
            audiobook is a folder, and drawing it as an album would hide the
            book — there is no row in a track list that could open one;
@@ -236,16 +219,10 @@ class BooksPage(GridPage):
     def _overview(folder, tracks):
         """The book's description.
 
-        The folder's own if it has one — a book folder scanned with an
-        `.nfo` does. Otherwise the first chapter's: an audiobook's
-        description is written into the FILE's tags, so for a rip it is on
-        the parts and for a single `.m4b` it is on the one item, and in
-        neither case is it on the directory. Taking the folder's first
-        keeps a real folder-level description winning over a per-file one.
-
-        The *first* track's rather than any: they are chapters of one book
-        (see :func:`one_book`), so they either carry the same description
-        or the first is the one that opens it.
+        The folder's own if it has one (an `.nfo` gives it one), otherwise
+        the first chapter's — an audiobook's description lives in the
+        FILE's tags, never on the directory. The *first* track's rather
+        than any: they are chapters of one book (see :func:`one_book`).
         """
         overview = (folder.get("Overview") or "").strip()
         if overview:
@@ -320,13 +297,10 @@ class BooksPage(GridPage):
         resume = self._resume_at(tracks)
         started = resume is not None and (resume[0] or resume[1])
         if started:
-            # There IS no plain "Play" once a book has been started. On a
-            # film that pairing is harmless; on a book it is a trap — the
-            # position is hours of listening, spread over weeks, and
-            # starting from chapter one overwrites it as it goes. So the
-            # primary action resumes and the other one says out loud that
-            # it goes back to the beginning, which is the same shape the
-            # tile menu already uses for a part-watched item.
+            # There IS no plain "Play" once a book has been started: the
+            # position is hours of listening and starting from chapter one
+            # overwrites it as it goes, so the second button says out loud
+            # that it goes back to the beginning (readers.md §3).
             index, offset = resume
             label = self._resume_label(tracks, index, width)
             btns.append(controls.action_btn(
@@ -459,10 +433,8 @@ class AudiobookPage(Page):
             "PlaybackPositionTicks") or 0
         btns = []
         if position:
-            # Same rule as a folder of chapters, and for the same reason: a
-            # book is hours, and starting one over by accident overwrites
-            # the position as it plays. So there is no bare Play once it
-            # has been started.
+            # Same rule as a folder of chapters, and for the same reason:
+            # no bare Play once a book has been started (readers.md §3).
             btns.append(controls.action_btn(
                 "play_arrow",
                 _("Resume") + "  " + detail_components.fmt_ticks(position),
@@ -531,12 +503,10 @@ class BookPage(Page):
     """One book: what it is, how far through it you are, and the only two
     things that can be done with it.
 
-    There is no Play button and there will not be one. Jellyfin serves no
-    page, no archive entry and no spine document — `Book` is not
-    `IHasMediaSources` and `/Items/{id}/Download` is the whole API — so
-    every way of showing a book in this window would begin by fetching the
-    entire file, and end with a worse reader than the one already
-    installed. See ``books.py``.
+    There is no Play button and there will not be one: a `Book` is not
+    `IHasMediaSources` and `/Items/{id}/Download` is the whole API, so
+    everything on this screen begins with a local copy. See ``books.py``
+    and ``docs/readers.md`` §1.
     """
 
     kind = "book"
@@ -661,14 +631,11 @@ class BookPage(Page):
         actions = self.ctx.actions
         status, path = state or (None, None)
         # **Epub and the two comic formats Python can unpack read in this
-        # window**, and the button row says so by what it offers rather
-        # than by refusing afterwards. A PDF needs a page rasterizer that
-        # costs a heavy dependency; cbr and cb7 are RAR and 7-Zip, which
-        # Python does not ship a reader for; a mobi is a format nothing in
-        # the Jellyfin ecosystem opens at all. For those, Read still means
-        # what it always meant -- hand the file to the desktop. The list
-        # itself is books.IN_WINDOW_FORMATS, so this row and the tile menu
-        # cannot disagree about it.
+        # window**, and the button row says so by what it offers rather than
+        # by refusing afterwards; for every other format Read hands the file
+        # to the desktop (readers.md §1). The list itself is
+        # books.IN_WINDOW_FORMATS, so this row and the tile menu cannot
+        # disagree about it.
         readable = reader_route(item) is not None
         btns = [controls.action_btn(
             # Two senses of one English word on one screen, which is exactly
@@ -708,11 +675,10 @@ class BookPage(Page):
                 "file_download", _("Download"), "bk-download",
                 lambda: actions.download_book(item, server), size=controls.PRIMARY_ROW))
         if progress_settable(item):
-            # Left out entirely for an epub, whose stored position is an
-            # index into a JavaScript library's locations array rather than
-            # anything a reader shows you a number for -- there is nothing
-            # to type. The figure is still read and shown in the meta line
-            # above; only setting it is refused. See books.progress_settable.
+            # Left out entirely for an epub: there is no number for the
+            # user to read off and type (readers.md §2.1). The figure is
+            # still read and shown in the meta line above; only setting it
+            # is refused. See books.progress_settable.
             btns.append(controls.action_btn(
                 "bookmark", _("Progress…"), "bk-progress",
                 lambda: self.ctx.dialogs.open_book_progress(item, server),

@@ -1,15 +1,10 @@
 """Measured font metrics shared by Python layout and the Lua renderer.
 
-The heuristic char-width table in layout.py/renderer.lua is only a
-fallback: at startup the app measures real glyph advances for printable
-ASCII with Pillow against an actual font file, applies them to the
-layout engine (layout.set_metrics) and pushes them to the renderer
-(mpvtk-metrics script-message) together with the font family name for
-libass (\\fn). Both sides then agree on accurate text widths — box
-sizing, ellipsis and textbox cursor positioning all line up.
-
-Non-ASCII glyphs still use the fallback width; a fuller table (or
-shipping a UI font) is the production path.
+Advances and pair kerning are measured with Pillow against a real font
+file, applied to layout (layout.set_metrics) and pushed to the renderer
+(mpvtk-metrics) with the family name for libass's ``\\fn``, so both sides
+agree on text widths. The heuristic tables in layout.py/renderer.lua are
+the fallback for what is not measured. See `mpvtk/GUIDE.md` section 6.3.
 """
 
 import json
@@ -101,16 +96,11 @@ def _dyn_font():
 
 def extend_metrics(m, texts):
     """Measure codepoints/pairs from ``texts`` that aren't in ``m`` yet
-    (mutates m['widths']/m['kern']); returns True if anything was
-    added. The full unicode pair space can't be pre-enumerated — this
-    measures exactly what real UI text uses, a few µs per novel glyph.
-
-    Limited to codepoints below U+2E80: the base font genuinely covers
-    those (Latin ext, Greek, Cyrillic, …). CJK keeps the ~1em fallback
-    width — libass renders it with a FALLBACK font Pillow isn't
-    measuring, and measuring the base font's .notdef would be worse
-    than the heuristic. ASCII pairs were bulk-measured at startup and
-    are skipped."""
+    (mutates m['widths']/m['kern']); returns True if anything was added.
+    The unicode pair space can't be pre-enumerated, so this measures what
+    real UI text actually uses. Limited to codepoints below U+2E80, which
+    is what the base font covers; CJK keeps the ~1em heuristic because
+    libass draws it with a fallback font Pillow is not measuring."""
     font, factor = _dyn_font()
     if font is None or not m:
         return False
@@ -164,18 +154,13 @@ def _cache_key(font):
         from PIL import __version__ as pilver
     except ImportError:
         pilver = "?"
-    # The layout engine is part of the key, because it changes the numbers
-    # and NOTHING else here moves when it does. Raqm applies the font's GPOS
-    # kerning and Basic does not -- measured, DejaVuSans at 20px: "AVATAR" is
-    # 81.94px unkerned against 75.20px kerned, 9% apart -- and Pillow picks
-    # between them on whether FriBiDi could be loaded, which is a property of
-    # the machine rather than of the font or of Pillow's version.
-    #
-    # So this is exactly the kind of change that would land as a stale cache
-    # hit: a Windows user updating into a build that ships FriBiDi (#689) has
-    # the same font, same mtime, same Pillow, and would keep measuring with
-    # the old unkerned numbers forever. Same in reverse for a Linux user who
-    # installs libfribidi later.
+    # The layout engine is part of the key because it changes the numbers
+    # and nothing else here moves when it does: Raqm applies the font's GPOS
+    # kerning and Basic does not (measured, DejaVuSans at 20px: "AVATAR" is
+    # 81.94px unkerned against 75.20px kerned), and Pillow picks between them
+    # on whether FriBiDi loaded -- a property of the MACHINE. Without it, a
+    # Windows user updating into a build that ships FriBiDi (#689) keeps the
+    # old unkerned numbers forever off a same-font, same-mtime cache hit.
     engine = _layout_engine()
     return "%s|%s|%s|%s|%s" % (path, mtime, pilver, engine, _METRICS_VERSION)
 
@@ -196,14 +181,11 @@ def _layout_engine():
 
 
 def measure_font():
-    """Returns {"font": family_name, "widths": {char: fraction}, ...}
-    or None when no measurable font / recent-enough Pillow is
-    available.
+    """Returns {"font": family_name, "widths": {char: fraction}, ...} or
+    None when no measurable font / recent-enough Pillow is available.
 
-    The full measurement (advances + ~9k kerning pairs) is ~40ms on a
-    fast machine but could reach ~1s on weak hardware, so results are
-    cached to disk keyed on the font file + Pillow version — every
-    launch after the first reads ~6KB of JSON instead."""
+    ~40ms on a fast machine and up to ~1s on weak hardware, so it is disk
+    cached (see ``_cache_key``) and warm launches read ~6KB of JSON."""
     try:
         from PIL import ImageFont
     except ImportError:
@@ -220,13 +202,9 @@ def measure_font():
         except (OSError, ValueError, KeyError):
             pass
         try:
-            # libass (VSFilter compat) scales \fs to the font's
-            # ascender+descender height, NOT the em size — so a glyph's
-            # rendered advance is (advance/em) * fs * em/(asc+desc).
-            # Fold that factor in here so every width consumer (layout
-            # sizing, ellipsis, cursor/selection math) agrees with what
-            # libass actually paints. Verified pixel-wise by
-            # calibrate.py (DejaVu Sans: factor 0.859, ratios ~1.00).
+            # libass scales \fs to ascender+descender, not the em, so the
+            # correction factor is folded in HERE and every width consumer
+            # inherits it (GUIDE.md section 6.3; calibrate.py verifies).
             ascent, descent = font.getmetrics()
             factor = _MEASURE_SIZE / float(ascent + descent)
             # printable ASCII + Latin-1 supplement (é, ü, ñ, …); other

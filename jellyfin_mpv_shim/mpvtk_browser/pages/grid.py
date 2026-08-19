@@ -380,26 +380,17 @@ class GridPage(Page):
         return header
 
     def _view_controls(self):
-        """Buttons that LEAVE this library -- Genres, Networks.
+        """Buttons that LEAVE this library -- Genres, Networks, Collections.
 
-        ...and **Collections**, which is one of these and not a filter.
-        It sets `route["_collections"]`, tears down `_items`, `_total`,
-        the grid shape and the paginator, and comes back with a different
-        item type wearing a different tile shape -- its own docstring
-        says "a different query rather than a filter". The test is
-        whether it composes: everything in `_filters` intersects, and
-        Collections cannot intersect with anything. **[iw]**: "we should
-        honestly treat collections as a door."
+        Collections is one of these and **not a filter**: it sets
+        `route["_collections"]`, tears down `_items`, `_total`, the grid shape
+        and the paginator, and comes back with a different item type wearing a
+        different tile shape. The test is whether it composes -- everything in
+        `_filters` intersects, and Collections cannot intersect with anything.
 
-        (This docstring used to argue the opposite -- that Collections
-        "really is a filter" -- which is why it sat among the checkboxes.)
-
-        They lead the filter row rather than sitting among the filters,
-        because they are a different kind of thing: a filter changes what
-        this grid shows and these navigate somewhere else entirely.
-
-        jellyfin-web reaches both through library tabs, which we do not
-        have -- so leading the bar is the nearest thing to a tab strip.
+        They lead the filter row rather than sitting among the filters, because
+        a filter changes what this grid shows and these navigate somewhere
+        else. See docs/browser-shell.md section 12.
         """
         route = self.route
         out = []
@@ -784,56 +775,41 @@ class GridPage(Page):
     def _retire_legacy_list_view(self):
         """Clear a ``viewType`` an earlier build of this client wrote.
 
-        ``view_prefs.is_list`` still honours that key -- a library put in
-        list view before the setting moved onto web's shared ``imageType``
-        has to keep coming up as a list -- which means nothing that writes
-        only ``imageType`` can take such a library back OUT of the list. The
-        checkbox saved the grid value, the legacy key went on outvoting it,
-        and it came back ticked on the next frame: a control that read as
-        dead.
+        ``view_prefs.is_list`` still honours that key, which means nothing
+        writing only ``imageType`` can take such a library back OUT of list
+        view -- the checkbox saved the grid value, the legacy key outvoted it,
+        and it came back ticked on the next frame.
 
-        Called from the top of :meth:`_set_view`, ahead of *both* the no-op
-        check and the snapshot it takes of ``_view``. Ahead of the check
-        because the box unticks by writing the imageType the library already
-        had, so the write it rides on is very often no write at all; ahead of
-        the snapshot because this sets ``_view`` itself, and a caller holding
-        an older copy puts the legacy value straight back.
+        Called from the top of :meth:`_set_view`, ahead of **both** the no-op
+        check and the snapshot it takes of ``_view``: the box unticks by
+        writing the imageType the library already had, so the write it rides on
+        is very often no write at all, and a caller holding an older ``_view``
+        puts the legacy value straight back.
 
-        One-way, and deliberately so. Nothing writes ``viewType`` any more,
-        so this is a migration rather than a setting: once the shared key has
-        been asked the question, it is the only one that answers it.
+        One-way, deliberately: nothing writes ``viewType`` any more, so this is
+        a migration rather than a setting.
+        See docs/browser-shell.md section 12.
         """
         if view_prefs.is_list_view(self._view("viewType")):
             self._set_view("viewType", view_prefs.GRID_VIEW)
 
     def _redraw_or_refetch(self, was):
-        """Repaint after a view change -- and re-ask the server when the
-        change was one it needs to hear about.
+        """Repaint after a view change -- and re-ask the server when the change
+        was one it needs to hear about.
 
-        Which artwork the tiles are drawn with is part of the QUERY: the
-        server only sends the image tags a request names, so a grid fetched
-        as Auto has no Banner in its ImageTags and switching to Banner can
-        only fall back to the poster it already has. Redrawing was the whole
-        of this, and it is why the setting looked like it did nothing.
+        Which artwork the tiles are drawn with is part of the QUERY: the server
+        only sends the image tags a request names, so a grid fetched as Auto
+        has no Banner in its ImageTags. **The test is what the query would be,
+        not which setting was picked** -- Auto and Poster ask for the same
+        artwork and differ only in the shape, so that pair is a repaint.
 
-        In place rather than through ``_reload``: the items are not stale,
-        only the tags on them, so the grid keeps what it is showing instead
-        of blinking a spinner over it. The reload re-reads the view settings,
-        and now prefers the route's own copy (see :meth:`load`) -- the save
-        is still in flight, so the server would answer with the old value.
+        In place rather than through ``_reload``: the items are not stale, only
+        the tags on them.
 
-        The test is what the QUERY would be, not which setting was picked:
-        Auto and Poster ask for exactly the same artwork and differ only in
-        the shape it is drawn at, so switching between them is a repaint.
-
-        ``nav.load`` rather than ``nav.reload`` for a route that is no longer
-        on screen. The rollback path reaches here from ``on_error``, which is
-        deliberately NOT epoch-gated (see AsyncRunner), so a save that fails
-        after the user has walked away lands on the route they left --
-        and ``reload`` bumps the epoch, which would cancel the in-flight load
-        of whatever IS on screen and strand it on a spinner with nothing left
-        to re-issue it. ``load`` re-runs this route's own loader without
-        touching the epoch or repainting, which is exactly what it is for.
+        ``nav.load`` rather than ``nav.reload``, because the rollback path
+        reaches here from ``on_error``, which is deliberately not epoch-gated
+        -- and ``reload`` would bump the epoch and strand the in-flight load of
+        whatever IS on screen. See docs/browser-shell.md section 12.
         """
         from ..repository import browse_image_types
 
@@ -1001,26 +977,17 @@ class GridPage(Page):
 
         """``(geom, image_type)`` for this grid, shaped by its own artwork.
 
-        jellyfin-web's library grid asks for ``CardShape.Auto`` and lets the
-        median ``PrimaryImageAspectRatio`` decide (``ItemsView.tsx:87``);
-        movies come out as posters because movie posters *are* 2:3, not
-        because anything says "movies are posters". Ours said it, for every
-        collection type at once, which is why a Home Videos library -- 16:9
-        camcorder clips with no poster art to crop -- came out portrait.
+        jellyfin-web asks for ``CardShape.Auto`` and lets the median
+        ``PrimaryImageAspectRatio`` decide (``ItemsView.tsx:87``); movies come
+        out as posters because movie posters *are* 2:3, not because anything
+        says so. Ours said it for every collection type at once, which is why a
+        Home Videos library came out portrait.
 
-        **Computed once per route and parked.** A grid is paged, and a
-        median taken per page would change the grid's shape as you scroll
-        through one library. A route is one folder, so the first page's
-        median is the folder's, which is the granularity the answer actually
-        depends on. Cleared wherever ``_items`` is (see ``_reload``): a
-        filter or a sort is a different set of items and deserves a fresh
-        look.
-
-        The fallback when *nothing* carries a ratio is square, matching web
-        (``cardBuilder.js:102-104``). That case is precisely a grid of
-        art-less items -- the server sets the ratio from the Primary image,
-        so no image means no ratio -- and square placeholders tile better
-        than tall ones.
+        **Computed once per route and parked**, because a grid is paged and a
+        per-page median would change the grid's shape as you scroll. Cleared
+        wherever ``_items`` is. An explicit choice beats the median outright;
+        the fallback when nothing carries a ratio is square.
+        See docs/browser-shell.md section 12.
         """
         route = self.route
         named = view_prefs.shape_for(self._view("imageType"))
@@ -1072,27 +1039,18 @@ class GridPage(Page):
         new results land**.
 
         This used to pop ``_items``, and ``render`` answers a missing
-        ``_items`` with ``chrome.busy()`` for the whole page -- title,
-        filter bar, A-Z rail and all. So every filter tick, every sort
-        change and every letter press blanked the library and drew a
-        spinner over it. Behind the filter panel, which covers the middle
-        of the window, all that was visible of that was the page going
-        empty: **[iw]** "it makes the page look dead behind a modal while
-        re-querying".
+        ``_items`` with ``chrome.busy()`` for the whole page -- so every filter
+        tick, sort change and letter press blanked the library behind the
+        filter panel.
 
-        Stale-while-revalidate, the rule refresh_live_tv already argues
-        for: a re-read of a screen the user is looking at must not blink a
-        spinner over what they are reading. Unlike that one this DOES
-        bump the epoch -- the query has changed, so anything in flight is
-        answering the wrong question -- and unlike that one the old data
-        is genuinely wrong rather than merely stale. It stays up because
-        an empty page for the length of a query says nothing true either,
-        and it says it much louder.
+        Stale-while-revalidate, the rule refresh_live_tv already argues for.
+        Unlike that one this DOES bump the epoch, since the query has changed
+        and anything in flight is answering the wrong question.
 
-        ``_total`` is deliberately NOT dropped. It is the header's item
-        count, which is shell rather than content -- and zeroing it puts
-        "0 items" over the spinner, which is a worse thing to say than a
+        ``_total`` is deliberately NOT dropped: it is the header's item count,
+        and zeroing it puts "0 items" over the spinner, which is worse than a
         count one second out of date. ``_install`` overwrites it.
+        See docs/browser-shell.md section 11.
         """
         route = self.route
         for k in ("_items", "_grid_shape", "_win_tried", "_win_load"):

@@ -6,10 +6,6 @@ and dispatches their selections (handle_action). Actions are routed
 through the same playerManager code paths the OSD menu (menu.py) uses,
 so e.g. selecting a burn-in subtitle stream restarts the transcode
 exactly like the ``c`` menu would.
-
-(Historically this drove the jellyfin-styled lua OSC over script
-messages; that OSC was retired once the HUD reached parity, and the
-verb vocabulary lives on here.)
 """
 
 import logging

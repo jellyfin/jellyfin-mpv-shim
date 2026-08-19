@@ -3,20 +3,12 @@ Power-user language preference rules.
 
 A rule list is evaluated in order; the first rule that matches sets the
 audio/subtitle tracks. A rule "matches" only when all of its constraints can
-be satisfied — partial matches fall through to the next rule, and if no rule
+be satisfied -- partial matches fall through to the next rule, and if no rule
 matches, the existing Jellyfin server defaults apply.
 
-Constraint fields (all reject the rule on no-match):
-  type     - "movie" or "series" (item-type filter)
-  alang    - mpv-style comma list of audio language priorities
-  slang    - same for subtitles
-  amatch   - regex over audio track titles
-  smatch   - regex over subtitle track titles
-  subtype  - "signs" or "full" (uses the bulk_subtitle weight helpers)
-
-Bias fields (narrow the candidate set without rejecting the rule):
-  aprefer  - regex over audio track titles, applied after alang
-  sprefer  - same for subtitles
+The rule fields (``type``/``alang``/``slang``/``amatch``/``smatch``/
+``subtype`` constrain, ``aprefer``/``sprefer`` only bias) are documented for
+users under ``language_config`` in docs/configuration.md.
 """
 
 from __future__ import annotations

@@ -1,27 +1,9 @@
 """UI scale factor: the logical/physical pixel boundary.
 
-**The rule: every number in Python view code is logical.** The only code
-that thinks in physical pixels is bitmap rasterization -- because the
-renderer never resamples (see ``rawimage``: "images must be rasterized at
-their display size") -- plus the renderer/Lua side itself.
-
-So views author at 1x and stay readable, `layout()` runs in logical
-space, and ``scale_scene()`` converts the finished scene to physical on
-the way out. ``app`` hands views a *logical* ``size``, which is what
-keeps derived math (``hud``'s responsive ``sz()``, anything computed off
-the surface width) logical automatically instead of double-scaling.
-
-Images are the leak in that abstraction, so they get an explicit
-boundary: a producer converts with ``raster()`` and declares BOTH the
-physical bitmap size and the logical footprint it was built for. ``Image``
-checks the two agree, which turns "a producer forgot to scale" from a
-silently cropped or sheared poster into a loud failure at construction.
-
-``px()`` is deliberately the single rounding rule shared by layout and
-every rasterizer. If the two ever rounded differently -- 150*1.5 to 225
-on one side and 224 on the other -- the mismatch lands in overlay-add's
-stride and shears the image, which is a genuinely miserable bug to read
-backwards from a screenshot.
+Every number in Python view code is logical; bitmap rasterization and the
+Lua side are the only physical things. See `mpvtk/GUIDE.md` section 8 for
+why images are the leak in that abstraction, and for the exact-vs-rounded
+split below.
 """
 
 import math
@@ -92,18 +74,10 @@ def _round(v):
 _PX_KEYS = ("x", "y", "w", "h", "radius", "bw", "pw", "cw", "ch",
             "rh", "snap", "snap_off", "off0")
 
-# Scaled but NOT rounded. A font size is not a box: nothing is rasterized at
-# it, no stride depends on it, and libass takes a fractional `\fs` happily.
-# What does depend on it is that the text comes out the width layout wrapped
-# and ellipsized it to -- and px()'s rounding broke exactly that. At 0.75x,
-# an 18px run is drawn at px(18) = 14, which is 18.67 logical: every line
-# renders 3.7% wider than the width it was fitted to, so a full-width
-# paragraph overruns its column by tens of pixels and disappears under the
-# scrollbar. The error is worst at the fractional scales (0 at 1x and 2x),
-# which is why this only ever showed up on a scaled display.
-#
-# Rounding here bought nothing. The one thing that must round exactly like
-# every other rasterizer is the LINE BOX (h/rh), and that still does.
+# Scaled but NOT rounded: a font size is not a box, and rounding one makes
+# the text render wider than the width layout fitted it to. The LINE BOX
+# (h/rh) is the thing that must round like every other rasterizer, and does.
+# Pinned by tests/test_ui_scale.py.
 _EXACT_KEYS = ("size",)
 
 # Pixel geometry that arrives as a LIST of numbers (scaled elementwise).
@@ -120,10 +94,9 @@ _NESTED_PX_KEYS = ("bw", "radius")
 # min/max/value/marks/ranges are slider domain values, a/a1/a2 are alphas,
 # v is a content version.
 #
-# These lists are keyed on name alone, which is only safe while a key means
-# the same thing on every node type. Menu's row height used to ship as "ih"
-# and silently inherited the img exclusion -- if you add a field, make sure
-# its name isn't already spoken for.
+# The tables are keyed on NAME ALONE, so a name must mean the same thing on
+# every node type before you add it here -- a menu's row height is "rh" and
+# not "ih" for exactly that reason (full story in layout.py).
 
 
 def scale_scene(nodes):

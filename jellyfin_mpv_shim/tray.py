@@ -1,18 +1,15 @@
-"""System tray icon (pystray / AppIndicator), decoupled from the Tk GUI.
+"""System tray icon (pystray / AppIndicator).
 
-The tray used to live alongside the old Tk browser process; the in-window
-browser has no such process, so this stands alone (and must — it pulls
-in Tk), so the tray lives here and either UI can own one.
-
-**It runs in a separate PROCESS, not a thread.** pystray needs its own
-process's main thread for its GTK/AppIndicator loop, and historically
-pystray + libmpv in one process segfaults with GNOME AppIndicator — that is
-the whole reason the original was a ``Process``. What lives in *this*
-process is a small pump thread reading the child's command queue and
-dispatching to callbacks.
+**It runs in a separate PROCESS, not a thread**, because pystray needs its
+own process's main thread for its GTK/AppIndicator loop and pystray + libmpv
+in one process segfaults with GNOME AppIndicator. What lives in *this*
+process is a small pump thread reading the child's command queue.
 
 Per the optional-dependency policy: a missing or broken pystray logs a
 warning and leaves the app running headless-but-functional.
+
+The whole design — the probes below, the icon size, the Wayland forcing and
+the escalating stop — is written up in docs/architecture.md section 3.
 """
 
 import logging
@@ -39,10 +36,8 @@ SNI_WATCHER = "org.kde.StatusNotifierWatcher"
 #: What sni_watcher_present() returns when NOBODY owns the watcher name, as
 #: opposed to a watcher being there with no host behind it. Falsy, so every
 #: "is there a StatusNotifier tray" test reads the same as before -- but
-#: distinguishable, because only this case starts libappindicator's
-#: GtkStatusIcon fallback. A watcher that exists and has no host registered
-#: is worse than none: the item registers successfully, the fallback never
-#: starts, and nothing draws it.
+#: distinguishable, because this case and no other starts libappindicator's
+#: GtkStatusIcon fallback (docs/architecture.md section 3.2).
 class _NoWatcher(int):
     def __repr__(self):
         return "NO_WATCHER"
@@ -74,16 +69,11 @@ def backend_name(icon_cls):
 def sni_watcher_present(timeout_ms=2000):
     """Whether a StatusNotifierItem host is listening on the session bus.
 
-    ``None`` means the question could not be asked.
-
-    This is the check pystray cannot do for us. An AppIndicator is a D-Bus
-    object plus a registration call; with no watcher on the bus there is
-    nobody to register with, so libappindicator quietly does nothing, the
-    icon reports ``visible = True`` and no error is raised anywhere. That is
-    GNOME's default state -- the shell has drawn no tray since 3.26 and the
-    AppIndicator extension is what puts one back -- so on stock GNOME with
-    libayatana-appindicator installed, "the tray started fine" is a lie, and
-    the app would go on to hide itself behind an icon that does not exist.
+    ``None`` means the question could not be asked; ``NO_WATCHER`` means
+    nobody owns the name at all, which is a different answer from a watcher
+    with no host behind it. This is the check pystray cannot do for us --
+    ``visible = True`` says the icon object exists, not that anything drew
+    it. See docs/architecture.md section 3.2 for the three outcomes.
 
     Uses GDBus through PyGObject, which the backends this matters for
     already require, rather than adding a D-Bus dependency of our own.
@@ -136,31 +126,25 @@ def xembed_tray_present():
     selection. ``None`` if it could not be asked.
 
     Same shape of failure as the SNI one: docking an XEmbed window with no
-    tray to dock into is not an error, it is an icon nobody sees.
-
-    Asked of the GtkStatusIcon and Xorg backends, which dock one directly --
-    and of the AppIndicator ones, which fall back to doing so when no
-    StatusNotifier host exists. See ``tray_will_render``.
+    tray to dock into is not an error, it is an icon nobody sees. Asked of
+    the XEmbed backends and of the AppIndicator ones, which fall back to
+    docking when no StatusNotifier host exists -- see ``tray_will_render``.
     """
     if not os.environ.get("DISPLAY"):
         return False        # no X server to hold the selection at all
-    # ctypes against libX11 rather than python-xlib, which is not a
-    # dependency of ours or of the backends that need this answer, and
-    # rather than GDK, which cannot give it: gdk_selection_owner_get_for_
-    # display resolves the owner window through GDK's own table and returns
-    # NULL for a window belonging to another client -- which every tray is.
-    # Verified against a real i3bar: Xlib says 0x0010000d, GDK says None.
+    # ctypes against libX11, because GDK cannot answer this:
+    # gdk_selection_owner_get_for_display returns NULL for a window
+    # belonging to another client, which every tray is.
+    # docs/architecture.md section 3.2.
     x11 = None
     try:
         import ctypes
         import ctypes.util
 
-        # By SONAME first. ctypes.util.find_library shells out to
-        # `ldconfig -p` on every call -- a fork out of the tray's GTK main
-        # loop, since the watch callbacks reach here -- and in a bundle with
-        # no ldconfig and no compiler it returns None, which would make this
-        # answer "cannot ask" inside a process that has libX11 mapped
-        # already. That is the i3 case this exists for, silently reverted.
+        # By SONAME first: find_library shells out to `ldconfig -p`, which
+        # is a fork out of the tray's GTK main loop and returns None in a
+        # bundle -- answering "cannot ask" from a process that already has
+        # libX11 mapped. docs/architecture.md section 3.2.
         for name in ("libX11.so.6", "libX11.so", "libX11.6.dylib"):
             try:
                 x11 = ctypes.CDLL(name)
@@ -233,17 +217,11 @@ def tray_will_render(backend, sni=None, xembed=None):
             # XEmbed tray on the same desktop is irrelevant -- asking would
             # turn an invisible icon into a confident yes.
             return False
-        # No watcher is NOT the end of the story, and reading it that way is
-        # what made this wrong on X11 (#4). libappindicator and its
-        # ayatana fork both keep a GtkStatusIcon fallback -- see
-        # `start_fallback_timer` in libayatana-appindicator3 -- and use it
-        # exactly when no StatusNotifierWatcher owns the name. So on a
-        # desktop with an old-style XEmbed tray and no D-Bus host (i3 with
-        # i3bar's tray, xfce4-panel, tint2, most of X11 that is not KDE)
-        # the icon appears perfectly well, and the app was offering
-        # "Keep Running in Background" to people who had a working tray in
-        # front of them. Confirmed by watching the icon dock into i3bar
-        # while the watcher name was unowned.
+        # No watcher is NOT the end of the story, and reading it that way
+        # is what made this wrong on X11 (#4): libappindicator keeps a
+        # GtkStatusIcon fallback and uses it in exactly this case, so an
+        # XEmbed tray still draws the icon. Fall through and ask.
+        # docs/architecture.md section 3.2.
         fallback = (xembed or xembed_tray_present)()
         if fallback:
             return True
@@ -273,21 +251,13 @@ def tray_unavailable_advice(env=None):
 def wants_x11_backend(env):
     """Whether to force GTK onto X11 (XWayland) for the tray process.
 
-    GNOME's Wayland session only: pystray's GTK loop crashes there at
-    startup, and forcing the X11 backend dodges it (#506). Forcing it
-    *everywhere* is what #646 is -- on every other Wayland compositor the
-    indicator then reports ``visible = True``, raises nothing, and simply
-    never registers with the StatusNotifierWatcher, so the tray silently
-    does not appear. Wayfire + wf-panel-pi was the report; the same code
-    registers immediately with the backend left alone.
-
-    So both halves have to hold. GNOME on X11 needs nothing forced (it is
-    already there), and a non-GNOME Wayland session must be left to use its
-    own backend. ``XDG_CURRENT_DESKTOP`` is a colon-separated list and names
-    GNOME variously ("GNOME", "ubuntu:GNOME", "GNOME-Classic:GNOME"), hence
-    the substring test rather than an equality one.
-
-    Takes the environment as an argument so it is answerable without one.
+    **GNOME's Wayland session only, and both halves are load-bearing**:
+    pystray's GTK loop crashes there (#506), while forcing X11 anywhere
+    else stops the indicator registering with the StatusNotifierWatcher at
+    all, silently (#646). ``XDG_CURRENT_DESKTOP`` is a colon-separated list
+    naming GNOME variously, hence a substring test. Takes the environment
+    as an argument so it is answerable without one.
+    docs/architecture.md section 3.3.
     """
     desktop = env.get("XDG_CURRENT_DESKTOP") or ""
     if "gnome" not in desktop.lower():
@@ -385,26 +355,13 @@ class TrayProcess(Process):
                 self.icon_stop()
 
         menu_items = [
-            # default=True makes this the click action, not just a menu entry:
-            # clicking the icon is what people expect to reopen the window, and
-            # having to right-click and pick from a list to get the app back is
-            # a poor greeting. It stays in the menu as well.
-            #
-            # Honoured only where the backend can report a primary click --
-            # pystray's Icon.HAS_DEFAULT_ACTION. That is win32, gtk and xorg;
-            # appindicator and darwin both set it False. So in practice this
-            # helps on Windows, and on Linux only under PYSTRAY_BACKEND=gtk or
-            # xorg.
-            #
-            # It is not a pystray shortcoming on appindicator: the Indicator
-            # GObject exposes no signals at all (only a *secondary* activate
-            # target, i.e. middle click), so there is no primary click to hook.
-            # StatusNotifierItem does define Activate, but libappindicator
-            # never surfaces it -- which is why Qt apps on the same desktop can
-            # tell the buttons apart and this cannot.
-            #
-            # Where it isn't honoured this is simply the first menu entry, so
-            # there is nothing to guard.
+            # default=True makes this the CLICK ACTION, not just a menu
+            # entry: clicking the icon is what people expect to reopen the
+            # window. Honoured only where the backend reports a primary
+            # click (Icon.HAS_DEFAULT_ACTION -- win32, gtk, xorg); elsewhere
+            # it is simply the first menu entry, so there is nothing to
+            # guard. Why appindicator and darwin cannot:
+            # docs/architecture.md section 3.1.
             MenuItem(_("Show Library Browser"), send("show"), default=True),
             MenuItem(_("Configure Servers"), send("show_preferences")),
             MenuItem(_("Show Console"), send("show_console")),
@@ -414,26 +371,13 @@ class TrayProcess(Process):
 
         icon = Icon(APP_NAME, title=USER_APP_NAME, menu=Menu(*menu_items))
         try:
-            # 128px, not the 16px this shipped for years. Every pystray
-            # backend takes the image and produces the size IT wants, so the
-            # source being larger than the panel is the supported direction
-            # and the source being smaller is the one that cannot be
-            # recovered from -- a 16px icon on a HiDPI panel or a KDE tray
-            # asking for 32/48 is upscaled 2-3x and reads as mush:
-            #
-            # * win32 saves it as an ICO and calls LoadImage(LR_DEFAULTSIZE),
-            #   which picks a frame for the system metric. Pillow writes every
-            #   standard size up to the source, so a 16px source offered
-            #   exactly one frame and 128 offers 16/24/32/48/64/128. (256 is
-            #   ICO's ceiling; 128 stays clear of it.)
-            # * darwin resizes to the status bar thickness with LANCZOS,
-            #   xorg to the size the tray asks for.
-            # * gtk/appindicator write the PIL image out as a PNG and hand
-            #   the path over, so the panel scales it itself.
-            #
-            # The artwork is integration/jellyfin-128.png -- the same mark,
-            # on transparency. logo.png is NOT interchangeable: it carries an
-            # opaque dark background, which is a square tile in a light panel.
+            # The source is 128px: every pystray backend produces the size
+            # IT wants, so larger than the panel is the supported direction
+            # and smaller is what cannot be recovered from. The artwork is
+            # integration/jellyfin-128.png, the same mark on transparency --
+            # logo.png is NOT interchangeable, its opaque dark background is
+            # a square tile in a light panel. Per-backend sizing behaviour:
+            # docs/architecture.md section 3.1.
             icon.icon = Image.open(get_resource("systray.png"))
         except Exception:
             log.debug("tray icon image missing", exc_info=True)
@@ -582,15 +526,12 @@ class TrayManager:
             try:
                 command, param = queue.get(timeout=0.5)
             except Exception:
-                # Empty, or the queue died with the child. Which of those it
-                # was matters: a child that CRASHED sends nothing, and
-                # without this the manager would report a tray that is not
-                # there for the rest of the session -- so the window would
-                # go on hiding behind an icon nobody can click, which is the
-                # app's only way back on screen. A GTK process has ways to
-                # die that do not run our code: Xlib's default I/O error
-                # handler calls exit() on a lost display, and GDK's calls
-                # _exit().
+                # Empty, or the queue died with the child. A child that
+                # CRASHED sends nothing, and a GTK process has ways to die
+                # that do not run our code (Xlib's I/O error handler calls
+                # exit(), GDK's calls _exit()) -- so without this the app
+                # goes on hiding behind an icon nobody can click, which is
+                # its only way back on screen.
                 if (self._process is not None and self.available
                         and not self._process.is_alive()):
                     self.dispatch("tray_died", "child_gone")
@@ -648,17 +589,13 @@ class TrayManager:
     def stop(self):
         """Terminate the tray child, and make sure it is really gone.
 
-        ``terminate()`` alone is a *request*: it is a SIGTERM, which a child
-        can be holding a handler for -- and one that was forked from this
-        process was, for exactly as long as the start method was not spawn
-        (see ``_reset_inherited_signals``). The parent then ``os._exit``s
-        from ``exit_watchdog.finish`` without reaping it, so what the user
-        is left with is a tray process with no app behind it, surviving
-        until it is SIGKILLed by hand.
-
-        So the request is checked and escalated. Both waits are bounded and
-        neither failure is fatal: a child that outlives even this is worth a
-        line in the log, not a shutdown that stalls.
+        ``terminate()`` alone is a *request* -- a SIGTERM, which a forked
+        child can be holding a handler for (see
+        ``_reset_inherited_signals``) -- and the parent then ``os._exit``s
+        without reaping it. So the request is checked and escalated. Both
+        waits are bounded and neither failure is fatal: a child that
+        outlives even this is worth a line in the log, not a shutdown that
+        stalls.
         """
         self._halt.set()
         process, self._process = self._process, None
@@ -683,18 +620,12 @@ class TrayManager:
     def _release_queue(self):
         """Drop the command queue once nothing is left to send on it.
 
-        Its POSIX semaphores are cleaned up by multiprocessing's resource
-        tracker, which then says so on stderr -- and since
-        ``exit_watchdog.finish`` leaves by ``os._exit``, that notice is the
-        last thing printed on every quit. Closing it here is what keeps the
-        end of a normal run quiet.
-
-        ``cancel_join_thread`` because the feeder is not worth waiting on:
-        anything still unsent is a command for a child that is already gone.
-
-        The pump is joined first, bounded by one poll interval: it reads
-        this queue, and closing it under a thread sitting in ``get()`` is a
-        race that costs nothing to remove.
+        Closed rather than left to multiprocessing's resource tracker,
+        whose stderr notice would otherwise be the last thing printed on
+        every quit (``exit_watchdog.finish`` leaves by ``os._exit``).
+        ``cancel_join_thread`` because anything still unsent is a command
+        for a child that is already gone; the pump is joined first, bounded
+        by one poll interval, since it reads this queue.
         """
         thread, self._thread = self._thread, None
         if thread is not None:

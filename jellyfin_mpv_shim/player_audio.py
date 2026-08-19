@@ -1,39 +1,19 @@
 """Audio output configuration: what mpv is told about channels, passthrough
-and filters.
-
-Moved out of ``player.py`` as ``AudioMixin``. It is the most self-contained
-thing in that file: nine methods that call nothing else on the player, and a
-lock of their own (``_audio_lock``) that has nothing to do with the big
-``_lock`` playback runs under.
-
-**A mixin, not a collaborator.** ``PlayerManager`` keeps one identity and one
-set of locks. Making this an object the player *owns* would mean handing it a
-back-reference to reach ``_player``, ``_audio_lock``, ``_audio_configured``
-and ``_audio_snapshot`` -- which is the same coupling with an indirection in
-front of it, and it would put the audio work under a second lock whose
-ordering against ``_lock`` nobody had reasoned about. Inheritance keeps
-``self`` meaning exactly what it meant before.
+and filters. ``AudioMixin``.
 
 **Two locks, deliberately.** ``_audio_lock`` covers the settings read and the
-mpv writes it implies. It is *not* ``_lock``: that one is held for the whole
-of a playback start, so borrowing it here would make an audio toggle wait out
-a load.
-
-**Why the backend globals are imported inside the methods.** ``is_using_ext_mpv``
-and ``_mpv_errors`` are decided at ``player`` import time. Importing them here
-at module scope cannot work -- ``player`` imports this module, so it would be
-mid-import -- and hoisting them into a third module made things worse rather
-than better: the backend identity would then be captured by *three* modules,
-and the integration harness swaps a fake mpv in and out by evicting modules
-from ``sys.modules``, so all three would have to be evicted in lockstep (with
-another added per future extraction). Reading them per call keeps ``player``
-the single owner, and has the side benefit that a test patching
-``player.is_using_ext_mpv`` is honoured here too. This is the same pattern the
-gateway modules and ``mpvtk_browser/ui.py`` already use.
+mpv writes it implies. It is *not* ``_lock``: that one is held for the whole of
+a playback start, so borrowing it here would make an audio toggle wait out a
+load.
 
 The logger is ``player`` rather than ``player.audio`` on purpose -- the log
 format prints the logger name, and these messages have been landing in users'
 log.txt under "player" for as long as the feature has existed.
+
+Why this is a mixin rather than an owned object, and why the backend globals
+are imported per call: CLAUDE.md, "MPV backend selection".
+
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

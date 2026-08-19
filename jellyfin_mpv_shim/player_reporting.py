@@ -6,10 +6,6 @@ network; the browser's now-playing bar gets a compact snapshot through the
 threads that are not the one driving playback, and both share the rule that a
 report must never disturb what it is reporting on.
 
-Moved out of ``player.py`` as ``ReportingMixin``. Like ``AudioMixin`` this is
-a mixin rather than an owned object, so ``self`` keeps meaning what it meant
-and the single ``RLock`` keeps covering what it covered.
-
 **Its own lock.** ``_tl_lock``, not ``_lock``. Server round trips happen under
 it, and ``_lock`` is held for the whole of a playback start -- sharing one
 would put a progress post behind a load and a load behind a progress post.
@@ -17,23 +13,14 @@ The reports themselves are handed to ``SessionReporter`` rather than sent
 inline, because they used to sit on the advance path between episodes.
 
 Never drain the reporter while holding ``_tl_lock``: ``_session_playing_safe``
-takes it on the worker.
+takes it on the worker. The ABBA inversion between ``_lock`` and ``_tl_lock``
+that this module is one half of is written up in
+``docs/archive/SYNCPLAY_FINDINGS.md``.
 
-**One thing this module deliberately does not do: touch ``pause_ignore``.**
+**This module deliberately does not touch ``pause_ignore``** -- see the
+comment in ``get_timeline_options``, which sits on the line that used to.
 
-   It used to. ``get_timeline_options`` set it to mpv's live pause state,
-   which gave a flag that means "the pause value we just commanded" a second,
-   contradictory meaning -- and the sample was taken twenty-five lines and
-   four mpv property reads before it was written, so it could be badly stale.
-   A stale sample landing on a fresh guard makes the next genuine local pause
-   or unpause compare equal in ``_on_pause_change`` and get swallowed: the
-   local player changes state and the SyncPlay group is never told. Fixed by
-   removing the write; ``tests/test_syncplay_pause_ignore.py`` reproduces it
-   deterministically and will fail if it comes back.
-
-   The remaining SyncPlay defects found in the same trace -- including an
-   ABBA inversion between ``_lock`` and ``_tl_lock`` that this module is one
-   half of -- are written up in ``docs/archive/SYNCPLAY_FINDINGS.md``.
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

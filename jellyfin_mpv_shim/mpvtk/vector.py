@@ -1,18 +1,13 @@
-"""Vector icons for mpvtk — the same Material icon set and SVG->ASS
-pipeline the Tk browser (rasterized) and the jellyfin OSC (ASS) use.
+"""Vector icons for mpvtk, from the shared Material set (GUIDE.md section 2).
 
-Icons are converted at first use from `ui_icon_paths.py`
-(dep-free generated data) via the shared `svgpath` converter, on the
-24x24 unit canvas with the OSC's corner-anchor convention: two
-zero-length contours pin the bounding box so libass scales and aligns
-the drawing exactly like a 24x24 box regardless of the glyph's ink.
-The renderer scales with \\fscx/\\fscy — crisp at any size.
+Converted at first use from `ui_icon_paths.py` via the shared `svgpath`
+converter, onto a 24x24 unit canvas with the OSC's corner-anchor convention
+-- two zero-length contours pin the bounding box, so libass scales the
+drawing like a 24x24 box regardless of the glyph's ink.
 
-`icon_image` is the second consumer of the same data: a PIL rasterizer,
-for the decorations that are *baked into a bitmap* rather than drawn as
-widgets (the strip compositor's corner badges). One source of truth, so
-a symbol drawn on a tile is the same symbol drawn in the widget beside
-it.
+`icon_image` is the second consumer of the same data, a PIL rasterizer for
+decorations baked into a bitmap. One source of truth, so a symbol drawn on
+a tile is the same symbol drawn in the widget beside it.
 """
 
 import logging
@@ -32,12 +27,10 @@ def icon_ass(name):
     """Unit-canvas (24x24, corner-anchored) ASS drawing for a Material
     icon.
 
-    An unknown name yields an empty (but correctly sized) drawing rather
-    than raising. This used to be a KeyError out of the middle of layout,
-    which takes down the *entire* scene — one button naming an icon that
-    isn't in the generated set and the whole browser goes blank. A missing
-    glyph is a cosmetic bug; it should not be a fatal one. It is logged
-    once per name so it still gets noticed.
+    An unknown name yields an empty but correctly sized drawing rather than
+    raising: a KeyError from inside layout takes down the *entire* scene, so
+    one mistyped icon name would blank the whole browser. Logged once per
+    name so a missing glyph still gets noticed.
     """
     path = _cache.get(name)
     if path is None:
@@ -59,16 +52,11 @@ def icon_names():
 
 # -- rasterizing ------------------------------------------------------------
 #
-# The renderer draws icons as ASS, which is how every icon in a *widget*
-# reaches the screen. Decorations baked into a strip bitmap cannot use that
-# path — a strip is composited by PIL, and mpv draws overlay bitmaps ABOVE
-# all script ASS (GUIDE §6), so an ASS glyph over a tile would disappear
-# under the artwork it is meant to annotate.
-#
-# So the same path data is flattened to polygons here. The point is that
-# both routes start from ``ICON_PATHS``: the recording symbol on a tile is
-# the *same glyph* as the one in the guide cell beside it, rather than a
-# hand-drawn approximation that drifts from it.
+# Widget icons are ASS; a decoration baked into a strip bitmap cannot be,
+# because overlay bitmaps composite ABOVE all script ASS (GUIDE.md section
+# 6) and the glyph would vanish under the artwork it annotates. So the same
+# path data is flattened to polygons here -- both routes start from
+# ``ICON_PATHS``, so the two drawings of a symbol cannot drift apart.
 
 #: Segments per cubic when flattening. 12 is indistinguishable from a curve
 #: at the sizes these are drawn (a ~34px badge, supersampled ×_SS).
