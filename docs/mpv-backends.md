@@ -5,9 +5,9 @@ they diverge, the mpv versions and build variants that behave differently, and
 the mpv state that outlives a single queue item.
 
 This is the derivation behind the one-line warnings in `player.py`,
-`mpv_events.py`, `mpv_options.py` and `player_window.py`. Each of those states
-its conclusion at the line; this file records how it was established, so the
-code does not have to.
+`mpv_events.py`, `mpv_options.py`, `player_window.py` and `video_profile.py`.
+Each of those states its conclusion at the line; this file records how it was
+established, so the code does not have to.
 
 ## 1. Two backends
 
@@ -546,3 +546,115 @@ It also costs GPU on every frame, mpv reverts to audio timing on its own for
 low-framerate or VFR content, and `display-resample` adjusts audio speed to track
 the display — which is exactly what somebody bitstreaming to a receiver does not
 want.
+
+## 11. Shader packs, the GPU API and colorspace
+
+A shader pack is not only shaders — a profile carries a list of mpv *settings*,
+and those are written straight into the live player. Three of them ask for things
+the pack is not entitled to decide, and `video_profile.py` refuses each for a
+different reason.
+
+### `gpu_api: opengl` and `fbo_format: rgba16f` are a 2020 pair
+
+default-shader-pack **84fc5df** ("Fix Windows and external MPV compatibility
+issues") added both in one commit, and the pairing is the whole explanation:
+`rgba16f` is an *OpenGL-backend* format name. The Direct3D 11 backend spells the
+same format `rgba16hf` (mpv `video/out/d3d11/ra_d3d11.c`), so on d3d11 the pack's
+value fails to initialise, mpv falls back to **dumb mode**, and dumb mode disables
+every user shader — silently, with a working picture. Pinning `opengl` made the
+format name true again, which is a workaround for the format, not a requirement of
+the shaders.
+
+Both are dropped now:
+
+- **`fbo_format`** — mpv's `auto` already tries 16-bit float first (`rgba16f`,
+  `rgba16hf`) on whichever backend is live. That is exactly what the pack was
+  asking for, spelled portably.
+- **`gpu_api: opengl`** — the shaders do not need OpenGL. mpv cross-compiles user
+  GLSL to SPIR-V, and the pack's profiles run unmodified on Vulkan and compile
+  clean through the d3d11 chain. Forcing OpenGL **costs HDR on Windows**, because
+  the autoprobe order there is d3d11, then Vulkan, then OpenGL last
+  (mpv `video/out/gpu/context.c`) — so the pin does not merely fail to help, it
+  demotes the backend past the two that can do HDR.
+
+Only that one legacy value is refused. A profile naming some *other* API means it
+— a Direct3D 11 video filter such as RTX Video Super Resolution genuinely cannot
+run on another backend — so those pass through, and the user's own
+`shader_pack_gpu_api` outranks everything.
+
+A pack may still name an API this build has no context for (a d3d11 profile read
+on Linux). mpv rejects the value outright; `load_profile` swallows that rather
+than losing the rest of the profile, because running the shaders on the API we
+already have beats raising into the menu.
+
+### `hwdec` — a naive value is a policy, a named decoder is a requirement
+
+Every profile pulls in a `hwdec-default` group setting `hwdec` to `auto-copy`.
+That is a policy — "use hardware decoding if you can" — and it is not the pack's
+to have. Author's own account: *"this was just me being risk-averse in the past."*
+
+`hwdec` is a user-facing setting that defaults **off** for the reasons in §10, up
+to and including mpv hanging before the window opens (**mpv#12948**). A shader
+profile switching it back on gets the resulting breakage attributed to the
+profile, which is the last place anyone would look. So a naive value is dropped.
+
+A *specific* decoder is different in kind. The shipped `rtx-vsr` names `d3d11va`
+because its `d3d11vpp` filter operates on Direct3D surfaces: the profile does not
+work without it, and choosing that profile **is** the opt-in. Applied, and
+remembered on the manager, so the per-item write in `_play_media` does not undo it
+on the next file.
+
+Two things outrank a pack as well as the setting, and both are checked here rather
+than left to `_play_media` — a profile writes its settings directly and would
+otherwise slip past the pin between one file and the next:
+
+- the user's own `mpv.conf`, where a pin means nothing writes the option at all;
+- `--disable-hwdec`, the recovery path for hardware decoding stopping the window
+  from opening.
+
+### The idle window keeps a stale colorspace hint (#605)
+
+**mpv only revisits the swapchain's colorspace while a video frame exists.**
+`vo_gpu_next.c`:
+
+```c
+if (target_hint && frame->current) {
+    ... set_colorspace_hint(p, &hint);
+} else if (!target_hint) {
+    ... set_colorspace_hint(p, NULL);
+}
+```
+
+`target_hint` is `--target-colorspace-hint`, and its default of `auto` resolves to
+**true** on d3d11 (that context implements `target_csp()`). So on Windows the
+first branch is the live one, and with no file loaded `frame->current` is NULL and
+*neither* branch runs. The last hint set during playback is never withdrawn — and
+it is real swapchain state, not a note: libplacebo's d3d11 backend acts on it with
+`SetColorSpace1` plus a backbuffer format change.
+
+The reproduction: play something, turn Windows HDR **on** mid-playback (mpv
+re-hints to PQ, correctly), stop, then turn HDR back **off**. Nothing re-hints, so
+mpv keeps encoding the library UI as PQ while the display reads it as sRGB —
+raised blacks and clipped highlights. Cycling HDR without ever opening the player
+is fine, which is what the report says, because the hint is never set at all.
+
+This bites us specifically because **we are one of the few things that keeps an
+mpv window on screen with no file loaded**: the library UI *is* the idle window.
+
+`player_window.suspend_colorspace_hint` parks the option at `no`, which takes the
+second branch instead, and `pl_swapchain_colorspace_hint`'s NULL maps to sRGB. The
+swapchain returns to 8-bit sRGB and stays there, letting Windows do the
+SDR-in-HDR conversion it does for every other desktop app. That is the honest
+answer regardless: the library UI is sRGB content, and hinting a swapchain toward
+a video's colorspace while no video exists is meaningless.
+
+Two scope limits, both load-bearing:
+
+- **Only while nothing is playing.** The browser stays up over music, and the
+  library can be opened over a playing video; parking the hint there would cost
+  that video its HDR passthrough, which is worse than the bug being worked around.
+- **Only the browse window.** The OSD menu's `force_window` window is torn down
+  when the menu closes, and that destroys the swapchain along with the stale hint.
+
+The suspend does nothing at all on an mpv without the option (built without
+gpu-next, or too old) — reading it is how we find that out.

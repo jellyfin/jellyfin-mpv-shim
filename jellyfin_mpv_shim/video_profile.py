@@ -236,32 +236,15 @@ class VideoProfileManager:
     def api_setting_override(key: str, pack_value):
         """The two settings the pack uses to pin itself to OpenGL.
 
-        default-shader-pack 84fc5df (2020, "Fix Windows and external MPV
-        compatibility issues") added `gpu_api: opengl` and
-        `fbo_format: rgba16f` together, and the pairing is the whole story:
-        `rgba16f` is an OpenGL-backend format name. The Direct3D 11 backend
-        calls the same format `rgba16hf` (mpv `video/out/d3d11/ra_d3d11.c`),
-        so on d3d11 the pack's value fails to initialize, MPV falls back to
-        *dumb mode*, and dumb mode disables every user shader — silently.
-        Forcing `opengl` made the format name true again.
+        `fbo_format: rgba16f` is an OpenGL-only spelling of the format MPV's
+        `auto` already asks for portably, and the 2020 `gpu_api: opengl` was
+        only ever there to make that spelling true. Both are dropped: the
+        shaders do not need OpenGL, and forcing it costs HDR on Windows,
+        where OpenGL is probed last.
 
-        Neither pin is needed now, and both cost something:
-
-        - `fbo_format` is dropped outright. MPV's `auto` already tries
-          16-bit float first (`rgba16f`, `rgba16hf`) on whichever backend
-          is live, which is what the pack was asking for, spelled portably.
-        - `gpu_api: opengl` is dropped, so MPV keeps the API it picked. The
-          shaders do not need OpenGL — MPV cross-compiles user GLSL to
-          SPIR-V, and the pack's profiles run unmodified on Vulkan and
-          compile clean through the d3d11 chain. Forcing OpenGL does cost
-          HDR on Windows, where the autoprobe order is d3d11, then Vulkan,
-          then OpenGL last (mpv `video/out/gpu/context.c`).
-
-        Only that one legacy value is refused. A profile that names some
-        other API means it, rather than inheriting a 2020 workaround — a
-        Direct3D 11 video filter like RTX Video Super Resolution genuinely
-        cannot run on another backend — so those are passed through. The
-        user's `shader_pack_gpu_api` outranks both.
+        Only that one legacy value is refused — a profile naming some other
+        API means it, and the user's `shader_pack_gpu_api` outranks both.
+        Why, and what dumb mode has to do with it: `docs/mpv-backends.md` §11.
 
         Returns the value to apply, or None to leave the setting alone.
         """
@@ -284,30 +267,18 @@ class VideoProfileManager:
         for key, value in group.get("settings", []):
             if key == "hwdec":
                 # **A naive value is the pack's opinion about the machine;
-                # a named decoder is a requirement of the profile.**
-                #
-                # Every profile pulls in a "hwdec-default" group setting
-                # hwdec to auto-copy -- [iw]: "this was just me being
-                # risk-averse in the past". That is a policy ("use hardware
-                # decoding if you can"), and it is not the pack's to have:
-                # hwdec is a user-facing setting that defaults OFF because
-                # a long tail of graphics drivers handle it badly, up to
-                # mpv hanging before the window opens (mpv#12948). Picking
-                # a shader profile must not switch it back on, or the
-                # breakage gets attributed to the profile -- the last place
-                # anyone would look. Dropped.
-                #
-                # A *specific* decoder is different in kind. The shipped
-                # rtx-vsr names d3d11va because its d3d11vpp filter
-                # operates on Direct3D surfaces: the profile does not work
-                # without it, and choosing that profile IS opting in.
-                # Applied, and remembered, so the per-item write in
-                # _play_media does not undo it on the next file.
-                # The user's own mpv.conf outranks a pack as well as the
-                # setting: where it pins hwdec, nothing writes the option.
-                # Checked here rather than left to _play_media, because a
-                # profile applies its settings directly and would otherwise
-                # slip past the pin between one file and the next.
+                # a named decoder is a requirement of the profile.** Every
+                # profile sets hwdec to auto-copy, which is a policy the
+                # pack does not get to have -- hwdec defaults off because
+                # bad drivers can hang mpv before the window opens
+                # (mpv#12948), and a profile switching it on gets the blame
+                # pointed at the profile. Dropped. A named decoder is the
+                # opt-in itself (rtx-vsr needs d3d11va for its Direct3D
+                # filter), so it is applied and remembered against
+                # _play_media's per-item write. mpv.conf and --disable-hwdec
+                # outrank both, checked here because a profile writes its
+                # settings directly and would slip past the pin between one
+                # file and the next. docs/mpv-backends.md §11.
                 if _hwdec_taken_out_of_our_hands():
                     log.info("Not applying the shader pack's hwdec=%s; "
                              "--disable-hwdec or mpv.conf decides it.", value)

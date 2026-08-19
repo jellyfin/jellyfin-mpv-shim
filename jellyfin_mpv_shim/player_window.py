@@ -149,45 +149,20 @@ class WindowMixin:
         """Let the window's colorspace follow the display while the UI owns it.
 
         mpv only revisits the swapchain's colorspace *while a video frame
-        exists*. ``vo_gpu_next.c``::
+        exists*, so on Windows an idle window keeps whatever hint the last
+        file set: the library UI goes on encoding as PQ against a display
+        that has since gone back to SDR (#605). Parking
+        ``target-colorspace-hint`` at ``no`` takes mpv's other branch, whose
+        NULL maps to sRGB — which is what this UI actually is.
 
-            if (target_hint && frame->current) {
-                ... set_colorspace_hint(p, &hint);
-            } else if (!target_hint) {
-                ... set_colorspace_hint(p, NULL);
-            }
-
-        ``target_hint`` is ``--target-colorspace-hint``, whose default of
-        ``auto`` resolves to *true* on d3d11 (that context implements
-        ``target_csp()``), so on Windows the first branch is the live one —
-        and with no file loaded, ``frame->current`` is NULL and neither branch
-        runs. The last hint set during playback is never withdrawn, and it is
-        real swapchain state: libplacebo's d3d11 backend acts on it with
-        ``SetColorSpace1`` plus a backbuffer format change.
-
-        That is issue #605. Play something, turn Windows HDR on mid-playback
-        (mpv re-hints the swapchain to PQ, correctly), stop, then turn HDR
-        back off: nothing re-hints, so mpv keeps encoding the library UI as PQ
-        while the display reads it as sRGB — raised blacks and clipped
-        highlights. It only bites us because we are one of the few things that
-        keeps an mpv window on screen with no file loaded; the UI *is* the
-        idle window. Cycling HDR without ever opening the player is fine,
-        which is what the report says, because the hint is never set at all.
-
-        Parking the option at ``no`` takes the second branch instead, and
-        ``pl_swapchain_colorspace_hint`` maps its NULL to sRGB — so the
-        swapchain returns to 8-bit sRGB and stays there, letting Windows do
-        the SDR-in-HDR conversion it does for every other desktop app. Which
-        is the honest answer anyway: the library UI is sRGB content, so
-        hinting the swapchain toward a video's colorspace while no video
-        exists is meaningless.
-
-        Only the browse window needs this. The OSD menu's ``force_window``
-        window is torn down when the menu closes, and that destroys the
-        swapchain along with the stale hint.
+        Only the browse window needs it, and only while nothing is playing:
+        suspending over live video would cost that video its HDR passthrough.
+        The OSD menu's window is torn down on close, taking the stale hint
+        with it.
 
         Never raises, and does nothing at all on an mpv without the option
         (built without gpu-next, or too old) — the read is how we find out.
+        Derivation: ``docs/mpv-backends.md`` §11.
         """
         if getattr(self, "_colorspace_hint_suspended", False):
             return
