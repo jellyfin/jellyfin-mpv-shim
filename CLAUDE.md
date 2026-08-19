@@ -19,9 +19,8 @@ the line you are about to add, so an inline comment cannot warn you.
 | Drawing anything new with the toolkit (widgets, layout, overlays) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) |
 | Adding or changing a server query or `Fields` list | [docs/jellyfin-api-notes.md](docs/jellyfin-api-notes.md) |
 | Anything about startup, shutdown, the tray, single-instance or the gamepad | [docs/architecture.md](docs/architecture.md) |
-| Touching watched/played state, or the download catalog (`sync/`) | [docs/architecture.md](docs/architecture.md) | the process model: primary election, what a launch claims, the tray child process, making the exit finish; the gamepad; users; singleton wiring |
-| [docs/settings-curation.md](docs/settings-curation.md) | adding a config key, which tab and why, and **whether a change takes effect before a restart** |
-| [docs/offline-sync.md](docs/offline-sync.md) |
+| Adding a config key, or moving one between settings tabs | [docs/settings-curation.md](docs/settings-curation.md) |
+| Touching watched/played state, or the download catalog (`sync/`) | [docs/offline-sync.md](docs/offline-sync.md) |
 | Writing a test, or adding/extending a fake | [docs/testing.md](docs/testing.md) |
 
 **`docs/mpv-backends.md` is essential before any player work.** Three examples of
@@ -317,6 +316,7 @@ discards every existing translation of it. Known cases: `Record`, `Channels`,
 
 | Doc File | When to Read |
 |----------|--------------|
+| [docs/architecture.md](docs/architecture.md) | the process model: primary election, what a launch claims, the tray child process, making the exit finish; the gamepad; users; singleton wiring |
 | [docs/browser-shell.md](docs/browser-shell.md) | the browser shell: mixins/Pages, thread contract, epoch, lock policy, refresh-in-place, scroll parking, pollers, live-applied settings |
 | [docs/mpv-backends.md](docs/mpv-backends.md) | libmpv vs jsonipc, construction failures, mpv versions, SDL/signals, input sections, options that outlive a queue item, `wait_property`, video-setting defaults |
 | [docs/artwork-pipeline.md](docs/artwork-pipeline.md) | strips and the cache, transparent-artwork plating, tile shapes, Cover Size, badges, header baking, grid centring |
@@ -327,6 +327,7 @@ discards every existing translation of it. Known cases: `Record`, `Channels`,
 | [docs/testing.md](docs/testing.md) | the SyncPlay suites, the fakes discipline and its case histories, the journal |
 | [docs/packaging.md](docs/packaging.md) | Windows/FriBiDi, the ARM64 job, `tools/msgfmt.py`, Flatpak, version spelling |
 | [docs/i18n.md](docs/i18n.md) | xgettext, location granularity, `--merge`, seeding from jellyfin-web |
+| [docs/settings-curation.md](docs/settings-curation.md) | adding a config key, which tab and why, and **whether a change takes effect before a restart** |
 | [docs/configuration.md](docs/configuration.md) | the user-facing settings reference (enforced by a test) |
 | [docs/PERMISSION_GAPS.md](docs/PERMISSION_GAPS.md) | what breaks without each Jellyfin user permission |
 | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) | the mpvtk toolkit itself: widgets, layout, the ASS/bitmap z-order constraint |
