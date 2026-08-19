@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-19 13:26+0000\n"
+"PO-Revision-Date: 2026-08-19 13:29+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -1194,53 +1194,45 @@ msgstr "Die Bittiefe des Tons wird nicht unterstützt"
 
 # seeded from jellyfin-web: ContainerBitrateExceedsLimit
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate exceeds the limit"
 msgstr "Die Bitrate des Videos übersteigt das Limit"
 
 # seeded from jellyfin-web: VideoBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate is not supported"
 msgstr "Die Bitrate des Videos wird nicht unterstützt"
 
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bitrate is not supported"
 msgstr "Die Audio-Bitrate wird nicht unterstützt"
 
 # seeded from jellyfin-web: UnknownVideoStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video stream info is unknown"
-msgstr "Die Video-Stream-Info ist unbekannt"
+msgstr "Die Videostream-Info ist unbekannt"
 
 # seeded from jellyfin-web: UnknownAudioStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream info is unknown"
-msgstr "Die Audio-Stream-Info ist unbekannt"
+msgstr "Die Audiostream-Info ist unbekannt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There was an error starting direct playback"
-msgstr "Es gibt nichts heruntergeladenes zum durchsuchen."
+msgstr "Es gab einen Fehler beim Starten der direkten Wiedergabe"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's range type is not supported"
 msgstr "Der Dynamikumfang des Videos wird nicht unterstützt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "Dieses Gerät"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Fenster"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -1252,10 +1244,8 @@ msgid "Library Browser"
 msgstr "Bibliotheksbrowser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Reading"
-msgstr "Transkodierung"
+msgstr "Lese"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
