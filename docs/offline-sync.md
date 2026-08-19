@@ -137,3 +137,128 @@ The floor is skipped while `_last_userdata` is zero, for the same reason it is m
 with `time.monotonic()`: that clock counts from boot on every platform this runs on, so
 on a machine launching the app at startup "five minutes since the epoch" is a real
 comparison, and it used to suppress the first sweep of the session.
+
+## 4. Auto-download
+
+Keeps upcoming episodes on disk without being asked. Runs as a scheduled job on
+the sync worker's idle loop, and **only while nothing is playing** — downloading
+the next episode is worthless if it costs the one you are watching its bandwidth.
+
+### The two sources
+
+- **Next Up** — the server's own Next Up list, i.e. the next episode of every
+  series you have started. Broad, and scales with how many shows you have going.
+  (Roughly 50 entries on a real library.)
+- **Lookahead** — for series you already hold downloads for, the next N episodes
+  from where you are *watching*. Narrow, follows a binge.
+
+Independently switchable.
+
+### The `auto:` origin is the whole safety story
+
+Everything auto-download fetches is marked with an `auto:` origin naming the
+source that queued it (`db.ORIGIN_*`). **The reaper only ever considers auto
+rows**, so nothing the user asked for is deleted to make room, however tight the
+cap. Asking for an auto-downloaded item by hand **promotes** it to user-owned and
+takes it out of the reaper's reach for good. Recording the source also lets the
+downloads manager show each as its own subtree.
+
+Promotion is one-way.
+
+**`origin` is nullable, and three-valued logic is the trap.** `NULL GLOB 'auto*'`
+is NULL, not false, so `auto_size` / `list_auto` exclude un-backfilled legacy
+rows. **Do not rewrite those queries into a form that matches NULL** (for example
+`origin IS NOT 'user'`) — that would make every legacy row reapable, i.e. would
+delete manual downloads.
+
+**The reaper runs before the planner**, so a run that is over budget can free
+space and then use it rather than skipping for a whole interval.
+
+### The lookahead is anchored on watch progress, never on what is on disk
+
+Anchoring on the furthest episode held is the obvious reading of "keep N ahead"
+and **it is a ratchet**: each pass starts where the last pass finished
+downloading, so the window walks the whole series whether or not anybody watches
+it, and only the size cap ever stops it — by which point the disk is full of
+unwatched episodes the reaper may not evict.
+
+Anchored on the server's Next Up for the series, the window only advances when
+the user does, so a series that is not being watched settles at N episodes and
+stays there. Already-held episodes inside the window are skipped by `fill`, so in
+the steady state this queues nothing until an episode is watched.
+
+When the anchor is unknown — the series is finished, or the server will not say —
+the window is **not** extended. The wrong guess there is the runaway this exists
+to avoid.
+
+Pinned by `test_the_window_does_not_walk_the_series_on_its_own` and
+`test_the_window_advances_when_you_watch`.
+
+### Held episodes are counted as ids, intersected with the window
+
+**Ids rather than a count**, and the caller intersects them with the window. That
+is the whole correctness of the hysteresis, and it is not what the first version
+did: that one counted every held episode of the series, so somebody holding
+twenty *old* episodes was above any minimum for ever and **the series was never
+topped up again** — silently, with no downloads and no error. The requirement is
+"at least the minimum number of *upcoming* episodes", and **upcoming** is the
+word doing the work.
+
+**Queued and in-progress count, not just complete.** Without that, every pass
+re-queues the same episodes for as long as the first batch takes, which is a
+stampede.
+
+**Errored rows do not count.** Those are episodes we tried and failed to get, and
+treating a failure as stock is how a series quietly stops being topped up — the
+same failure as above, reached another way.
+
+`None` (not an empty set) means "unknown"; an empty set means "hold nothing", and
+conflating them tops up on every pass.
+
+### Hysteresis is both or neither
+
+A half-configured `auto_download_lookahead_min` / `_max` pair is something a
+person can type into the JSON, and guessing the other half is worse than
+declining: "min 5" with no max could mean top up to 5, or top up to the old flat
+window, and those differ by however large the series is.
+
+**Declined loudly**, the same way `allowed_servers` reports "enabled but no
+servers" — silently doing nothing is otherwise indistinguishable from a bug. Also
+declined when max < min, which is the same class of typo. Pinned by
+`test_half_configured_declines_loudly` and
+`test_max_below_min_is_the_same_class_of_typo`.
+
+A hand-typed negative flat lookahead falls back; it is **not** clamped to 1.
+
+### The cap is a soft ceiling
+
+`fill` enforces the cap against *anticipated* sizes, which the server sometimes
+under-reports or omits — so a pass can overshoot by up to one item plus whatever
+the estimates got wrong. Real on-disk bytes are what `auto_size()` measures on
+the next pass, so **an overshoot throttles the pass after it rather than
+compounding**.
+
+`_MAX_PER_PASS` is 20 (#661 asked for that number). `_UNKNOWN_SIZE` is 2 GB,
+because free items would otherwise let an unbounded number through. `0` means
+unlimited and a negative value allows nothing — a "fix" that clamps to 1 breaks
+the second.
+
+### Only watched items may be evicted for space
+
+The single most consequential rule in the planner. Pinned by
+`test_the_cap_never_evicts_something_unwatched` and
+`test_staying_over_the_cap_stops_the_fill`.
+
+The tombstone table (`auto_discarded`) exists so the age rule can tell "never
+downloaded" from "downloaded and reaped"; without it the planner re-queues what
+it just deleted.
+
+### Server shapes this relies on
+
+- **`UserData` is not an `ItemFields` value** — it rides on `EnableUserData`.
+- **`/NextUp` omits `MediaSources` unless asked.** Without it every candidate
+  falls back to `_UNKNOWN_SIZE`, so the cap is spent against a guess for 100% of
+  items. Both: `docs/jellyfin-api-notes.md` §4.
+- `get_episodes(start_item_id=…)` is **inclusive** — the first entry is the anchor.
+- Only the server knows what other clients have done, which is why the planner
+  asks rather than inferring from the catalog.

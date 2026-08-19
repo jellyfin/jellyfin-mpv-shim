@@ -146,6 +146,14 @@ rather than as errors when you forget:
 
 And two that arrive without being asked:
 
+- **`UserData` is not an `ItemFields` value at all.** It rides on the separate
+  `EnableUserData` parameter, which defaults true. Naming it in `Fields`
+  "worked" only because the comma binder drops names it cannot parse (§1) — so
+  the request was doing nothing and the data arrived for an unrelated reason.
+- **`/NextUp` is a list query and omits `MediaSources` unless asked.** Anything
+  sizing candidates off that response gets nothing back, so a size-capped
+  planner spends its whole budget against a fallback guess. See
+  `docs/offline-sync.md` §4.
 - **`UserData` comes back whatever `Fields` says**, which is what makes an
   `Ids` lookup nearly free to strip (section 6).
 - **A Season DTO carries its series' backdrop** — `ParentBackdropImageTags`
@@ -541,6 +549,20 @@ uses `get_items`.
 
 Two smaller ones: **`PlayedPercentage` is derived** and the position is the
 truth; **`UnplayedItemCount`** is what a Series/Season watched badge reads.
+
+### What `MarkPlayed` and `ResetPlayedState` actually write
+
+Measured; the controller passes `resetPosition: true`.
+
+- **`MarkPlayed`** — the resume position is cleared and `PlayCount` ends at
+  ≥ 1. So marking an item played is not "set a flag": it *discards* a position,
+  which is why a client mirroring this locally must write verbatim rather than
+  advance-only (`docs/offline-sync.md` §1).
+- **`ResetPlayedState`** — position, `PlayCount` **and** `LastPlayedDate` are all
+  cleared. It is a fuller reset than its name suggests.
+
+A `Book` is excluded from both arms of `UserDataManager.UpdatePlayState` and
+stores its position verbatim — see §12.
 
 ## 11. Playback: `PlaybackInfo`, profiles and transcoding
 

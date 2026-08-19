@@ -18,7 +18,10 @@ the line you are about to add, so an inline comment cannot warn you.
 | Any browser shell work — routes, pages, loading, navigation (`mpvtk_browser/`) | [docs/browser-shell.md](docs/browser-shell.md) |
 | Drawing anything new with the toolkit (widgets, layout, overlays) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) |
 | Adding or changing a server query or `Fields` list | [docs/jellyfin-api-notes.md](docs/jellyfin-api-notes.md) |
-| Touching watched/played state, or the download catalog (`sync/`) | [docs/offline-sync.md](docs/offline-sync.md) |
+| Anything about startup, shutdown, the tray, single-instance or the gamepad | [docs/architecture.md](docs/architecture.md) |
+| Touching watched/played state, or the download catalog (`sync/`) | [docs/architecture.md](docs/architecture.md) | the process model: primary election, what a launch claims, the tray child process, making the exit finish; the gamepad; users; singleton wiring |
+| [docs/settings-curation.md](docs/settings-curation.md) | adding a config key, which tab and why, and **whether a change takes effect before a restart** |
+| [docs/offline-sync.md](docs/offline-sync.md) |
 | Writing a test, or adding/extending a fake | [docs/testing.md](docs/testing.md) |
 
 **`docs/mpv-backends.md` is essential before any player work.** Three examples of

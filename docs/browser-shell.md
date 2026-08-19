@@ -57,6 +57,146 @@ Kinds are declared in each mixin's `ROUTES` table alongside their renderer, so
 adding a view is one edit in one place. This used to be a 215-line `elif` chain
 in the dispatcher and a dict a thousand lines away.
 
+### Pages and their context
+
+A `Page` (`jellyfin_mpv_shim/mpvtk_browser/pages/base.py`) owns one screen.
+`load(epoch)` runs on navigation, on the loop thread, and does its actual work
+through `ctx.run`; `render(size)` runs on the loop thread and returns a widget
+tree for the **content area only** — the shell owns chrome, dialogs and the
+now-playing bar. The `epoch` is read by the shell on the loop thread and handed
+down, because a page that read it later would be racing the navigation it
+guards.
+
+`close()` is called once, when the shell renders a *different* page — not on
+navigation, because navigation happens on threads the render loop does not own
+(a websocket, mpv's event thread) and this may touch the player. Almost no page
+needs it. It exists for the ones that take something the window can only hold
+one of: the comic reader hands mpv a picture, which nothing else would take
+down, and extracts pages to files, which nothing else would delete. It may be
+followed by another `load()` — going back returns to a route whose dict is still
+here — so it must leave the page usable rather than spent.
+
+`PageContext` is everything a page is allowed to depend on: `source`, `server`,
+`nav`, `run`, `art`, `player`, `actions`, `dialogs`, `status`, `invalidate` —
+ten names against the 413 distinct `self.*` the mixins can reach. Small enough
+to fake, which is the point: a page test constructs the page and nothing else.
+It is **frozen**, because a page that rewired its own dependencies would be
+invisible to everything that reasons about navigation.
+
+Three of those names are not the obvious ones:
+
+- `source` is a `LibrarySource` **or** an `OfflineLibrarySource`, and a page
+  must not care which. That is what makes offline browsing work at all.
+- `actions` is separate from `player` because these are orchestrated actions
+  (optimistic write, rollback, dialog, toast), not the raw capability the
+  gateway exposes.
+- `dialogs` is a layer rather than a page convenience: a dialog renders in the
+  shell, *above* whatever page is showing, and outlives navigation. A page asks
+  for one; it never draws one.
+
+**`ctx.shell` is an escape hatch, and the difference between that and a loophole
+is that it is counted.** It exposes the browser for helpers that are still
+methods on the shell — the tile/row/grid builders, the chrome's busy and error
+nodes. Those are component-shaped but still close over `self.strips` /
+`self._posters`, so extracting them is its own job.
+`tests/test_page_contract.py` pins the number of `ctx.shell` references and
+fails if it grows; it can only go down.
+
+**The page budget is zero.** Every converted page takes what it needs from its
+context. One use remains, in `pages/base.py` itself — `route_async` — and that
+one is not transitional: recording a load failure has to decide whether this
+route is *still the screen* before dropping the user to the offline home, and
+only the shell knows that. It is pinned by `BASE_SHELL_USES` rather than
+budgeted, so the framework's own hatch cannot quietly become the place new
+coupling goes.
+
+Converting a route is mechanical:
+
+1. subclass `Page`, set `kind`;
+2. move the loader body into `load()` and the renderer body into `render(size)`,
+   replacing `self.X` with `self.ctx.X` or `self.ctx.shell.X`;
+3. register it in `pages/__init__.py`;
+4. delete the two methods and the `ROUTES` entry.
+
+Unconverted kinds keep working — the shell falls back to its `ROUTES` table for
+anything the registry does not claim — so this proceeds one page at a time with
+the app shippable throughout.
+
+### The gateway
+
+`PlayerGateway` (`jellyfin_mpv_shim/mpvtk_browser/gateway/`) is the browser's
+one way to reach the rest of the app: playback and transport, the window handoff
+between browse and video, servers and users, the offline catalog, SyncPlay.
+**Nothing else under `mpvtk_browser` imports `playerManager`, `clientManager`,
+`userManager` or `syncManager`** — `tests/test_source_invariants.py` enforces
+that. It was already the boundary in practice (61 of the browser's 68
+cross-package imports lived in one private class); making it a fact about the
+module graph rather than a convention is what lets the page objects be
+constructed, and tested, without dragging `player.py` in.
+
+**It is a package because the one class had grown to 102 methods and 1,154
+lines**, and it was never one responsibility — its own section banners named ten
+domains, and one of them ("tile actions") had silently accumulated the whole
+server-management surface underneath it. The facade composes one mixin per
+domain, so every `gateway.X()` call is unchanged and each domain is a file you
+can read in one sitting.
+
+**Composition by inheritance, deliberately.** A nested-namespace gateway
+(`gw.users.add`) would have been a wider change at every call site for no gain
+here — these are a flat vocabulary of operations, not a tree. The cost of
+flattening is that two mixins could define the same name and one would silently
+win; `tests/test_gateway_mixins.py` refuses that, the same way
+`tests/test_mpvtk_browser_mixins.py` does for the browser. The gateway holds no
+state of its own — every method reaches a singleton and returns — which is what
+makes the flat composition safe to read: there is no initialisation order
+between the mixins because there is nothing to initialise.
+
+**Imports stay lazy.** Every method imports its collaborator inside the call
+rather than at module scope. That keeps `mpvtk_browser` importable without
+`player.py`, which selects an mpv backend at import time and wires
+interdependent singletons, and it is also the seam that lets
+`tests/test_player_controller.py` substitute a broken collaborator and sweep the
+whole class. `gateway/deps.py` holds the single exception and says why.
+
+**The failure contract: a gateway method does not raise, and the three that do
+are named.** Almost every one catches `Exception` and returns a documented
+fallback, because its callers are the render loop — where an escape kills the UI
+— or a pool worker, where it kills the worker with nobody watching. The
+exceptions: `add_user` and `rename_user` let the failure through, because
+catching made the field clear and nothing happen and the caller is what shows
+the message; and `_sync` catches only to log, then re-raises, because the
+SyncPlay actions built on it need the caller to see the failure.
+`tests/test_player_controller.py` pins all three categories. This is the
+reference version of the rule, and it is also stated in
+`gateway/__init__.py` on purpose: a caller reading one method needs it there.
+
+**`gateway/base.py` holds `_act`,** the guarded "do something to the player"
+primitive. Transport, HUD and queue all reach for it, so it is not a transport
+concern — it is the gateway's own vocabulary. It goes through
+`playerManager.run_action` rather than calling through, because these run on the
+browser's loop thread and the player's lock is held for the whole of a playback
+start; calling through would freeze the window until the load finished or timed
+out.
+
+**And it holds the cross-domain declarations, because the coupling has a
+length.** Splitting the gateway made visible what one 1,154-line class had
+hidden: three calls cross a domain boundary. They are legitimate — a queue "add
+these and play" genuinely needs playback, and a user switch genuinely needs the
+source rebuilt — so the answer is to *declare* them under `if TYPE_CHECKING:`
+rather than baseline the finding or pretend the domains are independent:
+
+```
+QueueMixin   -> play_list       (PlaybackMixin)
+UsersMixin   -> rebuild_source  (ServersMixin)
+UsersMixin   -> offline_source  (ServersMixin)
+ServersMixin -> offline_source  (its own; listed for symmetry)
+```
+
+Keeping them in one place means the number is visible, and it is four. If that
+list grows, the split is drifting back toward one class and the next person can
+see it happening — **which nothing currently checks, and which is the obvious
+test to write.**
+
 ### Two app-wide surfaces
 
 **Cast screen** (`cast.py`) — the Chromecast-like preview (idle "Ready to cast"
@@ -115,6 +255,51 @@ every writer ends with `invalidate()`, so a torn read is a one-frame glitch that
 the next build heals.
 
 Do not "fix" it by locking `build()`.
+
+### The `AsyncRunner` callback contract
+
+`AsyncRunner` (`jellyfin_mpv_shim/mpvtk_browser/async_runner.py`) owns the
+epoch, its lock and the worker pool. They are one mechanism and have one owner;
+they used to be three attributes among seventy-three. Reading the epoch from
+anywhere is fine and expected — *advancing* it is that module's job alone, which
+`tests/test_source_invariants.py` enforces, because this was asserted in prose
+for a long time with nothing checking.
+
+`run(work, on_done, epoch, on_error=None, always=None)` has three arms. All
+three have bitten, and `tests/test_async_runner.py` pins each.
+
+**`on_done(result)`** — applied only if the epoch still matches. Runs under the
+lock.
+
+**`on_error(exc)`** — runs when `work()` raises, and is **deliberately not
+epoch-gated**. A rollback undoes an optimistic edit in the route dict it
+captured, or clears a paging guard; neither is a claim about what is currently
+on screen. Gating it meant that navigating away before the failure landed
+dropped the rollback, so the route kept a change the server had refused and
+showed it again on the way back. That puts the burden on the handler: anything
+in an `on_error` that touches the live screen must check for itself — §12 is the
+rollback path that does.
+
+**`always()`** — runs after every outcome: success, failure, *and a result
+dropped because the epoch moved*. It runs even when the pool is already shut
+down and the work is discarded outright, because that is exactly when a guard
+would otherwise be left set on a route dict that outlives the pool.
+
+**A guard that must not outlive the call goes in `always`, never in `on_done` or
+`on_error`.** Past the epoch **both** of the other two are dropped, so a flag
+cleared only in `on_done` stays set forever, and one cleared in both still leaks
+on the stale-success path. This is the rule behind `_loading`, `_win_load` and
+`_page_loading` (§13), and it is re-derived at every site that holds a guard, so
+take it from here: a `_loading` left set means that route never pages again —
+scroll to the bottom, click a tile, come back, and the list is silently capped
+for the rest of the session.
+
+Every callback is individually guarded, because they run on a pool worker where
+an escaping exception kills the thread with no caller to see it. The pool is
+four workers wide: enough to overlap a route load with the client mutations a
+screen issues, small enough that a slow server cannot fan out into dozens of
+sockets. Jobs that can take minutes must not run here at all — see
+`MpvtkBrowser._run_long`.
 
 ## 3. The standing footgun: state that changes between draws
 
@@ -256,10 +441,158 @@ so toggling a sort re-decoded the visible screenful for nothing.
 The **composited rows** are a different trade and normally not worth shedding:
 they are what makes going Back instant, and Back is the most common move there is.
 
-## 7. Parking scroll offsets
+## 7. Scroll state
 
-`park` stashes the current screen's offsets on its route dict so coming back lands
-where it was left.
+`jellyfin_mpv_shim/mpvtk_browser/scroll_state.py` owns where each scroll
+container is, and when that warrants a repaint. The **renderer** is the
+authority on where a container is scrolled, and the shell reads its live
+snapshot once per frame; a page holding its own copy would drift from the thing
+actually drawing, which is why no page owns this privately.
+
+### Five pieces of state, one per failure
+
+**`_live`** — the renderer's own offsets, read synchronously at the top of every
+`build()`. The only value that cannot be stale, because the renderer clamps it
+to the *current* content. A failed read degrades to `_recorded` rather than
+silently reusing last frame's numbers against this frame's content.
+
+**`_recorded`** — the throttled `on_scroll` copy. A fallback for mpv < 0.36,
+which has no `user-data` and so cannot answer the live query at all — and *only*
+for that. It is a whole-snapshot substitute, never a per-id one: consulting it
+for ids missing from a live snapshot resurrects offsets the renderer has
+deliberately dropped.
+
+**`_rendered`** — the offset each container was last *re-rendered* at, which is
+the baseline the re-render threshold measures against. It must not be the
+previous *event*: continuous sub-row scrolling arrives in many small steps, so
+comparing adjacent events lets a slow scroll drift a whole window without ever
+crossing the gap — and the virtualized rows fall out of the built window as
+blank spacers until some larger coalesced jump finally trips it.
+
+**`_pending`** — the offsets **this frame's scene is about to command**: the
+route's parked offsets, which the pages pass as `Scroll(offset=…)`. For a
+container the renderer has not heard of yet, this outranks its silence — the
+scene is telling it where to go, so that is where it will be by the time
+anything is drawn. Without it, a restore is indistinguishable from a container
+that really is at the top.
+
+**`_seeded`** — the ids the renderer has answered for **since the parked
+snapshot was taken**. A restore is a one-shot, not a standing order, and this is
+what makes it one: without it a parked offset was re-applied every time its
+container left the scene and came back — a Live TV tab flip through the busy
+screen, a reconnect — undoing whatever the user had done since.
+
+"Since the parked snapshot was taken" is the whole of it, and the two ways a
+container's offset can vanish are what force that wording. A yield to playback
+empties the scene, but `park` runs on the way out, so the parked values *are*
+where the user is and have to be re-armed. A tab flip through the busy screen
+empties it too and nothing parks, so the parked values are from the last
+navigation and re-applying them would undo the visit. Hence `park` clears
+`_seeded` and a repaint does not.
+
+**`_seeded`, and not a pop from `_pending`.** `_pending` is re-read from the
+route on every frame, so a pop would last one build — and the frame that matters
+is a later one. It is cleared by `reset()` (a route change, where a new screen
+may legitimately restore the same container ids) and by `park()`.
+
+### `offset()`: two containers the renderer has never met
+
+Where the renderer has an answer it is the only authority; its copy is the one
+clamped to the current content. What it does *not* answer for is a container
+that has only just entered the scene, and there are two of those, which want
+**opposite** things:
+
+- **The container really is at the top.** Tick Paginated on a scrolled grid and
+  untick it, or change a sort (which drops to the busy screen and takes the
+  scroll container with it): the renderer built a fresh container at 0. Letting
+  `_recorded` fill that gap re-armed an offset the container no longer has and
+  windowed the returning grid around it — a screenful of blank spacers with no
+  tiles in it.
+- **The container is being *restored*.** Press Back onto a library scrolled to
+  the end: the scene being built carries `off0` for exactly that, and the
+  renderer applies it before it draws anything. Windowing that frame from its
+  silence built the top of the list and then jumped to the bottom, so the screen
+  came back empty and stayed empty until a scroll rebuilt it.
+
+`_pending` is what tells them apart, and it is not a memory of where the
+container *was*: it is where this frame's scene is about to *put* it. A
+container the user has since scrolled has a live entry, which still wins —
+including when that entry is 0.
+
+### `pending()`: a parked offset nothing restores is a lie
+
+`pending(scroll_id)` is what to pass as `Scroll(offset=…)`, and it exists for
+the containers a page does not build by hand. The home screen's carousels are
+one `tile_row` call each with ids generated per row, so the only code that can
+restore them is the shared component that builds them.
+
+That is not a convenience. `offset` answers for a container the renderer has not
+met with the parked value *because the scene is about to command it* — so a
+parked offset that nothing restores makes that answer a lie for exactly one
+frame, and it is the frame a screen comes back on. The carousel drew at 0 with
+its page buttons derived from wherever it had been left, and nothing invalidated
+afterwards to correct them.
+
+### `on_scroll`: distance, end stops, `edges_only`
+
+`then(offset, maximum)` runs first and unconditionally — it is how infinite
+scroll asks for the next page, and that must not be gated on the repaint
+threshold.
+
+A repaint otherwise follows when the container has moved `STEP` (120 px) from
+the offset it was last rebuilt at: small enough that the refresh lands well
+before the user reaches the edge of the built window.
+
+**Crossing into, out of, or straight across an end stop always repaints**,
+whatever the distance. The carousel page buttons derive their disabled state
+from the offset, and the last few px of a drag to the end are usually well under
+`STEP`, so the button that just became useless would otherwise stay lit until
+something else happened to invalidate. The end stop is three states — start,
+neither, end — rather than a boolean, because a carousel one page longer than
+its viewport goes from one stop to the other in a single click, and a boolean
+"is at an end" cannot tell those apart: the move that reverses *both* buttons
+was the one move that repainted neither.
+
+`edges_only` drops the distance rule and keeps just that one, for a container
+whose *only* offset-dependent content is at the ends. The home carousels are the
+case: nothing about them is virtualized, so a mid-row repaint would recomposite
+a screenful of poster strips to change nothing.
+
+### The live read is split out of `refresh()`
+
+`refresh()` is the per-frame call: it takes `_live`, marks everything the
+renderer answered for as seeded, and recomputes `_pending` from the route about
+to be built. `park` needs the same renderer read *without* any of that, so the
+read itself is a separate method.
+
+`park` runs on whatever thread called the navigation — the websocket thread
+delivering a DisplayContent, a remote sending GoHome — and calling `refresh`
+there clears `_pending` out from under a `build()` in progress on the loop
+thread. **A torn read of `_live` is the one-frame glitch the browser tolerates
+by design (§2); a `_pending` emptied mid-build is not**, because `off0` is
+applied to a container exactly once and the renderer has already seeded it at 0
+by the time the next frame could correct it.
+
+### Parking, and re-arming the restore
+
+`park` stashes the current screen's offsets on its route dict so coming back
+lands where it was left. It reads the renderer live rather than trusting the
+last frame's snapshot: a scroll shorter than `STEP` never triggered a rebuild,
+so `_live` can be that far behind at the moment of a click. Restoring is the
+*page's* half — it passes `offset=` on the container it rebuilds — because only
+the page knows which of its scrollers it wants restored. `reset()` immediately
+after is what stops one view's offsets bleeding into the next under the same id;
+the parked values travel with the route, which is what makes them survive it.
+
+`park` clears `_seeded`, and that is what re-arms every restore: those offsets
+are current as of now, so every container is owed one from them again, including
+the ones already on screen whose ids `refresh` has been marking as seeded all
+along. **This is what makes coming back from playback work.** That is not a
+navigation — `enter_browse` rebuilds the same route, so `reset()` never runs —
+and without the clear the returning grid was *windowed* at the top while `off0`
+put the container at the bottom, a screenful of holes.
+`tests/test_shell_paging.py:TestAReturningScrollContainerStartsAtTheTop` exists
+to catch exactly that.
 
 **It refuses to park while the browser is not on screen, and that is not an
 optimisation.** A yielded scene holds no containers, so `scroll_offsets()` answers
@@ -397,7 +730,7 @@ only the tags on them.
 ### `nav.load`, not `nav.reload`, on the rollback path
 
 The rollback reaches `_redraw_or_refetch` from `on_error`, which is deliberately **not**
-epoch-gated (see `AsyncRunner`), so a save that fails after the user has walked away
+epoch-gated (see `AsyncRunner`, §2), so a save that fails after the user has walked away
 lands on the route they left. `reload` bumps the epoch, which would cancel the
 in-flight load of whatever *is* on screen and strand it on a spinner with nothing left
 to re-issue it. `load` re-runs this route's own loader without touching the epoch.
@@ -450,3 +783,221 @@ They lead the filter row rather than sitting among the filters, because a filter
 what this grid shows and these navigate somewhere else. jellyfin-web reaches both
 through library tabs, which this client does not have — so leading the bar is the
 nearest thing to a tab strip.
+
+## 13. Paging a result set
+
+`Paginator` (`jellyfin_mpv_shim/mpvtk_browser/pagination.py`) pages a result set
+too large to hold. Four routes use it — grid, person, music, music_genre — in
+three modes that share the machinery.
+
+**Windowed** (`window`) is what a library grid does: the list is `_total`
+entries long from the first frame, mostly holes, and the pages covering what is
+on screen are fetched as it comes into view. That is what makes the scrollbar
+full-length and the drag stable — the bug in #617 was the scroller growing under
+the thumb as pages arrived. `spread()` is the splice that keeps it: an item's
+index **is** its position in the library, and everything downstream reads a hole
+as "not here yet" and draws a blank tile of the right size. (A falsy total —
+the source did not say, or said Random, where what is loaded is all there is —
+makes it a plain splice that keeps whatever length the list had.)
+
+**Infinite scroll** (`more`) appends the next chunk as the user nears the bottom
+(`PAGE_SLOP`, 800 px). It is what the routes that are not windowed still use.
+Three views used to carry a copy of it and each learned its invariants
+separately, which is why they are spelled out on the method.
+
+**Paginated** (`ensure` / `go` / `jump`) fills one screenful at a time with a
+bar at the bottom instead of a scrollbar. It keeps the current page and its two
+neighbours warm so Next/Previous land instantly, and prunes to that window so a
+deep library does not accumulate every page it visited. The inline checkbox
+flips a **global** setting, not a per-route one, and resets the page state so
+turning it on lands on page 1.
+
+`WINDOW_PAGE` is 100 and that is not arbitrary: it is also the repository's
+default page limit, so a route's initial load fetches `[0, limit)`, page 0 is
+complete, and the first render asks for nothing. A smaller limit would leave
+page 0 holed and re-fetched immediately. `PAGE_MAX` (60) caps a fixed page for
+the overlay budget, not for the layout, and `page_size` rounds its row count
+**down** so a page never overflows its slot.
+
+**The paging state lives on the route dict, not on the paginator, and
+deliberately.** The route is what navigation keeps and throws away, so going back
+to a library returns to the page you left, and leaving it frees the cache with no
+bookkeeping at all. The class is the logic over that state. `content_h` is a
+callback for the mirror-image reason: sizing a page means measuring the shell's
+own chrome — the update banner, the download bar, the now-playing bar — and only
+the shell knows which are up. It is the one thing here that is not
+self-contained, and an explicit argument is the honest way to say so.
+
+### `more()`'s invariants
+
+- **Only page the route that is on screen.** A scroll event can arrive for a
+  view being left.
+- **`_loading` guards re-entry and must not survive a failure**, or the list
+  never requests anything again for the rest of the session. It is cleared in
+  `always`, not in `on_done`/`on_error` (§2).
+- **An in-range page that comes back empty ends the list.** A random sort that
+  reshuffles per request, or a filter the server applies differently than we do,
+  otherwise gets re-asked on every scroll event forever.
+- **Never page from an empty list** — that is `start_index=0`, i.e. the initial
+  load, and the loader owns it.
+- **Never page against a list that is being replaced.** Live TV re-reads itself
+  behind the user's back (§4) and that refresh rewrites `_data` from index 0. A
+  page-in submitted alongside it computes `start` from a length that is about to
+  change, so the merge either duplicates a page or skips one — permanently,
+  since `len >= total` then ends the list early. `_refreshing` is that refresh's
+  own guard; the deferral is symmetric, and either direction alone leaves the
+  race.
+
+A failure toast is raised only if the route is still current, and the other two
+modes narrow it further: nobody *asked* for a page a scroll triggered, and a
+prefetch nobody can see stays silent. An edit the user pressed a button for is
+the opposite case.
+
+### `window()`: one attempt per page, per scroll
+
+`window` is called from **render**, like `ensure`: which items are visible is a
+question about geometry, and only the view can answer it. The range passed must
+be the range the view actually composites, or the grid fetches one window and
+draws another.
+
+Render driving it is also why a failed page must not retry itself. A
+re-request on failure would issue one per frame for as long as the server stayed
+down — and the toast it raises invalidates, which is a frame. So an attempt is
+remembered in `_win_tried` and not repeated; `rewindow()` clears that, and the
+view calls it on a scroll. A window that failed is therefore retried when the
+user **moves**, which is the cadence `more` had, and never when they hold still.
+`rewindow` also runs wherever the result set is replaced, because page 3's items
+are not page 3's items any more.
+
+**`_win_load` is a separate set and is the in-flight one.** Clearing `_win_tried`
+mid-scroll must not re-issue a request that has not come back yet. It is cleared
+in `always`, so a page dropped for being stale releases it too.
+
+### A page number means nothing without its page size
+
+"Page 2" is items 24–35 at `ps=12` and 60–89 at `ps=30`. A job submitted before
+a resize — or before the now-playing bar appeared, which is the same thing to
+`page_size` — answers the question that *was* asked and lands on a cache the
+answer no longer fits: the stale page draws 30 tiles into a 12-slot page and
+hides the ones that belong there. So the fetch's `on_done` re-checks
+`route["_page_size"]` and drops the result if it has moved.
+
+**The epoch cannot cover this, because nothing navigated.** Epoch discipline
+(§2) answers "has the user gone somewhere else"; this is the same route, the
+same query, and a different window.
+
+For a related reason the page cache is written `setdefault`-shaped: `reset` may
+have replaced `_pages` and `_page_loading` outright between submit and land, and
+a `KeyError` raised in a pool callback is one nobody can see. `reset` runs
+wherever the underlying result set changes — sort, filter, collections toggle,
+music tab — because page 3 of one ordering is nothing like page 3 of another.
+
+## 14. The playback HUD
+
+The HUD is the jellyfin-styled player UI (`osc_style: mpvtk`, the default),
+drawn by the browser while it is yielded to video. `hud.py` builds the widget
+tree; `hud_control.HudController` owns what that tree reads. The two halves are
+split across two files for no reason other than history.
+
+**Nothing here is browser chrome.** The HUD belongs to *video playback*: the
+renderer owns its summon and auto-hide lifecycle and reports it through
+`on_hud`, and the browser's only interest is that it must not push a HUD scene
+at a renderer that is not showing one.
+
+### State, and why each piece exists
+
+**`shown`** — the renderer's summon flag, not ours. Echoed here so `build()`
+knows whether to produce a HUD scene at all.
+**`state`** — the latest video playstate snapshot (position, duration,
+chapters …), pushed from the player's thread via `on_playstate`. `None` means no
+video.
+**`scrub` / `scrub_paused`** — a seek gesture in flight: the pending target in
+seconds, and whether *we* paused playback to make the position inspectable. The
+second flag is what stops a commit from resuming playback the user had paused
+themselves.
+**`menu` / `menu_anchor`** — the open settings-menu level ("root", "speed", …)
+and the node it hangs off. One level at a time.
+**`info`** — the playback-info panel is up.
+**`tc_remaining`** — the clock shows remaining rather than total; a click
+toggles it.
+
+`reset()` drops all of that when a *fresh* renderer is attached: it has no HUD
+state, so keeping ours would have `build()` pushing a HUD scene at an idle
+renderer. `state` deliberately survives — it comes from the player, not the
+renderer.
+
+The scrub preview bubble is deliberately absent: the renderer draws it from the
+trickplay tiles and mpv's chapter list, so no hover state reaches here at all
+(#618).
+
+### Lifecycle
+
+Yielding to video keeps the renderer **attached but idle** rather than getting
+fully out of the way, which is what the lua OSCs need instead; `available()` is
+that test. `engage()` is `set_hud(True)` (the `mpvtk-hud` script message)
+carrying everything the renderer owns: the keyboard policy — grab the arrows, or
+take only the wake key so mpv's own seek keys keep working — the auto-hide delay
+and mode, whether the glyphs carry their own shadow, whether the hidden HUD takes
+the left button at all, and whether a pause the *renderer* performs has to go
+through Python (locally cycling pause is what makes click-to-pause feel
+immediate, but in a SyncPlay group a local pause is not a pause, it is a desync
+the group then has to correct).
+
+**`engage()` is idempotent, and that matters**: re-engaging is the only thing
+that carries a changed setting to the renderer, which is what makes all of those
+apply without a restart.
+
+Playback then runs clean until an arrow key, ENTER or mouse motion summons the
+HUD, and `hud_hide_secs` without input hides it again. On the summon, `on_hud`
+asks the player for a fresh position snapshot before the bar first paints and
+starts the shared **1 s ticker** that keeps its clock moving — the same ticker
+the music now-playing bar uses. On the hide it drops the menu and the info
+panel: the panel is anchored to nothing once the bar is gone, and leaving it set
+would bring it back with the next summon, which nobody asked for.
+
+### Scrubbing: a change previews, a commit seeks
+
+`scrub_change` starts the gesture — it pauses playback if the user had not, so
+the position is inspectable, and records the target. **It does not seek.** Only
+`scrub_commit` calls `seek`. `scrub_done` clears the gesture and resumes
+playback *only if we were the ones who paused it*, which is also what runs when
+the renderer hides the HUD mid-drag.
+
+### Constants mirrored into `renderer.lua`
+
+The Skip Intro/Credits button exists twice: `jellyfin_mpv_shim/mpvtk/renderer.lua`
+draws it while the HUD is idle and hands over to `hud.py`'s copy mid-segment. Two
+implementations of one widget, so every number that places or styles it has to
+agree — and each way of getting it wrong has its own symptom on screen:
+
+- **the bottom inset**, measured to the button's *bottom* edge so the two line up
+  whatever the label's measured height turns out to be. A mismatch is the button
+  **hopping** on summon or hide.
+- **the horizontal inset.** This one was a bare literal on both sides, so when
+  the UI scale landed only the Python copy scaled — layout folds `dx` into `x`,
+  which `scale_scene` converts — and the two buttons **drifted apart** by
+  `24 × (scale − 1)` px, including the renderer-drawn hit rect, which is what you
+  actually click.
+- **the type size and padding**, or the two copies differ in size and weight even
+  when they share a corner.
+- **the colours**, where a mismatch is a **flash** of a differently-coloured
+  button on summon.
+
+`tests/test_python_lua_constants.py` enforces the set (along with the heuristic
+char-width table, for the same reason: Python reserves one width and Lua draws
+another).
+
+### The bars are drawn at alpha 0, not omitted
+
+Under the "panel" scrim the HUD's two bars paint a flat translucent band; under
+any other scrim setting they are still emitted, invisible. **Invisible rather
+than absent, because the renderer needs them to exist as scene nodes**: it holds
+the auto-hide off while the pointer is over them (`phud_busy`), and layout only
+emits a node for a container that has a fill, a border or a click. Alpha 0 costs
+one ASS event that draws nothing, and the node is not a hit target — `node_at`
+ignores a rect with no click, tip or hover of its own.
+
+An open modal counts as a busy HUD through the same mechanism, which is why the
+playback-info panel is a `Dialog`: it gets ESC and click-outside dismissal for
+free, and it cannot be read for four seconds and then yanked away with the bar
+it is attached to.

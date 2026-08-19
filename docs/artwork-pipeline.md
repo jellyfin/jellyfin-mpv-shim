@@ -347,3 +347,204 @@ Also note `box` arrives **physical** from `backdrop_node` (which rastered it) an
 scale-squared on any HiDPI display, cached under a key the drawn size never matches.
 
 The fetch key carries the width only — see `docs/jellyfin-api-notes.md` on `maxWidth`.
+
+## 10. Fetching and decoding: the thumbnail store
+
+`jellyfin_mpv_shim/mpvtk_browser/thumbnails.py` is the front of the pipeline:
+`request()` hands a key to a worker pool, the worker reads the disk cache or the
+network, decodes and resizes with Pillow, and `pump()` delivers a `PIL.Image` to
+the loop thread. Nothing here is thread-affine — what comes out is a PIL image
+the strip compositor pastes into a row bitmap (§1), not a toolkit object.
+
+### 10.1 Where the cache goes, and how big
+
+Two caches, one per medium, and **the budget follows the medium**.
+
+On disk what is kept is the server's own **compressed** bytes, not decoded
+pixels: a poster is **20–80 KiB** there against **~300 KiB decoded**. Artwork is
+also long-lived — the key folds in the server's own image tag, so an entry is
+never *wrong*, only unwanted — and it belongs somewhere that keeps it between
+launches. So `DEFAULT_DISK_MB` is **1024**: a gigabyte is a whole large library's
+artwork at every size it has been drawn at, on a medium where that is a rounding
+error.
+
+`disk_cache()` prefers a real cache directory (`XDG_CACHE_HOME`,
+`~/Library/Caches`, `LOCALAPPDATA`), so a poster fetched last week is still the
+right poster and no launch re-fetches a library it already has.
+`SCRATCH_DISK_MB` (**64**) is the fallback, taken only when that directory cannot
+be created at all — a read-only home, a sandbox. That is a sixteenth of the room
+because the fallback is the session's tmpfs: it is RAM, on machines that may have
+only 8 GiB of it, and everything in it dies with the session anyway. It **hardly
+ever fires**, and never on its own: a machine that will not take a cache
+directory will not take a config one either. It exists so that a cache cannot
+stop the app starting.
+
+The in-memory half is `MemoryCache`, a byte-bounded LRU of decoded images sized
+by bytes rather than entry count, so a mix of small posters and large backdrops
+cannot balloon. It is deliberately modest (`conf.library_image_cache_mb`, 96 MB)
+because it sits behind the strip cache: a decoded poster is only wanted while a
+row is being composited. `trim_memory` shrinks it to `ROUTE_KEEP_BYTES` (16 MiB)
+when the browser leaves a screen — not to zero, because the chrome that outlives
+a navigation draws from it too, most visibly the now-playing bar's album art.
+
+### 10.2 The budget is not a promise
+
+`LOW_DISK_SHARE` (**0.05**) caps the cache at five per cent of what is available
+to it, whatever the configured budget says, and the smaller of the two wins.
+
+This is **one continuous rule, not a "low disk space" mode**. On a roomy disk 5%
+is far more than the budget and the budget binds; the share only starts to matter
+**below roughly 20 GiB free**, and from there it shrinks the cache continuously
+instead of waiting for a threshold to trip. A cache that gives space back as a
+disk fills is the useful behaviour, because somebody else filling it is the
+common case and holding still does not help them. The share is measured against
+free space **plus what the cache already holds**, or it would ratchet its own
+allowance down every time it grew.
+
+`MIN_DISK_BYTES` (24 MiB) is the floor — a cache too small for one screenful
+re-fetches every tile on every scroll, which costs the server and the user more
+than the space saves — but **it gives way too**: on a filesystem where even that
+is a quarter of everything left, the floor is the rudeness.
+
+`MAX_AGE_SECS` (**30 days**) is the other bound, and it answers a different
+question. The size bound decides what a busy cache may keep; the age bound
+decides what an idle one is still *for*. The key folds in the image tag **and the
+requested pixel size**, so changing the Cover Size (§4), the theme's tile shape,
+or the window it is measured against **orphans** every entry made for the old one
+rather than replacing it. Nothing can invalidate those explicitly — an orphan is
+only recognisable by nobody having read it — so age is the reaper for all of it,
+and a month is long enough that a library you go back to seasonally is still
+warm. A disk hit therefore `utime`s the file *after* reading it, in its own
+`try`, which is what makes the bound mean "unused for a month" rather than
+"fetched a month ago".
+
+### 10.3 Pruning is paced by traffic
+
+A prune stats the whole cache directory, so it is counted rather than run per
+file: `_note_written` accumulates bytes and prunes at `PRUNE_EVERY` (**16 MiB**),
+which is a few times per browsing session instead of a few times per screen. The
+accounting sits outside the write's `try`, because one failed `replace` — Windows,
+over a file another reader has open — used to skip it and stall the trigger for
+the rest of the session.
+
+**One pruner at a time** (`_prune_disk` takes the lock non-blockingly and returns
+if it is held). Two workers, or two app instances sharing the persistent cache,
+each scan, each compute the same total and each delete towards it — but a file
+the other already removed raises `ENOENT`, and a loser that did not decrement its
+own running total kept deleting. Between them they evicted roughly twice the
+excess, which is why the `FileNotFoundError` arm still subtracts the size.
+
+The startup prune is submitted to the pool, **deliberately not run on the calling
+thread**. It used to measure a directory that had just been created; it now
+measures a persistent one that may hold thousands of files, and it runs on the
+path that opens the browser window — one `listdir` plus a stat per entry is
+seconds on a cold cache or on NTFS, all of it before anything is on screen. The
+future is kept only so a caller that wants to reason about the directory can let
+it finish.
+
+### 10.4 Decode: `_fit_into` cover-crops and never upscales
+
+Everything a poster tile draws is cover-cropped at paint time
+(`strips._paint_poster` → `ImageOps.fit`), so a decode that used
+`Image.thumbnail` — the *contain* half of the pair — threw away exactly the
+pixels the crop was about to want, and the fit then had to magnify what was left.
+Nothing about that is visible to a size or a shape assertion: the answer is the
+same picture, softer.
+
+Measured over the shapes a cover tile actually sees, against a **200×300** tile,
+this is what the contain used to cost in magnification: **1.20× for 4:5 art,
+1.50× for a square headshot, 2.65× for a 16:9 still** — all of it on pixels the
+server had already sent. The square and the 16:9 are not exotic: a
+`BaseItemPerson` carries no `PrimaryImageAspectRatio` at all, so every Cast & Crew
+tile lands here. `tests/test_grid_artwork.py:271` pins both halves — that the
+paint never magnifies the decode, and what the contain was charging.
+
+`_fit_into` **never upscales**, which is the difference between it and asking
+`scale_to_cover` for the box outright. A source too small to fill the box is
+cropped to the shape and left at its own resolution; the paint-time fit then
+resizes it, from the same pixels and by the same filter, so the picture is
+identical and the decoded cache does not hold a magnified copy of a small image.
+
+Transparency opts out of cover entirely: a mark on a transparent background is
+not a photograph, and the compositor refuses to crop one whatever the tile says
+(§2). Cropping it in the decode would be a decision taken before the thing that
+decides has looked.
+
+### 10.5 Crop in the source, resample once
+
+`imageutil.scale_to_cover` scales and crops in **one** call. The obvious
+spelling — scale the whole picture up to cover, then crop the box out of it —
+pays for every pixel it is about to throw away, and a full-bleed banner throws
+away most of them: a 1920×1080 backdrop covering a **6390×412** header is
+resampled to 6390×3596 so that 412 rows of it can be kept. Pillow's `box` does
+the crop as part of the resample, so the same call reads 1920×124 out of the
+source and writes the 6390×412 that is wanted. **Measured at that size: 194 ms
+and +204 MB of peak RSS became 24 ms and +32 MB.** This runs on the loop thread,
+once per pixel of a drag-resize, because the bitmap has to be exactly as wide as
+the header it is drawn in and so cannot be quantised the way the *request* for it
+is (§9).
+
+The box is a **float box, deliberately**. The integer version had to round the
+scaled size up and clamp the crop, because a truncated product landed a pixel
+short and Pillow pads an out-of-bounds crop with transparent black rather than
+refusing — a hairline down the edge of the banner for **about one width in
+eighty**. In source space the box is exact by construction (`w / scale <= iw` on
+the binding axis and below it on the other), so there is nothing to round off the
+edge of the picture. `tests/test_imageutil.py`'s
+`test_no_width_leaves_a_transparent_hairline` pins it.
+
+`gravity_y` is stated as a point in the *source* rather than as an alignment of
+the crop box, so it keeps its meaning when the box is too tall for the bias to be
+honoured: the crop is clamped to the picture and goes as far that way as it can.
+
+### 10.6 The wire
+
+**`pool_block=True`.** urllib3 defaults to `pool_maxsize=10` with
+`pool_block=False`, which does not queue an over-limit request — it opens a fresh
+connection and then **discards** it instead of returning it to the pool. With
+these workers plus the trickplay tile fetch hitting the same host, that meant a
+churn of one-shot TLS handshakes exactly while mpv was opening the stream, which
+is a very good fit for the intermittent "tls: Error decoding the received TLS
+packet" seen in the field. The pool is sized to the worker count and blocks on
+exhaustion instead. `THUMB_POOL_HOSTS` is 4 and small on purpose: this store
+talks to the logged-in Jellyfin servers and nothing else.
+
+**`Authorization` per origin, not a query-string token.** Artwork is by far the
+highest-volume first-party traffic this app makes, and putting the token in the
+query string means an admin cannot put Jellyfin behind a proxy that rejects
+unauthenticated traffic — every tile would 401. The map is keyed by
+scheme+host+port because a session can hold several servers at once, so a token
+only ever travels to the server it came from, and never over plain http to one
+reached by https. `set_auth` replaces it wholesale rather than merging: a server
+the user has just signed out of must stop receiving its old token.
+
+**A real User-Agent, unconditionally.** It identifies the client, not the
+session, and there is nothing in it to leak. Without it a server's access log is
+mostly anonymous `python-requests/x.y` lines that nothing ties back to the shim —
+which is exactly the log somebody reads when they are working out which client is
+hammering them.
+
+Failures are classified rather than merely logged: a **4xx** means the image is
+not there and never will be at this URL, so the key goes in `_gone` and the
+caller can stop asking (`is_gone`); a timeout, a connection reset, a 5xx or a
+truncated body is transient and stays retryable. The callback runs either way,
+with `image=None`, so a caller can release its dedup marker — a fetch that failed
+silently used to leave the tile blank permanently.
+
+### 10.7 Two measurements that belong elsewhere
+
+**Why a luma mean decides nothing (§2).** A logo is routinely *bimodal*: the NBC
+peacock is a bright mark next to a black wordmark, and **its mean luma of 71
+describes no pixel in the image**. That is why `measure_transparency` keeps the
+whole 256-bin histogram, and the `edge` ring beside it, and why `plate_for` asks
+about distributions rather than about an average.
+
+**A slot that asks for far more picture than it can draw (§9).** The header's
+inset poster is bounded by `POSTER_W_FRAC` of the banner, which grows without
+limit while the slot's height is fixed — widening a banner buys backdrop, not
+page. So on a very wide window the slot came out **1597px wide for a picture that
+can never be drawn wider than ~570**, and since `_banner_poster` sizes its
+*request* from the slot, a detail page pulled a **1000×1500 poster whole (185 KB)
+to draw it at 214px (19 KB)**. Nothing inset there is wider than a 16:9 still, so
+`banner.poster_box` caps the width against the slot's own height
+(`MAX_INSET_ASPECT`) as well as against the banner's width.
