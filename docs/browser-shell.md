@@ -97,8 +97,8 @@ Three of those names are not the obvious ones:
 **`ctx.shell` is an escape hatch, and the difference between that and a loophole
 is that it is counted.** It exposes the browser for helpers that are still
 methods on the shell — the tile/row/grid builders, the chrome's busy and error
-nodes. Those are component-shaped but still close over `self.strips` /
-`self._posters`, so extracting them is its own job.
+nodes. Those are component-shaped but still close over `self.strips` and
+`self.tiles`, so extracting them is its own job.
 `tests/test_page_contract.py` pins the number of `ctx.shell` references and
 fails if it grows; it can only go down.
 
