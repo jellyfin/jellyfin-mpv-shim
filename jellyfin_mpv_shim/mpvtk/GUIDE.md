@@ -281,8 +281,12 @@ workers (thumbnails, downloads, playback timers) repaint through it.
 Scroll offsets are also mirrored into the `user-data/mpvtk/scroll`
 property on every change; `MpvtkApp.scroll_offsets()` reads it
 synchronously, so a build() can window virtualized content against the
-renderer's LIVE offset instead of trailing the throttled scroll event
-(mpv ≥ 0.36; returns `{}` on older builds).
+renderer's LIVE offset instead of trailing the throttled scroll event.
+`{}` and `None` mean different things and callers rely on it: `{}` is an
+*answer* (the renderer is there, nothing is scrolled), `None` means it could
+not be asked at all (mpv < 0.36 has no `user-data`), so a caller keeping its
+own copy of scroll positions must fall back to that. Conflating the two makes
+the fallback outvote the renderer — see `MpvtkApp.scroll_offsets`.
 
 ## 5. Images: strips, files, memory
 

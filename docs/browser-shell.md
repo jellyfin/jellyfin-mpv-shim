@@ -13,7 +13,7 @@ the bugs that established the rules are here.
 
 `MpvtkBrowser` owns the route stack, async data loading, and the `build(size)`
 that turns the current route into an mpvtk widget tree. It attaches its UI via
-`mpvtk.MpvtkApp.attach` — see `mpvtk/GUIDE.md` for the toolkit itself.
+`mpvtk.MpvtkApp.attach` — see `jellyfin_mpv_shim/mpvtk/GUIDE.md` for the toolkit itself.
 
 Around the core sit two things, and the split is a **migration in progress**
 (`docs/archive/ARCHITECTURE_TARGET.md` §3.2), not a design.
@@ -62,7 +62,7 @@ in the dispatcher and a dict a thousand lines away.
 **Cast screen** (`cast.py`) — the Chromecast-like preview (idle "Ready to cast"
 backdrop plus `DisplayContent` item preview) is a browser **route**, not a
 separate UI. Backdrop, gradient and text are baked into one full-window bitmap
-because mpv composites overlay bitmaps *above* all script ASS (`mpvtk/GUIDE.md`
+because mpv composites overlay bitmaps *above* all script ASS (`jellyfin_mpv_shim/mpvtk/GUIDE.md`
 §6), so text drawn as a node would be hidden. It was `display_mirror.py`, which
 attached its own `MpvtkApp` and ran its own loop — two owners of one window,
 which is why `display_mirroring` used to fall back to the Tk browser.

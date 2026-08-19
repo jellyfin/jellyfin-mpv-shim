@@ -285,37 +285,21 @@ class EventHandler(object):
     ):
         """Watched / resume state moved for this user, somewhere.
 
-        Continue Watching and Next Up are the rows this shows up in, and
-        "somewhere" is usually another client entirely: finishing an episode
-        on a phone, or removing a film from Continue Watching in a browser,
-        which is what #560 reported. The row is not cosmetically stale
-        afterwards -- it is offering to resume something already watched.
+        Usually another client entirely -- finishing an episode on a phone, or
+        removing a film from Continue Watching in a browser (#560). The row is
+        not cosmetically stale afterwards; it offers to resume something
+        already watched.
 
-        Two consumers, and they want opposite things from the message. The
-        **browser** wants only the nudge: it decides whether the screen it
-        is showing cares, and debounces. The **download catalog** wants the
-        payload, because ``arguments`` carries the new values themselves --
-        so applying them costs no request at all, and is what keeps offline
-        watched state current without a poll.
+        Two consumers wanting opposite things: the **browser** takes only the
+        nudge and debounces, the **download catalog** takes the payload, since
+        ``arguments`` carries the new values and applying them costs no
+        request. Hence `arguments`, not `_arguments`.
 
-        `arguments`, not `_arguments`: it was discarded here for a long
-        time, and the sweep that existed to make up for it re-read the whole
-        catalog every five minutes to learn what this message had already
-        said.
-
-        What this does NOT fire for is a progress report -- the server
-        drops those before building the message, on every version measured.
-        So it announces a start and a stop, a few per playback, and not the
-        "every few seconds while watching" that the browser's debounce was
-        written against.
-
-        **Including the progress report that finishes the item.** Another
-        device can play something through to the end, the server can record
-        it watched, and nothing is sent until that device reports its stop
-        -- which a client killed mid-playback never does. That gap is not
-        closable from here, and is what `_refresh_userdata` is left in the
-        design to cover. `tests/e2e/test_offline_sync.py` pins both halves
-        against a real server, because the obvious guess is the other one.
+        **This does not fire for progress reports** -- not even the one that
+        finishes an item -- so a device killed mid-playback announces nothing,
+        which is the gap `_refresh_userdata` is left in the design to cover.
+        See docs/offline-sync.md section 2; `tests/e2e/test_offline_sync.py`
+        pins both halves against a real server.
         """
         try:
             from .sync.manager import syncManager

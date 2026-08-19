@@ -15,7 +15,7 @@ captions, year/subtitle, watched checkmarks, unwatched-count badges and resume
 progress bars — declared to the renderer as a single `ImageMap` with one
 transparent hit-region per tile.
 
-This is what makes tiles scale (`mpvtk/GUIDE.md` §5/§6): a screenful is a handful
+This is what makes tiles scale (`jellyfin_mpv_shim/mpvtk/GUIDE.md` §5/§6): a screenful is a handful
 of overlays instead of one per poster, decorations dodge the "bitmaps composite
 above ASS" z-order constraint, and scrolling is pure crop math on cached bitmaps.
 

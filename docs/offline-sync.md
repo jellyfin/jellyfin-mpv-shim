@@ -17,6 +17,12 @@ browses offline.
 | `apply_userdata_event` | a `UserDataChanged` push | applies the payload |
 | `_refresh_userdata` | the periodic sweep | **advance-only** |
 | `record_watched` | the user picks Mark Watched/Unwatched | **verbatim, both ways** |
+| `OfflineVideo._mirror_locally` / `record_offline_progress` | playback of a downloaded item | **advance-only** (written online too, not just offline) |
+| `db.set_reading_position` | a page turn in the built-in reader | **verbatim** — a book is a cursor |
+
+**A series or season id fans out.** `db.watched_targets` resolves one id to
+every episode under it by scanning the catalog — there is nobody to ask when
+the server is away, which is the whole point of holding the rows locally.
 
 **Playback is advance-only** because reports arrive out of order and a position that
 went backwards is a stale one.

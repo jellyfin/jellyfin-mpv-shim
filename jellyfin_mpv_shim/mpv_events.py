@@ -76,64 +76,26 @@ def wait_property(
 ):
     """Block until MPV property ``name`` reports a value satisfying ``cond``.
 
-    Works with both backends: libmpv (python-mpv, ``observe_property``) and
-    external mpv (python-mpv-jsonipc, ``bind_property_observer``). The backend
-    is picked by class capability so this helper carries no global state and is
-    testable with a fake ``instance``.
+    Works with both backends; the backend is picked by class capability, so
+    this carries no global state and is testable with a fake ``instance``.
 
-    ``skip_initial`` guards against a stale value from a *previous* file. Both
-    backends deliver one initial property-change notification carrying the
-    property's CURRENT value the instant the observer registers. When a prior
-    file is still loaded (cast-while-playing, or auto-advance with keep_open
-    holding the finished file), that value belongs to the OLD file, so
-    accepting it would act on the wrong item. With ``skip_initial`` we sample
-    the property at registration: if it already satisfies ``cond`` it is a
-    stale ready value, so we drop the first notification (mpv re-delivers that
-    same value) and only accept a later change. If the property is not yet
-    ready (``cond`` fails on the sample, e.g. ``duration`` is None between
-    files) there is nothing stale to skip, so we accept the first qualifying
-    notification -- this keeps the normal first-play path working even if the
-    file loads before the observer is processed.
+    ``skip_initial`` drops a value belonging to the *previous* file -- both
+    backends deliver the property's current value the instant an observer
+    registers, and with a prior file still loaded that value is the old one.
 
-    Residual race: if the NEW file finishes loading before we sample, the
-    sample is already the fresh value. The first notification is only dropped
-    when it re-delivers the exact sampled value, so a fresh value that differs
-    from the stale one is accepted; only a new value *equal* to the stale one
-    (same-duration reload) is indistinguishable, and the caller's ``timeout``
-    bounds that case -- it then degrades exactly like any other property-wait
-    timeout.
+    The wait is **poll-assisted on its own daemon thread**, and that is not
+    redundancy: the external backend's IPC pipeline has been seen in the field
+    to drop property-change notifications, which turned a fine playback start
+    into a hard "no duration" timeout that killed the session. **Do not
+    simplify it away.** Its own thread because a jsonipc property read blocks
+    for up to 120s, which would stretch ``timeout`` past being a hard bound.
 
-    The wait is poll-assisted: besides the observer, the property is re-read
-    every POLL_INTERVAL_SECS and a qualifying value accepted directly (unless
-    it equals the sampled stale value, which is indistinguishable from the
-    pre-change state). Observer events are the fast path; the poll rescues the
-    wait when property-change delivery is lost — the external-mpv IPC pipeline
-    (socket reader -> event queue -> handler) has been seen in the field to
-    drop notifications, which previously turned an otherwise-fine playback
-    start into a hard "no duration" timeout that killed the session.
+    ``abort`` ends the wait as a failure, ``satisfied_by`` as a success -- the
+    latter for a stream that will never report a duration at all. Both are
+    observed by the poll thread, so they land within one poll interval.
 
-    The poll runs on its own daemon thread: on the external backend a property
-    read is a synchronous IPC command with a long internal timeout (120s in
-    python-mpv-jsonipc), so polling on the waiting thread would let a wedged
-    mpv stretch the caller's deadline by minutes. This way ``timeout`` stays a
-    hard bound; a poller blocked on a wedged read just exits late, alone.
-
-    ``abort`` is an Event the caller may set to give up before the timeout —
-    used when mpv reports the file failed to load, where waiting out the full
-    ``timeout`` for a duration that can never arrive just freezes the UI. It
-    is observed by the poll thread, so it takes effect within one poll
-    interval rather than instantly; that turns a 30s hang into a sub-second
-    one, which is the point. An aborted wait returns False, exactly like a
-    timed-out one.
-
-    ``satisfied_by`` is the mirror of ``abort``: an Event the caller may set to
-    end the wait SUCCESSFULLY, for when something other than the property
-    proves what the caller was really waiting for. The playback start uses it
-    to accept mpv's file-loaded event, because the property it watches
-    (``duration``) never arrives for a live or otherwise unbounded stream, and
-    waiting it out would kill a stream that is in fact playing. Like ``abort``
-    it is observed by the poll thread, so it lands within one poll interval —
-    the property remains the fast path for everything that does have one.
+    The residual race, and the full argument for each parameter:
+    docs/mpv-backends.md section 9.
     """
     event = Event()
     # Set only by a genuine cond() match, so the abort and timeout paths both

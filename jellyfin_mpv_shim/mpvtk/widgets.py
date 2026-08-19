@@ -10,6 +10,12 @@ survives scene pushes keyed by element id).
 Ids: elements get a stable tree-path id automatically. Stateful widgets
 (scrolls, textboxes, dropdowns) should be given explicit ids so their
 renderer-side state survives structural changes to the tree.
+
+Sizes and colours are resolved in the constructor BODY, never as default
+arguments: a default is evaluated once at import, and the type scale and
+palette are set by the app at startup and again on every theme swap. Every
+``x = theme.Y if x is None else ...`` line here is that rule, not an
+oversight.
 """
 
 from . import theme
@@ -186,9 +192,6 @@ class Text(Element):
         max_lines=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('TITLE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.text = text
@@ -339,9 +342,6 @@ class Icon(Element):
 
     def __init__(self, name, size=None, color=None, on_click=None,
                  hover=None, hover_parent=None, hover_tint=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         # An EXPLICIT size is geometry and stays put: scaling the whole
         # interface -- controls, artwork, spacing -- is what `ui_scale`
         # does, and having the text multiplier resize icons too would make
@@ -373,12 +373,6 @@ class Button(Box):
 
     def __init__(self, label, on_click=None, size=None, fg=None, icon=None,
                  icon_size=None, gap=None, flat=False, **kw):
-        # Resolved here rather than as a default argument: a default is
-        # evaluated once at import, so it could never follow a theme
-        # applied later -- let alone one swapped at runtime.
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         themed_fg = fg is None
         fg = fg or theme.ON_SURFACE
@@ -439,9 +433,6 @@ class TextBox(Element):
         force=False,  # override renderer-local edit state with ``text``
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         kw.setdefault("w", 240)
         super().__init__(id=id, **kw)
@@ -525,9 +516,6 @@ class Checkbox(Row):
         # see Button for why a composite cannot leave this to the draw side.
         # The check itself still shows -- a disabled setting has a value, and
         # hiding it would say the opposite of what it is.
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         off = bool(kw.get("disabled"))
         # Sized from the label it sits beside, not a constant. The 20 it
@@ -593,9 +581,6 @@ class Grid(Element):
 
     def __init__(self, rows, cols, gap=12, row_gap=8, row_h=None,
                  row_pad=0, size=None, fg=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         super().__init__(**kw)
         self.rows = rows
@@ -616,9 +601,6 @@ class Form(Grid):
 
     def __init__(self, rows, label_w=None, size=None,
                  label_fg=None, **kw):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         label_fg = label_fg or theme.ON_SURFACE_MUTED
         cols = [
@@ -783,9 +765,6 @@ class Table(Column):
         virtual=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('LARGE') if size is None else theme.text_size(size)
         header_size = (theme.size('SMALL')
                        if header_size is None else theme.text_size(header_size))
@@ -976,9 +955,6 @@ class Dropdown(Element):
         popup_w=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         if trigger_icon:
             # The trigger's BOX, from the icon rather than from the text.
@@ -1041,9 +1017,6 @@ class Menu(Element):
         on_dismiss=None,
         **kw,
     ):
-        # Resolved here, not in the signature: a default argument is
-        # evaluated once at import, and the type scale is set by the
-        # app at startup and again on a theme swap.
         size = theme.size('NORMAL') if size is None else theme.text_size(size)
         super().__init__(id=id, **kw)
         self.items = list(items)

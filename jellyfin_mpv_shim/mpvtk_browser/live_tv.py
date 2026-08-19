@@ -622,13 +622,12 @@ def program_category(item):
 
 
 def program_title(item):
-    """A program's display title: the series name with the episode's own
-    title under it, like every guide does.
+    """A program's display title -- the SERIES name, on its own.
 
-    Guide data puts the *series* in ``Name`` and the episode in
-    ``EpisodeTitle``, which is the opposite of a library Episode — so the
-    ordinary tile labelling would show every showing of a series as the same
-    string.
+    Guide data puts the series in ``Name`` and the episode in
+    ``EpisodeTitle``, the opposite of a library Episode, so the ordinary tile
+    labelling would show every showing of a series as the same string.
+    ``program_subtitle`` supplies the episode line.
     """
     return item.get("Name") or ""
 
