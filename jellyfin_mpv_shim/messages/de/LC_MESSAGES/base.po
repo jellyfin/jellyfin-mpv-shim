@@ -1184,13 +1184,11 @@ msgstr "Das Profil des Audiocodecs wird nicht unterstützt"
 
 # seeded from jellyfin-web: AudioSampleRateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's sample rate is not supported"
 msgstr "Die Abtastrate des Audios wird nicht unterstützt"
 
 # seeded from jellyfin-web: AudioBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bit depth is not supported"
 msgstr "Die Bittiefe des Tons wird nicht unterstützt"
 
