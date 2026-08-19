@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-19 10:01+0000\n"
+"PO-Revision-Date: 2026-08-19 10:03+0000\n"
 "Last-Translator: TheRedCyclops <miguel@mpacheco.net>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -1108,26 +1108,20 @@ msgid "The container is not supported"
 msgstr "El contenedor del archivo no es compatible"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The video codec is not supported"
-msgstr "La descarga no pudo empezar."
+msgstr "Este códec de video no es compatible"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The audio codec is not supported"
-msgstr "La descarga no pudo empezar."
+msgstr "Este códec de audio no es compatible"
 
 # seeded from jellyfin-web: SubtitleCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The subtitle codec is not supported"
-msgstr "El códec de subtítulos no es compatible"
+msgstr "Este códec de subtítulos no es compatible"
 
 # seeded from jellyfin-web: AudioIsExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream is external"
 msgstr "La pista de audio es externa"
 
