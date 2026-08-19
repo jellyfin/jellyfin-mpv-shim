@@ -1,24 +1,14 @@
 """Rasterize images to the raw BGRA files mpv's overlay-add consumes.
 
-overlay-add wants premultiplied-alpha BGRA. Files are written once per
-image into a cache dir; mpv's repeated reads during scrolling come from
-the page cache. To keep WRITES off the physical disk too (a browsing
-session can composite hundreds of MB of strips):
+overlay-add wants premultiplied-alpha BGRA. `cache_dir` keeps the writes
+off physical disk (RAM-backed bases on POSIX, FILE_ATTRIBUTE_TEMPORARY on
+Windows) and callers bound their own caches; `MemoryStore` is the libmpv
+backend's file-free ``&<address>`` form. See `mpvtk/GUIDE.md` section 5.
 
-- cache_dir() prefers RAM-backed locations (XDG_RUNTIME_DIR, /dev/shm)
-  on POSIX, falling back to the system temp dir;
-- on Windows, written files are marked FILE_ATTRIBUTE_TEMPORARY, which
-  tells the cache lazy-writer to avoid flushing them to disk as long as
-  memory allows — the classic pattern for short-lived scratch files;
-- callers should bound their caches (see demo.StripStore's LRU) so the
-  footprint stays small either way.
-
-The endgame for the libmpv backend is overlay-add's ``&<address>``
-same-process memory form (no files at all); the file path is what works
-identically over jsonipc.
-
-The renderer does not scale, so images must be rasterized at their
-display size.
+**The renderer does not scale, so images must be rasterized at their
+display size.** Most of the length below is not about BGRA at all -- it is
+the scratch-directory sweep, which deletes directories out of shared,
+world-writable locations. Read those docstrings before touching them.
 """
 
 import logging
