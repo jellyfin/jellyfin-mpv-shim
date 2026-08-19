@@ -1,3 +1,19 @@
+# ---------------------------------------------------------------------------
+# BEFORE EDITING THIS FILE, READ docs/mpv-backends.md.
+#
+# It carries the constraints that have no line to sit on -- the danger is in
+# the line you are about to add, so no inline comment can warn you:
+#
+#   * mpv is NOT re-created between queue items, so any global option written
+#     for one item is still set for the next, including a next item we
+#     deliberately refuse to set it for;
+#   * a bound method cannot be a libmpv ``property_observer`` (use _observe);
+#   * an input section without ``allow-hide-cursor`` stops the mouse cursor
+#     ever hiding again;
+#   * the two backends raise different things and answer property reads at
+#     wildly different cost.
+# ---------------------------------------------------------------------------
+
 from threading import Event, Thread
 from typing import Optional
 

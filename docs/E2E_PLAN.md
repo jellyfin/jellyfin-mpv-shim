@@ -34,7 +34,7 @@ checks each keyword against the client's signature, which closes the first two
 rows. It cannot close the last two: those are *semantics*, and only a server
 answers about semantics.
 
-`CLAUDE.md` already records a dozen more claims of this kind as prose —
+`docs/jellyfin-api-notes.md` already records a dozen more claims of this kind —
 DisplayPreferences must use client `emby`, guide prefs must be the *strings*
 `"true"`/`"false"`, times are UTC with seven fractional digits and an
 offset-less bound answers the wrong window, per-library Latest rows bypass

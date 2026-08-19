@@ -22,6 +22,8 @@ it was simply invisible while it lived in the same class.
 else in this module. It is a window property, so it belongs here, but the
 lock discipline is the transport one -- worth knowing before this module is
 reasoned about as a whole.
+
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

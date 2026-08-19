@@ -89,7 +89,7 @@ class MediaInfoDialogTest(unittest.TestCase):
 
         Whitespace removed because a wrapped Text is several nodes and the
         breaker **drops the space it broke at** — the same trap the epub
-        reader documents (CLAUDE.md: "a space is not a run"). On screen
+        reader documents (docs/readers.md: "a space is not a run"). On screen
         that is an ordinary line break and reads correctly; it is only text
         rebuilt from the nodes that loses it. So a value that wraps can be
         asserted on its characters but not on its spacing.

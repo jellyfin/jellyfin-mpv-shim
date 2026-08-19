@@ -852,16 +852,9 @@ class SyncPlayManager:
         self._play_video(media.video, offset)
 
     def upd_queue(self, data):
-        # It can't hurt to update the queue lol.
-        # last_upd = _parse_precise_time(data["LastUpdate"])
-        # if (
-        #    self.playqueue_last_updated is not None
-        #    and self.playqueue_last_updated >= last_upd
-        # ):
-        #    log.warning("Tried to apply old queue update.")
-        #    return
-        #
-        # self.playqueue_last_updated = last_upd
+        # Web's LastUpdate staleness guard is deliberately not ported: a
+        # queue update we have already seen costs nothing to re-apply, and
+        # dropping one because a clock disagreed loses the group's content.
 
         self.last_playqueue = data
         if not self.following:

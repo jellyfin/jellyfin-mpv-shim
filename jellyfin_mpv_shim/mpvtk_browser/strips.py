@@ -1,33 +1,26 @@
 """Production strip compositor for the mpvtk browser.
 
-A "strip" is one BGRA bitmap holding a whole row of poster tiles —
-posters plus baked-in captions, year/subtitle, watched checkmarks,
-unwatched-count badges and resume progress bars — declared to the
-renderer as a single ``ImageMap`` with one transparent hit-region per
-tile. This is what makes tiles scale (GUIDE §5/§6): a screenful is a
-handful of overlays instead of one-per-poster, decorations dodge the
-"bitmaps composite above ASS" z-order constraint, and scrolling is pure
-crop math on cached bitmaps.
+A "strip" is one BGRA bitmap holding a whole row of tiles -- posters plus
+baked-in captions, year/subtitle, watched checkmarks, unwatched-count badges
+and resume progress bars -- declared to the renderer as a single ``ImageMap``
+with one transparent hit-region per tile. This is what makes tiles scale
+(GUIDE §5/§6): a screenful is a handful of overlays instead of one per poster,
+and scrolling is pure crop math on cached bitmaps.
 
-Strips are **content-keyed**: the key folds in every visible property
-(poster identity, title, watched/badge/progress, geometry), so changing
-any of them composites a new bitmap under a new src. The cache is
-LRU-bounded so a long browse session doesn't grow without limit;
-anything on screen was requested by the current build and is therefore
-most-recent.
+Strips are **content-keyed**: the key folds in every visible property, so
+changing any of them composites a new bitmap under a new src.
 
-A new src alone does NOT guarantee the renderer refreshes, though: on
-the libmpv path src is a malloc address, and addresses are recycled once
-a freed buffer leaves MemoryStore's graveyard, so a new entry can be
-handed a departed entry's exact src. Every entry therefore also carries
-a monotonic ``v`` (see ``_store``), which is what actually keeps the
-renderer's overlay cache from showing stale content.
+**A new src alone does NOT guarantee the renderer refreshes.** On libmpv src is
+a malloc address, and addresses are recycled once a freed buffer leaves
+MemoryStore's graveyard -- so a new entry can be handed a departed entry's
+exact src. Every entry also carries a monotonic ``v`` (see ``_store``), and
+that is what keeps the renderer's overlay cache off stale content.
 
-Backends: on libmpv (in-process) strips go to a ``MemoryStore`` (ctypes
-buffers, ``&<addr>`` src, no fs); on jsonipc they're BGRA files. The
-view supplies decoded ``PIL`` posters (from ``thumbnails``); a tile with
-no poster yet renders a placeholder and recomposites when the poster
-arrives (its ``poster_tag`` changes the key).
+Backends: libmpv gets a ``MemoryStore`` (ctypes buffers, ``&<addr>`` src, no
+fs); jsonipc gets BGRA files. A tile with no poster yet renders a placeholder
+and recomposites when the poster arrives (its ``poster_tag`` changes the key).
+
+See docs/artwork-pipeline.md for shapes, plating and the cache policy.
 """
 
 import dataclasses
@@ -119,26 +112,21 @@ def logo_plate(image, live=False):
     """The plate for transparent artwork, or ``None`` to leave it alone.
 
     ``imageutil.plate_for`` decides *whether* a picture is a logo on a
-    transparent background and what a light plate would swallow; this is the
-    one place that decides what the app then does about it, so the tile
-    compositor and the table's art cells cannot drift apart.
+    transparent background; this is the one place that decides what the app
+    does about it, so the tile compositor and the table's art cells cannot
+    drift apart.
 
     ``live`` says the artwork is a channel logo rather than a film's or
-    series' own Logo art -- the caller's answer, from
-    ``live_tv.is_channel_artwork``, because only it knows what it is drawing.
-    The two are settings apart because they are conventions apart: channel
-    logos are dark ink drawn for a white page and need the plate to be
-    visible at all, film logos are white and do not. See ``conf.py``.
-
-    Both answers are honest, which is why both are reachable: the light plate
-    the artwork was drawn for, or the theme's own card grey with no shadow --
-    which is what jellyfin-web puts behind the same logos (#637).
+    series' own Logo art (from ``live_tv.is_channel_artwork`` -- only the
+    caller knows what it is drawing). The two are settings apart because they
+    are **conventions apart**: channel logos are dark ink drawn for a white
+    page and need the plate to be visible at all, film logos are white and do
+    not (#637).
 
     Only the colour and the shadow move. Whether there is a plate at all is
     still ``plate_for``'s answer, because the callers read it for a second
-    thing as well -- artwork on a transparent background is a mark rather
-    than a photograph, so it is letterboxed rather than cover-cropped, and
-    that is true whichever backing it gets.
+    thing -- a mark rather than a photograph, so letterboxed rather than
+    cover-cropped either way. See docs/artwork-pipeline.md section 2.
     """
     from ..conf import settings
     from ..imageutil import Plate, plate_for
@@ -268,28 +256,17 @@ class TileGeom:
         )
 
     def scaled(self, f):
-        """A copy whose ARTWORK is scaled by factor ``f`` — the active theme's
+        """A copy whose ARTWORK is scaled by factor ``f`` -- the active theme's
         cover size, or the user's Cover Size setting.
 
-        **The type is not touched, and neither is the caption band.** Cover
-        Size used to scale ``title_size``/``sub_size``/``badge_size``/
-        ``caption_h`` along with the art, on the reasoning that a label under
-        a bigger poster should be bigger. Three things were wrong with that:
-
-        * it is a second, unlabelled text-size control, so a user who wanted
-          bigger covers got bigger captions they did not ask for -- and one
-          who wanted *smaller* covers (Extra Compact is 0.75) got captions
-          below the floor ``ui_text_min`` exists to enforce;
-        * the badge decorations do NOT scale with it. Every offset in
-          ``_paint_decorations`` is a fixed logical constant (the 22px disc,
-          ``BADGE_PITCH``, the 17px corner inset), so ``badge_size`` growing
-          alone put a 24px numeral in a 22px disc at Extra Large;
-        * text scaling already has two controls that do it properly and
-          keep working here -- ``ui_scale`` through :meth:`physical`, which
-          scales the whole interface including these, and ``ui_text_scale`` /
-          ``ui_text_min`` through :meth:`with_text_scale`, which is applied
-          *after* this and is what a theme's pinned caption size is measured
-          against.
+        **The type is not touched, and neither is the caption band.** Scaling
+        them too is a second, unlabelled text-size control; it drives captions
+        below the ``ui_text_min`` floor at Extra Compact, and it desynchronizes
+        ``badge_size`` from the fixed logical offsets in
+        ``_paint_decorations`` (a 24px numeral in a 22px disc). Text has two
+        controls that do it properly -- ``ui_scale`` via :meth:`physical` and
+        ``ui_text_scale``/``ui_text_min`` via :meth:`with_text_scale`, applied
+        after this. See docs/artwork-pipeline.md section 4.
 
         The gap is kept too, so rows keep their rhythm as the art grows.
         """
@@ -1063,27 +1040,20 @@ class StripStore:
     @staticmethod
     def _shadowed(img, layer, span, cx, cy):
         """Composite ``layer`` -- a mark on transparency, padded by
-        :meth:`shadow_pad` -- centred on (cx, cy), over a dark halo of its
-        own silhouette.
+        :meth:`shadow_pad` -- centred on (cx, cy), over a dark halo of its own
+        silhouette.
 
-        ``span`` is the size the blur is derived from: the mark's own, NOT
-        the padded layer's (which is computed from the blur, so measuring it
-        here would grow one every time the other grew to hold it). For a
-        glyph that is its box; for text it is the cap height, because what a
-        shadow is proportional to is the weight of the ink -- taking the
-        WIDTH made a three-digit count three times blurrier than a
-        one-digit one and gave it a 36px layer to live in, which centred
-        17px below the top of a card does not fit and was clipped.
+        ``span`` is the size the blur is derived from: the mark's own, NOT the
+        padded layer's, which is computed from the blur and would grow every
+        time the other grew to hold it. For text it is the CAP HEIGHT -- a
+        shadow is proportional to the weight of the ink, and taking the width
+        made a three-digit count three times blurrier than a one-digit one and
+        clipped it.
 
-        **Not ``imageutil.with_shadow``.** That one is tuned for a logo: a
-        large mark with margins, wanting a hint of separation from a plate it
-        is nearly the colour of, so its blur is a sixtieth of the image and
-        its alpha is a straight multiply. This is a 20px glyph over
-        *artwork*, which can be any colour including white, with nothing else
-        holding it up -- the halo is not a hint, it is the entire reason the
-        mark is visible. Hence a blur about a tenth of the mark, an offset
-        big enough to read as a direction rather than a ring, and a gain that
-        drives the middle of it opaque.
+        **Not ``imageutil.with_shadow``**, which is tuned for a logo wanting a
+        hint of separation from its plate. Here the halo is the entire reason a
+        20px glyph over arbitrary artwork is visible.
+        See docs/artwork-pipeline.md section 5.
         """
         from PIL import Image as PILImage, ImageFilter
 
@@ -1149,29 +1119,17 @@ class StripStore:
         """The unplayed-episode chip, centred on ``cx`` and pinned by its
         RIGHT edge. Returns the horizontal pitch the next badge must clear.
 
-        Sized to the number it carries, not to a guess about how big numbers
-        get. This was a fixed 26 logical px, which is three physical px
-        NARROWER than "123" draws at the default badge size -- so a
-        three-digit count (routine on an unwatched anime series, and
-        reachable by anyone who adds a show and never starts it) hung out of
-        both ends of its own chip. Two digits fitted, with 3px of padding
-        against the single digit's 8.
+        **Sized to the number it carries**, not to a guess about how big
+        numbers get: at a fixed 26 logical px a three-digit count hung out of
+        both ends of its own chip. jellyfin-web's `.countIndicator` grows the
+        same way (`padding: 0 .5em` over a min-width), and is likewise a
+        rounded rectangle where every other badge is a disc.
 
-        jellyfin-web's `.countIndicator` is the same shape and grows the same
-        way: `padding: 0 .5em` over a min-width. Pinned by its right edge
-        rather than its centre because that edge is the one lined up with the
-        badge stack beside it -- growing from the middle would walk a wide
-        chip off the corner of the card.
-
-        **A rounded rectangle where every other badge is a disc**, which is
-        web's split too: this one runs to three digits, while the version
-        count beside it is a count of files on disk and stays at one.
-
-        The returned pitch is the reason this is a function rather than four
-        lines inline. It sits IN the corner now (see
-        :meth:`_paint_decorations`), so unlike every disc in the stack the
-        badge to its left has to clear a width that depends on the text --
-        BADGE_PITCH is a floor here, not the answer.
+        Pinned by its right edge because that edge lines up with the badge
+        stack beside it. The returned pitch is why this is a function: it sits
+        IN the corner, so the badge to its left must clear a width that
+        depends on the text -- BADGE_PITCH is a floor here, not the answer.
+        See docs/artwork-pipeline.md section 5.
         """
         font = _font(size, bold=True)
         right = cx + _px(13)

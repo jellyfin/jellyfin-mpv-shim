@@ -128,23 +128,11 @@ class Settings(SettingsBase):
     #: system RAM).
     #:
     #: **Off by default, and that follows mpv rather than the other
-    #: clients.** mpv's manual on turning it on: "acknowledge that this may
-    #: cause problems", and its maintainers decline to default it on
-    #: (mpv#12948) because particular vendor/GPU combinations are badly
-    #: broken -- AMD vaapi on Linux causing GPU resets, vp9 on Intel Macs
-    #: hanging mpv before the window even opens. Jellyfin Media Player did
-    #: default it on and it worked for most people; this is about the tail
-    #: it did not work for, who are disproportionately the people on
-    #: hardware that needed it.
-    #:
-    #: "over-1080p" is the option that exists because *we* can do what mpv
-    #: cannot: the source resolution is in the DTO before playback starts,
-    #: so decoding can be software where software is fine and hardware only
-    #: where it is not. Most hardware of the last decade decodes 1080p
-    #: without help, and often looks better doing it.
-    #: Draw the item's own poster inset into a detail page's header (#7).
-    #: A film's or series' key art, beside the backdrop it is normally
-    #: shown against everywhere else.
+    #: clients** -- particular vendor/GPU combinations are badly broken, and
+    #: the tail it fails for is disproportionately the people who needed it.
+    #: "over-1080p" exists because *we* can do what mpv cannot: the source
+    #: resolution is in the DTO before playback starts.
+    #: See docs/mpv-backends.md section 10.
     detail_poster: bool = True
     #: The same slot on an *episode*, where the artwork is a still.
     #:
@@ -158,56 +146,27 @@ class Settings(SettingsBase):
     #: mpv's ``--deinterlace=auto``: deinterlace only what the file says is
     #: interlaced, rather than everything or nothing.
     #:
-    #: **Off by default, which is also mpv's default**, and the reason is
-    #: that the flag is not reliable. Plenty of interlaced DVD and broadcast
-    #: rips are not marked, and plenty of progressive files carry the flag
-    #: from whatever produced them -- so auto is right much more often than
-    #: it is wrong, but the case where it is wrong (deinterlacing
-    #: progressive video) softens a picture that was fine. The per-session
-    #: toggle in the playback HUD's gear menu is the answer for the other
-    #: half, the file that IS interlaced and does not say so -- it lasts
-    #: until the library comes back or the window is closed.
-    #:
-    #: ``auto`` is mpv 0.38+. An older build rejects the value, and the
-    #: setting then behaves as off -- see PlayerManager._apply_deinterlace,
-    #: which will not substitute ``yes``: forcing deinterlacing on
-    #: everything is not a degraded version of this, it is a different and
-    #: worse setting.
+    #: **Off by default, which is also mpv's default**, because the flag is
+    #: unreliable in both directions. The HUD gear menu's per-session toggle
+    #: covers the other half. ``auto`` is mpv 0.38+; an older build rejects
+    #: the value and this behaves as off -- see
+    #: PlayerManager._apply_deinterlace, which will NOT substitute ``yes``,
+    #: since forcing deinterlacing on everything is a different and worse
+    #: setting rather than a degraded version of this one.
+    #: See docs/mpv-backends.md section 10.
     deinterlace_auto: bool = False
     #: mpv frame interpolation -- ``video-sync=display-resample`` plus
     #: ``interpolation`` and a ``tscale`` filter. See
     #: mpv_options.INTERPOLATION_PRESETS for what each value writes.
     #:
-    #: **This is frame BLENDING, not motion compensation.** It resamples
-    #: along the time axis so a 24fps film on a 60Hz screen stops
-    #: repeating frames unevenly; it does not synthesise motion the way
-    #: SVP does. That was looked at and rejected [iw]: it is paid on Linux
-    #: now, and its dependencies are heavy enough that shipping them is
-    #: not on the table.
+    #: **This is frame BLENDING, not motion compensation** -- it resamples
+    #: along the time axis, it does not synthesise motion the way SVP does.
     #:
-    #: Off by default, and the reason is not that it is expensive. Measured
-    #: on a 9950X3D + RTX 4090 [iw], it dropped frames badly -- on a
-    #: MULTI-MONITOR X11 desktop whose screens run at different refresh
-    #: rates (144Hz beside two at 60). That is not a hardware limit, it is
-    #: mpv reading the wrong clock: "on multi-monitor systems, there is a
-    #: chance that the detected value is from the wrong monitor", and
-    #: "setting an incorrect value (even if slightly incorrect) can ruin
-    #: video playback" (mpv's manual, --display-fps-override). All three
-    #: modes follow that clock, so all three inherit the problem, and it is
-    #: a common enough desktop for the default to have to assume it.
-    #:
-    #: The first thing to try is mpv's own
-    #: ``display-fps-override=<the refresh of the screen you watch on>`` in
-    #: the user's mpv.conf -- but it did NOT fix the machine above [iw], so
-    #: the mismatched-desktop case is not fully understood and this is not
-    #: a workaround to promise anyone. Deliberately not a setting of ours
-    #: either way: we would be guessing at which monitor, which is the
-    #: thing that is already wrong.
-    #:
-    #: It also costs GPU on every frame, mpv reverts to audio timing on its
-    #: own for low-framerate or VFR content, and ``display-resample``
-    #: adjusts audio speed to track the display -- which is exactly what
-    #: somebody bitstreaming to a receiver does not want.
+    #: Off by default, and the reason is not that it is expensive: all three
+    #: modes follow mpv's display clock, which mpv's own manual warns can be
+    #: read from the wrong monitor on a mixed-refresh desktop. Measured
+    #: dropping frames badly on exactly such a desktop.
+    #: See docs/mpv-backends.md section 10.
     motion_interpolation: str = "off"
     always_transcode: bool = False
     transcode_hi10p: bool = False
@@ -304,26 +263,16 @@ class Settings(SettingsBase):
     #               renderer.lua) -- that is a mitigation, not a mode.
     #   aligned     always draw aligned to the nearest row or home-screen
     #               section. The wheel still moves by pixels and the
-    #               scrollbar still glides; only the content steps. Makes the
-    #               above mitigation permanent, for a display the measurement
-    #               reads as keeping up when the user can see that it is not.
+    #               scrollbar still glides; only the content steps.
     #   row         one wheel notch moves exactly one row or section, and the
-    #               scrollbar steps with it. An accessibility escape hatch,
-    #               and the oldest behaviour.
+    #               scrollbar steps with it. An accessibility escape hatch.
     #
-    # Was two booleans, snapped_scrolling and force_scroll_snapping, which
-    # named the same word twice for different things and could be combined
-    # into a state that meant nothing (`row` already draws aligned, so
-    # forcing alignment on top of it did nothing at all).
-    #
-    # Deliberately NOT migrated, though snapped_scrolling shipped in
-    # pre-releases and people did set it. They set it because continuous
-    # scrolling had been taken away, so it is a record of the best thing
-    # available at the time rather than a preference for stepping -- and
-    # carrying it forward would keep exactly the people who worked around
-    # that on the workaround, with the fix sitting one dropdown away and no
-    # reason to look for it. Both old keys load as "ignored" (which is
-    # logged) and everyone starts on continuous.
+    # Replaces snapped_scrolling and force_scroll_snapping. Both old keys
+    # load as "ignored" (logged) and everyone starts on continuous --
+    # deliberately NOT migrated, because people set them to work around
+    # continuous scrolling being unavailable, so carrying them forward would
+    # pin exactly those users to the workaround with the fix one dropdown
+    # away.
     scroll_mode: str = "continuous"
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to

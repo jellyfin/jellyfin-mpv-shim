@@ -1127,7 +1127,7 @@ end
 --
 -- A field on `state` rather than a file-scope local: this chunk is AT
 -- LuaJIT's 200-local ceiling, and one more is a load error rather than a
--- warning (mpvtk GUIDE; CLAUDE.md says the same).
+-- warning (mpvtk GUIDE).
 function state.text_px(v)
     return math.max(
         math.floor(v * (state.scale or 1) * (state.tscale or 1) + 0.5),

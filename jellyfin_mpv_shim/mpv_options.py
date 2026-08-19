@@ -11,6 +11,8 @@ directory-creating half of the original block (``conffile.get_dir`` /
 ``conffile.get``) deliberately stayed behind: ``confdir`` is a path lookup
 and safe to call, but creating the config tree is a side effect and belongs
 with the code that is actually starting a player.
+
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

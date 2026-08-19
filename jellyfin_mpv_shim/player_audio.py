@@ -34,6 +34,8 @@ gateway modules and ``mpvtk_browser/ui.py`` already use.
 The logger is ``player`` rather than ``player.audio`` on purpose -- the log
 format prints the logger name, and these messages have been landing in users'
 log.txt under "player" for as long as the feature has existed.
+
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

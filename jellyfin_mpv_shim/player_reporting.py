@@ -34,6 +34,8 @@ takes it on the worker.
    The remaining SyncPlay defects found in the same trace -- including an
    ABBA inversion between ``_lock`` and ``_tl_lock`` that this module is one
    half of -- are written up in ``docs/archive/SYNCPLAY_FINDINGS.md``.
+
+Before editing this file, read ``docs/mpv-backends.md``.
 """
 
 import logging

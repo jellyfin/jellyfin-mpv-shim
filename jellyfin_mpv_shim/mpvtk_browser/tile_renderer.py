@@ -1,38 +1,27 @@
-"""``TileRenderer`` — artwork plumbing and tile/row/grid construction.
+"""``TileRenderer`` -- artwork plumbing and tile/row/grid construction.
 
-Step 6b of ``docs/archive/ARCHITECTURE_TARGET.md`` §3.1, the larger half. These are
-the helpers that made page conversion impossible: measuring the five
-remaining ``ViewsMixin`` renderers against ``PageContext`` gave 50 uses of
-the ``ctx.shell`` escape hatch against a budget of 9, and this class is what
-most of them were reaching for.
-
-They are components by §1.4's test — they need render resources and
-callbacks, never ``nav``, ``source`` or ``route`` — they were simply not
-*pure*, so step 1 could not take them. What they need instead is:
+A component by ``docs/archive/ARCHITECTURE_TARGET.md`` §1.4's test: it needs
+render resources and callbacks, never ``nav``, ``source`` or ``route``. What it
+takes instead:
 
 ``art``
-    Render resources: the strip store, the thumbnail store, and the three
-    tile geometries. Held live rather than snapshotted, because the browser
-    swaps its stores when mpv is re-created.
+    Render resources: the strip store, the thumbnail store, and the three tile
+    geometries. Held live rather than snapshotted, because the browser swaps
+    its stores when mpv is re-created.
 ``scroll``
     A :class:`~.scroll_state.ScrollState`. Virtualized rows are windowed
-    against it, which is why the two extractions had to happen together —
-    doing them apart means threading a callback between two half-built
-    objects.
+    against it, which is why it and ``art`` had to be extracted together --
+    apart means threading a callback between two half-built objects.
 
-Plus three callbacks for things only the shell can answer: what a tile click
-should do, whether keyboard navigation is engaged (carousel arrows hide
-under the mouse), and the live app handle (page-scroll buttons drive the
-renderer directly).
+Plus three callbacks for what only the shell can answer: what a tile click
+should do, whether keyboard navigation is engaged (carousel arrows hide under
+the mouse), and the live app handle (page-scroll buttons drive the renderer
+directly). The downloaded-id sets live here because the badge is the only
+thing that reads them.
 
-The downloaded-id sets live here rather than on the browser: the badge is
-the only thing that reads them, and ``set_downloaded`` is called from the
-shell's catalog refresh.
-
-What deliberately did NOT move is the tile context menu. It needs ``route``,
-``navigate``, ``run_async`` and the gateway — it is page work, not
-rendering, and pulling it in would have made this class the god object with
-a new name.
+What deliberately did NOT move is the tile context menu: it needs ``route``,
+``navigate``, ``run_async`` and the gateway, so it is page work rather than
+rendering. Shapes, plating and decorations are in docs/artwork-pipeline.md.
 """
 
 import dataclasses
@@ -563,34 +552,16 @@ class TileRenderer:
         """Whether this artwork must be drawn WHOLE rather than filling the
         tile. **Contain is the default; one pairing covers.**
 
-        The one is a POSTER GOING INTO A POSTER TILE. There, cropping is
-        free -- a few percent off the edge of a 2:3 key art loses nothing and
-        the grid comes out perfectly uniform, which is most of what a wall of
-        posters is for -- and it is the case where the two are close enough
-        that a contain would only add thin bars.
+        The one is a POSTER GOING INTO A POSTER TILE, where a crop costs a few
+        percent off 2:3 key art and buys a perfectly uniform grid. Everywhere
+        else the tile and the artwork can disagree by a lot -- a Home Videos
+        library, one film in a row of episodes, a wordmark with no frame it
+        was cut for -- and a crop is destructive in proportion.
 
-        Everywhere else the tile and the artwork can disagree by a lot, and a
-        crop is destructive in proportion to the disagreement:
-
-        * A **Home Videos** library is arbitrary footage. 4:3, phone video
-          shot in portrait, and 16:9 all sit in one grid, so whatever shape
-          the row takes, most of what goes in it is the wrong shape for it.
-        * A **film in a playlist of episodes**. ``auto_geom`` shapes a row
-          from the MEDIAN aspect ratio, which is the right call for the row
-          and necessarily the wrong one for its minority: the row comes out
-          landscape and the one 2:3 poster in it gets its top and bottom
-          taken off.
-        * A **Logo** is a wordmark on transparency, with no frame it was cut
-          for; a **Banner** standing in for one would be cropped to exactly
-          the title it was borrowed for. Both used to be named here as
-          exceptions and are now simply covered by the default.
-
-        The per-row shape decision cannot fix any of that, because the
-        mismatch is per ITEM. This is the half that can.
-
-        Note this is nearly free where it changes nothing: when the artwork
-        and the tile already agree, contain and cover produce the same
-        picture. It only diverges where cover was destroying something.
+        The per-row shape decision cannot fix that, because the mismatch is
+        per ITEM; this is the half that can. Nearly free where it changes
+        nothing: agreeing artwork gives the same picture either way.
+        See docs/artwork-pipeline.md section 3.
         """
         if geom is None:
             return True                      # unknown shape: the safe answer
@@ -758,24 +729,12 @@ class TileRenderer:
             return iid in self._downloaded_seasons
         return t == "Playlist" and iid in self._downloaded_playlists
     #: Banner widths are rounded up to a multiple of this before they reach
-    #: the artwork cache.
-    #:
-    #: The cache keys on exact pixel dimensions, and the banner used to be a
-    #: *continuous* function of the window width -- so dragging a window edge
-    #: across 400px asked the server for up to 400 different backdrops, decoded
-    #: 400 bitmaps and kept them all resident until the LRU pushed them out.
-    #: That is issue #592, and it is why a resize both hammered the access log
-    #: and ballooned memory.
-    #:
-    #: jellyfin-web does the same thing for the same stated reason -- it rounds
-    #: the screen width down to a multiple of 100 "to improve cache hits"
-    #: (cardBuilder.js:126-129). 128 rather than 100 because these are pixels
-    #: in a cache key, not a CSS breakpoint: it makes at most nine distinct
-    #: banner widths between a small window and the 1100 cap.
-    #:
-    #: Rounding UP, not down, so the bitmap is never asked to upscale -- a
-    #: banner drawn slightly wider than requested is cropped by the compositor,
-    #: which is invisible; one drawn narrower is soft.
+    #: the artwork cache, because the cache keys on exact pixel dimensions and
+    #: a continuous width asks for a new picture on every pixel of a drag
+    #: (#592). Rounding UP, never down, so a bitmap is never upscaled -- wider
+    #: than requested is cropped invisibly, narrower is soft.
+    #: 128 rather than web's 100 because these are cache-key pixels, not a CSS
+    #: breakpoint. See docs/artwork-pipeline.md section 9.
     BANNER_STEP = 128
 
     def full_bleed_header(self, item=None):
@@ -946,21 +905,15 @@ class TileRenderer:
         if not spec or spec == backdrop_spec:
             return None, ""
         item_id, itype, itag = spec
-        # `box` arrives PHYSICAL from backdrop_node (it rastered it), and
-        # poster_box works in the same units -- so rastering again asked the
-        # server for a poster at scale-squared on any HiDPI display, and
-        # cached it under a key the drawn size never matches.
+        # `box` arrives PHYSICAL from backdrop_node and poster_box works in the
+        # same units, so rastering again asks for a poster at scale-squared on
+        # HiDPI and caches it under a key the drawn size never matches.
         #
-        # Quantised for the same reason the backdrop's own width is
-        # (`_banner_fetch_w`), and this is the axis that was left uncovered:
-        # the slot is a FRACTION of the banner, so it moves with every pixel
-        # of the banner's width, and the banner's width is continuous in the
-        # window's. A drag-resize therefore minted a poster request roughly
-        # every four pixels. Padded headers hid most of it behind the 1100
-        # cap -- above that window width the slot stops moving -- but a
-        # full-bleed header has no cap, so there it ran for the whole drag.
-        # Up, never down, so the fetched poster is only ever shrunk into its
-        # slot by `_paste_poster`.
+        # Quantised for the same reason the banner's own width is, and this is
+        # the axis that was left uncovered: the slot is a FRACTION of the
+        # banner, so a drag-resize minted a poster request every few pixels --
+        # unbounded on a full-bleed header, which has no 1100 cap.
+        # Up, never down. See docs/artwork-pipeline.md section 9.
         pw = self._poster_fetch(int(slot[2]))
         ph = self._poster_fetch(int(slot[3]))
         # `pw` only: the request is `maxWidth=pw` (image_url's non-fill
@@ -993,30 +946,22 @@ class TileRenderer:
         """A backdrop banner for detail/series headers.
 
         With ``title`` the heading is *baked into the bitmap* over a bottom
-        gradient, like the Tk browser did — text drawn as ASS would sit
-        under the image (bitmaps composite above all script ASS), and the
-        occlude punch would show the window background rather than the
-        artwork.
+        gradient -- text drawn as ASS would sit under the image, since bitmaps
+        composite above all script ASS.
 
         **The waiting state bakes the same heading over a flat panel**, and
-        that is not cosmetic. Baking the heading into the artwork means the
-        heading is *inside* the banner's fixed box when the art is there and
-        has to be drawn somewhere else when it is not — so a header that drew
-        it below the banner while waiting moved everything under it (play
-        buttons included) the moment the image arrived, by the height of up
-        to three text blocks. Composing the placeholder through the same
-        function fixes the geometry at the first paint, keeps the text in
-        the same place within the banner rather than merely reserving blank
-        space, and leaves the title readable if the fetch never succeeds —
-        `_request_image` gives up after ``IMG_MAX_ATTEMPTS``, and a permanent
-        failure would otherwise be an anonymous grey panel forever.
+        that is not cosmetic: the heading is inside the banner's fixed box
+        when the art is there, so a header that drew it below the banner while
+        waiting moved everything under it (play buttons included) the moment
+        the image arrived. Composing the placeholder through the same function
+        fixes the geometry at the first paint and leaves the title readable if
+        the fetch never succeeds.
 
-        A plain placeholder Box is returned only when the item has no
-        artwork **of any kind** -- no backdrop and no poster to inset --
-        because then there is no baked heading to match and the caller draws
-        its own. :meth:`header_bakes_heading` is how a caller tells
-        the two apart — *not* the returned node's type, which cannot distinguish
-        "none" from "not yet".
+        A plain placeholder Box comes back only when the item has no artwork
+        **of any kind**, because then there is no baked heading to match.
+        :meth:`header_bakes_heading` is how a caller tells the two apart --
+        *not* the returned node's type, which cannot distinguish "none" from
+        "not yet". See docs/artwork-pipeline.md section 6.
         """
         spec = None
         if self.art.server is not None:
@@ -1039,25 +984,13 @@ class TileRenderer:
             # the pixels". That was measured and is false -- see below --
             # so the reasoning is gone with the parameter it justified.
             fetch_w = self._banner_fetch_w(pbox[0])
-            # **maxWidth, not fill.** The fill parameters ask the server to
-            # produce a picture of a shape it does not have, and every part
-            # of that turned out to be a cost with no benefit:
-            #
-            # * it does not crop. Measured on 12.0, `fillWidth`/`fillHeight`
-            #   scale the artwork to COVER the box and hand back the whole
-            #   frame, so the shape we asked for bought nothing;
-            # * it forces a re-encode. The same backdrop is 115 KB as
-            #   `maxWidth` (the file, untouched) and 462 KB through fill --
-            #   four times the bytes and a server-side resize per header;
-            # * the height was in the cache key, and after the decode box
-            #   stopped depending on it, each 64px step of a drag-resize
-            #   stored another byte-identical copy of one picture.
-            #
-            # A reporter's access log is what turned this up: a
-            # `fillWidth=3328&fillHeight=576` for a backdrop that is 1920
-            # wide [iw]. The crop is ours to do -- `compose_banner`'s
-            # `scale_to_cover` was always going to redo it anyway -- so all
-            # we want from the server is "this picture, no wider than this".
+            # **maxWidth, not fill.** Measured on 12.0: the fill parameters do
+            # not crop (they cover and return the whole frame), they force a
+            # re-encode at four times the bytes, and the height lands in the
+            # cache key. The crop is ours to do anyway -- `compose_banner`'s
+            # `scale_to_cover` would redo it -- so all we ask the server for is
+            # "this picture, no wider than this".
+            # See docs/jellyfin-api-notes.md on image requests.
             fetch_key = make_key(owner_id, itype, tag, fetch_w)
             url = self.art.source.backdrop_url(self.art.server, item,
                                                width=fetch_w, fill=False)
@@ -1409,21 +1342,15 @@ class TileRenderer:
         chip = None
         # **An item can legitimately appear twice in one row**, and the id is
         # built from its item id -- so two tiles got one id, and `layout`'s
-        # duplicate-id warning says what that costs: "renderer state and
-        # events will target only the last occurrence". Hovering or clicking
-        # the FIRST of the pair drove the second.
+        # duplicate-id warning says what that costs: "renderer state and events
+        # will target only the last occurrence". Hovering or clicking the FIRST
+        # of the pair drove the second. Seen on Cast & Crew (one person, two
+        # credits), but a playlist or a queue can hold the same track twice.
         #
-        # The Cast & Crew row is where [iw] saw it (a person credited as
-        # both Actor and Director is two credits and two tiles -- confirmed
-        # on a real server), but it is not people-specific: a playlist can
-        # hold the same track twice and so can a queue.
-        #
-        # Disambiguated by position, and ONLY for a key that really repeats.
-        # Suffixing everything would be simpler to read and would rename
-        # every hit region in the app for a case that almost never happens;
-        # the id is internal (nothing parses it, nothing persists it), but
-        # it is also what hover and spatial focus are tracked by, and this
-        # keeps that churn to the rows that are actually broken.
+        # Disambiguated by position, and ONLY for a key that really repeats:
+        # the id is what hover and spatial focus are tracked by, so suffixing
+        # everything would rename every hit region in the app for a case that
+        # almost never happens.
         repeated = Counter(r["key"] for r in s["regions"])
         for i, (r, it) in enumerate(zip(s["regions"], items)):
             if not it:
@@ -1741,29 +1668,15 @@ class TileRenderer:
     def grid_pad(self, w, geom, cols=None):
         """Horizontal padding for a grid, so its two margins match.
 
-        A whole number of tiles rarely divides the available width exactly,
-        and the remainder used to land entirely on the right: at some window
-        sizes that is most of a tile's width of empty background down one
-        side, which reads as the page being misaligned rather than as a grid
-        fitting what it can fit. Split it evenly instead.
+        A whole number of tiles rarely divides the width exactly, and the
+        remainder used to land entirely on the right -- at some sizes most of a
+        tile's width down one side, which reads as misalignment rather than as
+        a grid fitting what it can.
 
-        Measured against ``body_w`` -- inside the scrollbar gutter, when
-        there is one -- because the bar is furniture the reader can see.
-        Centring against the whole window would push the block half a
-        scrollbar to the left of centre, which is the same fault smaller.
-
-        Returned as a padding rather than applied to the rows, so the header
-        above the grid moves with it and the title stays aligned with the
-        first tile in the first column.
-
-        There used to be a residual here: ``body_w`` subtracts the scrollbar
-        gutter, and the gutter was reserved only when a page actually
-        scrolled, so a grid short enough not to scroll sat 10px left of
-        centre -- unknowable at this point, because whether the bar appears
-        was a function of the laid-out height. ``layout._arrange_scroll``
-        reserves it unconditionally now (and renderer.lua paints the track
-        whenever it is reserved), so ``body_w`` is right either way and
-        there is nothing left to trade off.
+        Measured against ``body_w`` (inside the scrollbar gutter) because the
+        bar is furniture the reader can see. Returned as a padding rather than
+        applied to the rows, so the header moves with it and the title stays
+        aligned with the first tile. See docs/artwork-pipeline.md section 7.
         """
         cols = self.cols(w, geom) if cols is None else cols
         used = cols * geom.tile_w + max(0, cols - 1) * geom.gap
