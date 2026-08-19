@@ -3,20 +3,13 @@
 The page itself is not drawn here at all: it is handed to mpv as a file to
 display, and mpv's ``video-zoom`` / ``video-pan-x`` / ``video-pan-y`` are
 the zoom and the scroll. What this module draws is two bars over the top of
-it, which is the same thing the playback HUD does over video.
+it, the same thing the playback HUD does over video — **a third window
+state**, argued in ``docs/readers.md`` §5.2.
 
-**That makes this a third window state** — a picture in the window with the
-library's own chrome on top — and ``gateway/picture.py`` is where the case
-for it is argued. The short version: ``PlayerManager`` keys its queue,
-reporting and idle-quit off ``self._video``, which stays None here, so
-nothing has to be told that the window is busy.
-
-**The page size is read from the file's header, not from mpv.** Pillow
-parses a JPEG header in well under a millisecond without decoding a pixel,
-and knowing the size *before* the load is what lets the zoom be set in the
-same breath as the picture. Asking mpv means asking repeatedly until it has
-decoded, which is a poll loop in the render path for a number that was
-sitting in the first two hundred bytes of the file.
+**The page size is read from the file's header, not from mpv**, because
+knowing it *before* the load is what lets the zoom be set in the same
+breath as the picture; asking mpv is a poll loop in the render path. See
+``docs/readers.md`` §5.
 """
 
 import logging
@@ -150,9 +143,9 @@ class ComicPage(Page):
         """Leave the window as we found it.
 
         Called by the shell when this route stops being the screen. Both
-        halves matter: the picture is mpv's, so nothing else will take it
-        down and the comic would sit behind the library grid; and the
-        extracted pages are files, which nothing else will delete.
+        halves matter: the picture is mpv's, so leaving without clearing it
+        leaves the comic behind the library grid (``docs/readers.md`` §5.2);
+        and the extracted pages are files, which nothing else will delete.
         """
         self.route.pop("_showing", None)
         archive = self.route.pop("_comic", None)
@@ -239,12 +232,11 @@ class ComicPage(Page):
     def _resume_page(self, archive):
         """Where the server says this reader had got to.
 
-        A comic's position is a **page index** — ``books.progress_of``
-        returns it 1-based — and unlike an epub's it is a number every
-        other client shows you, which is why the Progress dialog offers to
-        set it. Clamped to what is actually in the archive: the count the
-        server probed is its own count of the entries, and a file added or
-        removed since would otherwise resume past the end.
+        A comic's position is a **page index**, 1-based out of
+        ``books.progress_of`` (``docs/readers.md`` §2). Clamped to what is
+        actually in the archive: the count the server probed is its own
+        count of the entries, and a file added or removed since would
+        otherwise resume past the end.
         """
         data = self.route.get("_data") or {}
         item = data.get("item") or {}
@@ -256,13 +248,11 @@ class ComicPage(Page):
     def _save_position(self, index):
         """Report the page back, so every other client resumes here too.
 
-        Fire and forget, like the epub reader's: a failed write costs the
-        position elsewhere, and blocking a page turn on a round trip would
-        cost the reading. And like the epub reader's, it goes through
-        ``record_reading_position`` so a page turned with the server away
-        reaches the local catalog and the replay queue rather than nowhere. The DTO in hand is updated as well — this page's
-        own copy; the book page below holds a different dict, which
-        ``_land_back`` reloads on the way out.
+        Fire and forget, like the epub reader's, and through
+        ``record_reading_position`` for the reasons in ``docs/readers.md``
+        §2.2. The DTO in hand is updated as well — this page's own copy; the
+        book page below holds a different dict, which ``_land_back`` reloads
+        on the way out.
         """
         data = self.route.get("_data") or {}
         item = data.get("item") or {}
@@ -284,10 +274,9 @@ class ComicPage(Page):
     def on_picture_gesture(self, kind, evt):
         """A wheel notch off the end of the page, or ctrl+wheel.
 
-        Everything *inside* a page — the drag, the wheel that still has
-        somewhere to go — is the renderer's and never reaches here. What
-        arrives is only the two answers it cannot give: which page is next,
-        and what a zoom step means.
+        Everything *inside* a page is the renderer's and never reaches here
+        (``docs/readers.md`` §5.6). What arrives is only the two answers it
+        cannot give: which page is next, and what a zoom step means.
         """
         if kind == "vzoom":
             self._step_zoom(1 if (evt.get("dir") or 0) > 0 else -1)
@@ -318,10 +307,10 @@ class ComicPage(Page):
     def mode(self):
         """The reading mode, from the route or from the setting behind it.
 
-        Read here rather than captured when the page opened, for the same
-        reason the reader reads its type size per frame: Settings is
-        reachable from the tray while a comic is up. The route still holds
-        it so that a mode is not written to disk before it is asked for.
+        A setting, not page state, read per call rather than captured —
+        Settings is reachable from the tray while a comic is up
+        (``docs/readers.md`` §5.6). The route still holds it so that a mode
+        is not written to disk before it is asked for.
         """
         mode = self.route.get("_mode")
         if mode in (FIT_WIDTH, FIT_PAGE):
@@ -362,11 +351,11 @@ class ComicPage(Page):
     def _push_pan(self, size, window, zoom, bounds):
         """Hand the renderer the gesture model for this page.
 
-        Everything continuous — the drag, the wheel — happens over there
-        against mpv's own properties, so this is the whole of the
-        conversation: the clamp, and the pixel size the pan unit is
-        measured in. Re-sent on every zoom, page and resize, because all
-        three change it.
+        Everything continuous happens over there against mpv's own
+        properties (``docs/readers.md`` §5.6), so this is the whole of the
+        conversation: the clamp, and the pixel size the pan unit is measured
+        in. Re-sent on every zoom, page and resize, because all three change
+        it.
         """
         setter = getattr(self.ctx.art, "set_picture_pan", None)
         if setter is None:
@@ -410,9 +399,8 @@ class ComicPage(Page):
         self.route["_mode"] = mode
         self.route["_zoom"] = 1.0
         # Sticky: through config.set_setting rather than by assigning to
-        # settings, so it is coerced and written the same way the Settings
-        # form writes it. The next comic opens the way this one is being
-        # read.
+        # settings, so it is coerced and validated the same way the Settings
+        # form writes it (readers.md §5.6).
         from .. import config
 
         try:

@@ -464,21 +464,14 @@ class SyncDB:
     def watched_targets(self, item_id, server_uuid=None):
         """Which downloaded rows a watched mark for ``item_id`` covers.
 
-        An id from the library is not always a leaf: the tick on a series or
-        a season means every episode under it, which is what the server does
-        with the same request (``Folder.MarkPlayed`` fans out to children).
-        The catalog holds leaves only, so the fan-out is a scan of it rather
-        than a question anyone can be asked -- and offline there is nobody
-        to ask at all, which is why it is resolved here rather than read off
-        the item.
+        An id from the library is not always a leaf: a tick on a series or a
+        season means every episode under it, as the server does with the same
+        request (``Folder.MarkPlayed`` fans out). The catalog holds leaves only,
+        so the fan-out is a scan of it -- there is nobody to ask with the server
+        away, which is the point of holding the rows locally.
 
-        Here rather than on the manager because every part of it is a
-        catalog read, and because the offline path reaches this through a
-        catalog handle it already has.
-
-        Returns ``[(item_id, server_uuid)]``, empty when nothing we hold is
-        covered. ``server_uuid`` is the fallback for a row written before
-        that column was populated.
+        Answers with nothing for an item we hold no copy of, which is what lets
+        callers stay unconditional. See docs/offline-sync.md section 1.
         """
         if not item_id:
             return []
@@ -492,29 +485,15 @@ class SyncDB:
         """Store a deliberate watched mark **verbatim**, both directions.
 
         The one non-advancing writer of this column, and the reason it is a
-        separate method rather than a flag on ``update_userdata``: every
-        caller of that one is playback, where a value that went backwards is
-        a stale report rather than a change of mind. A person choosing "Mark
-        Unwatched" is the opposite -- it is the only thing they could have
-        meant, and advance-only made it the one deliberate action in the app
-        that silently did nothing to the copy on disk. Offline browsing then
-        showed the tick it had just been told to remove, and "delete watched
-        downloads" was still counting the item as fair game.
+        separate method rather than a flag on ``update_userdata``: every caller
+        of that one is playback, where a value that went backwards is a stale
+        report rather than a change of mind.
 
-        Mirrors what the server does with the same request, which is what
-        keeps the next sweep from looking like a change (measured against
-        ``BaseItem.MarkPlayed`` / ``ResetPlayedState``, with the controller
-        passing ``resetPosition: true``): marking played clears the resume
-        point and puts the play count at least at one; marking unplayed
-        clears the position, the count and the last-played date as well as
-        the flag. ``PlayedPercentage`` is derived and is dropped either way,
-        so a stale server-seeded value cannot shadow the new state.
-
-        Returns whether anything moved -- the callers use it to decide
-        whether the browser needs redrawing. Local only: what is *sent* to
-        the server is the caller's business, and the offline replay queue
-        stays advance-only (``upsert_playstate``) so a client that has been
-        away cannot rewind another device.
+        Before this existed every writer was advance-only, so an item un-watched
+        from this app's own menu stayed watched on disk forever. What the
+        server's own MarkPlayed/ResetPlayedState write is in
+        docs/jellyfin-api-notes.md section 10; all six local writers and their
+        directions are in docs/offline-sync.md section 1.
         """
         with self._lock:
             if self._conn is None:

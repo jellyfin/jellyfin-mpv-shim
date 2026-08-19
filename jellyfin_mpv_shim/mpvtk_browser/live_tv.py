@@ -6,15 +6,10 @@ the parts that are easy to get subtly wrong (timezones, cell widths, the
 The I/O lives in ``repository.LibrarySource`` and ``gateway/livetv.py``; the
 widgets live in ``pages/livetv.py`` and ``guide_view.py``.
 
-**The preferences are jellyfin-web's, in jellyfin-web's storage.** Guide
-indicators, channel order and favourites-first are keys in the same
-DisplayPreferences ``CustomPrefs`` document the home layout uses (id
-``usersettings``, client ``emby`` — see ``home_sections``). That is not
-incidental compatibility: a user who sorts their guide by channel number in
-the web client expects the same order here, and writing these anywhere else
-would give them two settings with one name. Values are stored as the
-*strings* jellyfin-web writes ("true"/"false"), because that client compares
-them as strings and a real JSON boolean reads as neither.
+The preferences here are jellyfin-web's, written into jellyfin-web's own
+DisplayPreferences document as "true"/"false" *strings* — why that matters is
+``docs/live-tv.md`` section 8, and the wire format is
+``docs/jellyfin-api-notes.md`` section 7.
 """
 
 import datetime
@@ -137,16 +132,11 @@ def prefs_to_custom(prefs):
 def category_kwargs(categories):
     """``get_channels`` flags for a category selection.
 
-    Empty (or all four) means "no filter at all", which is what jellyfin-web
-    sends and is not the same as passing all four: the server's ``IsMovie``
-    is a column predicate while ``IsSports``/``IsNews``/``IsKids`` become a
-    tag filter, so the four together read as "a movie that is also tagged
-    sports and news and kids" and match nothing.
-
-    **Channels only.** The guide's programmes are filtered by drawing (see
-    :func:`program_displayed`), because that is what jellyfin-web does and
-    because sending these to ``LiveTv/Programs`` would AND them the same
-    way — a two-category guide came back empty.
+    **Channels only** — the guide's programmes are filtered by *drawing*
+    (:func:`program_displayed`); sending these to ``LiveTv/Programs`` instead
+    ANDs them together and the guide comes back empty. Empty or all four
+    means no filter. ``docs/live-tv.md`` section 9,
+    ``docs/jellyfin-api-notes.md`` section 9.3.
     """
     picked = {c for c in (categories or ()) if c in CATEGORIES}
     if not picked or picked == set(CATEGORIES):
@@ -158,21 +148,11 @@ def program_displayed(item, categories):
     """Whether a guide cell draws its contents under the category filter.
 
     jellyfin-web's ``getChannelProgramsHtml`` ladder. The cell itself is
-    always drawn — only its *contents* are suppressed — which is what keeps
-    a filtered guide a grid rather than a field of gaps, and what lets the
-    programme still be opened.
-
-    A programme in none of the four categories (and a plain series) is
-    hidden whenever any filter is on. That looks arbitrary but is exactly
-    jellyfin-web: its "series" pseudo-category is only ever added when all
-    four boxes are ticked, i.e. when there is no filter at all.
-
-    **One deliberate divergence.** Zero boxes ticked reads as "no filter"
-    here and as "hide everything" in jellyfin-web, which always appends an
-    "all" sentinel so the empty selection is still a selection. Its version
-    draws a grid of blank cells and offers no way back except the settings
-    dialog; a filter that hides its own escape hatch is not worth
-    reproducing.
+    always drawn and only its *contents* are suppressed, which is what keeps
+    a filtered guide a grid rather than a field of gaps. Why an uncategorised
+    programme hides, and the one deliberate divergence (zero boxes ticked is
+    "no filter" here and "hide everything" in jellyfin-web), are in
+    ``docs/live-tv.md`` section 9.
     """
     picked = {c for c in (categories or ()) if c in CATEGORIES}
     if not picked or picked == set(CATEGORIES):
@@ -207,17 +187,11 @@ _ISO = re.compile(
 def parse_time(value):
     """A Jellyfin timestamp as a **local, aware** datetime; None if unusable.
 
-    Written out rather than handed to ``datetime.fromisoformat`` for two
-    reasons, both of which produce wrong times rather than errors:
-
-    * Jellyfin serialises .NET ticks, i.e. **seven** fractional digits, which
-      ``fromisoformat`` rejects outright before 3.11 and still will not take
-      in that width;
-    * these timestamps are UTC. Parsing one and forgetting the ``Z`` (which
-      is what dropping the fraction with ``partition('.')`` does) yields a
-      naive datetime that the guide then lays out as if it were local — the
-      whole grid slides by the UTC offset, which reads as "my guide is five
-      hours out" rather than as a parse failure.
+    Longhand rather than ``datetime.fromisoformat`` because these are **UTC
+    with seven fractional digits**, and every shorter way of parsing one
+    yields a plausible datetime that is out by the UTC offset rather than an
+    error — the grid slides and nothing raises. Full ambush in
+    ``docs/jellyfin-api-notes.md`` section 9.1.
     """
     if not value:
         return None
@@ -291,12 +265,7 @@ def air_time_label(item, end=True):
 
 
 def is_airing(item, when=None):
-    """Whether this program is on the air at ``when`` (default: now).
-
-    The one question that decides whether a guide cell is "watch this" or
-    "read about it", so it is here rather than inlined at each of the four
-    call sites.
-    """
+    """Whether this program is on the air at ``when`` (default: now)."""
     start = parse_time(item.get("StartDate"))
     stop = parse_time(item.get("EndDate"))
     if start is None or stop is None:
@@ -444,19 +413,10 @@ def timer_state(item):
     (a series rule exists but this showing is not scheduled — already in the
     library, or cancelled individually).
 
-    This answers **which symbol to draw**, and nothing else. What a Record
-    button should do is :func:`single_timer_state`, which is a genuinely
-    different question — a programme covered by a series rule answers
-    ``"series"`` here while still having a single timer of its own.
-
-    jellyfin-web's ``getTimerIndicator``, with one addition: ``InProgress``
-    is split out from ``"timer"``, because the tile paints it differently.
-
-    A cancelled single timer reads as no timer at all. On a *program* DTO
-    the server never emits one anyway — ``AddRecordingInfo`` sets ``TimerId``
-    only when the status is neither Cancelled nor Error — so this branch is
-    reached only by a ``Type == "Timer"`` DTO, where jellyfin-web would draw
-    the dot and we would rather not claim a cancelled timer is recording.
+    This answers **which symbol to draw** and nothing else; what a Record
+    button should do is :func:`single_timer_state`, a genuinely different
+    question. See ``docs/live-tv.md`` section 7 and
+    ``docs/jellyfin-api-notes.md`` section 9.5.
     """
     if item.get("Type") == "SeriesTimer":
         return "series"
@@ -479,18 +439,10 @@ def single_timer_state(item):
     """Whether this showing has a **single recording of its own**, and which
     kind: ``None``, ``"timer"`` (scheduled) or ``"recording"`` (in progress).
 
-    Deliberately not :func:`timer_state`, and the difference is the whole
-    point. That one answers "which symbol", and a showing covered by a
-    series rule answers ``"series"`` *even when it also has its own live
-    timer* — which is right for an icon and wrong for a button. Driving the
-    Record button off it left every episode of a series you are recording
-    offering "Record" (a second timer for a programme that already has one),
-    with no way to skip one showing and no way to stop one in progress.
-
-    This is jellyfin-web's ``recordingfields`` test — ``program.TimerId &&
-    program.Status !== 'Cancelled'`` — which does not consult
-    ``SeriesTimerId`` at all. The two questions are independent there, and
-    a programme can legitimately answer yes to both.
+    jellyfin-web's ``recordingfields`` test, and what a Record button must be
+    driven off: :func:`timer_state` answers a different question and offers
+    Record for a programme that already has a timer. ``docs/live-tv.md``
+    section 7.
     """
     if not item.get("TimerId"):
         return None
@@ -503,42 +455,14 @@ def single_timer_state(item):
 def is_channel_artwork(item):
     """Whether this item's artwork is (or falls back to) a CHANNEL LOGO.
 
-    Which matters because transparent artwork comes in two conventions that
-    want opposite treatment, and the item type is what tells them apart. A
-    broadcaster's channel logo is usually *dark* ink drawn for the white page
-    every other client puts it on, so on this UI it needs a light plate to be
-    visible at all. A film's or series' Logo artwork is white by convention
-    and reads on a dark surface perfectly well -- plating that is how you end
-    up needing a drop shadow to rescue white ink from a white plate, which is
-    what #637 was about.
-
-    So the two get separate settings (``logo_legibility_live_tv`` and
-    ``logo_legibility_library``) and this is the line between them.
-
-    All four Live TV DTO types, not just the two in ``LIVE_TYPES``:
-
-    * ``TvChannel`` wears the logo itself.
-    * ``Program`` mostly has no artwork of its own, so the channel logo is
-      the whole fallback -- see ``repository.PROGRAM_FIELDS``.
-    * ``Timer`` has *neither* ``ImageTags`` nor ``ParentPrimaryImage*``, so
-      it always falls through to the channel-logo branch of
-      ``image_spec`` -- which is also what jellyfin-web's schedule shows,
-      via ``showChannelLogo``. Leaving it out made the Schedule tab the one
-      Live TV screen that drew its channel logos unplated.
-    * ``SeriesTimer`` reaches the same branch whenever the series the rule
-      was made from has no poster.
-
-    A ``SeriesTimer`` that *does* have one resolves to the series poster
-    instead, and gets asked the Live TV question about it. That imprecision
-    is deliberate: a poster is opaque, ``plate_for`` returns ``None`` for it,
-    and no plate rule applies either way -- so paying for a resolved-artwork
-    check here would buy nothing over a type test the reader can verify at a
-    glance.
-
-    A finished recording is NOT included, and does not need to be: the
-    server hands it back as a Movie/Episode/Video wearing its own artwork,
-    and ``recordings_page`` never asks for ``ChannelImage``, so it cannot
-    reach the channel-logo branch at all.
+    A channel logo is *dark* ink drawn for a white page, the opposite
+    convention from a film's white Logo artwork, so the two get separate
+    plating settings (``logo_legibility_live_tv`` / ``_library``, #637) and
+    this is the line between them. **All four** Live TV DTO types answer yes,
+    not just the two in ``LIVE_TYPES`` -- ``Timer`` and ``SeriesTimer`` carry
+    no artwork of their own and reach the same channel-logo branch of
+    ``image_spec``. A finished recording is deliberately excluded. Why each
+    type, in ``docs/live-tv.md`` section 11.
     """
     # Imported here: repository imports THIS module at import time, so the
     # dependency can only run the other way at call time.
@@ -549,18 +473,13 @@ def is_channel_artwork(item):
 
 
 def is_recording_now(item):
-    """Whether this is being written to disk *right now*.
-
-    Deliberately a separate question from :func:`timer_state`, which answers
-    "which symbol" (a single timer or a series rule). This one answers "what
-    colour", and the two do not line up: a programme covered by a series
-    rule and airing at this moment is being recorded, but its state is
-    ``"series"`` — so keying the colour off the state left every
-    series-recorded programme with an ordinary blue progress bar.
-
-    ``_recording`` is the stamp the Recordings/Schedule screens put on
-    results from an ``is_in_progress`` query — a recording DTO carries no
-    timer state of its own.
+    """Whether this is being written to disk *right now* — "what colour", a
+    third question separate from :func:`timer_state` and
+    :func:`single_timer_state`, because a series-recorded programme airing now
+    reads as ``"series"`` and keying the colour off that left it with an
+    ordinary progress bar. ``_recording`` is the stamp the Recordings/Schedule
+    screens put on ``is_in_progress`` results, since a recording DTO carries
+    no timer state of its own. ``docs/live-tv.md`` section 7.
     """
     if item.get("_recording"):
         return True

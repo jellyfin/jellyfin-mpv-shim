@@ -61,27 +61,19 @@ POSTER_W_FRAC = 0.25
 #: an episode still, a home video's frame -- against POSTER_H_FRAC's 0.78
 #: for a poster.
 #:
-#: Available, and the two fractions are deliberately of different things.
-#: POSTER_H_FRAC is of the whole banner and *defines* the margin it leaves
-#: (0.11 of the height, top and bottom); this one is applied afterwards, to
-#: a picture already sitting inside that, so measuring it against the whole
-#: height too counted the margins twice over -- 60% of the banner is nearer
-#: 70% of the space there is [iw: "we're doing 60% including the margin,
-#: should be 60% of available space"]. So it is a fraction of the SLOT,
-#: which is that available space and nothing else. Deriving the band from
-#: the horizontal margin instead is what made a wider window shrink the
-#: thumbnail -- see _paste_poster.
+#: **Of the SLOT, not of the banner.** POSTER_H_FRAC is of the whole banner
+#: and defines the margins it leaves; this is applied afterwards, inside
+#: those, so measuring against the whole height counts them twice.
 #:
-#: The two need different numbers because the width limit above is doing
-#: the work for one of them and not the other. A poster is height-limited
-#: at any banner shape; a still is width-limited, so its height is
-#: whatever `POSTER_W_FRAC * banner width / 1.78` comes to -- which tracks
-#: the banner's WIDTH while the cap it is measured against tracks its
-#: height. At the padded banner's own 2.67:1 that lands around 37% and
-#: nothing is wrong. Widen the banner without heightening it
-#: (`backdrop_full_width`, or a height capped by BANNER_MAX_H) and the
-#: still grows until it is most of the header, with the heading squeezed
-#: into what is left.
+#: Deriving the band from the horizontal margin instead is the paradox that
+#: made a **wider window shrink the thumbnail** -- the inset grew with the
+#: banner's width while its height stayed fixed. Pinned by
+#: test_widening_the_header_never_shrinks_the_still and
+#: test_a_thumbnail_never_takes_more_than_its_share.
+#:
+#: The two fractions differ because a poster is height-limited at any banner
+#: shape and a still is width-limited, so a banner widened without being
+#: heightened grows the still until it crowds the heading.
 THUMB_H_FRAC = 0.60
 
 #: Aspect at or above which inset artwork is a "thumbnail" rather than a
@@ -223,25 +215,10 @@ def _paste_poster(canvas, poster, slot):
     baseline = y + max_h
     art = poster.convert("RGBA")
     if art.height and art.width / art.height >= THUMB_RATIO:
-        # A thumbnail, not a poster: hold it to a smaller share of the
-        # banner. See THUMB_H_FRAC -- the slot's height limit is a poster's,
-        # and a landscape picture reaches it only when the banner is wider
-        # than the shape that limit was chosen for.
-        #
-        # Of the SLOT, which `max_h` already is -- not of the banner, and
-        # not of the banner less a margin taken from its width.
-        #
-        # It was the last of those, and that is a paradox rather than a
-        # rounding error: the vertical inset came from `x`, which is
-        # `max(18, w // 40)` and grows with the banner's WIDTH, while the
-        # banner's height is fixed (see banner_box -- widening buys more
-        # backdrop, not more page). So every pixel of extra width ate two
-        # pixels of the height the still was allowed, and a wider window
-        # made the thumbnail SMALLER: 214px at a 1100 banner, 64px at 6116
-        # [iw]. The slot is already the space there is -- POSTER_H_FRAC
-        # defines its own margins, top and bottom -- so a fraction of it is
-        # both the honest reading of "60% of what is available" and
-        # independent of the width.
+        # Of the SLOT, which `max_h` already is -- see THUMB_H_FRAC for why
+        # measuring against the banner, or against the banner less a margin
+        # taken from its WIDTH, is the bug that made a wider window shrink
+        # the thumbnail.
         max_h = int(max_h * THUMB_H_FRAC)
     art.thumbnail((max_w, max_h), Image.LANCZOS)
     aw, ah = art.size

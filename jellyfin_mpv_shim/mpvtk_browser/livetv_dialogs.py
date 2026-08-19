@@ -7,10 +7,9 @@ with the add-to picker or the download dialog beyond ``_show_dialog``.
 State on ``self``: ``_timer_dlg`` and ``_guide_dlg``, each a dict or None,
 loop-thread only — the same single-slot convention the download dialog uses.
 
-**Both edit somebody else's document.** The guide settings live in the
-DisplayPreferences ``CustomPrefs`` jellyfin-web reads (see ``live_tv``), and
-a timer belongs to the server's DVR. So neither dialog writes anything until
-Save, and both re-read rather than assuming their edit landed.
+**Both edit somebody else's document**, so neither writes anything until Save
+and both re-read rather than assuming their edit landed (``docs/live-tv.md``
+section 1).
 """
 
 from ..i18n import _, _p
@@ -18,12 +17,10 @@ from ..mpvtk.widgets import (
     Button, Checkbox, Column, Dialog, Dropdown, Row, Text, TextBox, VScroll)
 from . import live_tv, theme
 
-#: Keep-up-to choices (0 = as many as possible). jellyfin-web offers every
-#: integer from 0 to 50; a 51-row dropdown does not fit over a 720p window,
-#: so this is the round numbers — plus, at open time, whatever the rule is
-#: actually set to (see :func:`_keep_choices`). Without that last part a
-#: series set to 12 in the web client read back as "As many as possible",
-#: because an unlisted value has no row to select.
+#: Keep-up-to choices (0 = as many as possible). Round numbers, plus whatever
+#: the rule is actually set to (:func:`_keep_choices`) — an unlisted value has
+#: no row to select and reads back as something else entirely. See
+#: ``docs/live-tv.md`` section 12.
 KEEP_UP_TO = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50)
 
 
@@ -128,18 +125,12 @@ class LiveTvDialogsMixin:
     def _timer_editable(self, server):
         """May this user change the DVR on ``server``?
 
-        The Schedule and Series tabs are shown to everyone who can see Live
-        TV -- what is going to record is information, and the server serves
-        it to anyone (see ``LiveTvPage._tabs``). Only *changing* it needs
-        ``EnableLiveTvManagement``, so without it this dialog opens as a
-        read-only look at the rule: the form is disabled and Save, Cancel
-        Recording and Cancel Series are not offered at all.
-
-        ``can_record`` is the same question the Record buttons ask -- both
-        halves of it apply here too, since cancelling a timer needs the
-        apiclient's Live TV APIs just as much as creating one does. It fails
-        open, so an unanswered probe leaves the dialog editable and the API
-        call remains the real check.
+        ``EnableLiveTvManagement`` gates *changing* the DVR, not reading it,
+        so without it this dialog opens **read-only** rather than not at all:
+        the form is disabled and Save, Cancel Recording and Cancel Series are
+        not offered. ``can_record`` is the same question the Record buttons
+        ask and it **fails open**, so the API call remains the real check.
+        ``docs/live-tv.md`` section 10.
         """
         try:
             return bool(self._actions.can_record(server))

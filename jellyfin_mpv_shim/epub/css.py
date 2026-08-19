@@ -1,20 +1,17 @@
 """Enough CSS to know a chapter title when it sees one.
 
-**Why this exists at all.** The first real book tested against this reader
-(a Wiley technical title, 122 entries, 29 spine documents) contains not one
-``<h1>``. Its chapter openers are ``<p class="chaptertitle">`` and its
-section headings are ``<p class="h1">``, and its stylesheet is what makes
-them large, bold and centred. That is not an unusual book — it is how
-almost every professionally produced epub is built, because the production
-chain is a word processor and a conversion script. Without a stylesheet
-reader, "support headings" delivers headings for hand-written epubs and a
-wall of identical paragraphs for the published ones.
+Published epubs contain no ``<h1>``: a chapter opener is
+``<p class="chaptertitle">`` plus a stylesheet, so without a stylesheet
+reader "support headings" delivers headings for hand-written epubs and a
+wall of identical paragraphs for the published ones — see
+``docs/readers.md`` §4.2.
 
 **What it is not.** There is no cascade in the full sense, no inheritance
 engine, no computed-value pass, no layout properties. It answers one
-question — *which declarations apply to this element* — for the eight
+question — *which declarations apply to this element* — for the
 declarations this reader can draw, and it answers it with the two rules
 that decide almost every real conflict: specificity, then source order.
+
 
 Supported: type/class/id selectors, compounds (``p.chaptertitle``),
 descendant and child combinators, selector lists, ``<style>`` blocks and
@@ -37,28 +34,22 @@ USED_PROPERTIES = frozenset({
     "font-size", "font-weight", "font-style", "font-family",
     "text-align", "text-decoration", "display", "visibility",
     "text-indent", "margin-top", "margin-bottom", "page-break-before",
-    # The block's own inset. A verse, an epigraph and a letter quoted in a
-    # novel are all "the same paragraphs, moved in from the margin", and
-    # margin-left is how every one of them says so — without it they set
-    # flush with the prose and the distinction the author drew disappears.
+    # The block's own inset: verse, epigraphs and quoted letters are all
+    # "the same paragraphs, moved in from the margin". See readers.md §4.8.
     "margin-left", "margin-right",
-    # Which bullet or number a list item gets, including `none`, which is
-    # how a book sets a list of dates or a cast of characters as a list
-    # without wanting dots down the side of the page.
+    # Includes `none`, which is how a book sets a cast of characters as a
+    # list without wanting dots down the side of the page.
     "list-style-type",
-    # Small capitals, which published fiction uses for the opening words of
-    # a chapter and for the odd proper noun. Both spellings, because the
-    # shorthand is what old books carry and the longhand what new ones do.
+    # Small capitals. Both spellings: the shorthand is what old books carry
+    # and the longhand what new ones do.
     "font-variant", "font-variant-caps",
-    # Superscript and subscript by style rather than by tag. A footnote
-    # reference is as often `<a class="noteref">` with this on it as it is
-    # a `<sup>`, and set on the baseline it reads as a stray digit in the
-    # middle of a sentence.
+    # Superscript and subscript by style rather than by tag — a footnote
+    # reference is as often `<a class="noteref">` as it is a `<sup>`.
     "vertical-align",
-    # How big an image is drawn. Read for images only, and the one property
-    # here that is about a box rather than about type — but without it the
-    # only size available is the file's own, and an icon shipped at 256 px
-    # and styled down to 1em is drawn a quarter of a page tall.
+    # How big an image is drawn — read for images only, and the one
+    # property here that is about a box rather than about type. Why the
+    # file's own size is not enough: readers.md §4.7.
+
     "width", "height", "max-width", "max-height",
 })
 

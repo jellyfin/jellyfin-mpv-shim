@@ -16,18 +16,12 @@ The format, in the order this module walks it:
    are read, EPUB 3 first, because a hybrid book carries both and the nav
    document is the one its author maintained.
 
-**Everything that leaves this module is bounded.** A zip is a hostile
-format when it comes from a media server: an entry declares its own
-uncompressed size in a header nobody verifies, and a few kilobytes of
-zeroes expands to gigabytes. So every read is capped by *actually reading*
-a byte past the cap rather than by trusting ``ZipInfo.file_size``, and the
-caps differ by what the entry is for — a spine document that needs 32 MB is
-not a chapter, and an image that needs 24 MB is not going to be drawn on a
-screen. Entry names are resolved and then re-checked to be inside the
-archive, because a name like ``../../.ssh/authorized_keys`` is only a
-problem if something later writes it out; nothing here does, but the check
-is one line and the invariant is worth stating.
+**Everything that leaves this module is bounded**, by what a read actually
+delivers and never by the size the zip header claims, with the cap chosen
+per kind of entry. Names are re-checked to be inside the archive. Why a
+declared size is not usable — see ``docs/readers.md`` §4.1.
 """
+
 
 import logging
 import os
@@ -75,25 +69,13 @@ class EpubArchive:
     """Bounded read access to the zip.
 
     **It holds no open file handle.** Every read opens the zip, takes what
-    it came for and closes it again; the only thing kept between reads is
-    the name table, which is read once at construction.
-
-    That is not frugality about file descriptors, it is what removes a
-    lifecycle. A reader route can sit in the browser's forward history for
-    as long as the user keeps browsing, and a handle held that long is a
-    thing somebody has to remember to close: on leaving the page, on the
-    history being dropped, on the window closing, on the download being
-    deleted underneath. Miss one and it leaks; miss one on **Windows** and
-    the open handle is a *lock*, so the downloads screen cannot delete a
-    book the user has read. Reopening costs 0.15 ms on a 122-entry book
-    (measured), a page turn does no reads at all, and entering a chapter
-    does one — so the whole question is cheaper to delete than to answer.
-
-    It also makes the type thread-safe by construction, which the shared
-    handle was not: two threads seeking one `ZipFile` is corruption rather
-    than contention. :class:`~.book.EpubDocument` still holds a lock, for
-    the parsed state above this.
+    it came for and closes it again; only the name table is kept. That
+    deletes a lifecycle rather than saving a descriptor, and it makes the
+    type thread-safe by construction — two threads seeking one `ZipFile` is
+    corruption rather than contention. Why the lifecycle was the expensive
+    part, and what reopening costs — see ``docs/readers.md`` §4.5.
     """
+
 
     def __init__(self, path):
         self.path = path

@@ -1,27 +1,20 @@
 """Auto-download: keep upcoming episodes on disk without being asked.
 
-Runs as a scheduled job on the sync worker's idle loop, and only while
-nothing is playing — downloading the next episode is worthless if it costs
-the one you are watching its bandwidth.
+Runs on the sync worker's idle loop, and only while nothing is playing --
+downloading the next episode is worthless if it costs the one you are watching
+its bandwidth.
 
-Two sources, independently switchable:
+Two independently switchable sources: **Next Up** (the server's own list, broad)
+and **Lookahead** (the next N from where you are watching, per series we already
+hold something for).
 
-* **Next Up** — the server's own Next Up list, i.e. the next episode of every
-  series you have started. Broad, and scales with how many shows you have
-  going.
-* **Lookahead** — for series you already have downloads for, the next N
-  episodes from where you are *watching*. Narrow, follows a binge.
+Everything fetched is marked with an ``auto:`` origin (db.ORIGIN_*), and **that
+is the whole safety story**: the reaper only ever considers auto rows, so nothing
+the user asked for is deleted to make room. Asking for an auto item by hand
+promotes it out of the reaper's reach, one-way.
 
-Everything it fetches is marked with an ``auto:`` origin naming the source
-that queued it (see db.ORIGIN_*), which is the whole safety story: the reaper
-only ever considers auto rows, so nothing the user asked for is deleted to
-make room, however tight the cap. Asking for an auto-downloaded item by hand
-promotes it to user-owned and takes it out of the reaper's reach for good.
-Recording the source also lets the downloads manager show each as its own
-subtree.
-
-The reaper runs *before* the planner so a run that is over budget can free
-space and then use it, rather than skipping for a whole interval.
+The reaper runs *before* the planner, so a run that is over budget can free space
+and then use it. See docs/offline-sync.md section 4.
 """
 
 import json
@@ -82,14 +75,11 @@ def _per_pass():
 def hysteresis():
     """``(min, max)`` for the lookahead, or None when it is not configured.
 
-    Both or neither. A half-configured pair is something a person can type
-    into the JSON, and guessing the other half is worse than declining --
-    "min 5" with no max could mean top up to 5 or top up to the old flat
-    window, and those differ by however large the series is. Declined
-    loudly, the same way `allowed_servers` reports "enabled but no servers":
-    silently doing nothing is otherwise indistinguishable from a bug.
-
-    Also declined when max < min, which is the same class of typo.
+    **Both or neither.** A half-configured pair is something a person can type
+    into the JSON, and guessing the other half is worse than declining -- "min 5"
+    with no max could mean top up to 5 or to the old flat window, and those
+    differ by however large the series is. Declined **loudly**, because silently
+    doing nothing is indistinguishable from a bug. Same for max < min.
     """
     lo = settings.auto_download_lookahead_min
     hi = settings.auto_download_lookahead_max
@@ -349,15 +339,14 @@ class AutoDownloader:
     # -- planning ----------------------------------------------------------
 
     def fill(self, budget):
-        """Queue upcoming episodes until the budget is spent.
-
-        Returns the number of items actually enqueued.
+        """Queue upcoming episodes until the budget is spent. Returns the number
+        actually enqueued.
 
         The cap is enforced against *anticipated* sizes, which the server
-        sometimes under-reports or omits, so it is a soft ceiling: a pass can
-        overshoot by up to one item plus whatever the estimates got wrong.
-        Real on-disk bytes are what auto_size() measures on the next pass, so
-        an overshoot throttles the pass after it rather than compounding.
+        sometimes under-reports or omits, so it is a **soft ceiling**: a pass can
+        overshoot by one item plus whatever the estimates got wrong. Real on-disk
+        bytes are measured next pass, so an overshoot throttles the pass after it
+        rather than compounding.
         """
         queued = 0
         cap = _per_pass()
@@ -470,18 +459,12 @@ class AutoDownloader:
         something for.
 
         **Anchored on watch progress, never on what is on disk.** Anchoring on
-        the furthest episode held is the obvious reading of "keep N ahead" and
-        is a ratchet: each pass starts where the last pass finished
-        downloading, so the window walks the whole series whether or not
-        anybody watches it, and only the size cap ever stops it — by which
-        point the disk is full of unwatched episodes the reaper may not evict.
-        Anchored on the server's Next Up for the series, the window only
-        advances when the user does, so a series that is not being watched
-        settles at N episodes and stays there.
+        the furthest episode held is the obvious reading of "keep N ahead" and is
+        a ratchet -- the window walks the whole series whether or not anybody
+        watches it. Anchored on Next Up, it only advances when the user does.
 
-        The already-held episodes inside the window are skipped by ``fill``
-        (they are in the catalog), so in the steady state this queues nothing
-        until an episode is watched.
+        Pinned by test_the_window_does_not_walk_the_series_on_its_own.
+        See docs/offline-sync.md section 4.
         """
         flat = int(settings.auto_download_lookahead or 0)
         window = hysteresis()
@@ -523,23 +506,14 @@ class AutoDownloader:
     def _held_ids(self, server_uuid, series_id):
         """Ids of this series we hold or have asked for, or None if unknown.
 
-        **Ids rather than a count, and the caller intersects them with the
-        window** -- which is the whole correctness of the hysteresis and is
-        not what the first version did. That one counted every held episode
-        of the series, so somebody holding twenty *old* episodes was above
-        any minimum for ever and the series was **never topped up again**.
-        Silent, too: no downloads, no error. The issue says "at least the
-        minimum number of *upcoming* episodes", and upcoming is the word
-        that does the work.
+        **Ids rather than a count**, and the caller intersects them with the
+        window -- counting every held episode meant somebody holding twenty *old*
+        ones was above any minimum for ever and the series was never topped up
+        again, silently. "Upcoming" is the word doing the work.
 
-        Queued and in-progress count, not just complete -- the issue names
-        that, and without it every pass re-queues the same episodes for as
-        long as the first batch takes, which is the stampede this replaces.
-
-        Errored rows do not: those are episodes we tried and failed to get,
-        and treating a failure as stock is how a series quietly stops being
-        topped up (which is the same failure this docstring opens with,
-        reached another way).
+        Queued and in-progress count; **errored rows do not**, or a failure reads
+        as stock and reaches the same silent stall by another route.
+        See docs/offline-sync.md section 4.
         """
         held = {STATUS_COMPLETE, STATUS_PENDING, STATUS_DOWNLOADING}
         try:

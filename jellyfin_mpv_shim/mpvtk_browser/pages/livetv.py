@@ -6,16 +6,10 @@ because the shim's tabs share a route dict and a per-tab cache exactly as
 the music library's do (``pages/music.py``). Each tab is a ``_load_*`` /
 ``_render_*`` pair; the dispatch tables below are the whole routing.
 
-Two things are not local decisions and are worth knowing before changing
-anything here:
-
-* **The guide window is paged, not scrolled.** See ``guide_view`` for why.
-  This page owns *which* window (date, time, channel page) and the guide
-  component owns drawing it.
-* **The preferences are jellyfin-web's**, stored in the DisplayPreferences
-  document that client uses. See ``live_tv``. So the guide's settings dialog
-  is editing something the web client will read back, which is why it saves
-  through the repository rather than into ``conf.settings``.
+This page owns *which* guide window is shown (date, time, channel page) and
+``guide_view`` owns drawing it; the preferences are jellyfin-web's, which is
+why the settings dialog saves through the repository and not into
+``conf.settings``. ``docs/live-tv.md`` is the reference for the subsystem.
 """
 
 import datetime
@@ -52,20 +46,10 @@ class LiveTvPage(Page):
     def _tabs(self):
         """Every tab, to every user who can see Live TV at all.
 
-        `EnableLiveTvManagement` gates *changing* the DVR, not reading it.
-        Schedule and Series used to be hidden without it, which took away
-        information the user is entitled to: what is going to record, and
-        which series rules exist, are things a household member wants to know
-        whether or not they are allowed to change them -- and the server
-        agrees, answering `/LiveTv/Timers` and `/LiveTv/SeriesTimers` with 200
-        for an account that has no management permission (measured against a
-        real server; the 403 is on the writes).
-
-        jellyfin-web draws the same conclusion: its `getTabs` consults no
-        policy at all and it gates the mutating context-menu entries instead
-        (`itemContextMenu.js` -- Cancel Recording, Cancel Series). Actions are
-        gated here too: the Record buttons via `can_record`, and the timer
-        editor opens read-only (see `livetv_dialogs`).
+        `EnableLiveTvManagement` gates *changing* the DVR, not reading it, so
+        no tab is hidden by policy and the *actions* are gated instead. See
+        `docs/live-tv.md` section 10 and `docs/jellyfin-api-notes.md`
+        section 9.5.
         """
         return self.TABS
 
@@ -160,10 +144,6 @@ class LiveTvPage(Page):
             channels, total = source.get_channels(
                 srv, start_index=page * CHANNEL_PAGE, limit=CHANNEL_PAGE,
                 prefs=prefs, categories=cats, add_current_program=False)
-            # The categories filter the CHANNEL list, not the programmes:
-            # the guide fetch asks for everything on the channels it drew
-            # and the cells suppress what is filtered out, exactly as
-            # jellyfin-web does (see live_tv.program_displayed).
             programs = source.get_guide(
                 srv, [c.get("Id") for c in channels], start, end,
                 want_hd=bool((prefs.get("indicators") or {}).get("hd")))
@@ -234,20 +214,10 @@ class LiveTvPage(Page):
     def _scroll(self, children, scroll_id, gap=16):
         """A stack of carousels declaring where their section tops are.
 
-        The same treatment the home screen gets, and for the same two
-        reasons. These tabs are **bitmap-heavy** — one composited strip per
-        section — so on a display that cannot keep up a continuous offset
-        repositions every visible strip on every frame; and they are
-        **long**: Programs is six carousels, and Schedule is one per day.
-        Landing between two rows, with a caption band across the top of the
-        window, is the state alignment avoids when it engages — which is
-        when a gesture outruns the frame budget, or when scroll_mode asks
-        for it, not on every scroll (see widgets.Scroll).
-
-        The breakpoints are explicit content-y values rather than a uniform
-        pitch, because the sections differ in height: an auto-shaped poster
-        row is half as tall again as a landscape one (see ``_auto_row``), so
-        a fixed step would drift out of alignment within two sections.
+        The same treatment the home screen gets. Explicit content-y
+        breakpoints rather than a uniform pitch, because auto-shaped rows
+        differ in height (see ``_auto_row``) and a fixed step drifts out of
+        alignment within two sections. ``docs/live-tv.md`` section 5.
         """
         return VScroll(Column(children, pad=chrome.CONTENT_PAD, gap=gap,
                               align="stretch"),
@@ -348,21 +318,11 @@ class LiveTvPage(Page):
     def _reseed_window(self):
         """Follow the clock, unless the user has paged away from it.
 
-        The Guide is the screen this app expects to be left open, and it
-        re-reads itself from three triggers (returning to the cached tab, the
-        two-minute poll, the timer websocket events). Every one of them
-        re-fetched the *same* window, so "on now" stopped being now as soon as
-        the clock left the first column — within the hour on a narrow window —
-        and after four hours the grid was entirely aired data. The poll's own
-        justification for its interval is "keeps 'on now' meaning now", which
-        was true of every Live TV tab except this one. jellyfin-web clears its
-        currentDate before an auto-reload for exactly this reason.
-
-        The converse is the half that makes it safe, and it is why this is a
-        flag rather than a staleness test: once the arrows have moved the
-        window it is the user's, and a background refresh that yanks them back
-        to now while they are reading tomorrow evening is worse than a stale
-        grid. The Now button hands it back.
+        Without this, every one of the Guide's three re-read triggers
+        re-fetched the *same* window and "on now" stopped being now. A
+        **flag** rather than a staleness test, because once the arrows have
+        moved the window it is the user's and a background refresh must not
+        yank them back. ``docs/live-tv.md`` section 2.
         """
         if self.route.get("_start_pinned"):
             return
@@ -610,9 +570,7 @@ class LiveTvPage(Page):
             rows.append(self._auto_row(
                 title, data["latest"], "lt-recent",
                 # Capped at 24 with nothing behind it. jellyfin-web links
-                # this one too (#/list?type=Recordings) -- as a <button>
-                # rather than an anchor, which is a quirk of theirs, not a
-                # different destination.
+                # this one too (#/list?type=Recordings).
                 see_all=lambda: self.ctx.nav.navigate({
                     "kind": "list", "server": server, "title": title,
                     "list": {"type": "recordings"}})))
@@ -877,11 +835,8 @@ class ProgramPage(Page):
         actions = self.ctx.actions
         server = self._srv()
         channel = item.get("ChannelId") or self.route.get("channel_id")
-        # Two independent questions, as in jellyfin-web's recordingfields:
-        # does THIS showing have a timer of its own, and is the series being
-        # recorded. Both can be true at once, and asking timer_state instead
-        # (which answers "series" for such a showing) offered Record for a
-        # programme that already had one. See live_tv.single_timer_state.
+        # NOT timer_state -- see live_tv.single_timer_state for why a button
+        # must not be driven off it.
         single = live_tv.single_timer_state(item)
         btns = []
         if channel:
@@ -950,18 +905,11 @@ class ProgramPage(Page):
 class ChannelPage(Page):
     """One channel: its logo and number, and everything still to come on it.
 
-    jellyfin-web's item detail page for a ``TvChannel``, whose entire content
-    is ``renderChannelGuide`` — the channel's upcoming programmes grouped by
-    day. Reaching it is the point: a channel tile used to tune straight in,
-    so there was no way at all to see what was on later without going back
-    out to the guide and finding the row again. Clicking now opens this and
-    Watch is the first button on it, which is the split every jellyfin client
-    makes (the tile's context menu still tunes in directly, for when that is
-    all you wanted).
-
-    A page rather than a dialog for the same reason ``ProgramPage`` is one:
-    Watch lives here, and a modal that starts playback has to tear itself
-    down over a window it no longer owns.
+    jellyfin-web's ``renderChannelGuide``, and the destination a channel tile
+    or a guide channel cell **links** to rather than tuning in. A page rather
+    than a dialog because Watch lives on it and a modal that starts playback
+    has to tear itself down over a window it no longer owns.
+    ``docs/live-tv.md`` section 3.
     """
 
     kind = "channel"
@@ -1001,12 +949,10 @@ class ChannelPage(Page):
     def _groups(self):
         """The listing grouped by day, computed once per fetch.
 
-        Cached because ``render`` needs it every frame and
-        ``live_tv.parse_time`` is not cheap -- it exists precisely because
-        the shorter ways of parsing these are wrong. Re-grouping a thousand
-        programmes on every repaint was the whole of the residual cost once
-        the rows themselves were windowed. Keyed on the list's identity, so
-        a refresh that replaces it regroups and nothing else does.
+        ``render`` needs this every frame and ``live_tv.parse_time`` is not
+        cheap, so it is keyed on the programme list's *identity* -- a refresh
+        that replaces the list regroups and nothing else does.
+        ``docs/live-tv.md`` section 12.
         """
         programs = self.route.get("_data") or []
         cached = self.route.get("_groups")
@@ -1043,10 +989,8 @@ class ChannelPage(Page):
                     _("Showing the next %d programs.") % len(programs),
                     size="small", color=theme.SUBTLE_FG))
         # align="stretch", or the rows take their NATURAL width and the two
-        # flex columns inside them have nothing to expand into: a 747px
-        # content area drew a 479px row and ellipsized both the programme
-        # title and the episode title with 268px of empty space to the right
-        # of them.
+        # flex columns inside them have nothing to expand into -- the titles
+        # ellipsize with empty space to the right of them.
         return VScroll(Column(blocks, pad=chrome.CONTENT_PAD, gap=self.GAP,
                               align="stretch"),
                        id="channel", flex=1,

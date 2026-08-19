@@ -186,28 +186,16 @@ _LINEAR = tuple(
 
 
 def _lost_fraction(hist, surface, min_ratio: float = 3.0) -> float:
-    """Share of the visible ink that ``surface`` swallows, 0-1: each pixel
-    counts by how far its contrast against ``surface`` falls short of
-    ``min_ratio``, WCAG's floor for graphics.
+    """Share of the visible ink that ``surface`` swallows, 0-1.
 
-    Two things this is not, both of which were tried and both of which put the
-    decision on a knife edge — the same edge the mean did, one level down:
+    A **ramp, not a count** of ink within some distance: logo ink comes in tight
+    clusters (PBS keeps 68% of its within two luma steps), so a hard edge through
+    one flips the whole cluster. And a **WCAG contrast ratio, not a luma
+    distance** -- that axis is not perceptually uniform at the dark end: black
+    ink is 23 steps from WINDOW_BG and utterly invisible on it, but 1.2:1.
 
-    * Not a count of the ink within some distance. Logo ink comes in tight
-      clusters and a hard edge through one flips the whole cluster at once: the
-      PBS logo keeps 68% of its ink inside two luma steps, so a counting rule
-      scored a 6-step change of plate as having rescued the logo. Hence a ramp.
-    * Not a distance in luma. That axis is not perceptually uniform at the dark
-      end, which is the end this UI lives at: black ink is 23 steps from
-      ``WINDOW_BG`` and completely invisible on it, so a linear ramp wide
-      enough to be useful scores "invisible" as about half lost. As a contrast
-      ratio it is 1.2:1, which is the answer. Hence WCAG.
-
-    Luma is the only axis, and it is an approximation: it under-rates
-    saturated ink, which reads better against a surface than its luma suggests.
-    Judged acceptable, because the surface asked about is now always a light
-    plate and the ink that decides is the boundary ring rather than the whole
-    logo — the case that axis got wrong was a saturated mark against near-black.
+    See docs/artwork-pipeline.md section 2; tests/test_transparent_logos.py pins
+    the answers.
     """
     ink = sum(hist)
     if not ink:

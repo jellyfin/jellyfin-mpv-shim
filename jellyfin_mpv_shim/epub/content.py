@@ -3,16 +3,10 @@
 The model is deliberately shallow: a spine document becomes a flat list of
 :class:`Block`\\ s (paragraph, heading, image, rule), and a text block is a
 list of :class:`Span`\\ s (a run of characters with one set of style flags).
-There is no box model, no float, no table layout and no CSS cascade.
-
-**That is the scope decision, not a shortcut taken under time pressure.**
-Novels and published non-fiction are paragraphs, headings, emphasis, block
-quotes, lists and pictures; the layouts that need more than this — poetry
-with hanging indents, technical books with side notes, comics-as-epub,
-anything typeset in a table — are exactly the books whose authors will be
-better served by a real reader, which is the button next to this one. A
-renderer that half-implements CSS produces a worse result than one that
-declines to, because the failure is silent and looks like the book.
+There is no box model, no float, no table layout and no CSS cascade —
+a deliberate scope decision, because a renderer that half-implements CSS
+fails silently and the failure looks like the book. See
+``docs/readers.md`` §4.2.
 
 **Character offsets ride along with the spans, and the walk that builds them
 is epub.js's, not ours.** Progress is a position in the locations index (see
@@ -24,18 +18,11 @@ lossy — so it is recorded during this walk, when both are in hand. Every
 span knows the count that preceded it, which is what lets a page on screen
 name a position the rest of Jellyfin agrees with.
 
-What is dropped, and why it is safe to drop:
-
-* ``<script>``/``<style>`` content is not drawn, but *is* counted, because
-  epub.js's tree walker sees those text nodes and our number has to match
-  the client that wrote it.
-* ``<table>`` is flattened to one paragraph per row. A wrong-looking table
-  beats a missing one, and beats a layout engine nobody will maintain.
-* Of CSS, only the eight declarations in ``css.USED_PROPERTIES`` are read
-  — size, weight, style, family, alignment, decoration, indent and the
-  vertical margins. That is not "some CSS support": it is the set that
-  decides whether a line is a chapter title or a sentence, and everything
-  outside it is decoration this reader would not draw anyway.
+What is dropped: ``<script>``/``<style>`` content is not drawn but *is*
+counted, because epub.js's tree walker sees those text nodes and our number
+has to match; ``<table>`` is flattened to one paragraph per row, because a
+wrong-looking table beats a missing one; of CSS, only the declarations in
+``css.USED_PROPERTIES`` are read.
 """
 
 import re
@@ -83,9 +70,9 @@ DROPCAP_SCALE = 2.0
 _BULLETS = {"disc": "\u2022", "circle": "\u25e6", "square": "\u25aa",
             "none": ""}
 
-#: Bullets a nested ``<ul>`` cycles through, as every browser does. The
-#: depth matters in a book: a list of exceptions under a list of rules is
-#: unreadable when both levels wear the same dot.
+#: Bullets a nested ``<ul>`` cycles through, as every browser does — a
+#: list of exceptions under a list of rules is unreadable when both levels
+#: wear the same dot.
 _UL_DEPTH = ("\u2022", "\u25e6", "\u25aa")
 
 #: ``<ol type=...>`` and the equivalent ``list-style-type`` keywords.
@@ -188,16 +175,11 @@ class Block:
         #: justify should justify a paragraph that said nothing.
         self.align = align
         #: Inset from the left, in **ems of the body size** — not a nesting
-        #: level. Ems because the two things that produce it are measured
-        #: that way: one step of ``blockquote``/list nesting is INDENT_EM,
-        #: and a stylesheet's ``margin-left`` is whatever it says. A level
-        #: count cannot express the second, and a verse set at 2em would
-        #: have to be rounded to a level or dropped.
+        #: level, because a stylesheet's ``margin-left`` is whatever it says
+        #: and a verse set at 2em cannot be rounded to a level.
         self.indent = indent
         #: Inset from the right. Almost always 0 — but a block quote is
-        #: inset on *both* sides in every book ever printed, and one that
-        #: is only moved in from the left reads as a paragraph that lost
-        #: its indent rather than as a quotation.
+        #: inset on *both* sides in every book ever printed (readers.md §4.8).
         self.indent_right = indent_right
         #: Whether this paragraph opens with a drop capital. Decided in
         #: :meth:`_Walker._flush` from what the first span turned out to
@@ -208,11 +190,9 @@ class Block:
         self.src = src
         self.alt = alt
         #: For an IMAGE, the size the AUTHOR asked for — see
-        #: :func:`_image_box`. Empty when the book said nothing, which
-        #: means "whatever the file happens to be". A browser does that
-        #: too, but only in the same case: a book that draws a 256 px arrow
-        #: at 1em has said something, and drawing the file's own size there
-        #: puts a quarter of a page of arrow in the middle of a recipe.
+        #: :func:`_image_box`. Empty when the book said nothing, which means
+        #: "whatever the file happens to be"; why the file's own size is not
+        #: the default answer is readers.md §4.7.
         self.box = box or {}
         self.char_offset = char_offset
         #: Preformatted: whitespace is significant and lines do not reflow.
@@ -239,12 +219,10 @@ class Block:
     def plain_text(self):
         """What the author wrote, for copying out of the reader.
 
-        Small capitals are the one place the two differ: Pillow has no
-        small-caps face, so the walk uppercases what was lowercase and sets
-        it smaller. Copied verbatim that comes out SHOUTING, and books use
-        small caps for proper nouns and chapter openings — exactly the
-        sentences someone quotes. The reduced runs still carry the flag, so
-        undoing it is exact rather than a guess.
+        Small capitals are the one place the two differ: the walk
+        uppercased what was lowercase, so copied verbatim it comes out
+        SHOUTING. The reduced runs still carry the flag, so undoing it is
+        exact rather than a guess. See ``docs/readers.md`` §4.9.
         """
         return "".join(s.text.lower() if s.style.smallcaps else s.text
                        for s in self.spans)
@@ -301,16 +279,10 @@ class _Walker:
     def _mark_dropcap(block):
         """Is this paragraph's first letter a drop capital?
 
-        Decided by what it *is* rather than by ``float: left``, which is how
-        a book says so in CSS. Two reasons. A drop cap is one or two
-        characters set several times the body size at the start of a
-        paragraph — nothing else in a novel looks like that, so the shape is
-        diagnostic on its own. And the alternative reading, if this is not
-        recognised, is not "no drop cap": it is a 3.4em letter left inline,
-        which inflates the first line to three times its height and leaves a
-        band of white across the top of the chapter. Guessing wrong here
-        costs a slightly odd capital; not guessing costs every chapter
-        opening in the book.
+        Decided by *shape* — one or two characters at >= DROPCAP_SCALE
+        opening a paragraph — rather than by the ``float: left`` a book says
+        it with, because the alternative reading is not "no drop cap" but a
+        3.4em letter left inline. See ``docs/readers.md`` §4.8.
         """
         if block.kind != PARA or block.marker or not block.spans:
             return
@@ -462,8 +434,7 @@ class _Walker:
             inner_style = inner_style.with_(rise=SUBSCRIPT_RISE)
         elif tag == "dt":
             # A definition list's term is bold in every browser and in
-            # every book that sets one; without it a glossary is two
-            # indistinguishable paragraphs per entry.
+            # every book that sets one (readers.md §4.8).
             inner_style = inner_style.with_(bold=True)
         inner_style = _apply_decls(inner_style, decls)
 
@@ -479,18 +450,16 @@ class _Walker:
         inner_indent = indent
         inner_right = right
         if tag == "blockquote":
-            # Both sides. A quotation moved in from the left only is a
-            # paragraph that has lost its first-line indent; what makes it
-            # read as quoted matter is the narrower measure.
+            # Both sides: what makes a quotation read as quoted matter is
+            # the narrower measure, not the left inset.
             inner_indent += INDENT_EM
             inner_right += INDENT_EM
         elif tag == "dd":
             inner_indent += INDENT_EM
         elif tag in ("ul", "ol", "dl") and self._list_depth(node) > 0:
             inner_indent += INDENT_EM
-        # The stylesheet's own inset, on top of the structural one. This is
-        # what sets verse in from the prose around it, and what a book uses
-        # for a letter or a newspaper clipping quoted mid-chapter.
+        # The stylesheet's own inset, on top of the structural one — verse,
+        # and a letter quoted mid-chapter (readers.md §4.8).
         inner_indent += _margin_em(decls, "margin-left")
         inner_right += _margin_em(decls, "margin-right")
 
@@ -576,12 +545,9 @@ class _Walker:
         keeps its offset.
 
         **The style is asked of three places in the order CSS resolves
-        them**: the item itself, its list, and then the tag's own default.
-        Books really do use all three — a cast of characters set as a
-        ``<ul>`` with ``list-style-type: none``, an appendix numbered
-        ``<ol type="i">``, a nested list left to the defaults — and reading
-        only the last one puts dots down the side of a page the author
-        deliberately left clean.
+        them**: the item itself, its list, then the tag's own default. Books
+        really do use all three, and reading only the last one puts dots
+        down the side of a page the author deliberately left clean.
         """
         parent = node.parent
         kind = self._list_style(node, parent)
@@ -628,10 +594,9 @@ class _Walker:
         return ""
 
 
-#: Baseline shifts for ``<sup>`` and ``<sub>``, in ems of the body size.
-#: A third of an em up is what a text face's own superscript sits at; a
-#: sixth down is the matching subscript, which is shallower because it has
-#: descenders to clear rather than ascenders.
+#: Baseline shifts for ``<sup>`` and ``<sub>``, in ems of the body size —
+#: of the *body*, so two markers at different sizes sit level. A third up
+#: is where a text face's own superscript sits; a sixth down matches it.
 SUPERSCRIPT_RISE = 0.34
 SUBSCRIPT_RISE = -0.16
 
@@ -639,8 +604,7 @@ SUBSCRIPT_RISE = -0.16
 _SMALL_SCALE = 0.72
 
 #: How much smaller a "capital" that was lowercase is set, in small caps.
-#: Real small caps are a separate cut of the face with its own weight; this
-#: is the synthetic approximation every renderer without one falls back to.
+#: Synthetic: real small caps are a separate cut of the face.
 SMALLCAPS_SCALE = 0.78
 
 _ROMAN = ((1000, "m"), (900, "cm"), (500, "d"), (400, "cd"), (100, "c"),
@@ -683,11 +647,9 @@ def _roman(number):
 def _smallcaps_spans(text, style, offset):
     """Split ``text`` into the runs small caps needs.
 
-    Pillow has no small-caps variant and no way to synthesise one, so the
-    approximation is the classic one: uppercase everything, and set what
-    *was* lowercase smaller. That has to happen here rather than at paint
-    time because it changes where the runs begin and end, and the layer
-    below deals in runs.
+    Uppercase everything and set what *was* lowercase smaller — the
+    synthetic approximation, done here rather than at paint time because it
+    changes where the runs begin and end.
 
     Every run keeps the *same* character offset. They came out of one text
     node, and the offset is a count of characters before that node — see
@@ -760,13 +722,10 @@ def _declared_size(node, decls, prop):
     The value is in ems of the body size; ``is_fraction`` marks a
     percentage, which is of the measure and so cannot be folded into it.
 
-    Both spellings are read, because the attribute is what an old book
-    carries and the stylesheet what a new one does, and the cascade puts
-    CSS above the attribute. Ems rather than pixels for the same reason the
-    measure is capped in them: the reader's body size is a setting, and an
-    icon the author sized against the text should stay sized against the
-    text. Absolute units go through css.py's nominal 16px body, which is
-    what every epub was styled against.
+    Both spellings are read (the attribute an old book carries, the
+    stylesheet a new one does, CSS winning), in ems rather than pixels —
+    see ``docs/readers.md`` §4.7. Absolute units go through css.py's
+    nominal 16px body, which is what every epub was styled against.
     """
     from .css import length_em
 
@@ -792,14 +751,11 @@ def _image_box(node, decls):
     """What the book says about how big an image should be drawn.
 
     **Books say something more often than they look like they do**, and the
-    natural pixel size of the file is a poor stand-in when they do — the
-    case that prompted this was a cookbook whose step arrows are 256 px
-    PNGs set to about a line tall, drawn at their own size and swallowing
-    the page. ``max-width``/``max-height`` are read as well as the plain
-    ones, and are the commoner spelling for exactly these little marks.
-
-    Empty when nothing was said, which is what makes "use the file's size"
-    still the default.
+    file's natural size is a poor stand-in when they do — see
+    ``docs/readers.md`` §4.7. ``max-width``/``max-height`` are read as well
+    as the plain ones, and are the commoner spelling for little marks.
+    Empty when nothing was said, which keeps "use the file's size" the
+    default.
     """
     box = {}
     for prop in ("width", "height", "max-width", "max-height"):

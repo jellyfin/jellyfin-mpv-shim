@@ -1,34 +1,14 @@
 """``Paginator`` — paging a result set too large to hold.
 
-Step 6c's third prep. Four routes (grid, person, music, music_genre) page
-their contents, in two different modes that share this machinery:
+Four routes (grid, person, music, music_genre) page their contents, in three
+modes that share this machinery: **windowed** (``window``), a full-length
+list of holes filled as they scroll into view; **infinite scroll** (``more``),
+appending near the bottom; and **paginated** (``ensure``/``go``/``jump``), one
+screenful at a time with a bar instead of a scrollbar.
 
-**Windowed** (``window``) is what a library grid does: the list is ``_total``
-entries long from the first frame, mostly holes, and the pages covering
-what is on screen are fetched as it comes into view. That is what makes the
-scrollbar full-length and the drag stable — the bug in #617 was that the
-scroller grew under the thumb as pages arrived.
-
-**Infinite scroll** (``more``) appends the next chunk as the user nears the
-bottom. Three views used to carry a copy of it and each learned its
-invariants separately, which is why they are spelled out on the method. It
-is what the routes that are not windowed still use.
-
-**Paginated** (``ensure``/``go``/``jump``) fills one screenful at a time with
-a bar at the bottom instead of a scrollbar. It keeps the current page and its
-two neighbours warm so Next/Previous land instantly, and prunes to that
-window so a deep library does not accumulate every page it visited.
-
-Page state lives on the *route dict*, not here, and deliberately: the route
-is what navigation keeps and throws away, so going back to a library returns
-to the page you left, and leaving it frees the cache with no bookkeeping.
-This class is the logic over that state.
-
-``content_h`` is a callback rather than a method because sizing a page
-requires measuring the shell's own chrome — the update banner, the download
-bar, the now-playing bar — and only the shell knows which are up. That is the
-one thing here that is not self-contained, and making it an explicit argument
-is the honest way to say so.
+Page state lives on the *route dict* rather than here, and ``content_h`` is a
+callback rather than a method. Why each mode exists and why those two are
+shaped that way: see docs/browser-shell.md section 13.
 """
 
 import logging
@@ -50,31 +30,21 @@ PAGE_MAX = 60
 #: ``more`` below.
 PAGE_SLOP = 800
 
-#: Items one windowed fetch asks for. The list is sized from the server's
-#: total from the first frame, so this is only "what does filling one hole
-#: cost": large enough that dragging the scrollbar across a library does not
-#: issue a request per row, small enough to land while the user is still
-#: looking at where it goes.
-#:
-#: It is also the repository's default page limit, deliberately: the route's
-#: initial load fetches [0, limit), so an equal WINDOW_PAGE means page 0 is
-#: complete and the first render asks for nothing. A smaller limit would
-#: leave page 0 holed and re-fetched immediately.
+#: Items one windowed fetch asks for. Equal to the repository's default page
+#: limit, deliberately: the route's initial load fetches [0, limit), so page 0
+#: comes out complete and the first render asks for nothing. See
+#: docs/browser-shell.md section 13.
 WINDOW_PAGE = 100
 
 
 def spread(items, total, new, start):
     """``items`` widened to ``total`` slots, with ``new`` placed at ``start``.
 
-    A windowed list is ``total`` entries long and mostly ``None``: an item's
-    index **is** its position in the library, which is what lets the grid be
-    the right height and the scrollbar the right length before anything has
-    been fetched. Everything downstream reads a hole as "not here yet" and
-    draws a blank tile of the right size.
-
-    A falsy ``total`` means the source did not say (or said Random, where
-    what is loaded is all there is) — then this is a plain splice and the
-    list keeps whatever length it had.
+    An item's index **is** its position in the library, which is what lets the
+    grid be the right height and the scrollbar the right length before
+    anything has been fetched; everything downstream reads a hole as "not here
+    yet". A falsy ``total`` makes this a plain splice instead. See
+    docs/browser-shell.md section 13.
     """
     out = list(items or ())
     new = list(new or ())
@@ -149,13 +119,11 @@ class Paginator:
         reset the page state so turning it on lands on page 1.
 
         ``scroll_ids`` are the scroll containers this view has when it is
-        NOT paginated; a paginated page has none, so they are torn down and
-        rebuilt across the flip and must not carry an offset over. On mpv
-        >= 0.36 ``ScrollState`` gets this right on its own from the
-        renderer's live snapshot -- this is what covers the older builds
-        that have no ``user-data`` to answer with, where the remembered
-        offset is all there is and a stale one virtualizes the returning
-        grid into blank spacers.
+        NOT paginated; they are torn down and rebuilt across the flip and
+        must not carry an offset over. ``ScrollState`` gets this right on its
+        own on mpv >= 0.36 -- this is what covers the older builds with no
+        ``user-data`` to answer with, where a stale remembered offset
+        virtualizes the returning grid into blank spacers.
         """
         self._set_enabled(not self.enabled())
         self.reset(route)
@@ -172,25 +140,11 @@ class Paginator:
         writes them back, and ``fetch(start_index)`` asks the source for the
         next page as ``(new_items, total)``.
 
-        * **Only page the route that is on screen** — a scroll event can
-          arrive for a view being left.
-        * **``_loading`` guards re-entry**, and must not survive a failure, or
-          the list never requests anything again for the rest of the session.
-          (``run`` calls ``always`` regardless of epoch for this reason.)
-        * **An in-range page that comes back empty ends the list.** A random
-          sort that reshuffles per request, or a filter the server applies
-          differently than we do, otherwise gets re-asked on every scroll
-          event forever.
-        * **Never page from an empty list** — that is start_index=0, i.e. the
-          initial load, and the loader owns it.
-        * **Never page against a list that is being replaced.** Live TV is
-          the one screen that re-reads itself behind the user's back
-          (``refresh_live_tv``), and that refresh rewrites ``_data`` from
-          index 0. A page-in submitted alongside it computes ``start`` from a
-          length that is about to change, so the merge either duplicates a
-          page or skips one — permanently, since ``len >= total`` then ends
-          the list early. ``_refreshing`` is that refresh's own guard; the
-          deferral is symmetric, and either direction alone leaves the race.
+        Five invariants ride on the guards below: only page the route that is
+        on screen, never from an empty list, never against a list being
+        replaced (``_refreshing``), an in-range empty page ends the list, and
+        ``_loading`` must not survive a failure. Each, and the bug behind it:
+        see docs/browser-shell.md section 13.
         """
         if (not self._is_current(route) or route.get("_loading")
                 or route.get("_refreshing")):
@@ -233,30 +187,16 @@ class Paginator:
     def window(self, route, first, last, get, put, fetch, error=None):
         """Fetch whatever of items ``[first, last)`` is not loaded yet.
 
-        The infinite-scroll counterpart to ``ensure``, and like ``ensure`` it
-        is called from **render**: which items are visible is a question
-        about geometry, and only the view can answer it. The range passed
-        must be the range the view actually composites, or the grid fetches
-        one window and draws another.
-
         ``get``/``put``/``fetch`` are ``more``'s, except that ``fetch`` takes
-        ``(start, limit)`` — an arbitrary offset, not just the end of the
-        list — and what comes back is spliced in at ``start`` rather than
+        ``(start, limit)`` -- an arbitrary offset, not just the end of the
+        list -- and what comes back is spliced in at ``start`` rather than
         appended.
 
-        **One attempt per page, per scroll.** Render is what drives this, so
-        a page that re-requested on failure would issue a request per frame
-        for as long as the server stayed down — and the toast it raises
-        invalidates, which is a frame. So an attempt is remembered in
-        ``_win_tried`` and not repeated; ``rewindow`` clears that, and the
-        view calls it on a scroll. A window that failed is therefore retried
-        when the user moves, which is the cadence ``more`` had, and never
-        when they hold still.
-
-        ``_win_load`` is separate and is the in-flight set: clearing
-        ``_win_tried`` mid-scroll must not re-issue a request that has not
-        come back yet. It is cleared in ``always``, so a page dropped for
-        being stale releases it too.
+        Called from **render**, like ``ensure``, so the range passed must be
+        the range the view actually composites. That is also why a failed
+        page must not retry itself: ``_win_tried`` remembers the attempt and
+        ``rewindow`` clears it on a scroll, while ``_win_load`` is a separate
+        in-flight set. See docs/browser-shell.md section 13.
         """
         if not self._is_current(route):
             return

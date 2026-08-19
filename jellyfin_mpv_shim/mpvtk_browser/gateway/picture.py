@@ -1,33 +1,16 @@
 """Showing a still picture in the player's window, with nobody playing it.
 
-The comic reader's half of the gateway. A comic page is *played* rather
-than drawn — mpv decodes pictures already, keeps them on the GPU, and has
-``video-zoom`` / ``video-pan-x`` / ``video-pan-y``, which is a better deal
-than decoding each page with Pillow and pushing a viewport-sized bitmap
-through the overlay transport on every pan (see ``jellyfin_mpv_shim.comic``
-for the measurement behind that).
+The comic reader's half of the gateway: a comic page is *played* rather
+than drawn (``docs/readers.md`` §5).
 
-**This is a third window state, and it is the reason this file exists.**
-The browser has had two: browsing (it owns the window, drawing over mpv's
-idle background) and yielded (playback owns the window, the browser pushes
-an empty scene). A comic is both at once — a picture in the window with
-the library's own chrome over it — so it goes through neither
-``_start`` nor ``_yield``.
-
-That works because ``PlayerManager`` keys almost everything off
-``self._video``, which stays None here: ``_on_eof_reached`` and
-``_on_playback_abort`` both return without it, so nothing advances a queue;
-the timeline reports nothing because there is no session; and ``idle_quit``
-already refuses to fire while ``mpvtk_active``, which is exactly the state
-the browser is in. What is *not* free is tidiness at the edges, so:
-
-* ``keep_open`` and ``image_display_duration`` are set here and put back in
-  :meth:`clear_picture`, because an image otherwise shows for one second
-  and then mpv idles;
-* leaving the reader must clear the picture, or the comic stays behind the
-  library grid — the shell does that on a screen change;
-* a real playback start replaces the picture, which is correct and needs
-  no coordination: ``loadfile`` replaces whatever is loaded.
+**This is a third window state, and it is the reason this file exists** —
+a picture in the window with the library's own chrome over it, which is
+neither ``_start`` nor ``_yield``. It is safe because ``PlayerManager``
+keys its queue, reporting and idle-quit off ``self._video``, which stays
+None here; what is *not* free is tidiness at the edges — ``keep_open`` and
+``image_display_duration`` are put back in :meth:`clear_picture`, and
+leaving the reader must clear the picture or the comic stays behind the
+library grid. See ``docs/readers.md`` §5.2.
 """
 
 import logging
@@ -128,18 +111,10 @@ def pan_bounds(picture, window, area, top, zoom):
 
     Returns ``(min_x, max_x, min_y, max_y)``.
 
-    **The unit is the SCALED PICTURE, not the window** — measured, because
-    it is the one thing here that cannot be reasoned out and the two
-    readings differ by whatever the zoom is. With a 1400x2100 page at
-    ``video-zoom`` 1.415 in a 1280x720 window (displayed height 1919), a
-    ``video-pan-y`` of 0.4 put the page's top edge at y=168, which is
-    ``-599.5 + 0.4 * 1919`` to within a pixel. Against the window's 720 it
-    would have been y=-311, and reading it that way is what put the first
-    version of this page entirely off the screen.
-
-    **The sign moves the picture, not the viewport**: a positive pan pushes
-    the picture *down*, which reveals its top. So the top of a page is
-    ``max_y``.
+    **The unit is the SCALED PICTURE, not the window** — measured, not
+    reasoned out; the arithmetic and the measurement are ``docs/readers.md``
+    §5.4. **The sign moves the picture, not the viewport**: a positive pan
+    pushes it *down*, so the top of a page is ``max_y``.
 
     The picture must not be draggable off the reading area: an axis it is
     smaller than is pinned to the centre of that area, and one it is larger

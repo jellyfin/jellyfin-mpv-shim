@@ -1,28 +1,16 @@
 """Faces for the reader, and the one place text is measured.
 
-The book is drawn with Pillow rather than with libass (see ``paint.py`` for
-why), and Pillow has no font fallback and no synthetic styles: one
-`FreeTypeFont` draws one face, and asking a regular face for italic gets
-regular. So a reader that wants bold, italic, bold-italic and monospace
-needs four to eight real font files, chosen up front.
+Pillow has no font fallback and no synthetic styles — one `FreeTypeFont`
+draws one face — so bold, italic, bold-italic and monospace mean four to
+eight real font files, resolved up front by *trying to load them*,
+most-preferred first. Every failure degrades and nothing here raises: a
+missing font must not be the difference between a book opening and an
+error screen.
 
-**The body face is a serif.** Not a house-style preference: a page of
-continuous prose is what serifs were cut for, it is what every published
-book in the library was typeset in, and it is what every dedicated reader
-defaults to. The UI around it stays in the toolkit's sans, which is also
-right — chrome and prose are different kinds of text.
-
-Everything is resolved by *trying to load files*, most-preferred first, and
-every failure degrades: no italic face means italic text draws regular, no
-face at all means Pillow's built-in bitmap font and a legible-but-ugly
-page. Nothing here raises, because a missing font on someone's system must
-not be the difference between a book opening and an error screen.
-
-Non-Latin scripts fall back to :mod:`jellyfin_mpv_shim.mpvtk.pilfont`,
-which already solves "find a face that covers this script" for the tile
-captions. It offers regular and bold only, so a Japanese book renders
-italic as regular — which is what Japanese typography does anyway.
+Why the body face is a serif, and what the :mod:`~jellyfin_mpv_shim.mpvtk.pilfont`
+fallback costs a non-Latin book — see ``docs/readers.md`` §4.6.
 """
+
 
 import logging
 from typing import Any, Dict, Optional, Tuple

@@ -1,30 +1,14 @@
 """Draw a laid-out page with Pillow.
 
-**Why Pillow and not libass.** The toolkit's `Text` node is real ASS drawn
-by libass, and it is the right tool for chrome — but not for a book, for
-four reasons that compound:
-
-1. **Images composite above all script ASS** (mpvtk GUIDE §6). A book is
-   text with pictures *in* it; every illustration would draw over the
-   paragraph it sits beside, and the escape hatch (an occluder rect) works
-   per node, not per line of a reflowing page.
-2. **One face per scene.** The toolkit measures and renders one UI font.
-   Bold, italic, bold-italic and monospace in one paragraph is the ordinary
-   case in a book and is not something that model has room for.
-3. **Line breaking would have to agree with libass exactly.** Layout here
-   decides where lines break; libass decides where glyphs land. Any drift
-   between the two shows up as a justified line that overflows its column,
-   and the metrics work needed to prevent it (§6.3 — per-char advances,
-   kerning pairs, the ascender-vs-em correction) is the toolkit's, tuned
-   for the UI font.
-4. **A page is one bitmap either way.** Rasterizing the page costs one
-   image; the alternative is several hundred text nodes per scene, pushed
-   as JSON, on every page turn.
+**The page is drawn with Pillow, not libass** — four reasons compound
+(overlay bitmaps composite above all script ASS, one face per scene, line
+breaking would have to agree with libass exactly, a page is one bitmap
+either way). See ``docs/readers.md`` §4.6.
 
 So the reader renders its page as a single premultiplied bitmap and hands
 it to the scene as one `Image` — the same path the tile strips use, with
 the same cache and the same LRU. The cost is that text on the page cannot
-be selected or hit-tested, which for a reader is not a cost.
+be selected or hit-tested; §4.9 is what stands in for it.
 """
 
 import io

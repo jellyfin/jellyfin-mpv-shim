@@ -1,18 +1,12 @@
 """Playback HUD — YouTube-on-TV style controls inside the mpv window.
 
-Rendered by the browser while it is yielded to video playback, via the
-renderer's attached-but-idle lifecycle (``mpvtk-hud``): playback runs
-clean until an arrow key / ENTER / mouse motion summons the HUD, and
-``hud_hide_secs`` without input hides it again, on the policy
-``hud_autohide`` sets (both renderer-side; see
-renderer.lua). ``hud_control.HudController`` owns the summoned flag and
-calls :func:`build_hud` from ``build()``; playstate comes from the
-same ``push_playstate`` snapshots that feed the audio now-playing bar,
-kept fresh by the shared 1s ticker.
+This IS the jellyfin-styled player UI (``osc_style: mpvtk``, the default).
+It is built here and driven by ``hud_control.HudController``; playstate comes
+from the same ``push_playstate`` snapshots that feed the audio now-playing
+bar, kept fresh by the shared 1s ticker.
 
-This IS the jellyfin-styled player UI (``osc_style: mpvtk``, the
-default) — it replaced the retired trickplay-jf-osc.lua at feature
-parity.
+The summon and auto-hide lifecycle is the renderer's, not ours. See
+docs/browser-shell.md section 14.
 """
 
 import logging
@@ -51,25 +45,11 @@ log = logging.getLogger("mpvtk_browser.hud")
 #
 # Capped by a window fraction as well, so short windows keep most of the
 # picture clean; the cap is what binds at any normal size.
-#
-# 0.55/380 -> 0.42/300 after #620, where the shadow over the picture was the
-# first thing anyone mentioned, then -> 200 on Izzie's UX pass. 200 is ~1.7x
-# the bar rather than the ~2.6x it was, which puts the title at roughly
-# alpha 100 instead of 140 -- deliberately lighter, and the reason the
-# "none" mode's per-glyph shadow exists as the other end of the same dial.
 SCRIM_FRAC = 0.42
 SCRIM_MAX = 200
 # Top scrim, same relation to the header's height.
 TOP_SCRIM_FRAC = 0.20
 TOP_SCRIM_MAX = 130
-# (There was a "half" mode here -- the same ramp at half height. It was
-# offered as the middle setting between the full ramp and no shading at all,
-# and it stopped earning that place twice over. Once the default came down to
-# 200 its half was 100, shorter than the bar itself, so the scrubber and the
-# bar's top edge sat on bare picture; and at any height it left the seekbar's
-# chapter markers to fend for themselves, which is the one thing on that bar
-# that is thin, light and positional. "panel" is the middle setting now, and
-# "none" is the far end.)
 # "panel": a flat band exactly the height of the bar rather than a ramp --
 # a hard edge, and no wash over the picture above it. Opacity, 255 opaque.
 # Black rather than theme.SCRIM: the HUD is drawn over VIDEO and stays dark
@@ -96,12 +76,9 @@ _SKIP_PAD = 10
 # buttons drifted apart horizontally by 24*(scale-1) px -- including the
 # renderer-drawn hit rect, which is what you actually click.
 _SKIP_RIGHT = 24
-# ...and the colours, for the same handoff reason: a mismatch here is a
-# flash of a different-coloured button on summon rather than a hop. Dark
-# translucent grey with white text, so the button reads as part of the
-# player's overlay furniture over any picture instead of a light chip
-# punched out of the video. _SKIP_ALPHA is opacity (255 = opaque) and
-# applies on hover too — renderer.lua reuses node.a whatever the hover
+# ...and the colours: a mismatch here is a flash of a different-coloured
+# button on summon rather than a hop. _SKIP_ALPHA is opacity (255 = opaque)
+# and applies on hover too -- renderer.lua reuses node.a whatever the hover
 # fill is, so only the fill changes under the pointer.
 _SKIP_BG = "202020"
 _SKIP_BG_HOVER = "3a3a3a"
@@ -620,11 +597,10 @@ def _info_rows(info, stats=None):
 def _info_dialog(b, size):
     """The playback-info panel, or None when it is closed.
 
-    A ``Dialog`` rather than a floating Box for two reasons that are one
-    reason: it gets ESC and click-outside dismissal for free, and the
-    renderer's auto-hide treats an open modal as a busy HUD
-    (``phud_busy``) — so the panel cannot be read for four seconds and then
-    yanked away with the bar it is attached to.
+    A ``Dialog`` rather than a floating Box: ESC and click-outside
+    dismissal for free, and an open modal counts as a busy HUD, so it
+    cannot be yanked away with the bar it is attached to. See
+    docs/browser-shell.md section 14.
     """
     if not b.hud.info:
         return None
@@ -721,12 +697,10 @@ def _skip_float(b, size):
     segment is live (playstate skip_label).
 
     Positioned by a constant inset from the bottom rather than off the
-    laid-out slider rect, for two reasons: the rect is a frame stale, so
-    keying off it left the button out of the HUD's very first scene
-    (it showed up a tick late, or not at all until something else
-    invalidated); and renderer.lua draws the standalone version of this
-    button while the HUD is idle, so the two have to land in the same
-    place or the handoff between them reads as a jump."""
+    laid-out slider rect, which is a frame stale -- keying off it left the
+    button out of the HUD's very first scene. The constants also have to
+    agree with renderer.lua's copy of this button; see
+    docs/browser-shell.md section 14."""
     label = (b.hud.state or {}).get("skip_label")
     if not label:
         return None

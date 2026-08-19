@@ -2,26 +2,11 @@
 
 An epub is four kinds of markup — `META-INF/container.xml`, the OPF package
 document, the EPUB 3 nav document, and the XHTML of the book itself — and
-this module reads all four with :class:`html.parser.HTMLParser` rather than
-with an XML parser. That is a deliberate choice on two grounds.
-
-**Entity expansion.** ``xml.etree.ElementTree`` is expat underneath, and
-expat expands internal entities: a fourteen-line "billion laughs" document
-measured here on CPython 3.13 parses to a 3000-character string at three
-levels of nesting and to gigabytes at nine. The file comes off a media
-server, which got it from whatever the user put in their library, so it is
-not ours to trust. ``html.parser`` never processes a DTD at all — a
-``<!DOCTYPE …>`` internal subset arrives as one opaque string through
-``handle_decl`` and is dropped — so the whole class of attack is absent
-rather than mitigated. It also cannot fetch an external DTD, which is the
-other half of the same problem.
-
-**Real epubs are not well-formed.** Unclosed ``<p>``, bare ``&``, stray
-``<br>``, mismatched nesting and the occasional Windows-1252 byte are all
-routine in shipped books, and an XML parser is *required* to stop dead on
-each of them. A reader that refuses a quarter of a library is not a reader.
-`html.parser` recovers from all of it, which is the same bet every browser
-makes and the same one jellyfin-web makes by handing the file to one.
+all four are read with :class:`html.parser.HTMLParser`, never with an XML
+parser. Two grounds, both in ``docs/readers.md`` §4.1: expat expands
+internal entities and this file came off a media server; and real epubs are
+not well-formed, while an XML parser is *required* to stop dead on each
+malformation.
 
 What this costs: no namespace resolution, no CDATA sections, no XML
 validation. Namespaces are handled by matching on the *local* name
