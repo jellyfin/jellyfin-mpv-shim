@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-19 13:26+0000\n"
+"PO-Revision-Date: 2026-08-19 13:38+0000\n"
 "Last-Translator: Ömür Ege Kiraz <omrkrz0678@gmail.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/tr/>\n"
@@ -1686,51 +1686,51 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "Direkt HDMI"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Ayarlanmamış"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Dublajlı (sadece diziler)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Altyazılı (sadece diziler)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Dublajlı (hepsi)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Altyazılı (sadece diziler)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Özel (configden ayarla)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "İndirme Klasörü"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "İndirilmiş kopyayı tercih et"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Sol tık oynatmayı durdurur"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Detaylar sayfasında Poster göster"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Detaylar sayfasında bölümlerin küçük resmini göster"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1740,11 +1740,11 @@ msgstr "Kaydı İptal Et"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Gelecek bölümleri otomatik indir"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Sonrakileri dahil et"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
@@ -1756,7 +1756,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "İndirmeler için depolama sınırı(GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1766,11 +1766,11 @@ msgstr "Sunucuyu Kaldır"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Bir süre sonra izlenmeyenleri sil (günler, 0 = asla)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Denetleme sıklığı (dakika)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
@@ -1814,7 +1814,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Text Size"
-msgstr ""
+msgstr "Yazıı boyutu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
