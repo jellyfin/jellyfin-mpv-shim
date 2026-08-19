@@ -203,16 +203,12 @@ class ThumbnailStore:
     #: which costs the server and the user more than the space saves.
     MIN_DISK_BYTES = 24 * 1024 * 1024
 
-    #: How long an untouched entry is kept. The size bound alone would let a
-    #: persistent cache sit at its ceiling forever, full of artwork for a
-    #: library that has since been deleted or a poster size nobody uses any
-    #: more: the key folds in the image tag and the requested pixel size, so
-    #: changing the Cover Size, the theme's tile shape, or the window it is
-    #: measured against *orphans* every entry made for the old one rather
-    #: than replacing it. Nothing invalidates those explicitly -- an orphan
-    #: is only recognisable by nobody having read it -- so this is the reaper
-    #: for all of it, and a month is long enough that a library you go back
-    #: to seasonally is still warm.
+    #: How long an untouched entry is kept -- the bound the size limit
+    #: cannot supply. The key folds in the image tag and the requested
+    #: pixel size, so changing Cover Size, the tile shape or the window
+    #: *orphans* every entry made for the old one, and an orphan is only
+    #: recognisable by nobody having read it. A month keeps a library you
+    #: go back to seasonally warm. docs/artwork-pipeline.md section 10.2.
     MAX_AGE_SECS = 30 * 24 * 60 * 60
 
     def __init__(self, cache_dir, verify_ssl=True, max_mem_mb=DEFAULT_MEM_MB,
@@ -227,15 +223,11 @@ class ThumbnailStore:
         self._notify = notify
 
         self._session = requests.Session()
-        # Size the connection pool to the worker count and BLOCK on exhaustion.
-        # urllib3 defaults to pool_maxsize=10 with pool_block=False, which does
-        # not queue an over-limit request — it opens a fresh connection and
-        # then discards it instead of returning it to the pool. With these
-        # workers plus the trickplay tile fetch hitting the same host, that
-        # meant a churn of one-shot TLS handshakes exactly while mpv was
-        # opening the stream, which is a very good fit for the intermittent
-        # "tls: Error decoding the received TLS packet" seen in the field.
-        # Blocking makes a busy pool wait for a free connection instead.
+        # Size the pool to the worker count and BLOCK on exhaustion.
+        # urllib3's pool_block=False default does not queue an over-limit
+        # request: it opens a fresh connection and discards it, which is a
+        # churn of one-shot TLS handshakes exactly while mpv is opening the
+        # stream. docs/artwork-pipeline.md section 10.6.
         adapter = requests.adapters.HTTPAdapter(
             pool_connections=THUMB_POOL_HOSTS,
             pool_maxsize=workers,
@@ -272,18 +264,14 @@ class ThumbnailStore:
         self._unpruned = 0
         self._prune_lock = threading.Lock()
 
-        # Once at startup -- but NOT on this thread. This used to measure a
-        # directory that had just been created; it now measures a persistent
-        # one that may hold thousands of files, and it runs on the path that
-        # opens the browser window. One listdir plus a stat per entry is
-        # seconds on a cold cache or on NTFS, all of it before anything is
-        # on screen.
+        # Once at startup -- but NOT on this thread. A listdir plus a stat
+        # per entry over a persistent cache is seconds on NTFS, and this
+        # runs on the path that opens the browser window.
         #
-        # The future is kept so that this prune can be waited for. Nothing in
-        # the app does -- it is fire-and-forget by design -- but it reaps by
-        # mtime against a directory the caller is free to keep writing to,
-        # so anything that wants to reason about what is in there has to be
-        # able to let it finish first.
+        # The future is kept so the prune can be waited for. Nothing in the
+        # app does; it reaps by mtime against a directory the caller may
+        # keep writing to, so a test reasoning about what is in there has
+        # to be able to let it finish. docs/artwork-pipeline.md section 10.3.
         self._startup_prune = self._pool.submit(self._prune_disk)
 
     # -- public API (loop thread) -----------------------------------------

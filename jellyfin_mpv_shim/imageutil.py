@@ -49,26 +49,18 @@ def scale_to_cover(image: "Image.Image", w: int, h: int,
         # a decode that went wrong, and the callers want a picture of the
         # size they asked for far more than they want an exception.
         return Image.new(image.mode, (w, h))
-    # **Cropped in the SOURCE, resampled once.** The obvious spelling --
-    # scale the whole picture up to cover, then crop the box out of it --
-    # pays for every pixel it is about to throw away, and a full-bleed
-    # banner throws away most of them: a 1920x1080 backdrop covering a
-    # 6390x412 header is resampled to 6390x3596 so that 412 rows of it can
-    # be kept. Pillow's `box` does the crop as part of the resample, so the
-    # same call reads 1920x124 out of the source and writes the 6390x412
-    # that is wanted. Measured at that size: 194 ms and +204 MB of peak RSS
-    # became 24 ms and +32 MB -- and this runs on the loop thread, once per
-    # pixel of a drag-resize, because the bitmap has to be exactly as wide
-    # as the header it is drawn in and so cannot be quantised the way the
-    # REQUEST for it is.
+    # **Cropped in the SOURCE, resampled once.** Scaling the whole picture
+    # up to cover and then cropping pays for every pixel it is about to
+    # throw away, which for a full-bleed banner is most of them. Pillow's
+    # `box` does the crop as part of the resample instead. This runs on the
+    # loop thread once per pixel of a drag-resize, so it is worth an order
+    # of magnitude -- and it is: docs/artwork-pipeline.md section 10.5.
     #
-    # Float box, deliberately. The integer version of this had to round the
-    # scaled size UP and clamp the crop, because a truncated product landed
-    # a pixel short and Pillow pads an out-of-bounds crop with transparent
-    # black rather than refusing -- a hairline down the edge of the banner
-    # for about one width in eighty. In source space the box is exact by
-    # construction: `w / scale <= iw` on the binding axis and below it on
-    # the other, so there is nothing to round off the edge of the picture.
+    # Float box, deliberately. The integer version had to round the scaled
+    # size UP and clamp, because a truncated product landed a pixel short
+    # and Pillow pads an out-of-bounds crop with transparent black rather
+    # than refusing -- a hairline down the edge of the banner. In source
+    # space the box is exact by construction.
     scale = max(w / iw, h / ih)
     # The covering rectangle, expressed in the source's own pixels.
     src_w = min(float(iw), w / scale)
