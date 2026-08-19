@@ -2,20 +2,16 @@
 
 Pure logic, like :mod:`home_sections` and the preference half of
 :mod:`live_tv`, and for the same reason: these live in the *server's*
-DisplayPreferences document (id ``usersettings``, client ``emby``), in the
-same ``CustomPrefs`` blob the home layout and the guide settings use, so a
-user who sets one of these in jellyfin-web gets it here and vice versa. The
-I/O is ``LibrarySource.get_user_prefs`` / ``save_user_prefs``.
+DisplayPreferences document, so a user who sets one in jellyfin-web gets it
+here and vice versa. The document, its id and its client namespace are
+``docs/jellyfin-api-notes.md`` section 7; the I/O is
+``LibrarySource.get_user_prefs`` / ``save_user_prefs``.
 
-Only settings jellyfin-web stores **on the server** belong here. Its
-``userSettings`` module also has a pile of localStorage-only ones
-(``maxDaysForNextUp``, ``enableRewatchingInNextUp``, ``libraryPageSize``,
-``enableBlurhash``, ...). Those do not sync between clients even in web, so
-mirroring them here would be a lie -- if we want them they are ordinary
-``conf.py`` keys. The test for whether a setting belongs in this module is
-whether ``userSettings.set(key, value, enableOnServer)`` was called with
-``enableOnServer !== false``, which for these is the third argument being
-``true`` (``src/scripts/settings/userSettings.js:360-366``).
+**Only settings jellyfin-web stores on the server belong here**, and the test
+is whether it called ``userSettings.set(key, value, enableOnServer)`` with
+``enableOnServer !== false`` (section 7.2). Its localStorage-only settings do
+not sync between clients even in web, so mirroring one here would be a lie --
+if we want it, it is an ordinary ``conf.py`` key.
 """
 
 #: jellyfin-web's key. Its accessor is ``useEpisodeImagesInNextUpAndResume``

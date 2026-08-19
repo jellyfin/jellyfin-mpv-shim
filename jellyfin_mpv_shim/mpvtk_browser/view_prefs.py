@@ -6,20 +6,16 @@ entirely when one is set. So two clients only agree for a user who has never
 touched the control -- and the people who have are the ones who file issues.
 
 Stored in the same DisplayPreferences ``CustomPrefs`` document as the home
-layout, the guide settings and :mod:`user_prefs`.
+layout, the guide settings and :mod:`user_prefs` -- one document, several
+clients' settings: ``docs/jellyfin-api-notes.md`` section 7.
 
-**The key is not fully knowable from web's source.** ``getSettingsKey``
-(``list.js:1265``) builds ``items-<type-or-parentId>-…`` and appends a route
-type only when the route carried one, so the same library reached two ways
-has two keys. A real setting observed in the wild was
-
-    items-f4415c72cc16920fce19d78d636a3ce7-Folder-imageType: thumb
-
-for a Home Videos library -- parent id *and* a ``Folder`` type. So rather
-than pick one spelling and silently read nothing, :func:`keys_for` returns
-the candidates in priority order and the reader takes the first that exists.
-A write goes back to whichever key it was read from, so we never strand the
-user's setting under a name their web client will not look at.
+**The key is not fully knowable from web's source**, because ``getSettingsKey``
+appends a route type only when the route carried one -- so the same library
+reached two ways has two keys. :func:`keys_for` therefore returns candidates
+in priority order and the reader takes the first that exists; a write goes
+back to whichever key it was read from, so the user's setting is never
+stranded under a name their web client will not look at. The observed
+evidence is section 7.3.
 """
 
 #: Image types jellyfin-web offers per library view, and what each means for
