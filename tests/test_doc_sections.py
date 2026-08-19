@@ -6,13 +6,15 @@ gets a new section in the middle, everything below renumbers, and roughly a
 hundred citations across the package now name the wrong place -- while still
 pointing at a file that is very much there, so nothing complains.
 
-Two citation forms are in use and both are read: ``docs/foo.md section 3.2``
-and ``docs/foo.md §3.2``.
+Two citation forms are in use and both are read: ``docs/<name>.md section
+3.2`` and the same with a section sign. Spelled with angle brackets so this
+docstring is not itself a citation -- `test_doc_pointers` reads every tracked
+file including this one, and a made-up example path is a dead pointer to it.
 
 **A sub-number is only checked when the doc actually has subsection
-headings under that top-level section.** `mpvtk/GUIDE.md` §6 has none, and
-"§6.3" there means item 3 of the numbered list inside section 6 -- a real
-reference to a real place, in a doc that never promised `### 6.3` exists.
+headings under that top-level section.** The mpvtk GUIDE's section 6 has none,
+and "6.3" there means item 3 of the numbered list inside section 6 -- a real
+reference to a real place, in a doc that never promised a `### 6.3` heading.
 Checking it as a heading would fail a citation that is correct.
 """
 
