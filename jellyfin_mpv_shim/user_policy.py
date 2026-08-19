@@ -1,30 +1,21 @@
 """What this user is allowed to do on this server.
 
-Jellyfin grants SyncPlay and Live TV *recording* independently of everything
-else, and the shim offered both to everyone. A user who lacks them does not
-conclude they lack permission when the button fails — they conclude the
-client is broken, and they are half right. See ``docs/PERMISSION_GAPS.md``.
+Jellyfin grants SyncPlay, Live TV recording, downloading and collection
+management independently of everything else, and the shim offered all of them
+to everyone. A user who lacks one does not conclude they lack permission when
+the button fails -- they conclude the client is broken, and they are half
+right. Per-permission write-ups are in ``docs/PERMISSION_GAPS.md``.
 
-Two things make this its own module rather than a method somewhere:
+Its own module for two reasons. **It is per client, not per app**: the answer
+differs between two servers signed in at once, and caching on the client
+object means every consumer reaches the same answer without owning it. And
+**it fails open** -- only an answer the server actually gave can close a
+gate, because a transient error is not a reason to take a working button
+away.
 
-**It is per client, not per app.** The answer differs between two servers
-signed in at once, and every consumer already has a client or a server uuid
-in hand — the browser's ``LibrarySource`` connections, the player's
-``clientManager`` ones. Caching on the client object means both reach the
-same answer without either owning it.
-
-**It fails open.** A policy that could not be fetched must not hide features
-that work: the current behaviour is to offer everything, and a transient
-error is not a reason to take a working button away. Only an answer the
-server actually gave can close a gate. This mirrors ``ItemActions.can_edit``
-and ``can_record``, which take the same line about capability probes and for
-the same reason.
-
-The fetch is ``GET /Users/Me``: the policy also arrives on the login
-response, but credentials are restored from ``cred.json`` on every run after
-the first, so there is no login response to read most of the time. One
-request per server per session, taken lazily and cached, so a user who never
-opens Live TV never pays for it.
+The fetch is ``GET /Users/Me``, once per server per session and taken lazily;
+see docs/jellyfin-api-notes.md section 13 for why the login response is not
+enough.
 """
 
 import logging
@@ -107,16 +98,11 @@ def may_download(client):
     """`EnableContentDownloading` — may this user use `/Items/{id}/Download`?
 
     A *fourth* independently-granted permission, and the one with the widest
-    blast radius, because that endpoint is not only how a download is taken:
-    it is the only path to a Photo's original bytes, and the only path to a
-    Book's bytes at all. So a user without it does not merely lose the
-    Download button — a picture fails to open, with no hint as to why.
-
-    jellyfin-web takes exactly this line for photos: `slideshow.js:getImgUrl`
-    reaches for the download URL only when the policy allows, and otherwise
-    serves the same picture from the image endpoint, which needs no
-    permission. The download URL is the original-quality *upgrade*, never the
-    load-bearing path.
+    blast radius: that endpoint is the only path to a Photo's original bytes
+    and the only path to a Book's bytes at all. For a photo the image
+    endpoint is an unconditional fallback and jellyfin-web draws the same
+    line (`slideshow.js:getImgUrl`); for a book there is no second road. See
+    `docs/PERMISSION_GAPS.md` §4 and §4b.
 
     Absent means an answer we did not get, so: permitted. Closing this gate
     on a failed fetch would send every photo through the resizer.
@@ -130,20 +116,12 @@ def may_download(client):
 def may_manage_collections(client):
     """`EnableCollectionManagement` — may this user write to a collection?
 
-    A *fifth* independently-granted permission, and the whole of
-    `CollectionController` sits behind it: `[Authorize(Policy =
-    Policies.CollectionManagement)]` is on the controller, not on individual
-    routes, so creating a collection, adding to one and removing from one are
-    one permission and one 403.
-
-    **There is no administrator bypass.** `UserPermissionHandler` asks
-    `HasPermission` and stops, exactly as it does for Live TV management — so
-    an admin without the flag is refused like anyone else. jellyfin-web reads
-    it as `IsAdministrator || EnableCollectionManagement`
-    (`itemContextMenu.js:143`), which offers the button to an admin the API
-    will refuse; that spelling is right for `BoxSet.IsAuthorizedToDelete`,
-    which really does bypass, and wrong for the endpoint the button calls.
-    We ask what the endpoint asks.
+    A *fifth* independently-granted permission, off by default on a modern
+    server, and the whole of `CollectionController` sits behind it -- so
+    creating a collection, adding to one and removing from one are one
+    permission and one 403. **There is no administrator bypass**, whatever
+    jellyfin-web's `IsAdministrator || EnableCollectionManagement` suggests:
+    we ask what the endpoint asks. See `docs/PERMISSION_GAPS.md` §5.
 
     Absent means an answer we did not get, so: permitted.
     """

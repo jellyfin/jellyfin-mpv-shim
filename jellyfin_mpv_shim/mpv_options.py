@@ -1,16 +1,15 @@
 """Assembling the option set mpv is constructed with.
 
-This was the first 170 lines of ``PlayerManager._init_mpv``. It is a pure
-function of ``settings`` plus three facts the player knows (which backend is
-in use, whether the browser wants a window, whether trickplay started), and
-splitting it out means the answers can be checked without constructing an
-mpv -- which, on the libmpv backend, means opening a real window.
+A pure function of ``settings`` plus three facts the player knows (which
+backend is in use, whether the browser wants a window, whether trickplay
+started), so the answers can be checked without constructing an mpv -- which,
+on the libmpv backend, means opening a real window.
 
 Nothing here touches mpv, and nothing here imports ``player``. The
-directory-creating half of the original block (``conffile.get_dir`` /
-``conffile.get``) deliberately stayed behind: ``confdir`` is a path lookup
-and safe to call, but creating the config tree is a side effect and belongs
-with the code that is actually starting a player.
+directory-creating calls (``conffile.get_dir`` / ``conffile.get``)
+deliberately live in ``_init_mpv`` instead: ``confdir`` is a path lookup and
+safe to call, but creating the config tree is a side effect and belongs with
+the code that is actually starting a player.
 
 Before editing this file, read ``docs/mpv-backends.md``.
 """
@@ -240,16 +239,11 @@ def mpv_binary_location():
 
 #: The option mpv only registers when it was built with lua.
 #:
-#: A build without lua does not ignore ``--osc``, it refuses to start.
-#: Measured against a `-Dlua=disabled` mpv 0.41, on both backends: libmpv
-#: raises ``AttributeError('mpv option does not exist', ...)`` from the
-#: constructor, and the external binary prints "Error parsing option osc
-#: (option not found)" and exits, which reaches the shim as
-#: ``MPVError("MPV process retry limit reached.")`` after burning every
-#: start retry on it.
-#:
-#: That made the lua fallback unreachable: `lua_works` needs a live mpv to
-#: probe, and the app died constructing one.
+#: A build without lua does not ignore ``--osc``, it refuses to start -- on
+#: both backends, and differently on each. That made the lua fallback itself
+#: unreachable, since `lua_works` needs a live mpv to probe and the app died
+#: constructing one. Both reports, and why none of them has to be parsed:
+#: docs/mpv-backends.md section 2.
 OSC_OPTION = "osc"
 
 
@@ -260,15 +254,13 @@ OSC_OPTION = "osc"
 #: not have this. Debian's does; shinchiro's Windows builds pass
 #: `-Dsdl2-gamepad=enabled` explicitly, so the mpv-2.dll CI ships does too.
 #:
-#: Like `OSC_OPTION`, an mpv without it does not ignore the flag -- it refuses
-#: to start -- so `_construct_mpv` drops it and remembers. Only ever present
-#: when the user asked for it, so nobody who leaves the setting alone can be
-#: affected by any of this.
+#: Like `OSC_OPTION`, an mpv without it refuses to start rather than ignoring
+#: the flag, so `_construct_mpv` drops it and remembers (docs/mpv-backends.md
+#: sections 2 and 4). Only ever present when the user asked for it.
 #:
 #: It must be set at construction. mpv reads `use_gamepad` exactly once, in
-#: `mp_input_load_config` (input/input.c) called once from player/main.c, and
-#: `load-config-file` does not re-read it -- but the option group carries
-#: UPDATE_INPUT, so a runtime write *succeeds and reads back yes* while the
+#: `mp_input_load_config` (input/input.c), but the option group carries
+#: UPDATE_INPUT -- so a runtime write *succeeds and reads back yes* while the
 #: SDL thread is never started. Measured; the setting would look applied and
 #: do nothing.
 GAMEPAD_OPTION = "input_gamepad"
@@ -277,26 +269,15 @@ GAMEPAD_OPTION = "input_gamepad"
 #: What each ``motion_interpolation`` value writes, as mpv property names.
 #:
 #: All three ON values set ``video-sync`` as well, and that is not
-#: incidental: mpv's own manual says ``--interpolation`` "requires setting
-#: the --video-sync option to one of the display- modes, or it will be
-#: **silently disabled**". A setting that writes only ``interpolation`` is
-#: therefore a setting that does nothing and reports success, which is why
-#: the pair is a table here rather than two independent options -- and why
-#: `tests/test_motion_interpolation.py` asserts they travel together.
+#: incidental: ``--interpolation`` is **silently disabled** without a
+#: display- sync mode, so a setting writing only ``interpolation`` would do
+#: nothing and report success. Hence one table rather than two independent
+#: options, and hence `tests/test_motion_interpolation.py` asserting that the
+#: pair travels together.
 #:
-#: The filters are mpv's, and they are three different trades rather than
-#: three quality tiers:
-#:
-#: * ``oversample`` is mpv's own default and barely blends at all -- it
-#:   holds each frame and crossfades only across the transition, which is
-#:   MPC's "smooth motion". Judder goes, sharpness stays.
-#: * ``linear`` is a true cross-fade between the two nearest frames. The
-#:   smoothest motion of the three and visibly softer on a pan, which some
-#:   people want and some cannot stand.
-#: * ``mitchell`` is a wider kernel over more frames: smoother still, and
-#:   the one that costs enough GPU to matter. On hardware that cannot keep
-#:   up it drops frames, which looks like the judder it was turned on to
-#:   fix -- so it is offered last and labelled as the expensive one.
+#: The three filters are three different trades rather than three quality
+#: tiers; what each one does is in docs/configuration.md under
+#: ``motion_interpolation``.
 INTERPOLATION_PRESETS = {
     "off": {},
     "smooth": {"video-sync": "display-resample",
@@ -319,12 +300,10 @@ def interpolation_props():
     """``{mpv property: value}`` for the configured preset, or ``{}``.
 
     ``{}`` for "off" is deliberate and is NOT the same as writing the
-    defaults back: ``video-sync`` is a timing mode somebody may reasonably
-    have chosen in their own ``mpv.conf``, and an "off" that wrote
-    ``audio`` over it would be this setting overriding a more specific
-    statement -- the mistake ``hwdec_pinned_by_config`` exists to avoid.
-    Turning the feature off is the player's job, and it restores what was
-    there before it first wrote (PlayerManager._apply_interpolation).
+    defaults back -- ``video-sync`` is a timing mode somebody may reasonably
+    have chosen in their own ``mpv.conf``. Turning the feature off is the
+    player's job, and it restores what was there before it first wrote
+    (PlayerManager._apply_interpolation, docs/mpv-backends.md section 6).
 
     An unrecognised value reads as off. It is a plain string in a JSON file
     somebody can type into, and the alternative to a default is a KeyError
@@ -451,17 +430,10 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
 
     # The in-window UI has to ask for its window on the command line.
     #
-    # mpv before 0.41 accepts a runtime force-window change and stores it,
-    # but never acts on it while idle: the VO is created only if the
-    # option was set at startup, and once created it can no longer be
-    # released. Measured on 0.40.0 vs 0.41.0 -- with --idle and no file,
-    # setting force-window over IPC leaves `vo-configured` false on 0.40
-    # and flips it true on 0.41. It is a version difference, not a backend
-    # one; the libmpv path only looked fine here because the installed
-    # libmpv was newer than the mpv binary. So on 0.40 set_browse_window
-    # raised no window at all, and with the browser being the window's
-    # entire content the app came up invisible and the tray's Show
-    # Library Browser had nothing to show.
+    # force-window is only live from mpv 0.41 (docs/mpv-backends.md §3):
+    # an older build stores a runtime change and never acts on it while
+    # idle, so set_browse_window raised no window at all, the app came up
+    # invisible, and the tray's Show Library Browser had nothing to show.
     #
     # First launch takes the window unless start_minimized asked for the
     # windowless state. A re-open (crash recovery, idle-quit) takes it

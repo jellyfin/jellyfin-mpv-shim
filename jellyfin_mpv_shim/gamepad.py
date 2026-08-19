@@ -1,46 +1,23 @@
 """Which gamepad button does what.
 
-The controller is **not a second input model**. Every button here resolves to
-something the shim already has: a keyboard key it already binds, or the seek
-the arrow keys already perform. That is deliberate and it is the whole design
--- a parallel set of gamepad handlers is a second implementation of the
-navigation ladder, and the second implementation is where the drift happens.
+The controller is **not a second input model**: every button here resolves to
+something the shim already has -- a keyboard key it already binds, or the seek
+the arrow keys already perform. A parallel set of gamepad handlers would be a
+second implementation of the navigation ladder, and the second implementation
+is where the drift happens.
 
-Two kinds, and the split is not cosmetic:
+Three kinds. :data:`KEY` is a *synthetic keypress*, so the d-pad follows the
+UI from screen to screen without knowing any of it exists; :data:`SEEK` goes
+to ``PlayerManager.kb_seek``, which is the *keyboard's* seek and not a number
+of ours; :data:`NAV` hands a verb to the remote control's own ladder, for a
+button whose meaning changes between the library and a playing video.
 
-* :data:`KEY` is a *synthetic keypress*. The renderer issues the keyboard key
-  and whatever is bound to it right now answers -- the browser's spatial
-  navigation while the library is up, the playback HUD's summon while a video
-  is on, mpv's own default when neither claims it. So the d-pad follows the
-  UI from screen to screen without knowing any of them exist, and a page that
-  claims ENTER (the epub reader, a dialog) gets the controller's confirm
-  button for free.
-* :data:`SEEK` goes to ``PlayerManager.kb_seek``, which is the *keyboard's*
-  seek and not a number of ours: it reads the distance out of the user's own
-  ``input.conf`` binding, applies ``use_web_seek``, and routes through a seek
-  that a SyncPlay group hears about. A raw ``seek 5`` from Lua would be none
-  of those three, and the third one is a desync the group then corrects.
-
-**The sticks are asymmetric on purpose.** The left stick and d-pad drive the
-UI; the right stick seeks. That is why the left stick wakes a hidden playback
-HUD rather than falling through to mpv's arrows the way the keyboard does
-under the default ``hud_grab_keys``: a keyboard has one set of arrows and has
-to share them, and a controller does not.
-
-**mpv names the face buttons by POSITION, not by label.** ``ACTION_DOWN`` is
-the bottom button and ``ACTION_RIGHT`` the right one, whatever is printed on
-them -- which is exactly the problem, because the two common layouts disagree
-about where A is. An Xbox-style pad puts A at the bottom, a Nintendo-style
-one (Switch Pro, most 8BitDo) puts it on the right, and SDL reports both by
-position. So "confirm is A" is not a statement this code can make, and
-``swap_confirm`` is the user telling us which pad is in their hands.
-
-Buttons deliberately left unbound -- ``GAMEPAD_ACTION_UP`` (Y/X),
-``GAMEPAD_BACK`` (Select/View) and both triggers -- are free for
-``input.conf``. Every binding here is registered *non-forced*, so a line in
-``input.conf`` naming the same key wins outright and nothing has to be
-disabled first. Inventing a meaning for the spare buttons would take that
-away from the people who have a use for them.
+mpv names the face buttons by POSITION, not by label, and the two common pad
+layouts disagree about where A is -- so "confirm is A" is not a statement this
+code can make, and ``swap_confirm`` is the user telling us which pad is in
+their hands. The sticks are asymmetric on purpose, and the spare buttons are
+left free for ``input.conf``. All of that is derived in
+docs/architecture.md section 5.
 
 Pure data plus one function: no mpv, no settings import, no I/O.
 """
@@ -63,23 +40,13 @@ NAV = "nav"
 #: How often a held control may fire, in seconds between events, and **0
 #: means it does not auto-repeat at all**.
 #:
-#: mpv repeats a held key at ``--input-ar-rate``, which defaults to 40 a
-#: second. On a keyboard that is a cursor moving through text; on a stick it
-#: is forty rows of a library per second, which is not something anybody can
-#: aim -- [iw]: "it spams inputs way faster than I can control them". An
-#: analog stick is worse than the d-pad again, because an axis resting near
-#: the threshold chatters across it and each crossing is a fresh press
-#: rather than a repeat -- which is why the limit is applied to every event
-#: and not only to the ones mpv marks as repeats.
-#:
-#: Per control rather than one number, because holding these does not mean
-#: the same thing. A direction is "keep going" and wants to feel like a
-#: scroll; a page is a jump and wants to be slower; a **seek repeats over
-#: real time**, so at the direction's rate a resting thumb would cross a
-#: film in a couple of seconds. And confirm, back, play/pause and the menu
-#: do not repeat at all: holding a button is not a request to press it
-#: again, and an auto-repeating Select activates whatever it landed on over
-#: and over.
+#: mpv's own 40-a-second repeat is a cursor on a keyboard and forty rows of a
+#: library per second on a stick -- [iw]: "it spams inputs way faster than I
+#: can control them". An analog axis resting near the threshold chatters
+#: across it and each crossing is a fresh press rather than a repeat, which is
+#: why the limit is applied to every event and not only to the ones mpv marks
+#: as repeats. Per control rather than one number, because holding these does
+#: not mean the same thing -- docs/architecture.md section 5.3.
 DIRECTION_REPEAT = 0.15
 PAGE_REPEAT = 0.35
 SEEK_REPEAT = 0.4

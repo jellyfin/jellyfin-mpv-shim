@@ -1,28 +1,19 @@
 """Which keys currently *mean* something we need to intercept.
 
 #16. The shim used to bind `space`, `f` and the four arrows unconditionally,
-which meant swallowing mpv's own defaults — and, worse, swallowing whatever
-the user had put on those keys in their own `input.conf`. That is the
-complaint behind PR #547, and the answer is not a config parser.
+swallowing mpv's own defaults and whatever the user had put on those keys
+(PR #547). The answer is not a config parser.
 
 **Ask mpv, do not read the config.** The ``input-bindings`` property is the
-*resolved* set: mpv has already applied sections, profiles, priorities and
-`ignore`, so there is no precedence model of ours to drift from theirs. It
-costs one property read.
-
-What that buys, and why this is better than hard-coding keys:
-
-* it **follows a remapped key**. Somebody who moved pause to `p` gets
-  SyncPlay-aware pause on `p`, which a fixed ``kb_pause`` never gave them;
-* it **preserves meaning**, because a claim re-issues the command that was
-  already bound rather than substituting one of ours. We intercept only
-  where we genuinely need to, and even there the key still does what their
-  config says;
-* it distinguishes **mpv's default from the user's choice** — that is
-  ``is_weak``, which mpv sets on the builtin bindings and not on anything
-  from an ``input.conf``. The one-time migration needs exactly that.
+*resolved* set -- sections, profiles, priorities and `ignore` already applied
+-- so there is no precedence model of ours to drift from theirs, for the cost
+of one property read. That is what lets a claim follow a remapped key and
+re-issue the command already bound instead of substituting one of ours, and
+it is what distinguishes mpv's default from the user's choice (``is_weak``),
+which the one-time ``input_conf`` migration needs.
 
 Pure logic, no mpv: the caller reads the property and installs the section.
+Which keys are claimed and why so few: docs/mpv-backends.md section 5.
 """
 
 import logging

@@ -44,14 +44,12 @@ _PHOTO_MAX_WIDTH = 3840
 
 #: How the stream reached us, in jellyfin-web's *display* vocabulary
 #: (``playback/playmethodhelper.js``) rather than Jellyfin's ``PlayMethod``
-#: enum, which the two only partly agree about: web shows "Direct playing"
-#: for a ``static=true`` stream as well as for a file opened directly,
-#: because the bytes are unmodified either way.
+#: enum, which only partly agrees with it -- see
+#: docs/jellyfin-api-notes.md section 11.
 #:
-#: Deliberately *not* the string reported to the server. What we report is a
-#: separate and older question -- see docs/UI_FIXES_4.md §10, where it is
-#: deferred -- and tying the screen to it would have made the screen wait for
-#: it.
+#: Deliberately *not* the string reported to the server: that is a separate
+#: and older question (docs/UI_FIXES_4.md §10, where it is deferred), and
+#: tying the screen to it would have made the screen wait for it.
 PLAY_DIRECT = "DirectPlay"
 PLAY_DIRECT_STREAM = "DirectStream"
 PLAY_REMUX = "Remux"
@@ -61,16 +59,11 @@ PLAY_TRANSCODE = "Transcode"
 def _target_codecs(transcoding_url):
     """``(video, audio, reasons)`` out of a ``TranscodingUrl`` query string.
 
-    **All three are query parameters, and that is measured, not assumed.**
-    Against Jellyfin 10.11 the MediaSource DTO carries no ``TranscodeReasons``
-    field at all -- the reasons ride in the transcoding URL as a comma-joined
-    flags string -- so reading them off the DTO, which is the obvious thing
-    and what an older server's schema suggests, yields None every time and a
-    screen that says the file is being transcoded for no reason.
-
-    Each codec parameter may name *several* codecs (the profile can offer a
-    list and the server picks); the caller tests membership rather than
-    equality for that reason.
+    **All three are query parameters, and that is measured, not assumed** --
+    the MediaSource DTO carries no ``TranscodeReasons`` on 10.11, so reading
+    them off the DTO yields None every time (docs/jellyfin-api-notes.md
+    section 11). Each codec parameter may name *several* codecs, which is
+    why the caller tests membership rather than equality.
     """
     try:
         query = urllib.parse.parse_qs(
@@ -91,14 +84,11 @@ def _target_codecs(transcoding_url):
 #: codec matches the source**. These are all "the codec is fine, this
 #: property is not": a resolution, a level, a bit depth, a bitrate ceiling.
 #:
-#: **Codec-identity reasons are deliberately absent**, and the distinction
-#: matters. `TranscodeReasons` says why *direct play* was refused, not what
-#: the transcoder does with each stream -- so `AudioCodecNotSupported` can
-#: appear on a session whose transcoding profile then happily copies the
-#: audio. Treating every reason as authoritative made a remux report as a
-#: DirectStream, which the e2e test against a live server caught.
-#: Where the reason is about the codec, the target codec is the better
-#: witness and wins.
+#: **Codec-identity reasons are deliberately absent.** `TranscodeReasons`
+#: says why *direct play* was refused, not what the transcoder does with each
+#: stream (docs/jellyfin-api-notes.md section 11), so treating every reason
+#: as authoritative made a remux report as a DirectStream. Where the reason
+#: is about the codec, the target codec is the better witness and wins.
 _VIDEO_REASONS = frozenset({
     "ContainerBitrateExceedsLimit", "VideoBitrateNotSupported",
     "VideoResolutionNotSupported", "VideoFramerateNotSupported",
@@ -122,23 +112,14 @@ def transcode_play_method(media_source, transcoding_url, aid=None):
     Only for the transcoding branch -- a direct path or a static stream is
     :data:`PLAY_DIRECT` without asking anyone.
 
-    The rule is jellyfin-web's, reached by a different route. Web reads its
+    The rule is jellyfin-web's, reached by a different route: web reads its
     own session back off the server (``TranscodingInfo.IsVideoDirect`` /
     ``IsAudioDirect``) because the *server* made the decision and web only
-    finds out; here the same facts are in the URL we were handed, so the
-    comparison is between the codec the server says it will emit and the
-    codec the file already has:
-
-    ==================  ==================  ==============
-    target video        target audio        method
-    ==================  ==================  ==============
-    same as source      same as source      Remux
-    same as source      re-encoded          DirectStream
-    re-encoded          --                  Transcode
-    ==================  ==================  ==============
-
-    Measured against a live 10.11 server with three device profiles built to
-    force each row; see the commit that added this.
+    finds out, while here the same facts are in the URL we were handed -- so
+    this compares the codec the server says it will emit against the codec
+    the file already has. The resulting table, measured against a live 10.11
+    server with three device profiles built to force each row, is in
+    docs/jellyfin-api-notes.md section 11.
     """
     target_v, target_a, reasons = _target_codecs(transcoding_url)
     streams = (media_source or {}).get("MediaStreams") or []
@@ -636,12 +617,10 @@ class Video(object):
         if self.media_source["SupportsDirectStream"]:
             self.is_transcode = False
             # PLAY_DIRECT, not PLAY_DIRECT_STREAM: these are jellyfin-web's
-            # *display* names, and it calls a static stream "Direct playing"
-            # too, because the bytes are the file's either way. Its
-            # DirectStream means something else entirely -- video copied,
-            # audio re-encoded -- which is a transcoding session. The
-            # direct_path flag below is where the difference this one does
-            # have from a local file is recorded.
+            # *display* names and it calls a static stream "Direct playing"
+            # too, while its DirectStream means video copied and audio
+            # re-encoded. The direct_path flag below is where the one real
+            # difference from a local file is recorded.
             self.play_method = PLAY_DIRECT
             log.info("Using direct url.")
             query_params = {
@@ -801,36 +780,23 @@ class Video(object):
         self.terminate_transcode()
 
         if self.is_photo:
-            # Photos do not go through PlaybackInfo at all. That endpoint
-            # answers about MediaSources, and a Photo has none -- so there is
-            # no source to negotiate, no play-session id, and nothing to
-            # transcode. jellyfin-web fetches the file itself, which is what
-            # this is (confirmed against a live server).
+            # A Photo has no MediaSources, so PlaybackInfo is skipped
+            # entirely (docs/jellyfin-api-notes.md section 11) and neither
+            # url below is negotiated -- one is the file, the other is the
+            # server's own rendering of it.
             #
-            # HEIC goes the other way, through the image endpoint, because
-            # that is where the server will convert it: mpv's ffmpeg often
-            # cannot decode HEIC, and finding out at decode time gives a
-            # black window rather than a fallback. Branching on the container
-            # up front is the cheap version of that test.
-            # Both of these take the header like every other url below, and
-            # for the same reason -- this branch returns before the one that
-            # drops the token, so leaving them at the apiclient's default
-            # sent both, and a photo was the one thing still putting a token
-            # in a query string after all of the above.
+            # HEIC goes through the IMAGE endpoint because that is where the
+            # server will convert it: mpv's ffmpeg often cannot decode HEIC,
+            # and finding out at decode time gives a black window rather
+            # than a fallback. The same endpoint is the fallback for a user
+            # who may not download, since /Items/{id}/Download is
+            # permission-gated and a picture that will not open reads as a
+            # broken client (docs/PERMISSION_GAPS.md §4; fails open, see
+            # user_policy.may_download).
             #
-            # The image endpoint is also the fallback for a user who may not
-            # download. /Items/{id}/Download is permission-gated, so without
-            # EnableContentDownloading the original bytes are simply not
-            # reachable -- and a picture that will not open reads as a broken
-            # client, not as a permission. The same picture comes back from
-            # the image endpoint, which needs no permission, so the download
-            # url is the original-quality *upgrade* rather than the only way
-            # in. jellyfin-web draws exactly this line (slideshow.js:
-            # getImgUrl). Fails open: see user_policy.may_download.
-            # Neither of the two photo urls below is negotiated, so the
-            # decision _get_url_from_source would have recorded never
-            # happens: one is the file, the other is the server's own
-            # rendering of it. Both are "here are the bytes".
+            # Both take the header like every other url below: this branch
+            # returns before the one that drops the token, so leaving them
+            # at the apiclient's default sent it in the query string.
             self.play_method = PLAY_DIRECT
             self.direct_path = True
             keep_token = not self.auth_via_header
@@ -885,39 +851,28 @@ class Video(object):
 
     def get_duration(self):
         # The MediaSource comes first because the Item DTO is unreliable for
-        # remote shortcuts: a library scan never probes a .strm (the probe is
-        # gated on the item not being a shortcut), so the Item carries no
-        # RunTimeTicks. The server does probe it, but only during the
-        # PlaybackInfo request, and that runtime lands on the MediaSource —
-        # the Item we fetched earlier stays stale. Reading only the Item left
-        # every .strm with no duration, which disabled the player's near-end
-        # finish check and stranded the queue on a frozen last frame.
+        # remote shortcuts: a .strm carries no RunTimeTicks on the Item and
+        # the probed runtime lands on the MediaSource instead
+        # (docs/jellyfin-api-notes.md section 11). Reading only the Item left
+        # every .strm with no duration, which disabled the near-end finish
+        # check and stranded the queue on a frozen last frame.
         source = self.media_source or {}
         ticks = source.get("RunTimeTicks")
         if ticks:
             return ticks / 10000000
 
         # The Item's runtime describes the item's OWN file, so it is only a
-        # fallback for that file — never for an alternate version.
+        # fallback for that file — never for an alternate version. A .strm
+        # beside an .mkv never gets probed (the gate is the *item's* path,
+        # and a version set's item.Path is its primary's), so falling through
+        # gave a thirty-second stream the sibling's ten seconds: the queue
+        # advanced ten seconds in and the completion it reported wiped the
+        # resume position. See docs/jellyfin-api-notes.md section 11, which
+        # also has the id convention this tests on.
         #
-        # Measured against 12.0: the remote probe is gated on the *item's*
-        # path ending in .strm (MediaSourceManager.GetPlaybackMediaSources),
-        # and a version set's item.Path is its PRIMARY's. So a .strm sitting
-        # beside an .mkv never qualifies — naming it with MediaSourceId does
-        # not help — and it arrives with no runtime while the Item still
-        # carries the local file's. Falling through gave a thirty-second
-        # stream the sibling's ten seconds: _finished_at_eof called it
-        # finished ten seconds in, the queue advanced, and the completion
-        # that got reported is what actually wiped the resume position.
-        #
-        # No duration is the honest answer, and the callers are built for it
-        # — _finished_at_eof and _check_stalled_finish both decline to place
-        # a position they cannot measure. Withheld only where the source is
-        # *known* to be an alternate: a source naming no id (none resolved
-        # yet) says nothing either way and keeps the old fallback.
-        #
-        # The id test is Jellyfin's own convention — a source standing for
-        # the item's own file carries the item's id.
+        # No duration is the honest answer, and the callers are built for it.
+        # Withheld only where the source is *known* to be an alternate: a
+        # source naming no id says nothing either way and keeps the fallback.
         source_id = source.get("Id")
         if source_id is None or source_id == self.item_id:
             ticks = self.item.get("RunTimeTicks")

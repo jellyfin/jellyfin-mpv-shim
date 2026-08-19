@@ -26,26 +26,15 @@ logging.getLogger("requests").setLevel(logging.CRITICAL)
 
 def scratch_namespace():
     """The directory this instance's scratch caches live in, inside whichever
-    base is chosen. Everything in it is reclaimable by whoever holds it, so
-    what goes into the name is exactly what bounds that claim.
+    base is chosen.
 
-    The **config directory**, because that is what the single-instance lock
-    covers: two copies started with different ``--config`` directories are
-    legal and share a machine's temp space.
-
-    The **host**, because a home directory can be shared. ``~/.cache`` is one
-    of the bases, and ``flock`` is host-local on plenty of network
-    filesystems -- so two machines mounting the same home can each hold what
-    each believes is the only lock, and a name keyed on the config path alone
-    would have them reclaiming each other's live caches. A per-host name
-    costs nothing to a normal setup and makes that case structurally
-    impossible rather than merely unlikely.
-
-    Hashed rather than spelled out, because both parts are long, one is a
-    path, and neither is meant to be read: this is an identity, not a label.
-    The cost is that a machine which renames itself abandons its old
-    namespace -- nothing sweeps a namespace but its owner -- so one run's
-    worth of scratch stays behind on real disk until the OS reclaims it.
+    Everything in it is reclaimable by whoever holds it, so the name is keyed
+    on exactly what bounds that claim: the config directory (what the
+    single-instance lock covers) and the host (a home directory can be
+    shared, and ``flock`` is host-local on plenty of network filesystems).
+    Hashed because this is an identity, not a label; the cost is that a
+    machine which renames itself abandons its old namespace. Derivation in
+    docs/architecture.md section 2.3.
     """
     key = "%s\0%s" % (platform.node(),
                       os.path.abspath(conffile.confdir(APP_NAME)))
@@ -57,48 +46,26 @@ def _claim_sigterm(halt):
     """Make SIGTERM run the orderly shutdown, and take the signal before SDL
     can.
 
-    Two things at once, and the second is why this is here rather than in the
-    player.
+    Two things at once. With no handler, `kill` skipped the whole shutdown
+    sequence -- no final progress report, no geometry saved, no credentials
+    flushed -- and `kill` is what systemd and a session logout send.
+    Installing one is also what KEEPS it: SDL replaces only a handler still
+    at ``SIG_DFL``, so SIGTERM at CPython's default was taken by SDL, turned
+    into an ``SDL_QUIT``, and dropped by mpv's gamepad loop.
 
-    **SIGTERM had no handler at all**, so `kill` skipped the whole shutdown
-    sequence: no final progress report (the server goes on showing the
-    session as playing until the websocket times out), no window geometry
-    saved, no credentials flushed. `jellyfin-mpv-shim stop` has always been
-    the orderly path -- it goes through the instance lock, not a signal --
-    but `kill` is what a person reaches for, and systemd and a session logout
-    both send exactly this.
-
-    **And claiming it is what keeps it.** SDL installs its own SIGINT/SIGTERM
-    handlers when mpv's gamepad support initialises, but
-    ``SDL_AddSignalHandler`` only replaces a handler that is still
-    ``SIG_DFL`` -- which is precisely why standalone mpv is unaffected (it
-    installs its own first) and we were not. CPython claims SIGINT and leaves
-    SIGTERM at the default, so SDL took it, turned it into an ``SDL_QUIT``,
-    and mpv's gamepad loop -- which handles controller events and nothing
-    else -- dropped it. The app could not be stopped by anything short of
-    SIGKILL.
-
-    Measured, gamepad on, with ``SDL_NO_SIGNAL_HANDLERS`` deliberately NOT
-    set, so this is the handler doing the work and not the environment:
-
-        no handler installed -> SIGTERM never arrives
-        this                 -> handler runs, shutdown proceeds
-
-    So it is a fix that does not depend on a ``putenv`` in this interpreter
-    being visible to a ``getenv`` inside SDL2 -- which is certain on glibc
-    and was never verified on Windows. The environment variable survives for
-    the *child* mpv of the external backend, which has no handler of its own;
-    see ``player._disarm_sdl_signal_handlers``.
-
-    Installed here rather than beside the mpv construction because ordering
-    is the whole point: it has to be in place before SDL initialises, and
-    `playerManager` is a module-level singleton whose import creates mpv. The
-    imports that reach it are all below this line. The main thread is also
-    the only thread `signal.signal` may be called from, and this is it.
+    Ordering is why this lives here rather than beside the mpv construction:
+    it must be in place before SDL initialises, and `playerManager` is a
+    module-level singleton whose *import* creates mpv, so every import that
+    reaches it is below this line. The main thread is also the only thread
+    `signal.signal` may be called from, and this is it.
 
     Sets the event the run loop waits on rather than exiting: everything that
     makes a shutdown orderly happens in `main`'s `finally`, and
     `exit_watchdog` is already armed there to force the exit if a step wedges.
+
+    The measurements, and the ``SDL_NO_SIGNAL_HANDLERS`` layer that remains
+    underneath for the external backend's child mpv, are in
+    docs/architecture.md section 2.1 and docs/mpv-backends.md section 4.
     """
     def on_sigterm(signum, frame):
         # No logging from inside a signal handler -- it can land while the
@@ -130,25 +97,13 @@ def _use_spawn_start_method():
       and deadlock the child. 'spawn' gives a clean interpreter; the child
       relies only on its IPC-supplied options, not on inherited globals.
 
-    **``force=True``, because without it this call did nothing when launched
-    from ``run.py``.** ``set_start_method`` raises rather than overriding a
-    context that is already resolved -- and a context resolves on the first
-    *read*, not only on a set. ``run.py`` calls ``multiprocessing.freeze_
-    support()`` before ``main``, whose first line is ``self.get_start_
-    method()``, which materialises the platform default. So on Linux the
-    context was pinned to **fork** before this ran, the ``RuntimeError`` was
-    swallowed as "already set" -- which read as "somebody set it to what we
-    wanted" and was the opposite -- and every tray child was forked. The
-    installed console script has no ``freeze_support`` call and did spawn, so
-    this was a from-source and frozen-Windows-build bug only.
-
-    What that cost is not theoretical: a forked child inherits the parent's
-    signal handlers, so it took a copy of `_claim_sigterm`'s SIGTERM handler
-    -- which sets an `Event` that, in the child, nothing waits on. Every
-    ``TrayManager.stop()`` (a ``terminate()``, i.e. a SIGTERM) was therefore
-    swallowed, and the tray process outlived the app that started it and had
-    to be SIGKILLed. `tray._reset_inherited_signals` and the escalation in
-    ``TrayManager.stop`` are the layers under this.
+    ``force=True`` because a context resolves on the first *read*, not only
+    on a set, and ``run.py``'s ``freeze_support()`` had already pinned it to
+    **fork** -- so without it this call silently did nothing when launched
+    from source or from the frozen Windows build. A forked child inherits
+    our SIGTERM handler and therefore swallows every ``TrayManager.stop()``;
+    `tray._reset_inherited_signals` and the escalation in that method are
+    the layers under this. See docs/architecture.md section 2.2.
 
     Reported rather than merely attempted: a start method that is not spawn
     is a real hazard on every platform, and the failure is silent.
@@ -281,15 +236,10 @@ def main():
     _claim_sigterm(halt)
 
     # Give this configuration's scratch caches their own directory, and with
-    # it the right to reclaim everything already in it: anything else in
-    # there was left behind by a copy that is gone, on any platform, with
-    # nothing to ask about a pid. See set_instance_namespace.
-    #
-    # Only against a lock that was really taken, though. acquire() fails open
-    # when the guard file cannot be opened at all, and a second copy that
+    # it the right to reclaim everything already in it -- but only against a
+    # lock that was really taken, since acquire() fails open and a copy that
     # merely *believes* it is alone would reclaim the first one's cache out
-    # from under it. Without the namespace the pid rules still apply, which
-    # is what every release before this one ran on.
+    # from under it. See set_instance_namespace and docs/architecture.md 2.3.
     from .mpvtk.rawimage import set_instance_namespace
 
     if single.holds_lock:
@@ -324,16 +274,11 @@ def main():
     if use_gui:
         # ...and the other thing the browser cannot do without: lua.
         #
-        # Everything the shim DRAWS is lua -- the browser and the playback
-        # HUD are renderer.lua, the stock OSC is lua, mouse.lua is lua -- so
-        # an mpv that cannot run it leaves the app running and drawing
-        # nothing but video. Worse, `toggle_settings_menu` refuses the OSD
-        # menu whenever the *configured* style is mpvtk, live renderer or
-        # not, so there was no menu either: no UI at all, and no way to
-        # reach one. **[iw]**: "the lua probe failure should be a full and
-        # hard fallback to cli mode with osd menu enabled (and of course the
-        # osc setting doesn't matter because MPV's default OSC *needs
-        # lua*)."
+        # Everything the shim DRAWS is lua, so a build without it must fall
+        # all the way back to the CLI with the OSD menu enabled -- **[iw]**:
+        # "the osc setting doesn't matter because MPV's default OSC *needs
+        # lua*". Why the probe exists and what it costs:
+        # docs/mpv-backends.md section 2.
         #
         # Importing player here rather than below: the probe needs the live
         # mpv, and this decision has to be made before the UI is started.

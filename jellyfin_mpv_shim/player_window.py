@@ -5,18 +5,12 @@ most of the difficulty here comes from that. The browser needs a window with
 no file loaded; playback needs the same window back, at the size the user left
 it, without mpv helpfully resizing it to each video.
 
-Moved out of ``player.py`` as ``WindowMixin``, on the same terms as
-``AudioMixin`` and ``ReportingMixin``: one object, one ``self``, one
-``RLock``.
-
-**More coupled than the other two, and the declarations below say how much.**
-Three calls leave this module. ``set_browse_window`` and ``force_window`` can
-call ``_init_mpv`` -- taking the window back may mean building a new mpv,
-because a version that cannot give up its window on request has to be
-restarted instead (see ``runtime_force_window_works``). ``set_browse_window``
-also calls ``idle_quit``, which is the one outbound call that takes ``_lock``.
-That is real coupling to the player's lifecycle, not an artefact of the split;
-it was simply invisible while it lived in the same class.
+**Three calls leave this module, and they are real coupling to the player's
+lifecycle.** ``set_browse_window`` and ``force_window`` can call ``_init_mpv``
+-- taking the window back may mean building a new mpv, because a version that
+cannot give up its window on request has to be restarted instead (see
+``runtime_force_window_works``). ``set_browse_window`` also calls
+``idle_quit``, which is the one outbound call that takes ``_lock``.
 
 **Fullscreen is here and it is ``_lock``-synchronized**, unlike everything
 else in this module. It is a window property, so it belongs here, but the
@@ -37,14 +31,10 @@ log = logging.getLogger("player")
 
 #: The window's own log. Separate from "player" and at INFO so the whole
 #: history of one window is `grep window: log.txt` -- a handful of lines, in
-#: order, each naming what asked for the change.
-#:
-#: This exists because the state below is driven from four directions at once
-#: (the browser entering and leaving browse, playback starting and stopping,
-#: the tray, mpv's own OSC) and the only way to see the interleaving was
-#: `mpv_log_level: debug`, which buries six interesting lines in thousands of
-#: decoder ones. An unexplained window re-open is exactly the shape of problem
-#: that needs the sequence and nothing else.
+#: order, each naming what asked for the change. The state below is driven
+#: from four directions at once (the browser entering and leaving browse,
+#: playback starting and stopping, the tray, mpv's own OSC), and an
+#: unexplained window re-open needs that sequence and nothing else.
 wlog = logging.getLogger("window")
 
 
@@ -432,10 +422,8 @@ class WindowMixin:
     def show_picture(self, path):
         """Display a local image file in the browse window.
 
-        The comic reader's page. It is *played* rather than drawn: mpv
-        decodes pictures already and has video-zoom/video-pan, which beats
-        decoding each page with Pillow and pushing a viewport-sized bitmap
-        through the overlay transport on every pan.
+        The comic reader's page, which is *played* rather than drawn --
+        docs/readers.md section 5 has the measurement behind that.
 
         **Here rather than in the gateway** because these are the same
         three properties ``set_browse_window`` owns — the browse background

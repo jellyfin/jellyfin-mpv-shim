@@ -1,23 +1,19 @@
 """Local multi-user support ("fast user switching").
 
-Jellyfin (and jellyfin-web) has no concept of switching between local accounts
-on one device. Because this client owns its own UI we can offer it: a *user*
-here is a local grouping of one or more server logins that are connected
-together. Only one user is active at a time; switching disconnects the active
-user's servers and connects the target user's.
+Jellyfin has no concept of switching between local accounts on one device;
+because this client owns its own UI we can offer it. A *user* here is a local
+grouping of one or more server logins that are connected together, only one is
+active at a time, and each carries its own Jellyfin **device id** so two users
+on the same physical server do not collide on one server-side session.
 
-Each user carries its own Jellyfin **device id** so that two users logged into
-the same physical server don't collide on one server-side session (which would
-make them fight over playback/remote-control state). The migrated "(default)"
-user keeps the original ``settings.client_uuid`` so its existing sessions and
-saved tokens keep working untouched; every other user gets a fresh device id.
+A user may be PIN-protected -- a parental-control affordance, *not* a security
+boundary, since the PIN is only salted-hashed. Persistence is ``users.json``
+next to ``cred.json``; on first run the existing ``cred.json`` is migrated
+into a "(default)" user, which keeps the original ``settings.client_uuid`` so
+its sessions and saved tokens keep working untouched.
 
-A user may be PIN-protected (a parental-control affordance, *not* a security
-boundary — the PIN is only salted-hashed): switching *into* a locked user
-requires the PIN, and optionally the PIN can also be demanded at startup.
-
-Persistence lives in ``users.json`` next to ``cred.json``. On first run with
-this feature the existing ``cred.json`` is migrated into a "(default)" user.
+What is per-user versus per-server, and how this meets ``clientManager``:
+docs/architecture.md section 7.
 """
 
 import hashlib

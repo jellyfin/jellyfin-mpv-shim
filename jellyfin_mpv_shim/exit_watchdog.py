@@ -1,41 +1,19 @@
 """Make quitting actually quit, and say what stopped it if it didn't.
 
-Every thread the shim owns is either a daemon or joined by ``main``'s
-shutdown sequence, so in principle the interpreter exits on its own. Two
-things can still leave the app running with no window and no way to quit
-it, and CPython will wait for both: it joins every non-daemon thread
-before the process can die, and ``concurrent.futures`` registers an
-atexit hook that joins every ``ThreadPoolExecutor`` worker.
+Two things can leave the app running with no window and no way to quit it,
+and CPython waits for both: a shutdown step that never returns (which the
+deadline in :func:`arm` catches) and a thread that outlives its ``stop()``
+(which :func:`finish` reports). Both report stacks rather than names, because
+the frame a thread is parked in is what identifies the call needing bounding.
 
-* A shutdown step that never returns, so the steps after it never run.
-  This is what the deadline in :func:`arm` catches. It happened for real:
-  closing the window parked the action thread for two minutes inside an
-  mpv command whose reply never came, and the shutdown sequence joins
-  that thread. That specific cause is fixed at the source — see
-  ``player.bound_ipc_replies`` — and this remains as the backstop, since
-  "the app cannot be quit" is a bad failure mode to rediscover the hard
-  way.
-* A thread that outlives its ``stop()`` and keeps the interpreter alive
-  after ``main`` returns. Pool workers are the usual shape: a
-  ``shutdown(wait=False, cancel_futures=True)`` drops the queue, but a
-  worker already inside a socket read runs until the server answers or
-  the timeout fires. :func:`finish` reports these.
+The forced exit is safe because it runs only *after* the orderly shutdown;
+what it skips is the interpreter's own wait. Everything here also tolerates
+having nowhere to write — a Windows GUI build (pythonw, the frozen installer
+build) has no console, so both streams are ``None`` — hence :func:`_write` /
+:func:`_flush` / :func:`_dump_to` and never a stream touched directly.
 
-Both report the stacks rather than just the fact, because a thread name
-on its own names nothing actionable — the frame it is parked in is what
-identifies the call that needs bounding.
-
-The forced exit only ever runs *after* the orderly shutdown: playback
-stopped, the stop reported to the server, config and credentials written.
-What it skips is the interpreter's own wait, which by then has nothing
-left to do for us.
-
-Everything here has to tolerate having nowhere to write. A Windows GUI
-build (pythonw, the frozen installer build) has no console, so
-``sys.stdout`` and ``sys.stderr`` are ``None`` — and code that exists to
-make quitting reliable is the last code that should raise on the way
-out. Streams go through :func:`_write` / :func:`_flush` / :func:`_dump_to`,
-never touched directly.
+The derivation, including the two-minute wedge this was built for, is in
+docs/architecture.md section 4.
 """
 
 import faulthandler
@@ -65,14 +43,8 @@ _disarm = threading.Event()
 
 
 def _flush(stream):
-    """Flush a stream that may not exist.
-
-    On Windows a GUI build (pythonw / the frozen installer build, which
-    has no console) hands us ``sys.stdout is None`` and ``sys.stderr is
-    None``. Flushing them unconditionally turned quitting into an
-    AttributeError — a crash on the way out, from the code whose entire
-    job is to make the way out reliable.
-    """
+    """Flush a stream that may not exist; a Windows GUI build has no console,
+    so both of them are ``None`` and flushing raises AttributeError."""
     if stream is None:
         return
     try:
