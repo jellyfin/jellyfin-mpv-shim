@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-19 13:38+0000\n"
+"PO-Revision-Date: 2026-08-20 08:53+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -1088,7 +1088,6 @@ msgstr "Direkte Wiedergabe"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "Direktes Streaming"
 
@@ -1520,21 +1519,20 @@ msgstr "Heruntergeladene Kopie bevorzugen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Linksklick pausiert Wiedergabe"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Poster auf Detailseiten anzeigen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Episodenvorschaubilder auf Detailseiten anzeigen"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Hardware Decoding"
-msgstr "Aufnahme abbrechen"
+msgstr "Hardware-Dekodierung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1570,15 +1568,15 @@ msgstr "Überprüfen alle (Minuten)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Auffüllen sobald weniger als (Folgen)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Auffüllen bis zu (Folgen)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Maximale Downloads pro Check"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
@@ -1594,7 +1592,7 @@ msgstr "Fenstergröße speichern"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Fensterbuttons in oberer Leiste"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
@@ -1609,14 +1607,12 @@ msgid "Interface Scale"
 msgstr "Interface Skalierung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Text Size"
-msgstr "Covergröße"
+msgstr "Textgröße"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Minimale Textgröße"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -1625,29 +1621,27 @@ msgstr "Covergröße"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Live TV Logos lesbarer machen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Bibliothekenlogos lesbarer machen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Type Size"
-msgstr "Covergröße"
+msgstr "Typengröße"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Seitenfarbe"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Textausrichtung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Comic Lesemodus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
@@ -5127,10 +5121,8 @@ msgid "{0}  <-- in effect"
 msgstr ""
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Video Playback Profiles"
 msgid "Video Playback Profile"
-msgstr "Videowiedergabeprofile"
+msgstr "Videowiedergabeprofil"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
