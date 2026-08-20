@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 15:48+0000\n"
+"PO-Revision-Date: 2026-08-20 15:54+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -4170,7 +4170,7 @@ msgstr "Impossibile raggiungere un server."
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Home Screen"
-msgstr "Schermata principale"
+msgstr "Schermata iniziale"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Connect to a server to change the home screen sections."
@@ -4245,11 +4245,11 @@ msgstr "Impossibile salvare le impostazioni della schermata iniziale."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
-msgstr "Disposizione della schermata principale salvata."
+msgstr "Disposizione della schermata iniziale salvata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Could not save the home screen layout."
-msgstr "Impossibile salvare la disposizione della schermata principale."
+msgstr "Impossibile salvare la disposizione della schermata iniziale."
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4412,10 +4412,8 @@ msgstr "Riproduci dall'inizio"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Play Count"
 msgid "Play Next"
-msgstr "Riproduzioni"
+msgstr "Riproduci successivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Mark Unwatched"
@@ -4458,15 +4456,12 @@ msgstr "Minimizza"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restore"
 msgstr "Ripristina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Massimo"
+msgstr "Massimizza"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
@@ -4536,10 +4531,8 @@ msgid "Transcode"
 msgstr "Transcodifica"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Use the default folder"
 msgid "Use the default"
-msgstr "Utilizza la cartella predefinita"
+msgstr "Utilizza il valore predefinito"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "SyncPlay Enabled"
@@ -4790,20 +4783,16 @@ msgid "ArtCNN High (C4F32)"
 msgstr "ArtCNN High (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "Predefinito (auto)"
+msgstr "Predefinito (tutti i media)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
 msgstr "Questa raccolta"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "To Series"
 msgid "This Series"
-msgstr "Alla serie"
+msgstr "Questa serie"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
