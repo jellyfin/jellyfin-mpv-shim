@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-07-27 15:25+0000\n"
-"Last-Translator: Lofuuzi <lather0519@gmail.com>\n"
+"PO-Revision-Date: 2026-08-20 02:33+0000\n"
+"Last-Translator: Jacky He <hekinghung@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script, Hong Kong) <https://"
 "translate.jellyfin.org/projects/jellyfin/jellyfin-mpv-shim/zh_Hant_HK/>\n"
 "Language: zh_Hant_HK\n"
@@ -21,19 +21,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "未知的格式"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "第%(page)d頁，共%(total)d頁"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "Page"
+#, python-format
 msgid "Page %d"
-msgstr "頁次"
+msgstr "%d頁"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -135,10 +134,8 @@ msgid "Could not start Quick Connect."
 msgstr "無法啟動快速連線。"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "跳過咗片尾"
+msgstr "跳過片尾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -146,64 +143,47 @@ msgstr "跳過咗片尾"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
-msgstr "快進嚟跳過片尾"
+msgstr "快進以跳過片尾"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "特輯"
+msgstr "跳過廣告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "跳過咗片尾"
+msgstr "跳過咗廣告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Commercial"
-msgstr "快進嚟跳過片尾"
+msgstr "快進以跳過廣告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Preview"
-msgstr "跳過咗片尾"
+msgstr "跳過預告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Preview"
-msgstr "跳過咗片尾"
+msgstr "跳過咗預告"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Preview"
-msgstr "快進嚟跳過片尾"
+msgstr "快進以跳過預告"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "跳過劇情回顧"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Recap"
-msgstr "跳過咗片尾"
+msgstr "跳過咗劇情回顧"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Seek to Skip Recap"
-msgstr "快進嚟跳過片尾"
+msgstr "快進以跳過劇情回顧"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intro"
-msgstr "跳過咗片頭"
+msgstr "跳過片頭"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Intro"
@@ -380,17 +360,16 @@ msgstr "手動跟編號揀 (無咁準)"
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "永不"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "每次詢問"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "一律"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -498,34 +477,25 @@ msgid "Discord Rich Presence"
 msgstr "Discord 狀態顯示 (Rich Presence)"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Intro"
 msgid "Skip Intros"
-msgstr "跳過咗片頭"
+msgstr "跳過片頭"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "跳過咗片尾"
+msgstr "跳過片尾"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "特輯"
+msgstr "跳過廣告"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Previews"
-msgstr "跳過咗片尾"
+msgstr "跳過預告"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Recaps"
-msgstr "跳過咗片尾"
+msgstr "跳過咗劇情回顧"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Enable thumbnail previews"
@@ -566,11 +536,11 @@ msgstr "前一頁"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "下一頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr "最尾一頁"
+msgstr "最後一頁"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -799,16 +769,16 @@ msgstr "無法連線至你儲存嘅伺服器。"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "請輸入PIN碼"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s 已被鎖定"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "解鎖"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
