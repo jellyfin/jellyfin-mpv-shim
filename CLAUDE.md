@@ -60,8 +60,17 @@ means **the mouse cursor never hides again** for the rest of the session.
   every pinned sha256 in seconds — pass it the Flathub manifest, which is usually the
   one that has drifted. See `docs/packaging.md`.
 - Tests: `xvfb-run -a python3 -m unittest discover tests` (stdlib unittest, no extra
-  deps). Integration matrix:
-  `xvfb-run -a python3 tests/integration/run_integration.py`.
+  deps) — **~7 minutes**. Integration matrix:
+  `xvfb-run -a python3 tests/integration/run_integration.py` — ~6.5 minutes.
+- Faster unit runs: `xvfb-run -a python3 tools/run_tests_parallel.py` — the same
+  4,900 tests one process per module, **~64s**. Same import semantics as
+  `discover`; a per-module timeout means a hang is a reported failure, and each
+  worker gets its own process group so a kill cannot orphan an mpv. Put
+  `xvfb-run` in front of *it*, not the workers. Do not parallelize the
+  integration matrix — its legs are serial on purpose (docs/testing.md §9).
+- **Tee a full run to a file** rather than piping it through `tail`/`grep`. At
+  these runtimes, one look at a failure you did not keep costs another run, and
+  `run_integration.py`'s summary prints only a return code per leg.
 - Profile a server's artwork handling: `tools/bench_image_loading.py`. Read-only; uses
   the saved credentials. See `docs/artwork-pipeline.md`.
 - There is no linter config.

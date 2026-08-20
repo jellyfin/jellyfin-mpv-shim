@@ -187,3 +187,62 @@ Anything a scheduler, poller, health check or websocket can re-run gets a **loop
 Firing `MpvtkApp`'s ready dispatch in a test installs measured font metrics
 *globally*, so seven unrelated scene snapshots fail — and only in the full run, never
 when the module is selected alone.
+
+## 9. Running the unit suite in parallel
+
+`tools/run_tests_parallel.py` runs the same tests as `discover tests`, one
+process per module:
+
+```
+xvfb-run -a python3 tools/run_tests_parallel.py
+```
+
+**~64s against ~7 minutes**, same 4,905 tests. It is stdlib-only, like the
+suite, and it exists because the suite got slow enough that re-running it to
+see a failure you did not keep costs more than the failure did.
+
+`xvfb-run` goes in front of *this script*, not around the workers: `-a` picks
+a display by probing for a free one, and sixteen of those probing at once race
+for the same number. The workers inherit `DISPLAY` and share one server.
+
+### What it has to get right
+
+- **`sys.argv` is cleared before anything under `jellyfin_mpv_shim` is
+  imported** (§2). A worker that takes arguments of its own would otherwise
+  die on the app's usage line.
+- **The repo root goes on `sys.path` explicitly.** A script in `tools/` has
+  `tools/` as `sys.path[0]`, so `jellyfin_mpv_shim` resolves to whatever is
+  pip-installed — silently, and it *runs*, against the previous release. This
+  is the "run from the repo root" rule reached from a direction the rule does
+  not cover, and it cost an hour here.
+- **Selection is `TestLoader.discover(start_dir, pattern=…)`**, not a module
+  name, so each module is imported exactly as `discover tests` imports it.
+- **The result comes from a line the worker prints, not from its exit
+  status.** A module holding a real libmpv can abort with "pure virtual method
+  called" during interpreter teardown when several dozen are torn down at
+  once — after passing. The worker reports, then `os._exit`s. A worker that
+  dies *before* reporting is still a hard failure.
+- **Each worker is its own process group, and a timeout kills the group.** A
+  killed run that leaves mpv and Xvfb children behind is how a machine
+  accumulates a graveyard of them; one on the dev box outlived its run by five
+  days.
+
+### Jobs, and why the default is half the CPUs
+
+Every worker that imports `player.py` creates a real mpv window (§1), and they
+share one single-threaded Xvfb. Measured on a 32-CPU box: `-j32` finished in
+50s idle and **starved** under ambient load — four modules that normally take
+12-17s were unfinished at 90s. `-j16` is 64s and has not wobbled. Raise it on
+a quiet machine; the floor is the slowest single module (~43s), because that
+is one process and nothing splits it.
+
+`tests/test_parallel_runner.py` pins the one invariant the runner cannot check
+about itself: the modules it would run are the modules discover collects. A
+module it silently skips reports exactly like a module that passed.
+
+### The integration matrix stays serial
+
+`run_integration.py` runs its legs one at a time deliberately, and its last leg
+runs everything in one process specifically to catch cross-module interference.
+Parallelizing it would remove the thing it is for — and it drives real mpv
+through the keyboard, which is where contention bites hardest.

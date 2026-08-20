@@ -14,10 +14,25 @@ we look, that it happens once, and that it cannot be skipped by a stale
 measurement cache.
 """
 
+import ctypes  # noqa: F401  -- see below
 import os
 import sys
 import unittest
 from unittest import mock
+
+# `ctypes` is imported here for its SIDE EFFECT, not for its API.
+#
+# These tests patch `win_fribidi.os.name` to "nt", and `win_fribidi.os` is
+# the one shared `os` module -- so the patch is global while it is in
+# effect. `preload()` does `import ctypes` inside the function, and
+# `ctypes/__init__.py` branches on `os.name`: reached for the first time
+# under the patch, it takes the Windows path and dies on
+# `from _ctypes import FormatError`.
+#
+# It never bit in a full `discover tests` run because something earlier had
+# always imported ctypes already, so the import was a cache hit. Running
+# this module on its own -- which is what tools/run_tests_parallel.py does
+# to every module -- is where it surfaces.
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
