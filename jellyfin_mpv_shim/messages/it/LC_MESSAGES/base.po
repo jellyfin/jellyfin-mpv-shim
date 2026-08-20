@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 15:54+0000\n"
+"PO-Revision-Date: 2026-08-20 16:01+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -973,16 +973,12 @@ msgid "%d bit"
 msgstr "%d bit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Preferences"
 msgid "Video range"
-msgstr "Preferenze video"
+msgstr "Gamma video"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Sottotipo profilo video"
+msgstr "Tipo di gamma video"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Color space"
@@ -1215,9 +1211,8 @@ msgstr "Si è verificato un errore durante l'avvio della riproduzione diretta"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's range type is not supported"
-msgstr "Tipo range del video non supportato"
+msgstr "Il tipo di gamma video non è supportato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
@@ -1248,10 +1243,8 @@ msgid "Downloads"
 msgstr "Scaricamenti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Download Tuning"
-msgstr "Scaricamento"
+msgstr "Regolazione scaricamenti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls"
@@ -1288,10 +1281,8 @@ msgid "Only above 1080p"
 msgstr "Solo sopra 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Open"
 msgid "On"
-msgstr "Apri"
+msgstr "Attivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Copy (advanced)"
