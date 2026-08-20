@@ -2800,6 +2800,85 @@ fake.send("mpvtk-gamepad", fake.token({}))
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
+-- ------------------------------------------------- force on a dropdown
+
+-- `force` means "the scene's value wins over the renderer's own", and the
+-- renderer keeps a selection per dropdown across scene pushes. There was no
+-- coverage of the pair at all, and the gap hid a real bug: dd_state ran the
+-- force reset from the DRAW, so the frame after a click redrew the label as
+-- the pre-click option -- every time, not in a race -- until the app pushed
+-- a scene agreeing. The textbox and the slider both guard their force reset
+-- against an in-flight gesture; the dropdown did not.
+
+--- A dropdown's renderer-local selection, after actually painting.
+---
+--- The paint is the point: `dd_state` materializes from the draw, so a
+--- scene push alone leaves nothing to read -- and the draw is also where
+--- the bug lived, so a helper that skipped it could not see it.
+local function dd_sel(id)
+    fake.advance(0.1)
+    fake.fire_timers()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    local dd = (last_event("debug_state") or {}).dropdowns or {}
+    return dd[id] and dd[id].sel
+end
+
+local function forced_dd(sel)
+    scene({ { id = "fdd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+              size = 18, items = { "Any", "English", "German" },
+              sel = sel, force = true } })
+end
+
+forced_dd(0)
+eq(dd_sel("fdd"), 0, "the forced dropdown did not take the scene's value")
+
+click("fdd")                            -- open the popup
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+-- Read the event BEFORE dd_sel, which resets the log to find its own reply.
+eq((last_event("select") or {}).index, 1, "the app was not told")
+eq(dd_sel("fdd"), 1, "the click did not move the selection")
+
+-- The frame before the app has answered. This is the bug: it runs from the
+-- draw, so an unguarded force put the label back to "Any" immediately.
+fake.advance(0.1)
+fake.fire_timers()
+eq(dd_sel("fdd"), 1, "the selection snapped back before the app answered")
+
+-- ...and so does a scene push that still carries the old value, which is
+-- any unrelated repaint landing in the same window (a poller, the filter
+-- panel's own match-count spinner).
+forced_dd(0)
+eq(dd_sel("fdd"), 1, "a stale repaint reverted the click")
+
+-- The app agrees: the gesture ends and the scene is authoritative again.
+forced_dd(1)
+eq(dd_sel("fdd"), 1, "the agreed value was lost")
+
+-- ...which is what makes THIS work -- the case force exists for. Clear All
+-- empties the filters and re-queries; without force the picker went on
+-- showing the language the user just cleared.
+forced_dd(0)
+eq(dd_sel("fdd"), 0, "the scene could not move the picker back to Any")
+
+-- An answer that is neither the old value nor the picked one still ends the
+-- gesture, or a rejected selection would be shown as accepted forever.
+click("fdd")
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+eq(dd_sel("fdd"), 1, "sanity: the click moved it")
+forced_dd(2)
+eq(dd_sel("fdd"), 2, "a third answer did not end the gesture")
+
+-- Without force the renderer keeps its own selection, which is the
+-- behaviour every unforced dropdown relies on.
+scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+          size = 18, items = { "Any", "English" }, sel = 0 } })
+click("udd")
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+          size = 18, items = { "Any", "English" }, sel = 0 } })
+eq(dd_sel("udd"), 1, "an unforced dropdown was reset by a scene push")
+
 -- ========================================================== teardown
 
 scene({})

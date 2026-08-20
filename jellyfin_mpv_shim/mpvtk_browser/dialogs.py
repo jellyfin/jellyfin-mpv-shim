@@ -809,9 +809,19 @@ class DialogsMixin:
             if value == current or str(value) == str(current):
                 selected = i + 1
                 break
+        # force=True: the renderer keeps a dropdown's selection of its own
+        # (it flips optimistically on click and survives a scene push), so
+        # without this Clear All emptied `_filters` and re-queried while
+        # every picker went on showing the language the user just cleared.
+        #
+        # Safe to force here because `force` does not stomp an in-flight
+        # gesture -- the renderer holds the clicked value until the app
+        # answers with something different (GUIDE.md section 2). It did
+        # not always: the reset ran from the DRAW, so forcing a picker put
+        # its label back to the pre-click option on the very next frame.
         return Dropdown(
             "flt-" + key, [_("Any")] + [lbl for lbl, _v in pairs],
-            selected=selected, w=440, popup_w=440,
+            selected=selected, w=440, popup_w=440, force=True,
             on_select=lambda i, _v, p=pairs, k=key: on_set(
                 k, None if i == 0 else p[i - 1][1]))
 

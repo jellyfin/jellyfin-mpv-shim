@@ -1257,9 +1257,23 @@ end
 
 local function dd_state(node)
     local d = state.dd[node.id]
-    if d == nil or node.force then
+    if d == nil then
         d = { sel = node.sel or 0 }
         state.dd[node.id] = d
+    elseif node.force and d.was == nil then
+        -- `force` means the scene's value wins over the renderer's own --
+        -- EXCEPT mid-gesture. Same shape as the textbox's `not editing`
+        -- guard and sl_state's `not busy`, and the dropdown was the one of
+        -- the three without it.
+        --
+        -- A click flips the selection locally and sends it; the app answers
+        -- by pushing a scene. Until that scene arrives its `sel` is still
+        -- the PRE-CLICK value, and this runs from the DRAW -- so taking it
+        -- redrew the label as the old option on the very next frame, every
+        -- time rather than in a race. `was` is what the app was showing
+        -- when the click happened; the push site below ends the gesture as
+        -- soon as the app says anything different.
+        d.sel = node.sel or 0
     end
     return d
 end
@@ -3339,6 +3353,7 @@ local function on_mouse_down()
         state.dd_open = nil
         if idx ~= nil and node then
             local d = dd_state(node)
+            d.was = node.sel or 0      -- opens the gesture; see dd_state
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -4354,6 +4369,7 @@ local function nav_activate()
         state.nav_pidx = nil
         if node and idx ~= nil then
             local d = dd_state(node)
+            d.was = node.sel or 0      -- opens the gesture; see dd_state
             d.sel = idx
             send({ t = 'select', id = node.id, index = idx,
                    value = node.items[idx + 1] })
@@ -5032,7 +5048,20 @@ local function reconcile()
     for _, node in ipairs(state.nodes) do
         if node.force then
             if node.t == 'textbox' then state.tb[node.id] = nil end
-            if node.t == 'dropdown' then state.dd[node.id] = nil end
+            if node.t == 'dropdown' then
+                local d = state.dd[node.id]
+                -- A pending selection (see dd_state) ends when the app says
+                -- something DIFFERENT from what it was showing when the
+                -- click happened -- whether that is agreement or a refusal
+                -- that lands on some third value, both are answers.
+                -- Comparing against the value the user picked instead would
+                -- strand the control on their choice forever if the app
+                -- ever answered by keeping the original.
+                if d == nil or d.was == nil
+                        or (node.sel or 0) ~= d.was then
+                    state.dd[node.id] = nil
+                end
+            end
         end
     end
 end
@@ -6185,6 +6214,11 @@ mp.register_script_message('mpvtk-debug', function(json)
             modal_open = modal_active(),
             tb_menu = state.tb_menu ~= nil,
             sliders = state.sl,
+            -- Symmetric with `sliders`, and the omission was load-bearing:
+            -- a dropdown's renderer-local selection is what `force` fights
+            -- over, and with nothing reporting it the whole force path had
+            -- no test. See tests/lua/test_renderer.lua.
+            dropdowns = state.dd,
             has_metrics = measured_widths ~= nil,
             font = ui_font,
             wheel_count = state.wheel_count or 0,
