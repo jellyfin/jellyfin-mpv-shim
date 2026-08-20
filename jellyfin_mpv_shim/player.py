@@ -1934,6 +1934,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 self._on_claimed_key(args[1], args[2])
             elif args[0] == self.MENU_MESSAGE and len(args) >= 2:
                 self.menu.menu_action(args[1])
+            elif args[0] == "shim-trickplay-need" and len(args) >= 2:
+                # A preview was asked for at a position the loaded window
+                # does not cover. Only the OSC side knows where the pointer
+                # is, so the request comes from there. This is mpv's event
+                # thread -- request_at records and wakes the worker, and
+                # must keep doing only that.
+                trickplay = self.trickplay
+                if trickplay is not None:
+                    trickplay.request_at(float(args[1]))
             elif args[0] == "jms-lua":
                 if self._lua_probe is not None:
                     self._lua_probe.set()
@@ -2071,8 +2080,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return
         try:
             idle = self._player.core_idle
+            position = self._player.playback_time or 0
             if idle is None:
-                live = (self._player.playback_time or 0) > 0
+                live = position > 0
             else:
                 live = not idle
         except _mpv_errors:
@@ -2085,7 +2095,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             return
         self._trickplay_pending = False
         log.debug("Playback is live; starting the trickplay fetch.")
-        self.trickplay.fetch_thumbnails()
+        # Where playback actually is, not zero: the worker loads a window
+        # around it, and on a resumed item the first place anyone scrubs is
+        # where they already are. Whole-video mode ignores it.
+        self.trickplay.fetch_thumbnails(position)
 
     def update(self):
         # Drain queued tasks first, and never let one abort the drain: this

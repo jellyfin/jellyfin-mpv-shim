@@ -299,12 +299,19 @@ class OfflineVideo(Video):
     def get_bif(self, prefer_width=320):
         return self._trickplay["data"] if self._trickplay else None
 
-    def get_hls_tile_images(self, width, count):
+    def get_hls_tile_images(self, width, count, start=0):
+        """``count`` tile mosaics from tile index ``start``.
+
+        Same signature as ``media.Video``'s, and it has to be: the TrickPlay
+        worker asks for the tiles a window falls in, so an offline item whose
+        method still counted from zero answered a mid-film window with the
+        beginning of the film. See docs/artwork-pipeline.md section 11.
+        """
         if not self._trickplay:
             return
         tp_dir = os.path.join(self._item_dir, "trickplay",
                               str(self._trickplay["width"]))
-        for i in range(count):
+        for i in range(start, start + count):
             try:
                 with open(os.path.join(tp_dir, "%d.jpg" % i), "rb") as fh:
                     yield fh.read()

@@ -548,3 +548,150 @@ can never be drawn wider than ~570**, and since `_banner_poster` sizes its
 to draw it at 214px (19 KB)**. Nothing inset there is wider than a 16:9 still, so
 `banner.poster_box` caps the width against the slot's own height
 (`MAX_INSET_ASPECT`) as well as against the banner's width.
+
+## 11. Trickplay: the seek-preview frames
+
+The seek bar's preview thumbnails do not go through the store above at all.
+They are the only images the app hands to **mpv** rather than drawing itself:
+`trickplay.py` writes them to a file as raw BGRA and tells the OSC where it is,
+and mpv `overlay-add`s a rectangle out of that file at a byte offset. Nothing
+decodes anything per hover, which is what lets the bubble track the pointer at
+render cadence (§13 of `docs/browser-shell.md`, #618).
+
+**Older mpv MMAPS the file, and everything awkward here follows from that.** An
+offset past EOF was a SIGBUS *in the mpv process* rather than a missing
+thumbnail, so a frame count must be what was written and never what a manifest
+promised; and `open(path, "wb")` over a live mapping truncates the inode under
+it, which is why every generation gets its own path and the previous one is
+unlinked only after the renderer has been pointed at the new one.
+
+**mpv dropped the mmap in March 2026** (`3cd66d2fd7`, "command: avoid crashing
+the player with mmap", after 0.40 — for the same reason, reached from the other
+side). `cmd_overlay_add` now `open`s the file, `fread_pic`s the one rectangle
+into its own `mp_image_alloc(IMGFMT_BGRA, w, h)` and closes it. Every rule above
+stays, because the shim supports the builds that still map — but on a current
+mpv an over-reported count is a failed `overlay-add` with a log line, not a
+crash. **Do not weaken the discipline on the strength of the newer behaviour**;
+do not restate the SIGBUS as unconditional either.
+
+### 11.0 Where the memory actually goes
+
+Measured, because "trickplay uses a lot of RAM" has three candidates and only
+one of them was true:
+
+| | cost |
+|---|---|
+| mpv's copy of a live overlay | `w * h * 4` — 171 KB at 320px. Flat across 30 window swaps; the *file's* size never reaches RSS on a post-`3cd66d2fd7` mpv, and on an older one only the touched pages are resident. |
+| the frame file | one window, ≤ `WINDOW_BUDGET_BYTES`; the previous generation is unlinked as the new one is published. |
+| **decoding a tile in Python** | **this was the expensive one.** |
+
+A mosaic is 3200×1340 at the default preview width and 6400×2680 at 640px, so a
+whole-tile `convert("RGBA")` → `split()` → `merge()` → `tobytes()` held four
+tile-sized buffers at once. `decompress_tiles` crops each frame out of the
+opened tile and converts only the crop instead. Peak RSS for one tile, output
+byte-identical: **86 → 18 MB** at 320×134 and **207 → 71 MB** at 640×268, and
+about 30% faster at the larger size, because it also replaces `height` Python
+slice-and-write calls per frame with one.
+
+### 11.1 Why it is a window and not the video
+
+Trickplay arrives as JPEG mosaics — one per `TileWidth * TileHeight`
+thumbnails, a few hundred KB each. **Decoded, the same tile is 17 MB** at the
+server's default 320px preview width and 68 MB at 640px, and a two-hour film is
+eight of them. Loading the lot cost 130 MB for an ordinary film and, for the
+report this was written for, 800 MB — all of it mapped, for one bubble.
+
+So a fetch loads a *window*: as many frames as fit under
+`trickplay.WINDOW_BUDGET_BYTES` (25 MB), centred on the position asked for and
+clamped to the video. The budget is in **bytes, not minutes**, and that is the
+whole point — memory is what is scarce, so a library configured for large
+previews gets a shorter window rather than a bigger file. At 320×134 that is
+about 24 minutes of video; at 640×268 about six. An item small enough to fit
+entirely is loaded whole and never windows, so ordinary episodes pay nothing.
+
+`trickplay_fast_mode` restores the old behaviour for people who would rather
+spend the memory than ever wait (`docs/settings-curation.md`).
+
+**Tiles are the download unit; frames are the storage unit; they do not
+divide.** A window starts wherever it was centred, so the tile it starts in is
+fetched whole and `bifdecode.decompress_tiles(..., skip=)` throws away the
+frames of it that fall before the window. Fetching from the tile boundary
+instead would be the same bytes off the network and a bigger file.
+
+### 11.2 The message, and why `first` and `total` are on it
+
+    shim-trickplay-bif  <count> <interval_ms> <w> <h> <path> <first> <total>
+
+One message, both consumers: `mpvtk/renderer.lua` for the in-window HUD and
+`thumbfast.lua` for the lua OSCs. Neither can be left out, because they read the
+same file and must not disagree about which one is live.
+
+A consumer turns a position into a frame number against `total` — the cadence is
+the *whole video's* — and then subtracts `first` to reach the file. Without both
+numbers a consumer indexes a 30-frame file with a frame number the film's length
+justifies, which is the read past the end of the file above. Outside
+`[first, first + count)` there is no frame: the bubble reserves the box and
+draws a placeholder, rather than drawing frame 0 under a timestamp from
+somewhere else in the film.
+
+### 11.3 The request comes from the OSC, because only it knows where the pointer is
+
+    script-message  shim-trickplay-need  <seconds>
+
+`player._on_client_message` routes it to `TrickPlay.request_at`, which runs on
+**mpv's event thread** and therefore does nothing but record the position and
+wake the worker. `_want` is a single slot every request overwrites, so a drag
+across the whole seek bar coalesces into one fetch of wherever the pointer ended
+up instead of one per frame boundary it crossed.
+
+Two guards keep that from becoming a storm in the other direction:
+
+- The OSC sends **one message per frame index**, not one per drawn frame — it
+  is called from render, which runs for as long as the pointer sits outside
+  the window. Per *index*, not per window, and the difference is real: one
+  frame is about 1.5 px of a seek bar on a two-hour film, so drifting the
+  pointer across the missing region re-arms the marker repeatedly. What
+  bounds that is the Python side — `_want` is a single slot every request
+  overwrites, and `_covers` drops the ones already answered — so a drag
+  produces one fetch of wherever the pointer stopped, not one per index it
+  crossed. A landing window clears the marker, which re-asks when the
+  position moved on while the fetch was in flight.
+- `TrickPlay._covers` asks whether the loaded window holds the requested
+  **position**, not whether it holds the range a fresh window would have.
+  Ranges answer "no" for every request that is not dead centre, so that
+  spelling re-fetches the neighbours of a file already on disk. Asking about
+  the position is what makes the window hysteretic: one fetch buys half a
+  window of scrubbing in either direction.
+
+### 11.4 Retiring a frame file is deferred, twice over
+
+**A publish holds the previous file one cycle.** `script_message` returns when
+the message is queued to the script's event loop, not when lua has run it, so a
+render timer firing in between still issues `overlay-add` against the *old*
+path. Unlinking as the new file is published is what turns that into a missing
+thumbnail — once per window swap now, where it used to be once per video. So
+`_publish` parks the retired file and a *later* publish removes it. The disk
+holds at most two windows, and teardown (`_retire_current`) drains the held one.
+
+**A refused unlink is retried, not forgotten.** Windows will not unlink a file
+mpv still has open. That was also once-per-video and was left for the next
+run's `cleanup_stale_files()`; windowing makes it once-per-swap, so a long
+session would strand a window's worth of frames for every place the user
+looked. Both cases mean "remove on a later pass", so they share one list.
+
+### 11.5 A failed window is not a downgrade
+
+The bif branch's error handler must **not** fall through to the chapter images.
+Publishing `shim-trickplay-chapters` puts both consumers on the chapter branch,
+where neither can send `shim-trickplay-need` again — `renderer.lua` takes the
+`tp.times` path and `thumbfast.lua` gates the whole window block on
+`img_is_bif`. So one dropped tile mid-film meant chapter stills for the rest of
+the item, with Python still perfectly able to serve windows nothing would ever
+ask for. The fallback belongs to "this item has no trickplay at all", which is
+a different branch. A window that fails leaves the published one live and is
+retried by scrubbing.
+
+This is why `media.Video.get_hls_tile_images` raising rather than truncating is
+the right shape: an online tile failure aborts the window instead of publishing
+a short one. `OfflineVideo`'s returns instead, so a partial download is the one
+source that genuinely runs short.

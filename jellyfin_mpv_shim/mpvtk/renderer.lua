@@ -201,7 +201,9 @@ local state = {
     -- bar feel slow while it did (#618). Everything the bubble needs is
     -- already local: the tile file is raw BGRA that overlay-add consumes
     -- directly, and mpv owns the chapter list.
-    tp = nil,               -- tiles: {file, iw, ih, count, mult} or {..., times}
+    tp = nil,               -- tiles: {file, iw, ih, count, mult, first, total}
+                            -- or the chapter form {file, iw, ih, times}
+    tp_asked = nil,         -- last frame index requested from Python
     chlist = nil,           -- mpv's chapter-list, for the bubble's caption
     pv_hover = nil,         -- id of the preview slider under the pointer
     pv_secs = 0,            -- the position it is pointing at, in seconds
@@ -2350,7 +2352,11 @@ render = function()
         -- evenly spaced (multiplier ms apart); the chapter-image fallback
         -- carries one frame per chapter start.
         local tp = state.tp
-        local fw, fh, base = 0, 0, 0
+        -- `base` is nil when there is no frame to draw: fw/fh may still be
+        -- set, because the box is reserved while the window loads and a
+        -- base of 0 there would draw the window's FIRST frame under a
+        -- timestamp somewhere else in the film.
+        local fw, fh, base = 0, 0, nil
         local idx
         if tp and (tp.iw or 0) > 0 and (tp.ih or 0) > 0 then
             if tp.times and #tp.times > 0 then
@@ -2359,15 +2365,46 @@ render = function()
                     if tp.times[i] <= pv_secs then idx = i - 1 break end
                 end
                 if idx > #tp.times - 1 then idx = #tp.times - 1 end
+                fw, fh = tp.iw, tp.ih
+                base = idx * tp.iw * tp.ih * 4
             elseif (tp.count or 0) > 0 and (tp.mult or 0) > 0 then
+                -- Against the WHOLE video: the cadence is the video's, and
+                -- `total` is how many frames that cadence covers. The file
+                -- holds [first, first + count) of them.
+                local total = tp.total or tp.count
                 idx = math.floor(pv_secs * 1000 / tp.mult)
-                if idx > tp.count - 1 then idx = tp.count - 1 end
+                if idx > total - 1 then idx = total - 1 end
                 if idx < 0 then idx = 0 end
+                local rel = idx - (tp.first or 0)
+                if rel >= 0 and rel < tp.count then
+                    fw, fh = tp.iw, tp.ih
+                    base = rel * tp.iw * tp.ih * 4
+                else
+                    -- Outside the window. Reserve the space the frame will
+                    -- take so the bubble does not resize under the pointer
+                    -- when it lands, and ask Python for that part of the
+                    -- video. `rel` out of range is exactly the offset that
+                    -- reads past the end of the file, which is a failed
+                    -- overlay-add on a current mpv and a SIGBUS on one old
+                    -- enough to still mmap it (docs/artwork-pipeline.md
+                    -- section 11), so this bound is not cosmetic.
+                    --
+                    -- Inline rather than a helper because renderer.lua's
+                    -- main chunk is at Lua's 200-local ceiling (see
+                    -- tests/test_renderer_lua.py). This runs at render
+                    -- cadence for as long as the pointer sits outside the
+                    -- window, so `tp_asked` is what makes it one message
+                    -- per window instead of one per frame; a landing window
+                    -- clears it, which re-asks when the pointer moved on
+                    -- while the fetch was in flight.
+                    fw, fh = tp.iw, tp.ih
+                    if state.tp_asked ~= idx then
+                        state.tp_asked = idx
+                        mp.commandv('script-message', 'shim-trickplay-need',
+                                    tostring(pv_secs))
+                    end
+                end
             end
-        end
-        if idx then
-            fw, fh = tp.iw, tp.ih
-            base = idx * tp.iw * tp.ih * 4
         end
         local cap
         for _, c in ipairs(state.chlist or {}) do
@@ -2411,11 +2448,19 @@ render = function()
                   { fill = '282828', radius = ui_px(6) })
         local ty = py + pad
         if fh > 0 then
-            -- Native size: overlay-add does not scale, and the worker
-            -- already decoded these at thumbnail_preferred_size.
-            draw_image({ id = 'hud-preview', src = tp.file, base = base,
-                         iw = fw, ih = fh, w = fw, h = fh },
-                       math.floor(px + (bw - fw) / 2), ty)
+            local ix = math.floor(px + (bw - fw) / 2)
+            if base then
+                -- Native size: overlay-add does not scale, and the worker
+                -- already decoded these at thumbnail_preferred_size.
+                draw_image({ id = 'hud-preview', src = tp.file, base = base,
+                             iw = fw, ih = fh, w = fw, h = fh }, ix, ty)
+            else
+                -- The window this position falls in is still being
+                -- fetched. Something has to occupy the reserved box, or
+                -- the caption and the timestamp read as the whole bubble
+                -- and then jump when the frame arrives.
+                draw_rect(ass, ix, ty, fw, fh, { fill = '1a1a1a' })
+            end
             ty = ty + fh + gap
         end
         if cap then
@@ -5977,10 +6022,20 @@ end)
 -- and the two consumers cannot disagree about which file is live. The
 -- worker guarantees the path is unique per generation and only unlinks the
 -- previous one after pointing everybody at the new one.
+--
+-- `first`/`total` make the file a WINDOW of the video rather than all of
+-- it -- the whole thing is hundreds of MB of decoded BGRA. A position
+-- becomes a frame number against `total`, because the cadence is the whole
+-- video's; subtracting `first` reaches the file. Outside
+-- [first, first+count) there is nothing to draw and Python is asked for
+-- that part of the video (the scrub-preview block in render()).
 mp.register_script_message('shim-trickplay-bif',
-    function(count, mult, w, h, path)
+    function(count, mult, w, h, path, first, total)
         state.tp = { file = path, iw = tonumber(w), ih = tonumber(h),
-                     count = tonumber(count), mult = tonumber(mult) }
+                     count = tonumber(count), mult = tonumber(mult),
+                     first = tonumber(first) or 0,
+                     total = tonumber(total) or tonumber(count) }
+        state.tp_asked = nil
         request_render()
     end)
 
@@ -6000,6 +6055,7 @@ mp.register_script_message('shim-trickplay-chapters',
 mp.register_script_message('shim-trickplay-clear', function()
     -- The bytes go away right after this, so forget them first.
     state.tp = nil
+    state.tp_asked = nil
     request_render()
 end)
 

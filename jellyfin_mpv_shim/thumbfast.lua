@@ -9,6 +9,18 @@ local function dbg(text)
 end
 
 img_count = 0
+-- The file is a WINDOW of the video, not all of it: frames [img_first,
+-- img_first + img_count) of img_total. Decoded BGRA balloons -- a two-hour
+-- film is hundreds of megabytes of it -- so the shim fetches the part you
+-- are looking at and swaps files as you move. Indexing the file with a
+-- frame number the video's length justifies reads past its end: a failed
+-- overlay-add on a current mpv, and a SIGBUS on one old enough to still
+-- mmap the file. So the bounds check below is not cosmetic. A shim old
+-- enough not to send these sends the whole video, which the defaults
+-- describe.
+img_first = 0
+img_total = 0
+img_asked = nil    -- video-relative frame a window was last requested for
 img_multiplier = 0
 img_width = 0
 img_height = 0
@@ -58,6 +70,9 @@ function client_message_handler(event)
         img_width = tonumber(event["args"][4])
         img_height = tonumber(event["args"][5])
         img_file = event["args"][6]
+        img_first = tonumber(event["args"][7]) or 0
+        img_total = tonumber(event["args"][8]) or img_count
+        img_asked = nil
         img_last_frame = -1
         img_enabled = true
         img_is_bif = true
@@ -100,8 +115,34 @@ function client_message_handler(event)
                 end
             end
             should_render_preview = true
-            if img_is_bif and frame >= img_count then
-                frame = img_count -1
+            if img_is_bif then
+                -- Clamp against the VIDEO, then move into the file.
+                if frame >= img_total then frame = img_total - 1 end
+                if frame < 0 then frame = 0 end
+                local want = frame
+                frame = frame - img_first
+                if frame < 0 or frame >= img_count then
+                    -- Not loaded. Ask for it and take the stale thumbnail
+                    -- down: leaving it up labels this position with a
+                    -- picture from somewhere else in the film, which is
+                    -- worse than an empty box.
+                    --
+                    -- Keyed on the FRAME, not on offset_seconds: the OSC
+                    -- sends a `thumb` per pointer position, and dozens of
+                    -- them land on the one frame a single window would
+                    -- answer. img_asked is cleared when a window arrives.
+                    if img_asked ~= want then
+                        img_asked = want
+                        mp.commandv("script-message", "shim-trickplay-need",
+                                    tostring(offset_seconds))
+                    end
+                    if img_is_shown then
+                        mp.commandv("overlay-remove", img_overlay_id)
+                        img_is_shown = false
+                        img_last_frame = -1
+                    end
+                    return
+                end
             end
             -- Re-add only when the frame or position actually changed:
             -- overlay-add re-reads and re-uploads the whole BGRA tile, and

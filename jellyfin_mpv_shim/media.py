@@ -732,8 +732,14 @@ class Video(object):
             )
             yield data.getvalue()
 
-    def get_hls_tile_images(self, width, count):
-        for i in range(0, count):
+    def get_hls_tile_images(self, width, count, start=0):
+        """``count`` tile mosaics from tile index ``start``.
+
+        A tile carries ``TileWidth * TileHeight`` thumbnails, so a caller
+        after a window of the video asks for the tiles that window falls in
+        rather than for all of them. See ``trickplay.TrickPlay._window_for``.
+        """
+        for i in range(start, start + count):
             data = BytesIO()
             self.client.jellyfin.get_trickplay_tile(
                 data,

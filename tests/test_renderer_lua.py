@@ -20,6 +20,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LUA_DIR = os.path.join(ROOT, "tests", "lua")
 RENDERER = os.path.join(ROOT, "jellyfin_mpv_shim", "mpvtk", "renderer.lua")
+THUMBFAST = os.path.join(ROOT, "jellyfin_mpv_shim", "thumbfast.lua")
 
 # luajit first: it is what mpv itself usually embeds, so it is the dialect
 # the renderer actually has to run under.
@@ -40,9 +41,9 @@ LUA = find_lua()
 @unittest.skipIf(LUA is None,
                  "no Lua interpreter (tried: %s)" % ", ".join(INTERPRETERS))
 class TestRendererLua(unittest.TestCase):
-    def _run(self, script, env=None):
+    def _run(self, script, env=None, target=None):
         return subprocess.run(
-            [LUA, os.path.join(LUA_DIR, script), RENDERER],
+            [LUA, os.path.join(LUA_DIR, script), target or RENDERER],
             cwd=LUA_DIR, capture_output=True, text=True, timeout=120,
             env=env)
 
@@ -80,6 +81,27 @@ class TestRendererLua(unittest.TestCase):
         self._assert_suite_passed(
             self._run("test_renderer.lua",
                       env=self._session_env(WAYLAND_DISPLAY="wayland-0")))
+
+    def test_the_thumbfast_suite_passes(self):
+        """`thumbfast.lua` is the other consumer of the trickplay frame
+        file — the compatibility layer every thumbfast-style lua OSC talks
+        to, and `mpv_options.mpv_scripts` loads it under every OSC style.
+
+        It had no tests at all while renderer.lua had a suite, which is this
+        repo's recurring shape: the right mechanism applied to one of two
+        implementations. It matters here because the bounds check in it is
+        what stands between a windowed frame file and a read past the end of
+        it — a failed overlay-add on a current mpv, a SIGBUS on one old
+        enough to still mmap what it is handed.
+        """
+        self._assert_suite_passed(
+            self._run("test_thumbfast.lua", target=THUMBFAST))
+
+    def test_thumbfast_parses_under_this_interpreter(self):
+        proc = subprocess.run(
+            [LUA, "-e", "assert(loadfile(%r))" % THUMBFAST],
+            capture_output=True, text=True, timeout=60)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_the_renderer_parses_under_this_interpreter(self):
         """Cheap syntax gate, separate from the behavioural run: a parse

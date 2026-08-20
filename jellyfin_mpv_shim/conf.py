@@ -638,6 +638,20 @@ class Settings(SettingsBase):
     # hidden (mpv key name syntax). ENTER also toggles pause on wake.
     hud_wake_key: str = "ENTER"
     thumbnail_preferred_size: int = 320
+    #: Load every trickplay preview frame at once instead of a window
+    #: around where you are seeking.
+    #:
+    #: Off, the frames are fetched in windows of a few tens of megabytes
+    #: (``trickplay.WINDOW_BUDGET_BYTES``), so scrubbing somewhere the
+    #: window does not reach waits for one round trip. On, the whole video
+    #: is decoded up front, which is what this client always did: every
+    #: preview is then instant, but a two-hour film is about 130 MB of
+    #: decoded BGRA at the server's default thumbnail width and around
+    #: 500 MB at 640px -- written, and decoded through Python to get there.
+    #: Short items are loaded whole either way; the window is a ceiling,
+    #: not a quota. Where that cost actually lands, measured:
+    #: docs/artwork-pipeline.md section 11.
+    trickplay_fast_mode: bool = False
     tls_client_cert: Optional[str] = None
     tls_client_key: Optional[str] = None
     tls_server_ca: Optional[str] = None
