@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 16:01+0000\n"
+"PO-Revision-Date: 2026-08-20 16:05+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -3418,7 +3418,7 @@ msgstr "Versione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
-msgstr ""
+msgstr "Sottotitoli"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
