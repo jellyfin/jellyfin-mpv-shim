@@ -21,6 +21,7 @@ the line you are about to add, so an inline comment cannot warn you.
 | Anything about startup, shutdown, the tray, single-instance or the gamepad | [docs/architecture.md](docs/architecture.md) |
 | Adding a config key, or moving one between settings tabs | [docs/settings-curation.md](docs/settings-curation.md) |
 | Touching watched/played state, or the download catalog (`sync/`) | [docs/offline-sync.md](docs/offline-sync.md) |
+| Trickplay, the seek-preview bubble, or anything handing mpv a file to `overlay-add` (`trickplay.py`, `bifdecode.py`, `thumbfast.lua`) | [docs/artwork-pipeline.md](docs/artwork-pipeline.md) §11 |
 | Writing a test, or adding/extending a fake | [docs/testing.md](docs/testing.md) |
 
 **`docs/mpv-backends.md` is essential before any player work.** Three examples of
@@ -319,7 +320,7 @@ discards every existing translation of it. Known cases: `Record`, `Channels`,
 | [docs/architecture.md](docs/architecture.md) | the process model: primary election, what a launch claims, the tray child process, making the exit finish; the gamepad; users; singleton wiring |
 | [docs/browser-shell.md](docs/browser-shell.md) | the browser shell: mixins/Pages, thread contract, epoch, lock policy, refresh-in-place, scroll parking, pollers, live-applied settings |
 | [docs/mpv-backends.md](docs/mpv-backends.md) | libmpv vs jsonipc, construction failures, mpv versions, SDL/signals, input sections, options that outlive a queue item, `wait_property`, video-setting defaults |
-| [docs/artwork-pipeline.md](docs/artwork-pipeline.md) | strips and the cache, transparent-artwork plating, tile shapes, Cover Size, badges, header baking, grid centring |
+| [docs/artwork-pipeline.md](docs/artwork-pipeline.md) | strips and the cache, transparent-artwork plating, tile shapes, Cover Size, badges, header baking, grid centring; trickplay's windowed frame file (§11) |
 | [docs/jellyfin-api-notes.md](docs/jellyfin-api-notes.md) | how the server actually behaves: DisplayPreferences/CustomPrefs, UserData, dropped parameters, Live TV query shapes |
 | [docs/readers.md](docs/readers.md) | books, audiobooks, the epub reader and the comic reader |
 | [docs/live-tv.md](docs/live-tv.md) | the Live TV screens, guide, timers and self-refresh |

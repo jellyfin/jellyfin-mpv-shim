@@ -1877,6 +1877,24 @@ class TestYearFilter(unittest.TestCase):
         dd = next(n for n in nodes if n.get("id") == "flt-year")
         self.assertEqual(dd["sel"], 2)
 
+    def test_clear_all_moves_the_pickers_not_just_the_route(self):
+        """The renderer keeps a dropdown's selection of its own -- it flips
+        optimistically on click and survives a scene push -- so a rebuild
+        that merely *says* "Any" leaves the control reading the value the
+        user cleared. ``force`` is what lets the scene outvote it, and
+        `sel` alone is the assertion that could not see this.
+        """
+        route = self._route(_filters={"year": 2021})
+        _n, handlers = self._panel()
+        handlers["flt-clear"]["click"]()
+        nodes, _h = build_scene(self.b)
+        dd = next(n for n in nodes if n.get("id") == "flt-year")
+        self.assertEqual(route["_filters"].get("year"), None)
+        self.assertEqual(dd["sel"], 0)
+        self.assertTrue(dd.get("force"),
+                        "the picker leaves its renderer-local selection in "
+                        "place, so Clear All does not move it")
+
 class TestCollections(unittest.TestCase):
     """Collections were missing from mpvtk entirely: no Movies-library
     toggle, no add-to-collection, no remove-from-collection."""

@@ -1836,6 +1836,76 @@ hud_pointer(1100, 672)
 pv_paint()
 eq(preview().frame, 9, "a position past the last tile clamps to it")
 
+-- ...and so does a position the loaded WINDOW does not reach, which is the
+-- same hazard from the other direction. The file holds frames
+-- [first, first + count) of a video `total` frames long, so a position has
+-- to be turned into a frame against the video and then rebased onto the
+-- file. Indexing a 20-frame mapping with frame 50 is exactly the read past
+-- EOF that mpv answers with SIGBUS.
+local function trickplay_request()
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "script-message" and c[2] == "shim-trickplay-need" then
+            return tonumber(c[3])
+        end
+    end
+end
+
+local function trickplay_asks()
+    local n = 0
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "script-message" and c[2] == "shim-trickplay-need" then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- 10s cadence, 100 frames of video (the seek bar's whole 10 minutes), file
+-- holds frames 40..59 -- 6:40 to 9:50.
+fake.send("shim-trickplay-bif", "20", "10000", "32", "18", "/tiles.bin",
+          "40", "100")
+fake.log.commands = {}
+hud_pointer(640, 672)                   -- 5:00 -> frame 30, before the window
+pv_paint()
+ok(preview() ~= nil, "the bubble went away outside the window")
+ok(preview_overlay() == nil,
+   "a frame outside the window was composited anyway -- that offset is "
+   .. "past the end of the mapping")
+eq(trickplay_request(), 300, "no window was asked for at the gap")
+
+-- The ask is once per FRAME INDEX, not once per drawn frame: it sits in the
+-- draw path and runs for as long as the pointer stays outside the window.
+--
+-- The pointer has to actually move, and the repaints have to actually
+-- happen. One frame is 10s, which is ~17.7px of this bar, so 645 and 650
+-- are both still frame 30 -- two renders, same index, and the guard is the
+-- only thing that can suppress the second ask. Two bare pv_paint()s in a
+-- row render ZERO times (a one-shot timer self-disables and nothing
+-- invalidated), so a test built on those passes with the guard deleted.
+fake.log.commands = {}
+hud_pointer(645, 672)
+pv_paint()
+hud_pointer(650, 672)
+pv_paint()
+eq(trickplay_asks(), 0, "the request repeats for every render of one frame")
+
+-- ...but a different frame index is a different question, and must ask.
+-- Without this the test above would also pass if nothing ever asked at all.
+fake.log.commands = {}
+hud_pointer(700, 672)                   -- ~5:33 -> frame 33, still outside
+pv_paint()
+eq(trickplay_asks(), 1, "moving to another missing frame asked nothing")
+
+-- 7:30 is frame 45, which the file holds as its frame 5.
+fake.log.commands = {}
+hud_pointer(906, 672)
+pv_paint()
+local win_ov = preview_overlay()
+ok(win_ov ~= nil, "a frame inside the window was not drawn")
+eq(win_ov and tonumber(win_ov[6]), (45 - 40) * 32 * 18 * 4,
+   "the overlay offset was not rebased onto the window")
+eq(trickplay_request(), nil, "asked for a window it already had")
+
 -- The chapter-image fallback indexes by chapter start instead of a cadence.
 fake.send("shim-trickplay-chapters", "32", "18", "/tiles.bin", "0,120,480")
 hud_pointer(640, 673)
@@ -2799,6 +2869,85 @@ ok(fake.log.keybinds["mpvtk_gp_GAMEPAD_BACK"] ~= nil,
 fake.send("mpvtk-gamepad", fake.token({}))
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
+
+-- ------------------------------------------------- force on a dropdown
+
+-- `force` means "the scene's value wins over the renderer's own", and the
+-- renderer keeps a selection per dropdown across scene pushes. There was no
+-- coverage of the pair at all, and the gap hid a real bug: dd_state ran the
+-- force reset from the DRAW, so the frame after a click redrew the label as
+-- the pre-click option -- every time, not in a race -- until the app pushed
+-- a scene agreeing. The textbox and the slider both guard their force reset
+-- against an in-flight gesture; the dropdown did not.
+
+--- A dropdown's renderer-local selection, after actually painting.
+---
+--- The paint is the point: `dd_state` materializes from the draw, so a
+--- scene push alone leaves nothing to read -- and the draw is also where
+--- the bug lived, so a helper that skipped it could not see it.
+local function dd_sel(id)
+    fake.advance(0.1)
+    fake.fire_timers()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    local dd = (last_event("debug_state") or {}).dropdowns or {}
+    return dd[id] and dd[id].sel
+end
+
+local function forced_dd(sel)
+    scene({ { id = "fdd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+              size = 18, items = { "Any", "English", "German" },
+              sel = sel, force = true } })
+end
+
+forced_dd(0)
+eq(dd_sel("fdd"), 0, "the forced dropdown did not take the scene's value")
+
+click("fdd")                            -- open the popup
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+-- Read the event BEFORE dd_sel, which resets the log to find its own reply.
+eq((last_event("select") or {}).index, 1, "the app was not told")
+eq(dd_sel("fdd"), 1, "the click did not move the selection")
+
+-- The frame before the app has answered. This is the bug: it runs from the
+-- draw, so an unguarded force put the label back to "Any" immediately.
+fake.advance(0.1)
+fake.fire_timers()
+eq(dd_sel("fdd"), 1, "the selection snapped back before the app answered")
+
+-- ...and so does a scene push that still carries the old value, which is
+-- any unrelated repaint landing in the same window (a poller, the filter
+-- panel's own match-count spinner).
+forced_dd(0)
+eq(dd_sel("fdd"), 1, "a stale repaint reverted the click")
+
+-- The app agrees: the gesture ends and the scene is authoritative again.
+forced_dd(1)
+eq(dd_sel("fdd"), 1, "the agreed value was lost")
+
+-- ...which is what makes THIS work -- the case force exists for. Clear All
+-- empties the filters and re-queries; without force the picker went on
+-- showing the language the user just cleared.
+forced_dd(0)
+eq(dd_sel("fdd"), 0, "the scene could not move the picker back to Any")
+
+-- An answer that is neither the old value nor the picked one still ends the
+-- gesture, or a rejected selection would be shown as accepted forever.
+click("fdd")
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+eq(dd_sel("fdd"), 1, "sanity: the click moved it")
+forced_dd(2)
+eq(dd_sel("fdd"), 2, "a third answer did not end the gesture")
+
+-- Without force the renderer keeps its own selection, which is the
+-- behaviour every unforced dropdown relies on.
+scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+          size = 18, items = { "Any", "English" }, sel = 0 } })
+click("udd")
+fake.send("mpvtk-debug", fake.token({ cmd = "popup", index = 1 }))
+scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
+          size = 18, items = { "Any", "English" }, sel = 0 } })
+eq(dd_sel("udd"), 1, "an unforced dropdown was reset by a scene push")
 
 -- ========================================================== teardown
 

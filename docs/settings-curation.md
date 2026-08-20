@@ -76,6 +76,24 @@ picked was the wrong one or whether the control does nothing.
 | shader pack directory | read once at startup |
 | several mpv options | mpv reads them at construction — see `docs/mpv-backends.md` |
 
+### Neither, and it is not symmetric: `trickplay_fast_mode`
+
+Read by the TrickPlay worker each time it builds a window, so the two
+directions land differently and the honest phrasing is per-direction:
+
+- **On** applies to the **current** video, at the next scrub the loaded window
+  does not cover — `_covers` says no, `_window_for` returns the whole video,
+  and the rest of the film is fetched then. Not at the moment you flip it, but
+  not next video either.
+- **Off** applies to the **next** video. The whole-video window already covers
+  every position, so `_covers` never says no again and no further fetch is
+  ever issued for the current item.
+
+Worth stating because the obvious summary — "takes effect on the next video" —
+is wrong in the direction a user is more likely to flip it, and wrong towards
+*more* work than they expect rather than less. See `docs/artwork-pipeline.md`
+§11.
+
 ### The two that look inconsistent and are not
 
 **`theme` splits.** Colours apply immediately; sizes do not. A theme change is

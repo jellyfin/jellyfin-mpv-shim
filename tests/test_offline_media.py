@@ -110,6 +110,83 @@ class FactoryFileExistsGateTest(unittest.TestCase):
         self.assertIsInstance(video, offline_media.OfflineVideo)
 
 
+class OfflineTrickplayTest(unittest.TestCase):
+    """``OfflineVideo`` is a drop-in for ``media.Video``, and the trickplay
+    worker calls it through exactly the same names.
+
+    It stopped being one when the worker learned to fetch a *window* of the
+    tiles: ``Video.get_hls_tile_images`` grew a ``start`` and this one did
+    not, so every downloaded item raised TypeError and lost its previews
+    while the online path was fine. That is the repo's recurring shape --
+    the right mechanism applied to one of two implementations.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = self.tmp.name
+        self.db = make_db(os.path.join(self.root, "cat.db"))
+        self.sync = FakeSync(self.db, self.root)
+        self._patch = mock.patch.object(offline_media, "syncManager",
+                                        self.sync)
+        self._patch.start()
+        self.item_dir = os.path.join(self.root, "a")
+        os.makedirs(self.item_dir)
+        with open(os.path.join(self.item_dir, "file.mkv"), "wb") as fh:
+            fh.write(b"x")
+        add_row(self.db, "a", "a/file.mkv")
+
+    def tearDown(self):
+        self._patch.stop()
+        self.db.close()
+        self.tmp.cleanup()
+
+    def _video(self, tiles=4):
+        with open(os.path.join(self.item_dir, "trickplay.json"), "w") as fh:
+            json.dump({"width": 320,
+                       "data": {"Width": 320, "Height": 180, "TileWidth": 2,
+                                "TileHeight": 2, "ThumbnailCount": tiles * 4,
+                                "Interval": 10000}}, fh)
+        tp_dir = os.path.join(self.item_dir, "trickplay", "320")
+        os.makedirs(tp_dir)
+        for i in range(tiles):
+            with open(os.path.join(tp_dir, "%d.jpg" % i), "wb") as fh:
+                fh.write(b"tile%d" % i)
+        return offline_media.OfflineVideo("a", FakeParent(client=None))
+
+    def test_the_trickplay_surface_matches_the_online_one(self):
+        """Signatures, not a call: this is the check that generalises to the
+        next parameter the worker starts passing."""
+        import inspect
+
+        from jellyfin_mpv_shim.media import Video
+
+        for name in ("get_bif", "get_hls_tile_images", "get_chapters"):
+            self.assertEqual(
+                inspect.signature(getattr(offline_media.OfflineVideo, name)),
+                inspect.signature(getattr(Video, name)),
+                "OfflineVideo.%s has drifted from media.Video.%s -- the "
+                "trickplay worker calls whichever it is handed" % (name, name))
+
+    def test_a_window_reads_the_tiles_it_asked_for(self):
+        """``start`` is the whole point: without it a mid-film window is
+        answered with the beginning of the film."""
+        video = self._video()
+        self.assertEqual(list(video.get_hls_tile_images(320, 2, start=2)),
+                         [b"tile2", b"tile3"])
+
+    def test_a_missing_tile_ends_the_run_rather_than_raising(self):
+        """A partial download is a short run, which the decoder reports as
+        frames written -- an over-reported count is a read past EOF in mpv."""
+        video = self._video(tiles=3)
+        self.assertEqual(list(video.get_hls_tile_images(320, 4, start=2)),
+                         [b"tile2"])
+
+    def test_no_downloaded_trickplay_yields_nothing(self):
+        video = offline_media.OfflineVideo("a", FakeParent(client=None))
+        self.assertIsNone(video.get_bif())
+        self.assertEqual(list(video.get_hls_tile_images(320, 2, start=1)), [])
+
+
 class OfflineSegmentsTest(unittest.TestCase):
     """Skip Intro/Credits over a downloaded file.
 

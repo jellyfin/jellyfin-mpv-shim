@@ -90,8 +90,20 @@ passwords; `on_change`/`on_submit`), `Dropdown` (readonly picker,
 `on_select`), `Slider` (`on_change`, throttled while dragging;
 seek-style sliders add `on_commit` — once, when the drag/adjust
 gesture ends — and `on_cancel` — gesture abandoned via ESC or focus
-moving away, value reverted; `force=True` tracks the scene value but
-never stomps an in-flight gesture), `Busy` (indeterminate spinner).
+moving away, value reverted), `Busy` (indeterminate spinner).
+
+**`force=True` on all three means the same thing: the scene's value wins
+over the renderer's own, but never mid-gesture.** The renderer keeps
+editing state, slider values and dropdown selections across scene pushes,
+keyed by node id, and `force` is how the app overrules that — the Clear All
+button on the filter panel is the case it exists for. The mid-gesture
+exception is what makes it usable: a textbox being typed into, a slider
+being dragged, and a dropdown whose selection has been sent but not yet
+answered all hold their own value until the app says something *different*
+from what it was showing when the gesture began. Without it the reset runs
+from the draw, so the frame after a click shows the pre-click value —
+not a race, every time. The dropdown was the last of the three to get the
+guard; `tests/lua/test_renderer.lua` pins all of it.
 
 Containers: `HScroll`/`VScroll` (optional scrollbar; `on_scroll` for
 windowed/infinite content — fires leading-edge-throttled every 150ms

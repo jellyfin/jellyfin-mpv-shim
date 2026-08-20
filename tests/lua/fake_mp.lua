@@ -129,6 +129,7 @@ end
 local mp = {}
 local msg_handlers = {}
 local prop_observers = {}
+local event_handlers = {}
 
 --- Seconds an osd update "takes". The renderer times its own frames and
 --- decides from that how fast to schedule them and whether scrolling has to
@@ -308,14 +309,27 @@ function mp.set_key_bindings(list, name, _flags)
         section[entry[1]] = true
     end
 end
-function mp.register_event() end
+-- Recorded, not swallowed. `renderer.lua` reaches Python through
+-- `register_script_message`, but `thumbfast.lua` -- the shim's compatibility
+-- layer for thumbfast-style lua OSCs -- reads the raw `client-message`
+-- EVENT instead, so a no-op here left that whole script undrivable and
+-- therefore untested.
+function mp.register_event(name, fn)
+    event_handlers[name] = event_handlers[name] or {}
+    table.insert(event_handlers[name], fn)
+end
 function mp.register_idle() end
 function mp.get_script_name() return "mpvtk" end
 function mp.osd_message() end
 
+-- `mp.log(level, ...)` is the real primitive (player/lua.c:script_log);
+-- mpv's own defaults.lua builds every mp.msg.* entry on top of it, and
+-- thumbfast.lua calls it directly. Missing here, that was a nil-call the
+-- moment anything logged.
+function mp.log() end
 mp.msg = { error = function() end, warn = function() end,
            info = function() end, verbose = function() end,
-           debug = function() end, log = function() end }
+           debug = function() end, log = mp.log }
 mp.utils = utils
 
 -- assdraw: only ass_new() and the builder methods the renderer chains.
@@ -403,6 +417,24 @@ function M.send(name, ...)
 end
 
 function M.has_handler(name) return msg_handlers[name] ~= nil end
+
+--- Deliver an mpv EVENT, as mpv would. See mp.register_event.
+function M.emit(name, ev)
+    local fired = false
+    for _, fn in ipairs(event_handlers[name] or {}) do
+        fired = true
+        fn(ev)
+    end
+    if not fired then error("no handler for event: " .. name) end
+end
+
+--- The `client-message` an mpv `script-message` command arrives as: the
+--- command name is args[1], exactly as the real event carries it. Scripts
+--- that take this route see every script-message sent to anyone, which is
+--- why they all switch on args[1] rather than registering by name.
+function M.client_message(...)
+    M.emit("client-message", { event = "client-message", args = { ... } })
+end
 
 --- Fire a property observer, as mpv would.
 function M.observe(name, value)

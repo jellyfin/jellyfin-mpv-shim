@@ -160,7 +160,8 @@ TAB_SECTIONS = {
         # applies at all.
         (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
-                                "mouse_chapter_nav", "mouse_click_pauses"]),
+                                "mouse_chapter_nav", "mouse_click_pauses",
+                                "trickplay_fast_mode"]),
         (_("Playback"), ["auto_play", "hwdec", "always_transcode",
                          "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
@@ -410,6 +411,7 @@ LABEL_OVERRIDES = {
     "remember_window_size": _("Remember Window Size"),
     "window_controls": _("Window Buttons in the Top Bar"),
     "osc_style": _("Player Controls Style"),
+    "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
     "ui_text_scale": _("Text Size"),
@@ -570,6 +572,15 @@ NOTES = {
                          "\"Only when the window has no title bar\", MPV is "
                          "asked whether this window got one, so desktops "
                          "that do decorate it are left alone."),
+    "trickplay_fast_mode": _("Seek previews are normally fetched a few "
+                             "minutes at a time around where you are "
+                             "seeking, so scrubbing somewhere new waits "
+                             "briefly. Turn this on to load them all up "
+                             "front instead: nothing ever waits, but a long "
+                             "film can cost several hundred MB of memory. "
+                             "Turning it on applies to what you are watching "
+                             "the next time you seek somewhere new; turning "
+                             "it off applies to the next video."),
     "osc_style": _("Requires restart to change. MPV keybinds are used by "
                    "default. Press ENTER to drive the player controls by "
                    "keyboard. \"No player controls\" leaves playback bare; "

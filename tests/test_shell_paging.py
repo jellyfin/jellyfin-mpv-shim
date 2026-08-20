@@ -1217,5 +1217,74 @@ class TestAReturningScrollContainerStartsAtTheTop(unittest.TestCase):
         self.assertIn("music-0-al0", self._tiles(b, "music-"))
 
 
+class TestPagedQueriesMatchTheFirstOne(unittest.TestCase):
+    """Every page of a grid must ask the *same question* page one asked.
+
+    ``collection_type`` is what makes a library query typed and Recursive
+    (``IncludeItemTypes=Series&Recursive=True``). Only the initial load
+    passed it, so page two was a plain folder listing of the library root
+    -- a different result set, in a different order, with a different total.
+    It looked fine unfiltered, because a TV library's direct children are
+    its Series anyway. Under ``AudioLanguages=eng`` it was the bug the
+    tester saw: the recursive query filters, the folder listing does not,
+    so scrolling spliced unfiltered shows into a filtered grid and the
+    unfiltered total came with them.
+
+    **Only the first test below fails against that bug**, and the other two
+    are not covering it: they guard the rest of the bound tuple, and guard
+    against over-correcting into typing a query that must stay untyped. The
+    distinction is worth stating, because three tests under one docstring
+    about one bug read as three times the coverage.
+    """
+
+    def _grid(self, ctype="tvshows", total=500):
+        src = FakeSource()
+        src.grid_items = [{"Id": "s%d" % i, "Name": "Show %d" % i,
+                           "Type": "Series",
+                           "PrimaryImageAspectRatio": 2 / 3}
+                          for i in range(total)]
+        b = MpvtkBrowser(app=None, source=src)
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        route = {"kind": "grid", "server": "srv1", "parent_id": "lib1",
+                 "collection_type": ctype,
+                 "_filters": {"audio_languages": "eng"}}
+        b.nav_stack = [route]
+        b._load_route(route)
+        return b, route, src
+
+    def test_every_page_carries_the_collection_type(self):
+        b, route, src = self._grid()
+        grid_scroll(b, route, 20_000, 40_000)
+        self.assertGreater(len(src.queries), 1, "nothing paged")
+        self.assertTrue(
+            all(q["collection_type"] == "tvshows" for q in src.queries),
+            "a page asked an untyped, non-recursive query: %r"
+            % [(q["start_index"], q["collection_type"])
+               for q in src.queries])
+
+    def test_every_page_carries_the_filters(self):
+        """The other half of the same tuple, and the reason it matters --
+        a filter the server can only evaluate recursively is silently
+        dropped by the untyped query rather than rejected."""
+        b, route, src = self._grid()
+        grid_scroll(b, route, 20_000, 40_000)
+        self.assertTrue(
+            all(q["filters"] == {"audio_languages": "eng"}
+                for q in src.queries),
+            "a page dropped the filters: %r"
+            % [q["filters"] for q in src.queries])
+
+    def test_a_folder_inside_a_library_still_sends_none(self):
+        """A folder route has no collection_type and must not invent one --
+        that is what makes it a plain listing of its own children."""
+        b, route, src = self._grid(ctype=None)
+        grid_scroll(b, route, 20_000, 40_000)
+        self.assertTrue(
+            all(q["collection_type"] is None for q in src.queries),
+            "a folder listing was typed: %r"
+            % [q["collection_type"] for q in src.queries])
+
+
 if __name__ == "__main__":
     unittest.main()
