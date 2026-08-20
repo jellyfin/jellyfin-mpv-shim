@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 10:50+0000\n"
+"PO-Revision-Date: 2026-08-20 14:53+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -1034,16 +1034,12 @@ msgid "DV title"
 msgstr "Titolo DV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version major"
-msgstr "Versione %d"
+msgstr "Versione DV principale"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version minor"
-msgstr "Versione %d"
+msgstr "Versione DV minore"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -2010,6 +2006,12 @@ msgid ""
 "captions are ellipsized and it is the whole interface that needs to be "
 "bigger -- which is Interface Scale, above."
 msgstr ""
+"Ridimensiona solo il testo. L'opzione \"Interfaccia ridimensionata\" qui "
+"sopra ridimensiona tutto: grafica, spaziatura e controlli. Quindi, usala "
+"quando le parole sono troppo piccole, non quando si tratta dell'intera "
+"interfaccia. Si ferma al 150% perché a quel punto la maggior parte delle "
+"didascalie dei riquadri sono ellittiche ed è l'intera interfaccia che deve "
+"essere ingrandita, ovvero l'opzione \"Interfaccia ridimensionata\" qui sopra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2104,10 +2106,8 @@ msgstr "Preferiti"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Resume"
 msgid "Resumable"
-msgstr "Riprendi"
+msgstr "Ripristinabile"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Liked"
@@ -2123,10 +2123,8 @@ msgid "Has Subtitles"
 msgstr "Ha sottotitoli"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Trailer"
 msgid "Has Trailer"
-msgstr "Trailer"
+msgstr "Ha un trailer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
@@ -2160,7 +2158,6 @@ msgstr "Valutazione dei genitori"
 
 # seeded from jellyfin-web: Tags
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Tags"
 msgstr "Tag"
 
@@ -2266,10 +2263,8 @@ msgid "Unknown"
 msgstr "Sconosciuto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "No channels available."
 msgid "No media information is available."
-msgstr "Nessun canale disponibile."
+msgstr "Non sono disponibili informazioni per i media."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2574,10 +2569,8 @@ msgid "Could not leave the SyncPlay group."
 msgstr "Impossibile abbandonare il gruppo SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Could not start playback."
 msgid "Could not resume SyncPlay playback."
-msgstr "Impossibile avviare la riproduzione."
+msgstr "Impossibile riprendere la riproduzione di SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Next Up"
@@ -2772,16 +2765,13 @@ msgid "Hardware acceleration"
 msgstr "Accelerazione hardware"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Video Quality"
 msgid "Video output"
-msgstr "Qualità video"
+msgstr "Uscita video"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Dropped frames"
-msgstr "Frame persi"
+msgstr "Fotogrammi scartati"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
@@ -2794,31 +2784,24 @@ msgstr "Sincronizzazione A/V"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "Con buffer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy, python-format
-#| msgid "%.1f Mbps"
+#, python-format
 msgid "%.1f s"
-msgstr "%.1f Mbps"
+msgstr "%.1f s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "Download speed"
-msgstr "Scaricati"
+msgstr "Velocità di scaricamento"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Ricerca tasti multimediali"
+msgstr "Tipo di media"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "downloaded copy"
-msgstr "Scaricati"
+msgstr "copia scaricata"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
@@ -2830,34 +2813,26 @@ msgstr "trasmissione dal server"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Play method"
 msgstr "Metodo di riproduzione"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Seasons"
 msgid "Reasons"
-msgstr "Stagioni"
+msgstr "Motivi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Play"
 msgid "Player"
-msgstr "Riproduci"
+msgstr "Lettore"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "File"
 msgstr "File"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Nothing to show yet."
 msgid "Nothing is playing."
-msgstr "Ancora niente da mostrare."
+msgstr "Niente in riproduzione."
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2977,11 +2952,12 @@ msgstr "Elimina dal disco"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "L'eliminazione di questo elemento lo cancellerà sia dal disco che dalla libreria multimediale. Sei sicuro di voler continuare?"
+msgstr ""
+"L'eliminazione di questo elemento lo eliminerà sia dal disco che dalla "
+"raccolta multimediale. Sei sicuro di voler continuare?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3337,9 +3313,8 @@ msgstr "Riprendi"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Restart"
-msgstr "Riavvio"
+msgstr "Riavvia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -3363,7 +3338,6 @@ msgstr "%s in"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Start"
 msgstr "Avvia"
 
@@ -3379,10 +3353,8 @@ msgid "Read"
 msgstr "Leggi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "External"
 msgid "Open Externally"
-msgstr "Esterno"
+msgstr "Apri esternamente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Downloading…"
@@ -3399,23 +3371,17 @@ msgid "Nothing here yet."
 msgstr "Ancora niente qui."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "This comic could not be opened."
-msgstr "La registrazione non può essere letta."
+msgstr "Questo fumetto non può essere aperto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This page could not be read."
-msgstr "Impossibile rinominare quell'utente."
+msgstr "Questa pagina non può essere letta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Moving the downloads failed."
 msgid "The download failed."
-msgstr "Spostamento degli scaricamenti non riuscito."
+msgstr "Lo scaricamento non è riuscito."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
@@ -3543,7 +3509,6 @@ msgstr "Filtro (%d)"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Filter"
 msgstr "Filtro"
 
@@ -3897,48 +3862,36 @@ msgstr ""
 "Riprova tra un attimo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This book could not be opened."
-msgstr "Impossibile rinominare quell'utente."
+msgstr "Questo libro non può essere aperto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
 msgstr "Copia paragrafo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Page"
 msgid "Copy Page"
-msgstr "Pagina"
+msgstr "Copia pagina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
 msgstr "Copiato il paragrafo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copied %d log lines."
 msgid "Copied the page."
-msgstr "Copiate %d righe di log."
+msgstr "Pagina copiata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "There is nothing to copy yet."
 msgid "There is nothing to copy."
-msgstr "Ancora niente da copiare."
+msgstr "Niente da copiare."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copying to the clipboard is not available."
 msgid "Copying is not available."
-msgstr "La copia negli appunti non è disponibile."
+msgstr "La copia non è disponibile."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Could not copy the log."
 msgid "Could not copy the text."
-msgstr "Impossibile copiare il log."
+msgstr "Impossibile copiare il testo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -3947,16 +3900,12 @@ msgid "No clipboard available — saved to %s"
 msgstr "Appunti non disponibili — salvato in %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Contents"
-msgstr "Continuo"
+msgstr "Contenuti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Contacting the server…"
 msgid "Getting the book…"
-msgstr "Connessione al server…"
+msgstr "Recupero del libro…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -4182,7 +4131,7 @@ msgstr "Si applica a %s, abilita altri server nella scheda Server."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move the downloads back to the default folder?"
-msgstr "Vuoi sportare gli scaricamenti nella cartella predefinita?"
+msgstr "Vuoi spostare gli scaricamenti nella cartella predefinita?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Use the default folder"
