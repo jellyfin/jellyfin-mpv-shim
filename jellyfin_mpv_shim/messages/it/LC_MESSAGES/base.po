@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 08:53+0000\n"
+"PO-Revision-Date: 2026-08-20 10:50+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
@@ -1214,10 +1214,8 @@ msgid "The audio stream info is unknown"
 msgstr "Le informazioni del flusso audio non sono disponibili"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing here to play."
 msgid "There was an error starting direct playback"
-msgstr "Qui non c'è niente da riprodurre."
+msgstr "Si è verificato un errore durante l'avvio della riproduzione diretta"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -2991,10 +2989,9 @@ msgid "%s was deleted."
 msgstr "%s è stato eliminato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The playlist could not be deleted."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "La scaletta non può essere eliminata."
+msgstr "%s non può essere eliminato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3030,10 +3027,9 @@ msgid "Nothing on this system could open %s."
 msgstr "Niente su questo sistema è in grado di aprire %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%d already downloaded"
+#, python-format
 msgid "%s is already downloaded."
-msgstr "%d già scaricati"
+msgstr "%s è già stato scaricato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
@@ -3044,22 +3040,19 @@ msgstr ""
 "essere letto solo dopo averlo scaricato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Next episode is not downloaded."
+#, python-format
 msgid "%s has not been downloaded."
-msgstr "L'episodio successivo non è stato scaricato."
+msgstr "%s non è stato scaricato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "That user could not be added."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "Impossibile aggiungere quell'utente."
+msgstr "%s non può essere scaricato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Downloading %d%%"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Scaricamento %d%%"
+msgstr "Scaricamento %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -3289,10 +3282,9 @@ msgid "Repeat Off"
 msgstr "Nessuna ripetizione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Back 10 Seconds"
+#, python-format
 msgid "Back %d seconds"
-msgstr "Indietro di 10 secondi"
+msgstr "Indietro di %d secondi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3307,10 +3299,9 @@ msgid "Pause"
 msgstr "Pausa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Forward 30 Seconds"
+#, python-format
 msgid "Forward %d seconds"
-msgstr "Avanti di 30 secondi"
+msgstr "Avanti di %d secondi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Stop"
@@ -3333,10 +3324,9 @@ msgid "Volume"
 msgstr "Volume"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy, python-format
-#| msgid "Chapters"
+#, python-format
 msgid "%d chapters"
-msgstr "Capitoli"
+msgstr "%d capitoli"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3395,17 +3385,13 @@ msgid "Open Externally"
 msgstr "Esterno"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Downloading…"
-msgstr "Scaricamento"
+msgstr "Scaricamento…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Programs"
 msgid "Progress…"
-msgstr "Programmi"
+msgstr "Avanzamento…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -4297,14 +4283,8 @@ msgstr ""
 "dettagli della puntata che non hai ancora visto."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"Impossibile aggiungere server.\n"
-"Controlla le informazioni di connessione."
+msgstr "Impossibile caricare le impostazioni della schermata iniziale."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, fuzzy
@@ -4819,7 +4799,7 @@ msgstr "Utente non trovato."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
-msgstr "Sconosciuto"
+msgstr "Sconos"
 
 #: jellyfin_mpv_shim/utils.py
 msgid " Forced"
