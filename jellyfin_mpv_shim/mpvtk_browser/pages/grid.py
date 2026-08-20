@@ -532,11 +532,11 @@ class GridPage(Page):
 
     def _bound_query(self):
         """``(sort_by, sort_order, filters, person, srv, image_type,
-        collections)`` read NOW, on the loop thread. The sort/filters a page
-        is fetched with must be the ones it was asked for, not whatever they
-        are when it lands -- and the artwork it asks the server for must be
-        the one the grid is being drawn with, or page two of a Banner view
-        arrives with no banners.
+        collections, ctype)`` read NOW, on the loop thread. The sort/filters
+        a page is fetched with must be the ones it was asked for, not
+        whatever they are when it lands -- and the artwork it asks the server
+        for must be the one the grid is being drawn with, or page two of a
+        Banner view arrives with no banners.
 
         ``collections`` for the same reason as the rest, and it was the one
         thing missing: `_fetch_at` read it live off the route, so a page-in
@@ -554,13 +554,14 @@ class GridPage(Page):
                 self.route.get("person_id"),
                 self.route.get("server") or self.ctx.server,
                 _image_type_of(self.route.get("_view")),
-                bool(self.route.get("_collections")))
+                bool(self.route.get("_collections")),
+                self.route.get("collection_type"))
 
     def _fetch_at(self, start, limit=None, bound=None):
         """One page of results. ``bound`` is a _bound_query() tuple captured
         on the loop thread; omitted only where the caller is already on it."""
         (sort_by, sort_order, filters, person, srv,
-         image_type, collections) = bound or self._bound_query()
+         image_type, collections, ctype) = bound or self._bound_query()
         source = self.ctx.source
         kw = {} if limit is None else {"limit": limit}
         if person:
@@ -576,10 +577,18 @@ class GridPage(Page):
                 srv, start_index=start, sort_by=sort_by,
                 sort_order=sort_order, filters=filters,
                 image_type=image_type, **kw)
+        # collection_type, like every other member of the bound tuple: it
+        # is what makes the query typed and Recursive, and page one is the
+        # only place it used to be passed. Every page after it therefore
+        # asked a DIFFERENT question -- a folder listing of the library
+        # root rather than a recursive query for its Series -- so a filter
+        # the server can only evaluate recursively (AudioLanguages) came
+        # back unapplied, and the total that arrived with it replaced the
+        # filtered one. See docs/browser-shell.md section 13.
         return source.get_library_items(
             srv, self.route["parent_id"], start_index=start,
             sort_by=sort_by, sort_order=sort_order, filters=filters,
-            image_type=image_type, **kw)
+            image_type=image_type, collection_type=ctype, **kw)
 
     def _window(self, first, last):
         """Fetch the items in ``[first, last)`` that are not loaded yet.
@@ -1250,10 +1259,11 @@ class ListPage(GridPage):
         # inherited and unpack what this returns.
         sort_by, sort_order = self._sort_args()
         return (sort_by, sort_order, self.route.get("_filters") or {}, None,
-                self.route.get("server") or self.ctx.server, None, False)
+                self.route.get("server") or self.ctx.server, None, False,
+                None)
 
     def _fetch_at(self, start, limit=None, bound=None):
-        sort_by, sort_order, filters, _person, srv, _itype, _coll = (
+        sort_by, sort_order, filters, _person, srv, _itype, _coll, _ct = (
             bound or self._bound_query())
         kw = {} if limit is None else {"limit": limit}
         return self.ctx.source.get_list(
