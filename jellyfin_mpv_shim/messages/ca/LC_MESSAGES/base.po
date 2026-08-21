@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-20 08:54+0000\n"
+"PO-Revision-Date: 2026-08-21 10:46+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -980,44 +980,36 @@ msgid "Video range"
 msgstr "Rang de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Video Profile Subtype"
 msgid "Video range type"
-msgstr "Subtipus de perfil de vídeo"
+msgstr "Tipus de rang de vídeo"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color space"
 msgstr "Espai de color"
 
 # seeded from jellyfin-web: ColorTransfer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color transfer"
 msgstr "Transferència de color"
 
 # seeded from jellyfin-web: ColorPrimaries
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color primaries"
 msgstr "Colors primaris"
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Pixel format"
 msgstr "Format de píxel"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Ref frames"
 msgstr "Fotogrames de referència"
 
 # seeded from jellyfin-web: MediaInfoRotation
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Rotation"
 msgstr "Rotació"
 
@@ -1037,62 +1029,48 @@ msgstr "Extern"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Time"
 msgid "Timestamp"
-msgstr "Hora"
+msgstr "Marca temporal"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Show titles"
 msgid "DV title"
-msgstr "Mostra els títols"
+msgstr "Títol de DV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version major"
-msgstr "Versió %d"
+msgstr "Versió major de DV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Version %d"
 msgid "DV version minor"
-msgstr "Versió %d"
+msgstr "Versió menor de DV"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV profile"
-msgstr "Perfil DV"
+msgstr "Perfil de DV"
 
 # seeded from jellyfin-web: MediaInfoDvLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV level"
-msgstr "Nivell DV"
+msgstr "Nivell de DV"
 
 # seeded from jellyfin-web: MediaInfoRpuPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV rpu preset flag"
 msgstr "Senyalització DV rpu predeterminada"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV el preset flag"
 msgstr "Senyalització \"DV el\" predeterminada"
 
 # seeded from jellyfin-web: MediaInfoBlPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl preset flag"
 msgstr "Senyalització DV bl predeterminada"
 
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl signal compatibility id"
 msgstr "Identificador de compatibilitat del senyal DV bl"
 
@@ -1103,22 +1081,18 @@ msgid "%.1f Mbps"
 msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Camins directes"
+msgstr "Reproducció directa"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "Transmissió directa"
 
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Remuxing"
-msgstr "Recodificació"
+msgstr "Remuxing"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1127,15 +1101,12 @@ msgstr "Transcodifica"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The container is not supported"
 msgstr "El contenidor no és compatible"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "The download could not be started."
 msgid "The video codec is not supported"
-msgstr "No s'ha pogut iniciar la descàrrega."
+msgstr "El còdec de vídeo no és compatible"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The audio codec is not supported"
@@ -1343,17 +1314,13 @@ msgid "Only above 1080p"
 msgstr "Només per sobre de 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Open"
 msgid "On"
-msgstr "Obre"
+msgstr "Activat"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Advanced"
 msgid "Copy (advanced)"
-msgstr "Avançat"
+msgstr "Copia (avançat)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1465,10 +1432,8 @@ msgstr "Ajusta a l'amplada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "Page"
 msgid "Fit Page"
-msgstr "Pàgina"
+msgstr "Ajusta a la pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
@@ -1588,10 +1553,8 @@ msgstr "Mostra les miniatures dels episodis a les pàgines dels detalls"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cancel Recording"
 msgid "Hardware Decoding"
-msgstr "Cancel·la l'enregistrament"
+msgstr "Descodificació de maquinari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1827,6 +1790,9 @@ msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
 msgstr ""
+"Quan està desactivat es comporta com el ratolí de MPV: arrossega el vídeo "
+"per a moure la finestra, clic dret per a pausar. Doble clic amb qualsevol "
+"botó per a pantalla completa."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1837,6 +1803,13 @@ msgid ""
 "another VapourSynth filter. If video stops working, start with --disable-"
 "hwdec and change this back."
 msgstr ""
+"Desactivat per defecte, perquè alguns controladors gràfics no ho processen "
+"bé. La manera cautelosa d'engegar-la és \"Només per sobre de 1080p\": la "
+"majoria de maquinari pot descodificar 1080p al programari sense ajuda. "
+"\"Copia (avançat)\" és més lent, però és la manera que funciona amb filtres "
+"de vídeo pel que heu d'escollir si executeu SPV o un altre tipus de "
+"VapourSynth. Si el vídeo para de funcionar, inicieu amb --disable-hwdec i "
+"torneu-ho a canviar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
