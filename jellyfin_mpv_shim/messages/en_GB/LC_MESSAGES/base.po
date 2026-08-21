@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-08 20:44+0000\n"
-"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"PO-Revision-Date: 2026-08-21 17:18+0000\n"
+"Last-Translator: Joel Sprouse <joel.sprouse11@gmail.com>\n"
 "Language-Team: English (United Kingdom) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/en_GB/>\n"
 "Language: en_GB\n"
@@ -21,23 +21,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Unknown format"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Page %(page)d of %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Page %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% read"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -76,6 +76,7 @@ msgstr "Setting Current..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
@@ -83,7 +84,7 @@ msgstr "Waiting for authorisation..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Clearing all existing accounts."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,7 +96,7 @@ msgstr "Adding server failed."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Account already exists. Updating credentials."
 
 #: jellyfin_mpv_shim/clients.py
 #, fuzzy
@@ -137,11 +138,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect is not enabled on this server."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Could not start Quick Connect."
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -194,7 +195,7 @@ msgstr "Seek to Skip Credits"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Skip Recap"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -395,11 +396,11 @@ msgstr "Never"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Ask"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Always"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -547,12 +548,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
-msgstr ""
+msgstr "Failed to load. Check the connection."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Page"
-msgstr ""
+msgstr "Page"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -563,7 +564,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "First page"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -577,17 +578,17 @@ msgstr "Successfully added server."
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Next page"
-msgstr ""
+msgstr "Next page"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Last page"
-msgstr ""
+msgstr "Last page"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "The change could not be applied."
 
 # seeded from jellyfin-web: LiveTV
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
@@ -600,7 +601,7 @@ msgstr "Live TV"
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Selected: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -608,18 +609,18 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Loading…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Playback could not be started."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Queue"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -642,11 +643,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Switch to %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -661,11 +662,11 @@ msgstr "Cancel"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Switch"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Incorrect PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy, python-format
@@ -675,20 +676,20 @@ msgstr "Server:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Current PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "New PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Confirm"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
-msgstr ""
+msgstr "Require this PIN at startup"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -705,23 +706,23 @@ msgstr "Save"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN is incorrect."
-msgstr ""
+msgstr "Current PIN is incorrect."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter a new PIN."
-msgstr ""
+msgstr "Enter a new PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PINs don't match."
-msgstr ""
+msgstr "The PINs don't match."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be removed."
-msgstr ""
+msgstr "The PIN could not be removed."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "The PIN could not be saved."
-msgstr ""
+msgstr "The PIN could not be saved."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
@@ -730,7 +731,7 @@ msgstr "Add Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Connect to Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -740,7 +741,7 @@ msgstr "Successfully added server."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Use"
-msgstr ""
+msgstr "Use"
 
 # seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -750,7 +751,7 @@ msgstr "Quick Connect"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
-msgstr ""
+msgstr "Enter this code in the Jellyfin app or web client:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -790,7 +791,7 @@ msgstr "Connect"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter the server URL first."
-msgstr ""
+msgstr "Enter the server URL first."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
