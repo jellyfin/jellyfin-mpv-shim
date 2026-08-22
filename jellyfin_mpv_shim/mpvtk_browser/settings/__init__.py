@@ -117,11 +117,16 @@ class SettingsMixin(
 
         # Wrapped: six translated labels do not fit a narrow page, and
         # "Logs" -- the last one -- was drawn off the right edge at 200%.
+        pad = chrome.CONTENT_PAD
         tabs = chrome.wrap_row([tab_button(t) for t in self.SETTINGS_TABS],
-                               (size[0] if size else 0) - 2 * 12, gap=8)
+                               (size[0] if size else 0) - 2 * pad, gap=8)
         body = getattr(self, self.TAB_RENDERERS.get(tab, "_settings_form"))(
             route, size)
-        head = [Row([tabs], pad=12)]
+        # The page margin, like every other toolbar. At 12 the pill strip
+        # started 4px left of the content under it, which on the Live TV
+        # tabs is a tile row -- two left edges a few px apart, which reads
+        # as a mistake rather than as a design.
+        head = [Row([tabs], pad=pad)]
         return Column(head + [body], flex=1, align="stretch")
     def _set_settings_tab(self, route, tab):
         route["_tab"] = tab

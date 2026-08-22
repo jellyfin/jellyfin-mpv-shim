@@ -209,7 +209,10 @@ class LiveTvPage(Page):
         tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
                                  lambda k=key: self._set_tab(k))
                 for key, label in self._tabs()]
-        return Row(tabs, gap=8, pad=12, align="center")
+        # chrome.CONTENT_PAD: the same margin the tile rows under these
+        # tabs start on. See SettingsMixin._render_settings, which draws the
+        # other tab strip in the app and now agrees with this one.
+        return Row(tabs, gap=8, pad=chrome.CONTENT_PAD, align="center")
 
     def _scroll(self, children, scroll_id, gap=16):
         """A stack of carousels declaring where their section tops are.

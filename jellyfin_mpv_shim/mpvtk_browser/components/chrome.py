@@ -55,8 +55,13 @@ def error(msg):
     to nothing. ``flex=1`` stays: the message still owns the content area,
     it just no longer hovers in it.
     """
+    # CONTENT_PAD, not a roomier 24: this stands in for content, so it
+    # starts where content starts. At 24 the three Live TV empty states and
+    # Favorites sat 8px right of every heading, tile and paragraph in the
+    # app -- visible precisely because an empty screen has nothing else on
+    # it to look at.
     return Box([Text(msg, size="large", color=theme.SUBTLE_FG)],
-               pad=24, flex=1, align="start", direction="row")
+               pad=CONTENT_PAD, flex=1, align="start", direction="row")
 
 
 def wrap_row(items, avail, gap=8, align="center", row_gap=None):
