@@ -57,7 +57,7 @@ TIMEOUT = 120
 
 
 def _stop_app(config):
-    """Ask whatever is running against ``config`` to stop.
+    """Ask whatever is running against ``config`` to stop. Returns its output.
 
     Through the app's own `stop` command rather than by pattern: the
     replacement is not our child -- it is our child's child, deliberately
@@ -65,11 +65,41 @@ def _stop_app(config):
     this test's own command line (see the shell footgun in CLAUDE.md).
     """
     try:
-        subprocess.run([sys.executable, os.path.join(REPO, "run.py"),
-                        "--config", config, "stop"],
-                       timeout=60, capture_output=True)
+        out = subprocess.run([sys.executable, os.path.join(REPO, "run.py"),
+                              "--config", config, "stop"],
+                             timeout=60, capture_output=True, text=True)
+        return (out.stdout or "") + (out.stderr or "")
     except Exception:
-        pass
+        return ""
+
+
+def _cleanup(config):
+    """Wait for the app to be gone, then remove its configuration directory.
+
+    Waiting is the point, and remove-then-retry is not enough. `stop` is a
+    *request*: it returns as soon as the instance owning this directory has
+    been told, and that app then runs its whole shutdown -- which SAVES THE
+    CONFIG (window geometry, credentials). So an `rmtree` fired straight
+    after succeeds and the directory reappears a second later, written by a
+    process that is still exiting. That is why every run of this module was
+    leaving one behind.
+
+    The app's own `stop` is the liveness probe as well as the request: it
+    reports "is not running" once nothing holds the instance lock, which is
+    the same lock the replacement had to take to exist at all. No pattern
+    matching, so no chance of matching this test's own command line.
+    """
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        if "not running" in _stop_app(config):
+            break
+        time.sleep(1)
+    # One more pass for anything written between the last check and now.
+    for _ in range(10):
+        shutil.rmtree(config, ignore_errors=True)
+        if not os.path.exists(config):
+            return
+        time.sleep(0.5)
 
 
 def _run_child(config, delay=START_DELAY, wedge=None):
@@ -118,8 +148,7 @@ class RestartRelaunchTest(unittest.TestCase):
         # `TimeoutExpired` on the very failure this module exists to catch --
         # so the tidy-up has to be armed first or a failing run leaks a temp
         # directory and leaves a real app process behind.
-        cls.addClassCleanup(shutil.rmtree, cls.config, ignore_errors=True)
-        cls.addClassCleanup(_stop_app, cls.config)
+        cls.addClassCleanup(_cleanup, cls.config)
         cls.marker = os.path.join(cls.config, "relaunched")
         cls.output, cls.returncode = _run_child(cls.config)
         cls.relaunched = _await(cls.marker)
@@ -182,8 +211,7 @@ class OrdinaryQuitTest(unittest.TestCase):
 
     def test_nothing_is_spawned_when_no_restart_was_asked_for(self):
         config = tempfile.mkdtemp(prefix="jms-noquit-")
-        self.addCleanup(shutil.rmtree, config, ignore_errors=True)
-        self.addCleanup(_stop_app, config)
+        self.addCleanup(_cleanup, config)
         # Generation 1 already used up, so the child records a marker and
         # arms nothing -- exactly an ordinary quit.
         with open(os.path.join(config, "generation"), "w") as fh:
@@ -219,8 +247,7 @@ class WedgedShutdownRestartTest(unittest.TestCase):
 
     def test_a_wedged_shutdown_still_comes_back(self):
         config = tempfile.mkdtemp(prefix="jms-wedge-")
-        self.addCleanup(shutil.rmtree, config, ignore_errors=True)
-        self.addCleanup(_stop_app, config)
+        self.addCleanup(_cleanup, config)
         marker = os.path.join(config, "relaunched")
 
         output, rc = _run_child(config, wedge=4)
