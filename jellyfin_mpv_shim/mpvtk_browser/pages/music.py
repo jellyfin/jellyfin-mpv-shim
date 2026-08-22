@@ -26,13 +26,31 @@ HEADER_GAP = 16
 class MusicPage(Page):
     """Shared furniture for the music screens. Not a route on its own."""
 
-    def action_bar(self, server, ids, seed_id, prefix="ma", items=None):
-        """Play / Shuffle / Queue / Instant Mix for a set of track ids.
+    def _beside_art(self, width, art=True):
+        """Width of the column that sits next to a header cover.
+
+        The one number the header text and the action bar under it both have
+        to measure against, because they share that column. They used to
+        compute it separately and the bar simply did not: it measured
+        against the page, so it overhung by about a cover.
+        """
+        return max(120, self.ctx.art.tiles.body_w(width)
+                   - (HEADER_ART if art else 0) - HEADER_GAP)
+
+    def action_bar(self, server, ids, seed_id, prefix="ma", items=None,
+                   avail=None):
+        """Play / Shuffle / Add to play queue / Instant mix for track ids.
 
         The first three are dropped when there are no ids: the artist page
         renders this bar even when the song fetch failed, and play_list
         returns silently on an empty list, so they were dead clicks. Instant
-        Mix stays — it seeds from the container, not the tracks."""
+        mix stays — it seeds from the container, not the tracks.
+
+        ``avail`` is the width the bar actually gets, which on the album and
+        artist pages is the column beside the cover rather than the whole
+        page. Given it, the bar wraps instead of running off the window —
+        reachable at 100% by making the window small, and at 200% without
+        touching the window at all."""
         actions = self.ctx.actions
         btns = []
         if ids:
@@ -45,15 +63,17 @@ class MusicPage(Page):
                 controls.action_btn("shuffle", _("Shuffle"),
                                     prefix + "-shuffle",
                                     lambda: actions.play_shuffle(ids, server)),
-                controls.action_btn("playlist_add", _("Add to Queue"),
+                controls.action_btn("playlist_add", _("Add to play queue"),
                                     prefix + "-queue",
                                     lambda: actions.queue_items(ids, server)),
             ]
         if seed_id:
             btns.append(controls.action_btn(
-                "queue_music", _("Instant Mix"), prefix + "-mix",
+                "queue_music", _("Instant mix"), prefix + "-mix",
                 lambda: actions.instant_mix(seed_id, server)))
-        return Row(btns, gap=8, align="center")
+        if not avail:
+            return Row(btns, gap=8, align="center")
+        return chrome.wrap_row(btns, avail, gap=8)
 
     def header_text(self, item, tracks, width, indent=0, pad=None):
         """Title / metadata / overview for an album or artist page.
@@ -102,7 +122,7 @@ class MusicLibraryPage(MusicPage):
     kind = "music"
 
     TABS = (("albums", _("Albums")),
-            ("albumartists", _("Album Artists")),
+            ("albumartists", _("Album artists")),
             ("artists", _("Artists")),
             ("songs", _("Songs")),
             ("genres", _("Genres")))

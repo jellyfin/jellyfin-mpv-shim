@@ -64,11 +64,11 @@ def indicator_labels():
     """``(key, label)`` for the guide-indicator checkboxes. A function, not a
     constant: these are translated and i18n is initialised after import."""
     return [
-        ("hd", _("HD Programs")),
-        ("live", _("Live Broadcasts")),
-        ("new", _("New Episodes")),
+        ("hd", _("HD programs")),
+        ("live", _("Live broadcasts")),
+        ("new", _("New episodes")),
         ("premiere", _("Premieres")),
-        ("repeat", _("Repeat Episodes")),
+        ("repeat", _("Repeat episodes")),
     ]
 
 

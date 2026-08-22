@@ -47,7 +47,7 @@ class HomeTabMixin:
             # Offering the controls here would fail only at save time, which
             # is the worst moment.
             return VScroll(Column([
-                Text(_("Home Screen"), size="large", bold=True),
+                Text(_("Home Screen"), size="heading", bold=True),
                 Text(_("Connect to a server to change the home screen "
                        "sections."), size="normal", color=theme.SUBTLE_FG,
                      wrap=True),
@@ -58,7 +58,7 @@ class HomeTabMixin:
             # clearing the flag here would re-fetch forever against a server
             # that is simply down.
             return VScroll(Column([
-                Text(_("Home Screen"), size="large", bold=True),
+                Text(_("Home Screen"), size="heading", bold=True),
                 Text(_("These settings could not be loaded from your "
                        "server."), size="normal", color=theme.SUBTLE_FG, wrap=True),
                 Button(_("Try Again"), id="home-retry",
@@ -72,18 +72,19 @@ class HomeTabMixin:
         options = home_sections.section_labels()
         values = [v for v, _l in options]
         labels = [lbl for _v, lbl in options]
+        note_w = self._note_w(size)
         rows = [
-            Text(_("Home Screen"), size="large", bold=True),
+            Text(_("Home Screen"), size="heading", bold=True),
             # Said once, at the top, for the whole page: everything below it
             # is the same kind of setting, and repeating the caveat per
             # group would read as three different caveats.
             Text(_("These settings are stored on your server and shared "
-                   "with Jellyfin Web."), size="caption", color=theme.SUBTLE_FG,
-                 wrap=True),
-            Text(_("Sections"), size="normal", bold=True),
+                   "with Jellyfin Web."), size="caption", w=note_w,
+                 color=theme.SUBTLE_FG, wrap=True),
+            Text(_("Sections"), size="large", bold=True),
             Text(_("The rows the home screen shows, in order. Sections this "
                    "app cannot draw are left as your web client set them."),
-                 size="caption", color=theme.SUBTLE_FG, wrap=True),
+                 size="caption", w=note_w, color=theme.SUBTLE_FG, wrap=True),
         ]
         for slot in range(home_sections.SLOT_COUNT):
             current = layout[slot]
@@ -108,14 +109,14 @@ class HomeTabMixin:
             ], gap=12, align="center")
             rows.append(row)
             if note:
-                rows.append(Text(note, size="caption", color=theme.SUBTLE_FG,
-                                 wrap=True))
-        rows += self._home_artwork_rows(route)
+                rows.append(Text(note, size="caption", w=note_w,
+                                 color=theme.SUBTLE_FG, wrap=True))
+        rows += self._home_artwork_rows(route, note_w)
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings-home", flex=1)
 
-    def _home_artwork_rows(self, route):
+    def _home_artwork_rows(self, route, note_w=None):
         """How Next Up and Continue Watching are illustrated.
 
         Was the whole of a "Display" tab. Named for the two rows it affects
@@ -130,8 +131,9 @@ class HomeTabMixin:
             # cost of being wrong is the whole tab raising mid-render.
             return []
         return [
-            Text(_("Artwork"), size="normal", bold=True),
-            Checkbox(_("Use episode images in Next Up and Continue Watching"),
+            Text(_("Artwork"), size="large", bold=True),
+            Checkbox(_("Use episode images in 'Next Up' and "
+                       "'Continue Watching' sections"),
                      bool(prefs.get("episode_images")),
                      id="display-episode-images",
                      on_toggle=lambda: self._toggle_display(
@@ -139,7 +141,7 @@ class HomeTabMixin:
             Text(_("Off by default: the show's artwork is used instead, "
                    "because an episode image can spoil the episode you "
                    "have not watched yet."),
-                 size="caption", color=theme.SUBTLE_FG, wrap=True),
+                 size="caption", w=note_w, color=theme.SUBTLE_FG, wrap=True),
         ]
     def _load_home_layout(self, route):
         """Fetch the layout AND the artwork preference, once per visit.

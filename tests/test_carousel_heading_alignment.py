@@ -10,7 +10,14 @@ up.
 Asserted as *equality between the two spellings*, not against the numbers:
 the pad is a design value and may move, but the two must move together. The
 one absolute claim is the alignment with the artwork -- the title starts
-directly above the first tile, which is what `RING_PAD` buys.
+directly above the first tile, and both start on the page margin, which is
+what `ROW_LEAD` and the heading's short leading Spacer buy between them.
+
+The bleed case used to be a separate path and asserted only the two
+spellings against each other, never against the artwork. It was wrong the
+whole time: a bleed row indented its heading by CONTENT_PAD and left the
+strip at RING_PAD, so on the home screen every title sat 16px right of the
+tiles under it. There is one path now and one claim, applied to it.
 """
 
 import sys
@@ -22,6 +29,7 @@ from tests._shell_harness import FakeSource                      # noqa: E402
 
 from jellyfin_mpv_shim.mpvtk.layout import layout                # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser     # noqa: E402
+from jellyfin_mpv_shim.mpvtk_browser.components import chrome     # noqa: E402
 
 
 ITEMS = [{"Id": "i%d" % i, "Name": "Item %d" % i, "Type": "Movie"}
@@ -57,13 +65,16 @@ class HeadingAlignmentTest(unittest.TestCase):
                 title, tile = _row(prefix, see_all)
                 self.assertEqual(title["x"], tile["x"])
 
-    def test_a_bleed_row_keeps_both_spellings_aligned(self):
-        # `bleed` inserts a leading Spacer instead of relying on container
-        # padding, which is a second path to the same alignment.
-        plain, plain_tile = _row("row-bp", None, bleed=True)
-        linked, linked_tile = _row("row-bl", lambda: None, bleed=True)
-        self.assertEqual((plain["x"], plain["y"]), (linked["x"], linked["y"]))
-        self.assertEqual(plain_tile["y"], linked_tile["y"])
+    def test_both_start_on_the_page_margin(self):
+        """Against the number, not just against each other.
+
+        A row draws its own margins now -- it is a child of an unpadded
+        column so the strip can reach the window edge -- so nothing else
+        would catch the pair drifting off the margin together.
+        """
+        title, tile = _row("row-margin", None)
+        self.assertEqual(title["x"], chrome.CONTENT_PAD)
+        self.assertEqual(tile["x"], chrome.CONTENT_PAD)
 
     def test_only_the_linked_heading_is_clickable(self):
         b = MpvtkBrowser(app=None, source=FakeSource())

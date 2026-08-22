@@ -60,7 +60,7 @@ class ByNamePage(Page):
         if rows is None:
             return chrome.busy()
         if not rows:
-            return chrome.error(_("Nothing here yet."))
+            return chrome.error(_("Nothing here."))
         art = self.ctx.art
         built = []
         for row in rows:
@@ -69,7 +69,7 @@ class ByNamePage(Page):
             built.append(art.tiles.tile_row(
                 row["title"], row["items"], "byname-" + row["key"],
                 geom=getattr(art, attr), image_type=image_type,
-                inherit=inherit, bleed=True, see_all=self._see_all(row)))
+                inherit=inherit, see_all=self._see_all(row)))
         return VScroll(Column(built, pad=(0, chrome.CONTENT_PAD),
                               gap=GRID_GAP, align="stretch"),
                        id="byname", flex=1,

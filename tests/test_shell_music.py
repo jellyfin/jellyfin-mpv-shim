@@ -580,6 +580,22 @@ class TestMusicDetailHeaders(unittest.TestCase):
                     "title": "The Artist"})
         self.assertIn("Albums", self._texts(b))
 
+    def test_an_artist_with_no_albums_still_heads_the_empty_state(self):
+        """The heading used to be guarded and the grid was not.
+
+        `grid_of([])` draws "Nothing here.", so an artist with no albums got
+        a bare sentence under the header attached to nothing -- it read as
+        leaked debug text rather than as an empty Albums section.
+        """
+        b = self._browser()
+        b.source.get_artist_albums = lambda *a, **k: []
+        b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                    "title": "The Artist"})
+        texts = self._texts(b)
+        self.assertIn("Albums", texts)
+        empty = [t for t in texts if "Nothing here" in t]
+        self.assertTrue(empty, "no empty state at all: %r" % texts)
+
     def test_an_artist_page_shows_the_fetched_metadata(self):
         b = self._browser()
         b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
@@ -600,7 +616,7 @@ class TestMusicDetailHeaders(unittest.TestCase):
 class TestTrackRowsHaveAContextMenu(unittest.TestCase):
     """Tiles have had a right-click menu all along; Table rows never asked
     for one. Every music playlist therefore lost Play / Add to Queue /
-    Favorite / Download — and per-track "Remove from Playlist" entirely,
+    Favorite / Download — and per-track "Remove from playlist" entirely,
     leaving only the bulk editor. The toolkit already supported it."""
 
     def _playlist(self):
@@ -630,9 +646,9 @@ class TestTrackRowsHaveAContextMenu(unittest.TestCase):
         _n, handlers = build_scene(b)
         handlers["pl-1"]["context"](100, 100)
         labels = [e[0] for e in b._tile_menu_entries(b._menu["item"])]
-        self.assertIn("Remove from Playlist", labels)
+        self.assertIn("Remove from playlist", labels)
         self.assertIn("Play", labels)
-        self.assertIn("Add to Queue", labels)
+        self.assertIn("Add to play queue", labels)
 
     def test_it_opens_the_menu_for_the_row_you_clicked(self):
         b = self._playlist()
@@ -746,15 +762,25 @@ class TestSearchSectionOrder(unittest.TestCase):
         b.server = "srv1"
         b.navigate({"kind": "search", "server": "srv1", "term": "x"})
         nodes, _h = build_scene(b, (1280, 720))
-        headings = [n for n in nodes if n.get("size") == 24 and n.get("text")]
+        # The section-heading tier, resolved rather than written as 24: the
+        # page title above them is a tier LARGER (it used to be the same
+        # size, which left it with no rank over its own sections), and a
+        # literal here would silently start or stop collecting it.
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+
+        head_px = tk.size("HEADING")
+        headings = [n for n in nodes
+                    if n.get("size") == head_px and n.get("text")]
         headings.sort(key=lambda n: n.get("y", 0))
         return [n["text"] for n in headings], nodes
 
     def test_the_order_is_webs(self):
         headings, _nodes = self._rows()
+        # No 'Results for "x"': that is the page title, and it is not a
+        # section heading. The order under test is the sections'.
         self.assertEqual(
             headings,
-            ['Results for "x"', "Movies", "Shows", "Episodes", "People",
+            ["Movies", "Shows", "Episodes", "People",
              "Artists", "Albums", "Songs", "Videos", "On TV", "Channels"])
 
     def test_the_first_result_row_takes_focus_not_the_cast(self):

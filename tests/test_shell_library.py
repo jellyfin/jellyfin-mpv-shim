@@ -2436,13 +2436,13 @@ class TestNoDeadButtons(unittest.TestCase):
         b = self._browser()
         labels = [e[0] for e in b._tile_menu_entries(
             {"Id": "g1", "Type": "MusicGenre", "Name": "Rock"})]
-        self.assertNotIn("Add to Favorites", labels)
+        self.assertNotIn("Add to favorites", labels)
 
     def test_an_album_is_still_favoritable(self):
         b = self._browser()
         labels = [e[0] for e in b._tile_menu_entries(
             {"Id": "al1", "Type": "MusicAlbum", "Name": "Album"})]
-        self.assertIn("Add to Favorites", labels)
+        self.assertIn("Add to favorites", labels)
 
 class TestSeasonPageNextUp(unittest.TestCase):
     """Tk had Play Next Up on the season page. Landing on a season and being
@@ -2709,7 +2709,7 @@ class TestSortModes(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.app import SORTS
 
         labels = [s[0] for s in SORTS]
-        self.assertIn("Critic Rating", labels)
+        self.assertIn("Critics Rating", labels)
         self.assertIn("Parental Rating", labels)
 
 
@@ -2718,7 +2718,7 @@ if __name__ == "__main__":
 
 
 class TestPlayNext(unittest.TestCase):
-    """"Play Next" on a tile: queue it after the current item, not last.
+    """"Play next" on a tile: queue it after the current item, not last.
 
     The player has always been able to do this — `PlayNext` from a remote
     lands in `event_handler` and goes through `Media.insert_items` with
@@ -2755,11 +2755,12 @@ class TestPlayNext(unittest.TestCase):
     def test_the_entry_is_offered_while_something_plays(self):
         self.playing()
         labels = self.menu_labels()
-        self.assertIn("Play Next", labels)
-        self.assertIn("Add to Queue", labels)
+        self.assertIn("Play next", labels)
+        self.assertIn("Add to play queue", labels)
         # Web's order, and the sensible one: the existing entry keeps its
         # place and the new one follows it.
-        self.assertLess(labels.index("Add to Queue"), labels.index("Play Next"))
+        self.assertLess(labels.index("Add to play queue"),
+                        labels.index("Play next"))
 
     def test_it_is_hidden_when_nothing_is_playing(self):
         """With an idle player both entries mean "start these items", and
@@ -2767,12 +2768,12 @@ class TestPlayNext(unittest.TestCase):
         once."""
         self.playing(False)
         labels = self.menu_labels()
-        self.assertIn("Add to Queue", labels)
-        self.assertNotIn("Play Next", labels)
+        self.assertIn("Add to play queue", labels)
+        self.assertNotIn("Play next", labels)
 
     def test_choosing_it_queues_next_not_last(self):
         self.playing()
-        self.choose("Play Next")
+        self.choose("Play next")
         called = [name for name, _args in self.ctl.transport]
         self.assertIn("queue_next_items", called)
         self.assertNotIn("queue_items", called)
@@ -2781,7 +2782,7 @@ class TestPlayNext(unittest.TestCase):
         """The guard on the above: both entries must not collapse onto one
         call, which is the way a copy-paste of this would fail."""
         self.playing()
-        self.choose("Add to Queue")
+        self.choose("Add to play queue")
         called = [name for name, _args in self.ctl.transport]
         self.assertIn("queue_items", called)
         self.assertNotIn("queue_next_items", called)

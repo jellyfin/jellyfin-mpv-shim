@@ -171,7 +171,7 @@ class LayoutTest(HomeRowsHarness):
         latest = src.get_home_rows("srv", LIBS, sections=("latest",),
                                    layout=layout)
         merged = sorted(primary + latest, key=lambda r: r["slot"])
-        self.assertIn("Latest", merged[0]["title"])
+        self.assertIn("Recently Added in", merged[0]["title"])
         self.assertEqual(merged[-1]["title"], "Continue Watching")
 
     def test_sections_not_in_the_layout_are_not_fetched(self):
@@ -345,7 +345,8 @@ class SectionsTest(HomeRowsHarness):
         api = FakeApi()
         rows = self._source(api).get_home_rows("srv", libraries=LIBS,
                                                sections=("latest",))
-        self.assertTrue(all("Latest" in r["title"] for r in rows))
+        self.assertTrue(all("Recently Added in" in r["title"]
+                            for r in rows))
         self.assertNotIn("get_next", api.calls)
 
     def test_the_two_batches_reconstruct_the_whole_page(self):

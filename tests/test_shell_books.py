@@ -432,7 +432,7 @@ class TestAudiobookFolder(BooksHarness):
         self.assertIn("bk-play", ids(nodes))
 
     def test_the_second_button_says_restart(self):
-        """"Play from Beginning" is what the tile menu calls it, where it
+        """"Play from beginning" is what the tile menu calls it, where it
         sits under a Resume in a vertical list with room to spare. On an
         action row it is the longest label on screen and says the same
         thing as the shorter word."""
@@ -444,7 +444,7 @@ class TestAudiobookFolder(BooksHarness):
         nodes, _h = build_scene(b)
         labels = [str(n.get("text", "")) for n in nodes]
         self.assertIn("Restart", labels)
-        self.assertNotIn("Play from Beginning", labels)
+        self.assertNotIn("Play from beginning", labels)
 
     def test_the_resume_label_drops_its_chapter_when_narrow(self):
         """Capping the name bounds how bad it gets; dropping it is what

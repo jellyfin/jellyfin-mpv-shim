@@ -42,7 +42,8 @@ class AlbumPage(MusicPage):
             Column(self.header_text(item, tracks, size[0],
                                     indent=HEADER_ART + HEADER_GAP) + [
                 self.action_bar(server, ids, route["item_id"], "album",
-                                items=tracks),
+                                items=tracks,
+                                avail=self._beside_art(size[0])),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")
         body = art.tiles.track_list(
@@ -113,15 +114,24 @@ class ArtistPage(MusicPage):
                                     indent=(HEADER_ART if item else 0)
                                     + HEADER_GAP, pad=gpad) + [
                 self.action_bar(server, ids, route["item_id"], "art",
-                                items=songs),
+                                items=songs,
+                                avail=self._beside_art(
+                                    size[0], art=bool(item))),
             ], gap=8, flex=1, align="stretch"),
         ], gap=16, align="start")]
         # (`gpad`/`geom` above.) Justified/centred like every other tile
         # grid: this one asked for neither, so `grid_fill` did nothing here
         # while the music library one tab away obeyed it -- ~148px of slack
         # stacked on one side at a 1280px window.
-        if albums:
-            rows.append(Text(_("Albums"), size="large", bold=True))
+        # Unconditional, because `grid_of` is: on an artist with no albums
+        # it draws "Nothing here.", and without the heading that was a bare
+        # sentence floating under the header attached to nothing. A label
+        # is what makes an empty state mean something.
+        #
+        # The same tier the "Similar Artists" carousel heading below gets
+        # from section_heading. At "large" the two section titles on this
+        # one page were visibly different sizes.
+        rows.append(Text(_("Albums"), size="heading", bold=True))
         rows += art.tiles.grid_of(albums, "artist", size, geom=geom,
                                   scroll_id="artist", head_h=110)
         similar = data.get("similar") or []
@@ -130,8 +140,9 @@ class ArtistPage(MusicPage):
             rows.append(art.tiles.tile_row(_("Similar Artists"), similar,
                                            "artist-similar",
                                            geom=art.geom_square))
-        return VScroll(Column(rows, pad=(gpad, chrome.CONTENT_PAD),
-                              gap=GRID_GAP),
+        return VScroll(Column(chrome.split_bleed(rows, gpad, GRID_GAP),
+                              pad=(0, chrome.CONTENT_PAD), gap=GRID_GAP,
+                              align="stretch"),
                        id="artist", flex=1,
                        offset=self.parked_scroll("artist"),
                        on_scroll=lambda off, mx: art.scroll.on_scroll(
@@ -175,7 +186,8 @@ class MusicGenrePage(MusicPage):
         ids = [s.get("Id") for s in songs]
         rows: list = [Text(route.get("title", ""), size="page", bold=True),
                       Spacer(h=4),
-                      self.action_bar(server, ids, route["item_id"], "gen")]
+                      self.action_bar(server, ids, route["item_id"], "gen",
+                                      avail=art.tiles.body_w(size[0]))]
         # Ask for the rows about to be drawn, from the SAME window the
         # renderer composites.
         cols = art.tiles.cols(size[0], art.geom_square)

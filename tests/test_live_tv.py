@@ -2062,8 +2062,12 @@ class HomeSection(unittest.TestCase):
         self.b.navigate({"kind": "home", "server": "srv1"})
         page = self.b._page_for(self.b.route)
         row = page._live_tv_buttons()
-        # The first two children are the indent spacer and the heading.
-        row.children[2 + 1].on_click()          # "Guide"
+        # By id, not by position: the heading ahead of the buttons is one
+        # child on some days and three on others (it carries its own indent
+        # spacer), and an off-by-one here reads as the wrong tab opening.
+        guide = next(c for c in row.children
+                     if getattr(c, "id", None) == "home-lt-guide")
+        guide.on_click()
         self.assertEqual(self.b.route["kind"], "livetv")
         self.assertEqual(self.b.route["_tab"], "guide")
 
@@ -2620,7 +2624,7 @@ class ChannelScreen(unittest.TestCase):
         something else reloaded the route."""
         page = self._open()
         page._buttons().children[1].on_click()
-        self.assertIn("Remove from Favorites", self._texts())
+        self.assertIn("Remove from favorites", self._texts())
 
     def test_the_rows_fill_the_content_width(self):
         """Without align="stretch" on the outer Column the rows took their

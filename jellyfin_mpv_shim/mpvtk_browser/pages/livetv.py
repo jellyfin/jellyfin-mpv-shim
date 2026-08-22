@@ -209,7 +209,10 @@ class LiveTvPage(Page):
         tabs = [controls.tab_btn(label, "lttab-" + key, key == current,
                                  lambda k=key: self._set_tab(k))
                 for key, label in self._tabs()]
-        return Row(tabs, gap=8, pad=12, align="center")
+        # chrome.CONTENT_PAD: the same margin the tile rows under these
+        # tabs start on. See SettingsMixin._render_settings, which draws the
+        # other tab strip in the app and now agrees with this one.
+        return Row(tabs, gap=8, pad=chrome.CONTENT_PAD, align="center")
 
     def _scroll(self, children, scroll_id, gap=16):
         """A stack of carousels declaring where their section tops are.
@@ -219,12 +222,14 @@ class LiveTvPage(Page):
         differ in height (see ``_auto_row``) and a fixed step drifts out of
         alignment within two sections. ``docs/live-tv.md`` section 5.
         """
-        return VScroll(Column(children, pad=chrome.CONTENT_PAD, gap=gap,
+        blocks = chrome.split_bleed(children, chrome.CONTENT_PAD, gap,
+                                    align="stretch")
+        return VScroll(Column(blocks, pad=(0, chrome.CONTENT_PAD), gap=gap,
                               align="stretch"),
                        id=scroll_id, flex=1,
                        offset=self.parked_scroll(scroll_id),
                        snaps=components.section_offsets(
-                           children, gap, pad=chrome.CONTENT_PAD))
+                           blocks, gap, pad=chrome.CONTENT_PAD))
 
     # -- Programs ----------------------------------------------------------
 
@@ -855,7 +860,7 @@ class ProgramPage(Page):
             btns.append(controls.action_btn(
                 "cancel",
                 _("Stop Recording") if single == "recording"
-                else _("Do Not Record"),
+                else _("Do not record"),
                 "pg-cancel",
                 lambda: actions.cancel_timer(item.get("TimerId"), server,
                                              on_done=self._refresh),
@@ -882,7 +887,7 @@ class ProgramPage(Page):
                     size=controls.PRIMARY_ROW))
             else:
                 btns.append(controls.action_btn(
-                    "fiber_smart_record", _("Record Series"), "pg-recseries",
+                    "fiber_smart_record", _("Record series"), "pg-recseries",
                     lambda: actions.schedule_recording(item, server,
                                                        series=True,
                                                        on_done=self._refresh),
@@ -1102,7 +1107,7 @@ class ChannelPage(Page):
             fav = bool((channel.get("UserData") or {}).get("IsFavorite"))
             btns.append(controls.action_btn(
                 "favorite",
-                _("Remove from Favorites") if fav else _("Add to Favorites"),
+                _("Remove from favorites") if fav else _("Add to favorites"),
                 "ch-fav", lambda: actions.toggle_favorite(channel, server),
                 on=fav, size=controls.PRIMARY_ROW))
         return Row(btns, gap=10)

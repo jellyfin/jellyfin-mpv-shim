@@ -280,8 +280,14 @@ class HomePage(Page):
             entries.append((layout.index(home_sections.LIBRARIES),
                             _("Libraries"), data["libraries"],
                             # Libraries read as landscape cards, like the web
-                            # client.
-                            art.geom_wide, "Primary", "row-libs", False, True,
+                            # client. Through caption_geom rather than
+                            # geom_wide bare: a UserView has no year and no
+                            # episode line, so the second caption line is
+                            # room this row cannot use -- and the hover ring
+                            # drew around it.
+                            art.tiles.caption_geom(data["libraries"],
+                                                   art.geom_wide),
+                            "Primary", "row-libs", False, True,
                             None))
         # Ids are derived from section kind, not from position: they key the
         # scroll containers, so an index-based id would hand a reordered
@@ -317,15 +323,20 @@ class HomePage(Page):
                 # Live TV library tile.
                 rows.append(self._live_tv_buttons())
             rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
-                                           image_type=itype, bleed=True,
+                                           image_type=itype,
                                            parent_item=pitem, inherit=inh,
                                            see_all=see_all))
         if not rows:
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size="large",
                                   color=theme.SUBTLE_FG)]))
-        # pad=0: home carousels bleed to the window edges so their page
-        # arrows sit flush against them (see TileRenderer.hscroll_row).
+        # No x pad: a carousel is full width and carries the page margin
+        # inside its own scroll viewport (see TileRenderer.hscroll_row), so
+        # padding here would inset the strip twice and clip it besides. The
+        # y pad is the ordinary one every other listing page has -- it was
+        # lost with the x half when this was a bare `pad=0`, which left the
+        # first section title flush against the top bar while the library
+        # grid two clicks away sat CONTENT_PAD below it.
         #
         # Declare where the sections START, so the renderer can align to
         # them. It does not always: alignment is applied when a gesture
@@ -337,9 +348,11 @@ class HomePage(Page):
         # every frame. Section heights differ (poster vs landscape rows), so
         # the breakpoints are the explicit content-y of each section top,
         # not a uniform pitch.
-        return VScroll(Column(rows, gap=20), id="home", flex=1,
+        return VScroll(Column(rows, pad=(0, chrome.CONTENT_PAD), gap=20),
+                       id="home", flex=1,
                        offset=self.parked_scroll("home"),
-                       snaps=components.section_offsets(rows, 20))
+                       snaps=components.section_offsets(
+                           rows, 20, pad=chrome.CONTENT_PAD))
 
     def _live_tv_buttons(self):
         """The Live TV section's nav row: one button per Live TV tab.
@@ -350,9 +363,21 @@ class HomePage(Page):
         """
         from .livetv import LiveTvPage
 
+        # The heading through `section_heading`, not a Text of its own: it
+        # is the one heading on this screen with no carousel under it, and
+        # open-coding the indent is exactly how it ended up 5px left of
+        # every other section title.
         return Row(
-            [Spacer(w=chrome.CONTENT_PAD),
-             Text(_("Live TV"), size=theme.heading_size(), bold=True)]
+            [self.ctx.art.tiles.section_heading(_("Live TV")),
+             # A label and its controls, not two items in a list: the row
+             # gap that separates one pill from the next is too tight to
+             # also separate the heading from the whole group, so the pills
+             # read as a continuation of the words. Wider than the gap it
+             # sits beside, which is the only thing that has to stay true
+             # if either moves. It buys 29px from the last glyph to the
+             # first pill (this, plus the heading's ring pad and the Row's
+             # own gap either side of it) against the 12 it had.
+             Spacer(w=8)]
             + [Button(label, id="home-lt-" + key,
                       on_click=lambda k=key: self.ctx.nav.navigate({
                           "kind": "livetv", "server": self.ctx.server,

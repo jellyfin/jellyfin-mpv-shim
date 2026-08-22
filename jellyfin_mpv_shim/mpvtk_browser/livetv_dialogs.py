@@ -232,7 +232,7 @@ class LiveTvDialogsMixin:
                 0 if fields["new_only"] else 1,
                 lambda i, v: self._timer_set("new_only", i == 0), editable))
             rows.append(Checkbox(
-                _("Skip episodes already in my library"),
+                _("Don't record episodes that are already in my library"),
                 fields["skip_in_library"], id="tm-skip",
                 on_toggle=lambda: self._timer_set(
                     "skip_in_library", not fields["skip_in_library"]),
@@ -250,7 +250,7 @@ class LiveTvDialogsMixin:
             rows.append(self._picker(
                 _("Air time"), "tm-airtime",
                 [(_("Around %s") % live_tv.fmt_time(start)) if start
-                 else _("Original air time"), _("Any time")],
+                 else _("Original air time"), _("Anytime")],
                 1 if fields["any_time"] else 0,
                 lambda i, v: self._timer_set("any_time", i == 1), editable))
             keep = fields["keep_up_to"]
@@ -412,12 +412,12 @@ class LiveTvDialogsMixin:
                     lambda i, v: self._guide_set(
                         "order", live_tv.ORDER_DATE_PLAYED if i
                         else live_tv.ORDER_NUMBER)),
-                Checkbox(_("Place favorite channels first"),
+                Checkbox(_("Place favorite channels at the beginning"),
                          prefs["favorites_first"], id="gs-fav",
                          on_toggle=lambda: self._guide_set(
                              "favorites_first",
                              not prefs["favorites_first"])),
-                Checkbox(_("Color-coded backgrounds"), prefs["color_coded"],
+                Checkbox(_("Color coded backgrounds"), prefs["color_coded"],
                          id="gs-color",
                          on_toggle=lambda: self._guide_set(
                              "color_coded", not prefs["color_coded"])),

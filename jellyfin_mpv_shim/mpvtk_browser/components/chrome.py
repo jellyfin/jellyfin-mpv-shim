@@ -13,10 +13,20 @@ because it is a layout constant, not shell state.
 from ...mpvtk.widgets import Box, Busy, Column, Row, Spacer, Text
 from .. import theme
 
-#: Padding inside the content column. Lives here rather than on the browser
-#: because every one of these functions needs it and none of them needs a
-#: browser. Must stay equal to MpvtkBrowser.CONTENT_PAD until that alias is
-#: retired -- tests/test_page_contract.py pins the two together.
+#: Padding inside the content column -- and, more usefully stated, **where
+#: page content visibly begins**: the left edge a heading's first glyph, a
+#: tile's artwork, a paragraph and a table cell all sit on. A container that
+#: draws a focus or hover ring around its content pads by this LESS the ring
+#: allowance, so the ring hangs outside the margin and the content itself
+#: stays on it. jellyfin-web works the same way -- the same ``padded-left``
+#: on ``.sectionTitleContainer`` and on ``.emby-scroller``, with
+#: ``.itemsContainer > .card > .cardBox`` zeroing the first card's own margin
+#: so the title and the artwork land together.
+#:
+#: Lives here rather than on the browser because every one of these functions
+#: needs it and none of them needs a browser. Must stay equal to
+#: MpvtkBrowser.CONTENT_PAD until that alias is retired --
+#: tests/test_page_contract.py pins the two together.
 CONTENT_PAD = 16
 
 
@@ -45,8 +55,13 @@ def error(msg):
     to nothing. ``flex=1`` stays: the message still owns the content area,
     it just no longer hovers in it.
     """
+    # CONTENT_PAD, not a roomier 24: this stands in for content, so it
+    # starts where content starts. At 24 the three Live TV empty states and
+    # Favorites sat 8px right of every heading, tile and paragraph in the
+    # app -- visible precisely because an empty screen has nothing else on
+    # it to look at.
     return Box([Text(msg, size="large", color=theme.SUBTLE_FG)],
-               pad=24, flex=1, align="start", direction="row")
+               pad=CONTENT_PAD, flex=1, align="start", direction="row")
 
 
 def wrap_row(items, avail, gap=8, align="center", row_gap=None):
@@ -99,22 +114,76 @@ def wrap_row(items, avail, gap=8, align="center", row_gap=None):
                   gap=gap if row_gap is None else row_gap, align="start")
 
 
+#: Attribute a block carries to say it must escape a page's horizontal
+#: padding. Read by :func:`split_bleed`; inert to the layout engine, which
+#: dispatches on element TYPE and reads named attributes only.
+BLEED_ATTR = "_bleeds_x"
+
+
+def bleed(el):
+    """Mark ``el`` as a block that runs edge to edge, and return it.
+
+    For content whose own scroll viewport has to reach the window edge — a
+    carousel, whose strip is inset from *inside* so a paged tile travels
+    out to the edge instead of being clipped at the page margin. A block
+    that merely wants to *look* wide does not need this; it can take the
+    padded width and be no worse for it.
+    """
+    setattr(el, BLEED_ATTR, True)
+    return el
+
+
+def split_bleed(blocks, px, gap, align="start"):
+    """``blocks`` regrouped so the marked ones escape ``px`` of padding.
+
+    A single Column has one padding for every child, so a full-bleed block
+    cannot live in a padded column at all. Runs of ordinary blocks become
+    inner columns padded to ``px``; the marked ones become direct children
+    of the caller's unpadded outer column. The gap is the same on both
+    levels, so a reader cannot tell where a run ended.
+
+    ``align`` is the one thing a caller must not leave to the default by
+    accident: it belonged to the column being replaced, and a block that
+    used to be stretched to the page width now measures to its content
+    instead. That is invisible on a Text and loud on a Table, whose columns
+    are shares of whatever width it was given -- every cell ellipsized.
+    """
+    out, run = [], []
+
+    def flush():
+        if not run:
+            return
+        out.append(Column(list(run), pad=(px, 0), gap=gap, align=align))
+        run.clear()
+
+    for b in blocks:
+        if b is None:
+            continue
+        if getattr(b, BLEED_ATTR, False):
+            flush()
+            out.append(b)
+        else:
+            run.append(b)
+    flush()
+    return out
+
+
 def header_body(banner, blocks, pad=CONTENT_PAD, gap=16, full_bleed=False):
     """The scrollable column of a page that opens with a backdrop header.
 
     ``Column([banner] + blocks, pad=pad, gap=gap)`` -- the padded shape all
-    three detail-ish pages used to build by hand -- unless ``full_bleed``,
-    in which case the banner comes OUT of the padding and the rest of the
-    page keeps it.
+    three detail-ish pages used to build by hand -- except that any block
+    marked by :func:`bleed`, and the banner itself when ``full_bleed``,
+    comes OUT of the horizontal padding.
 
     The nesting is what makes that possible: a single column has one padding
-    for every child. So the banner and an inner, horizontally-padded column
-    become the two children of an unpadded outer one. ``align="stretch"``
-    there is for the inner column, which has no width of its own; the banner
-    is an Image with an explicit ``w`` and layout leaves a fixed cross size
+    for every child, so the escapees and the padded runs between them become
+    siblings under an unpadded outer column. ``align="stretch"`` there is
+    for those inner columns, which have no width of their own; the banner is
+    an Image with an explicit ``w`` and layout leaves a fixed cross size
     alone, so it keeps exactly the width ``banner_box`` gave it.
 
-    The trailing Spacer is the bottom padding the outer column's ``pad=0``
+    The trailing Spacer is the bottom padding the full-bleed path's ``pad=0``
     gives up. There is no top padding to replace, which is the point.
 
     ``pad`` may be an ``(x, y)`` pair, which is what a page whose body is a
@@ -124,14 +193,21 @@ def header_body(banner, blocks, pad=CONTENT_PAD, gap=16, full_bleed=False):
     """
     px, py = pad if isinstance(pad, tuple) else (pad, pad)
     if not full_bleed:
-        return Column([banner] + list(blocks), pad=(px, py), gap=gap)
+        return Column(split_bleed([banner] + list(blocks), px, gap),
+                      pad=(0, py), gap=gap, align="stretch")
     # `py - gap`, not `py`: the Spacer is a CHILD, so the column's own gap
     # is laid out before it and a full-size spacer made the bottom padding
     # gap + py where the padded path gives py. Floored at zero for a caller
     # whose gap is larger than its padding.
-    body = Column(list(blocks) + [Spacer(h=max(0, py - gap))],
-                  pad=(px, 0), gap=gap)
-    return Column([banner, body], gap=gap, align="stretch")
+    body = split_bleed(list(blocks), px, gap) + [Spacer(h=max(0, py - gap))]
+    return Column([banner] + body, gap=gap, align="stretch")
+
+
+def padded_body(blocks, pad=CONTENT_PAD, gap=16, align="start"):
+    """:func:`header_body` for a page that opens with no banner."""
+    px, py = pad if isinstance(pad, tuple) else (pad, pad)
+    return Column(split_bleed(blocks, px, gap, align), pad=(0, py), gap=gap,
+                  align="stretch")
 
 
 def body_width(w, pad=CONTENT_PAD):
@@ -147,6 +223,33 @@ def body_width(w, pad=CONTENT_PAD):
     from ...mpvtk.layout import SCROLLBAR_W
 
     return max(120, w - 2 * pad - SCROLLBAR_W)
+
+
+#: The longest line explanatory prose is allowed to run to, in characters.
+#: Typographic measure, not a pixel width, so it holds across the type
+#: scale, the interface scale and a font substitution -- all three of which
+#: move how many characters a given number of pixels buys.
+#:
+#: 88 is the loose end of the usual 45-90 range, chosen because these notes
+#: sit under controls rather than being read in sequence. Unbounded, a
+#: settings note stretched the full window: ~200 characters per line under a
+#: 340px-wide control, which is hard to read and looks like the note belongs
+#: to the page rather than to the setting above it.
+PROSE_CH = 88
+
+
+def prose_w(size, avail):
+    """The width explanatory text at ``size`` should wrap at, within
+    ``avail``.
+
+    Measured rather than assumed: "n" is a middling glyph and the layout
+    engine's own measurement is what the wrap will use, so this stays
+    honest when the face changes. Narrower windows keep ``avail`` -- the
+    cap is a maximum, never a minimum.
+    """
+    from ...mpvtk.layout import measure
+
+    return min(avail, measure(Text("n" * PROSE_CH, size=size))[0])
 
 
 def paragraph(text, size, max_w, color=None):

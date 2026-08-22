@@ -189,7 +189,7 @@ class OSDMenu(object):
             # the language preset replace it. The handler (change_tracks_menu /
             # bulk_subtitle) is kept so this can be re-enabled if it's ever fixed.
             self.menu_list.append(
-                (_("Quit and Mark Unwatched"), self.unwatched_menu_handle)
+                (_("Quit and Mark Unplayed"), self.unwatched_menu_handle)
             )
             if settings.screenshot_menu:
                 self.menu_list.append((_("Screenshot"), self.screenshot))

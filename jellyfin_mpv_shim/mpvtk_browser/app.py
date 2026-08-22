@@ -1736,7 +1736,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _edit_call(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
 
-        _client_call swallows: an "Add to Playlist" the server rejected
+        _client_call swallows: an "Add to playlist" the server rejected
         looked exactly like one that worked. ``on_error`` undoes whatever
         the view already showed optimistically — leaving a rejected change
         on screen is worse than never showing it."""

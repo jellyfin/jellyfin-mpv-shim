@@ -172,10 +172,16 @@ class TileGeom:
     caption_lines: int = 2
 
     #: Baseline-to-baseline slack under the third caption line. Tighter than
-    #: the 7 between title and subtitle: the two subtitle lines are one
-    #: thought split in half ("BBC Two" / "20:00 - 20:30"), so they read as a
-    #: block, and the band is being made taller to fit them.
+    #: :data:`TITLE_GAP` between title and subtitle: the two subtitle lines
+    #: are one thought split in half ("BBC Two" / "20:00 - 20:30"), so they
+    #: read as a block, and the band is being made taller to fit them.
     SUB_GAP = 4
+
+    #: Gap between the title line and the first subtitle. ``_paint_caption``
+    #: spends it and :meth:`single_line` reclaims it, which is the whole
+    #: reason it is a constant: the two have to agree or the band is sized
+    #: for a layout the painter does not draw.
+    TITLE_GAP = 7
 
     def with_caption_lines(self, n):
         """A copy with room for ``n`` caption lines instead of two.
@@ -195,6 +201,29 @@ class TileGeom:
         extra = (n - self.caption_lines) * (self.sub_size + self.SUB_GAP)
         return dataclasses.replace(self, caption_lines=n,
                                    caption_h=self.caption_h + extra)
+
+    def single_line(self):
+        """A copy whose band holds a title and nothing else.
+
+        The counterpart of :meth:`with_caption_lines`, and separate from it
+        because the arithmetic is not symmetric: growing 2 -> 3 buys a line
+        at :data:`SUB_GAP`, shrinking 2 -> 1 gives one back at
+        :data:`TITLE_GAP`. Folding them into one signed method got that
+        wrong in the obvious way.
+
+        Only from two. A three-line band belongs to a Live TV listing, which
+        by construction has the lines to fill it, and one is already there.
+
+        Reclaims the gap and the subtitle, keeping whatever slack the band
+        carries under its last line -- so a one-line caption sits in the
+        band exactly as a two-line one does, rather than being cropped to
+        its own text.
+        """
+        if self.caption_lines != 2:
+            return self
+        return dataclasses.replace(
+            self, caption_lines=1,
+            caption_h=self.caption_h - (self.sub_size + self.TITLE_GAP))
 
     def with_text_scale(self, factor, minimum=0):
         """A copy with the caption text scaled, and room made for it.
@@ -1304,7 +1333,7 @@ class StripStore:
             title = self._ellipsize(dr, t.title, fnt, g.tile_w)
             pilfont.draw_text(dr, (x, y), title, fnt,
                               fill=theme.rgb(theme.TEXT_FG))
-            y += g.title_size + _px(7)
+            y += g.title_size + _px(TileGeom.TITLE_GAP)
         if t.subtitle:
             fnt = _font(g.sub_size, text=t.subtitle)
             sub = self._ellipsize(dr, t.subtitle, fnt, g.tile_w)

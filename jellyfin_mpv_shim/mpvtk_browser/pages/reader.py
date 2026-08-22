@@ -444,7 +444,7 @@ class ReaderPage(Page):
         def done(result):
             ok, _method, path = result
             if not ok:
-                self.ctx.status(_("Could not copy the text."))
+                self.ctx.status(_("Could not copy"))
             elif path:
                 self.ctx.status(_("No clipboard available — saved to %s")
                                 % path)
@@ -452,7 +452,7 @@ class ReaderPage(Page):
                 self.ctx.status(done_message)
 
         def failed(_exc):
-            self.ctx.status(_("Could not copy the text."))
+            self.ctx.status(_("Could not copy"))
 
         self.ctx.run.run(work, done, self.ctx.run.epoch, on_error=failed)
 

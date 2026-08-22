@@ -36,6 +36,20 @@ class SettingsBase:
 
         def _seed_auto_download_server(self) -> None: ...
 
+    def _note_w(self, size):
+        """Wrap width for an explanatory note on a settings page.
+
+        Settings notes used to wrap to the whole column, which on a wide
+        window is ~200 characters per line under a control 340px wide -- the
+        note stopped looking like it belonged to the setting above it. See
+        chrome.PROSE_CH for why the cap is a measure and not a pixel width.
+        """
+        from ..components import chrome
+
+        avail = chrome.body_width((size[0] if size else 0),
+                                  self.CONTENT_PAD)
+        return chrome.prose_w("caption", avail)
+
     def _config(self):
         if self._config_obj is not None:
             return self._config_obj

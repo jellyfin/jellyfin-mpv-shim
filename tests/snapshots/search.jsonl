@@ -12,45 +12,45 @@
 {"click": true, "fill": "2e3138", "h": 36.0, "hover": {"fill": "3a3e46"}, "id": "nav-settings", "radius": 6, "t": "rect", "w": 106.2, "x": 1161.8, "y": 12.0}
 {"c": "e8e8e8", "h": 16.0, "id": "r.0.7.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19.14 12.94 b 19.18 12.64 19.2 12.33 19.2 12 b 19.2 11.68 19.18 11.36 19.13 11.06 l 21.16 9.48 b 21.34 9.33 21.39 9.08 21.28 8.87 l 19.36 5.55 b 19.24 5.34 18.99 5.25 18.77 5.33 l 16.38 6.29 b 15.88 5.91 15.35 5.59 14.76 5.35 l 14.4 2.81 b 14.36 2.57 14.16 2.4 13.92 2.4 l 10.08 2.4 b 9.84 2.4 9.65 2.57 9.61 2.81 l 9.25 5.35 b 8.66 5.59 8.12 5.92 7.63 6.29 l 5.24 5.33 b 5.02 5.25 4.77 5.33 4.65 5.55 l 2.74 8.87 b 2.62 9.08 2.66 9.34 2.86 9.48 l 4.89 11.06 b 4.84 11.36 4.8 11.69 4.8 12 b 4.8 12.31 4.82 12.64 4.87 12.94 l 2.84 14.52 b 2.66 14.67 2.61 14.92 2.72 15.13 l 4.64 18.45 b 4.76 18.67 5.01 18.74 5.23 18.67 l 7.62 17.71 b 8.12 18.09 8.65 18.41 9.24 18.65 l 9.6 21.19 b 9.65 21.43 9.84 21.6 10.08 21.6 l 13.92 21.6 b 14.16 21.6 14.36 21.43 14.39 21.19 l 14.75 18.65 b 15.34 18.41 15.88 18.09 16.37 17.71 l 18.76 18.67 b 18.98 18.75 19.23 18.67 19.35 18.45 l 21.27 15.13 b 21.39 14.91 21.34 14.66 21.15 14.52 l 19.14 12.94 m 12 15.6 b 10.02 15.6 8.4 13.98 8.4 12 b 8.4 10.02 10.02 8.4 12 8.4 b 13.98 8.4 15.6 10.02 15.6 12 b 15.6 13.98 13.98 15.6 12 15.6", "t": "icon", "w": 16.0, "x": 1171.8, "y": 22.0}
 {"align": "center", "c": "e8e8e8", "h": 16.0, "id": "r.0.7.1", "size": 17, "t": "text", "text": "Settings", "w": 63.2, "x": 1194.8, "y": 22.0}
-{"axis": "y", "bar": true, "ch": 2184.0, "cw": 1270.0, "h": 660.0, "id": "search", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 60.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.0", "sc": "search", "size": 24, "t": "text", "text": "Results for \"a\"", "w": 1238.0, "x": 16.0, "y": 76.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.0", "sc": "search", "size": 24, "t": "text", "text": "Movies", "w": 90.0, "x": 21.0, "y": 120.0}
-{"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "search-Movies", "sc": "search", "t": "scroll", "w": 160.0, "x": 16.0, "y": 162.0}
-{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-Movies", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 21.0, "y": 167.0}
-{"af": true, "click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Movies-r1", "ring": true, "sc": "search-Movies", "t": "rect", "w": 150, "x": 21.0, "y": 167.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.0", "sc": "search", "size": 24, "t": "text", "text": "Episodes", "w": 110.7, "x": 21.0, "y": 457.0}
-{"axis": "x", "ch": 189.0, "cw": 250.0, "h": 189.0, "id": "search-Episodes", "sc": "search", "t": "scroll", "w": 250.0, "x": 16.0, "y": 499.0}
-{"h": 179.0, "id": "r.1.0.2.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-Episodes", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 21.0, "y": 504.0}
-{"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Episodes-r2", "ring": true, "sc": "search-Episodes", "t": "rect", "w": 240, "x": 21.0, "y": 504.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.3.0.0", "sc": "search", "size": 24, "t": "text", "text": "People", "w": 81.7, "x": 21.0, "y": 702.0}
-{"axis": "x", "ch": 281.0, "cw": 160.0, "h": 281.0, "id": "search-people", "sc": "search", "t": "scroll", "w": 160.0, "x": 16.0, "y": 744.0}
-{"h": 271.0, "id": "r.1.0.3.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-people", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 21.0, "y": 749.0}
-{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-people-p1", "ring": true, "sc": "search-people", "t": "rect", "w": 150, "x": 21.0, "y": 749.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.4.0.0", "sc": "search", "size": 24, "t": "text", "text": "Artists", "w": 80.1, "x": 21.0, "y": 1039.0}
-{"axis": "x", "ch": 224.0, "cw": 180.0, "h": 224.0, "id": "search-Artists", "sc": "search", "t": "scroll", "w": 180.0, "x": 16.0, "y": 1081.0}
-{"h": 214.0, "id": "r.1.0.4.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Artists", "src": "bitmap#3", "t": "img", "v": "v#4", "w": 170.0, "x": 21.0, "y": 1086.0}
-{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Artists-ar1", "ring": true, "sc": "search-Artists", "t": "rect", "w": 170, "x": 21.0, "y": 1086.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.5.0.0", "sc": "search", "size": 24, "t": "text", "text": "Albums", "w": 90.0, "x": 21.0, "y": 1319.0}
-{"axis": "x", "ch": 224.0, "cw": 180.0, "h": 224.0, "id": "search-Albums", "sc": "search", "t": "scroll", "w": 180.0, "x": 16.0, "y": 1361.0}
-{"h": 214.0, "id": "r.1.0.5.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Albums", "src": "bitmap#4", "t": "img", "v": "v#5", "w": 170.0, "x": 21.0, "y": 1366.0}
-{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Albums-r3", "ring": true, "sc": "search-Albums", "t": "rect", "w": 170, "x": 21.0, "y": 1366.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.6", "sc": "search", "size": 24, "t": "text", "text": "Songs", "w": 1238.0, "x": 16.0, "y": 1597.0}
-{"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.7.0.1.0", "sc": "search", "size": 15, "t": "text", "text": "#", "w": 46.0, "x": 38.0, "y": 1644.6}
-{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.7.0.2.0", "sc": "search", "size": 15, "t": "text", "text": "Title", "w": 441.4, "x": 96.0, "y": 1644.6}
-{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.7.0.3.0", "sc": "search", "size": 15, "t": "text", "text": "Artist", "w": 294.3, "x": 549.4, "y": 1644.6}
-{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.7.0.4.0", "sc": "search", "size": 15, "t": "text", "text": "Album", "w": 294.3, "x": 855.7, "y": 1644.6}
-{"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.7.0.5.0", "sc": "search", "size": 15, "t": "text", "text": "Time", "w": 70.0, "x": 1162.0, "y": 1644.6}
-{"click": true, "ctx": true, "h": 34.0, "hover": {"fill": "2e3138"}, "id": "search-song-0", "radius": 4, "sc": "search", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1669.0}
-{"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.7.1.1.0", "sc": "search", "size": 17, "t": "text", "text": "1", "w": 46.0, "x": 38.0, "y": 1675.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.7.1.2.0", "sc": "search", "size": 17, "t": "text", "text": "Song", "w": 441.4, "x": 96.0, "y": 1675.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.7.1.3.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 294.3, "x": 549.4, "y": 1675.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.7.1.4.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 294.3, "x": 855.7, "y": 1675.4}
-{"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.7.1.5.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 70.0, "x": 1162.0, "y": 1675.4}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.8.0.0", "sc": "search", "size": 24, "t": "text", "text": "On TV", "w": 66.1, "x": 21.0, "y": 1717.0}
-{"axis": "x", "ch": 189.0, "cw": 250.0, "h": 189.0, "id": "search-programs", "sc": "search", "t": "scroll", "w": 250.0, "x": 16.0, "y": 1759.0}
-{"h": 179.0, "id": "r.1.0.8.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-programs", "src": "bitmap#5", "t": "img", "v": "v#6", "w": 240.0, "x": 21.0, "y": 1764.0}
-{"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-programs-pr7", "ring": true, "sc": "search-programs", "t": "rect", "w": 240, "x": 21.0, "y": 1764.0}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.9.0.0", "sc": "search", "size": 24, "t": "text", "text": "Channels", "w": 110.7, "x": 21.0, "y": 1962.0}
-{"axis": "x", "ch": 224.0, "cw": 180.0, "h": 224.0, "id": "search-channels", "sc": "search", "t": "scroll", "w": 180.0, "x": 16.0, "y": 2004.0}
-{"h": 214.0, "id": "r.1.0.9.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-channels", "src": "bitmap#6", "t": "img", "v": "v#7", "w": 170.0, "x": 21.0, "y": 2009.0}
-{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-channels-c1", "ring": true, "sc": "search-channels", "t": "rect", "w": 170, "x": 21.0, "y": 2009.0}
+{"axis": "y", "bar": true, "ch": 2130.5, "cw": 1270.0, "h": 660.0, "id": "search", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 60.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0.0", "sc": "search", "size": 26, "t": "text", "text": "Results for \"a\"", "w": 1238.0, "x": 16.0, "y": 76.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Movies", "w": 90.0, "x": 16.0, "y": 122.5}
+{"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "search-Movies", "sc": "search", "t": "scroll", "w": 182.0, "x": 0.0, "y": 156.5}
+{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-Movies", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 16.0, "y": 161.5}
+{"af": true, "click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Movies-r1", "ring": true, "sc": "search-Movies", "t": "rect", "w": 150, "x": 16.0, "y": 161.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Episodes", "w": 110.7, "x": 16.0, "y": 451.5}
+{"axis": "x", "ch": 189.0, "cw": 272.0, "h": 189.0, "id": "search-Episodes", "sc": "search", "t": "scroll", "w": 272.0, "x": 0.0, "y": 485.5}
+{"h": 179.0, "id": "r.1.0.2.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-Episodes", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 16.0, "y": 490.5}
+{"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Episodes-r2", "ring": true, "sc": "search-Episodes", "t": "rect", "w": 240, "x": 16.0, "y": 490.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.3.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "People", "w": 81.7, "x": 16.0, "y": 688.5}
+{"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "search-people", "sc": "search", "t": "scroll", "w": 182.0, "x": 0.0, "y": 722.5}
+{"h": 271.0, "id": "r.1.0.3.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-people", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 727.5}
+{"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-people-p1", "ring": true, "sc": "search-people", "t": "rect", "w": 150, "x": 16.0, "y": 727.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.4.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Artists", "w": 80.1, "x": 16.0, "y": 1017.5}
+{"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-Artists", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1051.5}
+{"h": 214.0, "id": "r.1.0.4.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Artists", "src": "bitmap#3", "t": "img", "v": "v#4", "w": 170.0, "x": 16.0, "y": 1056.5}
+{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Artists-ar1", "ring": true, "sc": "search-Artists", "t": "rect", "w": 170, "x": 16.0, "y": 1056.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.5.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Albums", "w": 90.0, "x": 16.0, "y": 1289.5}
+{"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-Albums", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1323.5}
+{"h": 214.0, "id": "r.1.0.5.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Albums", "src": "bitmap#4", "t": "img", "v": "v#5", "w": 170.0, "x": 16.0, "y": 1328.5}
+{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Albums-r3", "ring": true, "sc": "search-Albums", "t": "rect", "w": 170, "x": 16.0, "y": 1328.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.6.0", "sc": "search", "size": 24, "t": "text", "text": "Songs", "w": 1238.0, "x": 16.0, "y": 1559.5}
+{"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.1.0", "sc": "search", "size": 15, "t": "text", "text": "#", "w": 46.0, "x": 38.0, "y": 1607.1}
+{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.2.0", "sc": "search", "size": 15, "t": "text", "text": "Title", "w": 441.4, "x": 96.0, "y": 1607.1}
+{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.3.0", "sc": "search", "size": 15, "t": "text", "text": "Artist", "w": 294.3, "x": 549.4, "y": 1607.1}
+{"align": "left", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.4.0", "sc": "search", "size": 15, "t": "text", "text": "Album", "w": 294.3, "x": 855.7, "y": 1607.1}
+{"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.5.0", "sc": "search", "size": 15, "t": "text", "text": "Time", "w": 70.0, "x": 1162.0, "y": 1607.1}
+{"click": true, "ctx": true, "h": 34.0, "hover": {"fill": "2e3138"}, "id": "search-song-0", "radius": 4, "sc": "search", "t": "rect", "w": 1238.0, "x": 16.0, "y": 1631.5}
+{"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.1.0", "sc": "search", "size": 17, "t": "text", "text": "1", "w": 46.0, "x": 38.0, "y": 1637.9}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.2.0", "sc": "search", "size": 17, "t": "text", "text": "Song", "w": 441.4, "x": 96.0, "y": 1637.9}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.3.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 294.3, "x": 549.4, "y": 1637.9}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.4.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 294.3, "x": 855.7, "y": 1637.9}
+{"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.5.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 70.0, "x": 1162.0, "y": 1637.9}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.7.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "On TV", "w": 66.1, "x": 16.0, "y": 1679.5}
+{"axis": "x", "ch": 189.0, "cw": 272.0, "h": 189.0, "id": "search-programs", "sc": "search", "t": "scroll", "w": 272.0, "x": 0.0, "y": 1713.5}
+{"h": 179.0, "id": "r.1.0.7.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-programs", "src": "bitmap#5", "t": "img", "v": "v#6", "w": 240.0, "x": 16.0, "y": 1718.5}
+{"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-programs-pr7", "ring": true, "sc": "search-programs", "t": "rect", "w": 240, "x": 16.0, "y": 1718.5}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.8.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Channels", "w": 110.7, "x": 16.0, "y": 1916.5}
+{"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-channels", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1950.5}
+{"h": 214.0, "id": "r.1.0.8.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-channels", "src": "bitmap#6", "t": "img", "v": "v#7", "w": 170.0, "x": 16.0, "y": 1955.5}
+{"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-channels-c1", "ring": true, "sc": "search-channels", "t": "rect", "w": 170, "x": 16.0, "y": 1955.5}

@@ -36,7 +36,7 @@ class LogsTabMixin:
         route["_log_last"] = lines[-1] if lines else None
         self._poll_logs(route)
 
-        head = Row([Text(_("Logs"), size="large", bold=True), Spacer(),
+        head = Row([Text(_("Logs"), size="heading", bold=True), Spacer(),
                     Button(_("Copy"), id="log-copy", icon="content_copy",
                            on_click=lambda: self._copy_logs(lines)),
                     Button(_("Refresh"), id="log-refresh", icon="refresh",
@@ -121,7 +121,7 @@ class LogsTabMixin:
         def done(res):
             ok, _method, path = res
             if not ok:
-                self.set_status(_("Could not copy the log."))
+                self.set_status(_("Could not copy"))
             elif path:
                 self.set_status(_("No clipboard available — saved to %s")
                                 % path)
@@ -129,7 +129,7 @@ class LogsTabMixin:
                 self.set_status(_("Copied %d log lines.") % len(lines))
 
         def failed(_exc):
-            self.set_status(_("Could not copy the log."))
+            self.set_status(_("Could not copy"))
 
         # Off the loop thread: a clipboard helper is a subprocess, and on a
         # wedged one the 10s timeout would otherwise freeze the UI.

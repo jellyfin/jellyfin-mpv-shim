@@ -378,7 +378,7 @@ class TestNestedWrappedTextTakesItsRoom(unittest.TestCase):
         inner = Column([Box(h=20, bg="222222", id="setting"),
                         Text(self.NOTE, size=13, wrap=True)],
                        gap=12, align="stretch")
-        panel = Column([Text("View Settings", size=22),
+        panel = Column([Text("View settings", size=22),
                         inner,
                         # bg because a Box with nothing to draw emits no
                         # node at all -- there would be no "done" to find.

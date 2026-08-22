@@ -882,7 +882,8 @@ class TestTheControllerDoesNotSwallow(unittest.TestCase):
             self._controller().queue_remove(["p1"])
 
     def test_queue_items_propagates(self):
-        """"Add to Queue" swallowed twice — here AND in _client_call at the
+        """"Add to play queue" swallowed twice — here AND in _client_call
+        at the
         call site — so a rejected add was doubly invisible."""
         import sys
         real_argv = sys.argv

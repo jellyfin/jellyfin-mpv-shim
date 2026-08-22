@@ -70,7 +70,7 @@ class QueueMixin(GatewayCore):
         item_ids = list(item_ids)
         if not item_ids:
             return
-        # RAISES on failure. "Add to Queue" is a button press, so its
+        # RAISES on failure. "Add to play queue" is a button press, so its
         # failure has to reach the user; this used to swallow AND the caller
         # wrapped it in _client_call -> _safe, so a rejected queue-add was
         # doubly invisible. Same reasoning as download_enqueue below.

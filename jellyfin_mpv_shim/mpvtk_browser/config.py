@@ -414,7 +414,7 @@ LABEL_OVERRIDES = {
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
-    "ui_text_scale": _("Text Size"),
+    "ui_text_scale": _("Text size"),
     "ui_text_min": _("Minimum Text Size"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
@@ -525,12 +525,12 @@ NOTES = {
     # "acknowledge that this may cause problems"; the tail it breaks for
     # is disproportionately the hardware that needed it.
     "deinterlace_auto": _(
-        "Deinterlace video the file says is interlaced. Off by default, as "
-        "in MPV itself: the flag is not reliable in either direction, and "
-        "deinterlacing progressive video softens a picture that was fine. "
-        "To force it on for something that is interlaced without saying so, "
-        "use Deinterlace in the player's settings menu \u2014 that lasts "
-        "until you return to the library. Needs MPV 0.38 or newer."),
+        "Deinterlace video the file says is interlaced. Off by default, as in "
+        "MPV itself: the flag is not reliable in either direction, and "
+        "deinterlacing progressive video softens a picture that was fine. To "
+        "force it on for something that is interlaced without saying so, use "
+        "Deinterlace in the player's settings menu, which lasts until you "
+        "return to the library. Needs MPV 0.38 or newer."),
     "motion_interpolation": _(
         "Frame blending (blends frames together, not the same as "
         "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "
@@ -548,30 +548,29 @@ NOTES = {
     # Advanced-only (see SECTIONS), and the note is why: it reads like "turn
     # off the Jellyfin UI", and what it actually does is leave a Windows user
     # with a process they can neither see nor quit.
-    "enable_gui": _("Off means command-line mode: no window, no system tray "
-                    "and no settings screen, so the only way back is editing "
-                    "conf.json by hand. It is not how you get MPV's own "
-                    "on-screen controls — \"Player Controls Style\" under "
-                    "Interface does that."),
+    "enable_gui": _(
+        "Off means command-line mode: no window, no system tray and no "
+        "settings screen, so the only way back is to edit conf.json by hand. "
+        "This is not how you get MPV's own on-screen controls; use Player "
+        "Controls Style under Interface for that."),
     # Advanced-only for the same reason as enable_gui: with no tray icon
     # installed, the cast screen is the only page and Settings is gone.
-    "headless": _("Show only what is cast to this machine — the library, "
-                  "including this settings screen, can't be reached from "
-                  "here. Without a system tray icon the only way back is "
-                  "editing conf.json. For the classic cast-target setup you "
-                  "want the Interface settings instead; this is for a shared "
-                  "TV nobody should be able to browse from."),
+    "headless": _(
+        "Show only what is cast to this machine. The library, including this "
+        "settings screen, cannot be reached from here, and without a system "
+        "tray icon the only way back is to edit conf.json. This is for a "
+        "shared TV nobody should be able to browse from; for an ordinary cast "
+        "target, use the Interface settings."),
     # Says what it is for, not what it is called. "Client-side decorations"
     # is the right term and means nothing to the person whose window has no
     # close button; the note has to be recognisable from the symptom.
-    "window_controls": _("Some desktops — GNOME on Wayland in particular — "
-                         "draw no title bar on the player window, leaving no "
-                         "way to move or close it. This puts minimize, "
-                         "maximize and close in the top bar instead, and "
-                         "lets you drag the window by it. Left on "
-                         "\"Only when the window has no title bar\", MPV is "
-                         "asked whether this window got one, so desktops "
-                         "that do decorate it are left alone."),
+    "window_controls": _(
+        "Some desktops, GNOME on Wayland in particular, draw no title bar on "
+        "the player window, leaving no way to move or close it. This puts "
+        "minimize, maximize and close in the top bar instead, and lets you "
+        "drag the window by it. On \"Only when the window has no title bar\", "
+        "MPV is asked whether this window got one, so desktops that draw a "
+        "title bar are left alone."),
     "trickplay_fast_mode": _("Seek previews are normally fetched a few "
                              "minutes at a time around where you are "
                              "seeking, so scrubbing somewhere new waits "
@@ -586,24 +585,23 @@ NOTES = {
                    "keyboard. \"No player controls\" leaves playback bare; "
                    "the library, the keyboard shortcuts and the menu key "
                    "still work."),
-    "scroll_wheel_pixels": _("Pixels one wheel notch scrolls. On a grid this "
-                             "is rounded so a whole number of notches spans "
-                             "one row, whichever scroll mode you are in — a "
-                             "trackpad or trackball never leaves you a sliver "
-                             "of a row off. Raise it to scroll faster, lower "
-                             "it for finer control."),
+    "scroll_wheel_pixels": _(
+        "Pixels one wheel notch scrolls. Raise it to scroll faster, lower it "
+        "for finer control. On a grid the value is rounded so that a whole "
+        "number of notches spans one row, in every scroll mode, so a trackpad "
+        "or trackball never leaves you a sliver of a row off."),
     # Names no mechanism and no measurement: the reason to pick one of these
     # is what you can see happening, so the note is written as symptoms.
     # "Continuous" says what it does rather than promising smoothness --
     # "Smooth scrolling" would be read as *animated* scrolling, and someone
     # who turned it on and got no animation would report it broken.
-    "scroll_mode": _("\"Continuous\" scrolls by pixels and lands wherever the "
-                     "wheel puts it; it lines rows up by itself if the "
-                     "display cannot keep up. Pick \"Aligned to rows\" if "
-                     "scrolling still stutters — on a very large display, a "
-                     "slow or remote one, or with an external MPV. Pick "
-                     "\"One row per notch\" to move a whole row (or one "
-                     "home-screen section) at a time."),
+    "scroll_mode": _(
+        "\"Continuous\" scrolls by pixels and lands wherever the wheel puts "
+        "it, lining rows up by itself if the display cannot keep up. Pick "
+        "\"Aligned to rows\" if scrolling still stutters, as it can on a very "
+        "large, slow or remote display, or with an external MPV. Pick \"One "
+        "row per notch\" to move a whole row, or one home-screen section, at a"
+        " time."),
     # Deliberately says nothing about the pypresence dependency: the Windows
     # build bundles it, so naming a package most users will never have to
     # think about only invites questions. The dynamic note in
@@ -625,17 +623,17 @@ NOTES = {
                    "Previous / Next / Last controls and a page number you can "
                    "type into. Easier than precise scrolling on a trackpad."),
     "logo_legibility_live_tv": _(
-        "Channel logos come as ink on a transparent background, drawn for the "
-        "white page other clients put them on — so on a dark one the black "
-        "ones vanish. On, they are backed with the light plate they were made "
-        "for, and the few whose own outline is white get a drop shadow so "
-        "they still have an edge against it. Off, they get the theme's card "
-        "colour and no shadows, as Jellyfin Web does."),
+        "Channel logos are ink on a transparent background, drawn for the "
+        "white page other clients put them on, so on a dark one the black ones"
+        " vanish. On, each logo gets the light plate it was made for, and the "
+        "few with a white outline get a drop shadow so they keep an edge "
+        "against it. Off, they get the theme's card colour and no shadow, as "
+        "Jellyfin Web does."),
     "logo_legibility_library": _(
         "The same treatment for a library set to draw Logo artwork. Off by "
-        "default, because a film's or series' logo is white by convention and "
-        "already reads on a dark background — the plate is what makes it need "
-        "a shadow. Turn it on if yours are dark."),
+        "default: a film or series logo is white by convention and already "
+        "reads on a dark background, and it is the plate that makes it need a "
+        "shadow. Turn it on if yours are dark."),
     "theme": _("Palette, glow, cover style and default cover size. Colours "
                "change immediately; cover and heading sizes take effect "
                "after a restart."),
@@ -657,10 +655,10 @@ NOTES = {
                       "the pointer is on them, paused or not."),
     "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
                        "them, and forces \"Hide unless hovered\"."),
-    "mouse_chapter_nav": _("During playback only — in the library those "
-                           "buttons stay Back and Forward. Off by default "
-                           "because they are easy to hit by accident on some "
-                           "mice. Takes effect after a restart."),
+    "mouse_chapter_nav": _(
+        "During playback only; in the library those buttons stay Back and "
+        "Forward. Off by default because they are easy to hit by accident on "
+        "some mice. Takes effect after a restart."),
     # xgettext: no-python-format
     # "100% on" reads as the conversion "% o" (space flag, octal), so xgettext
     # marks this python-format and msgfmt --check then rejects any translation
@@ -670,24 +668,22 @@ NOTES = {
     # no msgid, so nothing already translated is discarded.
     "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
                   "scale your desktop reports, which is 100% on X11."),
-    "ui_text_scale": _("Scales the text only. Interface Scale above resizes "
-                       "everything -- artwork, spacing and controls -- so "
-                       "use this one when the words are too small rather "
-                       "than the whole interface. It stops at 150% "
-                       "because by then most tile captions are ellipsized "
-                       "and it is the whole interface that needs to be "
-                       "bigger -- which is Interface Scale, above."),
+    "ui_text_scale": _(
+        "Scales the text only. Interface Scale above resizes everything, "
+        "artwork and spacing and controls included, so use this one when the "
+        "words are too small rather than the whole interface. It stops at "
+        "150%: past that most tile captions are ellipsized, and what needs to "
+        "be bigger is the whole interface, which is Interface Scale."),
     "ui_text_min": _("Nothing renders smaller than this, whatever Text Size "
                      "works out to. Raises the smallest labels without "
                      "enlarging headings, which a percentage cannot do."),
     "audio_mode": _("\"Default\" changes nothing and lets MPV (and your own "
                     "mpv.conf) decide. Pick a mode only if you are sending "
                     "audio to a receiver."),
-    "audio_optical_encode_ac3": _("Audio your receiver can't be sent directly "
-                                  "is encoded to AC3, which is the only way "
-                                  "surround fits down an optical cable. Turn "
-                                  "this off if the encoder causes audio delay "
-                                  "— those tracks become stereo instead."),
+    "audio_optical_encode_ac3": _(
+        "Audio your receiver cannot be sent directly is encoded to AC3, the "
+        "only way surround fits down an optical cable. Turn this off if the "
+        "encoder causes audio delay; those tracks become stereo instead."),
     "shader_pack_subtype": _("\"hq\" offers heavier profiles. Pick it if you "
                              "have a fast graphics card."),
     "shader_pack_gpu_api": _("Leave on Automatic unless video breaks when a "

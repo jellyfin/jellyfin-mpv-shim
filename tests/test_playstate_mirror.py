@@ -719,7 +719,7 @@ class DeliberateMarksReachTheCatalogTest(unittest.TestCase):
     Everything else that writes this column is advance-only, and rightly:
     playback reports arrive out of order, a queue replayed after a week
     must not rewind another device, and a pull is a floor rather than a
-    mirror. A person choosing "Mark Unwatched" is none of those -- it is the
+    mirror. A person choosing "Mark unplayed" is none of those -- it is the
     one signal in the app that is authoritative in both directions -- and
     under the old rule it was the only deliberate action here that silently
     did nothing to the downloaded copy. Offline you were shown the tick you

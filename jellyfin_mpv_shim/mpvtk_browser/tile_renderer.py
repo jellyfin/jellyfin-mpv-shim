@@ -63,8 +63,29 @@ TRACK_ROW_H = 34
 #: Padding around a focus ring, so it is not clipped by its container.
 RING_PAD = 5
 
+#: A carousel's strip is full width and pads itself, so this is the inset
+#: from the WINDOW edge at which the first tile's artwork sits -- which has
+#: to be the page margin, because that is what everything else on the page
+#: lines up on. The ring allowance is not added to it: the ring is meant to
+#: hang outside the margin, and adding it here would push the artwork 5px
+#: right of every heading and paragraph on the screen.
+ROW_LEAD = chrome.CONTENT_PAD
+
+#: Gap between a section title and the strip it titles, on top of the 2px the
+#: heading Box and the RING_PAD the strip already spend -- so the visible
+#: distance is this plus 7.
+#:
+#: Deliberately much smaller than the gap *between* sections, which is what
+#: makes a title read as belonging to the row under it. At 10 the two were
+#: 17 and 27, near enough to equal that every heading floated between two
+#: strips instead of heading one, and the page read as evenly spaced bands.
+#: jellyfin-web puts the whole gap between sections and none inside one:
+#: `.sectionTitleContainer-cards` is `margin: 0; padding-top: 1.25em`, so its
+#: scroller follows the title immediately.
+TITLE_GAP = 2
+
 #: Inset for the round page arrow (see _arrow_bitmap). Wider than RING_PAD so
-#: the circle sits clear of the window edge on a bleed row.
+#: the circle sits clear of the window edge.
 ARROW_INSET = 8
 
 #: Fallback arrow fill, for the (test-only) case of drawing before a theme has
@@ -124,15 +145,16 @@ def page_geometry(view, count, geom):
     is the offset at which the last tile sits flush against the right edge.
 
     The offset convention is the one :meth:`TileRenderer.hscroll_row` sets up:
-    the strip is inset by ``RING_PAD`` so a hover ring has room, so an offset
-    of ``k * pitch`` puts tile ``k`` at the left edge *with* that room. Aligning
-    to ``RING_PAD + k * pitch`` instead would shave the ring off.
+    the strip is inset by ``ROW_LEAD``, so an offset of ``k * pitch`` puts
+    tile ``k`` on the page margin rather than against the window edge.
+    Aligning to ``ROW_LEAD + k * pitch`` instead would double the inset and
+    leave the row hanging a margin short of where it was asked to go.
     """
     pitch = geom.tile_w + geom.gap
     # Tile k is fully visible at offset j*pitch while
-    # RING_PAD + (k - j) * pitch + tile_w <= view.
-    per = max(1, int((view - RING_PAD - geom.tile_w) // pitch) + 1)
-    total = 2 * RING_PAD + count * pitch - geom.gap
+    # ROW_LEAD + (k - j) * pitch + tile_w <= view.
+    per = max(1, int((view - ROW_LEAD - geom.tile_w) // pitch) + 1)
+    total = 2 * ROW_LEAD + count * pitch - geom.gap
     return pitch, per, max(0.0, total - view)
 
 
@@ -457,8 +479,12 @@ class TileRenderer:
     #: tile is 180 and genuinely does not.
     THIRD_LINE_MAX_W = 200
 
+    #: Smallest art cell that gets a placeholder glyph. Below it the icon is
+    #: noise in a dense list; above it a bare rectangle reads as broken.
+    GLYPH_MIN = 64
+
     def caption_geom(self, items, geom):
-        """``geom``, widened to three caption lines if these items need it.
+        """``geom``, resized to the caption lines these items actually use.
 
         Idempotent and cheap, so it can be asked wherever a geometry meets a
         list of items. It has to be asked by whoever *keeps* the geometry,
@@ -467,6 +493,11 @@ class TileRenderer:
         ``strip_h``, so a band that grew after those were taken windows the
         wrong rows and snaps to the wrong stops.
         """
+        if components.has_no_subtitles(items):
+            # A library, genre or person card: the band under it was sized
+            # for a second line that this row's items cannot produce, and
+            # the hover ring drew around the empty half of it.
+            return geom.single_line()
         if geom.tile_w > self.THIRD_LINE_MAX_W:
             return geom
         for item in items or ():
@@ -681,7 +712,7 @@ class TileRenderer:
                 b = self.art.strips.bitmap(key, img)
                 return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0),
                              w=b["lw"], h=b["lh"])
-        return self._art_placeholder(size)
+        return self._art_placeholder(size, item)
     @staticmethod
     def _plated(img, live=False):
         """``img``, given the backing transparent artwork should sit on.
@@ -708,11 +739,32 @@ class TileRenderer:
         return flatten_onto(img, plate.color, radius=px(4))
 
     @staticmethod
-    def _art_placeholder(size=28):
+    def _art_placeholder(size=28, item=None):
         """Same-sized stand-in for an art cell — while it loads, when the
         item has none, and for rows outside the virtual window (which must
-        not composite: see _track_list)."""
-        return Box(w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4)
+        not composite: see _track_list).
+
+        ``item`` earns the cell the same glyph a *tile* with no artwork
+        gets. Without it an album or artist header was a blank rounded
+        rectangle sitting directly above a row of tiles that all carried
+        the person icon: one missing-image condition, two renderings, side
+        by side.
+
+        Only above ``GLYPH_MIN``. A track table's 28px cell is too small
+        for an icon to be anything but noise, and it is a cell in a list
+        that already names what it is."""
+        kids = []
+        if item is not None and size >= TileRenderer.GLYPH_MIN:
+            glyph = components.placeholder_glyph(item)
+            # placeholder_glyph answers an icon NAME or a single initial,
+            # and the two are told apart by looking the name up -- the same
+            # test strips._paint_poster makes. A letter goes through Text.
+            kids = [Icon(glyph, size // 3, color=theme.SUBTLE_FG)
+                    if len(glyph) > 1
+                    else Text(glyph, size=max(14, size // 3),
+                              bold=True, color=theme.SUBTLE_FG)]
+        return Box(kids, w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4,
+                   align="center", direction="row", justify="center")
     def is_downloaded(self, item):
         iid, t = item.get("Id"), item.get("Type")
         if iid in self._downloaded:
@@ -1172,30 +1224,21 @@ class TileRenderer:
             # is more than one -- the server leaves the property off at 1.
             sources=int(item.get("MediaSourceCount") or 0),
         )
-    def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
-                  bleed=False, on_click=None, parent_item=False,
-                  inherit=True, see_all=None, autofocus_first=False):
-        """A titled horizontal carousel.
+    def section_heading(self, title, row_id=None, see_all=None):
+        """A section title, indented to sit exactly above the first tile.
 
-        ``bleed`` runs the strip edge-to-edge so overlay page arrows sit flush
-        against the window's left and right sides; the title is indented to
-        line up with the content instead. ``parent_item`` is passed through
-        to the tiles (see ``_tile``)."""
-        geom = geom or self.art.geom
-        # Section-title size is theme-controlled (24 = the stock value), so a
-        # theme with larger covers can size its headings to match.
+        Both spellings of the heading are the SAME box, and only the contents
+        and the handlers differ. They used to be a bare Text and a padded Box,
+        which meant a linked row's title sat 6px right and 2px down of a plain
+        one and the whole row measured 4px taller -- so on a page that mixes
+        them (the home screen: Next Up links, Continue Watching does not) the
+        titles jogged sideways row to row.
+
+        Callers that draw a heading with no carousel under it (the home
+        screen's Live TV button row) take it from here rather than
+        open-coding the indent, which is how they drifted apart before.
+        """
         title_size = theme.heading_size()
-        # Both spellings of the heading are the SAME box, and only its
-        # contents and handlers differ. They used to be a bare Text and a
-        # padded Box, which meant a linked row's title sat 6px right and 2px
-        # down of a plain one and the whole row measured 4px taller -- so on
-        # a page that mixes them (the home screen: Next Up links, Continue
-        # Watching does not) the titles jogged sideways row to row.
-        #
-        # The pad is RING_PAD because that is what `hscroll_row` insets the
-        # strip by, so the title now starts exactly above the first tile's
-        # artwork. Both of the old positions were wrong about that; this is
-        # not a compromise between them.
         inner: list = [Text(title, size=title_size, bold=True)]
         link: dict = {}
         if see_all is not None:
@@ -1210,38 +1253,66 @@ class TileRenderer:
             # it in its TV layout, but that is web having two layouts and
             # hiding the affordance in one, not a judgement that a remote
             # cannot use it.
+            # The gap below is proportional and not the 2 it was: at 2 the
+            # chevron's clearance was whatever right-side bearing the last
+            # glyph happened to have, so "On Now >" looked spaced and
+            # "Recently Added in Auto Collections>" looked like a typo.
             inner.append(Icon("chevron_right", int(title_size * 0.9),
                               color=theme.TEXT_FG))
             link = {"id": "%s-more" % row_id,
                     "hover": {"fill": theme.BUTTON_BG},
                     "on_click": see_all}
-        heading: object = Box(
-            inner, direction="row", align="center",
-            gap=2, pad=(RING_PAD, 2), radius=6, **link)
-        head = [heading]
-        if bleed:
-            # The strip runs edge to edge; indent the heading to line up with
-            # the first tile instead.
-            head.insert(0, Spacer(w=chrome.CONTENT_PAD))
-        buttons = self.page_buttons(row_id, len(items), geom, bleed)
+        # The leading Spacer, not padding on the Row: a heading is one child
+        # of an UNPADDED column (see chrome.split_bleed) so that the strip
+        # below it can reach the window edge, which means the margin has to
+        # be drawn rather than inherited. Less RING_PAD, so that the box's
+        # own padding lands the TEXT on the margin and leaves the hover ring
+        # hanging outside it -- the same trade `hscroll_row` makes.
+        return Row([Spacer(w=max(0, chrome.CONTENT_PAD - RING_PAD)),
+                    Box(inner, direction="row", align="center",
+                        gap=max(6, title_size // 4), pad=(RING_PAD, 2),
+                        radius=6, **link)],
+                   align="center")
+
+    def tile_row(self, title, items, row_id, geom=None, image_type="Primary",
+                  on_click=None, parent_item=False,
+                  inherit=True, see_all=None, autofocus_first=False):
+        """A titled horizontal carousel, full width.
+
+        The strip runs edge to edge and carries its own margins *inside* the
+        scroll viewport, so the first tile starts at the page margin and a
+        paged one travels out to the window edge instead of being clipped
+        there. jellyfin-web does exactly this -- the same `padded-left` on
+        `.sectionTitleContainer` and on `.emby-scroller`, which is padding
+        and therefore scrollable. ``parent_item`` is passed through to the
+        tiles (see ``_tile``).
+
+        The returned block is marked :func:`chrome.bleed`, which is what lets
+        a page put it in an otherwise padded column.
+        """
+        geom = geom or self.art.geom
+        heading = self.section_heading(title, row_id, see_all)
+        buttons = self.page_buttons(row_id, len(items), geom)
         if buttons is not None:
             # jellyfin-web's placement: the pair rides the section heading,
-            # right-aligned. Nothing overlaps the artwork, which is the whole
-            # point of this mode — no compositing question to answer, and the
-            # buttons get hover and a disabled state for free.
-            head += [Spacer(flex=1)] + buttons
-            if bleed:
-                # ...and pull them in off the window edge, mirroring the
-                # indent the title got above.
-                head.append(Spacer(w=chrome.CONTENT_PAD))
-            # An explicit width, because a Column sizes each child to what it
-            # *measures* unless told to stretch, and a Row of a title plus a
-            # flex spacer measures to just the title — which parked the pair
-            # immediately after the heading text instead of at the far edge.
-            heading = Row(head, align="center", w=self.row_view_w(bleed))
-        elif len(head) > 1:
-            heading = Row(head)
-        return Column(
+            # right-aligned (`.emby-scrollbuttons.padded-right`). Nothing
+            # overlaps the artwork, which is the whole point of this mode --
+            # no compositing question to answer, and the buttons get hover
+            # and a disabled state for free.
+            #
+            # The trailing Spacer mirrors the indent the title got, so the
+            # arrows sit off the window edge by the page margin.
+            heading = Row(list(heading.children)
+                          + [Spacer(flex=1)] + buttons
+                          + [Spacer(w=chrome.CONTENT_PAD)],
+                          # An explicit width, because a Column sizes each
+                          # child to what it *measures* unless told to
+                          # stretch, and a Row of a title plus a flex spacer
+                          # measures to just the title -- which parked the
+                          # pair immediately after the heading text instead
+                          # of at the far edge.
+                          align="center", w=self.row_view_w())
+        return chrome.bleed(Column(
             [
                 heading,
                 self.hscroll_row(
@@ -1251,10 +1322,10 @@ class TileRenderer:
                                     inherit=inherit,
                                     autofocus_first=autofocus_first),
                     row_id, geom.strip_h + 2 * RING_PAD,
-                    len(items), geom, bleed),
+                    len(items), geom),
             ],
-            gap=10,
-        )
+            gap=TITLE_GAP,
+        ))
     def header_offset(self, header):
         """Exact content-y of the first tile row that follows ``header`` in a
         ``Column(pad=CONTENT_PAD, gap=GRID_GAP)``: the top pad, each header
@@ -1319,7 +1390,7 @@ class TileRenderer:
             else:
                 rows.append(Spacer(h=geom.strip_h))
         if not items:
-            rows.append(Text(_("Nothing here yet."), size="large",
+            rows.append(Text(_("Nothing here."), size="large",
                              color=theme.SUBTLE_FG))
         return rows
 
@@ -1430,13 +1501,16 @@ class TileRenderer:
                      # It has to hear its own hover -- see CHIP_SUFFIX.
                      on_hover=lambda _v=None, k=cid: self.set_hover(k),
                      on_hover_end=lambda k=cid: self.end_hover(k))
-    def row_view_w(self, bleed):
+    def row_view_w(self):
         """Laid-out width of a carousel's scroll viewport. Both the overflow
-        test and the paging arithmetic measure against this."""
-        avail = (self.art._size[0] if self.art._size else 1280)
-        return avail if bleed else avail - 2 * chrome.CONTENT_PAD
+        test and the paging arithmetic measure against this.
 
-    def _page_state(self, row_id, count, geom, bleed):
+        The whole window: a row is full width and holds its margins inside
+        the viewport, so nothing is subtracted here. ``page_geometry`` is
+        where ``ROW_LEAD`` enters the arithmetic."""
+        return self.art._size[0] if self.art._size else 1280
+
+    def _page_state(self, row_id, count, geom):
         """``(view, prev_target, next_target)`` for a carousel's page buttons,
         or ``None`` when it should not have any.
 
@@ -1444,8 +1518,9 @@ class TileRenderer:
         and shared by both arrow modes so the two cannot disagree about whether
         a row overflows.
         """
-        view = self.row_view_w(bleed)
-        content_w = count * geom.tile_w + max(0, count - 1) * geom.gap
+        view = self.row_view_w()
+        content_w = (2 * ROW_LEAD + count * geom.tile_w
+                     + max(0, count - 1) * geom.gap)
         if content_w <= view or self.nav_mode():
             # keyboard/remote navigation auto-scrolls the row as focus moves,
             # so pointer paging buttons would be dead weight
@@ -1455,7 +1530,7 @@ class TileRenderer:
                 page_target(offset, -1, view, count, geom),
                 page_target(offset, 1, view, count, geom))
 
-    def page_buttons(self, row_id, count, geom, bleed):
+    def page_buttons(self, row_id, count, geom):
         """The heading-row page buttons (``header`` arrow mode), or ``None``.
 
         jellyfin-web's design, and the default: the pair sits in the section
@@ -1466,7 +1541,7 @@ class TileRenderer:
         """
         if (theme.active() or {}).get("arrow_mode", "header") != "header":
             return None
-        state = self._page_state(row_id, count, geom, bleed)
+        state = self._page_state(row_id, count, geom)
         if state is None:
             return None
         view, prev_to, next_to = state
@@ -1488,14 +1563,14 @@ class TileRenderer:
                                                   "circle": True},
                           repeat=not off,
                           on_click=lambda: self.page_row(
-                              row_id, direction, count, geom, bleed))
+                              row_id, direction, count, geom))
 
         return [button("chevron_left", row_id + "-pl", -1, prev_to,
                        _("Previous")),
                 button("chevron_right", row_id + "-pr", 1, next_to,
                        _("Next"))]
 
-    def hscroll_row(self, content, row_id, h, count, geom, bleed=False):
+    def hscroll_row(self, content, row_id, h, count, geom):
         """An HScroll, with ◀ ▶ page buttons floating over its edges in the
         ``overlay`` arrow mode.
 
@@ -1508,10 +1583,11 @@ class TileRenderer:
         In the default ``header`` mode there is nothing over the strip at all —
         :meth:`page_buttons` puts the pair in the section heading instead.
 
-        The strip is inset by RING_PAD so a tile's hover ring has room inside
-        the viewport; the renderer clips it to the container, and without the
-        inset its top edge was shaved off under the heading above."""
-        state = self._page_state(row_id, count, geom, bleed)
+        The strip is inset vertically by RING_PAD so a tile's hover ring has
+        room inside the viewport; the renderer clips it to the container, and
+        without the inset its top edge was shaved off under the heading
+        above."""
+        state = self._page_state(row_id, count, geom)
         # Watch the container only when it has page buttons, and only for
         # end-stop crossings. Without a watch the renderer scrolls the row
         # entirely on its own and never tells Python, so the buttons' disabled
@@ -1526,7 +1602,11 @@ class TileRenderer:
         # end. It is also what keeps ScrollState.offset honest on the frame a
         # screen returns: it answers for an unmet container with the parked
         # value, and that is only true of a container the scene puts back.
-        scroll = HScroll(Box([content], pad=RING_PAD),
+        # ROW_LEAD on the x, RING_PAD on the y, and the x half is INSIDE
+        # the scroll: that is what makes the page margin a starting point
+        # rather than a clip, so a paged tile runs out to the window edge.
+        # Both sides, as `.emby-scroller` pads both.
+        scroll = HScroll(Box([content], pad=(ROW_LEAD, RING_PAD)),
                          id=row_id, h=h, flex=1, on_scroll=watch,
                          offset=self.scroll.pending(row_id))
         if state is None or (theme.active() or {}).get(
@@ -1561,14 +1641,14 @@ class TileRenderer:
                          id=node_id, anchor=anchor, dx=dx, dy=dy,
                          repeat=not off,
                          on_click=lambda: self.page_row(row_id, direction,
-                                                        count, geom, bleed))
+                                                        count, geom))
 
         return Stack([
             scroll,
             arrow(row_id + "-pl", -1, "w", prev_to),
             arrow(row_id + "-pr", 1, "e", next_to),
         ], h=h)
-    def page_row(self, row_id, direction, count, geom, bleed=False):
+    def page_row(self, row_id, direction, count, geom):
         """Page a carousel one screenful of whole tiles (jellyfin-web's
         ``scrollerItemSlideIntoView``; see :func:`page_target`).
 
@@ -1582,7 +1662,7 @@ class TileRenderer:
             return
         self.scroll.refresh(app)
         target = page_target(self.scroll.offset(row_id), direction,
-                             self.row_view_w(bleed), count, geom)
+                             self.row_view_w(), count, geom)
         if target is None:
             return
         app.scroll_to(row_id, target, ms=PAGE_SLIDE_MS)

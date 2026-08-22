@@ -391,7 +391,7 @@ def _menu_rows(b, st, w=None):
             rows.append((_("Screenshot"), None, leaf(
                 lambda: _hud_action(b, "screenshot"))))
         if st.get("has_media"):
-            rows.append((_("Quit and Mark Unwatched"), None, leaf(
+            rows.append((_("Quit and Mark Unplayed"), None, leaf(
                 lambda: _hud_action(b, "unwatched-quit"))))
         return rows
 
@@ -847,7 +847,7 @@ def build_hud(b, size):
         controls.append(tbtn(
             "undo", "hud-ch-prev",
             lambda: _chapter_jump(b, -1),
-            tip=_("Previous Chapter")))
+            tip=_("Previous chapter")))
     if tiers["seek_btns"]:
         controls.append(tbtn(
             "replay_10", "hud-seek-back",
@@ -879,7 +879,7 @@ def build_hud(b, size):
         controls.append(tbtn(
             "redo", "hud-ch-next",
             lambda: _chapter_jump(b, 1),
-            tip=_("Next Chapter")))
+            tip=_("Next chapter")))
     controls.append(tbtn(
         "skip_next", "hud-next",
         lambda: b._ctl(lambda c: c.next()), tip=_("Next")))

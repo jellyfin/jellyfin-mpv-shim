@@ -7,6 +7,7 @@ indirection disappears.
 
 from ...mpvtk import pilfont
 from ...mpvtk.scaling import px
+from . import chrome
 from .. import theme
 
 
@@ -106,10 +107,25 @@ def poster_box(box):
     # detail page pulled a 1000x1500 poster whole (185 KB) to draw it at
     # 214px (19 KB). Nothing inset here is wider than a 16:9 still.
     max_w = min(int(w * POSTER_W_FRAC), int(max_h * MAX_INSET_ASPECT))
-    margin = max(px(18), w // 40)
     if max_w <= 0 or max_h <= 0 or max_w > w // 3:
         return None
-    return margin, (h - max_h) // 2, max_w, max_h
+    return _content_x(w), (h - max_h) // 2, max_w, max_h
+
+
+def _content_x(w):
+    """The banner's left edge, in physical px.
+
+    :data:`chrome.CONTENT_PAD`, not a fraction of the banner: a backdrop
+    bleeds to the window edges, but everything baked ON it -- the inset
+    poster, the heading, the meta line -- is page content, and the Play
+    button lands directly under it. ``w // 40`` put the two in different
+    columns (32 against 16 at a 1280 window), which is exactly the size of
+    offset the eye picks up on a left edge it can compare against.
+
+    ``w`` is taken and ignored so the call sites read as a measurement of
+    the box rather than a constant that happens to be in scope.
+    """
+    return px(chrome.CONTENT_PAD)
 
 
 def compose_banner(image, box, title=None, meta=None, context=None,
@@ -142,7 +158,11 @@ def compose_banner(image, box, title=None, meta=None, context=None,
     canvas = apply_dark_gradient(canvas, height_fraction=0.7,
                                  max_alpha=215)
     draw = ImageDraw.Draw(canvas)
-    margin = max(px(18), w // 40)
+    margin = _content_x(w)
+    # The heading's inset from the BOTTOM of the banner is a different
+    # measurement and keeps the old rule: it is breathing room over a
+    # gradient, with nothing above or below it to line up with.
+    bottom = max(px(18), w // 40)
     # The poster is baked in with the heading, not drawn as a second node:
     # overlay bitmaps composite above all script ASS, so a node here would
     # be a separate overlay fighting this one for z-order -- and the whole
@@ -159,7 +179,7 @@ def compose_banner(image, box, title=None, meta=None, context=None,
     # Smaller than it was: the heading has up to three stacked lines to
     # fit inside the gradient now, not one.
     size = theme.baked_text(max(px(20), min(px(34), h // 6)))
-    y = h - margin
+    y = h - bottom
     if meta:
         f = pil_font(int(size * 0.6), text=meta)
         asc, desc = f.getmetrics()

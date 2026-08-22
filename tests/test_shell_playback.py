@@ -429,7 +429,7 @@ class TestPlaybackHudMenusAndFavorite(unittest.TestCase):
         for want in ("Speed", "Aspect", "Profile",
                      "Subtitle Size", "Subtitle Position",
                      "Subtitle Color", "Playback Info",
-                     "Screenshot", "Unwatched"):
+                     "Screenshot", "Unplayed"):
             self.assertTrue(any(want.lower() in l.lower()
                                 for l in labels),
                             "missing %r in %r" % (want, labels))
