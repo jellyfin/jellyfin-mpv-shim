@@ -324,8 +324,13 @@ class HomePage(Page):
             rows.append(Row([Spacer(w=chrome.CONTENT_PAD),
                              Text(_("Nothing to show yet."), size="large",
                                   color=theme.SUBTLE_FG)]))
-        # pad=0: home carousels bleed to the window edges so their page
-        # arrows sit flush against them (see TileRenderer.hscroll_row).
+        # No x pad: a carousel is full width and carries the page margin
+        # inside its own scroll viewport (see TileRenderer.hscroll_row), so
+        # padding here would inset the strip twice and clip it besides. The
+        # y pad is the ordinary one every other listing page has -- it was
+        # lost with the x half when this was a bare `pad=0`, which left the
+        # first section title flush against the top bar while the library
+        # grid two clicks away sat CONTENT_PAD below it.
         #
         # Declare where the sections START, so the renderer can align to
         # them. It does not always: alignment is applied when a gesture
@@ -337,9 +342,11 @@ class HomePage(Page):
         # every frame. Section heights differ (poster vs landscape rows), so
         # the breakpoints are the explicit content-y of each section top,
         # not a uniform pitch.
-        return VScroll(Column(rows, gap=20), id="home", flex=1,
+        return VScroll(Column(rows, pad=(0, chrome.CONTENT_PAD), gap=20),
+                       id="home", flex=1,
                        offset=self.parked_scroll("home"),
-                       snaps=components.section_offsets(rows, 20))
+                       snaps=components.section_offsets(
+                           rows, 20, pad=chrome.CONTENT_PAD))
 
     def _live_tv_buttons(self):
         """The Live TV section's nav row: one button per Live TV tab.
