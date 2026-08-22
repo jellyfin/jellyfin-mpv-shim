@@ -47,6 +47,10 @@ class GeneralTabMixin:
         schema = cfg.settings_schema()
         values = cfg.get_settings()
         show_adv = bool(route.get("_advanced"))
+        # Once per render, not once per note: there are ~30 of them on the
+        # Playback tab and each one would otherwise measure an 88-character
+        # string of its own.
+        note_w = self._note_w(size)
         seen_advanced = False
         rows = []
         for title, keys in cfg.sections(route.get("_tab", "general")):
@@ -78,7 +82,7 @@ class GeneralTabMixin:
                     if note:
                         # An explanatory line under the setting it belongs to;
                         # the settings it qualifies follow directly below.
-                        rows.append(Text(note, size="caption",
+                        rows.append(Text(note, size="caption", w=note_w,
                                          color=theme.SUBTLE_FG, wrap=True))
             if title == _("Theme"):
                 # Theme used to be read once at startup like the other two,
@@ -90,7 +94,8 @@ class GeneralTabMixin:
                 # warning about the control you are looking at.
                 rows.append(Text(
                     _("Interface scale requires a restart."),
-                    size="caption", color=theme.SUBTLE_FG, wrap=True))
+                    size="caption", w=note_w,
+                    color=theme.SUBTLE_FG, wrap=True))
         rows.append(Text(_("Some changes take effect after restarting."),
                          size="caption", color=theme.SUBTLE_FG))
         if route.get("_tab", "general") == "playback":
@@ -111,7 +116,8 @@ class GeneralTabMixin:
                   "afterwards, so most of them override it. Hardware "
                   "Decoding is the exception: set hwdec there and this app "
                   "leaves it alone."),
-                size="caption", color=theme.SUBTLE_FG, wrap=True))
+                size="caption", w=note_w,
+                color=theme.SUBTLE_FG, wrap=True))
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings", flex=1)

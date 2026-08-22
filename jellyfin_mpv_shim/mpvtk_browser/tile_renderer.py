@@ -1228,6 +1228,10 @@ class TileRenderer:
             # it in its TV layout, but that is web having two layouts and
             # hiding the affordance in one, not a judgement that a remote
             # cannot use it.
+            # The gap below is proportional and not the 2 it was: at 2 the
+            # chevron's clearance was whatever right-side bearing the last
+            # glyph happened to have, so "On Now >" looked spaced and
+            # "Recently Added in Auto Collections>" looked like a typo.
             inner.append(Icon("chevron_right", int(title_size * 0.9),
                               color=theme.TEXT_FG))
             link = {"id": "%s-more" % row_id,
@@ -1241,7 +1245,8 @@ class TileRenderer:
         # hanging outside it -- the same trade `hscroll_row` makes.
         return Row([Spacer(w=max(0, chrome.CONTENT_PAD - RING_PAD)),
                     Box(inner, direction="row", align="center",
-                        gap=2, pad=(RING_PAD, 2), radius=6, **link)],
+                        gap=max(6, title_size // 4), pad=(RING_PAD, 2),
+                        radius=6, **link)],
                    align="center")
 
     def tile_row(self, title, items, row_id, geom=None, image_type="Primary",

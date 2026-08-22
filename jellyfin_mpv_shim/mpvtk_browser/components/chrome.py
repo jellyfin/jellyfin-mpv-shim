@@ -225,6 +225,33 @@ def body_width(w, pad=CONTENT_PAD):
     return max(120, w - 2 * pad - SCROLLBAR_W)
 
 
+#: The longest line explanatory prose is allowed to run to, in characters.
+#: Typographic measure, not a pixel width, so it holds across the type
+#: scale, the interface scale and a font substitution -- all three of which
+#: move how many characters a given number of pixels buys.
+#:
+#: 88 is the loose end of the usual 45-90 range, chosen because these notes
+#: sit under controls rather than being read in sequence. Unbounded, a
+#: settings note stretched the full window: ~200 characters per line under a
+#: 340px-wide control, which is hard to read and looks like the note belongs
+#: to the page rather than to the setting above it.
+PROSE_CH = 88
+
+
+def prose_w(size, avail):
+    """The width explanatory text at ``size`` should wrap at, within
+    ``avail``.
+
+    Measured rather than assumed: "n" is a middling glyph and the layout
+    engine's own measurement is what the wrap will use, so this stays
+    honest when the face changes. Narrower windows keep ``avail`` -- the
+    cap is a maximum, never a minimum.
+    """
+    from ...mpvtk.layout import measure
+
+    return min(avail, measure(Text("n" * PROSE_CH, size=size))[0])
+
+
 def paragraph(text, size, max_w, color=None):
     """Wrapped body text (overviews).
 

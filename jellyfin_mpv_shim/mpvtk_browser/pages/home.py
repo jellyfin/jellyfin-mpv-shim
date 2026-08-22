@@ -368,7 +368,16 @@ class HomePage(Page):
         # open-coding the indent is exactly how it ended up 5px left of
         # every other section title.
         return Row(
-            [self.ctx.art.tiles.section_heading(_("Live TV"))]
+            [self.ctx.art.tiles.section_heading(_("Live TV")),
+             # A label and its controls, not two items in a list: the row
+             # gap that separates one pill from the next is too tight to
+             # also separate the heading from the whole group, so the pills
+             # read as a continuation of the words. Wider than the gap it
+             # sits beside, which is the only thing that has to stay true
+             # if either moves. It buys 29px from the last glyph to the
+             # first pill (this, plus the heading's ring pad and the Row's
+             # own gap either side of it) against the 12 it had.
+             Spacer(w=8)]
             + [Button(label, id="home-lt-" + key,
                       on_click=lambda k=key: self.ctx.nav.navigate({
                           "kind": "livetv", "server": self.ctx.server,
