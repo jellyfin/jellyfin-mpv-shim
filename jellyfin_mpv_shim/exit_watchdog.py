@@ -41,6 +41,12 @@ SHUTDOWN_DEADLINE = 20.0
 _watchdog = None
 _disarm = threading.Event()
 
+#: Run immediately before ``os._exit``, on **both** ways out of this module.
+#: See :func:`set_final_action`.
+_final_action = None
+_final_lock = threading.Lock()
+_final_done = False
+
 
 def _flush(stream):
     """Flush a stream that may not exist; a Windows GUI build has no console,
@@ -131,6 +137,51 @@ def _dump_all_threads(why):
         log.warning("%s\n%s", why, _describe(_survivors()))
 
 
+def set_final_action(fn):
+    """Register the last thing this process does before ``os._exit``.
+
+    **The point is that it runs on both exits, not just the tidy one.**
+    This module has two: :func:`finish`, after an orderly shutdown, and the
+    deadline in :func:`arm`, which force-kills a wedged one. Anything that
+    has to happen however the process ends belongs here rather than in
+    ``main``, where it can only cover the first.
+
+    The restart is exactly that. A relaunch written into ``main`` after the
+    shutdown covers the ordinary case and silently does not happen when a
+    step wedges -- so somebody who pressed *Restart Now* would watch the app
+    disappear, on the one occasion the process needed the most help coming
+    back.
+
+    Deliberately **not** a reason to soften the deadline. The old process
+    still has to die for the new one to take the instance lock, so "make
+    sure we end" stays exactly as it was; what changes is that ending is no
+    longer the last word.
+
+    Runs once, whichever path gets there first, and its failure is logged
+    rather than raised: it is the last statement of a process that is
+    already leaving.
+    """
+    global _final_action
+    _final_action = fn
+
+
+def _run_final_action():
+    global _final_done
+    with _final_lock:
+        # Both paths can reach this: `finish` disarms first, but the watchdog
+        # may already be past that check and mid-dump, so the two really can
+        # race. Spawning a restart twice would leave two copies fighting over
+        # the instance lock.
+        if _final_action is None or _final_done:
+            return
+        _final_done = True
+        action = _final_action
+    try:
+        action()
+    except Exception:
+        log.exception("the final shutdown action failed")
+
+
 def arm(deadline=None):
     """Start the shutdown deadline.
 
@@ -149,6 +200,10 @@ def arm(deadline=None):
         _dump_all_threads(
             "shutdown did not finish within %.0fs - all thread stacks "
             "follow; the main thread shows which step is wedged" % seconds)
+        # Before the log is shut down, so whatever it does can say so -- and
+        # before os._exit, which is the whole reason this hook exists rather
+        # than a line in `main` that a wedge makes unreachable.
+        _run_final_action()
         logging.shutdown()
         _flush(sys.stderr)
         os._exit(1)
@@ -219,6 +274,13 @@ def finish(status=0):
             "%d thread(s) did not stop during shutdown; exiting anyway. "
             "This is a leak — the stacks below show what they are parked "
             "on:\n%s", len(stuck), _describe(stuck))
+
+    # As late as possible, and after the straggler grace above rather than
+    # before it: a restart spawned while this process still has threads
+    # running would have the new copy reclaiming the scratch namespace out
+    # from under them. With no stragglers there is no wait, so the common
+    # case pays nothing for the ordering.
+    _run_final_action()
 
     # os._exit skips atexit handlers, which is the point: one of them is
     # concurrent.futures' join of every pool worker. It also skips buffer

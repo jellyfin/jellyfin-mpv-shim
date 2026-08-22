@@ -390,28 +390,154 @@ class ShutdownOrderTest(unittest.TestCase):
     and only on a machine where the timing works out.
     """
 
-    def test_the_relaunch_is_after_the_lock_is_released(self):
+    def test_finish_never_returns(self):
+        """The fact the ordering below rests on, measured rather than read.
+
+        `exit_watchdog.finish` ends in `os._exit`, so **anything written
+        after it is dead code**. The relaunch was originally placed there
+        and never ran once: the restart armed, the app shut down cleanly,
+        and nothing came back.
+
+        Run in a subprocess because the thing being asserted is that the
+        interpreter stops -- there is no in-process way to survive it.
+        """
+        import subprocess
+        import textwrap
+
+        script = textwrap.dedent("""
+            import sys
+            sys.argv = [sys.argv[0]]
+            from jellyfin_mpv_shim import exit_watchdog
+            exit_watchdog.arm()
+            exit_watchdog.finish()
+            print("REACHED", flush=True)
+        """)
+        out = subprocess.run([sys.executable, "-c", script],
+                             capture_output=True, text=True, timeout=120,
+                             cwd=os.path.dirname(os.path.dirname(
+                                 os.path.abspath(__file__))))
+        self.assertNotIn("REACHED", out.stdout,
+                         "exit_watchdog.finish() returned; the ordering rule "
+                         "below is no longer load-bearing and its comment in "
+                         "mpv_shim.main should be revisited")
+
+    def test_nothing_in_main_comes_after_the_watchdog_finishes(self):
+        """The general form of the bug, so it cannot come back for some
+        other feature.
+
+        Deliberately not "the relaunch is before finish()": the mistake was
+        not specific to the relaunch, and a rule naming only it would let
+        the next person append the next thing. This walks main's syntax
+        tree rather than matching text, so a second `finish()` call or a
+        statement tucked into another block cannot slip past.
+        """
+        import ast
+        import inspect
+        import textwrap
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        tree = ast.parse(textwrap.dedent(inspect.getsource(mpv_shim.main)))
+        finishes = [n for n in ast.walk(tree)
+                    if isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "finish"
+                    and getattr(n.func.value, "id", "") == "exit_watchdog"]
+        self.assertEqual(len(finishes), 1, "expected exactly one finish()")
+        end = finishes[0].lineno
+        after = [n for n in ast.walk(tree)
+                 if isinstance(n, ast.stmt) and n.lineno > end]
+        self.assertEqual(
+            [ast.dump(n)[:60] for n in after], [],
+            "statements follow exit_watchdog.finish(), which calls os._exit "
+            "and never returns -- they are dead code")
+
+    def test_the_relaunch_is_registered_rather_than_written_after_the_loop(self):
+        """It has to run on the forced exit too, and `main`'s shutdown loop
+        is not reached when a step wedges. The relaunch therefore goes
+        through `set_final_action`; a call written into the loop's tail
+        would cover only the tidy exit."""
         import inspect
 
         from jellyfin_mpv_shim import mpv_shim
 
         source = inspect.getsource(mpv_shim.main)
-        release = source.index("single.release")
-        relaunch = source.index("relaunch_if_requested")
-        self.assertLess(release, relaunch,
-                        "the relaunch must come after the instance lock is "
-                        "released, or the new copy hands off to this one")
+        self.assertIn("set_final_action", source)
+        self.assertLess(source.index("set_final_action"),
+                        source.index("exit_watchdog.finish()"))
 
-    def test_the_relaunch_is_after_the_watchdog_finishes(self):
-        """So a new process is never started by a run the exit watchdog is
-        about to kill."""
+    def test_the_final_action_gives_the_instance_lock_up_first(self):
+        """On the forced path the lock may never have been released -- the
+        wedge can be anywhere -- and a new copy that finds it held hands off
+        to this dying process and exits, so the restart would look like a
+        plain quit."""
         import inspect
 
         from jellyfin_mpv_shim import mpv_shim
 
         source = inspect.getsource(mpv_shim.main)
-        self.assertLess(source.index("exit_watchdog.finish()"),
-                        source.index("relaunch_if_requested"))
+        body = source[source.index("def final_action"):]
+        body = body[:body.index("exit_watchdog.set_final_action")]
+        self.assertLess(body.index("single.release"),
+                        body.index("relaunch_if_requested"))
+
+
+class FinalActionTest(unittest.TestCase):
+    """`exit_watchdog.set_final_action` — the hook the restart hangs on."""
+
+    def setUp(self):
+        from jellyfin_mpv_shim import exit_watchdog
+
+        self.wd = exit_watchdog
+        self.addCleanup(setattr, exit_watchdog, "_final_action",
+                        exit_watchdog._final_action)
+        self.addCleanup(setattr, exit_watchdog, "_final_done",
+                        exit_watchdog._final_done)
+        exit_watchdog._final_action = None
+        exit_watchdog._final_done = False
+
+    def test_it_runs_once_however_many_paths_reach_it(self):
+        """The orderly exit disarms the watchdog first, but the watchdog can
+        already be past that check and mid-dump -- so the two really do
+        race. Two spawns would leave two copies fighting for the instance
+        lock."""
+        calls = []
+        self.wd.set_final_action(lambda: calls.append(1))
+        self.wd._run_final_action()
+        self.wd._run_final_action()
+        self.assertEqual(len(calls), 1)
+
+    def test_a_failing_action_does_not_stop_the_exit(self):
+        """It is the last statement of a process that is already leaving;
+        raising here would replace a clean exit with a traceback and change
+        nothing else."""
+        self.wd.set_final_action(mock.Mock(side_effect=RuntimeError("no")))
+        self.wd._run_final_action()          # must not raise
+
+    def test_no_action_registered_is_not_an_error(self):
+        self.wd._run_final_action()
+
+    def test_both_exit_paths_run_it(self):
+        """The whole reason the hook exists. Read from the source of the two
+        functions rather than by calling them, because both end in
+        `os._exit` -- there is no way to observe them from in here."""
+        import inspect
+
+        for fn in (self.wd.finish, self.wd.arm):
+            with self.subTest(path=fn.__name__):
+                self.assertIn("_run_final_action()", inspect.getsource(fn))
+
+    def test_it_runs_before_the_log_is_shut_down(self):
+        """Or the relaunch's own log line is written into a dead logger and
+        the restart is invisible again -- which is the bug this whole area
+        is being fixed for."""
+        import inspect
+
+        for fn in (self.wd.finish, self.wd.arm):
+            with self.subTest(path=fn.__name__):
+                src = inspect.getsource(fn)
+                self.assertLess(src.index("_run_final_action()"),
+                                src.index("logging.shutdown()"))
 
 
 if __name__ == "__main__":

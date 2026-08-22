@@ -152,9 +152,16 @@ def relaunch_if_requested():
     turn "the restart did not happen" into a traceback on the way out and
     change nothing else.
     """
+    global _requested
     if not _requested:
         log.debug("No restart was requested; exiting normally.")
         return False
+    # Cleared on the way in, not on the way out: the watchdog's forced exit
+    # and the orderly one can both reach here, and two spawns would leave
+    # two copies racing for the instance lock. `exit_watchdog` guards this
+    # as well; belt and braces, because the cost of being wrong is a second
+    # app the user did not ask for.
+    _requested = False
     cmd = command()
     if cmd is None:
         log.error("Cannot restart: this launch cannot be reconstructed. "

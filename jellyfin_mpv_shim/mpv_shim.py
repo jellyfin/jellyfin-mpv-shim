@@ -346,6 +346,28 @@ def main():
         # such a step is unreachable. On expiry it dumps every thread, which
         # is what identifies the wedged step.
         exit_watchdog.arm()
+
+        def final_action():
+            """The last thing this process does, on **either** way out.
+
+            Registered with the watchdog rather than written below the
+            shutdown loop, because the loop is not reached when a step
+            wedges -- and that is precisely when a user who pressed
+            *Restart Now* most needs the app to come back rather than
+            simply vanish.
+
+            The release is here as well as in the loop because the wedge can
+            be anywhere: on the forced path the lock may never have been
+            given up, and a new copy that finds it held hands off to this
+            dying process and exits. It is idempotent, so the ordinary path
+            pays nothing for it.
+            """
+            single.release()
+            from . import restart
+
+            restart.relaunch_if_requested()
+
+        exit_watchdog.set_final_action(final_action)
         # Covers the quit paths that do not start at a window close (tray
         # Quit, Ctrl-C): mpv is about to go away either way, and no reply
         # is worth minutes now.
@@ -372,18 +394,14 @@ def main():
                 # threads this sequence exists to clean up.
                 log.exception("Error shutting down %s", name)
         log.info("Shutdown complete.")
+        # Nothing may be added below this line: `finish` ends in `os._exit`
+        # and never returns, which is why its docstring says to call it as
+        # the last statement of main. The restart was originally written
+        # here, after it, and was simply dead code -- it armed, the app
+        # quit, and nothing came back. Whatever has to happen last goes
+        # through `set_final_action` above, which also covers the exit this
+        # line never reaches.
         exit_watchdog.finish()
-        # Last, and after `single.release` above: a fresh copy started any
-        # earlier would find the lock still held, hand off to the process
-        # that is exiting, and quit -- so the restart would look like a
-        # plain quit. See restart.py for why this is a relaunch at the end
-        # of the ordinary exit rather than an exec from the button.
-        #
-        # After `exit_watchdog.finish()` too, so the new process is never
-        # started by a run the watchdog is about to kill.
-        from . import restart
-
-        restart.relaunch_if_requested()
 
 
 if __name__ == "__main__":
