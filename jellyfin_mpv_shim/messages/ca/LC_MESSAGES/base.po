@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-22 17:45+0000\n"
+"PO-Revision-Date: 2026-08-23 01:05+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -2121,10 +2121,8 @@ msgstr "Gèneres"
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Year"
 msgid "Years"
-msgstr "Any"
+msgstr "Anys"
 
 # seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2134,32 +2132,24 @@ msgstr "Classificació parental"
 
 # seeded from jellyfin-web: Tags
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Tags"
 msgstr "Etiquetes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Audio Language"
-msgstr "Subtítols i idiomes"
+msgstr "Idioma de l'àudio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Subtitle Language"
-msgstr "Subtítols i idiomes"
+msgstr "Idioma dels subtítols"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Videos"
 msgid "Video Types"
-msgstr "Vídeos"
+msgstr "Tipus de vídeo"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "SD"
 msgstr "SD"
 
@@ -2175,13 +2165,11 @@ msgstr "4K"
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "3D"
 msgstr "3D"
 
 # seeded from jellyfin-web: OptionDvd
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "DVD"
 msgstr "DVD"
 
@@ -2248,24 +2236,19 @@ msgid "Back"
 msgstr "Enrere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "unknown"
 msgid "Unknown"
-msgstr "desconegut"
+msgstr "Desconegut"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "No channels available."
 msgid "No media information is available."
-msgstr "No hi ha canals disponibles."
+msgstr "No hi ha informació multimèdia disponible."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Media Info"
-msgstr "Informació del mitjà"
+msgstr "Informació multimèdia"
 
 # seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2325,7 +2308,6 @@ msgstr "Aquesta mediateca no ofereix filtres."
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Filters"
 msgstr "Filtres"
 
@@ -2337,10 +2319,8 @@ msgid "%d items"
 msgstr "%d elements"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Clear"
 msgid "Clear All"
-msgstr "Neteja"
+msgstr "Neteja-ho tot"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -2470,13 +2450,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "%s stores no reading position."
-msgstr ""
+msgstr "%s no recorda el punt de lectura."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Recording Folders"
 msgid "Reading Progress"
-msgstr "Directoris d'enregistrament"
+msgstr "Progrés de lectura"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
@@ -2491,16 +2469,12 @@ msgid "Push"
 msgstr "Empeny"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "The position could not be read."
-msgstr "No s'ha pogut llegir l'enregistrament."
+msgstr "No s'ha pogut llegir el punt de lectura."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Enter a new PIN."
 msgid "Enter a number."
-msgstr "Entreu un PIN nou."
+msgstr "Introduïu un número."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2512,16 +2486,12 @@ msgid "Enter a page of 1 or more."
 msgstr "Introduïu una pàgina d'1 o més."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Recording settings saved."
 msgid "Reading position saved."
-msgstr "S'ha desat la configuració d'enregistrament."
+msgstr "S'està llegint el punt de lectura desat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "The PIN could not be saved."
 msgid "The position could not be saved."
-msgstr "No s'ha pogut desar el PIN."
+msgstr "No s'ha pogut desar el punt de lectura."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2544,7 +2514,6 @@ msgstr "Grup nou"
 
 # seeded from jellyfin-web: LabelSyncPlayResumePlayback
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resume local playback"
 msgstr "Reprèn la reproducció local"
 
@@ -2572,10 +2541,8 @@ msgid "Could not leave the SyncPlay group."
 msgstr "No s'ha pogut sortir del grup SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Could not start playback."
 msgid "Could not resume SyncPlay playback."
-msgstr "No s'ha pogut iniciar la reproducció."
+msgstr "No s'ha pogut iniciar la reproducció de SyncPlay."
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Automatic: Next Up"
@@ -2593,16 +2560,13 @@ msgstr "Automàtic"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Audio"
 msgid "Audiobooks"
-msgstr "Àudio"
+msgstr "Audiollibres"
 
 # seeded from jellyfin-web: Books
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Books"
 msgstr "Llibres"
 
@@ -2694,10 +2658,8 @@ msgstr "Continueu escoltant"
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Continue Watching"
 msgid "Continue Reading"
-msgstr "Continueu mirant"
+msgstr "Continueu llegint"
 
 # seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -2772,10 +2734,8 @@ msgid "Subtitle Color"
 msgstr "Color dels subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Playback"
 msgid "Playback Info"
-msgstr "Reproducció"
+msgstr "Informació de reproducció"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #: jellyfin_mpv_shim/syncplay.py jellyfin_mpv_shim/video_profile.py
@@ -2784,19 +2744,15 @@ msgstr "Cap (desactivat)"
 
 # seeded from jellyfin-web: LabelHardwareAccelerationType
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Hardware acceleration"
-msgstr "L'acceleració de maquinari"
+msgstr "Acceleració de maquinari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Video Quality"
 msgid "Video output"
-msgstr "Qualitat del vídeo"
+msgstr "Sortida de vídeo"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Dropped frames"
 msgstr "Fotogrames descartats"
 
@@ -2814,28 +2770,21 @@ msgid "Buffered"
 msgstr "A la memòria intermèdia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy, python-format
-#| msgid "%.1f Mbps"
+#, python-format
 msgid "%.1f s"
-msgstr "%.1f Mbps"
+msgstr "%.1f s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "Download speed"
-msgstr "Descarregat"
+msgstr "Velocitat de descàrrega"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Media Key Seek"
 msgid "Media type"
-msgstr "Cerca de la tecla multimèdia"
+msgstr "Tipus de contingut multimèdia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Downloaded"
 msgid "downloaded copy"
-msgstr "Descarregat"
+msgstr "còpia descarregada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "local file"
@@ -2847,34 +2796,26 @@ msgstr "transmissió des del servidor"
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Play method"
 msgstr "Mètode de reproducció"
 
 # seeded from jellyfin-web: HeaderSeasons
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Seasons"
 msgid "Reasons"
-msgstr "Temporades"
+msgstr "Motius"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Play"
 msgid "Player"
-msgstr "Reproducció"
+msgstr "Reproductor"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "File"
 msgstr "Fitxer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Nothing to show yet."
 msgid "Nothing is playing."
-msgstr "Encara no hi ha res per a mostrar."
+msgstr "No s'està reproduint res."
 
 # seeded from jellyfin-web: Previous
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2998,11 +2939,12 @@ msgstr "Elimina del disc"
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "Eliminar aquest element l'eliminarà del sistema de fitxers i de la mediateca. N'esteu segur, que desitgeu continuar?"
+msgstr ""
+"Eliminar aquest element l'eliminarà del sistema de fitxers i de la "
+"mediateca. N'esteu segur, que desitgeu continuar?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3010,10 +2952,9 @@ msgid "%s was deleted."
 msgstr "%s ha estat eliminat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "The playlist could not be deleted."
+#, python-format
 msgid "%s could not be deleted."
-msgstr "La llista de reproducció no s'ha pogut eliminar."
+msgstr "%s no s'ha pogut eliminar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3050,10 +2991,9 @@ msgid "Nothing on this system could open %s."
 msgstr "Cap aplicació del sistema ha pogut obrir %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "%d already downloaded"
+#, python-format
 msgid "%s is already downloaded."
-msgstr "%d ja s'ha descarregat"
+msgstr "%s ja està descarregat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid ""
@@ -3064,22 +3004,19 @@ msgstr ""
 "llibre només pot ser llegit descarregant-lo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Next episode is not downloaded."
+#, python-format
 msgid "%s has not been downloaded."
-msgstr "L'episodi següent no està descarregat."
+msgstr "%s no ha estat descarregat."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "That user could not be added."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr "No s'ha pogut afegir l'usuari."
+msgstr "No s'ha pogut descarregar %s."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Downloading %d%%"
+#, python-format
 msgid "Downloading %s…"
-msgstr "S'està descarregant %d%%"
+msgstr "S'està descarregant %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -3316,10 +3253,9 @@ msgid "Repeat Off"
 msgstr "Repetició desactivada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Back 10 Seconds"
+#, python-format
 msgid "Back %d seconds"
-msgstr "10 segons enrere"
+msgstr "%d segons enrere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3335,10 +3271,9 @@ msgid "Pause"
 msgstr "Pausa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy, python-format
-#| msgid "Forward 30 Seconds"
+#, python-format
 msgid "Forward %d seconds"
-msgstr "30 segons endavant"
+msgstr "%d segons endavant"
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3362,10 +3297,9 @@ msgid "Volume"
 msgstr "Volum"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy, python-format
-#| msgid "Chapters"
+#, python-format
 msgid "%d chapters"
-msgstr "Capítols"
+msgstr "%d capítols"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3376,7 +3310,6 @@ msgstr "Continuació"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Restart"
 msgstr "Reinicia"
 
@@ -3402,7 +3335,6 @@ msgstr "%s a"
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Start"
 msgstr "Comença"
 
@@ -3418,23 +3350,17 @@ msgid "Read"
 msgstr "Llegit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "External"
 msgid "Open Externally"
-msgstr "Extern"
+msgstr "Obre externament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Downloading…"
-msgstr "S'està descarregant"
+msgstr "S'està descarregant…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Programs"
 msgid "Progress…"
-msgstr "Programes"
+msgstr "Progrés…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
@@ -3442,23 +3368,17 @@ msgid "Nothing here yet."
 msgstr "Aquí encara no hi ha res."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "This comic could not be opened."
-msgstr "No s'ha pogut llegir l'enregistrament."
+msgstr "No s'ha pogut obrir aquest còmic."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This page could not be read."
-msgstr "No s'ha pogut reanomenar aquest usuari."
+msgstr "No s'ha pogut llegir aquesta pàgina."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Moving the downloads failed."
 msgid "The download failed."
-msgstr "El trasllat de les descàrregues ha fallat."
+msgstr "Ha fallat la descàrrega."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Getting the comic…"
@@ -3586,7 +3506,6 @@ msgstr "Filtre (%d)"
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Filter"
 msgstr "Filtre"
 
@@ -3944,42 +3863,32 @@ msgstr ""
 "reproducció. Torna-ho a provar en una estona."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "That user could not be renamed."
 msgid "This book could not be opened."
-msgstr "No s'ha pogut reanomenar aquest usuari."
+msgstr "No s'ha pogut obrir aquest llibre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copy Paragraph"
 msgstr "Copia el paràgraf"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Page"
 msgid "Copy Page"
-msgstr "Pàgina"
+msgstr "Copia la pàgina"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Copied the paragraph."
 msgstr "S'ha copiat el paràgraf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copied %d log lines."
 msgid "Copied the page."
-msgstr "S'han copiat %d línies de registre."
+msgstr "S'ha copiat la pàgina."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "There is nothing to copy yet."
 msgid "There is nothing to copy."
-msgstr "Encara no hi ha res per a copiar."
+msgstr "No hi ha res a copiar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Copying to the clipboard is not available."
 msgid "Copying is not available."
-msgstr "La còpia al porta-retalls no està disponible."
+msgstr "Copiar no està disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, fuzzy
@@ -3994,32 +3903,24 @@ msgid "No clipboard available — saved to %s"
 msgstr "No hi ha cap porta-retalls disponible — desat a %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Contents"
-msgstr "Continu"
+msgstr "Continguts"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Contacting the server…"
 msgid "Getting the book…"
-msgstr "S'està connectant al servidor…"
+msgstr "S'està obtenint el llibre…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "The recording could not be read."
 msgid "This book could not be drawn."
-msgstr "No s'ha pogut llegir l'enregistrament."
+msgstr "No s'ha pogut renderitzar aquest llibre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Smaller text"
 msgstr "Text més petit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid "Large"
 msgid "Larger text"
-msgstr "Gran"
+msgstr "Text més gran"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Page colour"
@@ -4142,10 +4043,8 @@ msgid "Downloaded Shows"
 msgstr "Sèries descarregades"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
-#| msgid "Downloaded Shows"
 msgid "Downloaded Books"
-msgstr "Sèries descarregades"
+msgstr "Llibres descarregats"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
@@ -4294,10 +4193,8 @@ msgstr ""
 "per Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Section %d"
 msgid "Sections"
-msgstr "Secció %d"
+msgstr "Seccions"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
@@ -4329,22 +4226,16 @@ msgstr ""
 "imatge d'un episodi pot fer malbé l'episodi que encara no s'ha vist."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Could not load the home screen layout."
 msgid "Could not load the home screen settings."
 msgstr "No s'ha pogut carregar la disposició de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Recording settings saved."
 msgid "Home screen settings saved."
-msgstr "S'ha desat la configuració d'enregistrament."
+msgstr "S'ha desat la configuració de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid "Could not save the home screen layout."
 msgid "Could not save the home screen settings."
-msgstr "No s'ha pogut desar la disposició de la pantalla d'inici."
+msgstr "No s'ha pogut desar la configuració de la pantalla d'inici."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
@@ -4361,7 +4252,6 @@ msgstr "General"
 
 # seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Browse"
 msgstr "Navega"
 
@@ -4565,15 +4455,12 @@ msgstr "Minimitza"
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restore"
 msgstr "Restaura"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Maximum"
 msgid "Maximize"
-msgstr "Màxim"
+msgstr "Maximitza"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
@@ -4644,10 +4531,8 @@ msgid "Transcode"
 msgstr "Transcodifica"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Use the default folder"
 msgid "Use the default"
-msgstr "Fes servir aquest directori per defecte"
+msgstr "Fes servir el predeterminat"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "SyncPlay Enabled"
@@ -4892,20 +4777,16 @@ msgid "ArtCNN High (C4F32)"
 msgstr "ArtCNN High (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "Per defecte (automàtic)"
+msgstr "Per defecte (tot el contingut multimèdia)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
 msgstr "Aquesta mediateca"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "To Series"
 msgid "This Series"
-msgstr "A les sèries"
+msgstr "Aquesta sèrie"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Not set"
