@@ -580,6 +580,22 @@ class TestMusicDetailHeaders(unittest.TestCase):
                     "title": "The Artist"})
         self.assertIn("Albums", self._texts(b))
 
+    def test_an_artist_with_no_albums_still_heads_the_empty_state(self):
+        """The heading used to be guarded and the grid was not.
+
+        `grid_of([])` draws "Nothing here.", so an artist with no albums got
+        a bare sentence under the header attached to nothing -- it read as
+        leaked debug text rather than as an empty Albums section.
+        """
+        b = self._browser()
+        b.source.get_artist_albums = lambda *a, **k: []
+        b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",
+                    "title": "The Artist"})
+        texts = self._texts(b)
+        self.assertIn("Albums", texts)
+        empty = [t for t in texts if "Nothing here" in t]
+        self.assertTrue(empty, "no empty state at all: %r" % texts)
+
     def test_an_artist_page_shows_the_fetched_metadata(self):
         b = self._browser()
         b.navigate({"kind": "artist", "server": "srv1", "item_id": "ar1",

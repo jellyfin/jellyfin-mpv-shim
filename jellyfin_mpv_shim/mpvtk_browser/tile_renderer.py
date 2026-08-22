@@ -479,6 +479,10 @@ class TileRenderer:
     #: tile is 180 and genuinely does not.
     THIRD_LINE_MAX_W = 200
 
+    #: Smallest art cell that gets a placeholder glyph. Below it the icon is
+    #: noise in a dense list; above it a bare rectangle reads as broken.
+    GLYPH_MIN = 64
+
     def caption_geom(self, items, geom):
         """``geom``, resized to the caption lines these items actually use.
 
@@ -708,7 +712,7 @@ class TileRenderer:
                 b = self.art.strips.bitmap(key, img)
                 return Image(b["src"], b["iw"], b["ih"], v=b.get("v", 0),
                              w=b["lw"], h=b["lh"])
-        return self._art_placeholder(size)
+        return self._art_placeholder(size, item)
     @staticmethod
     def _plated(img, live=False):
         """``img``, given the backing transparent artwork should sit on.
@@ -735,11 +739,32 @@ class TileRenderer:
         return flatten_onto(img, plate.color, radius=px(4))
 
     @staticmethod
-    def _art_placeholder(size=28):
+    def _art_placeholder(size=28, item=None):
         """Same-sized stand-in for an art cell — while it loads, when the
         item has none, and for rows outside the virtual window (which must
-        not composite: see _track_list)."""
-        return Box(w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4)
+        not composite: see _track_list).
+
+        ``item`` earns the cell the same glyph a *tile* with no artwork
+        gets. Without it an album or artist header was a blank rounded
+        rectangle sitting directly above a row of tiles that all carried
+        the person icon: one missing-image condition, two renderings, side
+        by side.
+
+        Only above ``GLYPH_MIN``. A track table's 28px cell is too small
+        for an icon to be anything but noise, and it is a cell in a list
+        that already names what it is."""
+        kids = []
+        if item is not None and size >= TileRenderer.GLYPH_MIN:
+            glyph = components.placeholder_glyph(item)
+            # placeholder_glyph answers an icon NAME or a single initial,
+            # and the two are told apart by looking the name up -- the same
+            # test strips._paint_poster makes. A letter goes through Text.
+            kids = [Icon(glyph, size // 3, color=theme.SUBTLE_FG)
+                    if len(glyph) > 1
+                    else Text(glyph, size=max(14, size // 3),
+                              bold=True, color=theme.SUBTLE_FG)]
+        return Box(kids, w=size, h=size, bg=theme.PLACEHOLDER_BG, radius=4,
+                   align="center", direction="row", justify="center")
     def is_downloaded(self, item):
         iid, t = item.get("Id"), item.get("Type")
         if iid in self._downloaded:
