@@ -69,6 +69,22 @@ PER_BACKEND_FAKE = [
 # The browser UI leg needs a display (Tk) but not a specific mpv backend; it is
 # run once under xvfb (see main()).
 PER_BACKEND_REAL = [
+    # Before test_realmpv_smoke, which terminates the shared player in its
+    # tearDownClass: these two then get a player nobody has torn down.
+    # `_import_real_player` revives it either way (the whole-suite leg runs
+    # them in discovery order, which puts one of them after), so this is
+    # about running the cheap way round rather than about correctness.
+    # The picture settings against a real mpv. Per backend because that is
+    # where they diverge: libmpv writes properties through the C API,
+    # python-mpv-jsonipc sends `set_property` over a socket and coerces
+    # types on the way -- and a refused write is caught and logged at debug,
+    # so the setting reads as applied either way.
+    "tests.integration.test_realmpv_picture",
+    # The Settings screen against the REAL config module and a REAL gateway.
+    # The fast suite drives it through a five-setting stand-in that answers
+    # everything; the dynamic parts (the audio device list, which the
+    # gateway asks mpv for) only exist here.
+    "tests.integration.test_settings_screen",
     "tests.integration.test_realmpv_smoke",
     # mpvtk browser attaches renderer.lua to a real mpv per backend.
     "tests.integration.test_mpvtk_browser",
@@ -94,6 +110,11 @@ PER_BACKEND_REAL = [
 # its own subprocesses).
 DISPLAY_ONCE = [
     "tests.integration.test_harness_isolation",
+    # Two real app processes: one arms a restart and exits, the other has to
+    # come back. Backend-agnostic (nothing here touches mpv's API) but it
+    # needs a display, because the child builds a real player on the way up.
+    # The one leg that would have caught the relaunch being dead code.
+    "tests.integration.test_restart_relaunch",
 ]
 
 # The whole suite in ONE process, per backend. The legs above deliberately
