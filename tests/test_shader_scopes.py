@@ -60,6 +60,14 @@ class FakePlayerManager:
     def __init__(self, item=None, client=None):
         self.item, self.client = item, client
         self.tasks = []
+        # Modelled for the same reason as put_task. The pack writes several
+        # properties the picture settings also write -- `deband` above all,
+        # which every profile pulls in through `default-setting-groups` --
+        # so loading and unloading a profile has to hand the last word back
+        # to the settings. A stand-in without this method would send that
+        # call into `_reassert_user_settings`'s except clause and leave the
+        # whole interaction green and untested.
+        self.reasserts = 0
 
     def get_video(self):
         if self.item is None:
@@ -68,6 +76,9 @@ class FakePlayerManager:
 
     def put_task(self, fn, *a):
         self.tasks.append(lambda: fn(*a))
+
+    def reapply_render_presets(self):
+        self.reasserts += 1
 
     def drain(self):
         """Run what the action thread would have run."""
@@ -374,6 +385,60 @@ class MenuTest(unittest.TestCase):
             m.set_scope_profile(EPISODE, "series", "b")
         self.assertFalse(m.suppressed)
         load.assert_called_once_with("b")
+
+
+class SettingsKeepTheLastWordTest(unittest.TestCase):
+    """The pack and the picture settings write some of the same properties.
+
+    ``pack.json`` lists ``deband-default`` under ``default-setting-groups``,
+    so **every** profile turns debanding on and every unload turns it back
+    off -- to whatever mpv had when ``VideoProfileManager`` snapshotted it,
+    which is not the ``deband`` setting. Before the reassert existed, picking
+    an upscaler mid-film and dropping it again silently took the user's
+    debanding with it for the rest of the film, because ``_play_media`` does
+    not run again until the next item.
+    """
+
+    def _mgr(self):
+        m = make_manager()
+        m.profiles = {"a": {"displayname": "A"}}
+        return m
+
+    def test_unloading_a_profile_hands_the_settings_back(self):
+        m = self._mgr()
+        m.unload_profile()
+        self.assertEqual(m.playerManager.reasserts, 1)
+
+    def test_loading_a_profile_hands_the_settings_back(self):
+        """After the pack's writes, not before: the settings outrank the
+        pack's bundled defaults while they are set, and a reassert that ran
+        first would be overwritten by the very group it exists to outrank."""
+        m = self._mgr()
+        order = []
+        m.playerManager.reapply_render_presets = lambda: order.append("settings")
+        real = m.process_setting_group
+
+        def spy(*a, **k):
+            order.append("pack")
+            return real(*a, **k)
+
+        m.process_setting_group = spy
+        m.default_groups = ["deband-default"]
+        m.groups = {"deband-default": {"settings": [["deband", True]]}}
+        m.defaults = {"deband": False}
+        self.assertTrue(m.load_profile("a"))
+        self.assertEqual(order[-1], "settings", order)
+        self.assertIn("pack", order)
+
+    def test_a_player_that_cannot_reassert_does_not_break_the_profile(self):
+        """The profile has already been applied by the time this runs, so a
+        failure to reassert a preference must not turn a working load into
+        an error the menu reports."""
+        m = self._mgr()
+        m.playerManager.reapply_render_presets = mock.Mock(
+            side_effect=RuntimeError("mpv went away"))
+        self.assertTrue(m.load_profile("a"))
+        m.unload_profile()          # and this must not raise either
 
 
 if __name__ == "__main__":

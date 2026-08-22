@@ -1,4 +1,4 @@
-"""Deinterlacing and motion interpolation, through a real PlayerManager.
+"""The picture and buffering settings, through a real PlayerManager.
 
 Named apart from the unit module `tests/test_picture_processing.py` on
 purpose: `unittest discover` keys non-package test modules by basename, so
@@ -87,6 +87,28 @@ class _Base(unittest.TestCase):
         patcher = mock.patch.object(player_module.settings, name, value)
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    def user_mpv_conf(self, **props):
+        """Say that these are the values the user's own ``mpv.conf`` gave
+        this mpv, and that nothing has written to it since.
+
+        Not the same as setting the attribute on the fake. mpv reads
+        ``mpv.conf`` at construction, so "the user's value" is by definition
+        what the player saw in ``_init_mpv`` -- which is when the pristine
+        snapshot is taken, and deliberately so: the shader pack writes
+        several of these properties earlier in the play path than the
+        settings do, so a snapshot taken at first write would record the
+        pack's debanding as the user's and never be able to hand the real
+        value back.
+
+        A test that merely assigned the attribute afterwards would be
+        modelling something else entirely -- a property changed behind the
+        player's back mid-session -- while claiming to model a config file.
+        """
+        for prop, value in props.items():
+            setattr(self.pm._player, prop, value)
+        self.pm._render_written = set()
+        self.pm._snapshot_render_pristine()
 
 
 class DeinterlacePerItemTest(_Base):
@@ -328,7 +350,7 @@ class InterpolationPerItemTest(_Base):
         because the bug shape is state feeding back into itself -- a restore
         that saved OUR value would put display-resample back for ever, and a
         single on/off pair cannot tell the two apart."""
-        self.pm._player.video_sync = "display-tempo"
+        self.user_mpv_conf(video_sync="display-tempo")
         self.setting("motion_interpolation", "hq")
         self.play()
         self.assertEqual(self.pm._player.video_sync, "display-resample")
@@ -340,14 +362,14 @@ class InterpolationPerItemTest(_Base):
             self.assertEqual(self.pm._player.video_sync, "display-tempo")
 
     def test_the_saved_value_survives_several_items_of_playback(self):
-        """It is saved once, on the first write. Re-reading it on every item
-        would save our own display-resample from item two onwards and make
-        the restore a no-op."""
-        self.pm._player.video_sync = "audio"
+        """It is read once, before anything has written. Re-reading it on
+        every item would save our own display-resample from item two
+        onwards and make the restore a no-op."""
+        self.user_mpv_conf(video_sync="audio")
         self.setting("motion_interpolation", "blend")
         for _ in range(3):
             self.play()
-        self.assertEqual(self.pm._interp_saved["video-sync"], "audio")
+        self.assertEqual(self.pm._render_pristine["video-sync"], "audio")
 
     def test_switching_between_presets_moves_the_filter(self):
         self.setting("motion_interpolation", "smooth")
@@ -357,6 +379,167 @@ class InterpolationPerItemTest(_Base):
                                "motion_interpolation", "blend"):
             self.play()
         self.assertEqual(self.pm._player.tscale, "linear")
+
+
+class DebandPerItemTest(_Base):
+    """Debanding, which shares interpolation's apply path but has the one
+    thing interpolation does not: something else writing the same
+    properties. Every shader profile pulls in the pack's ``deband-default``
+    group, so "off" here has to mean two different things at once -- do not
+    write, and do not *unwrite* what the pack put there."""
+
+    PARAMS = ("deband_iterations", "deband_threshold", "deband_range",
+              "deband_grain")
+
+    def test_a_preset_writes_the_flag_and_all_four_parameters(self):
+        """`deband` is a separate flag from its parameters, so a preset that
+        wrote only the numbers would be tuning a filter that never runs."""
+        self.setting("deband", "standard")
+        self.play()
+        p = self.pm._player
+        self.assertIs(p.deband, True)
+        self.assertEqual(p.deband_iterations, 2)
+        self.assertEqual(p.deband_threshold, 48)
+        self.assertEqual(p.deband_range, 16)
+        self.assertEqual(p.deband_grain, 24)
+
+    def test_the_setting_is_written_on_every_item(self):
+        """Like hwdec: a change has to reach the next thing played rather
+        than the next launch."""
+        self.setting("deband", "light")
+        self.play()
+        self.pm._player.deband = False          # something else moved it
+        self.play()
+        self.assertIs(self.pm._player.deband, True)
+
+    def test_off_leaves_a_users_own_mpv_conf_entirely_alone(self):
+        """The documented way to use a combination the presets do not offer:
+        set the deband options in mpv.conf and leave this at off. Three
+        items, because the failure shape is state feeding back into itself
+        and one play cannot see it."""
+        self.user_mpv_conf(deband=True, deband_threshold=20.0,
+                           deband_grain=0.0, deband_range=8.0,
+                           deband_iterations=3)
+        self.setting("deband", "off")
+        for _ in range(3):
+            self.play()
+        p = self.pm._player
+        self.assertIs(p.deband, True)
+        self.assertEqual(p.deband_threshold, 20.0)
+        self.assertEqual(p.deband_grain, 0.0)
+        self.assertEqual(p.deband_iterations, 3)
+
+    def test_off_restores_every_parameter_a_stronger_preset_wrote(self):
+        """Not just the ones the preset in effect at the time named. Somebody
+        who went strong -> light -> off must get all four back, which is what
+        `preset_keys` covering the union of the table is for."""
+        self.user_mpv_conf(deband=False, deband_threshold=48.0,
+                           deband_grain=32.0, deband_range=16.0,
+                           deband_iterations=1)
+        self.setting("deband", "strong")
+        self.play()
+        self.assertEqual(self.pm._player.deband_iterations, 4)
+        with mock.patch.object(player_module.settings, "deband", "light"):
+            self.play()
+        with mock.patch.object(player_module.settings, "deband", "off"):
+            self.play()
+            self.play()
+        p = self.pm._player
+        self.assertIs(p.deband, False)
+        self.assertEqual(p.deband_iterations, 1)
+        self.assertEqual(p.deband_threshold, 48.0)
+        self.assertEqual(p.deband_range, 16.0)
+        self.assertEqual(p.deband_grain, 32.0)
+
+    def test_off_does_not_undo_the_shader_pack(self):
+        """The second meaning of off, and the one a lazier design gets
+        wrong. Every shader profile turns debanding on through
+        `default-setting-groups`; with this setting off we have no opinion,
+        so the pack's value has to stand. A restore keyed on "is the setting
+        off" rather than on "did we ever write it" would switch the pack's
+        debanding off on the next item played -- and the user would be
+        looking at an upscaler profile that had quietly stopped debanding.
+        """
+        self.setting("deband", "off")
+        self.play()
+        self.pm._player.deband = True          # the pack, loading a profile
+        self.pm._player.deband_grain = 0.0
+        for _ in range(3):
+            self.play()
+        self.assertIs(self.pm._player.deband, True)
+        self.assertEqual(self.pm._player.deband_grain, 0.0)
+
+    def test_the_setting_outranks_the_pack_when_it_is_not_off(self):
+        """The other direction: the setting is the user's explicit answer
+        and the pack's is a bundle that arrived with an upscaler, so while
+        the setting says something it wins. This is what
+        `reapply_render_presets` is called for after every profile load and
+        unload -- without it the pack's write is the last one until the next
+        item."""
+        self.setting("deband", "light")
+        self.play()
+        self.pm._player.deband_grain = 0.0     # the pack's value
+        self.pm.reapply_render_presets()
+        self.assertEqual(self.pm._player.deband_grain, 16)
+
+    def test_a_dead_player_is_not_reasserted_into(self):
+        """`reapply_render_presets` is reachable from the shader menu, which
+        is reachable while mpv is being torn down."""
+        self.pm._mpv_alive = False
+        self.setting("deband", "strong")
+        self.pm.reapply_render_presets()
+        self.assertIs(self.pm._player.deband, False)
+
+
+class BufferPerItemTest(_Base):
+    def test_a_preset_writes_the_demuxer_options(self):
+        self.setting("network_buffer", "large")
+        self.play()
+        self.assertEqual(self.pm._player.demuxer_readahead_secs, 20)
+        self.assertEqual(self.pm._player.demuxer_max_bytes, 400 * 1024 * 1024)
+
+    def test_off_leaves_a_users_own_buffering_alone(self):
+        self.user_mpv_conf(demuxer_readahead_secs=120.0,
+                           demuxer_max_bytes=2 * 1024 * 1024 * 1024,
+                           demuxer_max_back_bytes=10 * 1024 * 1024)
+        self.setting("network_buffer", "default")
+        for _ in range(3):
+            self.play()
+        self.assertEqual(self.pm._player.demuxer_readahead_secs, 120.0)
+        self.assertEqual(self.pm._player.demuxer_max_bytes,
+                         2 * 1024 * 1024 * 1024)
+
+
+class OldMpvTest(_Base):
+    """A build without one of the properties a preset writes.
+
+    `hdr-peak-percentile` and `hdr-contrast-recovery` are mpv 0.37+, so this
+    is a real build difference. The whole preset must not be lost over it --
+    `scale` is the part doing the visible work.
+    """
+
+    def test_a_missing_property_costs_only_that_property(self):
+        del self.pm._player.hdr_contrast_recovery
+        self.user_mpv_conf()               # re-probe: it is gone now
+        self.setting("render_quality", "high")
+        self.play()
+        self.assertEqual(self.pm._player.scale, "ewa_lanczossharp")
+        self.assertEqual(self.pm._player.scale_antiring, 0.6)
+        self.assertFalse(hasattr(self.pm._player, "hdr_contrast_recovery"))
+
+    def test_a_property_this_mpv_never_had_is_not_invented_on_restore(self):
+        """The restore writes back what the snapshot holds, and a property
+        that could not be read has no value to write. Inventing one would
+        be this app deciding what an option it cannot read should be."""
+        del self.pm._player.hdr_peak_percentile
+        self.user_mpv_conf()
+        self.setting("render_quality", "high")
+        self.play()
+        with mock.patch.object(player_module.settings,
+                               "render_quality", "default"):
+            self.play()
+        self.assertEqual(self.pm._player.scale, "lanczos")
+        self.assertFalse(hasattr(self.pm._player, "hdr_peak_percentile"))
 
 
 if __name__ == "__main__":

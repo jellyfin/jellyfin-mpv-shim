@@ -65,6 +65,18 @@ picked was the wrong one or whether the control does nothing.
 | `reader_font_size`, `reader_theme`, `reader_justify` | re-read every frame by the reader |
 | `comic_fit` | read per call |
 
+### Applies to the next thing you play
+
+Neither live nor restart, and worth its own row because "restart to apply" would
+be wrong in the direction that makes users restart for nothing.
+
+| setting(s) | how |
+|---|---|
+| `hwdec` | `_play_media` writes it per item |
+| `deinterlace_auto` | `_apply_deinterlace`, per item |
+| `motion_interpolation`, `deband`, `tone_mapping`, `render_quality` | `_apply_render_presets`, per item |
+| `network_buffer` | per item, and it could not be sooner — the demuxer reads those options when it opens a file |
+
 ### Needs a restart
 
 | setting(s) | why |

@@ -385,6 +385,7 @@ class VideoProfileManager:
             log.info("Set shaders: {0}".format(shaders_to_apply))
             self.player.glsl_shaders = shaders_to_apply
             self.current_profile = profile_name
+            self._reassert_user_settings()
             return True
         except MPVSettingError:
             log.error("Could not apply shader profile.", exc_info=True)
@@ -758,6 +759,27 @@ class VideoProfileManager:
                     "Default setting {0} value {1} is invalid.".format(setting, value)
                 )
         self.current_profile = None
+        self._reassert_user_settings()
+
+    def _reassert_user_settings(self):
+        """Give the preset-driven settings the last word after a profile
+        load or unload.
+
+        The pack and these settings write some of the same properties --
+        ``deband`` above all, which every profile turns on through
+        ``default-setting-groups`` and every unload turns back off. The
+        settings are the user's explicit answer and the pack's are a bundle
+        that came along with picking an upscaler, so the settings win; a
+        setting left at "off" writes nothing and the pack's value stands.
+
+        Guarded rather than trusted: the profile has already been applied by
+        the time this runs, and failing to reassert a preference must not
+        turn a working profile load into an error the menu reports.
+        """
+        try:
+            self.playerManager.reapply_render_presets()
+        except Exception:
+            log.debug("could not reassert the picture settings", exc_info=True)
 
     def profile_label(self, profile_name):
         """What a profile is called on screen, or "not set"/"none" for the

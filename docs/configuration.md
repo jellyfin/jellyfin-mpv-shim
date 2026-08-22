@@ -160,6 +160,78 @@ You can adjust the basic transcoder settings via the menu.
   - The playback HUD's *Playback Info* panel reports dropped frames, split
       into decoder and output. Output drops are the ones this causes.
   - Takes effect on the next thing you play, like `hwdec`.
+- `deband` - Smooth the blocky steps that appear in gradients. Default: `off`
+  - Values: `off`, `light`, `standard`, `strong`.
+  - Banding is the visible stepping in a smooth gradient — a sky, a fade to
+      black, a dark scene — left behind when a gradient that needed more
+      precision than the file carries is quantized. Debanding detects those
+      flat regions and dithers across them.
+  - **Animation benefits most**, because flat gradients are most of the
+      picture. Live action is largely unaffected: the filter only acts where
+      neighbouring samples fall within `deband-threshold`, and detailed or
+      grainy footage fails that test almost everywhere. `strong` is the one
+      that can visibly soften genuinely fine, low-contrast texture, which is
+      why the ladder is labelled by content rather than by quality.
+  - It is **not free on content it does nothing for**: each iteration is a
+      GPU pass, which is worth knowing on integrated graphics or a
+      single-board machine at 4K.
+  - What each preset writes (mpv's own defaults are threshold 48, range 16,
+      grain 32, one iteration):
+
+    | | iterations | threshold | range | grain |
+    |---|---|---|---|---|
+    | `light` | 1 | 32 | 12 | 16 |
+    | `standard` | 2 | 48 | 16 | 24 |
+    | `strong` | 4 | 64 | 20 | 32 |
+
+  - The parameters are deliberately not exposed individually. **Leave this
+      at `off` and set the `deband*` options in your own `mpv.conf` if you
+      want a specific combination** — `off` writes nothing at all, so your
+      values are left exactly as you set them. That is true of every setting
+      in this group.
+  - The shader pack also enables debanding, through the `deband-default`
+      group that every shader profile pulls in — so before this setting
+      existed, debanding arrived bundled with picking an upscaler and left
+      again when you unloaded one. This setting outranks the pack's while it
+      is not `off`, and is reasserted whenever a profile is loaded or
+      unloaded.
+  - Takes effect on the next thing you play, like `hwdec`.
+- `tone_mapping` - How HDR video is fitted to an SDR display. Default: `auto`
+  - Values: `auto`, `bt.2390`, `bt.2446a`, `spline`, `hable`, `reinhard`,
+      `clip`. These are mpv's `--tone-mapping` curves, and they are different
+      trades rather than a quality ladder, which is why they are not renamed
+      here.
+  - **This does nothing when HDR is being passed through to an HDR
+      display**, because in that case mpv is not tone mapping at all. See
+      `target-colorspace-hint` handling in `player_window.py`.
+  - `auto` leaves mpv's own choice alone and writes nothing. `bt.2390` is the
+      reference curve. `clip` does no tone mapping and simply clips out-of-
+      range highlights — worth trying if HDR films look grey and flat rather
+      than merely dark.
+- `render_quality` - Apply mpv's own high-quality rendering preset.
+      Default: `default`
+  - Values: `default`, `high`.
+  - `high` writes what mpv's `high-quality` profile sets: `scale=ewa_lanczossharp`,
+      `scale-antiring=0.6`, `hdr-peak-percentile=99.995` and
+      `hdr-contrast-recovery=0.30`. (mpv's `gpu-hq` is now just an alias for
+      that profile, and neither includes debanding.)
+  - A middle tier between mpv's defaults and the shader pack: better
+      upscaling for some GPU cost, no shader files, and it does not use up
+      your single shader profile. Try it before the shader pack.
+  - It is written as individual properties rather than as
+      `profile=high-quality` because mpv cannot report what a profile
+      contained, so a profile can be applied and never taken back — which
+      would make this a setting that only turns on. The last two options
+      need **mpv 0.37 or newer**; on an older build they are skipped and the
+      scaling half still applies.
+- `network_buffer` - How far ahead of playback to read. Default: `default`
+  - Values: `default`, `large` (20s readahead, 400 MiB), `huge` (60s, 1 GiB).
+  - mpv's own readahead is **one second**, which is short for a server
+      reached over the internet or a congested link. Raise this if playback
+      stalls to buffer. Larger buffers cost memory and make the first
+      seconds of a file slower to start.
+  - Read by the demuxer when it opens a file, so a change lands on the next
+      thing you play — and so does turning it back down.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile

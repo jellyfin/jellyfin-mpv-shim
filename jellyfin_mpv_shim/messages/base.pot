@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-21 11:10-0400\n"
+"POT-Creation-Date: 2026-08-22 14:28-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1252,6 +1252,66 @@ msgid "Smooth (high quality)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Light (live action)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Standard (animation)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Strong"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Automatic (MPV decides)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2390 (reference)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2446a"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Spline"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hable"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Reinhard"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Clip (no tone mapping)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "MPV default"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "High quality"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "MPV default (1 second)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Large (20 seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Very large (60 seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
 msgstr ""
 
@@ -1513,6 +1573,22 @@ msgid "Motion Interpolation"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Debanding"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "HDR Tone Mapping"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Rendering Quality"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Network Buffer"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
 msgstr ""
 
@@ -1770,6 +1846,43 @@ msgid ""
 "something that is interlaced without saying so, use Deinterlace in the "
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Smooths the blocky steps that appear in gradients — skies, dark scenes, "
+"fades. Animation benefits most, because flat gradients are most of the "
+"picture; live action is largely unaffected either way, though a strong "
+"setting can soften genuinely fine detail. Costs GPU work whatever the "
+"content, which is worth knowing on a small or older machine. Leave this Off "
+"if you set the deband options in mpv.conf yourself — Off writes nothing at "
+"all, so your values are left alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How HDR video is fitted to an SDR display. This does nothing when HDR is "
+"being passed through to an HDR display, because no tone mapping is happening "
+"to change. Leave it on Automatic unless HDR films look wrong to you; BT.2390 "
+"is the reference curve, and Clip is what to try if highlights look grey "
+"rather than bright."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"High quality applies the same options as MPV's own high-quality preset: "
+"better upscaling and HDR handling, at some GPU cost. It needs no shader "
+"files and does not use up your shader profile, so it is the thing to try "
+"before the shader pack below."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How far ahead of playback to read. MPV's default is one second, which is "
+"short for a server reached over the internet or a slow connection — raise "
+"this if playback stalls to buffer. Larger buffers use more memory and make "
+"the first few seconds of a file slower to start. Applies to the next thing "
+"you play."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

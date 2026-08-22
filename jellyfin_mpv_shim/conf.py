@@ -168,6 +168,37 @@ class Settings(SettingsBase):
     #: dropping frames badly on exactly such a desktop.
     #: See docs/mpv-backends.md section 10.
     motion_interpolation: str = "off"
+    #: Debanding -- ``off``, ``light``, ``standard`` or ``strong``. See
+    #: mpv_options.DEBAND_PRESETS for what each writes.
+    #:
+    #: **Off by default, and off writes nothing at all**, which is what
+    #: makes "leave this off and tune deband in mpv.conf" a supported
+    #: configuration rather than a setting fighting a config file. It is
+    #: also why there is no mpv.conf pin here of the kind ``hwdec`` needs:
+    #: hwdec's off is a real value (``no``) that has to be written, so
+    #: silence was not available to it.
+    #:
+    #: Debanding is not free on live action even though it mostly no-ops
+    #: there -- it costs a GPU pass per iteration, which is felt on the
+    #: integrated and embedded hardware this app is often run on. Anime is
+    #: where flat gradients make it worth paying for, which is why the
+    #: preset labels name the content rather than the strength.
+    #: See docs/mpv-backends.md section 10.
+    deband: str = "off"
+    #: The HDR-to-SDR tone mapping curve, or ``auto`` to leave mpv's own
+    #: choice alone. **Inert while HDR is being passed through to an HDR
+    #: display** -- there is no tone mapping happening to influence. See
+    #: mpv_options.TONE_MAPPING_PRESETS.
+    tone_mapping: str = "auto"
+    #: ``high`` writes what mpv's own ``high-quality`` profile sets; the
+    #: default writes nothing. A middle tier between mpv's defaults and a
+    #: shader profile: better scaling, no shader files, and it does not
+    #: spend the single shader-profile slot.
+    render_quality: str = "default"
+    #: Demuxer readahead. mpv's default is one second, which is short for a
+    #: file arriving from a remote server over a slow link. See
+    #: mpv_options.BUFFER_PRESETS.
+    network_buffer: str = "default"
     always_transcode: bool = False
     transcode_hi10p: bool = False
     transcode_hdr: bool = False

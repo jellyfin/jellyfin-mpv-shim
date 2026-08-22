@@ -162,7 +162,8 @@ TAB_SECTIONS = {
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
                                 "mouse_chapter_nav", "mouse_click_pauses",
                                 "trickplay_fast_mode"]),
-        (_("Playback"), ["auto_play", "hwdec", "always_transcode",
+        (_("Playback"), ["auto_play", "hwdec", "network_buffer",
+                         "always_transcode",
                          "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
         # Passthrough keys are listed in full here; sections() drops the
@@ -185,7 +186,14 @@ TAB_SECTIONS = {
                             "transcode_4k", "transcode_hdr",
                             "transcode_hi10p", "transcode_dolby_vision",
                             "force_video_codec", "force_audio_codec"]),
-        (_("Video Enhancement"), ["shader_pack_enable",
+        # Debanding and rendering quality lead, ahead of the shader pack:
+        # they are the two answers that cost nothing to try and do not
+        # spend the single shader-profile slot. Somebody arriving here
+        # because anime looks blocky wants the first row, not a decision
+        # about upscalers.
+        (_("Video Enhancement"), ["deband", "render_quality",
+                                  "tone_mapping",
+                                  "shader_pack_enable",
                                   "shader_pack_subtype",
                                   "shader_pack_remember",
                                   "shader_pack_gpu_api",
@@ -251,6 +259,47 @@ LABELED_ENUMS = {
         (_("Smooth Motion"), "smooth"),
         (_("Blend Frames"), "blend"),
         (_("Smooth (high quality)"), "hq"),
+    ],
+    # Named for the content, not the strength: the numbers behind these
+    # (mpv_options.DEBAND_PRESETS) mean nothing to anyone who has not read
+    # mpv's manual, whereas "my anime looks blocky" is exactly why somebody
+    # is on this row. "Off" is shared with motion_interpolation's, which is
+    # the same sense and so the same catalogue entry on purpose.
+    #
+    # None of these may be spelled "Light" or "Standard" alone: gettext keys
+    # on the English, `_("Light")` is already the reader's light THEME, and
+    # collapsing the two would make them one entry no language could tell
+    # apart. See docs/i18n.md section 6.
+    "deband": [
+        (_("Off"), "off"),
+        (_("Light (live action)"), "light"),
+        (_("Standard (animation)"), "standard"),
+        (_("Strong"), "strong"),
+    ],
+    # MPV's own vocabulary rather than invented names, because these are
+    # different curves and not a strength ladder -- there is no honest way
+    # to order them. "Automatic" alone is already the SVP profile and the
+    # automatic download group, so this one says what it is automatic about.
+    "tone_mapping": [
+        (_("Automatic (MPV decides)"), "auto"),
+        (_("BT.2390 (reference)"), "bt.2390"),
+        (_("BT.2446a"), "bt.2446a"),
+        (_("Spline"), "spline"),
+        (_("Hable"), "hable"),
+        (_("Reinhard"), "reinhard"),
+        (_("Clip (no tone mapping)"), "clip"),
+    ],
+    # "MPV default" rather than "Default", which is already a stream flag
+    # and a scrim style.
+    "render_quality": [
+        (_("MPV default"), "default"),
+        (_("High quality"), "high"),
+    ],
+    # Not "Default"/"Large" either -- "Large" is already a cover size.
+    "network_buffer": [
+        (_("MPV default (1 second)"), "default"),
+        (_("Large (20 seconds)"), "large"),
+        (_("Very large (60 seconds)"), "huge"),
     ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
@@ -395,6 +444,10 @@ LABEL_OVERRIDES = {
     "hwdec": _("Hardware Decoding"),
     "deinterlace_auto": _("Deinterlace Automatically"),
     "motion_interpolation": _("Motion Interpolation"),
+    "deband": _("Debanding"),
+    "tone_mapping": _("HDR Tone Mapping"),
+    "render_quality": _("Rendering Quality"),
+    "network_buffer": _("Network Buffer"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
     "auto_download_next_up_limit": _("Next Up Entries to Consider"),
@@ -531,6 +584,35 @@ NOTES = {
         "force it on for something that is interlaced without saying so, use "
         "Deinterlace in the player's settings menu, which lasts until you "
         "return to the library. Needs MPV 0.38 or newer."),
+    # Three things a user would otherwise report as a bug: that it is off
+    # by default, that it is not free on the hardware this app often runs
+    # on, and that leaving it off is how you keep your own mpv.conf values.
+    "deband": _(
+        "Smooths the blocky steps that appear in gradients — skies, dark "
+        "scenes, fades. Animation benefits most, because flat gradients are "
+        "most of the picture; live action is largely unaffected either way, "
+        "though a strong setting can soften genuinely fine detail. Costs GPU "
+        "work whatever the content, which is worth knowing on a small or "
+        "older machine. Leave this Off if you set the deband options in "
+        "mpv.conf yourself — Off writes nothing at all, so your values are "
+        "left alone."),
+    "tone_mapping": _(
+        "How HDR video is fitted to an SDR display. This does nothing when "
+        "HDR is being passed through to an HDR display, because no tone "
+        "mapping is happening to change. Leave it on Automatic unless HDR "
+        "films look wrong to you; BT.2390 is the reference curve, and Clip "
+        "is what to try if highlights look grey rather than bright."),
+    "render_quality": _(
+        "High quality applies the same options as MPV's own high-quality "
+        "preset: better upscaling and HDR handling, at some GPU cost. It "
+        "needs no shader files and does not use up your shader profile, so "
+        "it is the thing to try before the shader pack below."),
+    "network_buffer": _(
+        "How far ahead of playback to read. MPV's default is one second, "
+        "which is short for a server reached over the internet or a slow "
+        "connection — raise this if playback stalls to buffer. Larger "
+        "buffers use more memory and make the first few seconds of a file "
+        "slower to start. Applies to the next thing you play."),
     "motion_interpolation": _(
         "Frame blending (blends frames together, not the same as "
         "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "

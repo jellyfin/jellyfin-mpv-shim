@@ -104,6 +104,14 @@ class DocsCoverageTest(unittest.TestCase):
             "off", "ask",
             # motion_interpolation values
             "smooth", "blend", "hq",
+            # deband values
+            "light", "standard", "strong",
+            # tone_mapping values ("auto" above)
+            "bt.2390", "bt.2446a", "spline", "hable", "reinhard", "clip",
+            # render_quality values ("default" above)
+            "high",
+            # network_buffer values ("default" above)
+            "large", "huge",
             # mpv_log_level values (mpv's own, plus our "noise")
             "noise",
             # language_config rule keys

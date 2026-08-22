@@ -452,6 +452,31 @@ class FakeMPV:
         self.interpolation = False
         self.video_sync = "audio"
         self.tscale = "oversample"
+        # The rest of the preset-driven settings (mpv_options.PRESET_SETTINGS),
+        # at the values mpv itself starts them at -- measured from
+        # `mpv --list-options` on 0.41 and pinned by
+        # tests/test_picture_processing.py, so a fake that drifts from mpv
+        # is caught in one place rather than here.
+        #
+        # These are read before they are written, exactly like `video_sync`
+        # above, and the consequence of omitting one is worse than a missing
+        # write: `_apply_render_preset` skips any property absent from the
+        # pristine snapshot (that is how it tolerates an older mpv build), so
+        # a fake missing `deband` would make every deband test assert against
+        # a setting that was never applied, and pass.
+        self.deband = False
+        self.deband_iterations = 1
+        self.deband_threshold = 48.0
+        self.deband_range = 16.0
+        self.deband_grain = 32.0
+        self.tone_mapping = "auto"
+        self.scale = "lanczos"
+        self.scale_antiring = 0.0
+        self.hdr_peak_percentile = 0.0
+        self.hdr_contrast_recovery = 0.0
+        self.demuxer_max_bytes = 150 * 1024 * 1024
+        self.demuxer_max_back_bytes = 50 * 1024 * 1024
+        self.demuxer_readahead_secs = 1.0
         self.loop_file = "no"
         self.secondary_sid = "no"
         self.http_header_fields = []
@@ -1073,14 +1098,23 @@ def build_player(player_module, video=None):
     # skipped branch -- it is an AttributeError out of every mpv creation.
     pm._gamepad_works = None
 
-    # Picture processing. Both are read BEFORE they are written -- the
-    # deinterlace override on every load, the saved video-sync the first
-    # time interpolation is turned on -- so a build_player without them
+    # Picture processing. All of these are read BEFORE they are written --
+    # the deinterlace override on every load, the pristine snapshot the
+    # first time any preset is turned off -- so a build_player without them
     # does not skip a write, it raises into `_play_media`'s broad except
     # and leaves the whole feature untested and green.
     pm._deinterlace_override = None
-    pm._interp_saved = None
     pm._no_deinterlace_auto = False
+    pm._render_written = set()
+    # The real player snapshots this in `_init_mpv`, which build_player
+    # deliberately does not run. Taking it here, from a FakeMPV nothing has
+    # written to yet, is the same claim: "the values before any setting or
+    # shader profile touched them". Leaving it empty would NOT be a neutral
+    # stand-in -- `_apply_render_preset` reads an empty snapshot as "this
+    # mpv was never probed" and writes every property regardless, so a test
+    # for the restore would silently exercise the wrong branch.
+    pm._render_pristine = {}
+    pm._snapshot_render_pristine()
 
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
