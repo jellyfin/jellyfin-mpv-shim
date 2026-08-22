@@ -255,6 +255,132 @@ class RestartRequiredSetTest(unittest.TestCase):
         self.assertNotIn("deinterlace_auto", config.RESTART_REQUIRED)
 
 
+class ArmingTest(unittest.TestCase):
+    """The gateway's half: arm, then quit -- and disarm if the quit did not
+    happen.
+
+    Written against the REAL gateway rather than a stand-in controller,
+    because the stand-in is what let this ship untested: every UI test
+    called a fake `restart_app` that returned True, so nothing exercised the
+    method that actually has to arm anything.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim import restart
+
+        restart.cancel()
+        self.addCleanup(restart.cancel)
+
+    def _gateway(self):
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import PlayerGateway
+
+        return PlayerGateway()
+
+    def _reconstructable(self):
+        """Pin `command()` so these tests are about arming rather than about
+        whatever argv the test runner happens to have.
+
+        Not incidental: `supported()` really is environment-dependent -- it
+        is answering "can this particular launch be rebuilt" -- and a test
+        that inherited the runner's argv would pass or fail for reasons that
+        have nothing to do with the code under it. (It failed exactly that
+        way when first written, which is the argument for the patch rather
+        than against the design.)
+        """
+        from jellyfin_mpv_shim import restart
+
+        patcher = mock.patch.object(restart, "command",
+                                    return_value=["/usr/bin/python3", "app"])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_the_real_gateway_arms_and_quits(self):
+        from jellyfin_mpv_shim import restart
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        self._reconstructable()
+        quits = []
+        with mock.patch.object(ui.user_interface, "quit_app",
+                               side_effect=lambda: quits.append(1) or True):
+            self.assertTrue(self._gateway().restart_app())
+        self.assertEqual(len(quits), 1)
+        self.assertTrue(restart.requested())
+
+    def test_a_quit_that_does_nothing_disarms_the_restart(self):
+        """`quit_app` returns False when no shutdown callback is wired, and
+        it fails *quietly* -- so an except clause cannot see it. Left armed,
+        the flag would relaunch the app on the user's next ordinary quit,
+        minutes later, in a session with nothing to do with this button."""
+        from jellyfin_mpv_shim import restart
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        self._reconstructable()
+        with mock.patch.object(ui.user_interface, "quit_app",
+                               return_value=False):
+            self.assertFalse(self._gateway().restart_app())
+        self.assertFalse(restart.requested())
+
+    def test_a_quit_that_raises_disarms_the_restart(self):
+        from jellyfin_mpv_shim import restart
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        self._reconstructable()
+        with mock.patch.object(ui.user_interface, "quit_app",
+                               side_effect=RuntimeError("no")):
+            self.assertFalse(self._gateway().restart_app())
+        self.assertFalse(restart.requested())
+
+    def test_nothing_is_armed_when_the_launch_cannot_be_rebuilt(self):
+        from jellyfin_mpv_shim import restart
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        with mock.patch.object(restart, "command", return_value=None), \
+                mock.patch.object(ui.user_interface, "quit_app") as quit_app:
+            self.assertFalse(self._gateway().restart_app())
+        quit_app.assert_not_called()
+        self.assertFalse(restart.requested())
+
+    def test_arming_says_so_in_the_log(self):
+        """The shutdown sequence is byte-for-byte identical whether or not a
+        restart is coming, so without this line a log cannot distinguish
+        "the restart did not fire" from "the restart was never armed" --
+        which is the whole question when somebody reports it not working."""
+        from jellyfin_mpv_shim import restart
+
+        with self.assertLogs("restart", level="INFO") as caught:
+            restart.request()
+        self.assertTrue(any("Restart armed" in m for m in caught.output),
+                        caught.output)
+
+
+class QuitReportsWhetherItWorkedTest(unittest.TestCase):
+    def test_quit_app_answers_false_with_nothing_wired(self):
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        with mock.patch.object(ui.user_interface, "stop_callback", None):
+            self.assertFalse(ui.user_interface.quit_app())
+
+    def test_quit_app_answers_true_once_it_has_fired(self):
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        fired = []
+        with mock.patch.object(ui.user_interface, "stop_callback",
+                               lambda: fired.append(1)):
+            self.assertTrue(ui.user_interface.quit_app())
+        self.assertEqual(len(fired), 1)
+
+    def test_the_trays_quit_still_goes_through_the_same_door(self):
+        """`_quit` is what the tray menu is wired to. It delegates now, so a
+        future change to one path cannot leave the other behind."""
+        from jellyfin_mpv_shim.mpvtk_browser import ui
+
+        fired = []
+        with mock.patch.object(ui.user_interface, "stop_callback",
+                               lambda: fired.append(1)):
+            ui.user_interface._quit()
+        self.assertEqual(len(fired), 1)
+
+
 class ShutdownOrderTest(unittest.TestCase):
     """Where the relaunch sits in ``mpv_shim.main``.
 

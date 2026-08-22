@@ -136,22 +136,29 @@ class DiagnosticsMixin(GatewayCore):
         Returns False if it could not be started, so the caller can say so
         rather than leaving the user looking at an app that did not quit.
         """
-        from ...restart import request, supported
+        from ...restart import cancel, request, supported
 
         if not supported():
+            log.error("Restart asked for, but this launch cannot be "
+                      "reconstructed; not quitting.")
             return False
         request()
+        started = False
         try:
             from ..ui import user_interface
 
-            user_interface.quit_app()
+            started = user_interface.quit_app()
         except Exception:
-            # Nothing has gone away yet -- the flag is set but the shutdown
-            # never started -- so disarm it. Leaving it armed would turn the
-            # user's NEXT ordinary quit into a surprise restart.
-            from ...restart import cancel
-
-            cancel()
             log.exception("could not start the restart")
+        if not started:
+            # The flag is set but the shutdown never began, so disarm it.
+            # Leaving it armed would turn the user's NEXT ordinary quit into
+            # a surprise relaunch -- a bug that would surface minutes later,
+            # in a session that had nothing to do with this button.
+            #
+            # Checked on the RETURN VALUE, not just on an exception: quitting
+            # with no shutdown callback wired fails quietly, which is exactly
+            # the case an except clause cannot see.
+            cancel()
             return False
         return True

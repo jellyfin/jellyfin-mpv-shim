@@ -126,10 +126,17 @@ def request():
     """
     global _requested
     _requested = True
+    # Logged, and at INFO. Without it a restart that does not happen is
+    # indistinguishable in the log from an ordinary quit -- the shutdown
+    # sequence is identical and the only difference is one boolean nobody
+    # can see. That ambiguity cost a debugging session.
+    log.info("Restart armed; it will happen after the shutdown completes.")
 
 
 def cancel():
     global _requested
+    if _requested:
+        log.info("Restart disarmed.")
     _requested = False
 
 
@@ -146,6 +153,7 @@ def relaunch_if_requested():
     change nothing else.
     """
     if not _requested:
+        log.debug("No restart was requested; exiting normally.")
         return False
     cmd = command()
     if cmd is None:

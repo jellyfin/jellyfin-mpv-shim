@@ -132,8 +132,7 @@ class UserInterface:
         PlayerGateway().open_config_folder()
 
     def _quit(self):
-        if self.stop_callback is not None:
-            self.stop_callback()
+        self.quit_app()
 
     def quit_app(self):
         """Shut the application down, from outside the tray.
@@ -143,8 +142,21 @@ class UserInterface:
         the end of it (restart.py) -- and reaching in for a private method
         from another module is how that stops working the day this class is
         rearranged.
+
+        **Returns whether a shutdown was actually started.** The caller that
+        armed a restart has to know: a quit that silently did nothing would
+        leave the flag set, and the user's next ordinary quit would then
+        relaunch the app out of nowhere. It is not a theoretical state --
+        `stop_callback` is wired by `mpv_shim.main` a few lines after the UI
+        is started, and anything driving this class outside that (a test, an
+        embedding) may never wire it at all.
         """
-        self._quit()
+        if self.stop_callback is None:
+            log.error("Asked to quit with no shutdown callback wired; "
+                      "nothing to do.")
+            return False
+        self.stop_callback()
+        return True
 
     def _can_run_windowless(self):
         """True if the app may keep running with no window on screen.
