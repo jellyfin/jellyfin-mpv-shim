@@ -109,6 +109,33 @@ be wrong in the direction that makes users restart for nothing.
 
 ### Needs a restart
 
+`config.RESTART_REQUIRED` is this list as data, and `settings/base.py`'s
+`_set_setting` raises the restart banner when a key in it is written to a value
+that differs from the one it had (compared *after* coercion, so re-submitting an
+unchanged text field is not a change). The banner names the settings, offers
+**Restart Now** where `restart.supported()` says the launch can be
+reconstructed, and **Later** always.
+
+Three rules for editing that set:
+
+- **Under-listing is the safe direction.** A missing key costs a banner nobody
+  sees; a key wrongly in the set asks somebody to restart for a change that had
+  already taken effect, which teaches them to ignore the banner.
+- **It is not the complement of the live-apply list.** The "next thing you
+  play" group above is neither, and a restart banner for `deband` or `hwdec`
+  would be asking for a restart that is not needed.
+- **A setting whose whole subject is startup is not pending.** `start_minimized`
+  and the tray pair have already taken full effect the moment they are saved;
+  there is nothing waiting on a restart.
+
+The restart itself is `restart.py`, and the one thing to know about it is
+*where* it happens: at the very end of `mpv_shim.main`'s `finally`, after
+`single.release()`. Started any earlier, the new copy finds the instance lock
+still held, hands off to the process that is exiting, and quits — so the restart
+looks like a plain quit. `tests/test_restart.py` pins that ordering, and pins
+the argv rebuild, which is an allowlist so that `--password` from a one-off
+`--server` login can never reappear on a launch the user did not type.
+
 | setting(s) | why |
 |---|---|
 | `ui_scale` | the whole interface geometry is derived once |

@@ -110,3 +110,48 @@ class DiagnosticsMixin(GatewayCore):
                 subprocess.Popen(["xdg-open", path])
         except Exception:
             log.error("could not open config folder %s", path, exc_info=True)
+
+    @staticmethod
+    def can_restart():
+        """Whether a restart can be performed, asked before offering one.
+
+        Before anything is shut down, deliberately: a machine where the
+        launch cannot be reconstructed gets a banner saying "restart to
+        apply" instead of a button that takes the app away and does not
+        bring it back.
+        """
+        from ...restart import supported
+
+        return supported()
+
+    def restart_app(self):
+        """Restart the whole application.
+
+        Arms the relaunch and then triggers the **ordinary** shutdown --
+        which is what saves the window geometry, posts the final progress
+        report and releases the single-instance lock before the new copy
+        starts. The relaunch itself is the last thing `mpv_shim.main` does;
+        see restart.py for why it is there and not here.
+
+        Returns False if it could not be started, so the caller can say so
+        rather than leaving the user looking at an app that did not quit.
+        """
+        from ...restart import request, supported
+
+        if not supported():
+            return False
+        request()
+        try:
+            from ..ui import user_interface
+
+            user_interface.quit_app()
+        except Exception:
+            # Nothing has gone away yet -- the flag is set but the shutdown
+            # never started -- so disarm it. Leaving it armed would turn the
+            # user's NEXT ordinary quit into a surprise restart.
+            from ...restart import cancel
+
+            cancel()
+            log.exception("could not start the restart")
+            return False
+        return True

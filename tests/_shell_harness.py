@@ -682,6 +682,22 @@ class FakeController:
         self.picture_views = []
         self.pictures_cleared = 0
         self.picture_views_reset = 0
+        #: The restart seam. Both halves are modelled and both are
+        #: settable, because the two answers the UI has to get right are
+        #: "this machine cannot restart itself" (offer a notice, not a
+        #: button) and "the restart would not start" (say so rather than
+        #: leave the user looking at an app that did not quit). A fake
+        #: hardcoding success could show neither.
+        self.restarts = 0
+        self.restart_ok = True
+        self.restart_possible = True
+
+    def can_restart(self):
+        return self.restart_possible
+
+    def restart_app(self):
+        self.restarts += 1
+        return self.restart_ok
 
     def show_picture(self, path):
         self.pictures.append(path)
@@ -1025,6 +1041,14 @@ class FakeConfig:
     #: ordinary -- the disclosure then never renders and the test named
     #: after it passes against a form that has no disclosure at all.
     ADVANCED_GROUPS = frozenset({"Advanced"})
+
+    #: Settings that only apply at the next launch. Modelled because the
+    #: write path reads it to decide whether to raise the restart banner:
+    #: a stand-in without it makes every write look live, and every test of
+    #: the banner would then be asserting against a screen that can never
+    #: show one. `player_name` is in the real set for the real reason (the
+    #: servers are told the device name at client construction).
+    RESTART_REQUIRED = frozenset({"player_name"})
 
     #: Which tabs carry the config form, and therefore which ones offer the
     #: search box. Modelled because the renderer reads it to decide whether

@@ -373,6 +373,17 @@ def main():
                 log.exception("Error shutting down %s", name)
         log.info("Shutdown complete.")
         exit_watchdog.finish()
+        # Last, and after `single.release` above: a fresh copy started any
+        # earlier would find the lock still held, hand off to the process
+        # that is exiting, and quit -- so the restart would look like a
+        # plain quit. See restart.py for why this is a relaunch at the end
+        # of the ordinary exit rather than an exec from the button.
+        #
+        # After `exit_watchdog.finish()` too, so the new process is never
+        # started by a run the watchdog is about to kill.
+        from . import restart
+
+        restart.relaunch_if_requested()
 
 
 if __name__ == "__main__":

@@ -419,8 +419,30 @@ def history_menu_node(b):
 
 
 def banner(b):
-    # Update first: the offline banner is persistent, so checking it
-    # first meant an update notice was never seen while offline.
+    # Restart first, ahead of both the others, and the ordering is the
+    # argument: this one is about something the user did seconds ago and is
+    # dismissed the moment they act on it, while the update notice and the
+    # offline indicator are standing conditions that will still be there
+    # afterwards. Put third, it would have been invisible to exactly the
+    # people most likely to be changing settings -- anyone offline.
+    if getattr(b, "_restart_keys", None):
+        cfg = b._config()
+        names = sorted(cfg.label_for(k) for k in b._restart_keys)
+        # Named, not counted. "2 settings need a restart" makes the user
+        # go looking for which two, and the answer is not on screen once
+        # they have left the tab.
+        row = [Text(_("Restart to apply: %s") % ", ".join(names),
+                    size="normal", wrap=True),
+               Spacer()]
+        if b.can_restart():
+            row.append(Button(_("Restart Now"), id="banner-restart",
+                              on_click=b._restart_now))
+        row.append(Button(_("Later"), id="banner-restart-dismiss",
+                          on_click=b._dismiss_restart))
+        return Row(row, pad=10, gap=10, align="center", h=48,
+                   bg=theme.ACCENT_SOFT)
+    # Update before offline: the offline banner is persistent, so checking
+    # it first meant an update notice was never seen while offline.
     if b._update:
         return Row([
             Text(_("Update available: %s") % b._update["version"],

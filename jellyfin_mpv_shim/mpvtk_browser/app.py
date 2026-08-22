@@ -266,6 +266,16 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Settings changed in this session that need a restart before they
+        # do anything (config.RESTART_REQUIRED). Keys, not labels, so the
+        # banner can translate them at draw time -- and a set, so changing
+        # the same one twice is still one entry.
+        #
+        # Session state on purpose, not persisted: a restart clears it by
+        # definition, and a quit that is not a restart still applies
+        # everything at the next launch. Carrying it across launches would
+        # mean the banner outlived the thing it was about.
+        self._restart_keys = set()
         # Client-side decorations: draw our own title bar because the desktop
         # is not drawing one. Pushed by refresh_window_controls rather than
         # read per frame -- the answer is an mpv property, and on the jsonipc
@@ -2919,6 +2929,63 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _dismiss_update(self):
         self._update = None
         self.invalidate()
+
+    def note_restart_needed(self, key):
+        """Remember that ``key`` will not do anything until a restart."""
+        self._restart_keys.add(key)
+        self.invalidate()
+
+    def _dismiss_restart(self):
+        """Put the banner away without restarting.
+
+        The settings are still saved and still pending -- this only stops
+        saying so, which is why the button is "Later" rather than
+        "Dismiss". Changing another restart-required setting afterwards
+        raises it again, naming that one: the user is being told about a
+        new decision, not nagged about the one they answered.
+        """
+        self._restart_keys = set()
+        self.invalidate()
+
+    def can_restart(self):
+        """Whether to offer a Restart button rather than only a notice.
+
+        Asked at draw time and answered by the controller, so a stand-in
+        without the method (and a machine where the launch cannot be
+        reconstructed) both fall back to the notice. False is the safe
+        answer: a button that takes the app away and does not bring it back
+        is worse than no button.
+        """
+        can = getattr(self.controller, "can_restart", None) if self.controller else None
+        if can is None:
+            return False
+        try:
+            return bool(can())
+        except Exception:
+            log.debug("could not ask whether a restart is possible",
+                      exc_info=True)
+            return False
+
+    def _restart_now(self):
+        """Restart the app. The banner's button.
+
+        The keys are NOT cleared here. If the restart fails to start, the
+        settings are still pending and the banner still has something true
+        to say -- clearing first would have left the user with a working app,
+        an unapplied setting and nothing on screen about either.
+        """
+        ok = False
+        if self.controller is not None:
+            restart = getattr(self.controller, "restart_app", None)
+            if restart is not None:
+                try:
+                    ok = bool(restart())
+                except Exception:
+                    log.exception("could not restart")
+        if not ok:
+            self.set_status(_("Could not restart automatically — quit and "
+                              "start the app again to apply your changes."))
+            self.invalidate()
 
     def _open_url(self, url):
         if self.controller is not None and url:

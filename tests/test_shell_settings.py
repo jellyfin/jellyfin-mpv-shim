@@ -500,6 +500,114 @@ class TestSettingsSearch(unittest.TestCase):
         self.assertNotIn("settings", ids(nodes))
 
 
+class TestRestartBanner(unittest.TestCase):
+    """Settings that do nothing until the app is started again.
+
+    The failure this replaces is silent: the value is saved, the form says
+    "Saved", and nothing whatsoever happens -- which is indistinguishable
+    from a broken control.
+    """
+
+    def setUp(self):
+        self.cfg = FakeConfig()
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg,
+                              controller=self.ctl)
+        self.b._open_settings()
+
+    def _texts(self, nodes):
+        return " ".join(n.get("text", "") for n in nodes if n.get("text"))
+
+    def _change_a_restart_setting(self, value="Rename"):
+        nodes, handlers = build_scene(self.b)
+        handlers["set-player_name"]["submit"](value)
+        return build_scene(self.b)
+
+    def test_no_banner_before_anything_changes(self):
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_changing_a_restart_setting_raises_the_banner(self):
+        nodes, _h = self._change_a_restart_setting()
+        self.assertIn("banner-restart", ids(nodes))
+
+    def test_the_banner_names_the_setting(self):
+        """Named, not counted: "2 settings need a restart" makes the user go
+        looking for which two, and the answer is not on screen once they
+        have left the tab."""
+        nodes, _h = self._change_a_restart_setting()
+        self.assertIn(self.cfg.label_for("player_name"), self._texts(nodes))
+
+    def test_a_live_setting_raises_nothing(self):
+        """The half that keeps the banner worth reading. Most settings apply
+        immediately, and a banner after every write would be furniture."""
+        nodes, handlers = build_scene(self.b)
+        handlers["set-lang"]["select"](1, "Dubbed")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_rewriting_the_same_value_is_not_a_change(self):
+        """`on_commit` fires when a field loses focus, whether or not
+        anything was typed -- so this is the ordinary case of clicking from
+        one row to the next, and it must not raise a banner."""
+        current = self.cfg.values["player_name"]
+        nodes, _h = self._change_a_restart_setting(current)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_the_value_is_still_saved(self):
+        """The banner is a notice, not a gate. Nothing about needing a
+        restart stops the setting being written."""
+        self._change_a_restart_setting("Newname")
+        self.assertEqual(self.cfg.values["player_name"], "Newname")
+
+    def test_later_puts_it_away_without_restarting(self):
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart-dismiss"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertEqual(self.ctl.restarts, 0)
+
+    def test_restart_now_restarts(self):
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertEqual(self.ctl.restarts, 1)
+
+    def test_no_button_where_the_app_cannot_restart_itself(self):
+        """A button that takes the app away and does not bring it back is
+        worse than no button, so the notice stands on its own and Later is
+        still there to dismiss it."""
+        self.ctl.restart_possible = False
+        nodes, _h = self._change_a_restart_setting()
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertIn("banner-restart-dismiss", ids(nodes))
+        self.assertIn("Restart", self._texts(nodes))
+
+    def test_a_restart_that_will_not_start_says_so_and_keeps_the_banner(self):
+        """The user is left with a working app and an unapplied setting.
+        Clearing the banner first would have left them with no sign of
+        either."""
+        self.ctl.restart_ok = False
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertIn("Could not restart", self.b.status)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("banner-restart", ids(nodes))
+
+    def test_a_controller_without_the_seam_offers_no_button(self):
+        """The browser is built against stand-ins and older gateways; a
+        missing method must degrade to the notice rather than raise into
+        the banner and take the whole window with it.
+
+        Set to None rather than deleted, which is the same test: the guard
+        is a ``getattr(..., None)`` and an absent attribute reaches it as
+        None, so both spellings take the identical branch.
+        """
+        self.ctl.can_restart = None
+        nodes, _h = self._change_a_restart_setting()
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertIn("banner-restart-dismiss", ids(nodes))
+
+
 class TestLogin(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()

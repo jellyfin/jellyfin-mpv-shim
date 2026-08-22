@@ -135,6 +135,17 @@ class UserInterface:
         if self.stop_callback is not None:
             self.stop_callback()
 
+    def quit_app(self):
+        """Shut the application down, from outside the tray.
+
+        The public name for ``_quit``. The settings screen's Restart needs
+        exactly this shutdown -- the relaunch is armed first and happens at
+        the end of it (restart.py) -- and reaching in for a private method
+        from another module is how that stops working the day this class is
+        rearranged.
+        """
+        self._quit()
+
     def _can_run_windowless(self):
         """True if the app may keep running with no window on screen.
 

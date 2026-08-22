@@ -206,6 +206,62 @@ TAB_SECTIONS = {
     ],
 }
 
+#: Settings that do nothing until the app is started again.
+#:
+#: **Deliberately conservative, and under-listing is the safe direction.**
+#: A key missing from here costs a banner nobody sees; a key wrongly IN here
+#: asks somebody to restart for a change that had already taken effect,
+#: which teaches them to ignore the banner. So every entry below was read
+#: from its call site rather than assumed, and the ones that looked like
+#: candidates and are not (`window_controls`, `shader_pack_subtype`,
+#: `log_decisions`, `mpv_idle_quit`, `playback_timeout`, `paginated`) are
+#: absent because they are re-read as they are used.
+#:
+#: This is **not** the same question as "does it apply right now". A third
+#: group -- `hwdec`, `deband`, `deinterlace_auto` and the rest of
+#: `mpv_options.PRESET_SETTINGS` -- applies to the next thing you play,
+#: which is neither live nor a restart, and a banner for those would be
+#: asking for a restart that is not needed. docs/settings-curation.md
+#: section 3 is the full table.
+#:
+#: `start_minimized` and the tray pair are absent for a related reason:
+#: nothing about them is *pending*. They are settings whose whole subject is
+#: the next launch, so they have already taken full effect.
+RESTART_REQUIRED = frozenset({
+    # The whole interface geometry is derived once, at startup.
+    "ui_scale",
+    # Colours repaint live; the theme's own cover size does not, because a
+    # theme change is not a request to resize. See settings/base.py.
+    "theme",
+    # Decides which OSC mpv is CONSTRUCTED with.
+    "osc_style",
+    # mpv reads it exactly once, in mp_input_load_config -- a runtime write
+    # succeeds and reads back yes while the SDL thread is never started.
+    "input_gamepad",
+    # One-way doors: both change what the app is at startup rather than what
+    # it is doing.
+    "enable_gui", "headless",
+    # player.py picks its backend at import time.
+    "mpv_ext", "mpv_ext_path", "mpv_ext_ipc", "mpv_ext_start",
+    "mpv_ext_no_ovr", "mpv_ext_start_retries", "mpv_ext_start_retry_delay_ms",
+    # Read when the profile manager is built and when the pack is loaded.
+    "shader_pack_enable", "shader_pack_custom",
+    # `if settings.discord_presence:` at module scope in player.py -- an
+    # import guard, so nothing short of a restart re-runs it.
+    "discord_presence",
+    # Handed to each JellyfinClient at construction; until then the servers
+    # go on showing the old name.
+    "player_name",
+    # Read once at startup to configure logging.
+    "mpv_log_level",
+    # mpv construction options and key bindings made with it. A re-created
+    # mpv (idle-quit, crash recovery) would pick these up too, but not
+    # predictably, so a restart is the answer that is always true.
+    "menu_mouse", "media_keys", "media_key_seek", "mouse_chapter_nav",
+    # Passed to both the API client and mpv at construction.
+    "tls_client_cert", "tls_client_key", "tls_server_ca",
+})
+
 #: Which tab "Advanced" (everything uncurated) is appended to. General, so
 #: the other two stay the size the split made them -- and so there is one
 #: place to look for a key you cannot find.
