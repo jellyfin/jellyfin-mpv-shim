@@ -128,13 +128,33 @@ Three rules for editing that set:
   and the tray pair have already taken full effect the moment they are saved;
   there is nothing waiting on a restart.
 
-The restart itself is `restart.py`, and the one thing to know about it is
-*where* it happens: at the very end of `mpv_shim.main`'s `finally`, after
-`single.release()`. Started any earlier, the new copy finds the instance lock
-still held, hands off to the process that is exiting, and quits — so the restart
-looks like a plain quit. `tests/test_restart.py` pins that ordering, and pins
-the argv rebuild, which is an allowlist so that `--password` from a one-off
-`--server` login can never reappear on a launch the user did not type.
+The restart itself is `restart.py`, and the two things to know about it are
+*where* it happens and why it is not written where you would expect.
+
+It is registered with `exit_watchdog.set_final_action`, which runs immediately
+before `os._exit` on **both** ways out of the process: the orderly `finish()`
+and the deadline in `arm()` that force-kills a wedged shutdown. Written into
+`main` below the shutdown loop instead, it would cover only the tidy exit — so
+a wedged step would take the app away and never bring it back, which is the one
+occasion the process most needs help coming back. The deadline itself is
+unchanged: the old copy still has to die for the new one to take the instance
+lock. What changed is that dying is no longer the last word.
+
+The registered action releases the instance lock before relaunching, because on
+the forced path the wedge can be anywhere and the lock may never have been given
+up — and a new copy that finds it held hands off to the dying process and exits,
+so the restart would look like a plain quit.
+
+**Nothing may follow `exit_watchdog.finish()` in `main`.** It ends in `os._exit`
+and never returns; the relaunch was originally placed after it and was dead code
+that armed, quit, and never came back. `tests/test_restart.py` measures that
+`finish()` does not return and walks `main`'s syntax tree to fail on any
+statement below it — the general rule rather than one about the relaunch, since
+the mistake was not specific to it.
+
+That file also pins the argv rebuild, which is an allowlist so that `--password`
+from a one-off `--server` login can never reappear on a launch the user did not
+type.
 
 | setting(s) | why |
 |---|---|

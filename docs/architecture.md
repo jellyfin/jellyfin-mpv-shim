@@ -356,6 +356,23 @@ both — it joins every non-daemon thread before the process can die, and
   cancel_futures=True)` drops the queue, but a worker already inside a socket read
   runs until the server answers or the timeout fires. `finish()` reports these.
 
+**Nothing may follow `exit_watchdog.finish()` in `main`.** It ends in `os._exit`,
+which is the point — that is what skips the atexit joins above — so it never
+returns and anything written below it is dead code. The restart relaunch was put
+there once and never ran: it armed, the app shut down cleanly, and nothing came
+back. Whatever has to happen last goes through **`set_final_action`**, which runs
+once, immediately before `os._exit` and before `logging.shutdown()`, on **both**
+exits — the orderly `finish()` and the forced one in `arm()`.
+
+That "both" is the reason the hook exists rather than a line in `main`. A wedged
+shutdown is exactly when a user who pressed *Restart Now* most needs the app to
+come back instead of vanishing, and `main`'s tail is unreachable in that case.
+The deadline is deliberately not softened for it: the old process still has to
+die for the new one to take the instance lock, so the guarantee stays "we end" —
+what changed is that ending is no longer the last word. The action registered by
+`main` releases the instance lock first, because the wedge can be anywhere and a
+new copy that finds the lock held hands off to the dying process and exits.
+
 **`arm()` is called at the *start* of the shutdown sequence, not the end** — the
 failure it guards against is a step that never returns, and anything placed after
 such a step is unreachable by definition. `SHUTDOWN_DEADLINE` is 20 s, generous
