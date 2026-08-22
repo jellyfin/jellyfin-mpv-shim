@@ -47,7 +47,7 @@ class HomeTabMixin:
             # Offering the controls here would fail only at save time, which
             # is the worst moment.
             return VScroll(Column([
-                Text(_("Home Screen"), size="large", bold=True),
+                Text(_("Home Screen"), size="heading", bold=True),
                 Text(_("Connect to a server to change the home screen "
                        "sections."), size="normal", color=theme.SUBTLE_FG,
                      wrap=True),
@@ -58,7 +58,7 @@ class HomeTabMixin:
             # clearing the flag here would re-fetch forever against a server
             # that is simply down.
             return VScroll(Column([
-                Text(_("Home Screen"), size="large", bold=True),
+                Text(_("Home Screen"), size="heading", bold=True),
                 Text(_("These settings could not be loaded from your "
                        "server."), size="normal", color=theme.SUBTLE_FG, wrap=True),
                 Button(_("Try Again"), id="home-retry",
@@ -74,14 +74,14 @@ class HomeTabMixin:
         labels = [lbl for _v, lbl in options]
         note_w = self._note_w(size)
         rows = [
-            Text(_("Home Screen"), size="large", bold=True),
+            Text(_("Home Screen"), size="heading", bold=True),
             # Said once, at the top, for the whole page: everything below it
             # is the same kind of setting, and repeating the caveat per
             # group would read as three different caveats.
             Text(_("These settings are stored on your server and shared "
                    "with Jellyfin Web."), size="caption", w=note_w,
                  color=theme.SUBTLE_FG, wrap=True),
-            Text(_("Sections"), size="normal", bold=True),
+            Text(_("Sections"), size="large", bold=True),
             Text(_("The rows the home screen shows, in order. Sections this "
                    "app cannot draw are left as your web client set them."),
                  size="caption", w=note_w, color=theme.SUBTLE_FG, wrap=True),
@@ -131,7 +131,7 @@ class HomeTabMixin:
             # cost of being wrong is the whole tab raising mid-render.
             return []
         return [
-            Text(_("Artwork"), size="normal", bold=True),
+            Text(_("Artwork"), size="large", bold=True),
             Checkbox(_("Use episode images in 'Next Up' and "
                        "'Continue Watching' sections"),
                      bool(prefs.get("episode_images")),

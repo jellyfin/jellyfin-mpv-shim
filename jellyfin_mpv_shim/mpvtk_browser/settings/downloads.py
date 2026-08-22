@@ -31,7 +31,7 @@ class DownloadsTabMixin:
         total = sum(g.get("size", 0) or 0 for g in groups)
         count = sum(g.get("count", 0) or 0 for g in groups)
         head = Row([
-            Text(_("Downloads"), size="large", bold=True),
+            Text(_("Downloads"), size="heading", bold=True),
             Text(_("%(count)d items · %(size)s") % {
                 "count": count, "size": self._human_size(total)},
                 size="small", color=theme.SUBTLE_FG),

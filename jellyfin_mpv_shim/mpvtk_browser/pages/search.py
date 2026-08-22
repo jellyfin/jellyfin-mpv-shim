@@ -109,7 +109,10 @@ class SearchPage(Page):
         items = data.get("items") or []
         people = data.get("people") or []
         artists = data.get("artists") or []
-        rows = [Text(_('Results for "%s"') % term, size="heading", bold=True)]
+        # "page", not "heading": the section titles below this one ARE
+        # headings, so at that tier the page title had no rank over them and
+        # the screen read as a list of equals with a sentence on top.
+        rows = [Text(_('Results for "%s"') % term, size="page", bold=True)]
         # Searching is a keyboard gesture even from a remote (the search
         # button puts the cursor in the box), so the results land focused
         # on the first of them — otherwise submitting leaves focus in the

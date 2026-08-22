@@ -26,66 +26,66 @@
 {"align": "center", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.0.5.0", "size": 17, "t": "text", "text": "Downloads", "w": 84.5, "x": 573.8, "y": 86.0}
 {"click": true, "fill": "2e3138", "h": 41.2, "hover": {"fill": "3a3e46"}, "id": "stab-logs", "radius": 6, "t": "rect", "w": 56.7, "x": 676.3, "y": 76.0}
 {"align": "center", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.0.6.0", "size": 17, "t": "text", "text": "Logs", "w": 36.7, "x": 686.3, "y": 86.0}
-{"axis": "y", "bar": true, "ch": 861.3, "cw": 1270.0, "h": 586.8, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 133.2}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 23.8, "id": "r.1.1.0.0", "sc": "settings", "size": 19, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 149.2}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 186.5}
-{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 181.0}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 221.3}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 221.9}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.2.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 222.6}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.2.1", "sc": "settings", "size": 17, "t": "text", "text": "Raise MPV", "w": 80.4, "x": 46.0, "y": 221.3}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 250.6}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 251.2}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.3.1", "sc": "settings", "size": 17, "t": "text", "text": "Show What You're Watching in Discord", "w": 298.7, "x": 46.0, "y": 250.6}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.4", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 665.3, "x": 16.0, "y": 279.8}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 305.3}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.5.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 305.9}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.5.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 306.6}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.5.1", "sc": "settings", "size": 17, "t": "text", "text": "Check Updates", "w": 111.9, "x": 46.0, "y": 305.3}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 334.6}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 335.2}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 335.8}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.6.1", "sc": "settings", "size": 17, "t": "text", "text": "Notify Updates", "w": 110.8, "x": 46.0, "y": 334.6}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 23.8, "id": "r.1.1.0.7", "sc": "settings", "size": 19, "t": "text", "text": "Input", "w": 1238.0, "x": 16.0, "y": 363.8}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-input_gamepad", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 395.6}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.8.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 396.2}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.8.1", "sc": "settings", "size": 17, "t": "text", "text": "Game Controller", "w": 121.9, "x": 46.0, "y": 395.6}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. Move with the d-pad or left stick, seek with the right stick, shoulder", "w": 665.3, "x": 16.0, "y": 424.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l1", "sc": "settings", "size": 14, "t": "text", "text": "buttons to page, Start for the menu. A controller is not focus-aware, so it will reach this app even", "w": 665.3, "x": 16.0, "y": 442.3}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l2", "sc": "settings", "size": 14, "t": "text", "text": "when another window is in front. Needs an mpv built with SDL2 gamepad support; if yours lacks it this", "w": 665.3, "x": 16.0, "y": 459.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l3", "sc": "settings", "size": 14, "t": "text", "text": "setting is ignored and the log says so. Any button can be reassigned in your input.conf.", "w": 665.3, "x": 16.0, "y": 477.3}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-gamepad_swap_confirm", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 502.8}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.10.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 503.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.10.1", "sc": "settings", "size": 17, "t": "text", "text": "Swap Confirm and Back Buttons", "w": 243.4, "x": 46.0, "y": 502.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11", "sc": "settings", "size": 14, "t": "text", "text": "Turn this on for a controller whose A button is on the right rather than at the bottom (Switch Pro, most", "w": 665.3, "x": 16.0, "y": 532.0}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11.l1", "sc": "settings", "size": 14, "t": "text", "text": "8BitDo pads). Applies immediately.", "w": 665.3, "x": 16.0, "y": 549.5}
-{"align": "left", "bold": true, "c": "e8e8e8", "h": 23.8, "id": "r.1.1.0.12", "sc": "settings", "size": 19, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 575.0}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 606.8}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 607.4}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.13.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 606.8}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 636.0}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.14.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 636.7}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.14.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 636.0}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 665.3}
-{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 665.9}
-{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.15.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 666.5}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.15.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 665.3}
-{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.16.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 700.1}
-{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 694.5}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops, GNOME on Wayland in particular, draw no title bar on the player window, leaving no", "w": 665.3, "x": 16.0, "y": 734.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l1", "sc": "settings", "size": 14, "t": "text", "text": "way to move or close it. This puts minimize, maximize and close in the top bar instead, and lets you", "w": 665.3, "x": 16.0, "y": 752.3}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l2", "sc": "settings", "size": 14, "t": "text", "text": "drag the window by it. On \"Only when the window has no title bar\", MPV is asked whether this window", "w": 665.3, "x": 16.0, "y": 769.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l3", "sc": "settings", "size": 14, "t": "text", "text": "got one, so desktops that draw a title bar are left alone.", "w": 665.3, "x": 16.0, "y": 787.3}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 812.8}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.18.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 813.5}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.18.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 812.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the", "w": 665.3, "x": 16.0, "y": 842.1}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19.l1", "sc": "settings", "size": 14, "t": "text", "text": "way, plays fullscreen when something casts to it, and goes back to waiting when the video ends or", "w": 665.3, "x": 16.0, "y": 859.6}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19.l2", "sc": "settings", "size": 14, "t": "text", "text": "you press Q.", "w": 665.3, "x": 16.0, "y": 877.1}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 902.6}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.20.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 903.2}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.20.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 902.6}
-{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 931.8}
-{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.21.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 932.5}
-{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.21.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 931.8}
-{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 961.1}
+{"axis": "y", "bar": true, "ch": 880.1, "cw": 1270.0, "h": 586.8, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 133.2}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.1.0.0", "sc": "settings", "size": 24, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 149.2}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 192.8}
+{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 187.2}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 227.6}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.2.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 228.2}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.2.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 228.8}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.2.1", "sc": "settings", "size": 17, "t": "text", "text": "Raise MPV", "w": 80.4, "x": 46.0, "y": 227.6}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-discord_presence", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 256.8}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 257.4}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.3.1", "sc": "settings", "size": 17, "t": "text", "text": "Show What You're Watching in Discord", "w": 298.7, "x": 46.0, "y": 256.8}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.4", "sc": "settings", "size": 14, "t": "text", "text": "Discord Rich Presence. Takes effect after a restart.", "w": 665.3, "x": 16.0, "y": 286.1}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-check_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 311.6}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.5.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 312.2}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.5.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 312.8}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.5.1", "sc": "settings", "size": 17, "t": "text", "text": "Check Updates", "w": 111.9, "x": 46.0, "y": 311.6}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-notify_updates", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 340.8}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.6.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 341.4}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.6.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 342.1}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.6.1", "sc": "settings", "size": 17, "t": "text", "text": "Notify Updates", "w": 110.8, "x": 46.0, "y": 340.8}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.1.0.7", "sc": "settings", "size": 24, "t": "text", "text": "Input", "w": 1238.0, "x": 16.0, "y": 370.1}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-input_gamepad", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 408.1}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.8.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 408.7}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.8.1", "sc": "settings", "size": 17, "t": "text", "text": "Game Controller", "w": 121.9, "x": 46.0, "y": 408.1}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9", "sc": "settings", "size": 14, "t": "text", "text": "Takes effect after a restart. Move with the d-pad or left stick, seek with the right stick, shoulder", "w": 665.3, "x": 16.0, "y": 437.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l1", "sc": "settings", "size": 14, "t": "text", "text": "buttons to page, Start for the menu. A controller is not focus-aware, so it will reach this app even", "w": 665.3, "x": 16.0, "y": 454.8}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l2", "sc": "settings", "size": 14, "t": "text", "text": "when another window is in front. Needs an mpv built with SDL2 gamepad support; if yours lacks it this", "w": 665.3, "x": 16.0, "y": 472.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.9.l3", "sc": "settings", "size": 14, "t": "text", "text": "setting is ignored and the log says so. Any button can be reassigned in your input.conf.", "w": 665.3, "x": 16.0, "y": 489.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-gamepad_swap_confirm", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 515.3}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.10.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 515.9}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.10.1", "sc": "settings", "size": 17, "t": "text", "text": "Swap Confirm and Back Buttons", "w": 243.4, "x": 46.0, "y": 515.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11", "sc": "settings", "size": 14, "t": "text", "text": "Turn this on for a controller whose A button is on the right rather than at the bottom (Switch Pro, most", "w": 665.3, "x": 16.0, "y": 544.5}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.11.l1", "sc": "settings", "size": 14, "t": "text", "text": "8BitDo pads). Applies immediately.", "w": 665.3, "x": 16.0, "y": 562.0}
+{"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.1.0.12", "sc": "settings", "size": 24, "t": "text", "text": "Window", "w": 1238.0, "x": 16.0, "y": 587.5}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 625.5}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.13.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 626.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.13.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen", "w": 81.6, "x": 46.0, "y": 625.5}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-browser_fullscreen", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 654.8}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.14.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 655.4}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.14.1", "sc": "settings", "size": 17, "t": "text", "text": "Fullscreen Library Browser", "w": 208.6, "x": 46.0, "y": 654.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-remember_window_size", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 684.0}
+{"fill": "00a4dc", "h": 20.0, "id": "r.1.1.0.15.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 684.7}
+{"align": "center", "c": "ffffff", "h": 18.8, "id": "r.1.1.0.15.0.0", "sc": "settings", "size": 15, "t": "text", "text": "\u2713", "w": 20.0, "x": 16.0, "y": 685.3}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.15.1", "sc": "settings", "size": 17, "t": "text", "text": "Remember Window Size", "w": 186.3, "x": 46.0, "y": 684.0}
+{"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.1.0.16.0", "sc": "settings", "size": 17, "t": "text", "text": "Window Buttons in the Top Bar", "w": 340.0, "x": 16.0, "y": 718.8}
+{"force": true, "h": 32.3, "id": "set-window_controls", "items": ["Only when the window has no title bar", "Always", "Never"], "sc": "settings", "sel": 0, "size": 17, "t": "dropdown", "w": 340.0, "x": 368.0, "y": 713.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17", "sc": "settings", "size": 14, "t": "text", "text": "Some desktops, GNOME on Wayland in particular, draw no title bar on the player window, leaving no", "w": 665.3, "x": 16.0, "y": 753.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l1", "sc": "settings", "size": 14, "t": "text", "text": "way to move or close it. This puts minimize, maximize and close in the top bar instead, and lets you", "w": 665.3, "x": 16.0, "y": 771.1}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l2", "sc": "settings", "size": 14, "t": "text", "text": "drag the window by it. On \"Only when the window has no title bar\", MPV is asked whether this window", "w": 665.3, "x": 16.0, "y": 788.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.17.l3", "sc": "settings", "size": 14, "t": "text", "text": "got one, so desktops that draw a title bar are left alone.", "w": 665.3, "x": 16.0, "y": 806.1}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-allow_background", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 831.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.18.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 832.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.18.1", "sc": "settings", "size": 17, "t": "text", "text": "Keep Running in Background", "w": 216.2, "x": 46.0, "y": 831.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19", "sc": "settings", "size": 14, "t": "text", "text": "With \"Start Minimized\" and \"Fullscreen\" this is the classic cast-target setup: the app waits out of the", "w": 665.3, "x": 16.0, "y": 860.8}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19.l1", "sc": "settings", "size": 14, "t": "text", "text": "way, plays fullscreen when something casts to it, and goes back to waiting when the video ends or", "w": 665.3, "x": 16.0, "y": 878.3}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.19.l2", "sc": "settings", "size": 14, "t": "text", "text": "you press Q.", "w": 665.3, "x": 16.0, "y": 895.8}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-display_mirror_summon", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 921.3}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.20.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 922.0}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.20.1", "sc": "settings", "size": 17, "t": "text", "text": "Casting Opens the Library Browser", "w": 264.7, "x": 46.0, "y": 921.3}
+{"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-adv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 950.6}
+{"bc": "3a3d42", "bw": 1, "fill": "2a2d33", "h": 20.0, "id": "r.1.1.0.21.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 951.2}
+{"align": "left", "c": "e8e8e8", "h": 21.2, "id": "r.1.1.0.21.1", "sc": "settings", "size": 17, "t": "text", "text": "Show advanced settings", "w": 188.9, "x": 46.0, "y": 950.6}
+{"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.1.0.22", "sc": "settings", "size": 14, "t": "text", "text": "Some changes take effect after restarting.", "w": 1238.0, "x": 16.0, "y": 979.8}

@@ -746,15 +746,25 @@ class TestSearchSectionOrder(unittest.TestCase):
         b.server = "srv1"
         b.navigate({"kind": "search", "server": "srv1", "term": "x"})
         nodes, _h = build_scene(b, (1280, 720))
-        headings = [n for n in nodes if n.get("size") == 24 and n.get("text")]
+        # The section-heading tier, resolved rather than written as 24: the
+        # page title above them is a tier LARGER (it used to be the same
+        # size, which left it with no rank over its own sections), and a
+        # literal here would silently start or stop collecting it.
+        from jellyfin_mpv_shim.mpvtk import theme as tk
+
+        head_px = tk.size("HEADING")
+        headings = [n for n in nodes
+                    if n.get("size") == head_px and n.get("text")]
         headings.sort(key=lambda n: n.get("y", 0))
         return [n["text"] for n in headings], nodes
 
     def test_the_order_is_webs(self):
         headings, _nodes = self._rows()
+        # No 'Results for "x"': that is the page title, and it is not a
+        # section heading. The order under test is the sections'.
         self.assertEqual(
             headings,
-            ['Results for "x"', "Movies", "Shows", "Episodes", "People",
+            ["Movies", "Shows", "Episodes", "People",
              "Artists", "Albums", "Songs", "Videos", "On TV", "Channels"])
 
     def test_the_first_result_row_takes_focus_not_the_cast(self):

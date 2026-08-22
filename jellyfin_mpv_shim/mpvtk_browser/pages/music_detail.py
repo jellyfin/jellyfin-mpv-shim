@@ -124,7 +124,10 @@ class ArtistPage(MusicPage):
         # while the music library one tab away obeyed it -- ~148px of slack
         # stacked on one side at a 1280px window.
         if albums:
-            rows.append(Text(_("Albums"), size="large", bold=True))
+            # The same tier the "Similar Artists" carousel heading below
+            # gets from section_heading. At "large" the two section titles on
+            # this one page were visibly different sizes.
+            rows.append(Text(_("Albums"), size="heading", bold=True))
         rows += art.tiles.grid_of(albums, "artist", size, geom=geom,
                                   scroll_id="artist", head_h=110)
         similar = data.get("similar") or []

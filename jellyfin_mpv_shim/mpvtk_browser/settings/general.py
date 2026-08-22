@@ -69,7 +69,11 @@ class GeneralTabMixin:
                         on_toggle=lambda: self._toggle_advanced(route)))
                 if not show_adv:
                     continue
-            rows.append(Text(title, size="large", bold=True))
+            # The section-heading tier, as everywhere else in the app. At
+            # "large" a settings group title was a size below every other
+            # section title, which made the whole tab read as subordinate to
+            # the pages that link to it.
+            rows.append(Text(title, size="heading", bold=True))
             notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
                 rows.append(self._setting_row(cfg, schema, values, key))

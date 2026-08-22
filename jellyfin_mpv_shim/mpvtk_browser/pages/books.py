@@ -509,7 +509,9 @@ class AudiobookPage(Page):
                                                    offset_ticks=offset)),
             })
         return Column([
-            Text(_("Chapters"), size="title", bold=True),
+            # "heading" is the section-title tier (theme.heading_size, what
+            # TileRenderer.section_heading draws); "title" is for dialogs.
+            Text(_("Chapters"), size="heading", bold=True),
             Table([{"label": "#", "w": 46, "align": "right"},
                    {"label": _("Title"), "flex": 1},
                    {"label": _("Start"), "w": 90, "align": "right"}],

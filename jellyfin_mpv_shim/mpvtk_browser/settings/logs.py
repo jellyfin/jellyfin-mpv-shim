@@ -36,7 +36,7 @@ class LogsTabMixin:
         route["_log_last"] = lines[-1] if lines else None
         self._poll_logs(route)
 
-        head = Row([Text(_("Logs"), size="large", bold=True), Spacer(),
+        head = Row([Text(_("Logs"), size="heading", bold=True), Spacer(),
                     Button(_("Copy"), id="log-copy", icon="content_copy",
                            on_click=lambda: self._copy_logs(lines)),
                     Button(_("Refresh"), id="log-refresh", icon="refresh",
