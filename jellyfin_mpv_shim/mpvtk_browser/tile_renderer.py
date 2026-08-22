@@ -71,6 +71,19 @@ RING_PAD = 5
 #: right of every heading and paragraph on the screen.
 ROW_LEAD = chrome.CONTENT_PAD
 
+#: Gap between a section title and the strip it titles, on top of the 2px the
+#: heading Box and the RING_PAD the strip already spend -- so the visible
+#: distance is this plus 7.
+#:
+#: Deliberately much smaller than the gap *between* sections, which is what
+#: makes a title read as belonging to the row under it. At 10 the two were
+#: 17 and 27, near enough to equal that every heading floated between two
+#: strips instead of heading one, and the page read as evenly spaced bands.
+#: jellyfin-web puts the whole gap between sections and none inside one:
+#: `.sectionTitleContainer-cards` is `margin: 0; padding-top: 1.25em`, so its
+#: scroller follows the title immediately.
+TITLE_GAP = 2
+
 #: Inset for the round page arrow (see _arrow_bitmap). Wider than RING_PAD so
 #: the circle sits clear of the window edge.
 ARROW_INSET = 8
@@ -1276,7 +1289,7 @@ class TileRenderer:
                     row_id, geom.strip_h + 2 * RING_PAD,
                     len(items), geom),
             ],
-            gap=10,
+            gap=TITLE_GAP,
         ))
     def header_offset(self, header):
         """Exact content-y of the first tile row that follows ``header`` in a

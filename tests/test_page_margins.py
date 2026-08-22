@@ -110,3 +110,44 @@ class PageTopMarginTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SectionRhythmTest(unittest.TestCase):
+    """A section title belongs to the strip under it, not between two.
+
+    Asserted as a ratio rather than as pixels because both numbers are design
+    values that may move; what may not move is which of them is larger. At
+    gap=10 they were 17 and 27 -- close enough that the eye grouped each title
+    with whichever strip it happened to be nearer, and a page of six rows read
+    as twelve unrelated bands. jellyfin-web spends the whole gap between
+    sections and none inside one (``.sectionTitleContainer-cards`` is
+    ``margin: 0; padding-top: 1.25em``).
+    """
+
+    def _rows(self):
+        nodes = _scene(ROUTES["home"])
+        heads = sorted((n for n in nodes if n.get("t") == "text"
+                        and n.get("size", 0) >= 20 and n.get("sc") == "home"),
+                       key=lambda n: n["y"])
+        strips = sorted((n for n in nodes if n.get("t") == "scroll"
+                         and n.get("axis") == "x"), key=lambda n: n["y"])
+        pairs = []
+        for h in heads:
+            below = [s for s in strips if s["y"] >= h["y"]]
+            if below:
+                pairs.append((h, below[0]))
+        self.assertGreaterEqual(len(pairs), 2, "home drew too few carousels")
+        return pairs
+
+    def test_a_title_sits_closer_to_its_own_strip(self):
+        pairs = self._rows()
+        for i in range(len(pairs) - 1):
+            head, strip = pairs[i]
+            own = strip["y"] - (head["y"] + head["h"])
+            nxt = pairs[i + 1][0]["y"] - (strip["y"] + strip["h"])
+            with self.subTest(head.get("text")):
+                self.assertLess(
+                    own * 2, nxt,
+                    "%r is %.1fpx above its own strip and %.1fpx below the "
+                    "previous one; a title that near-equidistant reads as "
+                    "belonging to neither" % (head.get("text"), own, nxt))
