@@ -108,6 +108,62 @@ def _durable_flags():
     return out
 
 
+#: Environment PyInstaller's onefile bootloader sets for the *second stage*
+#: of its own launch, which a relaunch must not inherit.
+#:
+#: onefile is two processes: the bootloader extracts the archive to a temp
+#: directory, marks the environment, and runs itself again -- the marked run
+#: being the one that starts Python. A child that inherits those marks is
+#: read by the new bootloader as its own second stage, so it skips extraction
+#: and uses **the dying parent's temp directory**, which the parent removes
+#: on the way out. The restarted app then has no files.
+#:
+#: `_MEIPASS2` is the PyInstaller 5-and-earlier spelling; 6.x uses the
+#: `_PYI_` family (`_PYI_ARCHIVE_FILE`, `_PYI_APPLICATION_HOME_DIR`,
+#: `_PYI_PARENT_PROCESS_LEVEL`). The prefix is matched rather than the names
+#: listed, so a future addition to that family is covered by default --
+#: which is the right direction, since the failure is a build that will not
+#: start and the variables are private to the bootloader anyway.
+_PYI_MARKERS = ("_MEIPASS2",)
+_PYI_PREFIX = "_PYI_"
+
+#: Search paths the bootloader points at its temp directory, having saved
+#: whatever was there under ``<NAME>_ORIG``. Restoring them is what
+#: PyInstaller's own documentation tells you to do before spawning anything,
+#: and here the temp directory is additionally about to be deleted.
+_PYI_PATH_VARS = ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH",
+                  "DYLD_FRAMEWORK_PATH", "LIBPATH")
+
+
+def child_env():
+    """The environment to start the new copy with.
+
+    A plain copy of ours, **except** under a frozen build, where the
+    PyInstaller bootloader has left marks in the environment that describe
+    *this* launch and would misdirect the next one. See the two tables above.
+
+    Gated on ``sys.frozen`` rather than applied everywhere, and that gate is
+    load-bearing: run from source, `LD_LIBRARY_PATH` is the user's own and
+    there is no `_ORIG` to restore it from, so the same code would silently
+    delete it.
+    """
+    env = dict(os.environ)
+    if not getattr(sys, "frozen", False):
+        return env
+    for name in list(env):
+        if name in _PYI_MARKERS or name.startswith(_PYI_PREFIX):
+            env.pop(name, None)
+    for name in _PYI_PATH_VARS:
+        original = env.pop(name + "_ORIG", None)
+        if original is not None:
+            env[name] = original
+        else:
+            # No _ORIG means the bootloader created the variable rather than
+            # overwriting one, so the correct restoration is to remove it.
+            env.pop(name, None)
+    return env
+
+
 def supported():
     """Whether the restart button can be offered at all.
 
@@ -167,16 +223,24 @@ def relaunch_if_requested():
         log.error("Cannot restart: this launch cannot be reconstructed. "
                   "Start %s again by hand.", os.path.basename(sys.argv[0] or ""))
         return False
-    kwargs = {"close_fds": True}
+    kwargs = {"close_fds": True, "env": child_env()}
     if os.name == "nt":
-        # Detached and in its own process group, so it is not taken down
-        # with whatever console this one was started from.
-        flags = getattr(subprocess, "DETACHED_PROCESS", 0)
-        flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-        kwargs["creationflags"] = flags
+        # Its own process group, so a Ctrl-C in the console this copy was
+        # started from does not reach the new one.
+        #
+        # **Not DETACHED_PROCESS**, which was here first and is wrong for a
+        # console build: it gives the child no console, leaving the stdout
+        # and stderr handles it inherited pointing at nothing. It is also
+        # unnecessary -- Windows does not take children down with their
+        # parent the way a POSIX session does -- and the goal is for the
+        # restarted copy to behave exactly like the launch it replaces,
+        # console included.
+        kwargs["creationflags"] = getattr(
+            subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
     else:
-        # Same intent: a new session, so a Ctrl-C in the terminal that
-        # started the old copy does not reach the new one.
+        # A new session, so a Ctrl-C in the terminal that started the old
+        # copy does not reach the new one, and so the child is not killed
+        # with the old process group.
         kwargs["start_new_session"] = True
     log.info("Restarting: %s", " ".join(cmd))
     try:

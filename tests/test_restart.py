@@ -146,6 +146,143 @@ class CommandTest(unittest.TestCase):
             self.assertEqual(restart.command(), [sys.executable, __file__])
 
 
+class FrozenEnvironmentTest(unittest.TestCase):
+    """What a PyInstaller build must not hand its replacement.
+
+    onefile is two processes: the bootloader extracts the archive to a temp
+    directory, marks the environment, and re-runs itself -- the marked run
+    being the one that starts Python. A relaunch that inherits those marks
+    is read as the *same* launch's second stage, so it skips extraction and
+    uses the dying parent's temp directory, which the parent deletes on the
+    way out. The restarted app then has no files to run from.
+
+    Untestable from this box (building a bootloader is a network fetch and a
+    compile), so the contract is pinned here instead: these are the variables
+    PyInstaller documents, and the assertions say what must happen to each.
+    """
+
+    def _env(self, frozen=True, **environ):
+        with mock.patch.dict(os.environ, environ, clear=True), \
+                mock.patch.object(sys, "frozen", frozen, create=True):
+            return restart.child_env()
+
+    def test_the_onefile_marks_are_dropped(self):
+        env = self._env(_MEIPASS2="/tmp/_MEI123",
+                        _PYI_ARCHIVE_FILE="/opt/app",
+                        _PYI_APPLICATION_HOME_DIR="/tmp/_MEI123",
+                        _PYI_PARENT_PROCESS_LEVEL="1")
+        self.assertEqual(env, {})
+
+    def test_an_unknown_pyi_variable_is_dropped_too(self):
+        """Matched by prefix rather than by name: these are private to the
+        bootloader, the family has already been renamed once between major
+        versions, and the failure mode of missing one is a build that will
+        not start."""
+        self.assertEqual(self._env(_PYI_SOMETHING_NEW="x"), {})
+
+    def test_a_library_path_is_restored_from_the_bootloaders_copy(self):
+        """PyInstaller points these at its temp directory and saves what was
+        there as `<NAME>_ORIG`. Restoring is what its own documentation says
+        to do before spawning; here the temp directory is additionally about
+        to be deleted."""
+        env = self._env(LD_LIBRARY_PATH="/tmp/_MEI123",
+                        LD_LIBRARY_PATH_ORIG="/usr/local/lib")
+        self.assertEqual(env, {"LD_LIBRARY_PATH": "/usr/local/lib"})
+
+    def test_a_library_path_the_bootloader_invented_is_removed(self):
+        """No `_ORIG` means it created the variable rather than overwriting
+        one, so the honest restoration is for it not to exist."""
+        self.assertEqual(self._env(LD_LIBRARY_PATH="/tmp/_MEI123"), {})
+
+    def test_the_macos_variables_are_covered(self):
+        env = self._env(DYLD_LIBRARY_PATH="/tmp/_MEI",
+                        DYLD_FRAMEWORK_PATH="/tmp/_MEI",
+                        DYLD_FRAMEWORK_PATH_ORIG="/orig")
+        self.assertEqual(env, {"DYLD_FRAMEWORK_PATH": "/orig"})
+
+    def test_the_rest_of_the_environment_is_untouched(self):
+        env = self._env(HOME="/home/someone", DISPLAY=":0",
+                        _MEIPASS2="/tmp/_MEI")
+        self.assertEqual(env, {"HOME": "/home/someone", "DISPLAY": ":0"})
+
+    def test_nothing_is_stripped_when_not_frozen(self):
+        """The gate is load-bearing rather than an optimisation. Run from
+        source, `LD_LIBRARY_PATH` is the user's own and there is no `_ORIG`
+        to restore it from -- so the frozen branch would silently delete
+        it."""
+        env = self._env(frozen=False, LD_LIBRARY_PATH="/usr/local/lib")
+        self.assertEqual(env, {"LD_LIBRARY_PATH": "/usr/local/lib"})
+
+    def test_the_child_is_started_with_that_environment(self):
+        """The table above is only worth having if it reaches Popen."""
+        restart.request()
+        self.addCleanup(restart.cancel)
+        with mock.patch("subprocess.Popen") as popen, \
+                mock.patch.object(restart, "command", return_value=["x"]), \
+                mock.patch.object(restart, "child_env",
+                                  return_value={"SENTINEL": "1"}):
+            restart.relaunch_if_requested()
+        self.assertEqual(popen.call_args.kwargs.get("env"), {"SENTINEL": "1"})
+
+
+class WindowsSpawnTest(unittest.TestCase):
+    """The creation flags, asserted as the value handed to Popen.
+
+    Written against the call rather than by reading the source: the first
+    version of this grepped for "DETACHED_PROCESS" and failed on the comment
+    saying why it is not used, which is the same mistake -- checking the
+    marker instead of the value -- that made the original restart bug
+    invisible.
+    """
+
+    #: The real Windows values. Named here because this suite runs on Linux,
+    #: where `subprocess` has neither.
+    CREATE_NEW_PROCESS_GROUP = 0x00000200
+    DETACHED_PROCESS = 0x00000008
+
+    def _flags(self):
+        import subprocess
+
+        restart.request()
+        self.addCleanup(restart.cancel)
+        with mock.patch.object(os, "name", "nt"), \
+                mock.patch.object(subprocess, "CREATE_NEW_PROCESS_GROUP",
+                                  self.CREATE_NEW_PROCESS_GROUP, create=True), \
+                mock.patch.object(subprocess, "DETACHED_PROCESS",
+                                  self.DETACHED_PROCESS, create=True), \
+                mock.patch("subprocess.Popen") as popen, \
+                mock.patch.object(restart, "command", return_value=["app.exe"]):
+            restart.relaunch_if_requested()
+        return popen.call_args.kwargs.get("creationflags")
+
+    def test_the_child_gets_its_own_process_group(self):
+        """So a Ctrl-C in the console this copy was started from does not
+        reach the new one."""
+        self.assertTrue(self._flags() & self.CREATE_NEW_PROCESS_GROUP)
+
+    def test_the_child_is_not_detached_from_the_console(self):
+        """DETACHED_PROCESS was here first and is wrong for a console build:
+        it gives the child no console while leaving the stdout and stderr
+        handles it inherited pointing at nothing. It is also unnecessary --
+        Windows does not take children down with their parent the way a
+        POSIX session does -- and the restarted copy should behave exactly
+        like the launch it replaces."""
+        self.assertFalse(self._flags() & self.DETACHED_PROCESS)
+
+    def test_posix_gets_a_new_session_instead(self):
+        import subprocess
+
+        restart.request()
+        self.addCleanup(restart.cancel)
+        with mock.patch.object(os, "name", "posix"), \
+                mock.patch("subprocess.Popen") as popen, \
+                mock.patch.object(restart, "command", return_value=["app"]):
+            restart.relaunch_if_requested()
+        kwargs = popen.call_args.kwargs
+        self.assertTrue(kwargs.get("start_new_session"))
+        self.assertNotIn("creationflags", kwargs)
+
+
 class RequestTest(unittest.TestCase):
     def setUp(self):
         restart.cancel()
