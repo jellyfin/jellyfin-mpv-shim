@@ -98,6 +98,11 @@ class RealMpvPictureTest(unittest.TestCase):
         for key, off in self.PRESETS.items():
             setattr(self.player_module.settings, key, off)
         self.pm.play(video, is_initial_play=True)
+        # A quiesce that never played would leave the player dirty and say
+        # nothing; every baseline below would then be someone else's residue.
+        self.assertIs(self.pm._video, video,
+                      "the quiesce item did not play, so the player is not "
+                      "in a known state")
 
     def _play(self, item_id="v", **settings):
         for key, value in settings.items():
@@ -145,7 +150,15 @@ class RealMpvPictureTest(unittest.TestCase):
         Three items, because the bug shape this guards is state feeding back
         into its own input -- a restore that saved OUR value would put the
         preset back for ever, and one on/off pair cannot tell that apart."""
-        before = {p: self._prop(p) for p in
+        # From the snapshot the player took off a FRESH mpv, not off the
+        # live player. Reading it live looks equivalent and is not: method
+        # order is alphabetical, so a test that leaves `strong` applied runs
+        # earlier, `_quiesce` restores through the very path under test, and
+        # a BROKEN restore would leave those values in place for this
+        # baseline to adopt -- after which writing `strong` and reading it
+        # back passes. Deleting the restore loop entirely survived the
+        # earlier version of this assertion.
+        before = {p: self.pm._render_pristine[p] for p in
                   ("deband", "deband-iterations", "deband-threshold",
                    "deband-range", "deband-grain")}
         self._play(item_id="on", deband="strong")
@@ -210,9 +223,10 @@ class RealMpvPictureTest(unittest.TestCase):
         """
         watched = ("deband", "tone-mapping", "scale", "video-sync",
                    "demuxer-readahead-secs")
-        # After the quiesce in setUp, so this is mpv's own state rather than
-        # whatever the previously-run test left behind.
-        before = {p: self._prop(p) for p in watched}
+        # The player's fresh-mpv snapshot, for the reason spelled out in
+        # test_off_hands_back_the_value_mpv_started_with: a live read here
+        # would adopt a broken restore's residue as the baseline.
+        before = {p: self.pm._render_pristine[p] for p in watched}
         for n in range(3):
             self._play(item_id="quiet-%d" % n, **self.PRESETS)
         for prop, was in before.items():

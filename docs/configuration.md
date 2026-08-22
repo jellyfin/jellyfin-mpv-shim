@@ -424,6 +424,7 @@ You can use the config file to enable and disable features.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
+  - Requires restart. The budget is baked into the artwork cache when the browser starts.
   - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.
   - Two other caches sit behind this one, and neither has a setting because neither wants a number from you.
   - The **artwork cache** keeps the server's own compressed images in `$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork` (`~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows; `--config DIR` puts it in `DIR/cache` so an isolated config stays isolated). It is **persistent**: every entry is keyed by the server's own image tag, so last week's poster is still this week's poster, and it is kept between launches rather than re-fetching a whole library on every start. Up to **1 GiB**, but never more than 5% of what is free on that filesystem — so it shrinks continuously on a filling disk instead of waiting for a threshold. Anything unread for 30 days is reaped, which is also what clears out entries orphaned by changing the Cover Size or the theme's tile shape (those change the cache key rather than replacing the entry). Deleting the directory is always safe.
@@ -1022,6 +1023,10 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
   - This only applies for when you first launch the program.
 - `lang_filter` - Limit track selection to desired languages. Default: `und,eng,jpn,mis,mul,zxx`
+  - Requires restart — the list is read once at startup. The two options below
+      are read as they are used, so changing them alone takes effect at once;
+      that is why this one is worth calling out, since otherwise the filter
+      appears to start working with the *old* languages.
   - Note that you need to turn on the options below for this to actually do something.
   - If you remove `und` from the list, it will ignore untagged items.
   - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),

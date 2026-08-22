@@ -55,6 +55,26 @@ def main():
         with open(_state_path(config_dir, "relaunched"), "w") as fh:
             fh.write("\n".join(sys.argv))
 
+    wedge = os.environ.get("JMS_RESTART_WEDGE")
+    if wedge and not generation:
+        # Make the orderly shutdown never finish, so the exit watchdog's
+        # deadline is what ends this process. That is the path
+        # `exit_watchdog.set_final_action` exists for, and the one a
+        # relaunch written into `main`'s tail would silently miss -- which
+        # is the same shape as the bug this whole file is downstream of.
+        from jellyfin_mpv_shim import exit_watchdog
+        from jellyfin_mpv_shim import timeline
+
+        exit_watchdog.SHUTDOWN_DEADLINE = float(wedge)
+
+        def never_returns():
+            threading.Event().wait()
+
+        # The second step of the shutdown loop, so the wedge lands after the
+        # player is down and well before the instance lock is released --
+        # which is exactly the state the final action has to cope with.
+        timeline.timelineManager.stop = never_returns
+
     def drive():
         # Long enough for the app to be genuinely up -- servers resolved,
         # mpv created -- so the shutdown under test is a real one rather
@@ -71,6 +91,11 @@ def main():
         os.kill(os.getpid(), signal.SIGTERM)
 
     threading.Thread(target=drive, daemon=True).start()
+
+    # A positive control for the test's "MAIN RETURNED is absent" assertion:
+    # without it, a child that died on an import error would satisfy that
+    # assertion just as well as one that exited correctly.
+    print("PARENT READY", flush=True)
 
     from jellyfin_mpv_shim.mpv_shim import main as app_main
 

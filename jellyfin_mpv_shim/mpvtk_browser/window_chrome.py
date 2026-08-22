@@ -19,7 +19,7 @@ registered in the browser's daemon table by attribute name.
 
 import time
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.layout import natural_size
 from ..mpvtk.widgets import (
     Box,
@@ -431,13 +431,25 @@ def banner(b):
         # Named, not counted. "2 settings need a restart" makes the user
         # go looking for which two, and the answer is not on screen once
         # they have left the tab.
+        # No `wrap`, like the other two banners. The Row is h=48, so a
+        # wrapping Text is clamped to one line and `wrap_text`'s slop means
+        # the last word never fits -- so it ellipsized ALWAYS, including
+        # with a single pending setting ("Restart to apply: Interface…").
+        # That silently undid the whole point of naming them.
         row = [Text(_("Restart to apply: %s") % ", ".join(names),
-                    size="normal", wrap=True),
+                    size="normal"),
                Spacer()]
         if b.can_restart():
             row.append(Button(_("Restart Now"), id="banner-restart",
                               on_click=b._restart_now))
-        row.append(Button(_("Later"), id="banner-restart-dismiss",
+        # `_p`, because Live TV's guide already has a "Later" meaning
+        # *later in time* (paired with "Earlier"). gettext keys on the
+        # English, so without a context the two collapse into one entry and
+        # no language can tell "postpone" from "forward in time". The
+        # context goes on THIS use: adding one to the existing string would
+        # discard every translation it already has.
+        row.append(Button(_p("Restart banner", "Later"),
+                          id="banner-restart-dismiss",
                           on_click=b._dismiss_restart))
         return Row(row, pad=10, gap=10, align="center", h=48,
                    bg=theme.ACCENT_SOFT)

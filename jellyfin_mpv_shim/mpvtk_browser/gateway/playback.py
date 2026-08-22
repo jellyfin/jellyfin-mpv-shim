@@ -53,6 +53,11 @@ class PlaybackMixin(GatewayCore):
         playerManager.enable_osc(playerManager.osc_enabled)
         playerManager.set_browse_window(False)
 
+    #: Cached ``audio-device-list``: (monotonic stamp, value). See
+    #: audio_devices for why this exists at all.
+    _DEVICE_TTL = 5.0
+    _device_cache = (0.0, None)
+
     def audio_devices(self):
         """``[(label, value), ...]`` for the audio-device picker.
 
@@ -66,8 +71,24 @@ class PlaybackMixin(GatewayCore):
         unset means the setting does not touch mpv at all, so a user's
         mpv.conf keeps whatever it says.
         """
+        import time
+
         from ...i18n import _
         from ...player import playerManager
+
+        # Briefly cached, because the settings SEARCH rebuilds the form on
+        # every keystroke and `audio_device` matches nearly every one- and
+        # two-letter query -- so an uncached read meant an mpv round trip
+        # per character typed, on the render loop, and a socket round trip
+        # at that on the jsonipc backend. Device enumeration itself is not
+        # cheap on ALSA either.
+        #
+        # Five seconds: long enough that typing is free, short enough that
+        # plugging a headset in and looking at the list still shows it.
+        stamp, cached = PlaybackMixin._device_cache
+        now = time.monotonic()
+        if cached is not None and now - stamp < self._DEVICE_TTL:
+            return list(cached)
 
         out = [(_("Default (mpv decides)"), None)]
         try:
@@ -86,6 +107,10 @@ class PlaybackMixin(GatewayCore):
             # part; fall back to the name so an unlabelled device is still
             # selectable rather than a blank row.
             out.append((dev.get("description") or name, name))
+        # Only a real answer is cached. A failed read returns early above,
+        # so a transient IPC hiccup does not pin an empty list for five
+        # seconds -- which would look exactly like a machine with no audio.
+        PlaybackMixin._device_cache = (now, list(out))
         return out
 
     def apply_audio_settings(self):

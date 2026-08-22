@@ -72,11 +72,29 @@ def _stop_app(config):
         pass
 
 
-def _run_child(config, delay=START_DELAY):
+def _run_child(config, delay=START_DELAY, wedge=None):
+    """Run one app process to completion and return (stdout+stderr, rc).
+
+    Output goes to a FILE, not to pipes, and stdin is /dev/null. That is not
+    tidiness: `close_fds=True` only closes descriptors from 3 up, so the
+    detached replacement inherits this run's stdout and stderr. With pipes,
+    `subprocess.run`'s timeout path kills the child and then calls an
+    *untimed* `communicate()`, which blocks until every holder of the pipe
+    exits -- and the remaining holder is a grandchild in its own session
+    that this process cannot signal. One replacement that failed to reach
+    its own SIGTERM would wedge the whole leg with no diagnostic.
+    """
     env = dict(os.environ, JMS_RESTART_DELAY=str(delay))
-    return subprocess.run([sys.executable, CHILD, "--config", config],
-                          timeout=TIMEOUT, capture_output=True, text=True,
-                          env=env)
+    if wedge:
+        env["JMS_RESTART_WEDGE"] = str(wedge)
+    log_path = os.path.join(config, "child-output.log")
+    with open(log_path, "ab") as out:
+        proc = subprocess.run([sys.executable, CHILD, "--config", config],
+                              timeout=TIMEOUT, env=env,
+                              stdin=subprocess.DEVNULL,
+                              stdout=out, stderr=subprocess.STDOUT)
+    with open(log_path, "r", errors="replace") as fh:
+        return fh.read(), proc.returncode
 
 
 def _await(path, timeout=TIMEOUT):
@@ -95,28 +113,36 @@ class RestartRelaunchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = tempfile.mkdtemp(prefix="jms-restart-")
+        # Registered BEFORE the run that can raise. `tearDownClass` is not
+        # called when `setUpClass` raises, and `_run_child` raises
+        # `TimeoutExpired` on the very failure this module exists to catch --
+        # so the tidy-up has to be armed first or a failing run leaks a temp
+        # directory and leaves a real app process behind.
+        cls.addClassCleanup(shutil.rmtree, cls.config, ignore_errors=True)
+        cls.addClassCleanup(_stop_app, cls.config)
         cls.marker = os.path.join(cls.config, "relaunched")
-        cls.out = _run_child(cls.config)
+        cls.output, cls.returncode = _run_child(cls.config)
         cls.relaunched = _await(cls.marker)
-
-    @classmethod
-    def tearDownClass(cls):
-        _stop_app(cls.config)
-        shutil.rmtree(cls.config, ignore_errors=True)
 
     def test_a_restart_starts_a_replacement(self):
         """The whole feature, end to end."""
         self.assertTrue(
             self.relaunched,
-            "no replacement app appeared.\nstdout:\n%s\nstderr:\n%s"
-            % (self.out.stdout[-3000:], self.out.stderr[-3000:]))
+            "no replacement app appeared.\noutput:\n%s"
+            % self.output[-4000:])
 
     def test_main_ends_the_process_rather_than_returning(self):
         """The fact the bug turned on. `main` ends in
         `exit_watchdog.finish()`, which calls `os._exit`; if it ever returns,
         every statement below it becomes reachable and the reasoning that
         put the relaunch on a hook instead needs revisiting."""
-        self.assertNotIn("MAIN RETURNED", self.out.stdout)
+        # Both halves: the sentinel absent AND the run having got far enough
+        # to print anything at all. "MAIN RETURNED is absent" on its own is
+        # satisfied by a child that died on an import error.
+        self.assertIn("PARENT READY", self.output,
+                      "the child never started, so its silence proves "
+                      "nothing:\n%s" % self.output[-2000:])
+        self.assertNotIn("MAIN RETURNED", self.output)
 
     def test_the_replacement_keeps_the_configuration_directory(self):
         """`--config` surviving is the difference between a restart and a
@@ -163,14 +189,55 @@ class OrdinaryQuitTest(unittest.TestCase):
         with open(os.path.join(config, "generation"), "w") as fh:
             fh.write("1")
         marker = os.path.join(config, "relaunched")
-        _run_child(config, delay=START_DELAY)
+        output, _rc = _run_child(config, delay=START_DELAY)
         self.assertTrue(os.path.exists(marker),
                         "the app under test never started")
         os.remove(marker)
         # If a restart had been armed, a replacement would rewrite it.
         time.sleep(8)
         self.assertFalse(os.path.exists(marker),
-                         "a restart happened without being asked for")
+                         "a restart happened without being asked for:\n%s"
+                         % output[-2000:])
+
+
+@unittest.skipUnless(h.HAVE_MPV_DISPLAY, "needs mpv and a display")
+class WedgedShutdownRestartTest(unittest.TestCase):
+    """A restart still happens when the shutdown never finishes.
+
+    This is the case `exit_watchdog.set_final_action` was added for, and it
+    had no runtime test: the orderly path was covered by the class above,
+    and the forced path by two assertions that grep `arm`'s source for the
+    string `_run_final_action()`. A mutation that leaves the string in place
+    but cannot reach it -- guarding it, or hoisting it above the deadline
+    wait -- passes both, and a user who presses *Restart Now* into a wedged
+    shutdown watches the app vanish. Same shape as the bug that started all
+    of this.
+
+    Its own app start, and it is the slowest test here (the deadline has to
+    expire), so the deadline is lowered rather than waited out.
+    """
+
+    def test_a_wedged_shutdown_still_comes_back(self):
+        config = tempfile.mkdtemp(prefix="jms-wedge-")
+        self.addCleanup(shutil.rmtree, config, ignore_errors=True)
+        self.addCleanup(_stop_app, config)
+        marker = os.path.join(config, "relaunched")
+
+        output, rc = _run_child(config, wedge=4)
+
+        self.assertIn("PARENT READY", output,
+                      "the child never started:\n%s" % output[-2000:])
+        # The watchdog kills a wedged shutdown with status 1, which is how
+        # we know this test exercised the forced path rather than the
+        # orderly one it is named apart from.
+        self.assertEqual(rc, 1,
+                         "the shutdown was not forced, so this measured the "
+                         "ordinary exit:\n%s" % output[-2000:])
+        self.assertIn("did not finish within", output,
+                      "the watchdog never reported a wedge")
+        self.assertTrue(_await(marker),
+                        "no replacement app appeared from the forced exit:"
+                        "\n%s" % output[-4000:])
 
 
 if __name__ == "__main__":

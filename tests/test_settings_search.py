@@ -59,21 +59,65 @@ class VocabularyTest(unittest.TestCase):
                               "%r does not find %s" % (query, key))
 
     def test_the_note_cases_really_do_depend_on_the_note(self):
-        """Guards the test above. If one of those words migrates into a
-        label, that case stops testing the notes and starts testing
+        """Guards the test above. If one of those words migrates elsewhere in
+        the haystack, that case stops testing the notes and starts testing
         something already covered -- passing for a reason it was not written
         for, which is how a suite quietly loses coverage.
 
-        Checked against the label AND the key, since both are in the
-        haystack for reasons of their own.
+        Asked of the haystack with the note removed rather than of the label
+        and key alone: the corpus also folds in the group title, the enum
+        labels and the search-only aliases, and a case that started matching
+        via any of those would otherwise slip past this guard.
         """
+        titles = {k: title for _tab, title, keys in
+                  [(t, ti, ks) for t in config.FORM_TABS
+                   for ti, ks in config.sections(t)]
+                  for k in keys}
         for query, key in self.NOTE_CASES:
             with self.subTest(query=query):
+                without = config.search_haystack(
+                    key, titles.get(key, ""), include_note=False)
                 self.assertNotIn(
-                    query, (config.label_for(key) + " "
-                            + key.replace("_", " ")).lower(),
+                    query, without,
                     "%r now matches %s without its note; move this case to "
                     "LABEL_CASES" % (query, key))
+
+    def test_an_alias_is_search_only_and_not_shown_to_the_user(self):
+        """`SEARCH_ALIASES` carries the words people type that the prose does
+        not say -- "bitrate" for a setting labelled kbps. They must not leak
+        into the note, whose job is to explain the setting to somebody
+        already looking at it."""
+        for key, alias in config.SEARCH_ALIASES.items():
+            with self.subTest(setting=key):
+                note = (config.NOTES.get(key) or "").lower()
+                for word in alias.split():
+                    self.assertNotIn(word, note,
+                                     "%r is in %s's note, so the alias is "
+                                     "redundant" % (word, key))
+
+    def test_every_alias_actually_finds_its_setting(self):
+        """An alias that does not reach its own setting is dead weight that
+        reads as coverage.
+
+        Only for keys the form is currently showing. Search is built on
+        `sections()`, so a hidden control is legitimately unfindable -- and
+        which of the tray pair is hidden (and therefore whether
+        `start_minimized` is offered at all) depends on whether this machine
+        has a system tray. Asserting on the hidden ones would make this pass
+        or fail on the desktop rather than on the code.
+        """
+        shown = {k for tab in config.FORM_TABS
+                 for _title, keys in config.sections(tab) for k in keys}
+        checked = 0
+        for key, alias in config.SEARCH_ALIASES.items():
+            if key not in shown:
+                continue
+            for word in alias.split():
+                with self.subTest(setting=key, word=word):
+                    self.assertIn(key, found(word),
+                                  "%r does not find %s" % (word, key))
+                    checked += 1
+        self.assertTrue(checked, "no alias was checked on this machine")
 
     def test_matching_is_substring_and_therefore_directional(self):
         """Worth pinning because it is the one surprising thing about the

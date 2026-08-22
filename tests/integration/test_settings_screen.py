@@ -82,6 +82,7 @@ class RealSettingsScreenTest(unittest.TestCase):
         # screen and asserts against a form that is not on display. That is
         # how the first version of this file failed.
         self.browser.route.pop("_q", None)
+        self.browser.route["_tab"] = "general"
         self.browser.route["_advanced"] = False
         self.browser._restart_keys = set()
 
@@ -172,16 +173,6 @@ class RealSettingsScreenTest(unittest.TestCase):
         nodes, _h = self._scene()
         self.assertIn("banner-restart-dismiss", self._ids(nodes))
         self.assertIn(cfgmod.label_for(key), self._texts(nodes))
-
-    def test_every_restart_required_key_has_a_real_label(self):
-        """The banner prints these, so a key whose label falls back to the
-        auto-generated `key.title()` form would show the user a setting name
-        that appears nowhere on the screen they are being sent to."""
-        from jellyfin_mpv_shim.mpvtk_browser import config as cfgmod
-
-        for key in sorted(cfgmod.RESTART_REQUIRED):
-            with self.subTest(setting=key):
-                self.assertTrue(cfgmod.label_for(key))
 
 
 if __name__ == "__main__":

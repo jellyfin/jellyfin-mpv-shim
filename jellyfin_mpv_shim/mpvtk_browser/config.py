@@ -268,7 +268,24 @@ RESTART_REQUIRED = frozenset({
     # mpv construction options and key bindings made with it. A re-created
     # mpv (idle-quit, crash recovery) would pick these up too, but not
     # predictably, so a restart is the answer that is always true.
-    "menu_mouse", "media_keys", "media_key_seek", "mouse_chapter_nav",
+    #
+    # `media_key_seek` is NOT here despite sitting beside `media_keys`: the
+    # binding is unconditional and the setting is read inside the handler
+    # (player.py `_on_media_prev`), so it applies at the next key press. It
+    # was listed once, which is precisely the wrong-badge case this set's
+    # docstring warns trains people to ignore the banner.
+    "menu_mouse", "media_keys", "mouse_chapter_nav",
+    # Snapshotted at menu.py module scope (`lang_filter = set(...)` at
+    # import), and every consumer reads that copy rather than the setting.
+    # Worse than a plain missing badge: the two booleans beside it ARE read
+    # live, so the filter visibly starts working with the old language list
+    # and reads as "ignored" rather than "pending".
+    "lang_filter",
+    # Baked into the ThumbnailStore's MemoryCache at construction
+    # (mpvtk_browser/ui.py), once, when the browser starts. A setting whose
+    # whole purpose is "this machine is short on RAM" that silently does
+    # nothing until relaunch.
+    "library_image_cache_mb",
     # Passed to both the API client and mpv at construction.
     "tls_client_cert", "tls_client_key", "tls_server_ca",
 })
@@ -948,7 +965,40 @@ def sections(tab=None):
     return out
 
 
-def search_haystack(key, title=""):
+#: Words a user types that appear nowhere in a setting's label, key or note.
+#:
+#: Search-only, and that is the point: these do not belong in the prose. A
+#: note exists to explain a setting to somebody already looking at it, and
+#: padding it with synonyms to feed the search would make it worse at its
+#: real job. Everything here was a measured miss -- the query returned
+#: nothing while the setting sat two tabs away.
+#:
+#: Matching is substring and directional (see `search`), so the LONGER form
+#: is what belongs here: "certificate" finds a label saying "Cert", but
+#: "Cert" alone is never found by "certificate".
+SEARCH_ALIASES = {
+    "local_kbps": "bitrate bandwidth quality",
+    "remote_kbps": "bitrate bandwidth quality",
+    "ignore_ssl_cert": "certificate https",
+    "tls_client_cert": "certificate https",
+    "tls_client_key": "certificate https",
+    "tls_server_ca": "certificate https",
+    "render_quality": "upscale upscaler sharpness",
+    # Whichever of the pair this machine shows, "tray" has to find it --
+    # and on a machine with NO tray it is `allow_background` that is
+    # offered, whose label and note never say the word. That is the machine
+    # where somebody types it.
+    "allow_background": "tray systray notification area",
+    "close_to_tray": "systray notification area",
+    "start_minimized": "minimise",
+    "ui_scale": "hidpi dpi",
+    "audio_mode": "surround 5.1 7.1",
+    "motion_interpolation": "stutter",
+}
+
+
+def search_haystack(key, title="", include_aliases=True,
+                    include_note=True):
     """Everything a settings search should match ``key`` on.
 
     The **note** is in here deliberately, and it is what makes the feature
@@ -963,11 +1013,21 @@ def search_haystack(key, title=""):
     The raw key is included because the docs, the issue tracker and
     `conf.json` all name settings that way, so somebody arriving from any
     of them types `auto_download_lookahead` rather than its label.
+
+    ``include_aliases`` and ``include_note`` exist for the test that checks
+    a note-dependent case really does depend on the note: it has to be able
+    to ask what the haystack looks like with each part taken away. Without
+    that, a case could start matching via an alias or an enum label and go
+    on claiming to prove the notes are searched.
     """
     parts = [label_for(key), key, key.replace("_", " "), title]
-    note = NOTES.get(key)
+    note = NOTES.get(key) if include_note else None
     if note:
         parts.append(note)
+    if include_aliases:
+        alias = SEARCH_ALIASES.get(key)
+        if alias:
+            parts.append(alias)
     for label, _value in LABELED_ENUMS.get(key) or ():
         parts.append(label)
     parts.extend(ENUMS.get(key) or ())

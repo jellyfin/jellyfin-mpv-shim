@@ -566,6 +566,26 @@ class TestRestartBanner(unittest.TestCase):
         nodes, _h = self._change_a_restart_setting()
         self.assertIn(self.cfg.label_for("player_name"), self._texts(nodes))
 
+    def test_the_banner_text_is_not_truncated(self):
+        """The banner promises to NAME the settings, and it was silently
+        ellipsizing every one of them -- `wrap=True` inside a fixed-height
+        Row is clamped to a single line, and the wrap slop then means the
+        last word never fits. With the real config a single pending setting
+        rendered as "Restart to apply: Interface…".
+
+        Three names, so the string is long enough that a returning `wrap`
+        truncates it; asserted on the text rather than on the node id, which
+        is what the other banner tests check and why none of them saw it.
+        """
+        self.b._restart_keys = {"player_name", "osc_mode", "lang"}
+        nodes, _h = build_scene(self.b)
+        line = next(t for t in
+                    (n.get("text", "") for n in nodes)
+                    if t.startswith("Restart to apply"))
+        self.assertNotIn("\u2026", line, line)
+        for key in ("player_name", "osc_mode", "lang"):
+            self.assertIn(self.cfg.label_for(key), line)
+
     def test_a_live_setting_raises_nothing(self):
         """The half that keeps the banner worth reading. Most settings apply
         immediately, and a banner after every write would be furniture."""
@@ -595,10 +615,46 @@ class TestRestartBanner(unittest.TestCase):
         self.assertNotIn("banner-restart", ids(nodes))
         self.assertEqual(self.ctl.restarts, 0)
 
+    def test_the_restart_banner_outranks_the_other_two(self):
+        """It is the only banner about something the user did seconds ago,
+        and the only one they can dismiss by acting on it. Put third it
+        would be invisible to exactly the people most likely to be changing
+        settings -- anyone offline. Nothing else asserts the ordering, so
+        moving the block below the others was a free mutation."""
+        self.b._offline = True
+        self.b._update = {"version": "9.9.9", "url": "http://example.invalid"}
+        nodes, _h = self._change_a_restart_setting()
+        ids = ids_of = {n.get("id") for n in nodes}
+        self.assertIn("banner-restart-dismiss", ids)
+        self.assertNotIn("banner-open", ids)      # the update banner
+        self.assertNotIn("banner-retry", ids)     # the offline banner
+
+    def test_later_asks_for_a_repaint(self):
+        """A scene assertion is not a repaint assertion: `build_scene`
+        renders when asked, so the dismissal test passes against a handler
+        that clears the keys and never redraws -- and the user would click
+        Later and watch the banner stay."""
+        nodes, handlers = self._change_a_restart_setting()
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        handlers["banner-restart-dismiss"]["click"]()
+        self.assertTrue(seen)
+
     def test_restart_now_restarts(self):
         nodes, handlers = self._change_a_restart_setting()
         handlers["banner-restart"]["click"]()
         self.assertEqual(self.ctl.restarts, 1)
+
+    def test_the_restart_is_told_which_settings_it_is_for(self):
+        """The relaunch re-passes the command-line overrides that describe
+        how this copy is running -- and three of them (`--scale`,
+        `--mpv-loglevel`, `--gui`) name a setting that requires a restart.
+        `main` applies those on top of the saved config, so a restart that
+        did not say what it was for would come back with the old value and
+        never apply the change, however many times the user pressed it."""
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertEqual(self.ctl.restart_pending, [{"player_name"}])
 
     def test_no_button_where_the_app_cannot_restart_itself(self):
         """A button that takes the app away and does not bring it back is

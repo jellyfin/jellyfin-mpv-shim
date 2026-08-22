@@ -162,12 +162,23 @@ class SettingsMixin(
         return Row([
             TextBox("set-search-box", text=route.get("_q", ""),
                     placeholder=_("Search settings…"), w=320,
-                    # force: the scene's value has to win so that clicking
-                    # a tab (which clears the query) also clears the box.
-                    # The renderer keeps edit state keyed by node id, and
-                    # without this the field would still read "deband"
-                    # while the form beneath it had gone back to the tab.
-                    force=True,
+                    # force ONLY while the query is empty. It is needed so
+                    # that clicking a tab (which clears the query) also
+                    # clears the box -- the renderer keeps edit state keyed
+                    # by node id, and without it the field would still read
+                    # "deband" while the form beneath had gone back to the
+                    # tab.
+                    #
+                    # But force is unconditional in the renderer's
+                    # `reconcile`, which wipes the box's state on every
+                    # scene push -- unlike its sibling `tb_state`, which
+                    # guards on focus. Since this box invalidates on every
+                    # keystroke, an always-on force rebuilt the field each
+                    # character with the caret forced to the end: you could
+                    # not go back and fix a typo, because the next character
+                    # landed at the end instead. Empty-only gives the clear
+                    # its authority and leaves typing alone.
+                    force=not route.get("_q"),
                     on_change=lambda v: self._set_settings_query(route, v),
                     on_submit=lambda v: self._set_settings_query(route, v)),
             Spacer(),

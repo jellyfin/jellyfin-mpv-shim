@@ -10,6 +10,7 @@ So `command()` is built from an allowlist of parsed arguments, and these
 tests are mostly about what does **not** survive.
 """
 
+import ast
 import os
 import sys
 import unittest
@@ -303,6 +304,19 @@ class RequestTest(unittest.TestCase):
             self.assertTrue(restart.relaunch_if_requested())
         self.assertEqual(popen.call_count, 1)
 
+    def test_a_second_call_spawns_nothing(self):
+        """Both exit paths can reach here -- the orderly one and the
+        watchdog's forced one -- and two spawns would leave two copies
+        racing for the instance lock. `_requested` is cleared on the way IN
+        for this reason; `exit_watchdog` guards it as well, so deleting
+        either half alone is otherwise invisible."""
+        restart.request()
+        with mock.patch("subprocess.Popen") as popen, \
+                mock.patch.object(restart, "command", return_value=["x"]):
+            self.assertTrue(restart.relaunch_if_requested())
+            self.assertFalse(restart.relaunch_if_requested())
+        self.assertEqual(popen.call_count, 1)
+
     def test_it_is_detached_from_the_terminal_that_started_us(self):
         """Otherwise a Ctrl-C in the console the old copy was started from
         reaches the new one, and the restart looks like a crash."""
@@ -518,6 +532,79 @@ class QuitReportsWhetherItWorkedTest(unittest.TestCase):
         self.assertEqual(len(fired), 1)
 
 
+class LogPreservationTest(unittest.TestCase):
+    """The predecessor's log survives the restart.
+
+    `configure_log_file` opens `log.txt` with mode="w" -- one run per file,
+    which is right for an app that starts once. A restart is two runs
+    telling one story, and the half worth reading ("Restart armed",
+    "Restarting: ...", and whatever went wrong) is the half the successor
+    would truncate. The case where anyone opens that file is exactly the
+    case where the replacement did not come up.
+    """
+
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        restart.cancel()
+        self.addCleanup(restart.cancel)
+        self.dir = tempfile.mkdtemp(prefix="jms-logpres-")
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
+        self.log = os.path.join(self.dir, "log.txt")
+
+    def _preserve(self, write_logs=True, create=True):
+        from types import SimpleNamespace
+
+        if create:
+            with open(self.log, "w") as fh:
+                fh.write("Restarting: /usr/bin/python3 app\n")
+        with mock.patch("jellyfin_mpv_shim.conffile.get",
+                        return_value=self.log), \
+                mock.patch("jellyfin_mpv_shim.conf.settings",
+                           SimpleNamespace(write_logs=write_logs)):
+            restart._preserve_log()
+
+    def test_the_old_log_is_moved_aside(self):
+        self._preserve()
+        moved = os.path.join(self.dir, restart.PREVIOUS_LOG)
+        self.assertTrue(os.path.exists(moved), os.listdir(self.dir))
+        with open(moved) as fh:
+            self.assertIn("Restarting:", fh.read())
+        # Moved, not copied: the successor opens `log.txt` with mode="w" and
+        # a leftover would just be truncated again.
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_nothing_happens_when_file_logging_is_off(self):
+        """`write_logs` defaults off, so most installs have no file at all
+        and this must not invent one."""
+        self._preserve(write_logs=False)
+        self.assertFalse(os.path.exists(
+            os.path.join(self.dir, restart.PREVIOUS_LOG)))
+
+    def test_a_missing_log_is_not_an_error(self):
+        self._preserve(create=False)      # must not raise
+
+    def test_a_failure_does_not_stop_the_restart(self):
+        """Best-effort: on Windows an open file cannot be renamed, and
+        losing the previous log is not a reason to skip the relaunch."""
+        with mock.patch("os.replace", side_effect=OSError("in use")):
+            self._preserve()              # must not raise
+
+    def test_the_log_is_preserved_before_the_child_starts(self):
+        """Or the successor truncates it first and there is nothing to
+        move."""
+        restart.request()
+        order = []
+        with mock.patch.object(restart, "command", return_value=["x"]), \
+                mock.patch.object(restart, "_preserve_log",
+                                  side_effect=lambda: order.append("log")), \
+                mock.patch("subprocess.Popen",
+                           side_effect=lambda *a, **k: order.append("spawn")):
+            restart.relaunch_if_requested()
+        self.assertEqual(order, ["log", "spawn"])
+
+
 class ShutdownOrderTest(unittest.TestCase):
     """Where the relaunch sits in ``mpv_shim.main``.
 
@@ -546,6 +633,7 @@ class ShutdownOrderTest(unittest.TestCase):
             sys.argv = [sys.argv[0]]
             from jellyfin_mpv_shim import exit_watchdog
             exit_watchdog.arm()
+            print("ARMED", flush=True)
             exit_watchdog.finish()
             print("REACHED", flush=True)
         """)
@@ -553,6 +641,14 @@ class ShutdownOrderTest(unittest.TestCase):
                              capture_output=True, text=True, timeout=120,
                              cwd=os.path.dirname(os.path.dirname(
                                  os.path.abspath(__file__))))
+        # A positive control first: "REACHED is absent" is also satisfied by
+        # a script that died on an import error, which would make this test
+        # green against a `finish` that had stopped existing.
+        self.assertIn("ARMED", out.stdout,
+                      "the script never got as far as finish():\n%s\n%s"
+                      % (out.stdout, out.stderr))
+        self.assertEqual(out.returncode, 0,
+                         "finish(0) should end the process with status 0")
         self.assertNotIn("REACHED", out.stdout,
                          "exit_watchdog.finish() returned; the ordering rule "
                          "below is no longer load-bearing and its comment in "
@@ -603,6 +699,23 @@ class ShutdownOrderTest(unittest.TestCase):
         self.assertLess(source.index("set_final_action"),
                         source.index("exit_watchdog.finish()"))
 
+    def test_the_final_action_stops_the_tray_before_relaunching(self):
+        """The tray is a separate process, stopped in the sixth of seven
+        shutdown steps. On the forced path the wedge can be anywhere before
+        that, so without this a restart puts a live replacement beside a
+        tray icon whose app is gone -- and under `start_minimized` that dead
+        icon is the only thing the user would try to click."""
+        import inspect
+
+        from jellyfin_mpv_shim import mpv_shim
+
+        source = inspect.getsource(mpv_shim.main)
+        body = source[source.index("def final_action"):]
+        body = body[:body.index("exit_watchdog.set_final_action")]
+        self.assertIn("stop_tray", body)
+        self.assertLess(body.index("stop_tray"),
+                        body.index("relaunch_if_requested"))
+
     def test_the_final_action_gives_the_instance_lock_up_first(self):
         """On the forced path the lock may never have been released -- the
         wedge can be anywhere -- and a new copy that finds it held hands off
@@ -617,6 +730,78 @@ class ShutdownOrderTest(unittest.TestCase):
         body = body[:body.index("exit_watchdog.set_final_action")]
         self.assertLess(body.index("single.release"),
                         body.index("relaunch_if_requested"))
+
+
+class PristineSnapshotOrderTest(unittest.TestCase):
+    """The picture snapshot must be taken before anything writes to the new
+    mpv, and the shader pack writes at *construction*.
+
+    `menu.update_player` (and the first `OSDMenu`) builds a
+    `VideoProfileManager`, whose `__init__` re-applies the remembered
+    profile; `default-setting-groups` writes `deband` and, through
+    `profile=gpu-hq`, every property `render_quality` owns. Snapshotted
+    after that, "the user's own value" is the PACK's -- so turning Debanding
+    off hands back `deband=yes, grain=0` over the user's mpv.conf,
+    permanently, with no profile loaded and no grain shaders to justify the
+    zero. `shader_pack_remember` defaults on, so that is the ordinary path
+    for anyone who has picked a profile once.
+
+    Structural rather than behavioural, and deliberately: reproducing it at
+    runtime needs a real mpv, a real shader pack and a remembered profile.
+    It was verified that way once by hand (with the old ordering the
+    snapshot really did record `deband=True, grain=0.0,
+    scale=ewa_lanczos`); this keeps the ordering from drifting back without
+    paying for that setup on every run.
+    """
+
+    def _init_mpv_tree(self):
+        import inspect
+        import textwrap
+
+        from jellyfin_mpv_shim import player
+
+        return ast.parse(textwrap.dedent(inspect.getsource(player.PlayerManager._init_mpv)))
+
+    def _first_line(self, tree, predicate):
+        return min((n.lineno for n in ast.walk(tree)
+                    if isinstance(n, ast.Call) and predicate(n)), default=None)
+
+    def test_the_snapshot_precedes_the_shader_pack(self):
+        tree = self._init_mpv_tree()
+
+        def named(node, name):
+            func = node.func
+            return (getattr(func, "id", None) == name
+                    or getattr(func, "attr", None) == name)
+
+        snapshot = self._first_line(
+            tree, lambda n: named(n, "_snapshot_render_pristine"))
+        self.assertIsNotNone(snapshot, "_init_mpv no longer snapshots")
+        for builder in ("OSDMenu", "update_player"):
+            line = self._first_line(tree, lambda n, b=builder: named(n, b))
+            if line is None:
+                continue
+            self.assertLess(
+                snapshot, line,
+                "%s builds a VideoProfileManager, which re-applies the "
+                "remembered shader profile and writes deband/scale into the "
+                "new mpv. The snapshot must come first or it records the "
+                "pack's values as the user's." % builder)
+
+    def test_the_snapshot_is_paired_with_clearing_what_we_wrote(self):
+        """Both halves move together: a snapshot without the reset would
+        leave the previous mpv's keys marked as written against a fresh
+        handle."""
+        tree = self._init_mpv_tree()
+        snapshot = self._first_line(
+            tree, lambda n: getattr(n.func, "attr", None)
+            == "_snapshot_render_pristine")
+        writes = [n.lineno for n in ast.walk(tree)
+                  if isinstance(n, ast.Assign)
+                  and any(getattr(t, "attr", None) == "_render_written"
+                          for t in n.targets)]
+        self.assertTrue(writes, "_render_written is no longer reset")
+        self.assertLessEqual(min(writes), snapshot)
 
 
 class FinalActionTest(unittest.TestCase):

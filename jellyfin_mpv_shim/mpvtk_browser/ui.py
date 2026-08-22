@@ -134,6 +134,25 @@ class UserInterface:
     def _quit(self):
         self.quit_app()
 
+    def stop_tray(self):
+        """Terminate the tray child. Idempotent, and safe to call twice.
+
+        Public because the shutdown is not the only caller any more: the
+        tray lives in its own process and is stopped in the sixth of seven
+        shutdown steps, so a step that wedges before then leaves it running
+        -- and since a restart now spawns a replacement from the forced
+        exit, the user would get a second tray icon beside a dead one whose
+        menu goes to a queue nobody reads. `mpv_shim`'s final action calls
+        this first for that reason.
+        """
+        tray, self._tray = self._tray, None
+        if tray is None:
+            return
+        try:
+            tray.stop()
+        except Exception:
+            log.debug("could not stop the tray", exc_info=True)
+
     def quit_app(self):
         """Shut the application down, from outside the tray.
 
@@ -600,8 +619,7 @@ class UserInterface:
 
     def stop(self):
         from ..player import playerManager
-        if self._tray is not None:
-            self._tray.stop()
+        self.stop_tray()
         playerManager.mpvtk_active = False
         app, self._app = self._app, None
         if app is not None:

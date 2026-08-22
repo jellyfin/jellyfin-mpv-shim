@@ -691,12 +691,19 @@ class FakeController:
         self.restarts = 0
         self.restart_ok = True
         self.restart_possible = True
+        #: The pending-settings set handed to each restart_app call.
+        self.restart_pending = []
 
     def can_restart(self):
         return self.restart_possible
 
-    def restart_app(self):
+    def restart_app(self, pending=()):
+        # `pending` is modelled, not swallowed: the relaunch drops a
+        # command-line override naming one of these, so a stand-in that
+        # ignored the argument would let the browser stop sending it
+        # without any test noticing.
         self.restarts += 1
+        self.restart_pending.append(set(pending))
         return self.restart_ok
 
     def show_picture(self, path):

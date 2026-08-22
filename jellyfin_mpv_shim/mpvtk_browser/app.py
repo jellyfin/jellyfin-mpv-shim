@@ -276,6 +276,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # everything at the next launch. Carrying it across launches would
         # mean the banner outlived the thing it was about.
         self._restart_keys = set()
+        #: Whether this launch can restart itself, asked once. See
+        #: can_restart.
+        self._can_restart = None
         # Client-side decorations: draw our own title bar because the desktop
         # is not drawing one. Pushed by refresh_window_controls rather than
         # read per frame -- the answer is an mpv property, and on the jsonipc
@@ -2956,15 +2959,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         answer: a button that takes the app away and does not bring it back
         is worse than no button.
         """
+        # Cached for the life of this browser. The banner is part of the
+        # scene, so without it this ran on every repaint -- scrolling,
+        # hovering, playback progress -- and the answer costs a stat of
+        # `sys.argv[0]`. It cannot change within a session: it asks whether
+        # this launch can be reconstructed at all.
+        if self._can_restart is not None:
+            return self._can_restart
         can = getattr(self.controller, "can_restart", None) if self.controller else None
         if can is None:
             return False
         try:
-            return bool(can())
+            self._can_restart = bool(can())
         except Exception:
             log.debug("could not ask whether a restart is possible",
                       exc_info=True)
-            return False
+            self._can_restart = False
+        return self._can_restart
 
     def _restart_now(self):
         """Restart the app. The banner's button.
@@ -2979,7 +2990,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             restart = getattr(self.controller, "restart_app", None)
             if restart is not None:
                 try:
-                    ok = bool(restart())
+                    # The pending keys go with the request: a command-line
+                    # override naming one of them has to be dropped from the
+                    # relaunch, or it lands on top of the value the user just
+                    # saved and the restart appears to do nothing. Passed
+                    # positionally through a getattr'd method, so a gateway
+                    # that predates the argument raises TypeError rather than
+                    # silently ignoring it -- caught below, reported as a
+                    # failed restart, which is the honest answer.
+                    ok = bool(restart(set(self._restart_keys)))
                 except Exception:
                     log.exception("could not restart")
         if not ok:

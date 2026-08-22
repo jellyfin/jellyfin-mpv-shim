@@ -32,6 +32,14 @@ log = logging.getLogger("exit_watchdog")
 # to time out, and waiting lets them end normally and keeps the log quiet.
 GRACE_SECONDS = 3.0
 
+# How long the registered final action gets before the process ends anyway.
+# It runs on the way out of a shutdown that may already be wedged, and what
+# it does is not this module's business -- the restart's action releases the
+# instance lock (an unlink, possibly on a network mount) and spawns a
+# process. "We always end" is this module's whole promise, so the action is
+# bounded rather than trusted.
+FINAL_ACTION_SECONDS = 10.0
+
 # How long the whole orderly shutdown gets before we call one of its steps
 # wedged. Generous, because a step legitimately waiting out a socket
 # timeout must not be cut off and blamed for it.
@@ -166,20 +174,54 @@ def set_final_action(fn):
 
 
 def _run_final_action():
+    """Run the registered action once, bounded, whichever path gets here.
+
+    **The lock is held across the call, not just around the flag.** Both
+    exits reach this: `finish` disarms first, but the watchdog may already
+    be past that check and mid-dump, so the two really do race. With the
+    action outside the lock the loser returned immediately and carried on to
+    `os._exit` -- killing the process while the winner was still inside
+    `subprocess.Popen`. The log would say "Restarting:", the once-only flag
+    would be set so nothing retried, and no replacement would exist: the
+    exact failure the hook was added to prevent, on the path it was added
+    for. The dump above is slower than a zero-straggler grace, so that
+    interleaving is the likely one rather than the exotic one.
+
+    Bounded by a watchdog of its own, because holding a lock across foreign
+    work on the *forced* exit path would otherwise hand this module's one
+    guarantee to that work. The action releases the instance lock and spawns
+    a process; either can block on a dead network mount, and its logging
+    takes handler locks that the wedged main thread may be holding.
+    """
     global _final_done
     with _final_lock:
-        # Both paths can reach this: `finish` disarms first, but the watchdog
-        # may already be past that check and mid-dump, so the two really can
-        # race. Spawning a restart twice would leave two copies fighting over
-        # the instance lock.
         if _final_action is None or _final_done:
             return
         _final_done = True
         action = _final_action
-    try:
-        action()
-    except Exception:
-        log.exception("the final shutdown action failed")
+        # Armed before the action, disarmed after it. A daemon timer, so it
+        # never keeps the interpreter alive on its own.
+        bail = threading.Timer(FINAL_ACTION_SECONDS, _final_action_timeout)
+        bail.daemon = True
+        bail.start()
+        try:
+            action()
+        except Exception:
+            log.exception("the final shutdown action failed")
+        finally:
+            bail.cancel()
+
+
+def _final_action_timeout():
+    """The final action outstayed its welcome; end the process anyway.
+
+    Deliberately terse and lock-free: the reason this fires may be that
+    logging itself is wedged, so it writes through `_write` rather than
+    through a handler.
+    """
+    _write(sys.stderr, "\nfinal shutdown action did not finish within "
+                       "%.0fs; exiting anyway\n" % FINAL_ACTION_SECONDS)
+    os._exit(1)
 
 
 def arm(deadline=None):

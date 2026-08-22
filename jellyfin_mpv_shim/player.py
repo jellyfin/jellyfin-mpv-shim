@@ -1010,6 +1010,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
         )
 
+        # **Before anything else touches this handle.** The shader pack is the
+        # reason: `OSDMenu` / `menu.update_player` below construct a
+        # VideoProfileManager, whose __init__ re-applies the remembered
+        # profile -- and `default-setting-groups` writes `deband` and, via
+        # `profile=gpu-hq`, the whole of `render_quality`. Snapshotted after
+        # that, "the user's own value" would be the PACK's, so turning the
+        # Debanding setting off would hand back `deband=yes, grain=0` over
+        # the user's mpv.conf, for ever, with no profile loaded and no grain
+        # shaders to justify the zero. `shader_pack_remember` defaults on, so
+        # that is the ordinary path for anyone who has ever picked a profile.
+        #
+        # It also means a failure between here and the end of _init_mpv
+        # cannot leave the PREVIOUS mpv's values recorded against this one.
+        self._render_written = set()
+        self._snapshot_render_pristine()
+
         try:
             self._runtime_force_window = runtime_force_window_works(
                 self._player.mpv_version)
@@ -1084,11 +1100,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A fresh mpv starts with stats.lua's overlay off — don't let a stale
         # flag make clear_stats() toggle it back on.
         self._stats_shown = False
-        # ...and it starts with the user's own picture options, so values
-        # saved from the PREVIOUS mpv would be restored over them. Re-read
-        # here, while nothing has written to this one yet.
-        self._render_written = set()
-        self._snapshot_render_pristine()
+        # The picture-option snapshot is NOT taken here -- it is taken the
+        # moment the handle exists, above, because the shader pack writes to
+        # this mpv before this line is reached. See _snapshot_render_pristine.
         # A fresh mpv may be a different build (the external binary can be
         # swapped under us), so the discovery is re-made rather than carried.
         self._no_deinterlace_auto = False
@@ -2947,12 +2961,27 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         This is the definition of "the user's own value" that the restore
         hands back: mpv's defaults as modified by the user's ``mpv.conf``,
-        and nothing else. Taken here rather than lazily on first write
-        because the shader pack gets there first -- ``apply_for_item`` runs
-        earlier in ``_play_media`` than the settings do, and every profile
-        pulls in ``deband-default`` -- so a lazy snapshot would record the
-        pack's debanding as the user's and never be able to give the real
-        value back.
+        and nothing else.
+
+        **Called the moment the handle exists, before anything else touches
+        it**, because the shader pack gets there first in two different
+        ways and both would poison this:
+
+        - at construction, ``menu.update_player`` (and the first
+          ``OSDMenu``) builds a ``VideoProfileManager``, whose ``__init__``
+          re-applies the remembered profile. ``default-setting-groups``
+          writes ``deband`` and, through ``profile=gpu-hq``, every property
+          ``render_quality`` owns. ``shader_pack_remember`` defaults on, so
+          this is the ordinary path for anyone who has picked a profile
+          once;
+        - per item, ``apply_for_item`` runs earlier in ``_play_media`` than
+          the settings do.
+
+        Snapshotted after either, "the user's own value" is the pack's, and
+        turning the setting off hands the pack's values back over the user's
+        ``mpv.conf`` -- permanently, with no profile loaded, and with
+        ``deband-grain: 0`` that only made sense beside the pack's grain
+        shaders.
 
         A property this mpv does not have is simply absent, and the restore
         skips it. That is the right answer rather than an error: an older

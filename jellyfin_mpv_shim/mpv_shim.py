@@ -362,6 +362,20 @@ def main():
             dying process and exits. It is idempotent, so the ordinary path
             pays nothing for it.
             """
+            # The tray first: it is a separate process, and the shutdown
+            # loop only reaches it in step six of seven. On the forced path
+            # the wedge can be anywhere before that, so without this a
+            # restart would put a live replacement beside a tray icon whose
+            # app is gone -- and on `start_minimized` that dead icon is the
+            # only thing the user would try to click.
+            #
+            # getattr: the CLI user interface has no tray.
+            stop_tray = getattr(user_interface, "stop_tray", None)
+            if stop_tray is not None:
+                try:
+                    stop_tray()
+                except Exception:
+                    log.debug("could not stop the tray", exc_info=True)
             single.release()
             from . import restart
 

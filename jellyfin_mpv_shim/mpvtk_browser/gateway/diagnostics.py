@@ -124,14 +124,21 @@ class DiagnosticsMixin(GatewayCore):
 
         return supported()
 
-    def restart_app(self):
+    def restart_app(self, pending=()):
         """Restart the whole application.
+
+        ``pending`` is the settings this restart is for. It is passed on so
+        the relaunch can drop a command-line override that would land on top
+        of one of them -- `--scale` over `ui_scale`, say, which `main`
+        applies after the config and which would otherwise undo the change
+        the user is restarting to get.
 
         Arms the relaunch and then triggers the **ordinary** shutdown --
         which is what saves the window geometry, posts the final progress
         report and releases the single-instance lock before the new copy
-        starts. The relaunch itself is the last thing `mpv_shim.main` does;
-        see restart.py for why it is there and not here.
+        starts. The relaunch itself is the process's last act, hung off
+        `exit_watchdog`'s final-action hook; see restart.py for why it is
+        there and not here.
 
         Returns False if it could not be started, so the caller can say so
         rather than leaving the user looking at an app that did not quit.
@@ -142,7 +149,7 @@ class DiagnosticsMixin(GatewayCore):
             log.error("Restart asked for, but this launch cannot be "
                       "reconstructed; not quitting.")
             return False
-        request()
+        request(pending)
         started = False
         try:
             from ..ui import user_interface
