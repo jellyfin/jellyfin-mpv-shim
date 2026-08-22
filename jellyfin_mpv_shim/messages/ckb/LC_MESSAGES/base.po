@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-07 18:19+0000\n"
+"PO-Revision-Date: 2026-08-22 14:26+0000\n"
 "Last-Translator: ahmadjamel89 <ahmadjamel89@gmail.com>\n"
 "Language-Team: Kurdish (Central) <https://translate.jellyfin.org/projects/"
 "jellyfin/jellyfin-mpv-shim/ckb/>\n"
@@ -3537,10 +3537,8 @@ msgstr "فلتەر"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Play All"
-msgstr "کارپێکردنی هاوکاتگەری"
+msgstr "پەخشکردنی هاوکاتی هەمووی"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
