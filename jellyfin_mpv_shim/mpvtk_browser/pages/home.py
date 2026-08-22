@@ -280,8 +280,14 @@ class HomePage(Page):
             entries.append((layout.index(home_sections.LIBRARIES),
                             _("Libraries"), data["libraries"],
                             # Libraries read as landscape cards, like the web
-                            # client.
-                            art.geom_wide, "Primary", "row-libs", False, True,
+                            # client. Through caption_geom rather than
+                            # geom_wide bare: a UserView has no year and no
+                            # episode line, so the second caption line is
+                            # room this row cannot use -- and the hover ring
+                            # drew around it.
+                            art.tiles.caption_geom(data["libraries"],
+                                                   art.geom_wide),
+                            "Primary", "row-libs", False, True,
                             None))
         # Ids are derived from section kind, not from position: they key the
         # scroll containers, so an index-based id would hand a reordered

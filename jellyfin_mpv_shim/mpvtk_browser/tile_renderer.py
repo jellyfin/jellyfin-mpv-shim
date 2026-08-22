@@ -480,7 +480,7 @@ class TileRenderer:
     THIRD_LINE_MAX_W = 200
 
     def caption_geom(self, items, geom):
-        """``geom``, widened to three caption lines if these items need it.
+        """``geom``, resized to the caption lines these items actually use.
 
         Idempotent and cheap, so it can be asked wherever a geometry meets a
         list of items. It has to be asked by whoever *keeps* the geometry,
@@ -489,6 +489,11 @@ class TileRenderer:
         ``strip_h``, so a band that grew after those were taken windows the
         wrong rows and snaps to the wrong stops.
         """
+        if components.has_no_subtitles(items):
+            # A library, genre or person card: the band under it was sized
+            # for a second line that this row's items cannot produce, and
+            # the hover ring drew around the empty half of it.
+            return geom.single_line()
         if geom.tile_w > self.THIRD_LINE_MAX_W:
             return geom
         for item in items or ():

@@ -93,6 +93,34 @@ def episode_subtitle(item, show_year=True, air_time=True):
     return str(item.get("ProductionYear") or "") if show_year else ""
 
 
+#: Item types whose tile caption is structurally one line: they are not
+#: media, so they have no ProductionYear for :func:`episode_subtitle` to
+#: return and no branch above claims them. Kept as TYPES rather than as
+#: "this batch produced no subtitles", because the geometry decided here
+#: fixes a grid's row pitch and its virtualization window -- and an
+#: observation about the items loaded so far flips the moment page two
+#: brings one that does have a year, re-pitching every row under the
+#: user's scroll position.
+NO_SUBTITLE_TYPES = frozenset({
+    "UserView", "CollectionFolder", "Genre", "MusicGenre", "Person", "Studio",
+})
+
+
+def has_no_subtitles(items):
+    """Whether a row of ``items`` can be drawn with a one-line caption.
+
+    Conservative on both sides: empty is False (nothing to shrink for, and a
+    row that fills in later must not have been pitched for one line), and one
+    item of any other type is enough to keep the second line for the row --
+    a strip is composited at one caption height, so this cannot be per-tile.
+    """
+    items = [i for i in items or () if i]
+    if not items:
+        return False
+    return all(i.get("_subtitle") is None
+               and i.get("Type") in NO_SUBTITLE_TYPES for i in items)
+
+
 def _a_time(item, live_tv):
     start = live_tv.parse_time(item.get("StartDate"))
     return live_tv.fmt_time(start) if start else ""
