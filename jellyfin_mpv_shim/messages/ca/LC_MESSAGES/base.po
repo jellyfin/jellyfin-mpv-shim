@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-22 11:46+0000\n"
+"PO-Revision-Date: 2026-08-22 17:14+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1151,91 +1151,75 @@ msgstr "La profunditat de bits de vídeo no és compatible"
 
 # seeded from jellyfin-web: VideoFramerateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's framerate is not supported"
-msgstr "La velocitat de fotogrames de vídeo no és compatible"
+msgstr "La velocitat dels fotogrames no és compatible"
 
 # seeded from jellyfin-web: RefFramesNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Reference frames are not supported"
 msgstr "Els fotogrames de referència no són compatibles"
 
 # seeded from jellyfin-web: AnamorphicVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic video is not supported"
-msgstr "El vídeo anamòrfic no és compatible"
+msgstr "Els vídeos anamòrfics no són compatibles"
 
 # seeded from jellyfin-web: InterlacedVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Interlaced video is not supported"
-msgstr "El vídeo entrellaçat no és compatible"
+msgstr "Els vídeos entrellaçats no són compatibles"
 
 # seeded from jellyfin-web: AudioChannelsNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The number of audio channels is not supported"
 msgstr "El nombre de canals d'àudio no és compatible"
 
 # seeded from jellyfin-web: AudioProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio codec's profile is not supported"
 msgstr "El perfil del còdec d'àudio no és compatible"
 
 # seeded from jellyfin-web: AudioSampleRateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's sample rate is not supported"
 msgstr "La velocitat de mostreig de l'àudio no és compatible"
 
 # seeded from jellyfin-web: AudioBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bit depth is not supported"
 msgstr "La profunditat de bits d'àudio no és compatible"
 
 # seeded from jellyfin-web: ContainerBitrateExceedsLimit
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate exceeds the limit"
 msgstr "La taxa de bits de vídeo excedeix el límit"
 
 # seeded from jellyfin-web: VideoBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate is not supported"
 msgstr "La velocitat de transmissió del vídeo no és compatible"
 
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bitrate is not supported"
 msgstr "La taxa de bits d'àudio no és compatible"
 
 # seeded from jellyfin-web: UnknownVideoStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video stream info is unknown"
 msgstr "La informació del flux de vídeo és desconeguda"
 
 # seeded from jellyfin-web: UnknownAudioStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream info is unknown"
 msgstr "La informació del flux d'àudio és desconeguda"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing here to play."
 msgid "There was an error starting direct playback"
-msgstr "Aquí no hi ha res que es pugui reproduir."
+msgstr "S'ha produït un error en iniciar la reproducció directa"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's range type is not supported"
 msgstr "El tipus d'interval del vídeo no és compatible"
 
@@ -1257,10 +1241,8 @@ msgid "Library Browser"
 msgstr "Navegador de la biblioteca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Recording"
 msgid "Reading"
-msgstr "Enregistrament"
+msgstr "S'està llegint"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1269,16 +1251,12 @@ msgid "Downloads"
 msgstr "Descàrregues"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Downloading"
 msgid "Download Tuning"
-msgstr "S'està descarregant"
+msgstr "Ajust de les descàrregues"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls Style"
 msgid "Player Controls"
-msgstr "Estil dels controls del reproductor"
+msgstr "Controls del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1627,10 +1605,8 @@ msgid "Interface Scale"
 msgstr "Escala de la interfície"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Text Size"
-msgstr "Mida de la coberta"
+msgstr "Mida del text"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
@@ -1650,10 +1626,8 @@ msgid "Make library logos more legible"
 msgstr "Fes que els logotips de la mediateca siguin més llegibles"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Cover Size"
 msgid "Type Size"
-msgstr "Mida de la coberta"
+msgstr "Mida del tipus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
