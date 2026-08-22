@@ -261,14 +261,14 @@ class TilesMixin:
         single = live_tv.single_timer_state(item)
         if single:
             out.append((_("Stop Recording") if single == "recording"
-                        else _("Do Not Record"), "cancel", "unrecord"))
+                        else _("Do not record"), "cancel", "unrecord"))
         else:
             out.append((_("Record"), "fiber_manual_record", "record"))
         if item.get("IsSeries"):
             if item.get("SeriesTimerId"):
                 out.append((_("Cancel Series"), "cancel", "unrecordseries"))
             else:
-                out.append((_("Record Series"), "fiber_smart_record",
+                out.append((_("Record series"), "fiber_smart_record",
                             "recordseries"))
         return out
 
@@ -285,8 +285,8 @@ class TilesMixin:
                 # Favourites float to the top of the guide and the channel
                 # list (see live_tv.channel_sort_kwargs), so this is the one
                 # piece of user data a channel has that does anything.
-                out.append((_("Remove from Favorites") if fav
-                            else _("Add to Favorites"), "favorite",
+                out.append((_("Remove from favorites") if fav
+                            else _("Add to favorites"), "favorite",
                             "favorite"))
             return out
         if t in self.MENU_PLAYABLE:
@@ -299,23 +299,23 @@ class TilesMixin:
             pos = (ud.get("PlaybackPositionTicks") or 0) if t in PLAYABLE_TYPES else 0
             if pos > 0:
                 out.append((_("Resume"), "play_arrow", "play"))
-                out.append((_("Play from Beginning"), "first_page", "restart"))
+                out.append((_("Play from beginning"), "first_page", "restart"))
             else:
                 out.append((_("Play"), "play_arrow", "play"))
-            out.append((_("Add to Queue"), "playlist_add", "queue"))
+            out.append((_("Add to play queue"), "playlist_add", "queue"))
             # Only while something is playing: with an idle player both
             # entries do the same thing (start these items), and offering
             # the same action twice under two names is worse than offering
             # it once. The gateway still handles the idle case, because a
             # queue can empty between the menu being drawn and pressed.
             if self._is_playing():
-                out.append((_("Play Next"), "queue_play_next", "queuenext"))
+                out.append((_("Play next"), "queue_play_next", "queuenext"))
         if t in self.MENU_WATCHED:
-            out.append((_("Mark Unwatched") if watched
-                        else _("Mark Watched"), "check", "watched"))
+            out.append((_("Mark unplayed") if watched
+                        else _("Mark played"), "check", "watched"))
         if t in self.MENU_FAVORITE:
-            out.append((_("Remove from Favorites") if fav
-                        else _("Add to Favorites"), "favorite", "favorite"))
+            out.append((_("Remove from favorites") if fav
+                        else _("Add to favorites"), "favorite", "favorite"))
         if t in self.MENU_READ:
             # Same verb the book's own page uses, and the same two
             # meanings behind it: the built-in reader for an epub, the
@@ -325,7 +325,12 @@ class TilesMixin:
             # no language could tell the verb from the adjective.
             out.append((_p("open a book", "Read"), "menu_book", "read"))
         if t in self.MENU_ADD_TO and not self._offline and self._edit_apis():
-            out.append((_("Add to Playlist"), "queue_music", "addto"))
+            # Sentence case, and NOT the same string as the dialog
+            # heading two lines away: jellyfin-web keeps AddToPlaylist
+            # and HeaderAddToPlaylist apart, and a language that
+            # capitalizes a heading differently from a menu entry needs
+            # both keys to say so.
+            out.append((_("Add to playlist"), "queue_music", "addto"))
         if t in self.MENU_DOWNLOAD and not self._offline:
             out.append((_("Download"), "file_download", "download"))
         if t in self.MENU_MEDIA_INFO:
@@ -348,7 +353,7 @@ class TilesMixin:
         if (self.route.get("kind") == "playlist"
                 and item.get("PlaylistItemId") and not self._offline
                 and self._edit_apis()):
-            out.append((_("Remove from Playlist"), "delete", "unplaylist"))
+            out.append((_("Remove from playlist"), "delete", "unplaylist"))
         # can_manage_collections, not _edit_apis: the apiclient having the
         # method is not the same question as the user being allowed to call
         # it, and EnableCollectionManagement is off for a new account.
@@ -356,7 +361,7 @@ class TilesMixin:
                 and item.get("Id") and not self._offline
                 and self._actions.can_manage_collections(
                     self.route.get("server") or self.server)):
-            out.append((_("Remove from Collection"), "delete", "uncollect"))
+            out.append((_("Remove from collection"), "delete", "uncollect"))
         return out
 
     def _is_playing(self):
@@ -508,7 +513,7 @@ class TilesMixin:
         self._confirm(
             _("Remove %s from this playlist?") % item.get("Name", ""),
             lambda: self._do_remove_from_playlist(server, pid, entry),
-            title=_("Remove from Playlist"), yes=_("Remove"))
+            title=_("Remove from playlist"), yes=_("Remove"))
 
     def _remove_from_collection(self, item):
         cid = self.route.get("parent_id")
@@ -519,7 +524,7 @@ class TilesMixin:
         self._confirm(
             _("Remove %s from this collection?") % item.get("Name", ""),
             lambda: self._do_remove_from_collection(server, cid, iid),
-            title=_("Remove from Collection"), yes=_("Remove"))
+            title=_("Remove from collection"), yes=_("Remove"))
 
     def _do_remove_from_collection(self, server, collection_id, item_id):
         route = self.route
@@ -580,7 +585,7 @@ class TilesMixin:
         self.run_async(work, done, ep, on_error=failed)
 
     def _resolve_play_ids(self, item, server, parent_id=None):
-        """The item ids "Play"/"Add to Queue" should act on.
+        """The item ids "Play"/"Add to play queue" should act on.
 
         A music container (album/artist/playlist/series) is not itself a
         playable item — queueing or playing its own id does nothing, which

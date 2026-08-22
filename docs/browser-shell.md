@@ -321,7 +321,7 @@ Dropdown's own selection and a TextBox's own text optimistically, so those look
 self-updating. **A `Checkbox` does not exist on that side** — it is Box-plus-tick,
 coloured here from `checked`, and only a redraw can move it. Anything else drawn
 from a value (a row that appears once a name is typed) is the same. This bit the
-Add to Playlist dialog's Private box, which flipped invisibly.
+Add to playlist dialog's Private box, which flipped invisibly.
 
 ### A scene assertion is not a repaint assertion
 

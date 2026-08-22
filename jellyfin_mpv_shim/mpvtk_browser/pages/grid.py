@@ -34,7 +34,7 @@ SORTS = [
     (_("Date Played"), "DatePlayed", "Descending"),
     (_("Play Count"), "PlayCount", "Descending"),
     (_("Runtime"), "Runtime", "Ascending"),
-    (_("Critic Rating"), "CriticRating", "Descending"),
+    (_("Critics Rating"), "CriticRating", "Descending"),
     (_("Parental Rating"), "OfficialRating", "Ascending"),
     (_("Random"), "Random", "Ascending"),
 ]

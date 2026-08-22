@@ -600,7 +600,7 @@ class TestMusicDetailHeaders(unittest.TestCase):
 class TestTrackRowsHaveAContextMenu(unittest.TestCase):
     """Tiles have had a right-click menu all along; Table rows never asked
     for one. Every music playlist therefore lost Play / Add to Queue /
-    Favorite / Download — and per-track "Remove from Playlist" entirely,
+    Favorite / Download — and per-track "Remove from playlist" entirely,
     leaving only the bulk editor. The toolkit already supported it."""
 
     def _playlist(self):
@@ -630,9 +630,9 @@ class TestTrackRowsHaveAContextMenu(unittest.TestCase):
         _n, handlers = build_scene(b)
         handlers["pl-1"]["context"](100, 100)
         labels = [e[0] for e in b._tile_menu_entries(b._menu["item"])]
-        self.assertIn("Remove from Playlist", labels)
+        self.assertIn("Remove from playlist", labels)
         self.assertIn("Play", labels)
-        self.assertIn("Add to Queue", labels)
+        self.assertIn("Add to play queue", labels)
 
     def test_it_opens_the_menu_for_the_row_you_clicked(self):
         b = self._playlist()

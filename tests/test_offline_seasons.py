@@ -2,7 +2,7 @@
 
 Two failures that only showed up with the server away:
 
-* a Season opened offline listed no episodes at all ("Nothing here yet."),
+* a Season opened offline listed no episodes at all ("Nothing here."),
   because the offline Season DTO carried no SeriesId — which the route
   builder reads, and get_episodes then filters against;
 * reconnecting kept the browser pointed at the "offline" sentinel server,

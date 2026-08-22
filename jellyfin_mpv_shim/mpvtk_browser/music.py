@@ -77,8 +77,8 @@ class MusicMixin:
     # already shows the state, and a tooltip that repeats it is no help.
     @property
     def _REPEAT_TIPS(self):
-        return {"none": _("Repeat All"), "all": _("Repeat One"),
-                "one": _("Repeat Off")}
+        return {"none": _("Repeat all"), "all": _("Repeat one"),
+                "one": _("Repeat off")}
 
     def _cycle_repeat(self):
         np = self._now_playing or {}
@@ -308,7 +308,7 @@ class MusicMixin:
             out.append(self._np_btn(
                 "undo", "np-chprev",
                 lambda: self._ctl(lambda c: c.chapter_seek(-1)),
-                _("Previous Chapter")))
+                _("Previous chapter")))
         if book and tiers["skip_btns"]:
             out.append(self._np_btn(
                 "replay_10", "np-back",
@@ -328,7 +328,7 @@ class MusicMixin:
             out.append(self._np_btn(
                 "redo", "np-chnext",
                 lambda: self._ctl(lambda c: c.chapter_seek(1)),
-                _("Next Chapter")))
+                _("Next chapter")))
         if walk:
             out.append(self._np_btn("skip_next", "np-next",
                                     lambda: self._ctl(lambda c: c.next()),
@@ -435,8 +435,8 @@ class MusicMixin:
             right.append(self._np_btn(
                 "favorite" if np.get("favorite") else "favorite_border",
                 "np-fav", lambda: self._toggle_np_favorite(),
-                (_("Remove from Favorites") if np.get("favorite")
-                 else _("Add to Favorites")),
+                (_("Remove from favorites") if np.get("favorite")
+                 else _("Add to favorites")),
                 color=(theme.FAV_RED if np.get("favorite")
                        else theme.TEXT_FG)))
         right += self._chapter_picker(np, shown, tiers)

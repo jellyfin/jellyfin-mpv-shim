@@ -85,7 +85,7 @@ class OscBridge:
             "profile": _("Change Video Playback Profile"),
             "stats": _("Playback Data"),
             "screenshot": _("Screenshot"),
-            "unwatched": _("Quit and Mark Unwatched"),
+            "unwatched": _("Quit and Mark Unplayed"),
             "sub_size": _("Subtitle Size"),
             "sub_position": _("Subtitle Position"),
             "sub_color": _("Subtitle Color"),
@@ -319,7 +319,8 @@ class OscBridge:
             })
         return {
             "enabled": enabled,
-            "current": _("SyncPlay Enabled") if enabled else _("None (Disabled)"),
+            "current": (_("SyncPlay enabled") if enabled
+                        else _("None (Disabled)")),
             "groups": groups,
         }
 

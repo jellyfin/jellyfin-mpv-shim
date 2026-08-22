@@ -414,7 +414,7 @@ LABEL_OVERRIDES = {
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
     "ui_scale": _("Interface Scale"),
-    "ui_text_scale": _("Text Size"),
+    "ui_text_scale": _("Text size"),
     "ui_text_min": _("Minimum Text Size"),
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),

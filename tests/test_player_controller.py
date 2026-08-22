@@ -639,7 +639,8 @@ if __name__ == "__main__":
 
 
 class TestQueueInsertion(unittest.TestCase):
-    """"Add to Queue" appends; "Play Next" splices in after the current item.
+    """"Add to play queue" appends; "Play next" splices in after the
+    current item.
 
     Both reach `Media.insert_items`, whose ordering is pinned in
     test_audit_fixes. What this covers is the wiring: the two gateway

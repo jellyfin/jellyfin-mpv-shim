@@ -39,7 +39,8 @@ def default_group_name(client):
     drift -- the browser's used to call the pre-10.7 ``new_sync_play()``,
     which posts no body at all and which every current server answers with
     a 400."""
-    return _("{0}'s Group").format(clientManager.get_username_from_client(client))
+    return _("{0}'s group").format(
+        clientManager.get_username_from_client(client))
 
 
 class TimeoutThread(threading.Thread):
@@ -578,7 +579,7 @@ class SyncPlayManager:
         elif command_type == "UserLeft":
             self.player_message(_("{0} has left.").format(command["Data"]))
         elif command_type == "GroupWait":
-            self.player_message(_("{0} is buffering.").format(command["Data"]))
+            self.player_message(_("{0} is buffering…").format(command["Data"]))
         elif command_type == "PlayQueue":
             self.upd_queue(command["Data"])
         elif command_type == "StateUpdate":

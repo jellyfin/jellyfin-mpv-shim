@@ -219,12 +219,14 @@ class LiveTvPage(Page):
         differ in height (see ``_auto_row``) and a fixed step drifts out of
         alignment within two sections. ``docs/live-tv.md`` section 5.
         """
-        return VScroll(Column(children, pad=chrome.CONTENT_PAD, gap=gap,
+        blocks = chrome.split_bleed(children, chrome.CONTENT_PAD, gap,
+                                    align="stretch")
+        return VScroll(Column(blocks, pad=(0, chrome.CONTENT_PAD), gap=gap,
                               align="stretch"),
                        id=scroll_id, flex=1,
                        offset=self.parked_scroll(scroll_id),
                        snaps=components.section_offsets(
-                           children, gap, pad=chrome.CONTENT_PAD))
+                           blocks, gap, pad=chrome.CONTENT_PAD))
 
     # -- Programs ----------------------------------------------------------
 
@@ -855,7 +857,7 @@ class ProgramPage(Page):
             btns.append(controls.action_btn(
                 "cancel",
                 _("Stop Recording") if single == "recording"
-                else _("Do Not Record"),
+                else _("Do not record"),
                 "pg-cancel",
                 lambda: actions.cancel_timer(item.get("TimerId"), server,
                                              on_done=self._refresh),
@@ -882,7 +884,7 @@ class ProgramPage(Page):
                     size=controls.PRIMARY_ROW))
             else:
                 btns.append(controls.action_btn(
-                    "fiber_smart_record", _("Record Series"), "pg-recseries",
+                    "fiber_smart_record", _("Record series"), "pg-recseries",
                     lambda: actions.schedule_recording(item, server,
                                                        series=True,
                                                        on_done=self._refresh),
@@ -1102,7 +1104,7 @@ class ChannelPage(Page):
             fav = bool((channel.get("UserData") or {}).get("IsFavorite"))
             btns.append(controls.action_btn(
                 "favorite",
-                _("Remove from Favorites") if fav else _("Add to Favorites"),
+                _("Remove from favorites") if fav else _("Add to favorites"),
                 "ch-fav", lambda: actions.toggle_favorite(channel, server),
                 on=fav, size=controls.PRIMARY_ROW))
         return Row(btns, gap=10)

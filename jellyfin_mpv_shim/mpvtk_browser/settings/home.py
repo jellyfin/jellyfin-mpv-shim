@@ -131,7 +131,8 @@ class HomeTabMixin:
             return []
         return [
             Text(_("Artwork"), size="normal", bold=True),
-            Checkbox(_("Use episode images in Next Up and Continue Watching"),
+            Checkbox(_("Use episode images in 'Next Up' and "
+                       "'Continue Watching' sections"),
                      bool(prefs.get("episode_images")),
                      id="display-episode-images",
                      on_toggle=lambda: self._toggle_display(

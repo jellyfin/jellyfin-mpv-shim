@@ -240,7 +240,7 @@ PLAYABLE_TYPES = {"Movie", "Episode", "Video", "MusicVideo", "Recording"}
 
 #: Photos play, but they are deliberately NOT in PLAYABLE_TYPES: that set
 #: also drives the tile context menu, and Download / Add to Playlist /
-#: Mark Watched are all either meaningless or broken for a still image.
+#: Mark played are all either meaningless or broken for a still image.
 #: A photo click is routed on its own in ``app._open_item``.
 PHOTO_TYPE = "Photo"
 # Item types that drill into a series view.
@@ -259,7 +259,7 @@ FOLDER_TYPES = {"CollectionFolder", "Folder", "BoxSet", "Season", "UserView",
 # Item types shown inside a playlist. A playlist can mix in music/other entries;
 # only these are surfaced (and downloaded). Audio is included so music
 # playlists play, queue, and download (the now-playing bar drives them).
-# AudioBook alongside Audio: the tile menu offers "Add to Playlist" on one
+# AudioBook alongside Audio: the tile menu offers "Add to playlist" on one
 # now, and a playlist that accepted an entry it would then refuse to SHOW
 # is worse than not offering it -- the track would vanish from the playlist
 # on the next visit with nothing to say why.
@@ -1005,9 +1005,15 @@ class LibrarySource:
                          else (latest or []))
                 # The library id rides along so the row's heading can link
                 # to it. Nothing else in the tuple identifies which library
-                # a Latest row came from -- the title is a translated
+                # a Recently Added row came from -- the title is a translated
                 # string and the collection type is shared.
-                return (_("Latest %s") % lib.get("Name", ""), items,
+                #
+                # `{0}` rather than `%s`: this is jellyfin-web's
+                # LatestFromLibrary word for word, and seed_from_jellyfin_web
+                # matches on the English exactly, so the brace form is what
+                # makes 55 locales' translation of it reachable.
+                return (_("Recently Added in {0}").format(lib.get("Name", "")),
+                        items,
                         lib.get("CollectionType"), lib.get("Id"))
             return fetch
 

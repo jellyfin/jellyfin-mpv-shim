@@ -106,7 +106,8 @@ class ItemActions:
     def edit(self, fn, on_ok=None, on_error=None, error=None):
         """A mutating edit whose failure the user must see.
 
-        The swallowing variant made an "Add to Queue" the server rejected look
+        The swallowing variant made an "Add to play queue" the server
+        rejected look
         exactly like one that worked. ``on_error`` undoes whatever the view
         already showed optimistically — leaving a rejected change on screen is
         worse than never showing it.
@@ -209,7 +210,7 @@ class ItemActions:
 
     def queue_items(self, ids, server):
         # An edit, not a swallowed client call: this is a button press, so a
-        # rejected "Add to Queue" must not look like one that worked.
+        # rejected "Add to play queue" must not look like one that worked.
         self.edit(
             lambda c: c.queue_items(server, [i for i in ids if i]),
             error=_("Those items could not be added to the queue."))
@@ -358,7 +359,7 @@ class ItemActions:
         if not timer_id:
             return
         self.dialogs.confirm(
-            _("Cancel this recording?"),
+            _("Cancel recording?"),
             lambda: self._do_cancel(
                 lambda ctl: ctl.cancel_timer(server, timer_id),
                 _("Recording cancelled."), on_done),

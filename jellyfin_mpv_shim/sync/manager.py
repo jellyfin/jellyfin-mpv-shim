@@ -1149,7 +1149,7 @@ class SyncManager:
 
         The counterpart to :meth:`mirror_playstate` and deliberately not the
         same rule. That one is playback, where advance-only is right. This is a
-        person choosing Mark Watched or Mark Unwatched -- **the only signal in
+        person choosing Mark played or Mark unplayed -- **the only signal in
         the app authoritative in both directions** -- so it writes verbatim
         through ``db.set_watched``. Before this, every writer was advance-only
         and an item un-watched here stayed watched on disk forever.

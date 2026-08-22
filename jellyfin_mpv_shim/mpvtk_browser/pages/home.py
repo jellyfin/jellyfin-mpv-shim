@@ -317,7 +317,7 @@ class HomePage(Page):
                 # Live TV library tile.
                 rows.append(self._live_tv_buttons())
             rows.append(art.tiles.tile_row(title, items, row_id, geom=geom,
-                                           image_type=itype, bleed=True,
+                                           image_type=itype,
                                            parent_item=pitem, inherit=inh,
                                            see_all=see_all))
         if not rows:
@@ -350,9 +350,12 @@ class HomePage(Page):
         """
         from .livetv import LiveTvPage
 
+        # The heading through `section_heading`, not a Text of its own: it
+        # is the one heading on this screen with no carousel under it, and
+        # open-coding the indent is exactly how it ended up 5px left of
+        # every other section title.
         return Row(
-            [Spacer(w=chrome.CONTENT_PAD),
-             Text(_("Live TV"), size=theme.heading_size(), bold=True)]
+            [self.ctx.art.tiles.section_heading(_("Live TV"))]
             + [Button(label, id="home-lt-" + key,
                       on_click=lambda k=key: self.ctx.nav.navigate({
                           "kind": "livetv", "server": self.ctx.server,

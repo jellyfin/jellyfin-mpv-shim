@@ -13,7 +13,7 @@ import unittest
 from jellyfin_mpv_shim.mpvtk_browser.scroll_state import ScrollState
 from jellyfin_mpv_shim.mpvtk_browser.strips import TileGeom
 from jellyfin_mpv_shim.mpvtk_browser.tile_renderer import (
-    RING_PAD, page_geometry, page_target)
+    ROW_LEAD, page_geometry, page_target)
 
 # tile_w 200, gap 20 -> a 220px pitch, so the numbers below stay readable.
 GEOM = TileGeom(tile_w=200, tile_h=300, caption_h=40, gap=20)
@@ -21,8 +21,12 @@ PITCH = 220
 
 
 def view_for(n):
-    """Viewport width that fits exactly ``n`` tiles, ring padding included."""
-    return 2 * RING_PAD + n * PITCH - GEOM.gap
+    """Viewport width that fits exactly ``n`` tiles, margins included.
+
+    A strip is full width and pads itself to ``ROW_LEAD`` on both sides, so
+    the margins are part of the scrollable content and belong in the sum.
+    """
+    return 2 * ROW_LEAD + n * PITCH - GEOM.gap
 
 
 class PageGeometryTest(unittest.TestCase):
@@ -47,8 +51,8 @@ class PageGeometryTest(unittest.TestCase):
     def test_max_offset_puts_the_last_tile_against_the_trailing_edge(self):
         view = view_for(5)
         _pitch, _per, max_offset = page_geometry(view, 10, GEOM)
-        # Content is 10 tiles wide plus the ring padding at both ends.
-        total = 2 * RING_PAD + 10 * PITCH - GEOM.gap
+        # Content is 10 tiles wide plus the margin at both ends.
+        total = 2 * ROW_LEAD + 10 * PITCH - GEOM.gap
         self.assertAlmostEqual(max_offset, total - view)
 
     def test_a_row_that_fits_has_no_room_to_scroll(self):

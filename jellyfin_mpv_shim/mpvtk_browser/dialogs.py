@@ -922,7 +922,7 @@ class DialogsMixin:
                 # on the server, everything under it is this device's.
                 body += [Box(h=1, bg=theme.BORDER)] + device
             return Dialog("viewcfg", self._dialog_shell("viewcfg", [
-                Text(_("View Settings"), size="title", bold=True),
+                Text(_("View settings"), size="title", bold=True),
                 Column(body, gap=12, align="stretch"),
                 self._dialog_buttons([
                     Button(_("Done"), id="vs-done",

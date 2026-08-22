@@ -260,13 +260,18 @@ class BooksPage(GridPage):
 
     #: Below this the Resume button is the bare word.
     #:
-    #: Measured, not chosen: the action row is Resume, Restart, Add to
-    #: Queue, Finished, Favorite and Download, and at about this width the
+    #: Measured, not chosen: the action row is Resume, Restart, Add to play
+    #: queue, Finished, Favorite and Download, and at about this width the
     #: chapter name is what tips Download off the right edge. Capping the
     #: name (RESUME_LABEL_MAX) bounds how bad it gets; dropping it is what
     #: makes the row fit, and "Resume" alone still says what the button
     #: does -- which is the part that has to survive.
-    RESUME_NAME_MIN_W = 1060
+    #:
+    #: **Re-measure it when any label in that row changes.** It moved from
+    #: 1060 when the queue button took jellyfin-web's wording ("Add to play
+    #: queue", five characters more than "Add to Queue"), and the symptom is
+    #: not a wrapped row -- it is Download simply gone off the edge.
+    RESUME_NAME_MIN_W = 1100
 
     @classmethod
     def _resume_label(cls, tracks, index, width=None):
@@ -317,7 +322,7 @@ class BooksPage(GridPage):
                 lambda: actions.play_list(ids, server, 0, audio=True),
                 primary=True, autofocus=True))
         btns.append(controls.action_btn(
-            "playlist_add", _("Add to Queue"), "bk-queue",
+            "playlist_add", _("Add to play queue"), "bk-queue",
             lambda: actions.queue_items(ids, server)))
         # Deliberately no Shuffle, which every other "container of tracks"
         # screen has. These are the chapters of a book; playing them in a
@@ -346,7 +351,20 @@ class BooksPage(GridPage):
             btns.append(controls.action_btn(
                 "file_download", _("Download"), "bk-download",
                 lambda: actions.open_download(folder)))
-        return Row(btns, gap=8, align="center")
+        # Wrapped, not a bare Row: this is the widest action row in the app
+        # -- six buttons, one of them carrying a chapter name -- and dropping
+        # the name (RESUME_NAME_MIN_W) only postpones the point at which
+        # Download leaves the window. Below that point a second line is the
+        # honest answer; above it `wrap_row` hands back the same single Row
+        # it always did.
+        if not width:
+            return Row(btns, gap=8, align="center")
+        # Less the cover and its gap, the same subtraction `_header_text`
+        # makes: this row sits in the column BESIDE the art, not across the
+        # page, and measuring against the page width is how it kept
+        # overflowing by exactly a cover.
+        avail = max(120, tiles.body_w(width) - HEADER_ART - HEADER_GAP)
+        return chrome.wrap_row(btns, avail, gap=8)
 
 
 class AudiobookPage(Page):
@@ -450,7 +468,7 @@ class AudiobookPage(Page):
                 lambda: actions.play(item, server),
                 primary=True, size=controls.PRIMARY_ROW, autofocus=True))
         btns.append(controls.action_btn(
-            "playlist_add", _("Add to Queue"), "ab-queue",
+            "playlist_add", _("Add to play queue"), "ab-queue",
             lambda: actions.queue_items([item.get("Id")], server), size=controls.PRIMARY_ROW))
         btns.append(controls.action_btn(
             "check", _("Finished"), "ab-watched",

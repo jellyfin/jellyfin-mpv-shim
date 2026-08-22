@@ -121,7 +121,7 @@ class LogsTabMixin:
         def done(res):
             ok, _method, path = res
             if not ok:
-                self.set_status(_("Could not copy the log."))
+                self.set_status(_("Could not copy"))
             elif path:
                 self.set_status(_("No clipboard available — saved to %s")
                                 % path)
@@ -129,7 +129,7 @@ class LogsTabMixin:
                 self.set_status(_("Copied %d log lines.") % len(lines))
 
         def failed(_exc):
-            self.set_status(_("Could not copy the log."))
+            self.set_status(_("Could not copy"))
 
         # Off the loop thread: a clipboard helper is a subprocess, and on a
         # wedged one the 10s timeout would otherwise freeze the UI.

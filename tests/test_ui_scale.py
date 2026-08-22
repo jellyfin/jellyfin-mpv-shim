@@ -61,7 +61,7 @@ def _tree():
         # A Menu is what emits `rh`, its row height. That field used to
         # ship as "ih" and silently inherited the img exclusion, so the
         # tree must keep exercising it.
-        Menu("menu", ["Play", "Mark Watched", "Delete"], x=10, y=20,
+        Menu("menu", ["Play", "Mark played", "Delete"], x=10, y=20,
              size=17),
         # A Scroll is what emits cw/ch.
         Scroll(Column([Text("row %d" % i, size=16) for i in range(20)],
