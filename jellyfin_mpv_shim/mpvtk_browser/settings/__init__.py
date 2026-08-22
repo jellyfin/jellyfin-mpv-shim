@@ -29,6 +29,8 @@ from ...i18n import _
 from ...mpvtk.widgets import (
     Column,
     Row,
+    Spacer,
+    TextBox,
 )
 from .. import theme
 from ..components import chrome, controls
@@ -97,12 +99,25 @@ class SettingsMixin(
             return
         self.navigate({"kind": "settings", "server": self.server,
                        "title": _("Settings"), "_tab": tab})
+    def tab_labels(self):
+        """Tab -> display name.
+
+        A method rather than a module constant so the strings are resolved
+        when the page is drawn. Every ``_()`` at module scope is frozen at
+        import, and this module is imported well before ``i18n.configure``
+        on some paths -- config.py's tables get away with it because they
+        are imported later, and copying that here would silently pin the
+        tab bar to English. The search results name their tab from this
+        too, which is why it is not a local any more.
+        """
+        return {"general": _("General"), "browse": _("Browse"),
+                "playback": _("Playback"), "home": _("Home Screen"),
+                "servers": _("Servers & Users"),
+                "downloads": _("Downloads"), "logs": _("Logs")}
+
     def _render_settings(self, route, size):
         tab = route.get("_tab", "general")
-        labels = {"general": _("General"), "browse": _("Browse"),
-                  "playback": _("Playback"), "home": _("Home Screen"),
-                  "servers": _("Servers & Users"),
-                  "downloads": _("Downloads"), "logs": _("Logs")}
+        labels = self.tab_labels()
         # Same treatment as the top bar's buttons (accent border + hover
         # glow) on themes that ask for it; the selected tab keeps its accent
         # fill either way — including under the pointer, which is controls
@@ -127,9 +142,57 @@ class SettingsMixin(
         # tabs is a tile row -- two left edges a few px apart, which reads
         # as a mistake rather than as a design.
         head = [Row([tabs], pad=pad)]
+        box = self._search_box_row(route, tab, pad)
+        if box is not None:
+            head.append(box)
         return Column(head + [body], flex=1, align="stretch")
+
+    def _search_box_row(self, route, tab, pad):
+        """The settings search field, or None on a tab it cannot search.
+
+        Only the three schema-driven tabs, because that is what
+        ``config.search`` walks: the other four are their own screens (the
+        server list, the download manager, the log tail) or live on the
+        server (the home screen), and none of them is made of config keys.
+        A box that searched nothing on four of seven tabs would be worse
+        than no box.
+        """
+        if tab not in getattr(self._config(), "FORM_TABS", ()):
+            return None
+        return Row([
+            TextBox("set-search-box", text=route.get("_q", ""),
+                    placeholder=_("Search settings…"), w=320,
+                    # force: the scene's value has to win so that clicking
+                    # a tab (which clears the query) also clears the box.
+                    # The renderer keeps edit state keyed by node id, and
+                    # without this the field would still read "deband"
+                    # while the form beneath it had gone back to the tab.
+                    force=True,
+                    on_change=lambda v: self._set_settings_query(route, v),
+                    on_submit=lambda v: self._set_settings_query(route, v)),
+            Spacer(),
+        ], pad=pad, gap=8, align="center")
+
+    def _set_settings_query(self, route, value):
+        """Live filtering, on every keystroke.
+
+        Affordable because the form is already rebuilt per keystroke -- see
+        ``_dynamic_enum``, which is written around that fact -- and because
+        searching narrows: the result is nearly always smaller than the tab
+        it replaced.
+        """
+        if route.get("_q", "") == (value or ""):
+            return                       # nothing moved; do not repaint
+        route["_q"] = value or ""
+        self.invalidate()
     def _set_settings_tab(self, route, tab):
         route["_tab"] = tab
+        # Picking a tab ends the search. Results are drawn across all three
+        # form tabs, so while a query is live the tab bar is not describing
+        # what is on screen -- which makes clicking one the obvious way out,
+        # and leaving the query running would make it the one gesture that
+        # did nothing.
+        route.pop("_q", None)
         # Drop the home screen's state so entering that tab re-reads it. It
         # is server-side and cross-client, so a cached copy goes stale the
         # moment the user touches Jellyfin Web — and saving from a stale copy

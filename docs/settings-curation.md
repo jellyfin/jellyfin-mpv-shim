@@ -42,6 +42,36 @@ Two conventions:
   reason is a permission or a missing capability, because a disabled control
   invites the user to go looking for the switch that enables it.
 
+## 2.5 Search, and what it means for how you write a note
+
+The form is about a hundred controls over three tabs, so there is a search box
+on each of them (`config.search`, drawn by `settings/__init__._search_box_row`).
+Results are drawn **across all three tabs** and are editable in place; picking a
+tab clears the query, which is the way out.
+
+Two consequences for anyone adding a setting:
+
+- **The note is part of the search corpus, and usually the useful part.** A
+  label is two or three words chosen before anyone knew what people would call
+  the thing. "banding", "buffering", "judder", "stutter", "controller" and
+  "tray" are all words users type and none of them was ever a label.
+  `tests/test_settings_search.py` holds those cases as cases, because a query
+  that finds nothing is invisible from the code.
+- **Matching is substring and therefore directional.** A query word must appear
+  *in* the haystack: a note saying "buffering" is found by `buffer`, but a note
+  saying only "buffer" is **not** found by `buffering`. So write the longer,
+  more colloquial form into the note — `network_buffer`'s says "stopping for
+  buffering" for exactly this reason.
+
+Search is built on `sections()` rather than on the schema, so a control the form
+is currently hiding — the passthrough toggles the audio mode cannot carry,
+whichever of `close_to_tray`/`allow_background` does not apply — cannot be found
+either. A result that leads to a control the form then refuses to draw would be
+worse than no result. Advanced groups *are* searched, and returned without the
+disclosure: somebody who typed a query has already narrowed it, and hiding half
+the answers behind a checkbox that is not on screen would make the search
+quietly incomplete.
+
 ## 3. Does it take effect now, or at the next start?
 
 This is the table a future "restart to apply?" prompt would be built from. The

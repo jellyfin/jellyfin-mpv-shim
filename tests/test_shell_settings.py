@@ -16,6 +16,7 @@ from tests._shell_harness import (
     FakeSource,
     LoginController,
     MultiServerSource,
+    SearchConfig,
     _SyncPool,
     build_scene,
     ids,
@@ -363,6 +364,141 @@ class TestSettings(unittest.TestCase):
         nodes, handlers = build_scene(self.b)
         handlers["set-seek_up"]["submit"]("not-a-number")
         self.assertIn("Invalid", self.b.status)
+
+class TestSettingsSearch(unittest.TestCase):
+    """Searching the config form.
+
+    The settings form is about a hundred controls across three tabs, and the
+    tab a control sits on is a curation decision rather than something a
+    user can derive -- so "which tab is it on" is the question the search
+    exists to stop people having to answer.
+    """
+
+    def setUp(self):
+        self.cfg = SearchConfig()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg)
+        self.b._open_settings()
+
+    def _texts(self, nodes):
+        return " ".join(n.get("text", "") for n in nodes if n.get("text"))
+
+    def _type(self, query):
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"](query)
+        return build_scene(self.b)
+
+    def test_the_box_is_offered_on_the_form_tabs(self):
+        nodes, _h = build_scene(self.b)
+        self.assertIn("set-search-box", ids(nodes))
+
+    def test_the_box_is_not_offered_where_it_would_search_nothing(self):
+        """Four of the seven tabs are not this form -- three are their own
+        screens and the home screen lives on the server. A box that found
+        nothing on them would read as a broken search rather than as an
+        absent one."""
+        for tab in ("home", "servers", "downloads", "logs"):
+            with self.subTest(tab=tab):
+                self.b.route["_tab"] = tab
+                nodes, _h = build_scene(self.b)
+                self.assertNotIn("set-search-box", ids(nodes))
+
+    def test_a_query_finds_a_setting_from_another_tab(self):
+        """The whole point: `deband` lives on Playback and the search is run
+        from General. A filter that only searched the tab in front of you
+        would be answering the question the tab bar already answers."""
+        self.assertEqual(self.b.route.get("_tab", "general"), "general")
+        nodes, _h = self._type("deband")
+        self.assertIn("set-deband", ids(nodes))
+
+    def test_a_result_is_editable_where_it_is_found(self):
+        """Not a link to the tab it lives on. The control has to work from
+        the results, or the search has saved nobody anything."""
+        _nodes, handlers = self._type("deband")
+        handlers["set-deband"]["submit"]("standard")
+        self.assertEqual(self.cfg.values["deband"], "standard")
+
+    def test_the_note_is_searched_and_not_only_the_label(self):
+        """The half that makes it useful. Nothing in "Debanding" contains
+        the word people actually type; "banding" and "gradients" are both in
+        the note, and neither is in any label."""
+        nodes, _h = self._type("gradients")
+        self.assertIn("set-deband", ids(nodes))
+
+    def test_every_word_has_to_match(self):
+        """AND, not OR. With notes this long, OR returns most of the form
+        for any two common words, which is as useless as returning
+        nothing."""
+        nodes, _h = self._type("deband gradients")
+        self.assertIn("set-deband", ids(nodes))
+        nodes, _h = self._type("deband unrelatedword")
+        self.assertNotIn("set-deband", ids(nodes))
+
+    def test_a_result_keeps_the_group_it_belongs_to(self):
+        """A flat list of controls loses the context that says what a
+        setting is for."""
+        nodes, _h = self._type("deband")
+        self.assertIn("Video Enhancement", self._texts(nodes))
+
+    def test_an_advanced_setting_is_findable_without_the_disclosure(self):
+        """The disclosure exists so a tab is not a hundred controls long.
+        Somebody who typed a query has already narrowed it, and leaving half
+        the answers behind a checkbox that is not on screen would make the
+        search quietly incomplete."""
+        self.assertFalse(self.b.route.get("_advanced"))
+        nodes, _h = self._type("seek")
+        self.assertIn("set-seek_up", ids(nodes))
+
+    def test_a_query_that_matches_nothing_says_so(self):
+        """Rather than an empty page, which is indistinguishable from a
+        broken screen."""
+        nodes, _h = self._type("zzzznothing")
+        text = self._texts(nodes)
+        self.assertIn("zzzznothing", text)
+        self.assertNotIn("set-player_name", ids(nodes))
+
+    def test_picking_a_tab_ends_the_search(self):
+        """The way out. While a query is live the tab bar is not describing
+        what is on screen, which makes clicking one the obvious escape --
+        and leaving the query running would make it the one gesture that
+        did nothing."""
+        _nodes, handlers = self._type("deband")
+        nodes, handlers = build_scene(self.b)
+        handlers["stab-browse"]["click"]()
+        self.assertEqual(self.b.route.get("_q", ""), "")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("set-deband", ids(nodes))
+
+    def test_typing_asks_for_a_repaint(self):
+        """A scene assertion is not a repaint assertion: build_scene renders
+        when asked, so every test above would pass against a handler that
+        stored the query and never redrew -- and the user would type into a
+        box and watch nothing happen."""
+        nodes, handlers = build_scene(self.b)
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        handlers["set-search-box"]["change"]("deband")
+        self.assertTrue(seen)
+
+    def test_retyping_the_same_query_does_not_repaint(self):
+        """`on_change` fires per keystroke, including ones that do not
+        change the value."""
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"]("deband")
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"]("deband")
+        self.assertFalse(seen)
+
+    def test_the_results_scroll_apart_from_the_tab_form(self):
+        """Sharing the tab form's scroll id meant a search run from halfway
+        down Playback opened its results halfway down too."""
+        nodes, _h = build_scene(self.b)
+        self.assertIn("settings", ids(nodes))
+        nodes, _h = self._type("deband")
+        self.assertIn("settings-search", ids(nodes))
+        self.assertNotIn("settings", ids(nodes))
+
 
 class TestLogin(unittest.TestCase):
     def setUp(self):

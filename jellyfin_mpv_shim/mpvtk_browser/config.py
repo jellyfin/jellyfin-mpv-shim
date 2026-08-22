@@ -224,10 +224,15 @@ ADVANCED_GROUPS = frozenset({
     _("Download Tuning"),
 })
 
+#: The tabs the schema-driven config form is drawn on, in order. The other
+#: four Settings tabs are not this form: three are their own screens and
+#: the home-screen one lives on the server. `sections()` and `search()`
+#: both walk these.
+FORM_TABS = ("general", "browse", "playback")
+
 #: Flattened, in tab order. Anything that wants "every curated key" reads
 #: this rather than knowing about the tabs.
-SECTIONS = [group for tab in ("general", "browse", "playback")
-            for group in TAB_SECTIONS[tab]]
+SECTIONS = [group for tab in FORM_TABS for group in TAB_SECTIONS[tab]]
 
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
@@ -589,8 +594,9 @@ NOTES = {
     # on, and that leaving it off is how you keep your own mpv.conf values.
     "deband": _(
         "Smooths the blocky steps that appear in gradients — skies, dark "
-        "scenes, fades. Animation benefits most, because flat gradients are "
-        "most of the picture; live action is largely unaffected either way, "
+        "scenes, fades. Animation and anime benefit most, because flat "
+        "gradients are most of the picture; live action is largely "
+        "unaffected either way, "
         "though a strong setting can soften genuinely fine detail. Costs GPU "
         "work whatever the content, which is worth knowing on a small or "
         "older machine. Leave this Off if you set the deband options in "
@@ -610,9 +616,9 @@ NOTES = {
     "network_buffer": _(
         "How far ahead of playback to read. MPV's default is one second, "
         "which is short for a server reached over the internet or a slow "
-        "connection — raise this if playback stalls to buffer. Larger "
-        "buffers use more memory and make the first few seconds of a file "
-        "slower to start. Applies to the next thing you play."),
+        "connection — raise this if playback keeps stopping for buffering. "
+        "Larger buffers use more memory and make the first few seconds of a "
+        "file slower to start. Applies to the next thing you play."),
     "motion_interpolation": _(
         "Frame blending (blends frames together, not the same as "
         "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "
@@ -875,6 +881,65 @@ def sections(tab=None):
     advanced = sorted(k for k in schema if k not in curated)
     if advanced:
         out.append((_("Advanced"), advanced))
+    return out
+
+
+def search_haystack(key, title=""):
+    """Everything a settings search should match ``key`` on.
+
+    The **note** is in here deliberately, and it is what makes the feature
+    worth having: a label is two or three words chosen before anyone knew
+    what people would call the thing. "banding", "buffer", "stutter",
+    "washed out", "controller" and "tray" are all in notes and none is in a
+    label. The cost is that a common word can pull in a setting whose note
+    merely mentions it -- which is the right way round for a search box,
+    since the alternative is a query that finds nothing and a user who
+    concludes the setting does not exist.
+
+    The raw key is included because the docs, the issue tracker and
+    `conf.json` all name settings that way, so somebody arriving from any
+    of them types `auto_download_lookahead` rather than its label.
+    """
+    parts = [label_for(key), key, key.replace("_", " "), title]
+    note = NOTES.get(key)
+    if note:
+        parts.append(note)
+    for label, _value in LABELED_ENUMS.get(key) or ():
+        parts.append(label)
+    parts.extend(ENUMS.get(key) or ())
+    return " ".join(str(p) for p in parts).lower()
+
+
+def search(query, tabs=FORM_TABS):
+    """``[(tab, title, [key, ...]), ...]`` for settings matching ``query``.
+
+    Every whitespace-separated word must match somewhere in the setting's
+    haystack (AND, not OR): with a corpus this small and notes this long,
+    OR returns most of the form for any two common words, which is the same
+    as returning nothing.
+
+    Built on :func:`sections`, not on the schema, so a control the form is
+    currently **hiding** cannot be found -- the passthrough toggles the
+    selected audio mode cannot carry, `close_to_tray` on a machine with no
+    tray. Finding a setting that the form then refuses to draw would be a
+    search result that leads nowhere.
+
+    Advanced groups are searched and returned like any other. The
+    disclosure exists so the tab is not a hundred controls long; somebody
+    who has typed a query has already narrowed it, and hiding half the
+    answers behind a checkbox they cannot see from here would make the
+    search quietly incomplete.
+    """
+    words = [w for w in (query or "").lower().split() if w]
+    if not words:
+        return []
+    out = []
+    for tab in tabs:
+        for title, keys in sections(tab):
+            hits = [k for k in keys
+                    if all(w in search_haystack(k, title) for w in words)]
+            if hits:
+                out.append((tab, title, hits))
     return out
 
 

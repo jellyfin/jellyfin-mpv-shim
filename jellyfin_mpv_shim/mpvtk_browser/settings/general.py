@@ -51,6 +51,9 @@ class GeneralTabMixin:
         # Playback tab and each one would otherwise measure an 88-character
         # string of its own.
         note_w = self._note_w(size)
+        query = (route.get("_q") or "").strip()
+        if query:
+            return self._search_results(cfg, schema, values, query, note_w)
         seen_advanced = False
         rows = []
         for title, keys in cfg.sections(route.get("_tab", "general")):
@@ -74,20 +77,9 @@ class GeneralTabMixin:
             # section title, which made the whole tab read as subordinate to
             # the pages that link to it.
             rows.append(Text(title, size="heading", bold=True))
-            notes = getattr(cfg, "NOTES", None) or {}
             for key in keys:
-                rows.append(self._setting_row(cfg, schema, values, key))
-                # Static note from the config module, AND one that depends on
-                # live state. Both, not either: `static or dynamic` meant
-                # giving a setting an explanatory line silently disabled its
-                # warning, which is how discord_presence shipped with a
-                # "not active" note that could never render.
-                for note in (notes.get(key), self._dynamic_note(key)):
-                    if note:
-                        # An explanatory line under the setting it belongs to;
-                        # the settings it qualifies follow directly below.
-                        rows.append(Text(note, size="caption", w=note_w,
-                                         color=theme.SUBTLE_FG, wrap=True))
+                rows.extend(self._setting_rows(cfg, schema, values, key,
+                                               note_w))
             if title == _("Theme"):
                 # Theme used to be read once at startup like the other two,
                 # so this said all three needed a restart, in bold accent —
@@ -125,6 +117,84 @@ class GeneralTabMixin:
         return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
                               align="stretch"),
                        id="settings", flex=1)
+    def _setting_rows(self, cfg, schema, values, key, note_w):
+        """One setting: its control, then whatever has to be said about it.
+
+        Static note from the config module, AND one that depends on live
+        state. Both, not either: `static or dynamic` meant giving a setting
+        an explanatory line silently disabled its warning, which is how
+        discord_presence shipped with a "not active" note that could never
+        render.
+        """
+        rows = [self._setting_row(cfg, schema, values, key)]
+        notes = getattr(cfg, "NOTES", None) or {}
+        for note in (notes.get(key), self._dynamic_note(key)):
+            if note:
+                # An explanatory line under the setting it belongs to; the
+                # settings it qualifies follow directly below.
+                rows.append(Text(note, size="caption", w=note_w,
+                                 color=theme.SUBTLE_FG, wrap=True))
+        return rows
+
+    def _search_results(self, cfg, schema, values, query, note_w):
+        """The form filtered to one query, across every config tab.
+
+        Editable in place rather than a list of links. A result that only
+        took you to the tab it lives on would make the search a slower way
+        to do what the tab bar already does, and the reason people cannot
+        find a setting is rarely that they cannot find the tab.
+
+        The group heading is kept, with the tab named under it, because a
+        flat list of controls loses the one piece of context that says what
+        a setting is *for* -- "Deinterlace Automatically" under "Video
+        Enhancement" reads differently from the same words on their own.
+        """
+        search = getattr(cfg, "search", None)
+        groups = search(query) if search is not None else []
+        rows = []
+        if not groups:
+            rows.append(Text(_('No settings match "%s".') % query,
+                             size="normal", color=theme.SUBTLE_FG, wrap=True,
+                             w=note_w))
+            # Said here rather than in a note under the box, where it would
+            # be permanent furniture for a case that is rare. The two things
+            # a fruitless search most often means are a tab this does not
+            # cover and a control the form is currently hiding.
+            rows.append(Text(
+                _("Only the General, Browse and Playback tabs are searched. "
+                  "Some settings are hidden until the setting they depend "
+                  "on is turned on."),
+                size="caption", color=theme.SUBTLE_FG, wrap=True, w=note_w))
+            return self._search_scroll(rows)
+        labels = self.tab_labels()
+        found = 0
+        for tab, title, keys in groups:
+            rows.append(Text(title, size="heading", bold=True))
+            rows.append(Text(labels.get(tab, tab), size="caption",
+                             color=theme.SUBTLE_FG))
+            for key in keys:
+                rows.extend(self._setting_rows(cfg, schema, values, key,
+                                               note_w))
+            found += len(keys)
+        rows.append(Text(
+            # "Matches: 3." rather than "3 matching settings", which needs
+            # a plural form this codebase has no ngettext for -- and a
+            # translator given only the singular writes the singular.
+            _("Matches: %d. Pick a tab above to stop searching.") % found,
+            size="caption", color=theme.SUBTLE_FG))
+        return self._search_scroll(rows)
+
+    def _search_scroll(self, rows):
+        """Its own scroll region, not the tab form's.
+
+        A separate id so the two keep separate offsets. Sharing "settings"
+        meant a search run from halfway down the Playback tab opened its
+        results halfway down as well -- and going back to the tab landed
+        wherever the results had been left.
+        """
+        return VScroll(Column(rows, pad=self.CONTENT_PAD, gap=8,
+                              align="stretch"), id="settings-search", flex=1)
+
     def _setting_row(self, cfg, schema, values, key):
         kind = schema.get(key, "str")
         val = values.get(key)

@@ -1026,6 +1026,41 @@ class FakeConfig:
     #: after it passes against a form that has no disclosure at all.
     ADVANCED_GROUPS = frozenset({"Advanced"})
 
+    #: Which tabs carry the config form, and therefore which ones offer the
+    #: search box. Modelled because the renderer reads it to decide whether
+    #: to draw the box at all -- a stand-in without it makes the box absent
+    #: on every tab, and every search test would then pass by asserting
+    #: against a screen that has no search on it.
+    FORM_TABS = ("general", "browse", "playback")
+
+    def search(self, query, tabs=None):
+        """The same haystack the real one uses: label, key, group title and
+        the note.
+
+        The note is in here because it is the half that makes the feature
+        worth having -- it is what lets "banding" find `deband` -- so a
+        stand-in matching labels only would report the search working while
+        the interesting part went untested. It is read with getattr, since
+        this class deliberately has no NOTES (see
+        test_settings_without_notes_still_render); SearchConfig below adds
+        them.
+        """
+        words = [w for w in (query or "").lower().split() if w]
+        if not words:
+            return []
+        notes = getattr(self, "NOTES", None) or {}
+        out = []
+        for tab in (tabs or self.FORM_TABS):
+            for title, keys in self.sections(tab):
+                hits = [k for k in keys
+                        if all(w in " ".join(
+                            (self.label_for(k), k, title,
+                             notes.get(k, ""))).lower()
+                            for w in words)]
+                if hits:
+                    out.append((tab, title, hits))
+        return out
+
     def sections(self, tab=None):
         # The real one splits its groups across the General/Browse/Playback
         # tabs and takes which one to draw. This stand-in keeps one group on
@@ -1056,6 +1091,35 @@ class FakeConfig:
         except (ValueError, TypeError):
             return False
         return True
+
+class SearchConfig(FakeConfig):
+    """A config with notes and settings spread over more than one tab.
+
+    Both differences are what the search tests need and what the base
+    stand-in deliberately does not have: FakeConfig has no NOTES (a guard
+    test asserts that, so the renderer's tolerance of a config without them
+    stays covered) and keeps everything on General, which would make a
+    cross-tab search indistinguishable from a single-tab filter.
+    """
+
+    NOTES = {"osc_mode": "Controls drawn over the video while it plays.",
+             "seek_up": "How far the arrow keys jump."}
+
+    def __init__(self):
+        super().__init__()
+        self.values["deband"] = "off"
+        self.schema["deband"] = "str"
+        self.NOTES = dict(self.NOTES)
+        self.NOTES["deband"] = "Smooths the blocky steps in gradients."
+
+    def sections(self, tab=None):
+        if tab == "playback":
+            return [("Video Enhancement", ["deband"])]
+        if tab == "browse":
+            return []
+        return [("Interface", ["player_name", "osc_mode", "lang"]),
+                ("Advanced", ["autoplay", "seek_up"])]
+
 
 class MultiServerSource(FakeSource):
     def servers(self):
