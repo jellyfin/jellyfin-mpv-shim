@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-11 22:40-0400\n"
-"PO-Revision-Date: 2026-08-22 17:14+0000\n"
+"PO-Revision-Date: 2026-08-22 17:45+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1139,13 +1139,11 @@ msgstr "El nivell del còdec de vídeo no és compatible"
 
 # seeded from jellyfin-web: VideoResolutionNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's resolution is not supported"
 msgstr "La resolució del vídeo no és compatible"
 
 # seeded from jellyfin-web: VideoBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bit depth is not supported"
 msgstr "La profunditat de bits de vídeo no és compatible"
 
@@ -1819,6 +1817,13 @@ msgid ""
 "it. Left on \"Only when the window has no title bar\", MPV is asked whether "
 "this window got one, so desktops that do decorate it are left alone."
 msgstr ""
+"Alguns escriptoris —el GNOME a Wayland en particular— no mostren cap barra "
+"de títol a la finestra del reproductor, no deixant cap manera de moure-la o "
+"tancar-la. Això situa les opcions de minimitzar, maximitzar i tancar a la "
+"barra superior i permet arrossegar la finestra per aquesta. Si es deixa "
+"activat \"Només quan la finestra no té barra de títol\", es demana a MPV si "
+"aquesta finestra en té una, de manera que es deixen inalterats els "
+"escriptoris que sí que es decoren."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1905,6 +1910,12 @@ msgid ""
 "it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
 "does."
 msgstr ""
+"Els logotips dels canals tenen normalment un fons transparent, i van ser "
+"concebuts per a una superfície clara; de manera que en una pàgina fosca els "
+"negres poden desaparèixer. En activar-se reben una base clara, i els pocs "
+"que tenen el contorn blanc reben una ombra per a mantenir el contrast. En "
+"desactivar-se, reben el color de la targeta del tema i sense ombres, com fa "
+"Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2049,7 +2060,6 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderStatus
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Status"
 msgstr "Estat"
 
@@ -2059,10 +2069,8 @@ msgid "Unplayed"
 msgstr "No reproduït"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Play"
 msgid "Played"
-msgstr "Reproducció"
+msgstr "Reproduït"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -2072,10 +2080,8 @@ msgstr "Preferits"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Resume"
 msgid "Resumable"
-msgstr "Continuació"
+msgstr "Continuable"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Liked"
@@ -2083,21 +2089,16 @@ msgstr "Agradat"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Features"
 msgstr "Característiques"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle"
 msgid "Has Subtitles"
-msgstr "Subtítols"
+msgstr "Té subtítols"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Trailer"
 msgid "Has Trailer"
-msgstr "Tràiler"
+msgstr "Té tràiler"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
