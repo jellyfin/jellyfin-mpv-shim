@@ -206,6 +206,55 @@ class RequestTest(unittest.TestCase):
         popen.assert_not_called()
 
 
+class RestartRequiredSetTest(unittest.TestCase):
+    """What may and may not be in `config.RESTART_REQUIRED`.
+
+    Both failures here are silent. A misspelled key simply never matches,
+    so the banner never appears and the setting goes on doing nothing; a
+    key that belongs to another category asks for a restart that was not
+    needed, which is how a banner stops being read.
+    """
+
+    def test_every_key_is_a_real_setting(self):
+        from jellyfin_mpv_shim.conf import Settings
+        from jellyfin_mpv_shim.mpvtk_browser import config
+
+        unknown = sorted(k for k in config.RESTART_REQUIRED
+                         if k not in Settings.__annotations__)
+        self.assertEqual(unknown, [],
+                         "not settings in conf.py: %s" % ", ".join(unknown))
+
+    def test_every_key_is_reachable_from_the_settings_form(self):
+        """A key nobody can change from the UI cannot raise the banner, so
+        listing it says nothing. Hand-edited-only settings are a real
+        category here -- they just are not this one."""
+        from jellyfin_mpv_shim.mpvtk_browser import config
+
+        shown = {k for tab in config.FORM_TABS
+                 for _title, keys in config.sections(tab) for k in keys}
+        # The tray pair and the audio toggles are hidden per machine, and
+        # nothing in RESTART_REQUIRED is one of those, so an unreachable
+        # key here is a mistake rather than an environment.
+        missing = sorted(k for k in config.RESTART_REQUIRED if k not in shown)
+        self.assertEqual(missing, [],
+                         "in RESTART_REQUIRED but not on any settings tab: "
+                         "%s" % ", ".join(missing))
+
+    def test_the_per_item_settings_are_not_in_it(self):
+        """The distinction the whole set turns on. `hwdec`, `deband` and
+        the rest of PRESET_SETTINGS are written on every item played, so a
+        restart banner for one of them would be asking the user to restart
+        for a change that reaches the next thing they play anyway."""
+        from jellyfin_mpv_shim.mpv_options import PRESET_SETTINGS
+        from jellyfin_mpv_shim.mpvtk_browser import config
+
+        overlap = sorted(set(PRESET_SETTINGS) & config.RESTART_REQUIRED)
+        self.assertEqual(overlap, [], "applies per item, not per launch: "
+                                      "%s" % ", ".join(overlap))
+        self.assertNotIn("hwdec", config.RESTART_REQUIRED)
+        self.assertNotIn("deinterlace_auto", config.RESTART_REQUIRED)
+
+
 class ShutdownOrderTest(unittest.TestCase):
     """Where the relaunch sits in ``mpv_shim.main``.
 
