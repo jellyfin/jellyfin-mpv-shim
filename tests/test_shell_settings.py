@@ -523,6 +523,34 @@ class TestRestartBanner(unittest.TestCase):
         handlers["set-player_name"]["submit"](value)
         return build_scene(self.b)
 
+    def test_a_restart_required_setting_is_marked_on_its_row(self):
+        """The marker is the whole lifecycle vocabulary now: marked means
+        literally nothing happened, unmarked means it applied or applies to
+        the next thing you play. It has to be on the row, because that is
+        where the decision is made -- the banner only appears afterwards."""
+        self.b.route["_advanced"] = True
+        nodes, _h = build_scene(self.b)
+        self.assertIn("Requires restart", self._texts(nodes))
+
+    def test_a_setting_that_applies_now_is_not_marked(self):
+        """The half that makes the marker worth reading. Marking everything
+        would be the page footer this replaced."""
+        cfg = FakeConfig()
+        cfg.RESTART_REQUIRED = frozenset()
+        b = MpvtkBrowser(app=None, source=FakeSource(), config=cfg,
+                         controller=FakeController())
+        b._open_settings()
+        b.route["_advanced"] = True
+        nodes, _h = build_scene(b)
+        self.assertNotIn("Requires restart", self._texts(nodes))
+
+    def test_the_page_no_longer_hedges_about_every_control(self):
+        """"Some changes take effect after restarting" named no changes, so
+        the only thing a reader could do with it was distrust the whole
+        page."""
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("take effect after restarting", self._texts(nodes))
+
     def test_no_banner_before_anything_changes(self):
         nodes, _h = build_scene(self.b)
         self.assertNotIn("banner-restart", ids(nodes))

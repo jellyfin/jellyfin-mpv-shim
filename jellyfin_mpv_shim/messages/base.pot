@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 14:43-0400\n"
+"POT-Creation-Date: 2026-08-22 15:48-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1177,7 +1177,6 @@ msgid "Window"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Theme"
 msgstr ""
 
@@ -1812,18 +1811,17 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Takes effect after a restart. Move with the d-pad or left stick, seek with "
-"the right stick, shoulder buttons to page, Start for the menu. A controller "
-"is not focus-aware, so it will reach this app even when another window is in "
-"front. Needs an mpv built with SDL2 gamepad support; if yours lacks it this "
-"setting is ignored and the log says so. Any button can be reassigned in your "
-"input.conf."
+"Move with the d-pad or left stick, seek with the right stick, shoulder "
+"buttons to page, Start for the menu. A controller is not focus-aware, so it "
+"will reach this app even when another window is in front. Needs an mpv built "
+"with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
+"log says so. Any button can be reassigned in your input.conf."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Turn this on for a controller whose A button is on the right rather than at "
-"the bottom (Switch Pro, most 8BitDo pads). Applies immediately."
+"the bottom (Switch Pro, most 8BitDo pads)."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1887,8 +1885,7 @@ msgid ""
 "How far ahead of playback to read. MPV's default is one second, which is "
 "short for a server reached over the internet or a slow connection — raise "
 "this if playback keeps stopping for buffering. Larger buffers use more "
-"memory and make the first few seconds of a file slower to start. Applies to "
-"the next thing you play."
+"memory and make the first few seconds of a file slower to start."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1946,10 +1943,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard. \"No player controls\" leaves "
-"playback bare; the library, the keyboard shortcuts and the menu key still "
-"work."
+"MPV keybinds are used by default. Press ENTER to drive the player controls "
+"by keyboard. \"No player controls\" leaves playback bare; the library, the "
+"keyboard shortcuts and the menu key still work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1970,7 +1966,7 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Discord Rich Presence. Takes effect after a restart."
+msgid "Discord Rich Presence."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2032,9 +2028,7 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid ""
-"Overrides the theme's cover size. Applies immediately, and is also on the "
-"View menu of any library."
+msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2058,15 +2052,13 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
-"Off by default because they are easy to hit by accident on some mice. Takes "
-"effect after a restart."
+"Off by default because they are easy to hit by accident on some mice."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
 msgid ""
-"Takes effect after a restart. \"Follow display\" uses the scale your desktop "
-"reports, which is 100% on X11."
+"\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -4025,14 +4017,6 @@ msgid "Show advanced settings"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Interface scale requires a restart."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Some changes take effect after restarting."
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
 msgid "Open Config Folder"
 msgstr ""
@@ -4043,6 +4027,10 @@ msgid ""
 "and these settings are applied afterwards, so most of them override it. "
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid "Requires restart"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py

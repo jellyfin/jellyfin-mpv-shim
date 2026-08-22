@@ -18,6 +18,18 @@ on Linux or macOS from the terminal, the location of the config file will be pri
 
 You can specify a custom configuration folder with the `--config` option.
 
+### When a setting takes effect
+
+**Unless an entry says otherwise, a setting applies straight away, or to the
+next thing you play.** The exceptions are the ones that do nothing at all until
+the app is started again, and those are called out here and marked *Requires
+restart* on their row in the Settings screen — which also offers to do the
+restart for you.
+
+That is the whole vocabulary. It is stated once here rather than repeated per
+setting, because a reader comparing three differently-worded versions of the
+same sentence learns less than one who is told the rule.
+
 ## Transcoding
 
 You can adjust the basic transcoder settings via the menu.
@@ -159,7 +171,6 @@ You can adjust the basic transcoder settings via the menu.
       monitor you meant, which is the thing that is already wrong.
   - The playback HUD's *Playback Info* panel reports dropped frames, split
       into decoder and output. Output drops are the ones this causes.
-  - Takes effect on the next thing you play, like `hwdec`.
 - `deband` - Smooth the blocky steps that appear in gradients. Default: `off`
   - Values: `off`, `light`, `standard`, `strong`.
   - Banding is the visible stepping in a smooth gradient — a sky, a fade to
@@ -195,7 +206,6 @@ You can adjust the basic transcoder settings via the menu.
       again when you unloaded one. This setting outranks the pack's while it
       is not `off`, and is reasserted whenever a profile is loaded or
       unloaded.
-  - Takes effect on the next thing you play, like `hwdec`.
 - `tone_mapping` - How HDR video is fitted to an SDR display. Default: `auto`
   - Values: `auto`, `bt.2390`, `bt.2446a`, `spline`, `hable`, `reinhard`,
       `clip`. These are mpv's `--tone-mapping` curves, and they are different
@@ -230,8 +240,6 @@ You can adjust the basic transcoder settings via the menu.
       reached over the internet or a congested link. Raise this if playback
       stalls to buffer. Larger buffers cost memory and make the first
       seconds of a file slower to start.
-  - Read by the demuxer when it opens a file, so a change lands on the next
-      thing you play — and so does turning it back down.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile
@@ -450,7 +458,7 @@ You can use the config file to enable and disable features.
     X11 and the compositor's factor on Wayland/macOS.
   - Set a number (`1.5`, `2.0`) to force it. Handy on a 1x display to see what
     a HiDPI user gets, or to make the UI readable on a TV across the room.
-  - Read once at startup; changing it requires a restart.
+  - Requires restart.
   - `--scale FACTOR` overrides this for a single run without touching
     the config, e.g. `jellyfin-mpv-shim --scale 1.5`.
   - Artwork is re-fetched from the server at the larger size, so scaling up
@@ -566,7 +574,7 @@ You can use the config file to enable and disable features.
   some mice, and skipping a chapter of a film is less forgiving than the
   Back press those buttons perform in the library — which is unaffected
   either way, since the library's own bindings sit on top of these.
-  Does nothing on a file with no chapters. Takes effect after a restart.
+  Does nothing on a file with no chapters. Requires restart.
   Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`

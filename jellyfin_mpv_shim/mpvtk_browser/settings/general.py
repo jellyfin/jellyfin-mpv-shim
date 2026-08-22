@@ -80,20 +80,12 @@ class GeneralTabMixin:
             for key in keys:
                 rows.extend(self._setting_rows(cfg, schema, values, key,
                                                note_w))
-            if title == _("Theme"):
-                # Theme used to be read once at startup like the other two,
-                # so this said all three needed a restart, in bold accent —
-                # picking a theme and seeing nothing happen reads as a broken
-                # control, and it was worth shouting about. Themes repaint
-                # live now, so it is down to the two that still don't, and
-                # back to the ordinary note colour: it is a footnote, not a
-                # warning about the control you are looking at.
-                rows.append(Text(
-                    _("Interface scale requires a restart."),
-                    size="caption", w=note_w,
-                    color=theme.SUBTLE_FG, wrap=True))
-        rows.append(Text(_("Some changes take effect after restarting."),
-                         size="caption", color=theme.SUBTLE_FG))
+        # Two lines used to live here: a group footnote naming Interface
+        # Scale, and a page footer saying "some changes take effect after
+        # restarting". Both are gone -- `Interface Scale` now carries the
+        # marker on its own row, and a footer that will not say *which*
+        # changes is worse than nothing, because the only thing a reader can
+        # do with it is distrust every control on the page.
         if route.get("_tab", "general") == "playback":
             # Playback only, and it is the same button the Logs tab carries
             # -- the folder itself is not playback-specific. What is, is the
@@ -127,6 +119,15 @@ class GeneralTabMixin:
         render.
         """
         rows = [self._setting_row(cfg, schema, values, key)]
+        if key in getattr(cfg, "RESTART_REQUIRED", ()):
+            # Above the explanatory note and kept to two words, because it
+            # is read by position and length rather than by being read: the
+            # eye finds a short line directly under a control. It replaces
+            # the same sentence written into nine different notes in three
+            # different phrasings, plus a footer that said "some changes"
+            # without saying which.
+            rows.append(Text(_("Requires restart"), size="caption",
+                             color=theme.WARN_AMBER))
         notes = getattr(cfg, "NOTES", None) or {}
         for note in (notes.get(key), self._dynamic_note(key)):
             if note:

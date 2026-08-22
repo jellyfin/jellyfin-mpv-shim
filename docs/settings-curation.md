@@ -100,6 +100,15 @@ picked was the wrong one or whether the control does nothing.
 Neither live nor restart, and worth its own row because "restart to apply" would
 be wrong in the direction that makes users restart for nothing.
 
+**Neither this group nor the live one says so in its own note, and new settings
+must not start.** The user-facing vocabulary is one word: a row is either marked
+*Requires restart* — meaning literally nothing has happened yet — or it is not,
+and then it applies now or to the next thing played. That sentence used to be
+written into nine notes in three different phrasings, plus a page footer saying
+"some changes" without saying which, which left a reader nothing to do but
+distrust every control on the page. The only prose exception is a setting whose
+two directions differ (`trickplay_fast_mode`) or which splits (`theme`).
+
 | setting(s) | how |
 |---|---|
 | `hwdec` | `_play_media` writes it per item |

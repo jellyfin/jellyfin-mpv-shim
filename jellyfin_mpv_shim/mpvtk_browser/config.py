@@ -208,6 +208,13 @@ TAB_SECTIONS = {
 
 #: Settings that do nothing until the app is started again.
 #:
+#: **"Requires restart" means literally nothing happened**, and the settings
+#: form marks exactly these rows and no others. Everything else is assumed
+#: to apply now or to the next thing you play, which is why no setting says
+#: so in its own note any more -- that sentence used to be repeated across
+#: nine of them, in three different phrasings, and was the only thing a
+#: reader had to reconcile them by.
+#:
 #: **Deliberately conservative, and under-listing is the safe direction.**
 #: A key missing from here costs a banner nobody sees; a key wrongly IN here
 #: asks somebody to restart for a change that had already taken effect,
@@ -230,9 +237,13 @@ TAB_SECTIONS = {
 RESTART_REQUIRED = frozenset({
     # The whole interface geometry is derived once, at startup.
     "ui_scale",
-    # Colours repaint live; the theme's own cover size does not, because a
-    # theme change is not a request to resize. See settings/base.py.
-    "theme",
+    # `theme` is deliberately NOT here, even though half of it waits for a
+    # restart. Colours repaint the moment you pick one, so marking the row
+    # "Requires restart" would say nothing happened when something visibly
+    # did -- and that is the one claim this marker cannot afford to get
+    # wrong. It is the only setting that splits, and its own note carries
+    # the exception.
+    #
     # Decides which OSC mpv is CONSTRUCTED with.
     "osc_style",
     # mpv reads it exactly once, in mp_input_load_config -- a runtime write
@@ -596,7 +607,7 @@ NOTES = {
     # Both caveats are ones a user would otherwise report as bugs: input
     # arriving while another window is focused, and the setting appearing to
     # do nothing at all on an mpv that cannot do it.
-    "input_gamepad": _("Takes effect after a restart. Move with the d-pad "
+    "input_gamepad": _("Move with the d-pad "
                        "or left stick, seek with the right stick, shoulder "
                        "buttons to page, Start for the menu. A controller "
                        "is not focus-aware, so it will reach this app even "
@@ -610,8 +621,7 @@ NOTES = {
     # back", not for the word "swap".
     "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
                               "is on the right rather than at the bottom "
-                              "(Switch Pro, most 8BitDo pads). Applies "
-                              "immediately."),
+                              "(Switch Pro, most 8BitDo pads)."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.
@@ -674,7 +684,7 @@ NOTES = {
         "which is short for a server reached over the internet or a slow "
         "connection — raise this if playback keeps stopping for buffering. "
         "Larger buffers use more memory and make the first few seconds of a "
-        "file slower to start. Applies to the next thing you play."),
+        "file slower to start."),
     "motion_interpolation": _(
         "Frame blending (blends frames together, not the same as "
         "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "
@@ -724,7 +734,7 @@ NOTES = {
                              "Turning it on applies to what you are watching "
                              "the next time you seek somewhere new; turning "
                              "it off applies to the next video."),
-    "osc_style": _("Requires restart to change. MPV keybinds are used by "
+    "osc_style": _("MPV keybinds are used by "
                    "default. Press ENTER to drive the player controls by "
                    "keyboard. \"No player controls\" leaves playback bare; "
                    "the library, the keyboard shortcuts and the menu key "
@@ -751,8 +761,7 @@ NOTES = {
     # think about only invites questions. The dynamic note in
     # settings/general.py raises it, and only for someone it is actually
     # broken for.
-    "discord_presence": _("Discord Rich Presence. Takes effect after a "
-                          "restart."),
+    "discord_presence": _("Discord Rich Presence."),
     "audio_device": _("Leave this to Default unless setting up passthrough. "
                       "Note some audio servers like Pipewire don't like "
                       "passthrough and will need to be disabled for a card "
@@ -789,9 +798,8 @@ NOTES = {
                              "edges of the window, as the web client does. "
                              "It shows more of the artwork without taking "
                              "any more vertical space."),
-    "poster_scale": _("Overrides the theme's cover size. Applies "
-                      "immediately, and is also on the View menu of any "
-                      "library."),
+    "poster_scale": _("Overrides the theme's cover size. Also on the View "
+                      "menu of any library."),
     "hud_scrim": _("The controls have to stay legible over any frame. "
                    "\"None\" gives the text a drop shadow instead of "
                    "shading the picture behind it."),
@@ -802,7 +810,7 @@ NOTES = {
     "mouse_chapter_nav": _(
         "During playback only; in the library those buttons stay Back and "
         "Forward. Off by default because they are easy to hit by accident on "
-        "some mice. Takes effect after a restart."),
+        "some mice."),
     # xgettext: no-python-format
     # "100% on" reads as the conversion "% o" (space flag, octal), so xgettext
     # marks this python-format and msgfmt --check then rejects any translation
@@ -810,8 +818,8 @@ NOTES = {
     # tripped over. This string is a NOTES entry rendered as-is and is never
     # %-formatted, so the flag is wrong rather than unmet. The override changes
     # no msgid, so nothing already translated is discarded.
-    "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
-                  "scale your desktop reports, which is 100% on X11."),
+    "ui_scale": _("\"Follow display\" uses the scale your desktop reports, "
+                  "which is 100% on X11."),
     "ui_text_scale": _(
         "Scales the text only. Interface Scale above resizes everything, "
         "artwork and spacing and controls included, so use this one when the "
