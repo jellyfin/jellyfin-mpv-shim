@@ -200,6 +200,31 @@ def brace_form(msgid):
     return "".join(out), specs
 
 
+def marker_is_current(entry, en):
+    """Whether the key an earlier run recorded still names *this* msgid.
+
+    ``regen_pot.sh --merge`` is what makes this a question. When a source
+    string is reworded, msgmerge attaches its old translation to the new
+    msgid, marks it fuzzy -- and carries the translator comments across,
+    including our MARKER. The note now credits a key whose English we no
+    longer use, and the promote path below would re-derive that key's value,
+    find it unchanged, and clear the fuzzy flag: 'Blend Frames' would ship the
+    translation of 'Dropped frames', 'Reasons' that of 'Seasons'. Measured at
+    2,325 entries on the sweep this guard was written for.
+
+    A marker that does not survive this check is not ours -- the value under
+    it is msgmerge's guess, not an earlier seed -- so the caller drops it and
+    the entry goes back to being an ordinary fuzzy entry nobody may touch.
+    """
+    eng = en.get(entry.seeded_key)
+    if eng is None:
+        return False                       # key retired from jellyfin-web
+    if eng == entry.msgid:
+        return True
+    brace = brace_form(entry.msgid)        # their {0} against our %s
+    return bool(brace) and brace[0] == eng
+
+
 def po_escape(s):
     return (s.replace("\\", "\\\\").replace('"', '\\"')
              .replace("\n", "\\n").replace("\t", "\\t"))
@@ -388,7 +413,7 @@ def main():
         keys_for.setdefault(value, []).append(key)
 
     totals = {"seeded": 0, "ambiguous": 0, "placeholder": 0, "absent": 0,
-              "reordered": 0, "converted": 0, "diverged": 0}
+              "reordered": 0, "converted": 0, "diverged": 0, "stale": 0}
     per_locale, skipped_locales = [], []
 
     for d in sorted(p for p in MESSAGES.iterdir() if p.is_dir()):
@@ -405,6 +430,12 @@ def main():
         seeded = converted = promoted = 0
         for e in entries:
             override = CONTEXT_KEYS.get((e.ctx, e.msgid)) if e.ctx else None
+            if e.msgid and e.seeded_key and not marker_is_current(e, en):
+                # msgmerge moved the note, not the string. See
+                # marker_is_current -- trusting it here ships a translation of
+                # the English we used to have.
+                e.seeded_key = None
+                totals["stale"] += 1
             if not e.seedable(have_exact_key=bool(override)):
                 continue
             brace = None
@@ -488,6 +519,8 @@ def main():
           "argument)" % totals["reordered"])
     print("skipped, diverged   %6d  (an earlier seed no longer matches "
           "jellyfin-web)" % totals["diverged"])
+    print("skipped, stale note %6d  (a sweep moved our note onto another "
+          "string)" % totals["stale"])
     print("skipped, no string  %6d  (jellyfin-web has no such English)"
           % totals["absent"])
     if skipped_locales:

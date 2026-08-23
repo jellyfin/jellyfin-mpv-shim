@@ -155,6 +155,41 @@ class SeedableTest(unittest.TestCase):
         self.assertFalse(e.seedable())
 
 
+class MarkerIsCurrentTest(unittest.TestCase):
+    """The guard between a --merge sweep and a seed run.
+
+    msgmerge carries translator comments onto the entry it fuzzy-matches, so
+    after a reworded string our MARKER can end up above a msgid it never
+    described. Promoting from that note ships the old string's translation
+    under the new English.
+    """
+
+    EN = {"Play": "Play", "LabelDroppedFrames": "Dropped frames",
+          "EpisodeCount": "{0} episodes"}
+
+    def test_a_note_naming_our_own_msgid_is_current(self):
+        e = _entry(seed.MARKER + "Play", 'msgid "Play"', 'msgstr "Jouer"')
+        self.assertTrue(seed.marker_is_current(e, self.EN))
+
+    def test_a_note_msgmerge_moved_is_not(self):
+        # What the sweep produces: 'Dropped frames' was reworded to
+        # 'Blend Frames' and its translation came along, fuzzy, with the note.
+        e = _entry(seed.MARKER + "LabelDroppedFrames", "#, fuzzy",
+                   'msgid "Blend Frames"', 'msgstr "Images perdues"')
+        self.assertFalse(seed.marker_is_current(e, self.EN))
+
+    def test_a_key_jellyfin_web_has_retired_is_not(self):
+        e = _entry(seed.MARKER + "LabelGone", 'msgid "Play"', 'msgstr "Jouer"')
+        self.assertFalse(seed.marker_is_current(e, self.EN))
+
+    def test_their_notation_is_what_the_comparison_uses(self):
+        # Our "%d episodes" is their "{0} episodes"; the seed was legitimate
+        # and the note still describes this string.
+        e = _entry(seed.MARKER + "EpisodeCount", "#, fuzzy",
+                   'msgid "%d episodes"', 'msgstr "%d Folgen"')
+        self.assertTrue(seed.marker_is_current(e, self.EN))
+
+
 class SeedFlagTest(unittest.TestCase):
     def test_seeding_clears_the_fuzzy_flag_by_default(self):
         e = _entry(seed.MARKER + "Old", "#, fuzzy",
