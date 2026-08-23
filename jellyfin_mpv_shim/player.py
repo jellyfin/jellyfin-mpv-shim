@@ -3003,6 +3003,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 except Exception:
                     log.debug("this mpv has no %s to remember", prop,
                               exc_info=True)
+        if not self._render_pristine:
+            # Not fatal, but it means every preset becomes one-way for the
+            # life of this mpv: the write guard reads an empty snapshot as
+            # "never probed, write everything" while the restore reads it as
+            # "nothing to put back". Near-unreachable -- the handle has just
+            # been constructed -- so it is worth a line rather than a policy.
+            log.warning("Could not read any picture options from this mpv; "
+                        "turning a picture setting off will not restore "
+                        "your own values this session.")
 
     def _apply_render_preset(self, key):
         """Write ``key``'s configured preset, or undo ours.
@@ -3033,7 +3042,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         props = preset_props(key)
         if props:
-            self._render_written.add(key)
+            wrote = False
             for prop, value in props.items():
                 if self._render_pristine and prop not in self._render_pristine:
                     # This mpv has no such property -- the snapshot already
@@ -3045,14 +3054,52 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                     # part that does the visible work) with it.
                     continue
                 setattr(self._player, prop.replace("-", "_"), value)
+                wrote = True
+            # Marked ours only if something actually landed. On a build with
+            # none of these properties every write is skipped, and claiming
+            # the key anyway would make a later "off" hand back values we
+            # never touched.
+            if wrote:
+                self._render_written.add(key)
             return
         if key not in self._render_written:
             return                       # never ours; not ours to turn off
+        # What "off" restores TO. The pack first, where a profile is loaded
+        # and sets this property: turning our setting off means "I have no
+        # opinion", and with a profile on, the value it would have had
+        # without us is the pack's, not mpv's default.
+        #
+        # Nothing else puts the pack's back. `apply_for_item` returns early
+        # for an unchanged profile ("Already wearing it") -- deliberately,
+        # so the pack does not rewrite its settings between every two
+        # items -- so a restore to pristine here left the upscaler selected,
+        # its shaders loaded, and its debanding gone for the session.
+        pack = self._pack_applied()
         for prop in preset_keys(key):
-            if prop in self._render_pristine:
-                setattr(self._player, prop.replace("-", "_"),
-                        self._render_pristine[prop])
+            name = prop.replace("-", "_")
+            if name in pack:
+                value = pack[name]
+            elif prop in self._render_pristine:
+                value = self._render_pristine[prop]
+            else:
+                continue
+            setattr(self._player, name, value)
         self._render_written.discard(key)
+
+    def _pack_applied(self):
+        """``{mpv property (underscored): value}`` the loaded shader profile
+        is currently holding, or ``{}``.
+
+        Read from the profile manager rather than recomputed: it records what
+        it applied, and re-deriving it here would be a second implementation
+        of the pack's group resolution -- which is the shape this codebase
+        keeps getting wrong.
+        """
+        menu = getattr(self, "menu", None)
+        manager = getattr(menu, "profile_manager", None) if menu else None
+        if manager is None or getattr(manager, "current_profile", None) is None:
+            return {}
+        return getattr(manager, "applied_settings", None) or {}
 
     def _apply_render_presets(self):
         """Every preset-driven mpv setting, each guarded on its own.

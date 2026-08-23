@@ -297,28 +297,59 @@ class DebandLadderTest(unittest.TestCase):
             with self.subTest(preset=name):
                 self.assertIs(DEBAND_PRESETS[name]["deband"], True)
 
-    def test_the_ladder_is_monotone_in_every_parameter(self):
-        """Not tidiness: threshold (how flat a region must be to be touched),
-        iterations (how many passes) and grain (the noise added to mask what
-        debanding could not fix) trade against each other. A ladder that
-        raised the threshold while dropping the grain would look worse at
-        the top than in the middle, and the labels would be lying."""
-        for param in self.MPV_DEFAULTS:
+    #: The parameters that ARE strength, and rise with the label.
+    STRENGTH = ("deband-iterations", "deband-threshold", "deband-grain")
+
+    def test_the_strength_parameters_rise_with_the_label(self):
+        """threshold (how flat a region must be to be touched), iterations
+        (how many passes) and grain (the noise added to mask what debanding
+        could not fix) are the strength axes. A ladder that raised the
+        threshold while dropping the grain would look worse at the top than
+        in the middle, and the labels would be lying."""
+        for param in self.STRENGTH:
             values = [DEBAND_PRESETS[n][param] for n in self.ORDER]
             with self.subTest(param=param):
                 self.assertEqual(values, sorted(values), values)
                 self.assertLess(values[0], values[-1],
                                 "%s does not move across the ladder" % param)
 
+    def test_the_radius_falls_as_the_iterations_rise(self):
+        """mpv's instruction, not a preference. `--deband-range` is the
+        filter's initial radius, and the manual says the radius "increases
+        linearly for each iteration", then: "If you increase the
+        --deband-iterations, you should probably decrease this to
+        compensate."
+
+        An earlier version of this table raised all four together because a
+        monotone ladder looked tidier, and an earlier version of this test
+        asserted exactly that -- pinning a number that contradicted the
+        documentation it was supposed to implement.
+        """
+        radius = [DEBAND_PRESETS[n]["deband-range"] for n in self.ORDER]
+        iterations = [DEBAND_PRESETS[n]["deband-iterations"]
+                      for n in self.ORDER]
+        self.assertEqual(iterations, sorted(iterations), iterations)
+        self.assertEqual(radius, sorted(radius, reverse=True),
+                         "deband-range must fall as deband-iterations rise: "
+                         "%r against %r" % (radius, iterations))
+
     def test_light_sits_below_mpv_s_own_strength(self):
         """"Light (live action)" is the preset for content debanding mostly
         no-ops on, where the risk is a threshold high enough to smear real
-        low-contrast texture. It has to be more cautious than mpv's default,
-        or its label is describing the wrong thing."""
+        low-contrast texture -- mpv: "Higher numbers increase the debanding
+        strength dramatically but progressively diminish image details." It
+        has to be more cautious than mpv's default, or its label is
+        describing the wrong thing.
+
+        Only on the strength axes. `deband-range` is a radius rather than a
+        strength, and light runs mpv's own single iteration, so mpv's own
+        radius is the tuned pairing for it.
+        """
         light = DEBAND_PRESETS["light"]
         self.assertLess(light["deband-threshold"],
                         self.MPV_DEFAULTS["deband-threshold"])
-        self.assertLess(light["deband-range"], self.MPV_DEFAULTS["deband-range"])
+        self.assertEqual(light["deband-range"],
+                         self.MPV_DEFAULTS["deband-range"])
 
     def test_no_preset_sets_grain_to_zero(self):
         """The shader pack uses `deband-grain: 0`, and that is only correct

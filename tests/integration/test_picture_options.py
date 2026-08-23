@@ -400,7 +400,7 @@ class DebandPerItemTest(_Base):
         self.assertIs(p.deband, True)
         self.assertEqual(p.deband_iterations, 2)
         self.assertEqual(p.deband_threshold, 48)
-        self.assertEqual(p.deband_range, 16)
+        self.assertEqual(p.deband_range, 14)
         self.assertEqual(p.deband_grain, 24)
 
     def test_the_setting_is_written_on_every_item(self):
@@ -468,6 +468,80 @@ class DebandPerItemTest(_Base):
             self.play()
         self.assertIs(self.pm._player.deband, True)
         self.assertEqual(self.pm._player.deband_grain, 0.0)
+
+    def test_off_does_not_undo_the_pack_AFTER_we_have_written_it(self):
+        """The other half of "off means no opinion", and the one the
+        never-written case above does not reach.
+
+        Turning the setting ON marks the key as ours. Turning it back OFF
+        then restores the *pristine* value -- and with a profile still
+        loaded, nothing puts the pack's back: `apply_for_item` early-returns
+        for an unchanged profile ("Already wearing it"), by design, so the
+        pack does not rewrite its settings between items. The upscaler stays
+        selected, its shaders stay loaded, and its debanding is gone for the
+        rest of the session.
+        """
+        self.user_mpv_conf(deband=False, deband_grain=32.0)
+        self.setting("deband", "light")
+        self.play()                                  # now ours to take back
+
+        # The pack, loading a profile mid-session.
+        self.pm._player.deband = True
+        self.pm._player.deband_grain = 0.0
+        self._pretend_profile_loaded({"deband": True, "deband_grain": 0.0})
+
+        with mock.patch.object(player_module.settings, "deband", "off"):
+            self.play()
+            self.play()
+        self.assertIs(self.pm._player.deband, True,
+                      "the pack's debanding was undone by a setting that "
+                      "says it has no opinion")
+        self.assertEqual(self.pm._player.deband_grain, 0.0)
+
+    def test_a_stronger_setting_is_never_weakened_by_the_pack(self):
+        """The pack's `deband-default` is threshold 32, range 12, grain 0 --
+        WEAKER than `strong` on threshold and grain. A user who picked
+        `strong` must keep it, whatever the profile brings with it.
+
+        Both orders, because the pack reaches mpv by two routes and only one
+        of them is the play path: `apply_for_item` runs earlier in
+        `_play_media` than the settings do, and a profile picked from the
+        menu mid-film writes straight into the live player and then calls
+        `reapply_render_presets`.
+        """
+        pack = {"deband": True, "deband_threshold": 32.0,
+                "deband_range": 12.0, "deband_grain": 0.0}
+        strong = {"deband_threshold": 64.0, "deband_range": 12.0,
+                  "deband_grain": 32.0, "deband_iterations": 4}
+
+        # 1. Pack first, then the play path applies the setting.
+        self.setting("deband", "strong")
+        for prop, value in pack.items():
+            setattr(self.pm._player, prop, value)
+        self.play()
+        for prop, want in strong.items():
+            self.assertEqual(float(getattr(self.pm._player, prop)), want,
+                             "%s was left at the pack's value" % prop)
+
+        # 2. A profile picked mid-film: the pack writes, then reasserts.
+        for prop, value in pack.items():
+            setattr(self.pm._player, prop, value)
+        self.pm.reapply_render_presets()
+        for prop, want in strong.items():
+            self.assertEqual(float(getattr(self.pm._player, prop)), want,
+                             "%s stayed weakened after a profile load" % prop)
+
+    def _pretend_profile_loaded(self, applied):
+        """Attach a profile manager reporting ``applied`` as the settings the
+        loaded profile currently holds -- which is what the real one records
+        while a profile is on."""
+        manager = mock.Mock()
+        manager.current_profile = "artcnn"
+        manager.applied_settings = dict(applied)
+        menu = getattr(self.pm, "menu", None) or mock.Mock()
+        menu.profile_manager = manager
+        self.pm.menu = menu
+        self.addCleanup(setattr, self.pm, "menu", None)
 
     def test_the_setting_outranks_the_pack_when_it_is_not_off(self):
         """The other direction: the setting is the user's explicit answer

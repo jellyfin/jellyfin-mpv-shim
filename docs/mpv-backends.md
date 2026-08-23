@@ -393,6 +393,14 @@ pack's write is the last one until the next item — so picking an upscaler
 mid-film and dropping it again took the user's debanding with it for the rest
 of the film.
 
+**And "off" restores to the PACK's value where a profile is loaded**, not to
+pristine (`_pack_applied`, fed by `VideoProfileManager.applied_settings`). Off
+means "I have no opinion"; with a profile on, the value the property would have
+had without us is the pack's. Nothing else would put it back, because
+`apply_for_item` returns early for an unchanged profile ("Already wearing it")
+so the pack does not rewrite between items — so restoring pristine left the
+upscaler selected, its shaders loaded, and its debanding gone for the session.
+
 Pinned by `tests/test_picture_processing.py` (the tables, against mpv's own
 `--list-options` and `--show-profile`), `tests/integration/test_picture_options.py`
 (what mpv ends up holding, over several items) and
@@ -608,6 +616,13 @@ UI at all. See section 6 for how the two now compose.
 The pack's parameters are deliberately not copied: its `deband-grain: 0` is only
 correct because `static-grain-default` re-adds noise through shaders, and a
 standalone preset with grain 0 removes the masking without replacing it.
+
+**`deband-range` falls as the ladder rises**, against the grain of the other
+three. That is mpv's instruction, not a preference: the radius "increases
+linearly for each iteration", so the manual says to decrease it when raising
+`--deband-iterations`. The first version of the table raised all four together
+because a monotone ladder looked tidier, and the test asserted exactly that —
+pinning a number that contradicted the documentation it implemented.
 
 ### `render_quality` — a copy of mpv's profile, not the profile
 

@@ -297,11 +297,21 @@ INTERPOLATION_PRESETS = {
 #: therefore leaves their values standing. The presets are for everyone
 #: else, who wants the banding gone and has no way to tell 32 from 48.
 #:
-#: The ladder moves every parameter in the same direction, because they are
-#: not independent: ``threshold`` is how flat a region has to be before it
-#: is touched at all, ``iterations`` is how many passes it gets, and
-#: ``grain`` is the noise added afterwards to mask what debanding could not
-#: fix. A strong threshold with no grain looks worse than either.
+#: ``threshold`` (how flat a region must be before it is touched),
+#: ``iterations`` (how many passes) and ``grain`` (the noise added
+#: afterwards to mask what debanding could not fix) rise together: those are
+#: the strength axes, and a strong threshold with no grain looks worse than
+#: either alone.
+#:
+#: **``range`` moves the other way, and that is mpv's instruction rather
+#: than a preference.** It is the filter's initial radius, and mpv's manual
+#: says the radius "increases linearly for each iteration" and then, in as
+#: many words: "If you increase the --deband-iterations, you should probably
+#: decrease this to compensate." An earlier version of this table raised all
+#: four together because a monotone ladder looked tidier -- which is exactly
+#: the kind of reasoning that has no source behind it. `light` therefore
+#: sits at mpv's own default radius, since it also runs mpv's own single
+#: iteration.
 #:
 #: mpv's own defaults are threshold 48, range 16, grain 32, iterations 1
 #: (measured on 0.41, and pinned by tests/test_picture_processing.py), so
@@ -320,13 +330,13 @@ INTERPOLATION_PRESETS = {
 DEBAND_PRESETS = {
     "off": {},
     "light": {"deband": True, "deband-iterations": 1,
-              "deband-threshold": 32, "deband-range": 12,
+              "deband-threshold": 32, "deband-range": 16,
               "deband-grain": 16},
     "standard": {"deband": True, "deband-iterations": 2,
-                 "deband-threshold": 48, "deband-range": 16,
+                 "deband-threshold": 48, "deband-range": 14,
                  "deband-grain": 24},
     "strong": {"deband": True, "deband-iterations": 4,
-               "deband-threshold": 64, "deband-range": 20,
+               "deband-threshold": 64, "deband-range": 12,
                "deband-grain": 32},
 }
 

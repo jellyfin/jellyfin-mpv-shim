@@ -125,7 +125,9 @@ class RealMpvPictureTest(unittest.TestCase):
         self.assertTrue(self._prop("deband"))
         self.assertEqual(int(self._prop("deband-iterations")), 2)
         self.assertAlmostEqual(float(self._prop("deband-threshold")), 48, 3)
-        self.assertAlmostEqual(float(self._prop("deband-range")), 16, 3)
+        # 14, not mpv's default 16: the radius falls as the iterations rise
+        # (mpv's manual), and `standard` runs two passes.
+        self.assertAlmostEqual(float(self._prop("deband-range")), 14, 3)
         self.assertAlmostEqual(float(self._prop("deband-grain")), 24, 3)
 
     def test_every_deband_preset_is_a_value_mpv_accepts(self):

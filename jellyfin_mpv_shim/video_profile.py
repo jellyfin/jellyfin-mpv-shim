@@ -163,6 +163,12 @@ class VideoProfileManager:
         #: mean "for this session"; it must not come to mean "for zero
         #: items".
         self.session_default = settings.shader_pack_profile
+        #: {mpv property (underscored): value} the loaded profile is
+        #: currently holding. Recorded rather than recomputed, because the
+        #: player needs to know what the pack set in order to hand it BACK
+        #: when a picture setting is turned off -- see
+        #: PlayerManager._apply_render_preset. Empty while no profile is on.
+        self.applied_settings = {}
         #: Set by the `k` escape hatch, cleared by the next deliberate pick.
         #: Without it, `k` stopped working across an item boundary the
         #: moment any override existed: apply_for_item would resolve the
@@ -344,6 +350,7 @@ class VideoProfileManager:
         self._sets_vf = False
         self._names_direct_hwdec = False
         self.forced_hwdec = None
+        self.applied_settings = {}
         try:
             # Read Settings & Shaders
             for group in self.default_groups:
@@ -378,6 +385,8 @@ class VideoProfileManager:
                 else:
                     setattr(self.player, key, value)
                 already_set.add((key, value))
+                # What the pack is holding, for the player's restore path.
+                self.applied_settings[key] = value
 
             self.wants_copy_hwdec = self._wants_copy()
 
@@ -759,6 +768,7 @@ class VideoProfileManager:
                     "Default setting {0} value {1} is invalid.".format(setting, value)
                 )
         self.current_profile = None
+        self.applied_settings = {}
         self._reassert_user_settings()
 
     def _reassert_user_settings(self):

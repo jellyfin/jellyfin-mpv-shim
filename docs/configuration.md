@@ -191,9 +191,16 @@ You can adjust the basic transcoder settings via the menu.
 
     | | iterations | threshold | range | grain |
     |---|---|---|---|---|
-    | `light` | 1 | 32 | 12 | 16 |
-    | `standard` | 2 | 48 | 16 | 24 |
-    | `strong` | 4 | 64 | 20 | 32 |
+    | `light` | 1 | 32 | 16 | 16 |
+    | `standard` | 2 | 48 | 14 | 24 |
+    | `strong` | 4 | 64 | 12 | 32 |
+
+  - Iterations, threshold and grain rise together — they are the strength
+      axes. **`range` falls**, because it is the filter's initial radius and
+      mpv's manual says the radius "increases linearly for each iteration",
+      then: "If you increase the `--deband-iterations`, you should probably
+      decrease this to compensate." `light` runs mpv's own single iteration,
+      so it keeps mpv's own radius.
 
   - The parameters are deliberately not exposed individually. **Leave this
       at `off` and set the `deband*` options in your own `mpv.conf` if you
@@ -234,6 +241,12 @@ You can adjust the basic transcoder settings via the menu.
       would make this a setting that only turns on. The last two options
       need **mpv 0.37 or newer**; on an older build they are skipped and the
       scaling half still applies.
+  - `hdr-peak-percentile` is documented by mpv as **`--vo=gpu-next` only**.
+      That is mpv's default output from **0.41**; on 0.40 and older the
+      default is `gpu`, where it is accepted and ignored. Nothing breaks
+      either way — it is the same option mpv's own `high-quality` profile
+      sets — but on an older build this setting is the scaling half plus
+      `hdr-contrast-recovery` only.
 - `network_buffer` - How far ahead of playback to read. Default: `default`
   - Values: `default`, `large` (20s readahead, 400 MiB), `huge` (60s, 1 GiB).
   - mpv's own readahead is **one second**, which is short for a server
