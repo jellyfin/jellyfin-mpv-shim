@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-23 01:05+0000\n"
+"PO-Revision-Date: 2026-08-23 09:45+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -595,6 +595,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"No s'ha pogut reiniciar automàticament — tanqueu l'aplicació i torneu-la a "
+"iniciar per aplicar els canvis."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
@@ -1235,7 +1237,7 @@ msgstr "Aquest dispositiu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
@@ -1315,7 +1317,7 @@ msgstr "Fora de línia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Moviment suavitzat"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1326,19 +1328,19 @@ msgstr "Fotogrames de referència"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Suavitzat (alta qualitat)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Clar (live action)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Estàndard (animació)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Fort"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1348,11 +1350,11 @@ msgstr "Automàtic (recomanat)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 (referència)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1368,11 +1370,11 @@ msgstr "Desactiva"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Clip (sense mapatge de tons)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1400,7 +1402,7 @@ msgstr "%d segons endavant"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Molt llarg (60 segons)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1537,15 +1539,15 @@ msgstr "No ho amaguis mai mentre estigui pausat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Eixampla els buits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Centra les tessel·les"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Deixa-ho a la dreta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
