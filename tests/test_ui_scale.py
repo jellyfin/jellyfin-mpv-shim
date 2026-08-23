@@ -209,9 +209,13 @@ class StripStoreScaleTest(unittest.TestCase):
         scaling.set_scale(1.0)
 
     def _store(self):
+        import shutil
         import tempfile
         from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
-        return StripStore(cache_dir=tempfile.mkdtemp(prefix="scaletest-"))
+
+        cache = tempfile.mkdtemp(prefix="scaletest-")
+        self.addCleanup(shutil.rmtree, cache, ignore_errors=True)
+        return StripStore(cache_dir=cache)
 
     def test_a_strip_bitmap_matches_its_logical_footprint(self):
         from jellyfin_mpv_shim.mpvtk_browser.strips import POSTER_GEOM, Tile

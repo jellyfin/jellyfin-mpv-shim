@@ -26,6 +26,7 @@ Contents:
 """
 
 import functools
+import atexit
 import os
 import shlex
 import shutil
@@ -948,6 +949,9 @@ def import_player_with_fake_mpv():
     # Keep config writes out of the user's real ~/.config, and pin the arg
     # parser to it so confdir resolution doesn't choke on the runner's argv.
     tmp_conf = tempfile.mkdtemp(prefix="jms-itest-conf-")
+    # This process owns it for its whole life, so atexit is the matching
+    # scope. Without it every leg left one behind: 176 had accumulated.
+    atexit.register(shutil.rmtree, tmp_conf, ignore_errors=True)
     os.environ["XDG_CONFIG_HOME"] = tmp_conf
     prime_args(tmp_conf)
 

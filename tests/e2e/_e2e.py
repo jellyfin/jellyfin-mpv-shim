@@ -56,6 +56,9 @@ BACKEND = h.BACKEND
 #   * without an isolated config dir the suite reads and writes the
 #     developer's real one.
 _CONFIG_DIR = tempfile.mkdtemp(prefix="jms-e2e-config-")
+# One per process, and the runner starts a process per leg -- 49 of them,
+# every run. 433 had accumulated before this.
+atexit.register(shutil.rmtree, _CONFIG_DIR, ignore_errors=True)
 os.environ["XDG_CONFIG_HOME"] = _CONFIG_DIR
 h.prime_args()
 
@@ -263,6 +266,7 @@ def isolate_config():
     not find their real `cred.json` rewritten. Called before any shim import.
     """
     path = tempfile.mkdtemp(prefix="jms-e2e-config-")
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
     os.environ["XDG_CONFIG_HOME"] = path
     return path
 

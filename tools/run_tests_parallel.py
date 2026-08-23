@@ -82,6 +82,18 @@ def _worker(pattern):
     # This is the reason the parent trusts the line above rather than the
     # exit status. A worker that dies BEFORE printing it is still a hard
     # failure -- that is a real crash mid-test, and it is reported as one.
+    # Before the hard exit, because atexit will not run after it: the
+    # tests' self-cleaning temp directories (tests/_tmpdirs) are registered
+    # with atexit for a direct `unittest` run, and this path skips it. Left
+    # out, each worker leaked its temp directories on every run -- which is
+    # how /tmp reached five thousand entries.
+    try:
+        from tests import _tmpdirs
+
+        _tmpdirs.cleanup_all()
+    except Exception:
+        pass
+
     sys.stderr.flush()
     os._exit(0 if result.wasSuccessful() else 1)
 

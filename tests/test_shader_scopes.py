@@ -14,6 +14,8 @@ this codebase keeps producing is state feeding back into its own input.
 import sys
 import unittest
 
+from tests import _tmpdirs
+
 sys.argv = [sys.argv[0]]
 
 from unittest import mock                                      # noqa: E402
@@ -147,7 +149,7 @@ class StoreTest(unittest.TestCase):
         import os
         import tempfile
 
-        path = os.path.join(tempfile.mkdtemp(), "shader_profiles.json")
+        path = _tmpdirs.tmpfile("shader_profiles.json", "jms-shaderscope-")
         o = ShaderOverrides(path)
         o.set("series", "srv/show1", "b")
         o.set("library", "srv/lib1", None)
@@ -160,7 +162,7 @@ class StoreTest(unittest.TestCase):
         import os
         import tempfile
 
-        path = os.path.join(tempfile.mkdtemp(), "shader_profiles.json")
+        path = _tmpdirs.tmpfile("shader_profiles.json", "jms-shaderscope-")
         with open(path, "w") as fh:
             fh.write("{ not json")
         o = ShaderOverrides(path)

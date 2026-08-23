@@ -21,6 +21,8 @@ library does in every other client.
 import sys
 import unittest
 
+from tests import _tmpdirs
+
 sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim.mpvtk import vector                        # noqa: E402
@@ -91,7 +93,7 @@ class CompositorTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.strips import (
             POSTER_GEOM, StripStore, Tile)
 
-        store = StripStore(cache_dir=tempfile.mkdtemp())
+        store = StripStore(cache_dir=_tmpdirs.tmpdir("jms-glyphs-"))
         try:
             tiles = [Tile(key=str(i), title=it.get("Name", ""),
                           glyph=labels.placeholder_glyph(it))
@@ -143,7 +145,7 @@ class CompositorTest(unittest.TestCase):
 
         from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore, Tile
 
-        store = StripStore(cache_dir=tempfile.mkdtemp())
+        store = StripStore(cache_dir=_tmpdirs.tmpdir("jms-glyphs-"))
         try:
             a = store._tile_key(Tile(key="1", title="x", glyph="movie"))
             b = store._tile_key(Tile(key="1", title="x", glyph="book"))

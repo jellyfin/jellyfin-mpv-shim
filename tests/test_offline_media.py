@@ -47,6 +47,7 @@ def add_row(db, item_id, file_path, userdata=None):
 class UpdateUserdataTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.db = make_db(os.path.join(self.tmp.name, "cat.db"))
 
     def tearDown(self):
@@ -85,6 +86,7 @@ class UpdateUserdataTest(unittest.TestCase):
 class FactoryFileExistsGateTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.root = self.tmp.name
         self.db = make_db(os.path.join(self.root, "cat.db"))
         self.sync = FakeSync(self.db, self.root)
@@ -123,6 +125,7 @@ class OfflineTrickplayTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.root = self.tmp.name
         self.db = make_db(os.path.join(self.root, "cat.db"))
         self.sync = FakeSync(self.db, self.root)
@@ -198,6 +201,7 @@ class OfflineSegmentsTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.root = self.tmp.name
         self.db = make_db(os.path.join(self.root, "cat.db"))
         self.sync = FakeSync(self.db, self.root)

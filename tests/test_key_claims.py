@@ -15,6 +15,8 @@ either.
 import sys
 import unittest
 
+from tests import _tmpdirs
+
 sys.argv = [sys.argv[0]]
 
 from unittest import mock                                     # noqa: E402
@@ -355,7 +357,7 @@ class AfterMigrationTest(unittest.TestCase):
         from jellyfin_mpv_shim import input_conf
 
         s = self._settings(**kw)
-        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        path = _tmpdirs.tmpfile("input.conf", "jms-keyclaims-")
         written = input_conf.migrate(s, path, raw=raw)
         return s, written
 

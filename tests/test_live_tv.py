@@ -22,6 +22,8 @@ import datetime
 import sys
 import unittest
 
+from tests import _tmpdirs
+
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 
 from jellyfin_mpv_shim.mpvtk_browser import live_tv  # noqa: E402
@@ -1730,7 +1732,7 @@ class AirTimeThirdLine(unittest.TestCase):
                 return "s%d" % len(held), img.width, img.height, len(held)
 
         geom = POSTER_GEOM.with_caption_lines(3)
-        store = _Capture(tempfile.mkdtemp())
+        store = _Capture(_tmpdirs.tmpdir("jms-livetv-"))
         self.addCleanup(store.shutdown)
         base = dict(key="p1", title="Casablanca", subtitle="BBC Two")
         store.strip([Tile(subtitle2="20:00 - 22:15", **base)], geom)
@@ -1761,7 +1763,7 @@ class AirTimeThirdLine(unittest.TestCase):
                 held.append(img)
                 return "s%d" % len(held), img.width, img.height, len(held)
 
-        store = _Capture(tempfile.mkdtemp())
+        store = _Capture(_tmpdirs.tmpdir("jms-livetv-"))
         self.addCleanup(store.shutdown)
         base = dict(key="p1", title="Casablanca", subtitle="BBC Two")
         store.strip([Tile(subtitle2="20:00 - 22:15", **base)], POSTER_GEOM)

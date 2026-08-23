@@ -9,6 +9,7 @@ ever return True for a Season, and a fully downloaded season showed
 
 import os
 import sys
+import shutil
 import tempfile
 import unittest
 
@@ -32,6 +33,9 @@ class TestDownloadedSeasonIds(unittest.TestCase):
         self.tmp = tempfile.mkdtemp(prefix="jms-seasondb-")
         self.db = SyncDB(os.path.join(self.tmp, "sync.db"))
         self.addCleanup(self.db.close)
+        # After db.close (cleanups run last-registered-first), or the file
+        # is still open when the directory goes.
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
     def test_a_completed_episode_makes_its_season_downloaded(self):
         self.db.upsert(episode("e1", "sea1"))
