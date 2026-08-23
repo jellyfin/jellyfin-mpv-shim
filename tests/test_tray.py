@@ -7,9 +7,13 @@ parent side: how commands from that child are dispatched.
 """
 
 import multiprocessing
+import os
+import sys
 import threading
 import unittest
+from unittest import mock
 
+from jellyfin_mpv_shim import tray
 from jellyfin_mpv_shim.tray import (
     TrayManager,
     backend_name,
@@ -17,6 +21,7 @@ from jellyfin_mpv_shim.tray import (
     tray_will_render,
     wants_x11_backend,
 )
+from tests import _tmpdirs
 
 
 class TestTrayDispatch(unittest.TestCase):
@@ -273,6 +278,156 @@ class TestTrayPump(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+class TestTrayTempDir(unittest.TestCase):
+    """Where the tray child is allowed to put files, and who clears up.
+
+    pystray's GTK backends publish the icon by writing it to a bare
+    ``tempfile.mktemp()`` and unlinking it in a finalizer this child never
+    reaches: ``_reset_inherited_signals`` restores SIGTERM to ``SIG_DFL``,
+    so ``stop()``'s ``terminate()`` kills it outright. One 6 KB PNG per run
+    of the app, for ever, under a name with nothing in it to say whose it
+    was. The fix gives the child a directory the parent owns.
+    """
+
+    class _FakeProcess:
+        """Enough of a Process for start()/stop(), started or not."""
+
+        def __init__(self, queue, tmpdir=None):
+            self.queue = queue
+            self.tmpdir = tmpdir
+            self.started = False
+            self.pid = 1234
+
+        def start(self):
+            self.started = True
+
+        def terminate(self):
+            self.started = False
+
+        def kill(self):
+            self.started = False
+
+        def join(self, timeout=None):
+            pass
+
+        def is_alive(self):
+            return self.started
+
+    def _managed(self, process_cls=None):
+        made = []
+
+        def factory(queue, tmpdir=None):
+            proc = (process_cls or self._FakeProcess)(queue, tmpdir)
+            made.append(proc)
+            return proc
+
+        patcher = mock.patch.object(tray, "TrayProcess", factory)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        manager = TrayManager({})
+        self.addCleanup(manager.stop)
+        return manager, made
+
+    def test_the_child_is_given_a_directory_the_parent_can_find_again(self):
+        manager, made = self._managed()
+        self.assertTrue(manager.start())
+        self.assertEqual(len(made), 1)
+        self.assertEqual(made[0].tmpdir, manager._tmpdir)
+        self.assertTrue(os.path.isdir(manager._tmpdir))
+        self.assertTrue(os.path.basename(manager._tmpdir)
+                        .startswith("jms-tray-"),
+                        "a leftover has to say whose it is")
+
+    def test_stopping_removes_it(self):
+        manager, _ = self._managed()
+        manager.start()
+        path = manager._tmpdir
+        manager.stop()
+        self.assertFalse(os.path.exists(path))
+
+    def test_a_stop_with_no_child_still_clears_up(self):
+        """stop() leaves no directory behind on either of its paths --
+        the one that joins a child and the one that finds none."""
+        manager, _ = self._managed()
+        manager.start()
+        path, manager._process = manager._tmpdir, None
+        manager.stop()
+        self.assertFalse(os.path.exists(path))
+
+    def test_stopping_twice_is_safe(self):
+        manager, _ = self._managed()
+        manager.start()
+        manager.stop()
+        manager.stop()           # must not raise
+        self.assertIsNone(manager._tmpdir)
+
+    def test_a_child_that_never_started_leaves_nothing_behind(self):
+        class Boom(self._FakeProcess):
+            def start(self):
+                raise OSError("no processes left")
+
+        manager, made = self._managed(Boom)
+        self.assertFalse(manager.start())
+        self.assertFalse(os.path.exists(made[0].tmpdir))
+
+    def test_a_directory_we_cannot_make_is_not_fatal(self):
+        """The tray is optional; a full disk should cost the cleanup, not
+        the icon. The child falls back to the system temp directory."""
+        manager, made = self._managed()
+        with mock.patch.object(tray.tempfile, "mkdtemp",
+                               side_effect=OSError("no space")):
+            self.assertTrue(manager.start())
+        self.assertIsNone(manager._tmpdir)
+        self.assertIsNone(made[0].tmpdir)
+
+    def test_the_redirect_moves_the_temp_files_pystray_writes(self):
+        """The property, not the mechanism: after the redirect, the call
+        pystray makes for its icon path lands inside our directory."""
+        import tempfile as tf
+
+        self.addCleanup(setattr, tf, "tempdir", tf.tempdir)
+        target = _tmpdirs.tmpdir(prefix="jms-trayredirect-")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            tray._use_private_temp_dir(target)
+            self.assertEqual(os.path.dirname(tf.mktemp()), target)
+            self.assertEqual(os.path.dirname(tf.mkdtemp()), target)
+            # GLib reads only the environment, and GDK writes there too.
+            for name in ("TMPDIR", "TMP", "TEMP"):
+                self.assertEqual(os.environ[name], target)
+
+    def test_the_child_redirects_before_it_imports_pystray(self):
+        """``run()`` for real, as far as the missing-pystray exit -- which
+        is the point of the assertion: a redirect written after that import
+        would never be reached here, and the ordering is what makes it
+        cover the icon file. A blocked ``PIL`` is the shortest way to that
+        exit, and the optional-dependency policy says it is a real state.
+        """
+        seen = []
+        queue = mock.Mock()
+        proc = tray.TrayProcess(queue, "/nowhere/jms-tray-test")
+        with mock.patch.object(tray, "_reset_inherited_signals"), \
+                mock.patch.object(tray, "_use_private_temp_dir",
+                                  side_effect=seen.append), \
+                mock.patch.dict(os.environ, {}, clear=False), \
+                mock.patch.dict(sys.modules, {"PIL": None}):
+            proc.run()
+        self.assertEqual(seen, ["/nowhere/jms-tray-test"])
+        queue.put.assert_called_with(("tray_died", None))
+
+    def test_no_directory_means_no_redirect(self):
+        """A child that was given nothing must leave the system temp
+        directory alone rather than redirect at None."""
+        seen = []
+        proc = tray.TrayProcess(mock.Mock(), None)
+        with mock.patch.object(tray, "_reset_inherited_signals"), \
+                mock.patch.object(tray, "_use_private_temp_dir",
+                                  side_effect=seen.append), \
+                mock.patch.dict(os.environ, {}, clear=False), \
+                mock.patch.dict(sys.modules, {"PIL": None}):
+            proc.run()
+        self.assertEqual(seen, [])
 
 class TestX11BackendGate(unittest.TestCase):
     """Which sessions get GDK_BACKEND=x11 forced on the tray process.

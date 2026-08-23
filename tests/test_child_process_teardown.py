@@ -143,8 +143,14 @@ def _deaf_child():
 
 
 class DeafTrayProcess(multiprocessing.Process):
-    def __init__(self, queue):
+    # `tmpdir` because the real TrayProcess takes it (the private temp
+    # directory the parent removes in stop()). A stand-in that drops it
+    # makes start() raise TypeError, which start() catches and reports as
+    # "could not start the tray" -- so the escalation below would be
+    # testing a child that was never there.
+    def __init__(self, queue, tmpdir=None):
         self.queue = queue
+        self.tmpdir = tmpdir
         multiprocessing.Process.__init__(self, daemon=True)
 
     def run(self):

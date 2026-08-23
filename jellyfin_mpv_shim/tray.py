@@ -15,8 +15,10 @@ the escalating stop — is written up in docs/architecture.md section 3.
 import logging
 import multiprocessing
 import os
+import shutil
 import signal
 import sys
+import tempfile
 import threading
 from multiprocessing import Process, Queue
 
@@ -298,13 +300,43 @@ def _reset_inherited_signals():
                       exc_info=True)
 
 
+def _use_private_temp_dir(path):
+    """Point this child's temp files at a directory the PARENT will remove.
+
+    pystray's GTK backends hand their icon to the desktop as a *file*:
+    ``_util/gtk.py`` writes the PNG to a bare ``tempfile.mktemp()`` and
+    unlinks it again in ``_finalize``. Nothing here ever reaches that
+    finalizer -- ``_reset_inherited_signals`` puts SIGTERM back to
+    ``SIG_DFL`` on purpose, so ``TrayManager.stop()``'s ``terminate()``
+    kills this process where it stands. So **every run of the app left a
+    6 KB PNG in /tmp for ever**, with no prefix on it to say whose it was.
+
+    Ownership sits with the parent rather than with a handler here for two
+    reasons: ``stop()`` escalates to ``kill()``, which no handler survives,
+    and a directory catches whatever else GTK drops in there rather than
+    just the one file we know about. ``tempfile.tempdir`` and the
+    environment both, because the leak is Python's and GLib's
+    ``g_get_tmp_dir()`` reads only the latter.
+    """
+    try:
+        tempfile.tempdir = path
+        for name in ("TMPDIR", "TMP", "TEMP"):
+            os.environ[name] = path
+    except Exception:
+        log.debug("could not redirect the tray child's temp files",
+                  exc_info=True)
+
+
 class TrayProcess(Process):
     """The pystray loop. Everything it can do is "put a command name on the
     queue" — it holds no references to the player or the browser, because
     with the 'spawn' start method it is a fresh interpreter anyway."""
 
-    def __init__(self, r_queue: "Queue"):
+    def __init__(self, r_queue: "Queue", tmpdir=None):
         self.r_queue = r_queue
+        #: Where this child may write temp files, or None to use the
+        #: system default. See _use_private_temp_dir.
+        self.tmpdir = tmpdir
         self.icon_stop = None
         # Gio.bus_watch_name id; held so the watch is not collected out from
         # under the loop it was registered on. See _watch_for_tray.
@@ -316,6 +348,11 @@ class TrayProcess(Process):
         # forked child arrives holding the parent's handlers, and one of
         # them makes SIGTERM a no-op here. See _reset_inherited_signals.
         _reset_inherited_signals()
+
+        # Before pystray is imported, let alone asked for an icon: this has
+        # to be in place by the time anything picks a temp path.
+        if self.tmpdir:
+            _use_private_temp_dir(self.tmpdir)
 
         # These variables only mean anything to GTK on Linux/BSD; pystray
         # uses native APIs on Windows and macOS, so leave the env alone.
@@ -502,16 +539,26 @@ class TrayManager:
         self._queue = None
         self._process = None
         self._thread = None
+        self._tmpdir = None
         self._halt = threading.Event()
 
     def start(self):
         try:
+            self._tmpdir = tempfile.mkdtemp(prefix="jms-tray-")
+        except Exception:
+            # A temp directory we cannot make is not a reason to go without
+            # a tray; the child falls back to the system one.
+            log.debug("could not make the tray child a temp directory",
+                      exc_info=True)
+            self._tmpdir = None
+        try:
             self._queue = multiprocessing.Queue()
-            self._process = TrayProcess(self._queue)
+            self._process = TrayProcess(self._queue, self._tmpdir)
             self._process.start()
         except Exception:
             log.warning("Could not start the system tray.", exc_info=True)
             self._process = None
+            self._discard_tmpdir()
             return False
         self._thread = threading.Thread(target=self._pump, daemon=True,
                                         name="tray-pump")
@@ -600,6 +647,10 @@ class TrayManager:
         self._halt.set()
         process, self._process = self._process, None
         if process is None:
+            # Same invariant as below, said on both paths rather than
+            # argued: stop() leaves no directory behind, whether or not
+            # there was ever a child to put files in it.
+            self._discard_tmpdir()
             self._release_queue()
             return
         try:
@@ -615,7 +666,23 @@ class TrayManager:
                             "stopped.", process.pid)
         except Exception:
             log.debug("tray terminate failed", exc_info=True)
+        # After the joins, so nothing is still writing into it. A child that
+        # outlived even the kill() keeps its directory, which is the safe
+        # way round: an empty directory left behind says so in its name.
+        self._discard_tmpdir()
         self._release_queue()
+
+    def _discard_tmpdir(self):
+        """Remove the temp directory the child was given, if it still has
+        one. Idempotent -- ``stop()`` is reachable more than once."""
+        path, self._tmpdir = self._tmpdir, None
+        if path is None:
+            return
+        try:
+            shutil.rmtree(path, ignore_errors=True)
+        except Exception:
+            log.debug("could not remove the tray temp directory",
+                      exc_info=True)
 
     def _release_queue(self):
         """Drop the command queue once nothing is left to send on it.

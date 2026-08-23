@@ -334,6 +334,22 @@ by `os._exit`, that notice would be the last thing printed on every quit.
 `cancel_join_thread` because anything still unsent is a command for a child that is
 already gone.
 
+**And the kill is why the child gets its own temp directory.** pystray's GTK
+backends publish the icon as a *file*: `_util/gtk.py` writes the PNG to a bare
+`tempfile.mktemp()` and unlinks it again from `_finalize`. Nothing above ever
+reaches that finalizer — `_reset_inherited_signals` restores SIGTERM to
+`SIG_DFL` precisely so the child dies where it stands — so **every run of the
+app left a 6 KB PNG in `/tmp` for ever**, under a name with nothing in it to say
+whose it was. `TrayManager.start` hands the child a `jms-tray-` directory and
+`stop()` removes it after the joins. Ownership sits with the parent rather than
+with a handler in the child for two reasons: no handler survives the escalation
+to `kill()`, and a directory catches whatever else GTK drops in there. The
+redirect (`_use_private_temp_dir`) sets `tempfile.tempdir` *and* the environment,
+because the leak is Python's and GLib's `g_get_tmp_dir()` reads only the latter —
+and it has to run before `run()` imports pystray, which
+`tests/test_tray.py:TestTrayTempDir` pins by driving `run()` as far as its
+missing-dependency exit.
+
 ## 4. Making the exit finish
 
 `jellyfin_mpv_shim/exit_watchdog.py`.
