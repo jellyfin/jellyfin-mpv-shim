@@ -985,6 +985,127 @@ scene({})
 eq(hover_events(), "hover_end:tile-a-play",
    "a hovered node leaving the scene reported no departure")
 
+-- ================= a hover mpv lost, and one it never had (#700)
+--
+-- mpv sets `mouse-pos.hover` only from MOUSE_ENTER / MOUSE_LEAVE and ignores
+-- every X11 crossing whose mode is not NotifyNormal, so a WM that grabs the
+-- pointer, maximizes the window under it and ungrabs -- Cinnamon's title-bar
+-- double click -- strands the flag at false with the pointer in the middle of
+-- the window. That cost the whole UI its mouse: no hover ring, and every
+-- click hit-tested at -1,-1.
+--
+-- An in-window position with hover=false is AMBIGUOUS, and the renderer
+-- resolves it by what follows rather than by guessing (see the observer).
+-- These are the three rules that has to satisfy.
+
+local function mouse_state()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).mouse or {}
+end
+
+--- Let the leave grace expire with nothing else arriving.
+local function idle_out()
+    fake.advance(0.3)
+    fake.fire_timers()
+end
+
+-- **The pointer is believed, with no leave needed first.** An enter can be
+-- lost on its own -- a renderer that loads while the pointer is outside, a
+-- crossing eaten by a grab -- and then there is no leave to have seen.
+scene({ tile("tile-a", 0, 0, { hev = true }) })
+point(300, 300)                      -- somewhere else, and clear of the tile
+fake.reset_events()
+fake.observe("mouse-pos", { x = 50, y = 40, hover = false })
+eq(hover_events(), "hover:tile-a",
+   "an in-window pointer was ignored because mpv said hover=false")
+eq(mouse_state().hover, true, "the stranded hover flag was not corrected")
+
+-- ...and it keeps being believed. The flag stays stranded for the rest of the
+-- session, so EVERY event after it is hover=false too; correcting one must
+-- not look like a crossing, or the UI alternates between hovering and
+-- leaving one motion apart.
+for _, xy in ipairs({ { 55, 42 }, { 60, 44 }, { 65, 46 } }) do
+    fake.observe("mouse-pos", { x = xy[1], y = xy[2], hover = false })
+end
+eq(mouse_state().hover, true, "a stranded hover flag was only corrected once")
+
+-- The click that used to go nowhere: it hit-tests state.mouse, the same as
+-- the ring, so it is asserted separately.
+fake.reset_events()
+fake.key("mbtn_left")        -- press...
+fake.key_up("mbtn_left")     -- ...and release
+ok(last_event("click") ~= nil and last_event("click").id == "tile-a",
+   "a click at a stranded-hover position hit nothing")
+
+-- **A real leave still lands** -- which is what the playback HUD's auto-hide
+-- is built on. It usually arrives carrying a MOVED position: mpv clears the
+-- flag when the LeaveNotify is fed but commits a motion's position when the
+-- command is dequeued, drains the queue per iteration and reports the
+-- property once per drain, so an ordinary flick out of the window is ONE
+-- event holding the last in-window position and hover=false. Measured at 27
+-- of 30 crossings on a real mpv. Nothing follows it, and that is the tell.
+point(50, 40)
+fake.reset_events()
+fake.observe("mouse-pos", { x = 60, y = 45, hover = false })
+idle_out()
+eq(hover_events(), "hover_end:tile-a", "a real leave never landed")
+local m = mouse_state()
+ok(m.hover == false and m.x == -1,
+   "a leave that stopped reporting was not committed",
+   string.format("hover=%s x=%s", tostring(m.hover), tostring(m.x)))
+
+-- The same from the middle of the window, which is what a fast exit reports.
+point(50, 40)
+fake.observe("mouse-pos", { x = 640, y = 360, hover = false })
+idle_out()
+eq(mouse_state().hover, false,
+   "a leave reporting a position mid-window was not committed")
+
+-- An unchanged position is not motion at all: nothing to be ambiguous about,
+-- so that leave is taken at once rather than after the grace.
+point(50, 40)
+fake.observe("mouse-pos", { x = 50, y = 40, hover = false })
+eq(mouse_state().hover, false, "an unmoved leave waited for the grace")
+
+-- Out of the window, likewise. The position only moves at all out there
+-- while a button is held (X keeps delivering to the grab), and believing it
+-- would light up controls under a pointer somewhere else entirely.
+point(50, 40)
+fake.observe("mouse-pos", { x = 1400, y = 900, hover = false })
+eq(mouse_state().hover, false, "an out-of-window position was taken as a hover")
+
+-- **A gesture is never interrupted by a leave.** A spurious one mid-drag is
+-- where believing it costs the most: the scroll stops following the pointer
+-- and does not resume, with the button still held.
+scene({ vscroll("body", 400, 4000, { bar = true }) })
+fake.advance(0.1)
+fake.fire_timers()
+local bar = ((function()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).bars or {}
+end)())["body"]
+ok(bar ~= nil, "fixture: the scroll container drew no scrollbar")
+if bar then
+    fake.mouse(bar.x + 2, bar.thumb_y + 2)
+    fake.send("mpvtk-debug",
+              fake.token({ cmd = "down", x = bar.x + 2, y = bar.thumb_y + 2 }))
+    local before = offset("body")
+    -- BELOW the window, which is where this actually happens: drag a
+    -- scrollbar past the bottom edge and the pointer is genuinely outside,
+    -- so hover goes false with the button still held. The gesture owns the
+    -- pointer and must keep being fed -- the in-window half needs no rule of
+    -- its own, since a moved in-window position is believed anyway.
+    fake.observe("mouse-pos", { x = bar.x + 2, y = 900, hover = false })
+    ok(offset("body") > before,
+       "a leave mid-drag stopped the scrollbar following the pointer")
+    fake.send("mpvtk-debug", fake.token({ cmd = "up", x = bar.x + 2,
+                                          y = 900 }))
+end
+point(50, 40)
+
+
 -- ===================================================== scroll snapping
 --
 -- Scrolling glides. It quantizes to row boundaries only when the frames a
@@ -1622,6 +1743,28 @@ fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 5, y = 5 }))
 -- The controls' auto-hide is a policy (hud_autohide), and the pointer
 -- resting ON them holds it off in every mode but 'always'. Reaching for a
 -- button must not be a race against the timer.
+
+-- Summoning the HUD is the one place the provisional guess is VISIBLE: the
+-- flick that takes the pointer off the window is an in-window position with
+-- hover=false, and believing it there raises the controls as you move away
+-- from them. So the summon waits for a second such event -- the pointer
+-- demonstrably still moving inside -- while everything else stays live on
+-- the first, which is the whole point of being provisional.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })   -- records only
+fake.reset_events()
+fake.observe("mouse-pos", { x = 600, y = 360, hover = false })  -- the flick out
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "moving the pointer OFF the window summoned the playback HUD")
+fake.observe("mouse-pos", { x = 600, y = 420, hover = false })  -- still moving
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a pointer still moving inside never summoned the HUD")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
 
 local function hud_engage(opts)
     fake.send("mpvtk-hud", "no")
