@@ -4738,7 +4738,20 @@ function keyclaim.set(list)
     state.keys = want
 end
 
+-- **While mpv's console has the keyboard on loan, binding is recording an
+-- INTENT, not taking a key.** The lifecycle moves during a loan -- a pointer
+-- movement summons the HUD, playback starts, browse resumes -- and each of
+-- those re-asserts its own input. Doing that for real reaches straight past
+-- the console and takes back the keys it is being typed into: ENTER ran a
+-- summon instead of the command, which is the whole reason the loan exists.
+-- The snapshot is what the close replays, so writing the intent there loses
+-- nothing. (`mpvtk-active` has done this for `nav` since it was written;
+-- these are the other two paths that needed it.)
 local function bind_nav_keys()
+    if state.kb_saved then
+        state.kb_saved.nav = true
+        return
+    end
     for _, k in ipairs(NAV_KEYS) do
         mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
             { repeatable = true })
@@ -5547,6 +5560,10 @@ local phud_skip_hide, phud_skip_unbind  -- fwd: summon/hide retune them
 -- skips on the button / summons elsewhere. While the HUD is up, ENTER
 -- and clicks belong to the scene, whose Skip button is a real node.
 local function phud_skip_bind()
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.skip = true
+        return
+    end
     -- ENTER skips while the button is up and nothing else owns it
     -- (deterministically: any ENTER summon/wake binding is removed,
     -- not merely shadowed)
@@ -5627,6 +5644,10 @@ local function phud_bind_wake()
 end
 
 function phud_bind_summon()
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.summon = true
+        return
+    end
     phud_bind_wake()
     if state.phud.grab then
         for _, key in ipairs(PHUD_SUMMON_KEYS) do
@@ -5802,9 +5823,17 @@ function phud_summon(src)
     phud_unbind_summon()
     ui_resume(not state.phud.kbd)
     if not state.phud.kbd then
-        -- the wake key still upgrades to keyboard driving
-        mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
-            phud_kbd_take)
+        -- the wake key still upgrades to keyboard driving -- unless mpv's
+        -- console has the keyboard, in which case this is an intent for the
+        -- close to replay, like every other bind during a loan. Guarded HERE
+        -- rather than in a helper because this is the only caller: it is the
+        -- one binding that says "the bar is up and the pointer raised it".
+        if state.kb_saved then
+            state.kb_saved.wake = true
+        else
+            mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
+                phud_kbd_take)
+        end
     end
     -- ESC steps back out one layer at a time: popup -> menu/dialog ->
     -- the HUD itself. (A scene-driven dialog also binds
@@ -6430,11 +6459,20 @@ end)
 mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
     if open then
         if state.kb_saved then return end
+        -- `wake` is not one of the kb_* flags, and that is the point: a HUD
+        -- summoned by the POINTER keeps the wake key bound to the
+        -- upgrade-to-keyboard handler, while `phud_unbind_summon` cleared
+        -- kb_summon on the way in. So the three flags all read false with
+        -- ENTER still ours, and the console was typed into a key that raised
+        -- the HUD instead of running the command -- the exact theft this
+        -- handler exists to stop, in the one state nothing described.
+        local wake = state.phud.shown and not state.phud.kbd
         state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
-                           skip = state.kb_skip }
+                           skip = state.kb_skip, wake = wake }
         if state.kb_nav then unbind_nav_keys() end
         if state.kb_summon then phud_unbind_summon() end
         if state.kb_skip then phud_skip_unbind() end
+        if wake then mp.remove_key_binding('mpvtk_wake') end
     elseif state.kb_saved then
         local was = state.kb_saved
         state.kb_saved = nil
@@ -6467,5 +6505,11 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
             phud_bind_summon()
         end
         if was.skip then phud_skip_bind() end
+        -- ...and the pointer-summoned HUD's upgrade key, if that is still
+        -- what is on screen.
+        if was.wake and state.phud.shown and not state.phud.kbd then
+            mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
+                                      phud_kbd_take)
+        end
     end
 end)

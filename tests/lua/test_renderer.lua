@@ -2246,6 +2246,80 @@ ok((last_event("debug_state") or {}).phud_kbd == true,
 fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
+-- **The state nothing described.** A HUD summoned by the POINTER keeps the
+-- wake key bound to the upgrade-to-keyboard handler, while kb_summon was
+-- cleared on the way in -- so all three tracked flags read false with ENTER
+-- still ours, and the console was typed into a key that raised the HUD.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "fixture: the pointer never summoned the HUD")
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "fixture: a mouse-summoned HUD should keep the wake key")
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "the console is up and ENTER still raises the HUD")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "closing the console left the HUD with no way to take the keyboard")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- **A lifecycle transition during the loan records an intent; it does not
+-- take the keys back.** Playback starting while the console is open used to
+-- re-bind the idle HUD's summon surface straight over it, so ENTER raised the
+-- controls instead of running the command being typed.
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "a HUD engaged during the loan took the console's ENTER")
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "a HUD engaged during the loan took the console's mouse button")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "the summon surface was never handed back after the console closed")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- **The HUD must still let go while the console is up**, which is what makes
+-- the ESC and F12 it holds a papercut rather than a trap: mpv's console keeps
+-- `ctrl+[` (and a click) to close on, and both of ours come back the moment
+-- the bar hides. The auto-hide is a renderer timer and the loan does not touch
+-- it, so a pointer that stops moving -- and is not resting on the controls --
+-- takes the bar down and hands ESC back.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })   -- summons
+-- the bars hud.py draws, with the pointer in the gap between them
+scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+        { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+ok(fake.log.keybinds["mpvtk_phud_esc"] ~= nil,
+   "fixture: a shown HUD should hold ESC")
+ok(fake.log.keybinds["mpvtk_hud"] ~= nil,
+   "fixture: a shown HUD should hold F12")
+fake.advance(5)
+fake.fire_timers()
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "the HUD never auto-hid while the console was up")
+ok(fake.log.keybinds["mpvtk_phud_esc"] == nil,
+   "the HUD hid but kept ESC, so the console cannot close on it")
+ok(fake.log.keybinds["mpvtk_hud"] == nil,
+   "the HUD hid but kept F12")
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "hiding under the console took ENTER back for the summon surface")
+fake.observe("user-data/mpv/console/open", false)
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 -- The NAV half of the same rule, which the cases above cannot reach: the
 -- console can be open across a transition in either direction.
 --
