@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-11 22:40-0400\n"
+"POT-Creation-Date: 2026-08-22 23:24-0400\n"
 "PO-Revision-Date: 2026-08-20 16:16+0000\n"
 "Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -291,7 +291,9 @@ msgstr "Cambia profilo riproduzione video"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-msgid "Quit and Mark Unwatched"
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Quit and Mark Unplayed"
 msgstr "Esci e segna come Non visto"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -587,6 +589,12 @@ msgstr "Coda"
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Retry"
 msgstr "Riprova"
+
+#: jellyfin_mpv_shim/mpvtk_browser/app.py
+msgid ""
+"Could not restart automatically — quit and start the app again to apply your "
+"changes."
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
@@ -1219,12 +1227,15 @@ msgid "This Device"
 msgstr "Questo dispositivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Input"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
 msgstr "Finestra"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Theme"
 msgstr "Tema"
 
@@ -1287,6 +1298,101 @@ msgstr "Attivo"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Copy (advanced)"
 msgstr "Copia (avanzata)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Offline"
+msgid "Off"
+msgstr "Non in linea"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth Motion"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoRefFrames
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Ref frames"
+msgid "Blend Frames"
+msgstr "Fotogrammi di riferimento"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth (high quality)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Light (live action)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Standard (animation)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Strong"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Automatic (recommended)"
+msgid "Automatic (MPV decides)"
+msgstr "Automatico (consigliato)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2390 (reference)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2446a"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Offline"
+msgid "Spline"
+msgstr "Non in linea"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Disable"
+msgid "Hable"
+msgstr "Disattiva"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Reinhard"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Clip (no tone mapping)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "MPV built-in default"
+msgid "MPV default"
+msgstr "MPV integrato predefinito"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Video Quality"
+msgid "High quality"
+msgstr "Qualità video"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Default (mpv decides)"
+msgid "MPV default (1 second)"
+msgstr "Predefinito (decide mpv)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Forward %d seconds"
+msgid "Large (20 seconds)"
+msgstr "Avanti di %d secondi"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Very large (60 seconds)"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1422,6 +1528,18 @@ msgid "Never hide while paused"
 msgstr "Non nascondere mai durante la pausa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Widen the gaps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Centre the tiles"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Leave it on the right"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr "Tema predefinito"
 
@@ -1498,6 +1616,16 @@ msgid "Custom (set in config)"
 msgstr "Personalizzato (impostato nella configurazione)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Player Controls"
+msgid "Game Controller"
+msgstr "Controlli del lettore"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Swap Confirm and Back Buttons"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
 msgstr "Cartella di scaricamento"
 
@@ -1521,6 +1649,36 @@ msgstr "Mostra le miniature degli episodi nelle pagine dei dettagli"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hardware Decoding"
 msgstr "Decodifica hardware"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Deinterlace Automatically"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Motion Interpolation"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Reading"
+msgid "Debanding"
+msgstr "Lettura"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "HDR Tone Mapping"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Video Quality"
+msgid "Rendering Quality"
+msgstr "Qualità video"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Networks"
+msgid "Network Buffer"
+msgstr "Reti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1587,6 +1745,10 @@ msgid "Player Controls Style"
 msgstr "Stile controlli del lettore"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Load All Seek Previews at Once"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
 msgstr "Mostra cosa stai guardando su Discord"
 
@@ -1595,7 +1757,9 @@ msgid "Interface Scale"
 msgstr "Dimensioni interfaccia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Text Size"
+#, fuzzy
+#| msgid "Text Size"
+msgid "Text size"
 msgstr "Dimensione testo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1606,6 +1770,14 @@ msgstr "Dimensione minima del testo"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
 msgstr "Dimensione copertina"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Full-Width Backdrops"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Grid Spacing"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
@@ -1733,6 +1905,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Move with the d-pad or left stick, seek with the right stick, shoulder "
+"buttons to page, Start for the menu. A controller is not focus-aware, so it "
+"will reach this app even when another window is in front. Needs an mpv built "
+"with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
+"log says so. Any button can be reassigned in your input.conf."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Turn this on for a controller whose A button is on the right rather than at "
+"the bottom (Switch Pro, most 8BitDo pads)."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Leave these blank unless downloads are waking your disks too often. Set both "
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
@@ -1761,6 +1948,60 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Deinterlace video the file says is interlaced. Off by default, as in MPV "
+"itself: the flag is not reliable in either direction, and deinterlacing "
+"progressive video softens a picture that was fine. To force it on for "
+"something that is interlaced without saying so, use Deinterlace in the "
+"player's settings menu, which lasts until you return to the library. Needs "
+"MPV 0.38 or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Smooths the blocky steps that appear in gradients — skies, dark scenes, "
+"fades. Animation and anime benefit most, because flat gradients are most of "
+"the picture; live action is largely unaffected either way, though a strong "
+"setting can soften genuinely fine detail. Costs GPU work whatever the "
+"content, which is worth knowing on a small or older machine. Leave this Off "
+"if you set the deband options in mpv.conf yourself — Off writes nothing at "
+"all, so your values are left alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How HDR video is fitted to an SDR display. This does nothing when HDR is "
+"being passed through to an HDR display, because no tone mapping is happening "
+"to change. Leave it on Automatic unless HDR films look wrong to you; BT.2390 "
+"is the reference curve, and Clip is what to try if highlights look grey "
+"rather than bright."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"High quality applies the same options as MPV's own high-quality preset: "
+"better upscaling and HDR handling, at some GPU cost. It needs no shader "
+"files and does not use up your shader profile, so it is the thing to try "
+"before the shader pack below."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How far ahead of playback to read. MPV's default is one second, which is "
+"short for a server reached over the internet or a slow connection — raise "
+"this if playback keeps stopping for buffering. Larger buffers use more "
+"memory and make the first few seconds of a file slower to start."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Frame blending (blends frames together, not the same as SVP/DLSS/framegen). "
+"Reduces juddering caused by mismatched frame rate between content and "
+"display. May cause dropped frames if your displays have mismatched frame "
+"rates."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Off by default because some graphics drivers handle it badly. \"Only above "
 "1080p\" is the cautious way to turn it on: most hardware decodes 1080p in "
 "software without help. \"Copy (advanced)\" is slower, but it is the mode "
@@ -1777,11 +2018,17 @@ msgstr ""
 "disable-hwdec e ripristina l'impostazione precedente."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Off means command-line mode: no window, no system tray and no settings "
+#| "screen, so the only way back is editing conf.json by hand. It is not how "
+#| "you get MPV's own on-screen controls — \"Player Controls Style\" under "
+#| "Interface does that."
 msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
-"screen, so the only way back is editing conf.json by hand. It is not how you "
-"get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
-"does that."
+"screen, so the only way back is to edit conf.json by hand. This is not how "
+"you get MPV's own on-screen controls; use Player Controls Style under "
+"Interface for that."
 msgstr ""
 "\"Off\" significa modalità riga di comando: nessuna finestra, nessuna area "
 "di notifica e nessuna schermata delle impostazioni, quindi l'unico modo per "
@@ -1790,12 +2037,18 @@ msgstr ""
 "la sezione \"Stile controlli lettore\" sotto Interfaccia."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Show only what is cast to this machine — the library, including this "
+#| "settings screen, can't be reached from here. Without a system tray icon "
+#| "the only way back is editing conf.json. For the classic cast-target setup "
+#| "you want the Interface settings instead; this is for a shared TV nobody "
+#| "should be able to browse from."
 msgid ""
-"Show only what is cast to this machine — the library, including this "
-"settings screen, can't be reached from here. Without a system tray icon the "
-"only way back is editing conf.json. For the classic cast-target setup you "
-"want the Interface settings instead; this is for a shared TV nobody should "
-"be able to browse from."
+"Show only what is cast to this machine. The library, including this settings "
+"screen, cannot be reached from here, and without a system tray icon the only "
+"way back is to edit conf.json. This is for a shared TV nobody should be able "
+"to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
 "Mostra solo i contenuti trasmessi a questo dispositivo: la libreria, inclusa "
 "questa schermata delle impostazioni, non è accessibile da qui. Senza "
@@ -1806,12 +2059,20 @@ msgstr ""
 "in grado di navigare."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+#| "player window, leaving no way to move or close it. This puts minimize, "
+#| "maximize and close in the top bar instead, and lets you drag the window "
+#| "by it. Left on \"Only when the window has no title bar\", MPV is asked "
+#| "whether this window got one, so desktops that do decorate it are left "
+#| "alone."
 msgid ""
-"Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+"Some desktops, GNOME on Wayland in particular, draw no title bar on the "
 "player window, leaving no way to move or close it. This puts minimize, "
 "maximize and close in the top bar instead, and lets you drag the window by "
-"it. Left on \"Only when the window has no title bar\", MPV is asked whether "
-"this window got one, so desktops that do decorate it are left alone."
+"it. On \"Only when the window has no title bar\", MPV is asked whether this "
+"window got one, so desktops that draw a title bar are left alone."
 msgstr ""
 "Alcuni ambienti desktop, in particolare GNOME su Wayland, non visualizzano "
 "la barra del titolo nella finestra del lettore, impedendo di spostarla o "
@@ -1824,10 +2085,25 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard. \"No player controls\" leaves "
-"playback bare; the library, the keyboard shortcuts and the menu key still "
-"work."
+"Seek previews are normally fetched a few minutes at a time around where you "
+"are seeking, so scrubbing somewhere new waits briefly. Turn this on to load "
+"them all up front instead: nothing ever waits, but a long film can cost "
+"several hundred MB of memory. Turning it on applies to what you are watching "
+"the next time you seek somewhere new; turning it off applies to the next "
+"video."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Requires restart to change. MPV keybinds are used by default. Press ENTER "
+#| "to drive the player controls by keyboard. \"No player controls\" leaves "
+#| "playback bare; the library, the keyboard shortcuts and the menu key still "
+#| "work."
+msgid ""
+"MPV keybinds are used by default. Press ENTER to drive the player controls "
+"by keyboard. \"No player controls\" leaves playback bare; the library, the "
+"keyboard shortcuts and the menu key still work."
 msgstr ""
 "Richiede il riavvio per applicare le modifiche. Per impostazione "
 "predefinita, vengono utilizzate le scorciatoie da tastiera MPV. Premi INVIO "
@@ -1836,11 +2112,17 @@ msgstr ""
 "scorciatoie da tastiera e il tasto Menu rimangono funzionanti."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Pixels one wheel notch scrolls. On a grid this is rounded so a whole "
+#| "number of notches spans one row, whichever scroll mode you are in — a "
+#| "trackpad or trackball never leaves you a sliver of a row off. Raise it to "
+#| "scroll faster, lower it for finer control."
 msgid ""
-"Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
-"of notches spans one row, whichever scroll mode you are in — a trackpad or "
-"trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
-"lower it for finer control."
+"Pixels one wheel notch scrolls. Raise it to scroll faster, lower it for "
+"finer control. On a grid the value is rounded so that a whole number of "
+"notches spans one row, in every scroll mode, so a trackpad or trackball "
+"never leaves you a sliver of a row off."
 msgstr ""
 "I pixel scorrono con una sola tacca della rotellina. Su una griglia, questa "
 "è arrotondata in modo che un numero intero di tacche copra una riga, "
@@ -1849,12 +2131,19 @@ msgstr ""
 "più veloce; riducendola, si ottiene un controllo più preciso."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
+#| "lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
+#| "rows\" if scrolling still stutters — on a very large display, a slow or "
+#| "remote one, or with an external MPV. Pick \"One row per notch\" to move a "
+#| "whole row (or one home-screen section) at a time."
 msgid ""
-"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
-"lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
-"rows\" if scrolling still stutters — on a very large display, a slow or "
-"remote one, or with an external MPV. Pick \"One row per notch\" to move a "
-"whole row (or one home-screen section) at a time."
+"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it, "
+"lining rows up by itself if the display cannot keep up. Pick \"Aligned to "
+"rows\" if scrolling still stutters, as it can on a very large, slow or "
+"remote display, or with an external MPV. Pick \"One row per notch\" to move "
+"a whole row, or one home-screen section, at a time."
 msgstr ""
 "Lo scorrimento \"Continuo\" scorre pixel per pixel e si ferma nel punto "
 "indicato dalla rotellina; allinea automaticamente le righe se lo schermo non "
@@ -1865,8 +2154,10 @@ msgstr ""
 "alla volta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Discord Rich Presence. Takes effect after a restart."
-msgstr "Presenza avanzata su Discord. Ha effetto dopo il riavvio."
+#, fuzzy
+#| msgid "Discord Rich Presence"
+msgid "Discord Rich Presence."
+msgstr "Stato Dettagliato Discord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1903,13 +2194,20 @@ msgstr ""
 "dello scorrimento preciso su un trackpad."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Channel logos come as ink on a transparent background, drawn for the "
+#| "white page other clients put them on — so on a dark one the black ones "
+#| "vanish. On, they are backed with the light plate they were made for, and "
+#| "the few whose own outline is white get a drop shadow so they still have "
+#| "an edge against it. Off, they get the theme's card colour and no shadows, "
+#| "as Jellyfin Web does."
 msgid ""
-"Channel logos come as ink on a transparent background, drawn for the white "
-"page other clients put them on — so on a dark one the black ones vanish. On, "
-"they are backed with the light plate they were made for, and the few whose "
-"own outline is white get a drop shadow so they still have an edge against "
-"it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
-"does."
+"Channel logos are ink on a transparent background, drawn for the white page "
+"other clients put them on, so on a dark one the black ones vanish. On, each "
+"logo gets the light plate it was made for, and the few with a white outline "
+"get a drop shadow so they keep an edge against it. Off, they get the theme's "
+"card colour and no shadow, as Jellyfin Web does."
 msgstr ""
 "I loghi dei canali sono stampati a inchiostro su uno sfondo trasparente, "
 "disegnati per la pagina bianca su cui altri clienti li inseriscono; "
@@ -1920,10 +2218,16 @@ msgstr ""
 "non presentano ombre, come nel caso di Jellyfin Web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "The same treatment for a library set to draw Logo artwork. Off by "
+#| "default, because a film's or series' logo is white by convention and "
+#| "already reads on a dark background — the plate is what makes it need a "
+#| "shadow. Turn it on if yours are dark."
 msgid ""
-"The same treatment for a library set to draw Logo artwork. Off by default, "
-"because a film's or series' logo is white by convention and already reads on "
-"a dark background — the plate is what makes it need a shadow. Turn it on if "
+"The same treatment for a library set to draw Logo artwork. Off by default: a "
+"film or series logo is white by convention and already reads on a dark "
+"background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
 "Stesso trattamento per una raccolta impostata per mostrare le locandine con "
@@ -1943,8 +2247,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Overrides the theme's cover size. Applies immediately, and is also on the "
-"View menu of any library."
+"Where the width a whole number of covers does not use ends up. Widening the "
+"gaps keeps the page margins the same on every screen size; centring keeps "
+"the covers evenly spaced and moves both margins instead."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Run the backdrop on a detail page to the edges of the window, as the web "
+"client does. It shows more of the artwork without taking any more vertical "
+"space."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Overrides the theme's cover size. Applies immediately, and is also on the "
+#| "View menu of any library."
+msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
 "Sovrascrive le dimensioni di copertina del tema. Si applica immediatamente "
 "ed è presente anche nel menu Visualizza di qualsiasi libreria."
@@ -1975,10 +2295,14 @@ msgstr ""
 "forza l'opzione \"Nascondi a meno che non si sorvoli con il puntatore\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "During playback only — in the library those buttons stay Back and "
+#| "Forward. Off by default because they are easy to hit by accident on some "
+#| "mice. Takes effect after a restart."
 msgid ""
-"During playback only — in the library those buttons stay Back and Forward. "
-"Off by default because they are easy to hit by accident on some mice. Takes "
-"effect after a restart."
+"During playback only; in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice."
 msgstr ""
 "Solo durante la riproduzione: nella libreria questi pulsanti rimangono "
 "Indietro e Avanti. Disattivati per impostazione predefinita perché è facile "
@@ -1986,21 +2310,30 @@ msgstr ""
 "riavvio."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, no-python-format
+#, fuzzy, no-python-format
+#| msgid ""
+#| "Takes effect after a restart. \"Follow display\" uses the scale your "
+#| "desktop reports, which is 100% on X11."
 msgid ""
-"Takes effect after a restart. \"Follow display\" uses the scale your desktop "
-"reports, which is 100% on X11."
+"\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
 "L'impostazione ha effetto dopo un riavvio. \"Segui lo schermo\" utilizza la "
 "scala riportata dal desktop, che su X11 è del 100%."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Scales the text only. Interface Scale above resizes everything -- "
+#| "artwork, spacing and controls -- so use this one when the words are too "
+#| "small rather than the whole interface. It stops at 150% because by then "
+#| "most tile captions are ellipsized and it is the whole interface that "
+#| "needs to be bigger -- which is Interface Scale, above."
 msgid ""
-"Scales the text only. Interface Scale above resizes everything -- artwork, "
-"spacing and controls -- so use this one when the words are too small rather "
-"than the whole interface. It stops at 150% because by then most tile "
-"captions are ellipsized and it is the whole interface that needs to be "
-"bigger -- which is Interface Scale, above."
+"Scales the text only. Interface Scale above resizes everything, artwork and "
+"spacing and controls included, so use this one when the words are too small "
+"rather than the whole interface. It stops at 150%: past that most tile "
+"captions are ellipsized, and what needs to be bigger is the whole interface, "
+"which is Interface Scale."
 msgstr ""
 "Ridimensiona solo il testo. L'opzione \"Interfaccia ridimensionata\" qui "
 "sopra ridimensiona tutto: grafica, spaziatura e controlli. Quindi, usala "
@@ -2028,10 +2361,15 @@ msgstr ""
 "a un ricevitore."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid ""
+#| "Audio your receiver can't be sent directly is encoded to AC3, which is "
+#| "the only way surround fits down an optical cable. Turn this off if the "
+#| "encoder causes audio delay — those tracks become stereo instead."
 msgid ""
-"Audio your receiver can't be sent directly is encoded to AC3, which is the "
-"only way surround fits down an optical cable. Turn this off if the encoder "
-"causes audio delay — those tracks become stereo instead."
+"Audio your receiver cannot be sent directly is encoded to AC3, the only way "
+"surround fits down an optical cable. Turn this off if the encoder causes "
+"audio delay; those tracks become stereo instead."
 msgstr ""
 "L'audio che il ricevitore non può inviare direttamente viene codificato in "
 "AC3, l'unico formato in cui l'audio surround può essere trasmesso tramite "
@@ -2105,35 +2443,6 @@ msgstr "Preferiti"
 msgid "Resumable"
 msgstr "Ripristinabile"
 
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Liked"
-msgstr ""
-
-# seeded from jellyfin-web: Features
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Features"
-msgstr "Funzionalità"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Subtitles"
-msgstr "Ha sottotitoli"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Trailer"
-msgstr "Ha un trailer"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Special Features"
-msgstr "Ha funzionalità speciali"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Theme Song"
-msgstr "Ha una sigla musicale"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Has Theme Video"
-msgstr "Ha un video a tema"
-
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2164,6 +2473,31 @@ msgstr "Lingua audio"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Subtitle Language"
 msgstr "Lingua sottotitoli"
+
+# seeded from jellyfin-web: Features
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Features"
+msgstr "Funzionalità"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Subtitles"
+msgstr "Ha sottotitoli"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Trailer"
+msgstr "Ha un trailer"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Special Features"
+msgstr "Ha funzionalità speciali"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Song"
+msgstr "Ha una sigla musicale"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Has Theme Video"
+msgstr "Ha un video a tema"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Video Types"
@@ -2203,7 +2537,6 @@ msgid "ISO"
 msgstr "ISO"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to Playlist"
 msgstr "Aggiungi a scaletta"
 
@@ -2421,7 +2754,9 @@ msgstr ""
 "tutte le librerie su questo dispositivo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "View Settings"
+#, fuzzy
+#| msgid "View Settings"
+msgid "View settings"
 msgstr "Impostazioni di visualizzazione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2738,6 +3073,12 @@ msgstr "Velocità di riproduzione"
 msgid "Aspect Ratio"
 msgstr "Proporzioni"
 
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+#| msgid "Interlaced"
+msgid "Deinterlace"
+msgstr "Interlacciato"
+
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Subtitle Size"
 msgstr "Dimensione sottotitoli"
@@ -2842,7 +3183,9 @@ msgstr "Precedente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Previous Chapter"
+#, fuzzy
+#| msgid "Previous Chapter"
+msgid "Previous chapter"
 msgstr "Capitolo precedente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2855,7 +3198,9 @@ msgstr "Avanti di 30 secondi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Next Chapter"
+#, fuzzy
+#| msgid "Next Chapter"
+msgid "Next chapter"
 msgstr "Capitolo successivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2902,9 +3247,12 @@ msgstr "Registrazione pianificata."
 msgid "The recording could not be scheduled."
 msgstr "La registrazione non può essere pianificata."
 
+# seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-msgid "Cancel this recording?"
-msgstr "Vuoi annullare la registrazione?"
+#, fuzzy
+#| msgid "Cancel Recording"
+msgid "Cancel recording?"
+msgstr "Annulla registrazione"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3058,7 +3406,9 @@ msgid "All episodes"
 msgstr "Tutti gli episodi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Skip episodes already in my library"
+#, fuzzy
+#| msgid "Skip episodes already in my library"
+msgid "Don't record episodes that are already in my library"
 msgstr "Salta gli episodi già presenti nella mia libreria"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3097,7 +3447,9 @@ msgid "Original air time"
 msgstr "Orario di trasmissione originale"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Any time"
+#, fuzzy
+#| msgid "Any time"
+msgid "Anytime"
 msgstr "Qualsiasi ora"
 
 # seeded from jellyfin-web: LabelKeepUpTo
@@ -3141,11 +3493,15 @@ msgid "Recently watched"
 msgstr "Visti di recente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Place favorite channels first"
+#, fuzzy
+#| msgid "Place favorite channels first"
+msgid "Place favorite channels at the beginning"
 msgstr "Posiziona i canali preferiti in cima"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Color-coded backgrounds"
+#, fuzzy
+#| msgid "Color-coded backgrounds"
+msgid "Color coded backgrounds"
 msgstr "Sfondi codificati per colore"
 
 # seeded from jellyfin-web: ShowIndicatorsFor
@@ -3167,15 +3523,21 @@ msgid "Guide settings could not be saved."
 msgstr "Le impostazioni della guida non possono essere salvate."
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "HD Programs"
+#, fuzzy
+#| msgid "HD Programs"
+msgid "HD programs"
 msgstr "Programmi HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "Live Broadcasts"
+#, fuzzy
+#| msgid "Live Broadcasts"
+msgid "Live broadcasts"
 msgstr "Trasmissioni in diretta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "New Episodes"
+#, fuzzy
+#| msgid "New Episodes"
+msgid "New episodes"
 msgstr "Nuovi episodi"
 
 # seeded from jellyfin-web: Premieres
@@ -3184,7 +3546,9 @@ msgid "Premieres"
 msgstr "Prime visioni"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "Repeat Episodes"
+#, fuzzy
+#| msgid "Repeat Episodes"
+msgid "Repeat episodes"
 msgstr "Ripeti episodi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3246,15 +3610,21 @@ msgid "Retry with Transcode"
 msgstr "Riprova transcodifica"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat All"
+#, fuzzy
+#| msgid "Repeat All"
+msgid "Repeat all"
 msgstr "Ripeti tutto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat One"
+#, fuzzy
+#| msgid "Repeat One"
+msgid "Repeat one"
 msgstr "Ripeti uno"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat Off"
+#, fuzzy
+#| msgid "Repeat Off"
+msgid "Repeat off"
 msgstr "Nessuna ripetizione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3286,18 +3656,28 @@ msgstr "Ferma"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Remove from Favorites"
+#, fuzzy
+#| msgid "Remove from Favorites"
+msgid "Remove from favorites"
 msgstr "Rimuovi dai preferiti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Favorites"
+#, fuzzy
+#| msgid "Add to Favorites"
+msgid "Add to favorites"
 msgstr "Aggiungi ai preferiti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
 msgstr "Volume"
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
+#, fuzzy
+#| msgid "Could not copy the log."
+msgid "Could not open that link."
+msgstr "Impossibile copiare il log."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3319,7 +3699,9 @@ msgstr "Riavvia"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Queue"
+#, fuzzy
+#| msgid "Add to Queue"
+msgid "Add to play queue"
 msgstr "Aggiungi alla coda"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
@@ -3367,7 +3749,9 @@ msgstr "Avanzamento…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Nothing here yet."
+#, fuzzy
+#| msgid "Nothing here yet."
+msgid "Nothing here."
 msgstr "Ancora niente qui."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -3478,7 +3862,9 @@ msgid "Runtime"
 msgstr "Durata"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "Critic Rating"
+#, fuzzy
+#| msgid "Critic Rating"
+msgid "Critics Rating"
 msgstr "Valutazione della critica"
 
 # seeded from jellyfin-web: OptionRandom
@@ -3681,7 +4067,9 @@ msgstr "Ferma la registrazione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Do Not Record"
+#, fuzzy
+#| msgid "Do Not Record"
+msgid "Do not record"
 msgstr "Non registrare"
 
 # seeded from jellyfin-web: LabelRecord
@@ -3692,7 +4080,9 @@ msgstr "Registra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Record Series"
+#, fuzzy
+#| msgid "Record Series"
+msgid "Record series"
 msgstr "Registra serie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -3722,7 +4112,9 @@ msgstr "Artisti simili"
 
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Instant Mix"
+#, fuzzy
+#| msgid "Instant Mix"
+msgid "Instant mix"
 msgstr "Mix istantaneo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -3731,7 +4123,9 @@ msgid "%d tracks"
 msgstr "%d tracce"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Album Artists"
+#, fuzzy
+#| msgid "Album Artists"
+msgid "Album artists"
 msgstr "Artisti album"
 
 # seeded from jellyfin-web: Artists
@@ -3890,8 +4284,11 @@ msgid "Copying is not available."
 msgstr "La copia non è disponibile."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-msgid "Could not copy the text."
-msgstr "Impossibile copiare il testo."
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
+#, fuzzy
+#| msgid "Could not copy the log."
+msgid "Could not copy"
+msgstr "Impossibile copiare il log."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -3958,7 +4355,9 @@ msgid "Other"
 msgstr "Altro"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-msgid "No results."
+#, fuzzy
+#| msgid "No results."
+msgid "No results found."
 msgstr "Nessun risultato."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
@@ -3983,9 +4382,10 @@ msgid "On Now"
 msgstr "In corso"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, python-format
-msgid "Latest %s"
-msgstr "Ultimi %s"
+#, fuzzy, python-brace-format
+#| msgid "Recently Added"
+msgid "Recently Added in {0}"
+msgstr "Aggiunti di recente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4082,12 +4482,39 @@ msgid "Show advanced settings"
 msgstr "Mostra le impostazioni avanzate"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Interface scale requires a restart."
-msgstr "Il ridimensionamento dell'interfaccia richiede un riavvio."
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
+msgid "Open Config Folder"
+msgstr "Apri cartella configurazione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Some changes take effect after restarting."
-msgstr "Alcune modifiche avranno effetto dopo il riavvio."
+msgid ""
+"Advanced MPV options go in mpv.conf, in this folder. MPV reads it at startup "
+"and these settings are applied afterwards, so most of them override it. "
+"Hardware Decoding is the exception: set hwdec there and this app leaves it "
+"alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
+#| msgid "Require this PIN at startup"
+msgid "Requires restart"
+msgstr "Richiedi questo PIN all'avvio"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
+msgid "No settings match \"%s\"."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid ""
+"Only the General, Browse and Playback tabs are searched. Some settings are "
+"hidden until the setting they depend on is turned on."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
+msgid "Matches: %d. Pick a tab above to stop searching."
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
@@ -4208,7 +4635,9 @@ msgid "Section %d"
 msgstr "Sezione %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Use episode images in Next Up and Continue Watching"
+#, fuzzy
+#| msgid "Use episode images in Next Up and Continue Watching"
+msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
 msgstr ""
 "Utilizza le immagini degli episodi in Prossimamente e Continua a guardare"
 
@@ -4261,14 +4690,16 @@ msgstr "Server e utenti"
 msgid "Logs"
 msgstr "Log"
 
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
+#| msgid "Search…"
+msgid "Search settings…"
+msgstr "Cerca…"
+
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Copy"
 msgstr "Copia"
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
-msgid "Open Config Folder"
-msgstr "Apri cartella configurazione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
@@ -4277,10 +4708,6 @@ msgstr "Nessun log è stato ancora acquisito."
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
 msgstr "Ancora niente da copiare."
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-msgid "Could not copy the log."
-msgstr "Impossibile copiare il log."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -4397,28 +4824,47 @@ msgid "Album"
 msgstr "Album"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Play from Beginning"
+#, fuzzy
+#| msgid "Play from Beginning"
+msgid "Play from beginning"
 msgstr "Riproduci dall'inizio"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Play Next"
+#, fuzzy
+#| msgid "Play Next"
+msgid "Play next"
 msgstr "Riproduci successivo"
 
+# seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Mark Unwatched"
-msgstr "Segna come Non visto"
+#, fuzzy
+#| msgid "Unplayed"
+msgid "Mark unplayed"
+msgstr "Non riprodotto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Mark Watched"
+#, fuzzy
+#| msgid "Mark Watched"
+msgid "Mark played"
 msgstr "Segna come Visto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Remove from Playlist"
+#, fuzzy
+#| msgid "Add to Playlist"
+msgid "Add to playlist"
+msgstr "Aggiungi a scaletta"
+
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+#| msgid "Remove from Playlist"
+msgid "Remove from playlist"
 msgstr "Rimuovi da scaletta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Remove from Collection"
+#, fuzzy
+#| msgid "Remove from Collection"
+msgid "Remove from collection"
 msgstr "Rimuovi da collezione"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4475,6 +4921,25 @@ msgstr "Cerca…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
+msgid "Restart to apply: %s"
+msgstr ""
+
+# seeded from jellyfin-web: Restart
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Restart"
+msgid "Restart Now"
+msgstr "Riavvia"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+#| msgid "Later"
+msgctxt "Restart banner"
+msgid "Later"
+msgstr "Dopo"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, python-format
 msgid "Update available: %s"
 msgstr "Aggiornamento disponibile: %s"
 
@@ -4525,8 +4990,10 @@ msgid "Use the default"
 msgstr "Utilizza il valore predefinito"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-msgid "SyncPlay Enabled"
-msgstr "SyncPlay abilitato"
+#, fuzzy
+#| msgid "SyncPlay enabled."
+msgid "SyncPlay enabled"
+msgstr "SyncPlay attivato."
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -4622,8 +5089,9 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Accesso alla libreria SyncPlay negato."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0}'s Group"
+#, fuzzy, python-brace-format
+#| msgid "{0}'s Group"
+msgid "{0}'s group"
 msgstr "Gruppo di {0}"
 
 #: jellyfin_mpv_shim/syncplay.py
@@ -4659,8 +5127,9 @@ msgid "{0} has left."
 msgstr "{0} ha lasciato."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0} is buffering."
+#, fuzzy, python-brace-format
+#| msgid "{0} is buffering."
+msgid "{0} is buffering…"
 msgstr "{0} è in buffering."
 
 #: jellyfin_mpv_shim/tray.py
@@ -4800,6 +5269,31 @@ msgstr "Profili riproduzione video"
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Seleziona profilo shader"
+
+#~ msgid "Discord Rich Presence. Takes effect after a restart."
+#~ msgstr "Presenza avanzata su Discord. Ha effetto dopo il riavvio."
+
+#~ msgid "Cancel this recording?"
+#~ msgstr "Vuoi annullare la registrazione?"
+
+#~ msgid "Could not copy the text."
+#~ msgstr "Impossibile copiare il testo."
+
+#, python-format
+#~ msgid "Latest %s"
+#~ msgstr "Ultimi %s"
+
+#~ msgid "Interface scale requires a restart."
+#~ msgstr "Il ridimensionamento dell'interfaccia richiede un riavvio."
+
+#~ msgid "Some changes take effect after restarting."
+#~ msgstr "Alcune modifiche avranno effetto dopo il riavvio."
+
+#~ msgid "Mark Unwatched"
+#~ msgstr "Segna come Non visto"
+
+#~ msgid "SyncPlay Enabled"
+#~ msgstr "SyncPlay abilitato"
 
 #~ msgid "All Genres"
 #~ msgstr "Tutti i generi"
