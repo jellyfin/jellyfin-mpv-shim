@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-22 01:47+0000\n"
+"PO-Revision-Date: 2026-08-23 21:54+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -293,10 +293,8 @@ msgstr "Pakeisti vaizdo atkūrimo profilį"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Quit and Mark Unplayed"
-msgstr "Išeiti ir pažymėti kaip nežiūrėtą"
+msgstr "Išeiti ir pažymėti kaip nepaleistą"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -994,12 +992,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Rotation"
-msgstr ""
+msgstr "Pasukimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default"
-msgstr "Standartinis"
+msgstr "Numatytasis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Forced"
@@ -1066,7 +1064,7 @@ msgstr "Tiesioginė srautinė transliacija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Remuxing"
-msgstr ""
+msgstr "Remuksavimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1179,11 +1177,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Įvestis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Langas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme"
@@ -1231,7 +1229,7 @@ msgstr "Praleisti Įžangą / Titrus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Advanced"
-msgstr ""
+msgstr "Išplėstiniai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
@@ -1251,7 +1249,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off"
-msgstr ""
+msgstr "Išjungta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
@@ -1275,7 +1273,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Stiprus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
@@ -1287,17 +1285,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
-msgstr ""
+msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Disable"
 msgid "Hable"
-msgstr "Išjungti"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
@@ -1308,16 +1304,12 @@ msgid "Clip (no tone mapping)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "MPV built-in default"
 msgid "MPV default"
-msgstr "MPV integruotas numatytasis nustatymas"
+msgstr "MPV numatytasis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Quality"
 msgid "High quality"
-msgstr "Vaizdo įrašo kokybė"
+msgstr "Aukšta kokybė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
@@ -1349,15 +1341,15 @@ msgstr "Nėra grotuvo valdiklių"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
@@ -1365,7 +1357,7 @@ msgstr "100 % (be mastelio keitimo)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
@@ -1422,17 +1414,17 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Tamsi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Sepija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Šviesi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -1486,11 +1478,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Kompaktiškas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Vidutinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Large"
@@ -1498,7 +1490,7 @@ msgstr "Ypač didelis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Automatinis (rekomenduojama)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
@@ -1510,23 +1502,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL (suderinamumas)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Numatytasis (auto)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Priverstinis stereofoninis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Optical Surround"
-msgstr ""
+msgstr "Optinis erdvinis garsas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "HDMI perdavimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
@@ -1542,7 +1534,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Dubliuota (visa)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
@@ -1553,10 +1545,8 @@ msgid "Custom (set in config)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Player Controls"
 msgid "Game Controller"
-msgstr "Grotuvo valdikliai"
+msgstr "Žaidimo valdiklis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
@@ -1595,20 +1585,16 @@ msgid "Motion Interpolation"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Reading"
 msgid "Debanding"
-msgstr "Skaitymas"
+msgstr "Išjuosimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Video Quality"
 msgid "Rendering Quality"
-msgstr "Vaizdo įrašo kokybė"
+msgstr "Atvaizdavimo kokybė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
@@ -1691,8 +1677,6 @@ msgid "Interface Scale"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Text Size"
 msgid "Text size"
 msgstr "Teksto dydis"
 
@@ -1989,10 +1973,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Daugiau informacijos Discord platformoje"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2146,11 +2128,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Status"
-msgstr ""
+msgstr "Būsena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Unplayed"
-msgstr ""
+msgstr "Nepaleistas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Played"
@@ -2170,11 +2152,11 @@ msgstr "Pratęsiamas"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Genres"
-msgstr ""
+msgstr "Žanrai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Years"
-msgstr ""
+msgstr "Metai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2183,7 +2165,7 @@ msgstr "Tėvų įvertinimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Tags"
-msgstr ""
+msgstr "Žymos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Audio Language"
@@ -2195,7 +2177,7 @@ msgstr "Subtitrų kalba"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Features"
-msgstr ""
+msgstr "Funkcijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Subtitles"
@@ -2223,24 +2205,24 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "SD"
-msgstr ""
+msgstr "SD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
 msgid "HD"
-msgstr ""
+msgstr "HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "4K"
-msgstr ""
+msgstr "4K"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "3D"
-msgstr ""
+msgstr "3D"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "DVD"
-msgstr ""
+msgstr "DVD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Blu-ray"
@@ -2248,7 +2230,7 @@ msgstr "Blu-ray"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "ISO"
-msgstr ""
+msgstr "ISO"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Add to Playlist"
@@ -2371,7 +2353,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Filters"
-msgstr ""
+msgstr "Filtrai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
@@ -2386,11 +2368,11 @@ msgstr "Išvalyti viską"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
-msgstr ""
+msgstr "Atlikta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Any"
-msgstr ""
+msgstr "Bet kiek"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -2399,11 +2381,11 @@ msgstr "Auto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Poster"
-msgstr ""
+msgstr "Plakatas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Thumbnail"
-msgstr ""
+msgstr "Miniatiūra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Banner"
@@ -2411,16 +2393,16 @@ msgstr "Reklaminė juosta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Logo"
-msgstr ""
+msgstr "Logotipas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Disc"
-msgstr ""
+msgstr "Diskas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Artwork"
-msgstr ""
+msgstr "Meno kūrinys"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -2447,7 +2429,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Paginated"
-msgstr ""
+msgstr "Puslapiuotas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -2456,8 +2438,6 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "View Settings"
 msgid "View settings"
 msgstr "Peržiūrėti nustatymus"
 
@@ -2518,11 +2498,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pull"
-msgstr ""
+msgstr "Traukti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Push"
-msgstr ""
+msgstr "Stumti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The position could not be read."
@@ -2625,7 +2605,7 @@ msgstr "Knygos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Ungrouped"
-msgstr ""
+msgstr "Nesugrupuota"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -2725,7 +2705,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
-msgstr ""
+msgstr "Antrinis…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Subtitle Track"
@@ -2762,10 +2742,8 @@ msgid "Aspect Ratio"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Interlaced"
 msgid "Deinterlace"
-msgstr "Šakotasis (Interlaced)"
+msgstr "Deinterlace"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Subtitle Size"
@@ -2811,7 +2789,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Buffered"
-msgstr ""
+msgstr "Buferizuota"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
@@ -2844,7 +2822,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Reasons"
-msgstr ""
+msgstr "Priežastys"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Player"
@@ -2852,7 +2830,7 @@ msgstr "Grotuvas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "File"
-msgstr ""
+msgstr "Failas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Nothing is playing."
@@ -2866,8 +2844,6 @@ msgstr "Ankstesnis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Previous Chapter"
 msgid "Previous chapter"
 msgstr "Ankstesnis skyrius"
 
@@ -2881,8 +2857,6 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Next Chapter"
 msgid "Next chapter"
 msgstr "Sekantis skyrius"
 
@@ -2929,10 +2903,8 @@ msgid "The recording could not be scheduled."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "Recording"
 msgid "Cancel recording?"
-msgstr "Įrašymas"
+msgstr "Atšaukti įrašymą?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 msgid "Recording cancelled."
@@ -3114,7 +3086,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Anytime"
-msgstr ""
+msgstr "Bet kada"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Keep up to"
@@ -3167,7 +3139,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Categories"
-msgstr ""
+msgstr "Kategorijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -3183,44 +3155,38 @@ msgid "HD programs"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "Live Broadcasts"
 msgid "Live broadcasts"
 msgstr "Tiesioginės transliacijos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "New episodes"
-msgstr "Epizodai"
+msgstr "Nauji epizodai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Premieres"
-msgstr ""
+msgstr "Premjeros"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "Repeat episodes"
-msgstr "Epizodai"
+msgstr "Pakartoti epizodus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Movies"
-msgstr ""
+msgstr "Filmai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Sports"
-msgstr ""
+msgstr "Sportas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Kids"
-msgstr ""
+msgstr "Vaikams"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "News"
-msgstr ""
+msgstr "Naujienos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -3230,21 +3196,21 @@ msgstr "Tiesiogiai"
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Premiere"
-msgstr ""
+msgstr "Premjera"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "New"
-msgstr ""
+msgstr "Nauja"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Repeat"
-msgstr ""
+msgstr "Kartoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Scheduled"
-msgstr ""
+msgstr "Suplanuota"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Timed out loading this item"
@@ -3299,16 +3265,12 @@ msgstr "Sustabdyti"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove from Favorites"
 msgid "Remove from favorites"
-msgstr "Pašalinti iš Mėgstamų"
+msgstr "Pašalinti iš mėgstamų"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Add to Favorites"
 msgid "Add to favorites"
 msgstr "Pridėti prie mėgstamų"
 
@@ -3317,10 +3279,8 @@ msgid "Volume"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid "Could not copy the log."
 msgid "Could not open that link."
-msgstr "Nepavyko nukopijuoti žurnalo."
+msgstr "Nepavyko atidaryti tos nuorodos."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3331,23 +3291,21 @@ msgstr "%d skyrių"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Resume"
-msgstr ""
+msgstr "Tęsti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Restart"
-msgstr ""
+msgstr "Paleisti iš naujo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Add to Playlist"
 msgid "Add to play queue"
-msgstr "Pridėti į Grojaraštį"
+msgstr "Pridėti prie paleidimo eilės"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
-msgstr ""
+msgstr "Baigta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
@@ -3361,7 +3319,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Start"
-msgstr ""
+msgstr "Pradėti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3372,7 +3330,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgctxt "open a book"
 msgid "Read"
-msgstr ""
+msgstr "Skaityti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Open Externally"
@@ -3384,14 +3342,12 @@ msgstr "Atsisiunčiama…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Progress…"
-msgstr ""
+msgstr "Progresas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Nothing has been recorded yet."
 msgid "Nothing here."
-msgstr "Dar nieko neužfiksuota."
+msgstr "Nieko čia nėra."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
@@ -3434,7 +3390,7 @@ msgstr "Anonsas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Scenes"
-msgstr ""
+msgstr "Scenos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
@@ -3443,7 +3399,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Version"
-msgstr ""
+msgstr "Versija"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Sub"
@@ -3465,7 +3421,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Name"
-msgstr ""
+msgstr "Pavadinimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Added"
@@ -3489,17 +3445,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Runtime"
-msgstr ""
+msgstr "Trukmė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Critic Rating"
 msgid "Critics Rating"
 msgstr "Kritikų įvertinimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Random"
-msgstr ""
+msgstr "Atsitiktinis"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Date Episode Added"
@@ -3507,11 +3461,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "View"
-msgstr ""
+msgstr "Peržiūrėti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Networks"
-msgstr ""
+msgstr "Tinklai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Collections"
@@ -3524,7 +3478,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Filter"
-msgstr ""
+msgstr "Filtras"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
@@ -3536,11 +3490,11 @@ msgstr "Paleisti viską"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Shuffle"
-msgstr ""
+msgstr "Maišyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "Sort"
-msgstr ""
+msgstr "Rūšiuoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 msgid "That view setting could not be saved."
@@ -3553,7 +3507,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Libraries"
-msgstr ""
+msgstr "Bibliotekos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
@@ -3561,20 +3515,20 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Programs"
-msgstr ""
+msgstr "Programos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Guide"
-msgstr ""
+msgstr "Gidas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Channels"
-msgstr ""
+msgstr "Kanalai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Recordings"
-msgstr ""
+msgstr "Įrašai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Schedule"
@@ -3583,7 +3537,7 @@ msgstr "Tvarkaraštis"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Series"
-msgstr ""
+msgstr "Serialai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No programs are listed right now."
@@ -3595,11 +3549,11 @@ msgstr "Ankstesnė diena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
-msgstr ""
+msgstr "Anksčiau"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Later"
-msgstr ""
+msgstr "Vėliau"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Next Day"
@@ -3607,7 +3561,7 @@ msgstr "Sekanti diena"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Now"
-msgstr ""
+msgstr "Dabar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #, python-format
@@ -3690,12 +3644,10 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Record"
-msgstr ""
+msgstr "Įrašyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Record Series"
 msgid "Record series"
 msgstr "Įrašyti serialą"
 
@@ -3717,15 +3669,13 @@ msgstr "Kanalas"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Albums"
-msgstr ""
+msgstr "Albumai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music_detail.py
 msgid "Similar Artists"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-#| msgid "Instant Mix"
 msgid "Instant mix"
 msgstr "Maišyti"
 
@@ -3742,7 +3692,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Artists"
-msgstr ""
+msgstr "Atlikėjai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -3773,11 +3723,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Up"
-msgstr ""
+msgstr "Aukštyn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Down"
-msgstr ""
+msgstr "Žemyn"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #, python-format
@@ -3790,7 +3740,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Clear"
-msgstr ""
+msgstr "Išvalyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "To Playlist"
@@ -3822,7 +3772,7 @@ msgstr "Pervardyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
-msgstr ""
+msgstr "Viešas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Delete Playlist"
@@ -3835,12 +3785,12 @@ msgstr "Ištrinti %s grojaraštį?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Time"
-msgstr ""
+msgstr "Laikas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "The playlist could not be reordered."
@@ -3886,10 +3836,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid "Could not copy the log."
 msgid "Could not copy"
-msgstr "Nepavyko nukopijuoti žurnalo."
+msgstr "Nepavyko nukopijuoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -3933,7 +3881,7 @@ msgstr "Rezultatai pagal užklausą \"%s\""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Shows"
-msgstr ""
+msgstr "Laidos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -3942,7 +3890,7 @@ msgstr "Vaizdo įrašai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "People"
-msgstr ""
+msgstr "Žmonės"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "On TV"
@@ -3950,7 +3898,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "Other"
-msgstr ""
+msgstr "Kita"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 msgid "No results found."
@@ -3962,7 +3910,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "Seasons"
-msgstr ""
+msgstr "Sezonai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
 msgid "Could not load more items."
@@ -3977,10 +3925,9 @@ msgid "On Now"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
-#| msgid "Recently Added"
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Neseniai pridėta"
+msgstr "Neseniai pridėta į {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4008,7 +3955,7 @@ msgstr "Anonsai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr ""
+msgstr "Atsisiųsta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "TV Shows"
@@ -4016,7 +3963,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Playlists"
-msgstr ""
+msgstr "Grojaraščiai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
@@ -4089,10 +4036,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid "Require this PIN at startup"
 msgid "Requires restart"
-msgstr "Reikalauti šio PIN kodo paleidžiant"
+msgstr "Reikalingas paleidimas iš naujo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
@@ -4112,7 +4057,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
-msgstr ""
+msgstr "Perkelti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
@@ -4246,11 +4191,11 @@ msgstr "Nepavyko išsaugoti pagrindinio ekrano išdėstymo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "General"
-msgstr ""
+msgstr "Bendri nustatymai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Browse"
-msgstr ""
+msgstr "Naršyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "Servers & Users"
@@ -4259,17 +4204,15 @@ msgstr "Serveriai ir vartotojai"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Logs"
-msgstr ""
+msgstr "Žurnalai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Search…"
 msgid "Search settings…"
-msgstr "Ieškoti…"
+msgstr "Ieškomi nustatymai…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "Copy"
-msgstr ""
+msgstr "Kopijuoti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
@@ -4334,19 +4277,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "active"
-msgstr ""
+msgstr "aktyvus"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Connected"
-msgstr ""
+msgstr "Prijungtas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Offline"
-msgstr ""
+msgstr "Neprisijungęs"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Auto-download"
-msgstr ""
+msgstr "Automatinis atsisiuntimas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -4375,57 +4318,45 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Year"
-msgstr ""
+msgstr "Metai"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Length"
-msgstr ""
+msgstr "Trukmė"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Artist"
-msgstr ""
+msgstr "Atlikėjas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
 msgid "Album"
-msgstr ""
+msgstr "Albumas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Play from beginning"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Play Next"
 msgid "Play next"
 msgstr "Paleisti sekantį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Mark Unwatched"
 msgid "Mark unplayed"
-msgstr "Pažymėti kaip neperžiūrėtą"
+msgstr "Pažymėti kaip nežiūrėtą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Mark Watched"
 msgid "Mark played"
-msgstr "Pažymėti kaip žiūrėtą"
+msgstr "Pažymėti kaip paleistą"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Add to Playlist"
 msgid "Add to playlist"
-msgstr "Pridėti į Grojaraštį"
+msgstr "Pridėti į grojaraštį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove from Playlist"
 msgid "Remove from playlist"
 msgstr "Pašalinti iš grojaraščio"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove from Collection"
 msgid "Remove from collection"
 msgstr "Pašalinti iš kolekcijos"
 
@@ -4446,15 +4377,15 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search"
-msgstr ""
+msgstr "Paieška"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Minimize"
-msgstr ""
+msgstr "Sumažinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Restore"
-msgstr ""
+msgstr "Atstatyti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Maximize"
@@ -4462,7 +4393,7 @@ msgstr "Maksimaliai padidinti"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Resize"
-msgstr ""
+msgstr "Keisti dydį"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Home"
@@ -4478,7 +4409,7 @@ msgstr "Vartotojas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr "Ieškoti…"
+msgstr "Paieška…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -4492,7 +4423,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "Vėliau"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -4546,10 +4477,8 @@ msgid "Use the default"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay įjungtas."
+msgstr "SyncPlay įjungtas"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -4637,8 +4566,7 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Prieiga prie SyncPlay bibliotekos atmesta."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
 msgstr "{0} grupė"
 
@@ -4675,10 +4603,9 @@ msgid "{0} has left."
 msgstr "{0} atsijungė."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} kraunasi."
+msgstr "{0} buferizuoja…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
@@ -4716,7 +4643,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/users.py
 msgid "(default)"
-msgstr ""
+msgstr "(numatytasis)"
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
