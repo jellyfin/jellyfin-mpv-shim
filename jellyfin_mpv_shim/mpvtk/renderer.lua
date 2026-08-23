@@ -209,7 +209,10 @@ local state = {
     pv_secs = 0,            -- the position it is pointing at, in seconds
     pv_rect = nil,          -- last drawn bubble rect (nil = not shown)
     ready_sent = false,
-    mouse = { x = -1, y = -1, hover = false },
+    -- `lost`: a leave has been accepted, so the next in-window
+    -- position is mpv's hover flag being wrong rather than a leave
+    -- (see the mouse-pos observer).
+    mouse = { x = -1, y = -1, hover = false, lost = nil },
     hover_id = nil,
     hover_region = nil,     -- id of the hovered node that asked to be told
     pressed = nil,          -- node id armed by mbtn down
@@ -4735,7 +4738,20 @@ function keyclaim.set(list)
     state.keys = want
 end
 
+-- **While mpv's console has the keyboard on loan, binding is recording an
+-- INTENT, not taking a key.** The lifecycle moves during a loan -- a pointer
+-- movement summons the HUD, playback starts, browse resumes -- and each of
+-- those re-asserts its own input. Doing that for real reaches straight past
+-- the console and takes back the keys it is being typed into: ENTER ran a
+-- summon instead of the command, which is the whole reason the loan exists.
+-- The snapshot is what the close replays, so writing the intent there loses
+-- nothing. (`mpvtk-active` has done this for `nav` since it was written;
+-- these are the other two paths that needed it.)
 local function bind_nav_keys()
+    if state.kb_saved then
+        state.kb_saved.nav = true
+        return
+    end
     for _, k in ipairs(NAV_KEYS) do
         mp.add_forced_key_binding(k[1], 'mpvtk_nav_' .. k[1], k[2],
             { repeatable = true })
@@ -4849,42 +4865,120 @@ mp.add_forced_key_binding('F12', 'mpvtk_hud', function()
     request_render()
 end)
 
+-- The pointer really has gone: drop everything that was tracking it. A FIELD
+-- on `state` rather than a local, because this chunk is at LuaJIT's 200-local
+-- ceiling (tests/test_renderer_lua.py reports the headroom) -- the same reason
+-- `state.pause_now` is one.
+state.mouse_left = function()
+    if state.mouse.leave_timer then
+        state.mouse.leave_timer:kill()
+        state.mouse.leave_timer = nil
+    end
+    state.mouse.hover = false
+    state.mouse.prov = nil
+    -- and forget WHERE it was. The coordinates outlive the pointer
+    -- otherwise, and phud_busy would go on reading a mouse that had left the
+    -- window as resting on the controls.
+    state.mouse.x, state.mouse.y = -1, -1
+    state.tip = nil
+    if state.tip_timer then
+        state.tip_timer:kill()
+        state.tip_timer = nil
+    end
+    update_slider_hover(nil)
+    if state.hover_id then
+        state.hover_id = nil
+        request_render()
+    end
+end
+
 mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
+    -- **mpv can lose a hover and never get it back**, which took the whole
+    -- UI's mouse with it (#700). The flag is set ONLY by MOUSE_ENTER /
+    -- MOUSE_LEAVE, and x11_common.c drops every crossing whose mode is not
+    -- NotifyNormal (mpv 30860f7b1, "x11: ignore mouse enter/leave events due
+    -- to pointer grab"). A WM that grabs the pointer, maximizes the window
+    -- underneath it and ungrabs -- Cinnamon double-clicking the title bar --
+    -- therefore delivers the EnterNotify that would restore hover as
+    -- NotifyUngrab, mpv discards it, and hover stays false for the rest of
+    -- the session with the pointer sitting in the middle of the window.
+    --
+    -- So an in-window position arriving with hover=false is AMBIGUOUS, and
+    -- nothing in the event says which it is:
+    --
+    --   * the pointer really left, and this is the last motion before it --
+    --     mpv clears the flag when the LeaveNotify is fed but commits a
+    --     motion's position when the command is dequeued, drains the queue
+    --     per iteration and reports the property once per drain, so an
+    --     ordinary flick out of the window arrives as ONE event carrying an
+    --     in-window position AND hover=false (measured at 27 of 30
+    --     crossings; a fast exit reports a position mid-window);
+    --   * or the flag is stranded and the pointer is still here.
+    --
+    -- **Resolved by what follows, and biased toward the pointer being
+    -- present.** The first such event is PROVISIONAL: the position is taken,
+    -- the UI stays live -- hover rings, scrolling, clicks -- and a short
+    -- grace timer is armed. Nothing more arrives if the pointer really left
+    -- (X delivers motion to whatever window it is over), so the timer
+    -- commits the leave; another motion re-arms it and the UI never notices.
+    -- The grace is well under the HUD's shortest auto-hide, so "the pointer
+    -- is off the controls" still lands in time to hide them.
+    --
+    -- No "did we see a leave first" gate: an enter can be lost on its own
+    -- (a fresh renderer while the pointer is outside, a crossing eaten by a
+    -- grab), and then there is no leave to have seen -- motion inside the
+    -- window has to be enough on its own.
+    local synth = false
     if pos.hover == false then
-        -- Mid-resize the pointer is OUTSIDE the window for most of the
-        -- gesture -- it has to be, since the corner only reaches it once
-        -- the window has grown -- and hover goes false the instant the
-        -- drag starts. The coordinates are still live: the button is held,
-        -- so the implicit pointer grab keeps motion coming to us (X11) and
-        -- the compositor keeps delivering to the focused surface
-        -- (Wayland). Taking the branch below would both drop the event and
-        -- forget where the pointer was, which stalls the resize on its
-        -- first pixel and then computes a 320x240 window from x,y = -1.
-        if state.wsize then
-            -- Report the truth -- the pointer really is outside -- but keep
-            -- tracking it. Only the coordinates matter to the drag.
+        -- **A gesture owns the pointer.** Mid-resize the pointer is outside
+        -- the window for most of the drag -- it has to be, since the corner
+        -- only reaches it once the window has grown -- and the same is true
+        -- of a scrollbar or slider dragged past the edge. The coordinates
+        -- are still live either way (the held button keeps the pointer
+        -- grabbed), and dropping them strands the gesture: the resize stalls
+        -- on its first pixel and computes a 320x240 window from x,y = -1.
+        -- A gesture in flight is also the one moment a spurious leave costs
+        -- the most, so it is never believed here.
+        if state.wsize or state.drag or state.slider_drag or state.tb_drag
+            or state.dd_bar_drag or state.vpan_drag then
             state.mouse.hover = false
             on_mouse_move(pos.x, pos.y)
             return
         end
-        state.mouse.hover = false
-        -- and forget WHERE it was. The coordinates outlive the pointer
-        -- otherwise, and phud_busy would go on reading a mouse that had
-        -- left the window as resting on the controls.
-        state.mouse.x, state.mouse.y = -1, -1
-        state.tip = nil
-        if state.tip_timer then
-            state.tip_timer:kill()
-            state.tip_timer = nil
+        if state.w and state.h and pos.x >= 0 and pos.y >= 0
+            and pos.x < state.w and pos.y < state.h
+            and (pos.x ~= state.mouse.x or pos.y ~= state.mouse.y) then
+            pos.hover = true   -- a fresh table per notification; ours to fix
+            synth = true
         end
-        update_slider_hover(nil)
-        if state.hover_id then
-            state.hover_id = nil
-            request_render()
-        end
+    end
+    if pos.hover == false then
+        state.mouse_left()
         return
     end
+    -- Provisional (see above): re-arm the grace, so a pointer that really
+    -- left is given up on shortly after it stops reporting. A confirmed
+    -- hover -- mpv's own -- ends the question outright.
+    if synth then
+        if state.mouse.leave_timer then state.mouse.leave_timer:kill() end
+        -- 0.2s: long enough that a moving pointer always re-arms it,
+        -- short enough to be invisible to the HUD's auto-hide, whose own
+        -- floor is 0.5s (PHUD_HIDE.min). A literal rather than a named
+        -- constant because this chunk is at LuaJIT's 200-local ceiling and
+        -- one more is a load error, not a warning.
+        state.mouse.leave_timer = mp.add_timeout(0.2, state.mouse_left)
+    elseif state.mouse.leave_timer then
+        state.mouse.leave_timer:kill()
+        state.mouse.leave_timer = nil
+    end
+    -- Whether the pointer has been seen inside TWICE running: one ambiguous
+    -- event is as likely to be a leave as a stranded flag, and summoning the
+    -- playback HUD from the flick that took the pointer off the window is
+    -- the one place that guess is visible. Everything else stays live on the
+    -- first event, which is the whole point of being provisional.
+    local confirmed = not synth or state.mouse.prov
+    state.mouse.prov = synth
     state.mouse.hover = true
     -- Record it for BOTH branches. The idle-HUD branch below returns
     -- without reaching on_mouse_move, so a mouse summon used to leave
@@ -4901,7 +4995,7 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
             (math.abs(pos.x - state.phud.mx) +
              math.abs(pos.y - state.phud.my)) > 2
         state.phud.mx, state.phud.my = pos.x, pos.y
-        if moved then
+        if moved and confirmed then
             -- Pointer movement summons the full HUD, skippable segment
             -- or not: the scene draws its own Skip button, so there is
             -- nothing to withhold, and a live segment lasting a minute
@@ -5466,6 +5560,10 @@ local phud_skip_hide, phud_skip_unbind  -- fwd: summon/hide retune them
 -- skips on the button / summons elsewhere. While the HUD is up, ENTER
 -- and clicks belong to the scene, whose Skip button is a real node.
 local function phud_skip_bind()
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.skip = true
+        return
+    end
     -- ENTER skips while the button is up and nothing else owns it
     -- (deterministically: any ENTER summon/wake binding is removed,
     -- not merely shadowed)
@@ -5546,6 +5644,10 @@ local function phud_bind_wake()
 end
 
 function phud_bind_summon()
+    if state.kb_saved then            -- see bind_nav_keys
+        state.kb_saved.summon = true
+        return
+    end
     phud_bind_wake()
     if state.phud.grab then
         for _, key in ipairs(PHUD_SUMMON_KEYS) do
@@ -5721,9 +5823,17 @@ function phud_summon(src)
     phud_unbind_summon()
     ui_resume(not state.phud.kbd)
     if not state.phud.kbd then
-        -- the wake key still upgrades to keyboard driving
-        mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
-            phud_kbd_take)
+        -- the wake key still upgrades to keyboard driving -- unless mpv's
+        -- console has the keyboard, in which case this is an intent for the
+        -- close to replay, like every other bind during a loan. Guarded HERE
+        -- rather than in a helper because this is the only caller: it is the
+        -- one binding that says "the bar is up and the pointer raised it".
+        if state.kb_saved then
+            state.kb_saved.wake = true
+        else
+            mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
+                phud_kbd_take)
+        end
     end
     -- ESC steps back out one layer at a time: popup -> menu/dialog ->
     -- the HUD itself. (A scene-driven dialog also binds
@@ -6349,16 +6459,57 @@ end)
 mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
     if open then
         if state.kb_saved then return end
+        -- `wake` is not one of the kb_* flags, and that is the point: a HUD
+        -- summoned by the POINTER keeps the wake key bound to the
+        -- upgrade-to-keyboard handler, while `phud_unbind_summon` cleared
+        -- kb_summon on the way in. So the three flags all read false with
+        -- ENTER still ours, and the console was typed into a key that raised
+        -- the HUD instead of running the command -- the exact theft this
+        -- handler exists to stop, in the one state nothing described.
+        local wake = state.phud.shown and not state.phud.kbd
         state.kb_saved = { nav = state.kb_nav, summon = state.kb_summon,
-                           skip = state.kb_skip }
+                           skip = state.kb_skip, wake = wake }
         if state.kb_nav then unbind_nav_keys() end
         if state.kb_summon then phud_unbind_summon() end
         if state.kb_skip then phud_skip_unbind() end
+        if wake then mp.remove_key_binding('mpvtk_wake') end
     elseif state.kb_saved then
         local was = state.kb_saved
         state.kb_saved = nil
-        if was.nav then bind_nav_keys() end
-        if was.summon then phud_bind_summon() end
+        -- Replayed against what the lifecycle is doing NOW, not against what
+        -- it was doing when the console opened: it moves underneath the loan.
+        -- A pointer movement while the console is up summons the HUD, and
+        -- browse can resume (the `mpvtk-active` handler updates the snapshot
+        -- for that one, which is where this rule started).
+        --
+        -- The SUMMON surface is the one that costs the mouse. It is the idle
+        -- HUD's, and re-binding it over a shown HUD -- or over the library --
+        -- takes `mbtn_left` back for click-to-pause, so the bar's own buttons
+        -- and every tile stop responding until the next ESC or auto-hide,
+        -- with nothing on screen to say why. It also replaces the wake key's
+        -- upgrade-to-keyboard binding with a summon that is already a no-op.
+        -- `phud_skip_bind` asks the same question for itself.
+        --
+        -- The nav keys belong to BROWSE, and to a HUD somebody is driving
+        -- from the keyboard. Not to "anything that is not a mouse-driven
+        -- HUD": `phud.mode` is only ever true under osc_style mpvtk, so with
+        -- any other OSC a suspended player looks exactly like the library --
+        -- and the arrows, ENTER and TAB would be taken as forced bindings
+        -- over a video nobody could seek any more. This is the predicate the
+        -- binders themselves use.
+        if was.nav and ((state.active and not state.phud.mode)
+                        or (state.phud.mode and state.phud.kbd)) then
+            bind_nav_keys()
+        end
+        if was.summon and state.phud.mode and not state.phud.shown then
+            phud_bind_summon()
+        end
         if was.skip then phud_skip_bind() end
+        -- ...and the pointer-summoned HUD's upgrade key, if that is still
+        -- what is on screen.
+        if was.wake and state.phud.shown and not state.phud.kbd then
+            mp.add_forced_key_binding(phud_wake_key(), 'mpvtk_wake',
+                                      phud_kbd_take)
+        end
     end
 end)

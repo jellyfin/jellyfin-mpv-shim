@@ -287,6 +287,11 @@ class MpvtkApp:
         self.on_picture_gesture = None
         #: Last pan model pushed, so an unchanged one costs no message.
         self._picture_pan = None
+        #: Guards BOTH compare-and-skip pushes below (the pan model and the
+        #: key claim). One lock rather than two: they are the same mechanism
+        #: with the same two callers -- a build() on the loop thread, and a
+        #: yield or minimize reached from the player's thread -- and neither
+        #: is ever taken while the other is held.
         self._pan_lock = threading.Lock()
         # The mouse's forward button, windowless because history belongs to
         # the app (GUIDE.md section 4). Its counterpart the back button
@@ -868,8 +873,11 @@ class MpvtkApp:
         claim that no longer exists — and a reader would come back with
         LEFT/RIGHT walking the focus ring and SPACE toggling mpv's pause.
         """
-        self._claimed_keys = ()
-        self._picture_pan = None
+        # Under the same lock the two pushes use, so a claim or a pan model
+        # already in flight cannot store itself over the forgetting.
+        with self._pan_lock:
+            self._claimed_keys = ()
+            self._picture_pan = None
         self.backend.command(
             "script-message", "mpvtk-active", "yes" if active else "no"
         )
@@ -911,12 +919,33 @@ class MpvtkApp:
         the renderer drops on its own, are in GUIDE.md section 3.
         """
         keys = tuple(keys or ())
-        if keys == self._claimed_keys:
-            return
-        self._claimed_keys = keys
-        self.backend.command(
-            "script-message", "mpvtk-keys", json.dumps({"keys": list(keys)}),
-        )
+        # Under the lock, and stored only once the push has actually gone.
+        #
+        # The STORE ORDER is about failure: a compare-and-skip cache that
+        # records a send which RAISED answers "already pushed" for every retry
+        # after it -- and the browser retries this every frame, catching and
+        # logging the failure (mpvtk_browser/app.py `_claim_page_keys`), so
+        # the page stays up with its keys silently dropped for as long as it
+        # is on screen. Same shape as the caches `set_active` has to forget.
+        #
+        # The LOCK is about the two threads: `_claim_page_keys` pushes from
+        # build() on the loop thread while `_release_page_grabs` drops the
+        # claim from a yield or a minimize, which arrive on the player's
+        # thread (docs/browser-shell.md section 2). Unlocked, the compare, the
+        # send and the store interleave: both callers can pass the compare
+        # against the same old value, and then whichever stores last owns the
+        # cache while the other owned the wire -- so the cache says "already
+        # pushed" about a claim the renderer does not have, which is the same
+        # silently-dead-keys failure by a different route. `set_picture_pan`
+        # has always been locked for exactly this.
+        with self._pan_lock:
+            if keys == self._claimed_keys:
+                return
+            self.backend.command(
+                "script-message", "mpvtk-keys",
+                json.dumps({"keys": list(keys)}),
+            )
+            self._claimed_keys = keys
 
     def set_picture_pan(self, config=None):
         """Hand the renderer the gesture model for a displayed picture.
@@ -939,10 +968,12 @@ class MpvtkApp:
         with self._pan_lock:
             if payload == self._picture_pan:
                 return
-            self._picture_pan = payload
+            # Sent before it is stored, for the reason `claim_keys` gives:
+            # a cache that remembers a failed send stops retrying it.
             self.backend.command(
                 "script-message", "mpvtk-vpan", json.dumps(payload),
             )
+            self._picture_pan = payload
 
     def summon_hud(self):
         """Wake an idle HUD as if a nav key were pressed (no pause

@@ -119,6 +119,22 @@ class ReportingMixin:
                 aborted = self._player.playback_abort
             except _mpv_errors:
                 aborted = True
+            if not stopped and video is None and self._start_in_progress:
+                # **A start in flight is not a stop.** `_video` is assigned
+                # only once the open succeeds and `playback_abort` stays true
+                # until it does, so for the whole of a load every incidental
+                # push here reported "stopped" -- and the browser reads that
+                # as "playback ended", drops its loading screen and returns to
+                # the library, over the start the user is waiting for.
+                #
+                # There is always at least one: `_play_media` writes the
+                # persisted per-type volume before mpv is handed the file, and
+                # the volume observer pushes. A skippable-segment transition
+                # and the now-playing ticker do it too.
+                #
+                # An explicit stopped=True still reports: that is the stop
+                # path, which is exactly how a cancelled or failed start ends.
+                return
             if stopped or video is None or aborted:
                 cb({"stopped": True})
                 return

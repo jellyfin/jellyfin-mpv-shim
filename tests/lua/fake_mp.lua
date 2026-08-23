@@ -17,6 +17,10 @@ M.log = {
     props = {},         -- set_property_native by name
     timers = {},        -- live timers, so a test can fire them
     keybinds = {},
+    -- The RELEASE half of a set_key_bindings pair (entry[2]), for the few
+    -- gestures whose whole subject is what the press left behind -- a click
+    -- resolves the node under the pointer twice, once on each half.
+    keybinds_up = {},
     forced = {},       -- keybind name -> was it add_FORCED_key_binding?
     keyopts = {},      -- keybind name -> the flags table it was bound with
     -- keybind name -> the mpv KEY it was bound for. Everything else here
@@ -306,6 +310,7 @@ function mp.set_key_bindings(list, name, _flags)
     M.log.sections[name or "?"] = section
     for _, entry in ipairs(list or {}) do
         M.log.keybinds[entry[1]] = entry[3] or entry[2]
+        if entry[3] then M.log.keybinds_up[entry[1]] = entry[2] end
         section[entry[1]] = true
     end
 end
@@ -444,6 +449,14 @@ end
 function M.key(name, ...)
     local fn = M.log.keybinds[name]
     if not fn then error("no key binding: " .. name) end
+    return fn(...)
+end
+
+--- The release of a down/up pair. M.key fires the DOWN half, which is the
+--- one almost every test wants; this is its other half.
+function M.key_up(name, ...)
+    local fn = M.log.keybinds_up[name]
+    if not fn then error("no key release binding: " .. name) end
     return fn(...)
 end
 

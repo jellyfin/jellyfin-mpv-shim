@@ -353,6 +353,90 @@ class TestClickMods(unittest.TestCase):
         self.assertEqual(got, ["x"])
 
 
+class TestPushCachesForgetAFailedSend(unittest.TestCase):
+    """A compare-and-skip cache must not remember a push that never landed.
+
+    Both of these are "only send it when it changed" caches, and both are
+    re-asked every frame by a page that is on screen (``_claim_page_keys``,
+    and the comic reader's clamp). Storing the value before the send means
+    one failed command -- which the browser catches and logs at debug --
+    turns into "already pushed" for every retry after it, and the reader
+    loses its page-turn keys, or the picture its pan model, for as long as
+    that page is up. The failure is silent on both sides.
+    """
+
+    def _app(self):
+        return MpvtkApp.attach(FakeMPV(), ext=False)
+
+    def _flaky(self, app):
+        sent = []
+
+        def command(*args):
+            sent.append(args)
+            if len(sent) == 1:
+                raise RuntimeError("mpv went away")
+
+        app.backend.command = command
+        return sent
+
+    def test_a_failed_key_claim_is_pushed_again(self):
+        app = self._app()
+        sent = self._flaky(app)
+        with self.assertRaises(RuntimeError):
+            app.claim_keys(("LEFT", "RIGHT"))
+        app.claim_keys(("LEFT", "RIGHT"))     # the next frame asks again
+        self.assertEqual(len(sent), 2,
+                         "the failed claim was remembered as sent")
+        app.claim_keys(("LEFT", "RIGHT"))     # ...and now it is cached
+        self.assertEqual(len(sent), 2, "an unchanged claim was re-sent")
+
+    def test_a_claim_and_a_drop_do_not_interleave(self):
+        """The two callers are on different threads: the shell pushes the
+        route's claim from build() on the loop thread, and a yield or a
+        minimize drops it from the player's thread. Unlocked, both pass the
+        compare against the same old value and the cache ends up describing
+        the one that lost the wire -- keys the renderer does not have, or, as
+        here, a claim that outlives the page and takes SPACE and the arrows
+        into playback with it."""
+        import threading
+
+        app = self._app()
+        sent, entered, release = [], threading.Event(), threading.Event()
+
+        def command(*args):
+            sent.append(args)
+            entered.set()
+            release.wait(2)
+
+        app.backend.command = command
+        t = threading.Thread(target=lambda: app.claim_keys(("LEFT", "RIGHT")))
+        t.start()
+        self.assertTrue(entered.wait(2), "the claim never reached the backend")
+        dropper = threading.Thread(target=lambda: app.claim_keys(()))
+        dropper.start()
+        release.set()
+        t.join(5)
+        dropper.join(5)
+        self.assertEqual(len(sent), 2,
+                         "the drop was skipped against a claim still in "
+                         "flight: %r" % (sent,))
+        self.assertEqual(app._claimed_keys, (),
+                         "the cache describes the claim, not the drop")
+
+    def test_a_failed_pan_model_is_pushed_again(self):
+        app = self._app()
+        sent = self._flaky(app)
+        model = {"unitx": 1.0, "unity": 2.0, "minx": 0.0, "maxx": 0.0,
+                 "miny": 0.0, "maxy": 0.0, "step": 120, "page": 0}
+        with self.assertRaises(RuntimeError):
+            app.set_picture_pan(model)
+        app.set_picture_pan(dict(model))
+        self.assertEqual(len(sent), 2,
+                         "the failed pan model was remembered as sent")
+        app.set_picture_pan(dict(model))
+        self.assertEqual(len(sent), 2, "an unchanged model was re-sent")
+
+
 class TestScrollOffsets(unittest.TestCase):
     def test_reads_property_mirror(self):
         app = MpvtkApp.attach(FakeMPV(), ext=False)

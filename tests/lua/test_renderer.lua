@@ -985,6 +985,127 @@ scene({})
 eq(hover_events(), "hover_end:tile-a-play",
    "a hovered node leaving the scene reported no departure")
 
+-- ================= a hover mpv lost, and one it never had (#700)
+--
+-- mpv sets `mouse-pos.hover` only from MOUSE_ENTER / MOUSE_LEAVE and ignores
+-- every X11 crossing whose mode is not NotifyNormal, so a WM that grabs the
+-- pointer, maximizes the window under it and ungrabs -- Cinnamon's title-bar
+-- double click -- strands the flag at false with the pointer in the middle of
+-- the window. That cost the whole UI its mouse: no hover ring, and every
+-- click hit-tested at -1,-1.
+--
+-- An in-window position with hover=false is AMBIGUOUS, and the renderer
+-- resolves it by what follows rather than by guessing (see the observer).
+-- These are the three rules that has to satisfy.
+
+local function mouse_state()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).mouse or {}
+end
+
+--- Let the leave grace expire with nothing else arriving.
+local function idle_out()
+    fake.advance(0.3)
+    fake.fire_timers()
+end
+
+-- **The pointer is believed, with no leave needed first.** An enter can be
+-- lost on its own -- a renderer that loads while the pointer is outside, a
+-- crossing eaten by a grab -- and then there is no leave to have seen.
+scene({ tile("tile-a", 0, 0, { hev = true }) })
+point(300, 300)                      -- somewhere else, and clear of the tile
+fake.reset_events()
+fake.observe("mouse-pos", { x = 50, y = 40, hover = false })
+eq(hover_events(), "hover:tile-a",
+   "an in-window pointer was ignored because mpv said hover=false")
+eq(mouse_state().hover, true, "the stranded hover flag was not corrected")
+
+-- ...and it keeps being believed. The flag stays stranded for the rest of the
+-- session, so EVERY event after it is hover=false too; correcting one must
+-- not look like a crossing, or the UI alternates between hovering and
+-- leaving one motion apart.
+for _, xy in ipairs({ { 55, 42 }, { 60, 44 }, { 65, 46 } }) do
+    fake.observe("mouse-pos", { x = xy[1], y = xy[2], hover = false })
+end
+eq(mouse_state().hover, true, "a stranded hover flag was only corrected once")
+
+-- The click that used to go nowhere: it hit-tests state.mouse, the same as
+-- the ring, so it is asserted separately.
+fake.reset_events()
+fake.key("mbtn_left")        -- press...
+fake.key_up("mbtn_left")     -- ...and release
+ok(last_event("click") ~= nil and last_event("click").id == "tile-a",
+   "a click at a stranded-hover position hit nothing")
+
+-- **A real leave still lands** -- which is what the playback HUD's auto-hide
+-- is built on. It usually arrives carrying a MOVED position: mpv clears the
+-- flag when the LeaveNotify is fed but commits a motion's position when the
+-- command is dequeued, drains the queue per iteration and reports the
+-- property once per drain, so an ordinary flick out of the window is ONE
+-- event holding the last in-window position and hover=false. Measured at 27
+-- of 30 crossings on a real mpv. Nothing follows it, and that is the tell.
+point(50, 40)
+fake.reset_events()
+fake.observe("mouse-pos", { x = 60, y = 45, hover = false })
+idle_out()
+eq(hover_events(), "hover_end:tile-a", "a real leave never landed")
+local m = mouse_state()
+ok(m.hover == false and m.x == -1,
+   "a leave that stopped reporting was not committed",
+   string.format("hover=%s x=%s", tostring(m.hover), tostring(m.x)))
+
+-- The same from the middle of the window, which is what a fast exit reports.
+point(50, 40)
+fake.observe("mouse-pos", { x = 640, y = 360, hover = false })
+idle_out()
+eq(mouse_state().hover, false,
+   "a leave reporting a position mid-window was not committed")
+
+-- An unchanged position is not motion at all: nothing to be ambiguous about,
+-- so that leave is taken at once rather than after the grace.
+point(50, 40)
+fake.observe("mouse-pos", { x = 50, y = 40, hover = false })
+eq(mouse_state().hover, false, "an unmoved leave waited for the grace")
+
+-- Out of the window, likewise. The position only moves at all out there
+-- while a button is held (X keeps delivering to the grab), and believing it
+-- would light up controls under a pointer somewhere else entirely.
+point(50, 40)
+fake.observe("mouse-pos", { x = 1400, y = 900, hover = false })
+eq(mouse_state().hover, false, "an out-of-window position was taken as a hover")
+
+-- **A gesture is never interrupted by a leave.** A spurious one mid-drag is
+-- where believing it costs the most: the scroll stops following the pointer
+-- and does not resume, with the button still held.
+scene({ vscroll("body", 400, 4000, { bar = true }) })
+fake.advance(0.1)
+fake.fire_timers()
+local bar = ((function()
+    fake.reset_events()
+    fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+    return (last_event("debug_state") or {}).bars or {}
+end)())["body"]
+ok(bar ~= nil, "fixture: the scroll container drew no scrollbar")
+if bar then
+    fake.mouse(bar.x + 2, bar.thumb_y + 2)
+    fake.send("mpvtk-debug",
+              fake.token({ cmd = "down", x = bar.x + 2, y = bar.thumb_y + 2 }))
+    local before = offset("body")
+    -- BELOW the window, which is where this actually happens: drag a
+    -- scrollbar past the bottom edge and the pointer is genuinely outside,
+    -- so hover goes false with the button still held. The gesture owns the
+    -- pointer and must keep being fed -- the in-window half needs no rule of
+    -- its own, since a moved in-window position is believed anyway.
+    fake.observe("mouse-pos", { x = bar.x + 2, y = 900, hover = false })
+    ok(offset("body") > before,
+       "a leave mid-drag stopped the scrollbar following the pointer")
+    fake.send("mpvtk-debug", fake.token({ cmd = "up", x = bar.x + 2,
+                                          y = 900 }))
+end
+point(50, 40)
+
+
 -- ===================================================== scroll snapping
 --
 -- Scrolling glides. It quantizes to row boundaries only when the frames a
@@ -1623,6 +1744,28 @@ fake.send("mpvtk-debug", fake.token({ cmd = "click", x = 5, y = 5 }))
 -- resting ON them holds it off in every mode but 'always'. Reaching for a
 -- button must not be a race against the timer.
 
+-- Summoning the HUD is the one place the provisional guess is VISIBLE: the
+-- flick that takes the pointer off the window is an in-window position with
+-- hover=false, and believing it there raises the controls as you move away
+-- from them. So the summon waits for a second such event -- the pointer
+-- demonstrably still moving inside -- while everything else stays live on
+-- the first, which is the whole point of being provisional.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })   -- records only
+fake.reset_events()
+fake.observe("mouse-pos", { x = 600, y = 360, hover = false })  -- the flick out
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "moving the pointer OFF the window summoned the playback HUD")
+fake.observe("mouse-pos", { x = 600, y = 420, hover = false })  -- still moving
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "a pointer still moving inside never summoned the HUD")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 local function hud_engage(opts)
     fake.send("mpvtk-hud", "no")
     fake.send("mpvtk-hud", "yes", fake.token(opts or {}))
@@ -2066,6 +2209,153 @@ fake.observe("user-data/mpv/console/open", true)
 fake.observe("user-data/mpv/console/open", false)
 ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
    "closing the console bound nav keys that were not bound before it opened")
+fake.send("mpvtk-active", "yes")
+
+-- ...but "what was bound" is a snapshot, and the LIFECYCLE moves underneath
+-- it: the pointer can summon the HUD while the console is up. Restoring the
+-- idle HUD's summon surface over a HUD that is now SHOWN takes mbtn_left back
+-- for click-to-pause, so the bar's own buttons stop responding -- a mouse
+-- that has gone dead with the controls in plain sight, and nothing on screen
+-- to say why.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "sanity: an idle HUD takes the click for click-to-pause")
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "the console is up and the summon surface is still ours")
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "sanity: pointer movement summons the HUD even with the console up")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "closing the console gave the shown HUD's clicks back to click-to-pause")
+
+-- The same restore also replaces the wake key's upgrade-to-keyboard binding
+-- with a cold summon, which is already a no-op on a HUD that is up: the bar
+-- can then never be driven from the keyboard at all.
+fake.key("mpvtk_wake")
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_kbd == true,
+   "the wake key no longer upgrades a mouse-summoned HUD to keyboard driving")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- **The state nothing described.** A HUD summoned by the POINTER keeps the
+-- wake key bound to the upgrade-to-keyboard handler, while kb_summon was
+-- cleared on the way in -- so all three tracked flags read false with ENTER
+-- still ours, and the console was typed into a key that raised the HUD.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "fixture: the pointer never summoned the HUD")
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "fixture: a mouse-summoned HUD should keep the wake key")
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "the console is up and ENTER still raises the HUD")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "closing the console left the HUD with no way to take the keyboard")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- **A lifecycle transition during the loan records an intent; it does not
+-- take the keys back.** Playback starting while the console is open used to
+-- re-bind the idle HUD's summon surface straight over it, so ENTER raised the
+-- controls instead of running the command being typed.
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "a HUD engaged during the loan took the console's ENTER")
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "a HUD engaged during the loan took the console's mouse button")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_wake"] ~= nil,
+   "the summon surface was never handed back after the console closed")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- **The HUD must still let go while the console is up**, which is what makes
+-- the ESC and F12 it holds a papercut rather than a trap: mpv's console keeps
+-- `ctrl+[` (and a click) to close on, and both of ours come back the moment
+-- the bar hides. The auto-hide is a renderer timer and the loan does not touch
+-- it, so a pointer that stops moving -- and is not resting on the controls --
+-- takes the bar down and hands ESC back.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })   -- summons
+-- the bars hud.py draws, with the pointer in the gap between them
+scene({ { id = "hud-topbar", t = "rect", x = 0, y = 0, w = 1280, h = 60 },
+        { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+ok(fake.log.keybinds["mpvtk_phud_esc"] ~= nil,
+   "fixture: a shown HUD should hold ESC")
+ok(fake.log.keybinds["mpvtk_hud"] ~= nil,
+   "fixture: a shown HUD should hold F12")
+fake.advance(5)
+fake.fire_timers()
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown ~= true,
+   "the HUD never auto-hid while the console was up")
+ok(fake.log.keybinds["mpvtk_phud_esc"] == nil,
+   "the HUD hid but kept ESC, so the console cannot close on it")
+ok(fake.log.keybinds["mpvtk_hud"] == nil,
+   "the HUD hid but kept F12")
+ok(fake.log.keybinds["mpvtk_wake"] == nil,
+   "hiding under the console took ENTER back for the summon surface")
+fake.observe("user-data/mpv/console/open", false)
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- The NAV half of the same rule, which the cases above cannot reach: the
+-- console can be open across a transition in either direction.
+--
+-- Browse -> suspended, decided while the console holds the keys. Restoring
+-- "nav was bound" here hands the arrows, ENTER and TAB to an invisible
+-- renderer for the whole of playback -- and `phud.mode` does not stand in for
+-- "the UI owns the keyboard", because it is only ever true under osc_style
+-- mpvtk; with a lua OSC a suspended player has no HUD mode at all.
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-active", "no")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "closing the console bound nav keys over suspended playback")
+fake.send("mpvtk-active", "yes")
+
+-- ...and the other way: suspended -> browse, which the `mpvtk-active`
+-- handler records into the snapshot rather than binding behind the console.
+fake.send("mpvtk-active", "no")
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-active", "yes")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse came back from the console with no arrow, ENTER or TAB")
+
+-- A keyboard-driven HUD owns them too, and it is not browse: `state.active`
+-- alone would refuse them.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ grab = true, hide = 4,
+                                           mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "a keyboard-driven HUD lost its arrows to the console")
+fake.send("mpvtk-hud", "no")
 fake.send("mpvtk-active", "yes")
 
 -- ==================================================== what gets drawn

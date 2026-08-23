@@ -464,5 +464,129 @@ class TestTableRowContextMenu(unittest.TestCase):
         self.assertNotIn(("context", 3), self.events)
 
 
+@h.require_real_mpv
+class TestRealMousePosPath(unittest.TestCase):
+    """The pointer as MPV reports it, not as the debug hook simulates it.
+
+    Every other mouse test here goes through ``mpvtk-debug``, which calls
+    ``on_mouse_move`` directly. Nothing covered the property the renderer
+    actually listens to -- and that is where #700 lived: mpv sets
+    ``mouse-pos.hover`` only from MOUSE_ENTER/MOUSE_LEAVE and ignores every
+    X11 crossing whose mode is not NotifyNormal, so a WM that grabs the
+    pointer, maximizes the window under it and ungrabs leaves hover false
+    with the pointer sitting in the middle of the window. The renderer then
+    hit-tested every click at -1,-1 and the whole UI stopped responding.
+
+    **The stranded state itself cannot be reached from out here**, and the
+    reason is the same rule the fix uses: mpv's own ``mouse`` command decides
+    hover from the window bounds (command.c synthesizes MOUSE_ENTER for an
+    in-bounds artificial move), so it repairs the flag before the renderer
+    ever sees it. That half is pinned in ``tests/lua/test_renderer.lua``,
+    against the real observer. What only a real mpv can settle is the rest of
+    the path: that a leave is still a leave, that an out-of-window position
+    is not taken for a hover, and that the property reaches the renderer at
+    all on both backends.
+    """
+
+    def setUp(self):
+        from jellyfin_mpv_shim.mpvtk.app import MpvtkApp
+        from jellyfin_mpv_shim.mpvtk.widgets import Button, Column, Spacer
+
+        self.handle, ext = _spawn_handle()
+        self.app = MpvtkApp.attach(self.handle, ext=ext)
+        self.clicks = []
+        self.btn = Button("Press me", id="target-btn", w=240,
+                          on_click=lambda: self.clicks.append(1))
+        self._thread = threading.Thread(
+            target=lambda: self.app.run(
+                lambda size: Column([Spacer(h=60), self.btn])),
+            daemon=True)
+        self._thread.start()
+        self.assertTrue(self.app.ready.wait(15), "renderer never ready")
+        time.sleep(0.6)
+
+    def tearDown(self):
+        try:
+            self.app.quit()
+            self._thread.join(timeout=5)
+        finally:
+            try:
+                self.handle.terminate()
+            except Exception:
+                pass
+
+    def _center(self):
+        """The button's centre in WINDOW pixels, which is what mpv's `mouse`
+        command speaks. Read from the pushed scene rather than node_rect(),
+        which converts back to logical coordinates for widget code."""
+        node = next((n for n in (self.app._nodes or [])
+                     if n.get("id") == "target-btn"), None)
+        self.assertIsNotNone(node, "the button never reached the renderer")
+        return int(node["x"] + node["w"] / 2), int(node["y"] + node["h"] / 2)
+
+    def _mouse(self, x, y):
+        self.handle.command("mouse", int(x), int(y))
+        time.sleep(0.4)
+
+    def _mouse_state(self):
+        st = self.app.debug_state()
+        self.assertIsNotNone(st, "no debug state from renderer")
+        return st
+
+    def test_the_real_pointer_hovers_leaves_and_comes_back(self):
+        cx, cy = self._center()
+        self._mouse(cx, cy)
+        st = self._mouse_state()
+        self.assertEqual(st.get("hover"), "target-btn",
+                         "mpv's own mouse-pos never reached the renderer: %r"
+                         % (st.get("mouse"),))
+        self.assertTrue(st["mouse"]["hover"])
+
+        # A leave is still a leave: the position is forgotten, so nothing is
+        # left hovered and a click cannot land on a control the pointer is
+        # no longer over.
+        self.handle.command("keypress", "MOUSE_LEAVE")
+        time.sleep(0.4)
+        st = self._mouse_state()
+        self.assertIsNone(st.get("hover"), "the leave left the button hovered")
+        self.assertEqual(st["mouse"]["x"], -1,
+                         "the leave kept the last in-window position")
+
+        # An out-of-window position must not be read as a hover. It only
+        # moves at all while a button is held (X keeps delivering to the
+        # grab), and believing it would light up controls under a pointer
+        # that is somewhere else entirely.
+        self._mouse(st["w"] + 50, st["h"] + 50)
+        st = self._mouse_state()
+        self.assertFalse(st["mouse"]["hover"],
+                         "a position outside the window was taken as a hover")
+        self.assertIsNone(st.get("hover"))
+
+        # ...and coming back does come back.
+        self._mouse(cx, cy)
+        self.assertEqual(self._mouse_state().get("hover"), "target-btn",
+                         "the pointer never got back into the window")
+
+    def test_a_real_click_reaches_the_button(self):
+        """A press and a release through mpv's own input stack, section
+        stack included -- which the Lua fake cannot model.
+
+        `keydown`/`keyup`, not `mouse x y 0`: that form delivers the button
+        with neither state bit, which mpv reports as a *press* and which the
+        two-function bindings `mp.set_key_bindings` installs answer to
+        neither half of.
+        """
+        cx, cy = self._center()
+        self._mouse(cx, cy)
+        self.handle.command("keydown", "MBTN_LEFT")
+        time.sleep(0.2)
+        self.handle.command("keyup", "MBTN_LEFT")
+        deadline = time.time() + 4
+        while time.time() < deadline and not self.clicks:
+            time.sleep(0.2)
+        self.assertTrue(self.clicks,
+                        "a real left click never reached the button")
+
+
 if __name__ == "__main__":
     unittest.main()

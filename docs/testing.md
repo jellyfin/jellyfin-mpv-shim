@@ -246,3 +246,54 @@ module it silently skips reports exactly like a module that passed.
 runs everything in one process specifically to catch cross-module interference.
 Parallelizing it would remove the thing it is for — and it drives real mpv
 through the keyboard, which is where contention bites hardest.
+
+## 10. Driving real mouse input against a real mpv
+
+Five things that cost a session each, none of which has a line in the tests to
+sit on — they are all about the test you are *about* to write.
+
+**A click is `keydown MBTN_LEFT` + `keyup MBTN_LEFT`, not `mouse <x> <y> 0`.**
+That last form delivers the button with neither state bit set, which mpv reports
+as a *press* — and `defaults.lua` routes a press to the **release** half of a
+`set_key_bindings` pair, so it fires `on_mouse_up` with no press before it. That
+does nothing at rest (it bails without `state.pressed`), so the test clicks
+nothing and passes; mid-drag it is worse than nothing, because it takes the
+slider/scrollbar branch and commits a gesture the test never made. Position the
+pointer with `mouse <x> <y>` first: the press is resolved against mpv's own idea
+of where the pointer is.
+
+**Going through mpv is the point, when the question is which binding wins.**
+`app.debug(cmd="click", id=...)` calls the renderer's handlers directly, so it
+answers yes however the input sections were left. Only a real button press walks
+mpv's section stack — which is what
+`test_mpvtk_hud.py:test_the_console_gives_back_the_hud_it_left_with` is for.
+
+**`mouse <x> <y>` repairs `mouse-pos.hover` on the way past**: mpv synthesizes
+MOUSE_ENTER for an artificial move that lands inside the window (`command.c`,
+`cmd_mouse`). A stranded hover flag — the #700 state, where mpv believes the
+pointer is outside a window it is sitting in the middle of — therefore *cannot*
+be reached from outside the process. That half is pinned in `tests/lua/`, driving
+the real observer; from an integration test you can only pin the rest of the
+path. (An out-of-bounds `mouse <x> <y>` synthesizes MOUSE_**LEAVE** by the same
+rule, which is a second way to leave from outside the process.)
+
+**A real leave does not look like the one your test writes.** `keypress
+MOUSE_LEAVE`, and the Lua fake's `{same x, same y, hover=false}`, both produce a
+leave whose position is unchanged — which is the *rare* shape. mpv clears the
+flag when the LeaveNotify is fed but commits a motion's position when the
+command is dequeued, drains the whole input queue per iteration, and reports a
+property once per drain: so an ordinary flick of the pointer out of the window
+arrives as **one** notification carrying the last in-window position *and*
+`hover=false` (measured at 27 of 30 crossings; a fast exit reports a position
+from the middle of the window). Any renderer logic that keys off "the position
+changed" is testing a shape X11 almost never sends. What the renderer does
+instead — treat one such event as provisional and let a grace timer decide — is
+in the `mouse-pos` observer.
+
+**Writing a user-data flag: python-mpv sends every scalar as a string.**
+`handle._set_property("user-data/...", True)` stores the *string* `"yes"`, and a
+string node reads back as nil under `MPV_FORMAT_FLAG` — which is the format
+`renderer.lua` observes mpv-console's flag in, because that is what the console
+writes. A test that sets it the obvious way sets nothing the renderer can see and
+then passes whatever the code does (§7). Write it with `MPV_FORMAT_FLAG` through
+ctypes on libmpv; jsonipc's JSON `true` arrives as a bool already.
