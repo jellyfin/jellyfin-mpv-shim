@@ -235,6 +235,42 @@ class LoadingAndFailureScreenTest(unittest.TestCase):
         walk(scene)
         return bool(found)
 
+    def test_a_stopped_push_mid_load_keeps_the_window(self):
+        """The flash the user sees as blank -> library -> player.
+
+        `_video` is unset for the whole of a load, so the player reported
+        every incidental push during one as "stopped" -- and this branch read
+        that as "playback ended" and called enter_browse(). The library came
+        back over the start, took the spinner with it, and re-read Home while
+        it was there. The player suppresses those pushes now; this is the
+        second lock, for a stop reported from anywhere else.
+        """
+        b = self.browser
+        b.load.on_load_start({"title": "Some Movie"})
+        b.on_playstate({"stopped": True})
+        self.assertFalse(b._browsing,
+                         "a stopped push mid-load returned to the library")
+        self.assertIsNotNone(b.load.starting,
+                             "the in-flight load was forgotten")
+
+    def test_the_spinner_survives_a_stopped_push(self):
+        """The same, one layer up: what the user is actually looking at."""
+        b = self.browser
+        b.load.on_load_start({"title": "Some Movie"})
+        self._slow()
+        self.assertTrue(self._has_spinner(), "fixture: no spinner to lose")
+        b.on_playstate({"stopped": True})
+        self.assertTrue(self._has_spinner(),
+                        "a stopped push mid-load took the spinner away")
+
+    def test_a_stop_with_no_load_in_flight_still_returns_to_browse(self):
+        """The guard must not swallow the ordinary end of playback."""
+        b = self.browser
+        b.load.reset()
+        b.on_playstate({"stopped": True})
+        self.assertTrue(b._browsing,
+                        "playback ended and the library never came back")
+
     def test_a_load_in_flight_shows_a_spinner(self):
         """Busy animates renderer-side, so it can sit through a 30s stall
         without costing a single repaint from here."""

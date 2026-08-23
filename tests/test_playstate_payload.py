@@ -77,6 +77,53 @@ AUDIOBOOK = {"Name": "The Lantern Keeper", "Type": "AudioBook",
              "Album": "The Lantern Keeper"}
 
 
+class TestAStartInFlightIsNotAStop(unittest.TestCase):
+    """`_video` is assigned only once the open succeeds, so for the whole of a
+    load the player looks stopped from in here. Every incidental push during
+    one therefore reported "stopped" -- and the browser reads that as
+    "playback ended", drops its loading screen and returns to the library over
+    the start the user is waiting for.
+
+    There is always at least one such push: `_play_media` writes the persisted
+    per-type volume before mpv is handed the file, and the volume observer
+    pushes on the change.
+    """
+
+    def _push(self, video=None, starting=False, stopped=False):
+        got = []
+        pm = PlayerManager.__new__(PlayerManager)
+        pm.on_playstate = got.append
+        pm._video = video
+        pm._player = _Player()
+        pm._hud_skip = None
+        pm.repeat_mode = "none"
+        pm._start_in_progress = starting
+        PlayerManager.push_playstate(pm, stopped=stopped)
+        return got
+
+    def test_an_incidental_push_mid_start_reports_nothing(self):
+        self.assertEqual(self._push(starting=True), [],
+                         "a load reported itself stopped")
+
+    def test_an_explicit_stop_mid_start_still_reports(self):
+        """Which is how a cancelled or failed start ends -- the stop path
+        passes stopped=True, and the browser needs it to leave the screen."""
+        self.assertEqual(self._push(starting=True, stopped=True),
+                         [{"stopped": True}])
+
+    def test_a_real_stop_still_reports(self):
+        """No start in flight and no video: playback genuinely ended."""
+        self.assertEqual(self._push(), [{"stopped": True}])
+
+    def test_once_the_video_lands_the_snapshot_is_real(self):
+        """The flag outlives the assignment by a few lines; a push in that
+        window must describe what is playing, not suppress itself."""
+        got = self._push(video=_Video(MOVIE), starting=True)
+        self.assertTrue(got and got[0].get("stopped") is False,
+                        "the snapshot went missing once the video landed: %r"
+                        % (got,))
+
+
 class TestEpisodeContext(unittest.TestCase):
     def test_an_episode_carries_its_series_and_numbering(self):
         st = snapshot(EPISODE)

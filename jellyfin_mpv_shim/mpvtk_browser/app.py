@@ -2249,6 +2249,17 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
                 # they have not read yet.
                 self.invalidate()
                 return
+            if self.load.starting is not None:
+                # ...and a start still IN FLIGHT owns it for the same reason:
+                # the loading screen is on the window and the yield to video
+                # has not happened yet. The player suppresses the incidental
+                # stopped pushes a load produces (player_reporting), so this
+                # is the second lock -- a remote stop, a websocket, anything
+                # that reports one from outside that path. Cancelling and
+                # failing both clear `starting` before they arrive here, so
+                # nothing can be stranded on the loading screen by it.
+                self.invalidate()
+                return
             if self._minimized:
                 # Cast finished and the library was never open: drop back to
                 # the windowless state rather than popping the browser up on
