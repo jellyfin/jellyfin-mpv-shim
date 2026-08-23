@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-11 22:40-0400\n"
+"POT-Creation-Date: 2026-08-22 23:24-0400\n"
 "PO-Revision-Date: 2025-10-29 22:47+0000\n"
 "Last-Translator: Battseren Badral <bbattseren88@gmail.com>\n"
 "Language-Team: Mongolian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -318,7 +318,9 @@ msgstr "Видео тоглуулах профайлыг өөрчлөх"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
-msgid "Quit and Mark Unwatched"
+#, fuzzy
+#| msgid "Quit and Mark Unwatched"
+msgid "Quit and Mark Unplayed"
 msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -389,7 +391,6 @@ msgstr "Замын индексээр гарын авлага (найдвар б
 
 # seeded from jellyfin-web: Never
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Never"
 msgstr "Хэзээ ч"
 
@@ -593,7 +594,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Live TV"
 msgstr "Live ТВ"
 
@@ -630,6 +630,12 @@ msgid "Retry"
 msgstr "Дахин оролдох"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+msgid ""
+"Could not restart automatically — quit and start the app again to apply your "
+"changes."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
@@ -654,7 +660,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Cancel"
 msgstr "Цуцлах"
 
@@ -699,7 +704,6 @@ msgstr "Серверийг устгах"
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Save"
 msgstr "Хадгалах"
 
@@ -744,7 +748,6 @@ msgstr ""
 
 # seeded from jellyfin-web: QuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Quick Connect"
 msgstr "Түргэн холболт"
 
@@ -778,13 +781,11 @@ msgstr "Нууц үг:"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Use Quick Connect"
 msgstr "Quick Connect ашиглах"
 
 # seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Connect"
 msgstr "Холбогдох"
 
@@ -839,7 +840,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Sign In"
 msgstr "Нэвтрэх"
 
@@ -880,7 +880,6 @@ msgstr "Jellyfin медиа дотроос сонгоод энд тоглуул�
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
 msgid "Cast & Crew"
 msgstr "Жүжигчид ба баг"
 
@@ -889,7 +888,6 @@ msgstr "Жүжигчид ба баг"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Download"
 msgstr "Татаж авах"
 
@@ -910,7 +908,6 @@ msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Favorite"
 msgstr "Дуртай"
 
@@ -924,7 +921,6 @@ msgstr "Видео"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Audio"
 msgstr "аудио"
 
@@ -937,19 +933,16 @@ msgstr "Хадмал орчуулгын хэмжээ: {0}"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Lyric"
 msgstr "Дуучин"
 
 # seeded from jellyfin-web: Image
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Image"
 msgstr "Зураг"
 
 # seeded from jellyfin-web: LabelProfileContainer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Container"
 msgstr "Контейнер"
 
@@ -961,19 +954,16 @@ msgstr "Энгийн"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Path"
 msgstr "Зам"
 
 # seeded from jellyfin-web: LabelSize
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Size"
 msgstr "Хэмжээ"
 
 # seeded from jellyfin-web: Yes
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Yes"
 msgstr "Тийм"
 
@@ -989,25 +979,21 @@ msgstr "Байхгүй"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Title"
 msgstr "Гарчиг"
 
 # seeded from jellyfin-web: LabelLanguage
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Language"
 msgstr "Хэл"
 
 # seeded from jellyfin-web: MediaInfoCodec
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec"
 msgstr "Кодек"
 
 # seeded from jellyfin-web: MediaInfoCodecTag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Codec tag"
 msgstr "Кодек тэмдэг"
 
@@ -1019,13 +1005,11 @@ msgstr "Шинэ бүлэг"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Level"
 msgstr "Түвшин"
 
 # seeded from jellyfin-web: LabelChapterImageResolution
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Resolution"
 msgstr "Нягтрал"
 
@@ -1037,13 +1021,11 @@ msgstr "Харьцаа"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic"
 msgstr "Анаморфик"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Interlaced"
 msgstr "Интерлейст"
 
@@ -1054,13 +1036,11 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoLayout
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Layout"
 msgstr "Зохион байгуулалт"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "Сувгууд"
@@ -1081,7 +1061,6 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Sample rate"
 msgstr "Дээж авах хурд"
 
@@ -1092,7 +1071,6 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bit depth"
 msgstr "Битийн гүн"
 
@@ -1127,26 +1105,22 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoPixelFormat
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Pixel format"
 msgstr "Пиксел формат"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Ref frames"
 msgstr "Ref кадрууд"
 
 # seeded from jellyfin-web: MediaInfoRotation
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Rotation"
 msgstr "Эргэлт"
 
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Default"
 msgstr "Анхдагч"
 
@@ -1159,7 +1133,6 @@ msgstr " хүчээр"
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "External"
 msgstr "Гадна"
 
@@ -1189,37 +1162,31 @@ msgstr "Хувилбар"
 
 # seeded from jellyfin-web: MediaInfoDvProfile
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV profile"
 msgstr "DV профайл"
 
 # seeded from jellyfin-web: MediaInfoDvLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV level"
 msgstr "DV түвшин"
 
 # seeded from jellyfin-web: MediaInfoRpuPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV rpu preset flag"
 msgstr "DV RPU preset flag"
 
 # seeded from jellyfin-web: MediaInfoElPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV el preset flag"
 msgstr "DV EL preset flag"
 
 # seeded from jellyfin-web: MediaInfoBlPresentFlag
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl preset flag"
 msgstr "DV BL preset flag"
 
 # seeded from jellyfin-web: MediaInfoDvBlSignalCompatibilityId
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "DV bl signal compatibility id"
 msgstr "DV BL сигнал нийцтэй ID"
 
@@ -1237,13 +1204,11 @@ msgstr "Шууд замууд"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "Шууд урсгал"
 
 # seeded from jellyfin-web: Remuxing
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Remuxing"
 msgstr "Remux хийх"
 
@@ -1256,151 +1221,126 @@ msgstr " (Хувиргах)"
 
 # seeded from jellyfin-web: ContainerNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The container is not supported"
 msgstr "Контейнер дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video codec is not supported"
 msgstr "Видео кодек дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio codec is not supported"
 msgstr "Аудио кодек дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: SubtitleCodecNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The subtitle codec is not supported"
 msgstr "Дэд гарчиг кодек дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioIsExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream is external"
 msgstr "Аудио зам гадаад"
 
 # seeded from jellyfin-web: SecondaryAudioNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Secondary audio tracks are not supported"
 msgstr "Хоёрдогч аудио замууд дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video codec's profile is not supported"
 msgstr "Видео кодекийн профайл дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoLevelNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video codec's level is not supported"
 msgstr "Видео кодекийн түвшин дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoResolutionNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's resolution is not supported"
 msgstr "Видео нягтрал дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bit depth is not supported"
 msgstr "Видео bit гүн дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: VideoFramerateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's framerate is not supported"
 msgstr "Видео кадрын хурд дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: RefFramesNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Reference frames are not supported"
 msgstr "Reference frame дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AnamorphicVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic video is not supported"
 msgstr "Anamorphic видео дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: InterlacedVideoNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Interlaced video is not supported"
 msgstr "Interlaced видео дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioChannelsNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The number of audio channels is not supported"
 msgstr "Аудио сувгийн тоо дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioProfileNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio codec's profile is not supported"
 msgstr "Аудио кодекийн профайл дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioSampleRateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's sample rate is not supported"
 msgstr "Аудио sample rate дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioBitDepthNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bit depth is not supported"
 msgstr "Аудио bit гүн дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: ContainerBitrateExceedsLimit
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate exceeds the limit"
 msgstr "Видео битрейт хязгаараас давсан"
 
 # seeded from jellyfin-web: VideoBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's bitrate is not supported"
 msgstr "Видео битрейт дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: AudioBitrateNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio's bitrate is not supported"
 msgstr "Аудио битрейт дэмжигдсэнгүй"
 
 # seeded from jellyfin-web: UnknownVideoStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video stream info is unknown"
 msgstr "Видео замын мэдээлэл тодорхойгүй"
 
 # seeded from jellyfin-web: UnknownAudioStreamInfo
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The audio stream info is unknown"
 msgstr "Аудио замын мэдээлэл тодорхойгүй"
 
 # seeded from jellyfin-web: DirectPlayError
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "There was an error starting direct playback"
 msgstr "Шууд тоглуулахад алдаа гарлаа"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "The video's range type is not supported"
 msgstr "Видео хүрээний төрөл дэмжигдсэнгүй"
 
@@ -1409,13 +1349,15 @@ msgid "This Device"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Input"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
 msgstr ""
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Theme"
 msgstr "Сэдэв"
 
@@ -1433,7 +1375,6 @@ msgstr " (Хувиргах)"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Downloads"
 msgstr "Татаж авах менежер"
 
@@ -1471,7 +1412,6 @@ msgstr "Кредитыг алгасахаар шууд шилжих"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Advanced"
 msgstr "Дэвшилтэт"
 
@@ -1492,6 +1432,91 @@ msgstr ""
 #, fuzzy
 msgid "Copy (advanced)"
 msgstr "Дэвшилтэт"
+
+# seeded from jellyfin-web: Off
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Off"
+msgstr "Унтрах"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth Motion"
+msgstr ""
+
+# seeded from jellyfin-web: MediaInfoRefFrames
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Blend Frames"
+msgstr "Ref кадрууд"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Smooth (high quality)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Light (live action)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Standard (animation)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Strong"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Automatic (MPV decides)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2390 (reference)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "BT.2446a"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Spline"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Disable"
+msgid "Hable"
+msgstr "Идэвхгүй болгох"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Reinhard"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Clip (no tone mapping)"
+msgstr ""
+
+# seeded from jellyfin-web: Default
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "MPV default"
+msgstr "Анхдагч"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Change Video Quality"
+msgid "High quality"
+msgstr "Бичлэгийн чанар солих"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "MPV default (1 second)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Large (20 seconds)"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Very large (60 seconds)"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1631,6 +1656,18 @@ msgid "Never hide while paused"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Widen the gaps"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Centre the tiles"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Leave it on the right"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
 msgstr ""
 
@@ -1708,6 +1745,16 @@ msgstr ""
 msgid "Custom (set in config)"
 msgstr ""
 
+# seeded from jellyfin-web: OptionPlayCount
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+msgid "Game Controller"
+msgstr "Тоглуулсан тоо"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Swap Confirm and Back Buttons"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
 msgstr ""
@@ -1733,6 +1780,34 @@ msgstr ""
 #, fuzzy
 msgid "Hardware Decoding"
 msgstr "Бичлэг цуцлах"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Deinterlace Automatically"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Motion Interpolation"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid " (Transcode)"
+msgid "Debanding"
+msgstr " (Хувиргах)"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "HDR Tone Mapping"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Change Video Quality"
+msgid "Rendering Quality"
+msgstr "Бичлэгийн чанар солих"
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Network Buffer"
+msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
@@ -1801,6 +1876,10 @@ msgid "Player Controls Style"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Load All Seek Previews at Once"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
 msgstr ""
 
@@ -1808,9 +1887,10 @@ msgstr ""
 msgid "Interface Scale"
 msgstr ""
 
+# seeded from jellyfin-web: LabelTextSize
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Text Size"
-msgstr ""
+msgid "Text size"
+msgstr "Текстийн хэмжээ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
@@ -1819,6 +1899,14 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Full-Width Backdrops"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Grid Spacing"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1948,6 +2036,21 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Move with the d-pad or left stick, seek with the right stick, shoulder "
+"buttons to page, Start for the menu. A controller is not focus-aware, so it "
+"will reach this app even when another window is in front. Needs an mpv built "
+"with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
+"log says so. Any button can be reassigned in your input.conf."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Turn this on for a controller whose A button is on the right rather than at "
+"the bottom (Switch Pro, most 8BitDo pads)."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Leave these blank unless downloads are waking your disks too often. Set both "
 "of the first two together: episodes are then fetched in one batch when a "
 "series runs low, instead of one at a time."
@@ -1966,6 +2069,60 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
+"Deinterlace video the file says is interlaced. Off by default, as in MPV "
+"itself: the flag is not reliable in either direction, and deinterlacing "
+"progressive video softens a picture that was fine. To force it on for "
+"something that is interlaced without saying so, use Deinterlace in the "
+"player's settings menu, which lasts until you return to the library. Needs "
+"MPV 0.38 or newer."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Smooths the blocky steps that appear in gradients — skies, dark scenes, "
+"fades. Animation and anime benefit most, because flat gradients are most of "
+"the picture; live action is largely unaffected either way, though a strong "
+"setting can soften genuinely fine detail. Costs GPU work whatever the "
+"content, which is worth knowing on a small or older machine. Leave this Off "
+"if you set the deband options in mpv.conf yourself — Off writes nothing at "
+"all, so your values are left alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How HDR video is fitted to an SDR display. This does nothing when HDR is "
+"being passed through to an HDR display, because no tone mapping is happening "
+"to change. Leave it on Automatic unless HDR films look wrong to you; BT.2390 "
+"is the reference curve, and Clip is what to try if highlights look grey "
+"rather than bright."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"High quality applies the same options as MPV's own high-quality preset: "
+"better upscaling and HDR handling, at some GPU cost. It needs no shader "
+"files and does not use up your shader profile, so it is the thing to try "
+"before the shader pack below."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"How far ahead of playback to read. MPV's default is one second, which is "
+"short for a server reached over the internet or a slow connection — raise "
+"this if playback keeps stopping for buffering. Larger buffers use more "
+"memory and make the first few seconds of a file slower to start."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Frame blending (blends frames together, not the same as SVP/DLSS/framegen). "
+"Reduces juddering caused by mismatched frame rate between content and "
+"display. May cause dropped frames if your displays have mismatched frame "
+"rates."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
 "Off by default because some graphics drivers handle it badly. \"Only above "
 "1080p\" is the cautious way to turn it on: most hardware decodes 1080p in "
 "software without help. \"Copy (advanced)\" is slower, but it is the mode "
@@ -1977,57 +2134,67 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
-"screen, so the only way back is editing conf.json by hand. It is not how you "
-"get MPV's own on-screen controls — \"Player Controls Style\" under Interface "
-"does that."
+"screen, so the only way back is to edit conf.json by hand. This is not how "
+"you get MPV's own on-screen controls; use Player Controls Style under "
+"Interface for that."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Show only what is cast to this machine — the library, including this "
-"settings screen, can't be reached from here. Without a system tray icon the "
-"only way back is editing conf.json. For the classic cast-target setup you "
-"want the Interface settings instead; this is for a shared TV nobody should "
-"be able to browse from."
+"Show only what is cast to this machine. The library, including this settings "
+"screen, cannot be reached from here, and without a system tray icon the only "
+"way back is to edit conf.json. This is for a shared TV nobody should be able "
+"to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Some desktops — GNOME on Wayland in particular — draw no title bar on the "
+"Some desktops, GNOME on Wayland in particular, draw no title bar on the "
 "player window, leaving no way to move or close it. This puts minimize, "
 "maximize and close in the top bar instead, and lets you drag the window by "
-"it. Left on \"Only when the window has no title bar\", MPV is asked whether "
-"this window got one, so desktops that do decorate it are left alone."
+"it. On \"Only when the window has no title bar\", MPV is asked whether this "
+"window got one, so desktops that draw a title bar are left alone."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Requires restart to change. MPV keybinds are used by default. Press ENTER to "
-"drive the player controls by keyboard. \"No player controls\" leaves "
-"playback bare; the library, the keyboard shortcuts and the menu key still "
-"work."
+"Seek previews are normally fetched a few minutes at a time around where you "
+"are seeking, so scrubbing somewhere new waits briefly. Turn this on to load "
+"them all up front instead: nothing ever waits, but a long film can cost "
+"several hundred MB of memory. Turning it on applies to what you are watching "
+"the next time you seek somewhere new; turning it off applies to the next "
+"video."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Pixels one wheel notch scrolls. On a grid this is rounded so a whole number "
-"of notches spans one row, whichever scroll mode you are in — a trackpad or "
-"trackball never leaves you a sliver of a row off. Raise it to scroll faster, "
-"lower it for finer control."
+"MPV keybinds are used by default. Press ENTER to drive the player controls "
+"by keyboard. \"No player controls\" leaves playback bare; the library, the "
+"keyboard shortcuts and the menu key still work."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it; it "
-"lines rows up by itself if the display cannot keep up. Pick \"Aligned to "
-"rows\" if scrolling still stutters — on a very large display, a slow or "
-"remote one, or with an external MPV. Pick \"One row per notch\" to move a "
-"whole row (or one home-screen section) at a time."
+"Pixels one wheel notch scrolls. Raise it to scroll faster, lower it for "
+"finer control. On a grid the value is rounded so that a whole number of "
+"notches spans one row, in every scroll mode, so a trackpad or trackball "
+"never leaves you a sliver of a row off."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "Discord Rich Presence. Takes effect after a restart."
+msgid ""
+"\"Continuous\" scrolls by pixels and lands wherever the wheel puts it, "
+"lining rows up by itself if the display cannot keep up. Pick \"Aligned to "
+"rows\" if scrolling still stutters, as it can on a very large, slow or "
+"remote display, or with an external MPV. Pick \"One row per notch\" to move "
+"a whole row, or one home-screen section, at a time."
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+#, fuzzy
+#| msgid "Discord Rich Presence"
+msgid "Discord Rich Presence."
+msgstr "Discord-ийн өргөтгөсөн оролцоо"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2052,19 +2219,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Channel logos come as ink on a transparent background, drawn for the white "
-"page other clients put them on — so on a dark one the black ones vanish. On, "
-"they are backed with the light plate they were made for, and the few whose "
-"own outline is white get a drop shadow so they still have an edge against "
-"it. Off, they get the theme's card colour and no shadows, as Jellyfin Web "
-"does."
+"Channel logos are ink on a transparent background, drawn for the white page "
+"other clients put them on, so on a dark one the black ones vanish. On, each "
+"logo gets the light plate it was made for, and the few with a white outline "
+"get a drop shadow so they keep an edge against it. Off, they get the theme's "
+"card colour and no shadow, as Jellyfin Web does."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"The same treatment for a library set to draw Logo artwork. Off by default, "
-"because a film's or series' logo is white by convention and already reads on "
-"a dark background — the plate is what makes it need a shadow. Turn it on if "
+"The same treatment for a library set to draw Logo artwork. Off by default: a "
+"film or series logo is white by convention and already reads on a dark "
+"background, and it is the plate that makes it need a shadow. Turn it on if "
 "yours are dark."
 msgstr ""
 
@@ -2076,8 +2242,20 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Overrides the theme's cover size. Applies immediately, and is also on the "
-"View menu of any library."
+"Where the width a whole number of covers does not use ends up. Widening the "
+"gaps keeps the page margins the same on every screen size; centring keeps "
+"the covers evenly spaced and moves both margins instead."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Run the backdrop on a detail page to the edges of the window, as the web "
+"client does. It shows more of the artwork without taking any more vertical "
+"space."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2100,25 +2278,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"During playback only — in the library those buttons stay Back and Forward. "
-"Off by default because they are easy to hit by accident on some mice. Takes "
-"effect after a restart."
+"During playback only; in the library those buttons stay Back and Forward. "
+"Off by default because they are easy to hit by accident on some mice."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, no-python-format
 msgid ""
-"Takes effect after a restart. \"Follow display\" uses the scale your desktop "
-"reports, which is 100% on X11."
+"\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Scales the text only. Interface Scale above resizes everything -- artwork, "
-"spacing and controls -- so use this one when the words are too small rather "
-"than the whole interface. It stops at 150% because by then most tile "
-"captions are ellipsized and it is the whole interface that needs to be "
-"bigger -- which is Interface Scale, above."
+"Scales the text only. Interface Scale above resizes everything, artwork and "
+"spacing and controls included, so use this one when the words are too small "
+"rather than the whole interface. It stops at 150%: past that most tile "
+"captions are ellipsized, and what needs to be bigger is the whole interface, "
+"which is Interface Scale."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2135,9 +2311,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Audio your receiver can't be sent directly is encoded to AC3, which is the "
-"only way surround fits down an optical cable. Turn this off if the encoder "
-"causes audio delay — those tracks become stereo instead."
+"Audio your receiver cannot be sent directly is encoded to AC3, the only way "
+"surround fits down an optical cable. Turn this off if the encoder causes "
+"audio delay; those tracks become stereo instead."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -2176,7 +2352,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Unplayed"
 msgstr "Тоглуулаагүй"
 
@@ -2200,13 +2375,42 @@ msgstr "Серверийг устгах"
 msgid "Resumable"
 msgstr "Үргэлжлүүлэх"
 
+# seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Liked"
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
+msgid "Genres"
+msgstr "Төрлүүд"
+
+# seeded from jellyfin-web: LabelYear
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+msgid "Years"
+msgstr "Он"
+
+# seeded from jellyfin-web: OptionParentalRating
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
+msgid "Parental Rating"
+msgstr "Насны ангилал"
+
+# seeded from jellyfin-web: Tags
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Tags"
+msgstr "Тагууд"
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+msgid "Audio Language"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
+#, fuzzy
+#| msgid "Subtitle Size: {0}"
+msgid "Subtitle Language"
+msgstr "Хадмал орчуулгын хэмжээ: {0}"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Features"
 msgstr "Онцлог"
 
@@ -2234,43 +2438,6 @@ msgstr ""
 msgid "Has Theme Video"
 msgstr ""
 
-# seeded from jellyfin-web: Genres
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
-msgid "Genres"
-msgstr "Төрлүүд"
-
-# seeded from jellyfin-web: LabelYear
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-msgid "Years"
-msgstr "Он"
-
-# seeded from jellyfin-web: OptionParentalRating
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-msgid "Parental Rating"
-msgstr "Насны ангилал"
-
-# seeded from jellyfin-web: Tags
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-msgid "Tags"
-msgstr "Тагууд"
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-msgid "Audio Language"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
-msgid "Subtitle Language"
-msgstr "Хадмал орчуулгын хэмжээ: {0}"
-
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2279,14 +2446,12 @@ msgstr "Видео"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "SD"
 msgstr "SD"
 
 # seeded from jellyfin-web: ChannelResolutionHD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
-#, fuzzy
 msgid "HD"
 msgstr "HD"
 
@@ -2296,13 +2461,11 @@ msgstr ""
 
 # seeded from jellyfin-web: Option3D
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "3D"
 msgstr "3D"
 
 # seeded from jellyfin-web: OptionDvd
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "DVD"
 msgstr "DVD"
 
@@ -2315,7 +2478,6 @@ msgid "ISO"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Remove Server"
 msgid "Add to Playlist"
@@ -2331,7 +2493,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Create"
 msgstr "Үүсгэх"
 
@@ -2376,7 +2537,6 @@ msgstr "Хэрэглэгчийн нэр: "
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Back"
 msgstr "буцах"
 
@@ -2394,13 +2554,11 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Media Info"
 msgstr "Медиа мэдээлэл"
 
 # seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "OK"
 msgstr "За"
 
@@ -2443,7 +2601,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Download"
 msgstr "Татаж авах"
@@ -2466,16 +2623,16 @@ msgstr ""
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Filters"
 msgstr "Шүүлтүүрүүд"
 
+# seeded from jellyfin-web: ItemCount
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%d items"
-msgstr ""
+msgstr "%d зүйл"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2500,7 +2657,6 @@ msgstr "Автоматаар тоглуулах"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Poster"
 msgstr "Постер"
 
@@ -2516,13 +2672,11 @@ msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Logo"
 msgstr "Лого"
 
 # seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Disc"
 msgstr "Диск"
 
@@ -2570,7 +2724,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
 #| msgid "SVP Settings"
-msgid "View Settings"
+msgid "View settings"
 msgstr "SVP тохиргоо"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2691,7 +2845,6 @@ msgstr "Шинэ бүлэг"
 
 # seeded from jellyfin-web: LabelSyncPlayResumePlayback
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resume local playback"
 msgstr "Локал тоглолтыг үргэлжлүүлэх"
 
@@ -2705,7 +2858,6 @@ msgstr "Шинэ бүлэг"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Refresh"
 msgstr "Шинэчлэх"
 
@@ -2793,7 +2945,6 @@ msgstr ""
 # seeded from jellyfin-web: OptionSpecialEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Specials"
 msgstr "Онцгой анги"
 
@@ -2826,7 +2977,6 @@ msgstr "Амжилтгүй"
 # seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlist"
 msgstr "Тоглуулах жагсаалт"
 
@@ -2849,28 +2999,24 @@ msgstr ""
 
 # seeded from jellyfin-web: None
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgctxt "home screen section type"
 msgid "None"
 msgstr "Байхгүй"
 
 # seeded from jellyfin-web: HeaderMyMedia
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgid "My Media"
 msgstr "Миний медиа"
 
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Watching"
 msgstr "Үргэлжлүүлэн үзэх"
 
 # seeded from jellyfin-web: HeaderContinueListening
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Listening"
 msgstr "Үргэлжлүүлэн сонсох"
 
@@ -2886,13 +3032,11 @@ msgstr "Үргэлжлүүлэн үзэх"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Next Up"
 msgstr "Дараа үзэх"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
-#, fuzzy
 msgid "Recently Added"
 msgstr "Сая нэмэгдсэн"
 
@@ -2900,7 +3044,6 @@ msgstr "Сая нэмэгдсэн"
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Active Recordings"
 msgstr "Идэвхтэй бичлэгүүд"
 
@@ -2942,15 +3085,19 @@ msgstr "Бичлэгийн чанар солих"
 
 # seeded from jellyfin-web: PlaybackRate
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "Playback Speed"
 msgstr "Тоглуулах хурд"
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "Aspect Ratio"
 msgstr "Харьцаа"
+
+# seeded from jellyfin-web: MediaInfoInterlaced
+#: jellyfin_mpv_shim/mpvtk_browser/hud.py
+#, fuzzy
+msgid "Deinterlace"
+msgstr "Интерлейст"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -2983,7 +3130,6 @@ msgstr "Байхгүй (Идэвхгүй)"
 
 # seeded from jellyfin-web: LabelHardwareAccelerationType
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Hardware acceleration"
 msgstr "Хардвэр хурдатгал"
 
@@ -2995,7 +3141,6 @@ msgstr "Бичлэгийн чанар солих"
 
 # seeded from jellyfin-web: LabelDroppedFrames
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Dropped frames"
 msgstr "Алдагдсан кадрууд"
 
@@ -3045,7 +3190,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelPlayMethod
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Play method"
 msgstr "Тоглуулах арга"
 
@@ -3061,7 +3205,6 @@ msgstr "SyncPlay"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "File"
 msgstr "Файл"
 
@@ -3073,7 +3216,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Previous"
 msgstr "Өмнөх"
 
@@ -3081,7 +3223,7 @@ msgstr "Өмнөх"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, fuzzy
 #| msgid "Successfully added server."
-msgid "Previous Chapter"
+msgid "Previous chapter"
 msgstr "Серверийг нэмлээ."
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3092,28 +3234,28 @@ msgstr ""
 msgid "Forward 30 Seconds"
 msgstr ""
 
+# seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Next Chapter"
-msgstr ""
+#, fuzzy
+msgid "Next chapter"
+msgstr "Дараа үзэх"
 
 # seeded from jellyfin-web: Next
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Next"
 msgstr "Дараагийн"
 
 # seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Ends at {0}"
 msgstr "{0}-д дуусна"
 
 # seeded from jellyfin-web: Mute
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Mute"
 msgstr "Чимээгүй"
 
@@ -3138,13 +3280,11 @@ msgstr ""
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Series recording scheduled."
 msgstr "Цуврал бичлэг төлөвлөсөн."
 
 # seeded from jellyfin-web: RecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording scheduled."
 msgstr "Бичлэг төлөвлөсөн."
 
@@ -3152,20 +3292,20 @@ msgstr "Бичлэг төлөвлөсөн."
 msgid "The recording could not be scheduled."
 msgstr ""
 
+# seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-msgid "Cancel this recording?"
-msgstr ""
+#, fuzzy
+msgid "Cancel recording?"
+msgstr "Бичлэг цуцлах"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Recording cancelled."
 msgstr "Бичлэг цуцлагдлаа."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Cancel Recording"
 msgstr "Бичлэг цуцлах"
 
@@ -3206,7 +3346,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
@@ -3241,7 +3380,6 @@ msgstr "Серверийг устгах"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete"
 msgstr "Устгах"
 
@@ -3299,7 +3437,6 @@ msgstr ""
 # seeded from jellyfin-web: HeaderSeriesOptions
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Series Options"
 msgstr "Цувралын тохиргоо"
 
@@ -3311,26 +3448,24 @@ msgstr " (Хувиргах)"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Record"
 msgstr "Бичлэг"
 
 # seeded from jellyfin-web: NewEpisodesOnly
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "New episodes only"
 msgstr "Зөвхөн шинэ анги"
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All episodes"
 msgstr "Бүх ангиуд"
 
+# seeded from jellyfin-web: SkipEpisodesAlreadyInMyLibrary
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Skip episodes already in my library"
-msgstr ""
+msgid "Don't record episodes that are already in my library"
+msgstr "Сан дахь ангиудыг бичлэг хийхгүй"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
@@ -3339,45 +3474,43 @@ msgstr ""
 
 # seeded from jellyfin-web: OneChannel
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "One channel"
 msgstr "Нэг суваг"
 
 # seeded from jellyfin-web: LabelChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgctxt "series recording rule setting"
 msgid "Channels"
 msgstr "Сувгууд"
 
 # seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All channels"
 msgstr "Бүх сувгууд"
 
 # seeded from jellyfin-web: LabelAirTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Air time"
 msgstr "Нисэх цаг"
 
+# seeded from jellyfin-web: AroundTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Around %s"
-msgstr ""
+msgstr "Ойролцоогоор %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
 msgstr ""
 
+# seeded from jellyfin-web: LabelAirTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Any time"
-msgstr ""
+#, fuzzy
+msgid "Anytime"
+msgstr "Нисэх цаг"
 
 # seeded from jellyfin-web: LabelKeepUpTo
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Keep up to"
 msgstr "Хадгалах хүртэл"
 
@@ -3391,24 +3524,22 @@ msgstr ""
 
 # seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "As many as possible"
 msgstr "Боломжтой хэмжээгээр"
 
 # seeded from jellyfin-web: ValueOneEpisode
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "1 episode"
 msgstr "1 анги"
 
+# seeded from jellyfin-web: ValueEpisodeCount
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "%d episodes"
-msgstr ""
+msgstr "%d анги"
 
 # seeded from jellyfin-web: SortChannelsBy
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Sort channels by"
 msgstr "Сувгуудыг дараалаллах"
 
@@ -3424,23 +3555,23 @@ msgstr "Хадмал солих"
 msgid "Recently watched"
 msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 
+# seeded from jellyfin-web: PlaceFavoriteChannelsAtBeginning
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Place favorite channels first"
-msgstr ""
+msgid "Place favorite channels at the beginning"
+msgstr "Дуртай сувгуудыг эхэнд байрлуулах"
 
+# seeded from jellyfin-web: EnableColorCodedBackgrounds
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-msgid "Color-coded backgrounds"
-msgstr ""
+msgid "Color coded backgrounds"
+msgstr "Өнгөөр ялгасан дэвсгэр"
 
 # seeded from jellyfin-web: ShowIndicatorsFor
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Show indicators for"
 msgstr "Индикатор харуулах"
 
 # seeded from jellyfin-web: Categories
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Categories"
 msgstr "Ангилал"
 
@@ -3455,71 +3586,70 @@ msgstr "SVP тохиргоо"
 msgid "Guide settings could not be saved."
 msgstr ""
 
+# seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "HD Programs"
-msgstr ""
+#, fuzzy
+msgid "HD programs"
+msgstr "Хөтөлбөрүүд"
 
+# seeded from jellyfin-web: LiveBroadcasts
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "Live Broadcasts"
-msgstr ""
+msgid "Live broadcasts"
+msgstr "Live дамжуулалт"
 
+# seeded from jellyfin-web: NewEpisodesOnly
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "New Episodes"
-msgstr ""
+#, fuzzy
+msgid "New episodes"
+msgstr "Зөвхөн шинэ анги"
 
 # seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Premieres"
 msgstr "Нээлтүүд"
 
+# seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-msgid "Repeat Episodes"
-msgstr ""
+#, fuzzy
+msgid "Repeat episodes"
+msgstr "Бүх ангиуд"
 
 # seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Movies"
 msgstr "Кинонууд"
 
 # seeded from jellyfin-web: Sports
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Sports"
 msgstr "Спорт"
 
 # seeded from jellyfin-web: Kids
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "Kids"
 msgstr "Хүүхдэд зориулсан"
 
 # seeded from jellyfin-web: News
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "News"
 msgstr "Мэдээ"
 
 # seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Live"
 msgstr "Шууд"
 
 # seeded from jellyfin-web: Premiere
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Premiere"
 msgstr "Нээлт"
 
 # seeded from jellyfin-web: New
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
 msgid "New"
 msgstr "Шинэ"
 
@@ -3527,7 +3657,6 @@ msgstr "Шинэ"
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Repeat"
 msgstr "Давтах"
 
@@ -3555,17 +3684,23 @@ msgstr ""
 msgid "Retry with Transcode"
 msgstr "Код хувиргагчгүй"
 
+# seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat All"
-msgstr ""
+#, fuzzy
+msgid "Repeat all"
+msgstr "Давтах"
 
+# seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat One"
-msgstr ""
+#, fuzzy
+msgid "Repeat one"
+msgstr "Давтах"
 
+# seeded from jellyfin-web: Repeat
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-msgid "Repeat Off"
-msgstr ""
+#, fuzzy
+msgid "Repeat off"
+msgstr "Давтах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #, python-format
@@ -3584,7 +3719,6 @@ msgstr "SyncPlay"
 
 # seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Pause"
 msgstr "Түр зогсоох"
 
@@ -3595,7 +3729,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Stop"
 msgstr "Зогсоох"
 
@@ -3604,18 +3737,30 @@ msgstr "Зогсоох"
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Remove Server"
-msgid "Remove from Favorites"
+msgid "Remove from favorites"
 msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Favorites"
-msgstr ""
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Add to favorites"
+msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
 msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
+#, fuzzy
+#| msgid ""
+#| "Could not add server.\n"
+#| "Please check your connection information."
+msgid "Could not open that link."
+msgstr ""
+"Сервер нэмж чадсангүй.\n"
+"Холболтоо шалгана уу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3626,21 +3771,21 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Resume"
 msgstr "Үргэлжлүүлэх"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Restart"
 msgstr "Дахин эхлүүлэх"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Add to Queue"
-msgstr ""
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Add to play queue"
+msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
@@ -3658,7 +3803,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Start"
 msgstr "Эхлүүлэх"
 
@@ -3693,8 +3837,10 @@ msgstr "Хөтөлбөрүүд"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-msgid "Nothing here yet."
-msgstr ""
+#, fuzzy
+#| msgid "Server Configuration"
+msgid "Nothing here."
+msgstr "Серверийн тохиргоо"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
@@ -3724,7 +3870,6 @@ msgstr ""
 # seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
 msgid "More Like This"
 msgstr "Үүнтэй төстэй"
 
@@ -3741,7 +3886,6 @@ msgstr "Амжилтгүй"
 
 # seeded from jellyfin-web: HeaderScenes
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Scenes"
 msgstr "Тойм"
 
@@ -3752,7 +3896,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Version"
 msgstr "Хувилбар"
 
@@ -3760,10 +3903,11 @@ msgstr "Хувилбар"
 msgid "Sub"
 msgstr ""
 
+# seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Ends at %s"
-msgstr ""
+msgstr "%s-д дуусна"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
@@ -3776,25 +3920,21 @@ msgstr ""
 # seeded from jellyfin-web: LabelName
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Name"
 msgstr "Нэр"
 
 # seeded from jellyfin-web: OptionDateAdded
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Date Added"
 msgstr "Нэмэгдсэн огноо"
 
 # seeded from jellyfin-web: OptionReleaseDate
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Release Date"
 msgstr "Гарсан огноо"
 
 # seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Community Rating"
 msgstr "Олон нийтийн үнэлгээ"
 
@@ -3806,7 +3946,6 @@ msgstr "Автоматаар тоглуулах"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Play Count"
 msgstr "Тоглуулсан тоо"
 
@@ -3814,13 +3953,14 @@ msgstr "Тоглуулсан тоо"
 msgid "Runtime"
 msgstr ""
 
+# seeded from jellyfin-web: OptionCommunityRating
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-msgid "Critic Rating"
-msgstr ""
+#, fuzzy
+msgid "Critics Rating"
+msgstr "Олон нийтийн үнэлгээ"
 
 # seeded from jellyfin-web: OptionRandom
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Random"
 msgstr "Санамсаргүй"
 
@@ -3850,7 +3990,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Filter"
 msgstr "Шүүлтүүр"
 
@@ -3866,13 +4005,11 @@ msgstr "SyncPlay"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
-#, fuzzy
 msgid "Shuffle"
 msgstr "Санамсаргүй эрэмбэлэх"
 
 # seeded from jellyfin-web: Sort
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Sort"
 msgstr "Эрэмбэлэх"
 
@@ -3887,7 +4024,6 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Libraries"
 msgstr "Сангууд"
 
@@ -3897,39 +4033,33 @@ msgstr ""
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Programs"
 msgstr "Хөтөлбөрүүд"
 
 # seeded from jellyfin-web: Guide
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Guide"
 msgstr "Гарын авлага"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Channels"
 msgstr "Сувгууд"
 
 # seeded from jellyfin-web: Recordings
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Recordings"
 msgstr "Бичлэгүүд"
 
 # seeded from jellyfin-web: Schedule
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Schedule"
 msgstr "Хуваарь"
 
 # seeded from jellyfin-web: Series
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Series"
 msgstr "Цуврал"
 
@@ -4040,14 +4170,14 @@ msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 # seeded from jellyfin-web: HeaderStopRecording
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Stop Recording"
 msgstr "Бичлэгийг зогсоох"
 
+# seeded from jellyfin-web: DoNotRecord
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Do Not Record"
-msgstr ""
+msgid "Do not record"
+msgstr "Бичлэг хийхгүй"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4058,7 +4188,7 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Remove Server"
-msgid "Record Series"
+msgid "Record series"
 msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -4081,7 +4211,6 @@ msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Albums"
 msgstr "Дуут цомгууд"
 
@@ -4092,7 +4221,7 @@ msgstr ""
 # seeded from jellyfin-web: HeaderInstantMix
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #, fuzzy
-msgid "Instant Mix"
+msgid "Instant mix"
 msgstr "Яг одоо холих"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -4101,15 +4230,16 @@ msgstr "Яг одоо холих"
 msgid "%d tracks"
 msgstr "Аудио дууг сонгоно уу"
 
+# seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-msgid "Album Artists"
-msgstr ""
+#, fuzzy
+msgid "Album artists"
+msgstr "Уран бүтээлчид"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Artists"
 msgstr "Уран бүтээлчид"
 
@@ -4117,7 +4247,6 @@ msgstr "Уран бүтээлчид"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Songs"
 msgstr "Дуунууд"
 
@@ -4134,7 +4263,6 @@ msgstr ""
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Edit"
 msgstr "Засах"
 
@@ -4152,13 +4280,11 @@ msgstr ""
 
 # seeded from jellyfin-web: Up
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Up"
 msgstr "Дээш"
 
 # seeded from jellyfin-web: Down
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Down"
 msgstr "Доош"
 
@@ -4169,7 +4295,6 @@ msgstr ""
 
 # seeded from jellyfin-web: SelectAll
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Select All"
 msgstr "Бүгдийг сонгох"
 
@@ -4229,14 +4354,12 @@ msgstr "Серверийг устгах"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Type"
 msgstr "Төрөл"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Time"
 msgstr "Цаг"
 
@@ -4285,11 +4408,12 @@ msgid "Copying is not available."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, fuzzy
 #| msgid ""
 #| "Could not add server.\n"
 #| "Please check your connection information."
-msgid "Could not copy the text."
+msgid "Could not copy"
 msgstr ""
 "Сервер нэмж чадсангүй.\n"
 "Холболтоо шалгана уу."
@@ -4345,20 +4469,17 @@ msgstr "Сервер:"
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Shows"
 msgstr "Шоу"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Videos"
 msgstr "Видео"
 
 # seeded from jellyfin-web: People
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "People"
 msgstr "Хүмүүс"
 
@@ -4368,13 +4489,13 @@ msgstr ""
 
 # seeded from jellyfin-web: Other
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Other"
 msgstr "Бусад"
 
+# seeded from jellyfin-web: NoSubtitleSearchResultsFound
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-msgid "No results."
-msgstr ""
+msgid "No results found."
+msgstr "Үр дүн олдсонгүй."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
 msgid "To Series"
@@ -4406,14 +4527,14 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "On Now"
 msgstr "Одоо тоглож байна"
 
+# seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, python-format
-msgid "Latest %s"
-msgstr ""
+#, fuzzy, python-brace-format
+msgid "Recently Added in {0}"
+msgstr "Сая нэмэгдсэн"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4447,13 +4568,11 @@ msgstr ""
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "TV Shows"
 msgstr "ТВ нэвтрүүлгүүд"
 
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlists"
 msgstr "Тоглуулах жагсаалтууд"
 
@@ -4519,16 +4638,42 @@ msgstr "Серверийг устгах"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
 msgid "Show advanced settings"
 msgstr "Дэвшилтэт тохиргоог харуулах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Interface scale requires a restart."
+#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
+msgid "Open Config Folder"
+msgstr "Тохиргооны хавтасыг нээнэ үү"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+msgid ""
+"Advanced MPV options go in mpv.conf, in this folder. MPV reads it at startup "
+"and these settings are applied afterwards, so most of them override it. "
+"Hardware Decoding is the exception: set hwdec there and this app leaves it "
+"alone."
+msgstr ""
+
+# seeded from jellyfin-web: Restart
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, fuzzy
+msgid "Requires restart"
+msgstr "Дахин эхлүүлэх"
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
+msgid "No settings match \"%s\"."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-msgid "Some changes take effect after restarting."
+msgid ""
+"Only the General, Browse and Playback tabs are searched. Some settings are "
+"hidden until the setting they depend on is turned on."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
+#, python-format
+msgid "Matches: %d. Pick a tab above to stop searching."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4643,9 +4788,10 @@ msgstr ""
 msgid "Section %d"
 msgstr ""
 
+# seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-msgid "Use episode images in Next Up and Continue Watching"
-msgstr ""
+msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
+msgstr "'Next Up' болон 'Continue Watching' хэсэгт анги зургийг ашиглах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
@@ -4693,13 +4839,11 @@ msgstr ""
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "General"
 msgstr "Ерөнхий"
 
 # seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Browse"
 msgstr "Харах"
 
@@ -4714,15 +4858,16 @@ msgstr "Сервер URL: "
 msgid "Logs"
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
+#, fuzzy
+#| msgid "SVP Settings"
+msgid "Search settings…"
+msgstr "SVP тохиргоо"
+
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Copy"
 msgstr "Хуулах"
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py jellyfin_mpv_shim/tray.py
-msgid "Open Config Folder"
-msgstr "Тохиргооны хавтасыг нээнэ үү"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "No log output captured yet."
@@ -4731,16 +4876,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 msgid "There is nothing to copy yet."
 msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
-msgid "Could not copy the log."
-msgstr ""
-"Сервер нэмж чадсангүй.\n"
-"Холболтоо шалгана уу."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
 #, python-format
@@ -4808,7 +4943,6 @@ msgstr ""
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete User"
 msgstr "Хэрэглэгч устгах"
 
@@ -4856,7 +4990,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Year"
 msgstr "Он"
 
@@ -4866,7 +4999,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Artist"
 msgstr "Уран бүтээлч"
 
@@ -4874,38 +5006,45 @@ msgstr "Уран бүтээлч"
 msgid "Album"
 msgstr ""
 
+# seeded from jellyfin-web: PlayFromBeginning
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-msgid "Play from Beginning"
-msgstr ""
+msgid "Play from beginning"
+msgstr "Эхнээс нь тоглуулах"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
-msgid "Play Next"
+msgid "Play next"
 msgstr "Тоглуулсан тоо"
 
+# seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
-#| msgid "Quit and Mark Unwatched"
-msgid "Mark Unwatched"
-msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
+msgid "Mark unplayed"
+msgstr "Тоглуулаагүй"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Quit and Mark Unwatched"
-msgid "Mark Watched"
+msgid "Mark played"
 msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Remove Server"
-msgid "Remove from Playlist"
+msgid "Add to playlist"
 msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy
 #| msgid "Remove Server"
-msgid "Remove from Collection"
+msgid "Remove from playlist"
+msgstr "Серверийг устгах"
+
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
+#, fuzzy
+#| msgid "Remove Server"
+msgid "Remove from collection"
 msgstr "Серверийг устгах"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4927,7 +5066,6 @@ msgstr ""
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Search"
 msgstr "Хайх"
 
@@ -4937,7 +5075,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelRestore
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restore"
 msgstr "Сэргээх"
 
@@ -4953,7 +5090,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Home
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Home"
 msgstr "Нүүр"
 
@@ -4971,6 +5107,22 @@ msgstr "Хэрэглэгчийн нэр:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, python-format
+msgid "Restart to apply: %s"
+msgstr ""
+
+# seeded from jellyfin-web: Restart
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+#, fuzzy
+msgid "Restart Now"
+msgstr "Дахин эхлүүлэх"
+
+#: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
+msgctxt "Restart banner"
+msgid "Later"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -5029,7 +5181,7 @@ msgstr ""
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
 #| msgid "SyncPlay enabled."
-msgid "SyncPlay Enabled"
+msgid "SyncPlay enabled"
 msgstr "SyncPlay идэвхжсэн."
 
 #: jellyfin_mpv_shim/player.py
@@ -5119,8 +5271,9 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "SyncPlay санд хандахыг хориглосон."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0}'s Group"
+#, fuzzy, python-brace-format
+#| msgid "{0}'s Group"
+msgid "{0}'s group"
 msgstr "{0}-н бүлэг"
 
 #: jellyfin_mpv_shim/syncplay.py
@@ -5156,8 +5309,9 @@ msgid "{0} has left."
 msgstr "{0} гарлаа."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, python-brace-format
-msgid "{0} is buffering."
+#, fuzzy, python-brace-format
+#| msgid "{0} is buffering."
+msgid "{0} is buffering…"
 msgstr "{0} буферлэж байна."
 
 #: jellyfin_mpv_shim/tray.py
@@ -5294,6 +5448,25 @@ msgstr "Видео тоглуулах профайл"
 #: jellyfin_mpv_shim/video_profile.py
 msgid "Select Shader Profile"
 msgstr "Shader Profile-г сонгоно уу"
+
+#, fuzzy
+#~| msgid ""
+#~| "Could not add server.\n"
+#~| "Please check your connection information."
+#~ msgid "Could not copy the text."
+#~ msgstr ""
+#~ "Сервер нэмж чадсангүй.\n"
+#~ "Холболтоо шалгана уу."
+
+#, fuzzy
+#~| msgid "Quit and Mark Unwatched"
+#~ msgid "Mark Unwatched"
+#~ msgstr "Гараад, Үзээгүй гэж тэмдэглэх"
+
+#, fuzzy
+#~| msgid "SyncPlay enabled."
+#~ msgid "SyncPlay Enabled"
+#~ msgstr "SyncPlay идэвхжсэн."
 
 # seeded from jellyfin-web: Display
 #, fuzzy
