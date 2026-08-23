@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-23 07:12+0000\n"
+"PO-Revision-Date: 2026-08-23 07:26+0000\n"
 "Last-Translator: Koralski <bkoralski@gmail.com>\n"
 "Language-Team: Bulgarian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/bg/>\n"
@@ -76,14 +76,16 @@ msgstr "Настоящи настройки..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Отворете Jellyfin, влезте във менюто на вашия потребител --> Бързо "
+"Свързване, и въведете този код:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Изчакване одобрение..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Изчистване на всички съществуващи акаунти."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -95,19 +97,15 @@ msgstr "Добавянето на сървъра е неуспешно."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Акаунтът вече съществува. Актуализират се данните за вход."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Успешно добавен сървър."
+msgstr "Успешно бяха актуализирани данните за достъп до сървъра."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Добавянето на сървъра е неуспешно."
+msgstr "Актуализирането на данните за достъп до сървъра се провали."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -126,28 +124,20 @@ msgid "Add another server?"
 msgstr "Добавяне на друг сървър?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Не може да бъде добавен сървър.\n"
-"Моля,проверете информацията за връзката."
+msgstr "Не можа да се установи връзка със сървъра."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Функцията „Бърза Връзка“ не е активирана на този сървър."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Не можа да се стартира \"Бърза Връзка\"."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Пропуснати надписи"
+msgstr "Пропусни надписи"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
@@ -159,13 +149,11 @@ msgstr "Търсене за пропускане на надписите"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "Пропусни реклама"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skipped Commercial"
-msgstr "Пропуснати надписи"
+msgstr "Пропусната реклама"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
