@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-23 09:45+0000\n"
+"PO-Revision-Date: 2026-08-23 14:22+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1633,7 +1633,7 @@ msgstr "Controls del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Intercanvia els botons de confirmació i enrere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1662,11 +1662,11 @@ msgstr "Descodificació de maquinari"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Desentrellaça automàticament"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Interpolació de moviment"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1676,7 +1676,7 @@ msgstr "S'està llegint"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "Mapeig de tons HDR"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1756,7 +1756,7 @@ msgstr "Estil dels controls del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Carrega alhora totes les previsualitzacions de cerca"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
@@ -1783,11 +1783,11 @@ msgstr "Mida de la coberta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Fons d'amplada completa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Espaiat de la quadrícula"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
@@ -2157,10 +2157,8 @@ msgstr ""
 "moure una fila sencera (o una secció de la pantalla d'inici) alhora."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Rich Presence de Discord"
+msgstr "Discord Rich Presence."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -3226,10 +3224,8 @@ msgstr "No s'ha pogut programar l'enregistrament."
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
-#| msgid "Cancel Recording"
 msgid "Cancel recording?"
-msgstr "Cancel·la l'enregistrament"
+msgstr "Desitgeu cancel·lar l'enregistrament?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -4276,10 +4272,8 @@ msgstr "Copiar no està disponible."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid "Could not copy the log."
 msgid "Could not copy"
-msgstr "No s'ha pogut copiar el registre."
+msgstr "No s'ha pogut copiar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4376,10 +4370,9 @@ msgstr "En curs"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
-#| msgid "Recently Added"
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Afegits recentment"
+msgstr "Afegit recentment a {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4499,7 +4492,7 @@ msgstr "Sol·liciteu aquest PIN en iniciar"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
 msgid "No settings match \"%s\"."
-msgstr ""
+msgstr "No hi ha cap configuració que coincideixi amb \"%s\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid ""
@@ -4511,6 +4504,7 @@ msgstr ""
 #, python-format
 msgid "Matches: %d. Pick a tab above to stop searching."
 msgstr ""
+"Coincidències: %d. Seleccioneu una pestanya de dalt per aturar la cerca."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Move"
@@ -4826,10 +4820,8 @@ msgstr "Reprodueix des de l'inici"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Play Count"
 msgid "Play next"
-msgstr "Nombre de reproduccions"
+msgstr "Reprodueix el següent"
 
 # seeded from jellyfin-web: Unplayed
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4919,7 +4911,7 @@ msgstr "Cerca…"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "Reinicia per aplicar: %s"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
@@ -4987,10 +4979,8 @@ msgid "Use the default"
 msgstr "Fes servir el predeterminat"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay activat."
+msgstr "SyncPlay activat"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -5125,10 +5115,9 @@ msgid "{0} has left."
 msgstr "{0} ha marxat."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} està emmagatzemant memòria intermèdia."
+msgstr "{0} està emmagatzemant memòria intermèdia…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
