@@ -565,6 +565,76 @@ class DebandPerItemTest(_Base):
         self.assertIs(self.pm._player.deband, False)
 
 
+class ReassertLockTest(_Base):
+    """The reasserts take the player lock.
+
+    Both arrive from a thread that is not the one applying settings for the
+    next item -- the shader menu's ``put_task`` on the action thread, and
+    ``kb_kill_shader`` straight out of mpv's key handler -- and every
+    property they write is written by ``_play_media`` too. Without the lock
+    the two loops interleave and the item wears half of each.
+
+    Asserted as "does not write while the lock is held" rather than by
+    reading the decorator: the decorator is the mechanism, and a reassert
+    that reached mpv by some other route would pass a decorator check and
+    fail the user.
+    """
+
+    def _blocked(self, call, prop, value):
+        """Run ``call`` on its own thread with ``_lock`` held, and report
+        whether it wrote ``prop`` before the lock was released."""
+        setattr(self.pm._player, prop, value)
+        released = threading.Event()
+        wrote_early = []
+        done = threading.Event()
+
+        def run():
+            try:
+                call()
+            finally:
+                done.set()
+
+        with self.pm._lock:
+            thread = threading.Thread(target=run, daemon=True)
+            thread.start()
+            # Long enough that an unlocked call would have finished: the
+            # write is a handful of attribute sets on the fake.
+            done.wait(0.5)
+            wrote_early.append(getattr(self.pm._player, prop) != value)
+            released.set()
+        self.assertTrue(done.wait(5), "the reassert never completed")
+        thread.join(5)
+        return wrote_early[0]
+
+    def test_a_render_reassert_waits_for_the_player_lock(self):
+        self.setting("deband", "strong")
+        self.play()
+        self.assertFalse(
+            self._blocked(self.pm.reapply_render_presets,
+                          "deband_grain", 0.0),
+            "reapply_render_presets wrote while another thread held _lock")
+        self.assertEqual(self.pm._player.deband_grain, 32,
+                         "it never wrote at all -- the test proved nothing")
+
+    def test_a_deinterlace_reassert_waits_for_the_player_lock(self):
+        self.play()
+        self.pm.set_deinterlace(True)
+        self.assertFalse(
+            self._blocked(self.pm.reapply_deinterlace, "deinterlace", "no"),
+            "reapply_deinterlace wrote while another thread held _lock")
+        self.assertNotEqual(self.pm._player.deinterlace, "no",
+                            "it never wrote at all -- the test proved nothing")
+
+    def test_the_play_path_can_still_reassert_re_entrantly(self):
+        """``_play_media`` holds ``_lock`` and reaches ``apply_for_item``,
+        which reasserts. An ordinary Lock here would deadlock the whole of
+        playback; ``_lock`` is an RLock and this is what says so."""
+        self.setting("deband", "strong")
+        with self.pm._lock:
+            self.pm.reapply_render_presets()      # must not hang
+        self.assertEqual(self.pm._player.deband_grain, 32)
+
+
 class BufferPerItemTest(_Base):
     def test_a_preset_writes_the_demuxer_options(self):
         self.setting("network_buffer", "large")

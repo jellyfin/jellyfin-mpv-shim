@@ -3175,6 +3175,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 return mode == "yes", mode == "auto"
             return bool(mode), False
 
+    @synchronous("_lock")
     def reapply_render_presets(self):
         """Write the preset-driven settings again, now.
 
@@ -3191,11 +3192,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         The rule it enforces is the one the settings are documented with: a
         preset that is not "off" is the authority, and "off" means we have no
         opinion and whatever the pack (or mpv.conf) wrote stands.
+
+        ``@synchronous`` because it arrives from two threads that are not the
+        one applying settings for the next item: the shader menu's
+        ``put_task`` on the action thread, and ``kb_kill_shader`` straight
+        from mpv's key handler. Every one of the settings it writes is also
+        written by ``_play_media``, so without the lock the two loops
+        interleave and the item ends up wearing half of each -- and the
+        pack's values it reads through ``_pack_applied`` are being rewritten
+        by ``unload_profile`` at the same time. Blocking a key handler on
+        this lock is what ``toggle_pause`` and ``toggle_fullscreen`` already
+        do, and ``wait_property``'s poll thread and hard timeout are what
+        keep a playback start from holding it for ever.
         """
         if self._player is None or not self._mpv_alive:
             return
         self._apply_render_presets()
 
+    @synchronous("_lock")
     def reapply_deinterlace(self):
         """Write whatever the current override-or-setting comes to, now.
 
@@ -3203,6 +3217,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         runs on the way out of playback, where there is nothing to change.
         The gear menu clears it with something still on screen, so it needs
         the write as a separate step.
+
+        ``@synchronous`` for the reason its sibling above is, and stated here
+        too because the pair is exactly the shape this codebase gets wrong:
+        the mechanism goes on one side and the second implementation is where
+        the bug turns up. It reaches mpv from the HUD gateway's ``_act``,
+        whose deferred path holds no lock at all.
         """
         if self._player is None or not self._mpv_alive:
             return

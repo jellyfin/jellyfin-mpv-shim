@@ -393,6 +393,18 @@ pack's write is the last one until the next item — so picking an upscaler
 mid-film and dropping it again took the user's debanding with it for the rest
 of the film.
 
+It is `@synchronous("_lock")`, and so is `reapply_deinterlace` beside it.
+Both arrive from a thread that is not the one applying settings for the next
+item — the shader menu's `put_task` on the action thread, `kb_kill_shader`
+straight out of mpv's key handler, the HUD gateway's `_act` whose deferred
+path holds no lock at all — and every property they write `_play_media`
+writes too, so unlocked the two loops interleave and the item wears half of
+each. Blocking a key handler on this lock is what `toggle_pause` and
+`toggle_fullscreen` already do; `wait_property`'s poll thread and hard
+timeout (§9) are what stop a playback start holding it indefinitely, and
+`_lock` being an **RLock** is what lets `_play_media` reach the reassert
+through `apply_for_item` while already holding it.
+
 **And "off" restores to the PACK's value where a profile is loaded**, not to
 pristine (`_pack_applied`, fed by `VideoProfileManager.applied_settings`). Off
 means "I have no opinion"; with a profile on, the value the property would have
