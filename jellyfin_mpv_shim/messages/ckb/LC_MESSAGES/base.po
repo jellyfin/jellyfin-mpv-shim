@@ -591,7 +591,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
-#, fuzzy
 msgid "Live TV"
 msgstr "تەلەفزیۆنی ڕاستەوخۆ"
 
@@ -652,7 +651,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Cancel"
 msgstr "هەڵوەشاندنەوە"
 
@@ -761,13 +759,11 @@ msgstr "وشەی نهێنی"
 
 # seeded from jellyfin-web: ButtonUseQuickConnect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Use Quick Connect"
 msgstr "بەکارهێنانی پەیوەندیکردنی خێرا"
 
 # seeded from jellyfin-web: Connect
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Connect"
 msgstr "بەستنەوە"
 
@@ -810,7 +806,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
 msgid "Sign In"
 msgstr "چوونەژوورەوە"
 
@@ -849,7 +844,6 @@ msgstr "میدیاکەت لە جێلیڤین (Jellyfin) هەڵبژێرە و لێ
 
 # seeded from jellyfin-web: HeaderCastAndCrew
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
-#, fuzzy
 msgid "Cast & Crew"
 msgstr "ئەکتەران و ستاف"
 
@@ -858,7 +852,6 @@ msgstr "ئەکتەران و ستاف"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Download"
 msgstr "داگرتن"
 
@@ -879,7 +872,6 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 #: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Favorite"
 msgstr "دڵخواز"
 
@@ -891,7 +883,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Audio"
 msgstr "دەنگ"
 
@@ -904,7 +895,6 @@ msgstr "قەبارەی ژێرنووس: {0}"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Lyric"
 msgstr "هۆنراوە"
 
@@ -946,7 +936,6 @@ msgstr "هیچ کامیان"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Title"
 msgstr "سەردێڕ"
 
@@ -982,7 +971,6 @@ msgstr "ڕێژەی لایەنەکان"
 
 # seeded from jellyfin-web: MediaInfoAnamorphic
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Anamorphic"
 msgstr "شێوەگۆڕاو"
 
@@ -993,7 +981,6 @@ msgstr ""
 # seeded from jellyfin-web: Framerate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "Framerate"
 msgstr "ڕێژەی چوارچێوەکان"
 
@@ -1003,7 +990,6 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoChannels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "کەناڵەکان"
@@ -1015,7 +1001,6 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoBitrate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bitrate"
 msgstr "ڕێژەی بیت"
 
@@ -1035,7 +1020,6 @@ msgstr ""
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Bit depth"
 msgstr "قووڵی بیت"
 
@@ -1058,19 +1042,16 @@ msgstr "بەشەجۆری لاڕووی ڤیدیۆ"
 
 # seeded from jellyfin-web: ColorSpace
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color space"
 msgstr "بۆشاییی ڕەنگ"
 
 # seeded from jellyfin-web: ColorTransfer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color transfer"
 msgstr "گواستنەوەی ڕەنگ"
 
 # seeded from jellyfin-web: ColorPrimaries
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Color primaries"
 msgstr "ڕەنگە بنەڕەتییەکان"
 
@@ -1089,7 +1070,6 @@ msgstr ""
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Default"
 msgstr "بنەڕەتی"
 
@@ -1164,7 +1144,6 @@ msgstr "ڕیگە ڕاستەوخۆکان"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgid "Direct streaming"
 msgstr "ستریمی ڕاستەوخۆ"
 
@@ -1291,7 +1270,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Theme"
 msgstr "ڕووکار"
 
@@ -1309,7 +1287,6 @@ msgstr "تۆمارکردن"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Downloads"
 msgstr "داگیراوەکان"
 
@@ -1808,9 +1785,10 @@ msgstr ""
 msgid "Interface Scale"
 msgstr ""
 
+# seeded from jellyfin-web: LabelTextSize
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Text size"
-msgstr ""
+msgstr "قەبارەی دەق"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
@@ -2296,7 +2274,6 @@ msgstr "لەکارخستن"
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Genres"
 msgstr "شێوازەکان"
 
@@ -2327,7 +2304,6 @@ msgstr "قەبارەی ژێرنووس: {0}"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Features"
 msgstr "تایبەتمەندییەکان"
 
@@ -2361,14 +2337,12 @@ msgstr ""
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "SD"
 msgstr "SD"
 
 # seeded from jellyfin-web: ChannelResolutionHD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/guide_view.py
-#, fuzzy
 msgid "HD"
 msgstr "HD"
 
@@ -2408,7 +2382,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Create"
 msgstr "دروستکردن"
 
@@ -2447,7 +2420,6 @@ msgstr "ناوی کۆمەڵەی نوێ…"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Back"
 msgstr "گەڕانەوە"
 
@@ -2467,7 +2439,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonOk
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "OK"
 msgstr "باشە"
 
@@ -2502,7 +2473,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Download
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgctxt "dialog heading"
 msgid "Download"
 msgstr "داگرتن"
@@ -2525,7 +2495,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Filters
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Filters"
 msgstr "فلتەرەکان"
 
@@ -2573,13 +2542,11 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Logo"
 msgstr "لۆگۆ"
 
 # seeded from jellyfin-web: Disc
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Disc"
 msgstr "دیسک"
 
@@ -2801,7 +2768,6 @@ msgstr "دەنگ"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Books"
 msgstr "کتێب"
 
@@ -2813,7 +2779,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Episodes"
 msgstr "ئەڵقەکان"
 
@@ -2851,7 +2816,6 @@ msgstr "شکست"
 # seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlist"
 msgstr "پەخشکردنی لیست"
 
@@ -2879,26 +2843,28 @@ msgctxt "home screen section type"
 msgid "None"
 msgstr "هیچ کامیان"
 
+# seeded from jellyfin-web: HeaderMyMedia
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 msgid "My Media"
-msgstr ""
+msgstr "میدیای من"
 
+# seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Watching"
-msgstr ""
+msgstr "بەردەوام بوون لە سەیرکردن"
 
 # seeded from jellyfin-web: HeaderContinueListening
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Listening"
 msgstr "درێژەدان بە گوێگرتن"
 
+# seeded from jellyfin-web: HeaderContinueReading
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Continue Reading"
-msgstr ""
+msgstr "بەردەوامبە لە خوێندنەوە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/season.py
@@ -2915,7 +2881,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Active Recordings"
 msgstr "تۆمارکردنە چالاکەکان"
 
@@ -2961,7 +2926,6 @@ msgstr ""
 
 # seeded from jellyfin-web: AspectRatio
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
 msgid "Aspect Ratio"
 msgstr "ڕێژەی لایەنەکان"
 
@@ -3070,7 +3034,6 @@ msgstr "کارپێکردنی هاوکاتگەری"
 
 # seeded from jellyfin-web: File
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
 msgid "File"
 msgstr "فایل"
 
@@ -3112,7 +3075,7 @@ msgstr ""
 
 # seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Ends at {0}"
 msgstr "کۆتایی دێت لە {0}"
 
@@ -3162,7 +3125,6 @@ msgstr ""
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Cancel Recording"
 msgstr "پاشگەزبوونەوە لە تۆمارکردن"
 
@@ -3203,13 +3165,10 @@ msgstr ""
 
 # seeded from jellyfin-web: ConfirmDeleteItem
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr ""
-"سڕینەوەی ئەم بڕگەیە دەبێتە هۆی سڕینەوەی هەم لە سیستەمی پەڕگەکان (فایلەکان) و "
-"هەم لە پەڕتووکخانەی میدیاکەت. ئایا دڵنیایت کە دەتەوێت بەردەوام بیت؟"
+msgstr "سڕینەوەی ئەم بڕگەیە دەبێتە هۆی سڕینەوەی هەم لە سیستەمی پەڕگەکان (فایلەکان) و هەم لە پەڕتووکخانەی میدیاکەت. ئایا دڵنیایت کە دەتەوێت بەردەوام بیت؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3239,7 +3198,6 @@ msgstr "لابردنی ڕاژە"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete"
 msgstr "سڕینەوە"
 
@@ -3342,18 +3300,20 @@ msgstr "هەموو کەناڵەکان"
 msgid "Air time"
 msgstr ""
 
+# seeded from jellyfin-web: AroundTime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
 msgid "Around %s"
-msgstr ""
+msgstr "نزیکەی %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Original air time"
 msgstr ""
 
+# seeded from jellyfin-web: Anytime
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Anytime"
-msgstr ""
+msgstr "لە هەر کاتێکدا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Keep up to"
@@ -3369,7 +3329,6 @@ msgstr ""
 
 # seeded from jellyfin-web: AsManyAsPossible
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "As many as possible"
 msgstr "تا بتوانرێت زۆرترین"
 
@@ -3402,9 +3361,10 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 msgid "Place favorite channels at the beginning"
 msgstr ""
 
+# seeded from jellyfin-web: EnableColorCodedBackgrounds
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Color coded backgrounds"
-msgstr ""
+msgstr "پاشخانی ڕەنگاوڕەنگ بەپێی کۆد"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "Show indicators for"
@@ -3412,7 +3372,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Categories
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "Categories"
 msgstr "پۆلەکان"
 
@@ -3427,13 +3386,15 @@ msgstr "ڕیکخستنی SVP"
 msgid "Guide settings could not be saved."
 msgstr ""
 
+# seeded from jellyfin-web: HDPrograms
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "HD programs"
-msgstr ""
+msgstr "بەرنامەکانی HD"
 
+# seeded from jellyfin-web: LiveBroadcasts
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 msgid "Live broadcasts"
-msgstr ""
+msgstr "پەخشە ڕاستەوخۆکان"
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3474,7 +3435,6 @@ msgstr ""
 # seeded from jellyfin-web: Live
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Live"
 msgstr "ڕاستەوخۆ"
 
@@ -3540,7 +3500,6 @@ msgstr "کارپێکردنی هاوکاتگەری"
 
 # seeded from jellyfin-web: ButtonPause
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Pause"
 msgstr "وەستاندن"
 
@@ -3551,7 +3510,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonStop
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
 msgid "Stop"
 msgstr "ڕاگرتن"
 
@@ -3590,7 +3548,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
 msgid "Resume"
 msgstr "دەستپێکردنەوە"
 
@@ -3622,7 +3579,6 @@ msgstr ""
 
 # seeded from jellyfin-web: ButtonStart
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Start"
 msgstr "دەستپێکردن"
 
@@ -3683,10 +3639,11 @@ msgstr ""
 msgid "Zoom in"
 msgstr ""
 
+# seeded from jellyfin-web: HeaderMoreLikeThis
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/series.py
 msgid "More Like This"
-msgstr ""
+msgstr "هاوشێوەی ئەمە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 msgid "Go to Series"
@@ -3710,7 +3667,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelVersion
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
 msgid "Version"
 msgstr "وەشان"
 
@@ -3718,10 +3674,11 @@ msgstr "وەشان"
 msgid "Sub"
 msgstr ""
 
+# seeded from jellyfin-web: EndsAtValue
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Ends at %s"
-msgstr ""
+msgstr "کۆتایی دێت لە %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/favorites.py
 msgid "Nothing is marked as a favourite yet."
@@ -3795,7 +3752,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Filter
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Filter"
 msgstr "فلتەر"
 
@@ -3824,9 +3780,10 @@ msgstr ""
 msgid "There is nothing here to play."
 msgstr ""
 
+# seeded from jellyfin-web: HeaderLibraries
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Libraries"
-msgstr ""
+msgstr "کتێبخانەکان"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Nothing to show yet."
@@ -3838,14 +3795,12 @@ msgstr ""
 
 # seeded from jellyfin-web: Guide
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
 msgid "Guide"
 msgstr "ڕێنمایی"
 
 # seeded from jellyfin-web: MediaInfoChannels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Channels"
 msgstr "کەناڵەکان"
 
@@ -3963,10 +3918,11 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 msgid "Stop Recording"
 msgstr ""
 
+# seeded from jellyfin-web: DoNotRecord
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Do not record"
-msgstr ""
+msgstr "تۆمار مەکە"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4000,7 +3956,6 @@ msgstr "چوونەدەرەوە و دەستنیشانکردنی سەیرنەکر�
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Albums"
 msgstr "ئەلبوومەکان"
 
@@ -4027,7 +3982,6 @@ msgstr "هونەرمەندان"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Artists"
 msgstr "هونەرمەندان"
 
@@ -4046,7 +4000,6 @@ msgstr "نەتوانرا ئەم لاپەڕەیە باربکرێت."
 # seeded from jellyfin-web: Edit
 #: jellyfin_mpv_shim/mpvtk_browser/pages/playlist.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Edit"
 msgstr "دەستکاریکردن"
 
@@ -4068,7 +4021,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Down
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Down"
 msgstr "خوارەوە"
 
@@ -4134,14 +4086,12 @@ msgstr "سڕینەوەی پلەی لیستەکە %s؟"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy
 msgid "Type"
 msgstr "جۆر"
 
 # seeded from jellyfin-web: LabelTime
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Time"
 msgstr "کات"
 
@@ -4279,14 +4229,16 @@ msgstr "ناتوانرێت بڕگەی زیاتر باربکرێت."
 msgid "Could not load this page."
 msgstr "نەتوانرا ئەم لاپەڕەیە باربکرێت."
 
+# seeded from jellyfin-web: HeaderOnNow
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "On Now"
-msgstr ""
+msgstr "ئێستا پەخش دەکرێت"
 
+# seeded from jellyfin-web: LatestFromLibrary
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-brace-format
 msgid "Recently Added in {0}"
-msgstr ""
+msgstr "بەم دواییە زیادکرا لە {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4564,13 +4516,11 @@ msgstr "ناتوانرێت ڕووکاری شاشەی سەرەکی پاشەکەو
 
 # seeded from jellyfin-web: General
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "General"
 msgstr "گشتیی"
 
 # seeded from jellyfin-web: Browse
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
 msgid "Browse"
 msgstr "براوسەر"
 
@@ -4591,7 +4541,6 @@ msgstr "ڕێکخستنەکان"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
 msgid "Copy"
 msgstr "کۆپی"
 
@@ -4658,7 +4607,6 @@ msgstr ""
 
 # seeded from jellyfin-web: DeleteUser
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
 msgid "Delete User"
 msgstr "سڕینەوەی بەکارهێنەر"
 
@@ -4705,7 +4653,6 @@ msgstr ""
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Year"
 msgstr "ساڵ"
 
@@ -4715,13 +4662,11 @@ msgstr ""
 
 # seeded from jellyfin-web: Artist
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Artist"
 msgstr "هونەرمەند"
 
 # seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Album"
 msgstr "ئەلبووم"
 

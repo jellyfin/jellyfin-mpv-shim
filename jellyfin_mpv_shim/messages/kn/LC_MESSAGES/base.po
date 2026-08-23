@@ -923,7 +923,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
 msgctxt "audio channel count"
 msgid "Channels"
 msgstr "ಮೂಲಗಳು"
@@ -995,7 +994,6 @@ msgstr ""
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Default"
 msgstr "ಪೂರ್ವನಿಯೋಜಿತ"
 
@@ -2145,7 +2143,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Favorites"
 msgstr "ಮೆಚ್ಚಿನವುಗಳು"
 
@@ -2157,7 +2154,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy
 msgid "Genres"
 msgstr "ಪ್ರಕಾರಗಳು"
 
@@ -2610,7 +2606,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Books"
 msgstr "ಪುಸ್ತಕಗಳು"
 
@@ -2685,7 +2680,6 @@ msgstr ""
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Watching"
 msgstr "ನೋಡುವುದನ್ನು ಮುಂದುವರಿಸಿ"
 
@@ -3062,7 +3056,6 @@ msgstr ""
 
 # seeded from jellyfin-web: AllEpisodes
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All episodes"
 msgstr "ಎಲ್ಲಾ ಎಪಿಸೋಡ್‌ಗಳು"
 
@@ -3086,7 +3079,6 @@ msgstr ""
 
 # seeded from jellyfin-web: AllChannels
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
 msgid "All channels"
 msgstr "ಎಲ್ಲಾ ಚಾನೆಲ್‌ಗಳು"
 
@@ -3197,7 +3189,6 @@ msgstr "ಎಲ್ಲಾ ಎಪಿಸೋಡ್‌ಗಳು"
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Movies"
 msgstr "ಚಲನಚಿತ್ರಗಳು"
 
@@ -3324,11 +3315,12 @@ msgstr ""
 msgid "Restart"
 msgstr ""
 
+# seeded from jellyfin-web: AddToPlayQueue
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to play queue"
-msgstr ""
+msgstr "ಪ್ಲೇ ಕ್ಯೂಗೆ ಸೇರಿಸಿ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
@@ -3496,7 +3488,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Collections
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
 msgid "Collections"
 msgstr "ಸಂಗ್ರಹಣೆಗಳು"
 
@@ -3553,7 +3544,6 @@ msgstr ""
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy
 msgid "Channels"
 msgstr "ಮೂಲಗಳು"
 
@@ -3700,7 +3690,6 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Albums"
 msgstr "ಸಂಪುಟ"
 
@@ -3727,7 +3716,6 @@ msgstr "ಕಲಾವಿದರು"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Artists"
 msgstr "ಕಲಾವಿದರು"
 
@@ -3735,7 +3723,6 @@ msgstr "ಕಲಾವಿದರು"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Songs"
 msgstr "ಹಾಡುಗಳು"
 
@@ -3920,7 +3907,6 @@ msgstr ""
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Shows"
 msgstr "ಧಾರವಾಹಿಗಳು"
 
@@ -4004,7 +3990,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Playlists
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Playlists"
 msgstr "ಪ್ಲೇಪಟ್ಟಿಗಳು"
 
@@ -4375,7 +4360,6 @@ msgstr ""
 
 # seeded from jellyfin-web: Album
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
 msgid "Album"
 msgstr "ಆಲ್ಬಮ್"
 
@@ -4395,9 +4379,10 @@ msgstr ""
 msgid "Mark played"
 msgstr ""
 
+# seeded from jellyfin-web: AddToPlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Add to playlist"
-msgstr ""
+msgstr "ಪ್ಲೇಲಿಸ್ಟ್‌ಗೆ ಸೇರಿಸಿ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Remove from playlist"
