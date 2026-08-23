@@ -727,6 +727,90 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: not self.browser.hud.shown, timeout=10,
                    msg="the default mode kept the HUD up on a paused video")
 
+    def _set_console(self, open_):
+        """mpv-console's presence flag, as the console script itself sets it.
+
+        Split by backend for the same reason ``_set_pause`` is: libmpv's
+        command() stringifies its arguments, so a bool has to go through the
+        property API to arrive as one -- and the renderer observes this as
+        MPV_FORMAT_FLAG, where a string node simply reads as nil.
+        """
+        name = "user-data/mpv/console/open"
+        if h.BACKEND == "jsonipc":
+            self.handle.command("set_property", name, open_)
+        else:
+            # NOT handle._set_property: python-mpv sends every scalar as a
+            # STRING, and a user-data node holding "yes" reads back as nil
+            # under MPV_FORMAT_FLAG -- which is the format the renderer
+            # observes it in, because that is what mpv's console writes. The
+            # test then sets nothing the renderer can see and passes whatever
+            # the code does.
+            import ctypes
+            from mpv import MpvFormat, _mpv_set_property
+            flag = ctypes.c_int(1 if open_ else 0)
+            _mpv_set_property(self.handle.handle, name.encode("utf-8"),
+                              MpvFormat.FLAG, ctypes.byref(flag))
+        time.sleep(0.4)
+
+    def _real_click(self, node_id):
+        """A press and a release through mpv's own input stack, at the
+        node's real coordinates -- so the SECTION STACK decides who gets the
+        button. ``app.debug(cmd="click")`` calls the handlers directly and
+        would answer yes however the bindings were left."""
+        node = next((n for n in (self.app._nodes or [])
+                     if n.get("id") == node_id), None)
+        self.assertIsNotNone(node, "%s is not in the pushed scene" % node_id)
+        cx = int(node["x"] + node["w"] / 2)
+        cy = int(node["y"] + node["h"] / 2)
+        self.handle.command("mouse", cx, cy)
+        time.sleep(0.3)
+        self.handle.command("keydown", "MBTN_LEFT")
+        time.sleep(0.2)
+        self.handle.command("keyup", "MBTN_LEFT")
+
+    def test_the_console_gives_back_the_hud_it_left_with(self):
+        """The keyboard loan is a snapshot, and the lifecycle moves under it.
+
+        mpv-console wants the keys our forced bindings outrank, so the
+        renderer hands the three groups over for as long as it is up and
+        takes them back on close. But the pointer can summon the HUD while
+        the console is open -- and replaying "the idle summon surface was
+        bound" onto a HUD that is now SHOWN re-takes mbtn_left for
+        click-to-pause and replaces the wake key's upgrade-to-keyboard
+        binding with a cold summon that is already a no-op. The bar is on
+        screen and answers neither the mouse nor the keyboard.
+
+        Only a real mpv can settle this: which binding wins is its section
+        stack, which the Lua fake does not model.
+        """
+        self.ctl.key_opts = {"grab": False, "key": "ENTER",
+                             # long enough that auto-hide cannot clear the
+                             # wedge before the assertions run
+                             "hide": 60, "mode": "hover"}
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+
+        self._set_console(True)
+        self.app.debug(cmd="phud", action="mousemove", x=200, y=200)
+        self._wait(lambda: self._state().get("phud_shown"),
+                   msg="pointer movement never summoned the HUD")
+        self._set_console(False)
+
+        self._wait(lambda: any(n.get("id") == "hud-pp"
+                               for n in (self.app._nodes or [])),
+                   msg="the HUD scene never reached the renderer")
+        self.ctl.calls = []
+        self._real_click("hud-pp")
+        self._wait(lambda: "toggle_pause" in self.ctl.calls,
+                   msg="a click on play/pause never reached the button: %r"
+                       % (self.ctl.calls,))
+
+        # ...and the wake key still upgrades this HUD to keyboard driving
+        # rather than trying to summon one that is already up.
+        self._press_until("ENTER", lambda: self._state().get("phud_kbd"),
+                          msg="the wake key stopped taking keyboard control")
+
 
 if __name__ == "__main__":
     unittest.main()

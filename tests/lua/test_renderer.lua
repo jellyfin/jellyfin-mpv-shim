@@ -2211,6 +2211,79 @@ ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
    "closing the console bound nav keys that were not bound before it opened")
 fake.send("mpvtk-active", "yes")
 
+-- ...but "what was bound" is a snapshot, and the LIFECYCLE moves underneath
+-- it: the pointer can summon the HUD while the console is up. Restoring the
+-- idle HUD's summon surface over a HUD that is now SHOWN takes mbtn_left back
+-- for click-to-pause, so the bar's own buttons stop responding -- a mouse
+-- that has gone dead with the controls in plain sight, and nothing on screen
+-- to say why.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+ok(fake.log.keybinds["mpvtk_phud_click"] ~= nil,
+   "sanity: an idle HUD takes the click for click-to-pause")
+fake.observe("user-data/mpv/console/open", true)
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "the console is up and the summon surface is still ours")
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_shown == true,
+   "sanity: pointer movement summons the HUD even with the console up")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_phud_click"] == nil,
+   "closing the console gave the shown HUD's clicks back to click-to-pause")
+
+-- The same restore also replaces the wake key's upgrade-to-keyboard binding
+-- with a cold summon, which is already a no-op on a HUD that is up: the bar
+-- can then never be driven from the keyboard at all.
+fake.key("mpvtk_wake")
+fake.reset_events()
+fake.send("mpvtk-debug", fake.token({ cmd = "state" }))
+ok((last_event("debug_state") or {}).phud_kbd == true,
+   "the wake key no longer upgrades a mouse-summoned HUD to keyboard driving")
+
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
+-- The NAV half of the same rule, which the cases above cannot reach: the
+-- console can be open across a transition in either direction.
+--
+-- Browse -> suspended, decided while the console holds the keys. Restoring
+-- "nav was bound" here hands the arrows, ENTER and TAB to an invisible
+-- renderer for the whole of playback -- and `phud.mode` does not stand in for
+-- "the UI owns the keyboard", because it is only ever true under osc_style
+-- mpvtk; with a lua OSC a suspended player has no HUD mode at all.
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-active", "no")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] == nil,
+   "closing the console bound nav keys over suspended playback")
+fake.send("mpvtk-active", "yes")
+
+-- ...and the other way: suspended -> browse, which the `mpvtk-active`
+-- handler records into the snapshot rather than binding behind the console.
+fake.send("mpvtk-active", "no")
+fake.observe("user-data/mpv/console/open", true)
+fake.send("mpvtk-active", "yes")
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "browse came back from the console with no arrow, ENTER or TAB")
+
+-- A keyboard-driven HUD owns them too, and it is not browse: `state.active`
+-- alone would refuse them.
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-hud", "yes", fake.token({ grab = true, hide = 4,
+                                           mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 360, hover = true })
+fake.observe("user-data/mpv/console/open", true)
+fake.observe("user-data/mpv/console/open", false)
+ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
+   "a keyboard-driven HUD lost its arrows to the console")
+fake.send("mpvtk-hud", "no")
+fake.send("mpvtk-active", "yes")
+
 -- ==================================================== what gets drawn
 --
 -- Two things in this file live entirely in the drawing and are invisible to

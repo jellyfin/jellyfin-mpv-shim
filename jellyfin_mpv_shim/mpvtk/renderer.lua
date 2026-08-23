@@ -6438,8 +6438,34 @@ mp.observe_property('user-data/mpv/console/open', 'bool', function(_, open)
     elseif state.kb_saved then
         local was = state.kb_saved
         state.kb_saved = nil
-        if was.nav then bind_nav_keys() end
-        if was.summon then phud_bind_summon() end
+        -- Replayed against what the lifecycle is doing NOW, not against what
+        -- it was doing when the console opened: it moves underneath the loan.
+        -- A pointer movement while the console is up summons the HUD, and
+        -- browse can resume (the `mpvtk-active` handler updates the snapshot
+        -- for that one, which is where this rule started).
+        --
+        -- The SUMMON surface is the one that costs the mouse. It is the idle
+        -- HUD's, and re-binding it over a shown HUD -- or over the library --
+        -- takes `mbtn_left` back for click-to-pause, so the bar's own buttons
+        -- and every tile stop responding until the next ESC or auto-hide,
+        -- with nothing on screen to say why. It also replaces the wake key's
+        -- upgrade-to-keyboard binding with a summon that is already a no-op.
+        -- `phud_skip_bind` asks the same question for itself.
+        --
+        -- The nav keys belong to BROWSE, and to a HUD somebody is driving
+        -- from the keyboard. Not to "anything that is not a mouse-driven
+        -- HUD": `phud.mode` is only ever true under osc_style mpvtk, so with
+        -- any other OSC a suspended player looks exactly like the library --
+        -- and the arrows, ENTER and TAB would be taken as forced bindings
+        -- over a video nobody could seek any more. This is the predicate the
+        -- binders themselves use.
+        if was.nav and ((state.active and not state.phud.mode)
+                        or (state.phud.mode and state.phud.kbd)) then
+            bind_nav_keys()
+        end
+        if was.summon and state.phud.mode and not state.phud.shown then
+            phud_bind_summon()
+        end
         if was.skip then phud_skip_bind() end
     end
 end)
