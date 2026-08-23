@@ -16,6 +16,8 @@ import sys
 import tempfile
 import unittest
 
+from tests import _tmpdirs
+
 sys.argv = [sys.argv[0]]
 
 from jellyfin_mpv_shim import input_conf                       # noqa: E402
@@ -56,7 +58,7 @@ class PlanTest(unittest.TestCase):
 
         s = _settings(**dict(Settings().dict(),
                              use_web_seek=True, kb_pause="right"))
-        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        path = _tmpdirs.tmpfile("input.conf", "jms-inputconf-")
         self.assertEqual([e[0] for e in input_conf.plan(s)], ["kb_pause"])
         input_conf.migrate(s, path)
         self.assertIsNone(s.kb_pause)
@@ -128,7 +130,7 @@ class PlanTest(unittest.TestCase):
 
 class WriteTest(unittest.TestCase):
     def _path(self):
-        return os.path.join(tempfile.mkdtemp(), "input.conf")
+        return _tmpdirs.tmpfile("input.conf", "jms-inputconf-")
 
     def test_it_writes_above_the_first_section(self):
         """mpv's sections run to the next header, so appending to a file
@@ -193,7 +195,7 @@ class OwnConfigDirTest(unittest.TestCase):
     """
 
     def _run(self, **kw):
-        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        path = _tmpdirs.tmpfile("input.conf", "jms-inputconf-")
         settings = _settings(mpv_ext=True, mpv_ext_no_ovr=True, **kw)
         written = input_conf.migrate(settings, path, raw={"seek_up": 30})
         return path, settings, written
@@ -223,7 +225,7 @@ class OwnConfigDirTest(unittest.TestCase):
     def test_mpv_ext_alone_still_migrates(self):
         # Without no_ovr, external mpv IS pointed at our config directory,
         # so the file is read and the migration is correct.
-        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        path = _tmpdirs.tmpfile("input.conf", "jms-inputconf-")
         settings = _settings(mpv_ext=True, kb_pause="P")
         written = input_conf.migrate(settings, path, raw={"seek_up": 30})
         self.assertTrue(written)
@@ -232,7 +234,7 @@ class OwnConfigDirTest(unittest.TestCase):
     def test_no_ovr_without_mpv_ext_still_migrates(self):
         # no_ovr only means anything to the external backend; on libmpv the
         # shim's config directory is used regardless.
-        path = os.path.join(tempfile.mkdtemp(), "input.conf")
+        path = _tmpdirs.tmpfile("input.conf", "jms-inputconf-")
         settings = _settings(mpv_ext_no_ovr=True, kb_pause="P")
         self.assertTrue(input_conf.migrate(settings, path))
 
@@ -251,7 +253,7 @@ class FieldsSetSurvivesLoadTest(unittest.TestCase):
     def test_load_preserves_which_keys_the_user_set(self):
         import json
 
-        path = os.path.join(tempfile.mkdtemp(), "conf.json")
+        path = _tmpdirs.tmpfile("conf.json", "jms-inputconf-")
         with open(path, "w") as fh:
             json.dump({"kb_menu_up": "a", "config_version": 4}, fh)
         s = Settings()

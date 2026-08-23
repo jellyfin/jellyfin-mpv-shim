@@ -6,6 +6,7 @@ file and in-memory storage backends.
 
 import os
 import struct
+import shutil
 import tempfile
 import threading
 import unittest
@@ -625,6 +626,7 @@ class TestMixedScriptCaptions(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="strips-i18n-")
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
         self.store = StripStore(cache_dir=self.dir, geom=TileGeom())
         from jellyfin_mpv_shim.mpvtk import pilfont
         self.pilfont = pilfont

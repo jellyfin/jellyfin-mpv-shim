@@ -15,6 +15,8 @@ idle-quit fix (012961c), both backends ADVANCE: on libmpv idle_quit() no-ops
 Backend via JMS_TEST_BACKEND; display inherited from the parent's xvfb.
 """
 
+import atexit
+import shutil
 import os
 import sys
 import tempfile
@@ -38,6 +40,9 @@ def main():
     pm.timeline_trigger = threading.Event()
 
     tmp = tempfile.mkdtemp(prefix="jms-idle-child-")
+    # This child is spawned per test and exits on its own; atexit is the
+    # only hook it has, and without it each run left a directory of clips.
+    atexit.register(shutil.rmtree, tmp, ignore_errors=True)
     clip1 = h.make_test_clip(os.path.join(tmp, "a.mp4"), duration=2)
     clip2 = h.make_test_clip(os.path.join(tmp, "b.mp4"), duration=2)
     client = T.FakeClient()

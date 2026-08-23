@@ -132,8 +132,50 @@ class UserInterface:
         PlayerGateway().open_config_folder()
 
     def _quit(self):
-        if self.stop_callback is not None:
-            self.stop_callback()
+        self.quit_app()
+
+    def stop_tray(self):
+        """Terminate the tray child. Idempotent, and safe to call twice.
+
+        Public because the shutdown is not the only caller any more: the
+        tray lives in its own process and is stopped in the sixth of seven
+        shutdown steps, so a step that wedges before then leaves it running
+        -- and since a restart now spawns a replacement from the forced
+        exit, the user would get a second tray icon beside a dead one whose
+        menu goes to a queue nobody reads. `mpv_shim`'s final action calls
+        this first for that reason.
+        """
+        tray, self._tray = self._tray, None
+        if tray is None:
+            return
+        try:
+            tray.stop()
+        except Exception:
+            log.debug("could not stop the tray", exc_info=True)
+
+    def quit_app(self):
+        """Shut the application down, from outside the tray.
+
+        The public name for ``_quit``. The settings screen's Restart needs
+        exactly this shutdown -- the relaunch is armed first and happens at
+        the end of it (restart.py) -- and reaching in for a private method
+        from another module is how that stops working the day this class is
+        rearranged.
+
+        **Returns whether a shutdown was actually started.** The caller that
+        armed a restart has to know: a quit that silently did nothing would
+        leave the flag set, and the user's next ordinary quit would then
+        relaunch the app out of nowhere. It is not a theoretical state --
+        `stop_callback` is wired by `mpv_shim.main` a few lines after the UI
+        is started, and anything driving this class outside that (a test, an
+        embedding) may never wire it at all.
+        """
+        if self.stop_callback is None:
+            log.error("Asked to quit with no shutdown callback wired; "
+                      "nothing to do.")
+            return False
+        self.stop_callback()
+        return True
 
     def _can_run_windowless(self):
         """True if the app may keep running with no window on screen.
@@ -577,8 +619,7 @@ class UserInterface:
 
     def stop(self):
         from ..player import playerManager
-        if self._tray is not None:
-            self._tray.stop()
+        self.stop_tray()
         playerManager.mpvtk_active = False
         app, self._app = self._app, None
         if app is not None:

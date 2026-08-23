@@ -14,6 +14,7 @@ The measurements themselves need a server and are not tested here.
 import json
 import os
 import sys
+import shutil
 import tempfile
 import unittest
 
@@ -38,6 +39,7 @@ class LoadServersTest(unittest.TestCase):
     def setUp(self):
         self.tool = load_tool()
         self.dir = tempfile.mkdtemp(prefix="bench-cfg-")
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
 
     def write(self, name, data):
         with open(os.path.join(self.dir, name), "w", encoding="utf-8") as fh:

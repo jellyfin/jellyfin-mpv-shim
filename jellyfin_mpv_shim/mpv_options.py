@@ -272,7 +272,7 @@ GAMEPAD_OPTION = "input_gamepad"
 #: incidental: ``--interpolation`` is **silently disabled** without a
 #: display- sync mode, so a setting writing only ``interpolation`` would do
 #: nothing and report success. Hence one table rather than two independent
-#: options, and hence `tests/test_motion_interpolation.py` asserting that the
+#: options, and hence `tests/test_picture_processing.py` asserting that the
 #: pair travels together.
 #:
 #: The three filters are three different trades rather than three quality
@@ -289,28 +289,191 @@ INTERPOLATION_PRESETS = {
 }
 
 
-#: Every property any preset writes. What "off" has to put back is this
-#: whole set, not the ones the CURRENT preset happens to name -- somebody
-#: who used `hq` and then switched to off must get their `tscale` back too.
-INTERPOLATION_KEYS = tuple(sorted(
-    {key for props in INTERPOLATION_PRESETS.values() for key in props}))
+#: Debanding, which is what the ``deband`` setting picks between.
+#:
+#: **Not offered as the four raw knobs on purpose.** Anyone who wants a
+#: specific combination writes it in their own ``mpv.conf`` and leaves this
+#: on "off", which -- see :func:`preset_props` -- writes nothing at all and
+#: therefore leaves their values standing. The presets are for everyone
+#: else, who wants the banding gone and has no way to tell 32 from 48.
+#:
+#: ``threshold`` (how flat a region must be before it is touched),
+#: ``iterations`` (how many passes) and ``grain`` (the noise added
+#: afterwards to mask what debanding could not fix) rise together: those are
+#: the strength axes, and a strong threshold with no grain looks worse than
+#: either alone.
+#:
+#: **``range`` moves the other way, and that is mpv's instruction rather
+#: than a preference.** It is the filter's initial radius, and mpv's manual
+#: says the radius "increases linearly for each iteration" and then, in as
+#: many words: "If you increase the --deband-iterations, you should probably
+#: decrease this to compensate." An earlier version of this table raised all
+#: four together because a monotone ladder looked tidier -- which is exactly
+#: the kind of reasoning that has no source behind it. `light` therefore
+#: sits at mpv's own default radius, since it also runs mpv's own single
+#: iteration.
+#:
+#: mpv's own defaults are threshold 48, range 16, grain 32, iterations 1
+#: (measured on 0.41, and pinned by tests/test_picture_processing.py), so
+#: "standard" is roughly mpv's strength with a second pass and "light" sits
+#: deliberately below it -- live action fails the flatness test almost
+#: everywhere, so the risk there is a threshold high enough to smear real
+#: low-contrast texture rather than debanding being wrong in principle.
+#:
+#: **This is not the shader pack's debanding.** ``pack.json`` lists
+#: ``deband-default`` under ``default-setting-groups``, which
+#: ``video_profile.load_profile`` applies -- so debanding today arrives
+#: bundled with picking an upscaler and leaves again when it is unloaded.
+#: The pack's ``deband-grain: 0`` is only correct because
+#: ``static-grain-default`` re-adds noise through shaders; copying that
+#: number here would remove the masking without replacing it.
+DEBAND_PRESETS = {
+    "off": {},
+    "light": {"deband": True, "deband-iterations": 1,
+              "deband-threshold": 32, "deband-range": 16,
+              "deband-grain": 16},
+    "standard": {"deband": True, "deband-iterations": 2,
+                 "deband-threshold": 48, "deband-range": 14,
+                 "deband-grain": 24},
+    "strong": {"deband": True, "deband-iterations": 4,
+               "deband-threshold": 64, "deband-range": 12,
+               "deband-grain": 32},
+}
 
 
-def interpolation_props():
-    """``{mpv property: value}`` for the configured preset, or ``{}``.
+#: HDR-to-SDR tone mapping curve. mpv's own vocabulary rather than invented
+#: preset names, because unlike debanding these are not a strength ladder --
+#: they are different curves with different opinions about what to do with
+#: the highlights, and mpv documents each one.
+#:
+#: **Only does anything when the output is SDR.** Where the display takes
+#: HDR and ``player_window`` has hinted the colorspace through, mpv is not
+#: tone mapping at all and every value here is equally inert. That is the
+#: note the setting carries in the UI, since a control that silently does
+#: nothing on the machines that most want HDR handled would otherwise read
+#: as broken.
+TONE_MAPPING_PRESETS = {
+    "auto": {},
+    "bt.2390": {"tone-mapping": "bt.2390"},
+    "bt.2446a": {"tone-mapping": "bt.2446a"},
+    "spline": {"tone-mapping": "spline"},
+    "hable": {"tone-mapping": "hable"},
+    "reinhard": {"tone-mapping": "reinhard"},
+    "clip": {"tone-mapping": "clip"},
+}
 
-    ``{}`` for "off" is deliberate and is NOT the same as writing the
-    defaults back -- ``video-sync`` is a timing mode somebody may reasonably
-    have chosen in their own ``mpv.conf``. Turning the feature off is the
-    player's job, and it restores what was there before it first wrote
-    (PlayerManager._apply_interpolation, docs/mpv-backends.md section 6).
+
+#: What mpv's own ``high-quality`` profile sets, written as properties.
+#:
+#: Written out rather than applied as ``profile=high-quality``, and the
+#: reason is that a profile **cannot be taken back**: mpv has no way to read
+#: one back, which is why the shader pack lists ``profile`` in
+#: ``setting-revert-ignore`` and never reverts it. A setting that can only
+#: be turned on is not a setting. These four are ordinary properties with
+#: readable values, so the same snapshot-and-restore every other entry here
+#: uses works on them.
+#:
+#: The contents are mpv's, not ours, and they have changed across versions
+#: (``gpu-hq`` is now an alias for this). ``tests/test_picture_processing``
+#: asks the installed mpv what the profile contains and fails if this table
+#: has drifted from it, so the copy stays honest rather than quietly
+#: becoming a different preset than the one it is named after.
+RENDER_QUALITY_PRESETS = {
+    "default": {},
+    "high": {"scale": "ewa_lanczossharp", "scale-antiring": 0.6,
+             "hdr-peak-percentile": 99.995, "hdr-contrast-recovery": 0.30},
+}
+
+
+#: How much the demuxer reads ahead. For a client whose every file arrives
+#: over a network this is the option users reach for first, and mpv's
+#: default readahead is **one second** -- generous on bytes (150 MiB) and
+#: very short on time, which is the wrong shape for a remote server on a
+#: slow or jittery link.
+#:
+#: Bytes are spelled as integers rather than as "400MiB": the string form is
+#: mpv's own command-line parsing, and a property write wants the number.
+#:
+#: Unlike the picture settings, these are read when the **demuxer starts**,
+#: so a change lands on the next thing played rather than on what is already
+#: open. That is the same granularity ``_play_media`` applies everything else
+#: at, so nothing special is needed -- but it is why "restore" here is not
+#: visible until the next file either.
+BUFFER_PRESETS = {
+    "default": {},
+    "large": {"demuxer-max-bytes": 400 * 1024 * 1024,
+              "demuxer-max-back-bytes": 100 * 1024 * 1024,
+              "demuxer-readahead-secs": 20},
+    "huge": {"demuxer-max-bytes": 1024 * 1024 * 1024,
+             "demuxer-max-back-bytes": 200 * 1024 * 1024,
+             "demuxer-readahead-secs": 60},
+}
+
+
+#: setting key -> (preset table, the value meaning "leave mpv alone").
+#:
+#: One registry rather than five bespoke apply methods. The first entry was
+#: the only one for a long time and the other four are the same shape, which
+#: is precisely the argument for generalising: the second implementation of
+#: a discipline is where it gets subtly dropped, and what would have been
+#: dropped here is the snapshot -- the half that makes "off" mean "give the
+#: user their own value back" instead of "write our idea of off over it".
+#:
+#: ``PlayerManager._apply_render_presets`` walks this, so adding an option
+#: group is a table entry and a config key, not a new method.
+PRESET_SETTINGS = OrderedDict((
+    ("motion_interpolation", (INTERPOLATION_PRESETS, "off")),
+    ("deband", (DEBAND_PRESETS, "off")),
+    ("tone_mapping", (TONE_MAPPING_PRESETS, "auto")),
+    ("render_quality", (RENDER_QUALITY_PRESETS, "default")),
+    ("network_buffer", (BUFFER_PRESETS, "default")),
+))
+
+
+def preset_keys(key):
+    """Every mpv property any preset of ``key`` writes.
+
+    What "off" has to put back is this whole set, not the ones the CURRENT
+    preset happens to name -- somebody who used interpolation's `hq` and
+    then switched to off must get their `tscale` back too.
+    """
+    presets, _fallback = PRESET_SETTINGS[key]
+    return tuple(sorted({prop for props in presets.values() for prop in props}))
+
+
+def preset_props(key):
+    """``{mpv property: value}`` for ``key``'s configured preset, or ``{}``.
+
+    ``{}`` for the off value is deliberate and is NOT the same as writing
+    mpv's defaults back. Every property in these tables is one somebody may
+    reasonably have set in their own ``mpv.conf``, and all five settings
+    default to off -- so an off that wrote its idea of "not doing this"
+    would reach out on the first item and undo their config, with no setting
+    here to put it back. Turning the feature off is the player's job, and it
+    restores what was there before it first wrote
+    (``PlayerManager._apply_render_preset``, docs/mpv-backends.md §6).
+
+    This is also what makes "leave it off and write your own" a supported
+    way to use these settings rather than an accident.
 
     An unrecognised value reads as off. It is a plain string in a JSON file
     somebody can type into, and the alternative to a default is a KeyError
     out of the middle of starting playback.
     """
-    return dict(INTERPOLATION_PRESETS.get(
-        settings.motion_interpolation, INTERPOLATION_PRESETS["off"]))
+    presets, fallback = PRESET_SETTINGS[key]
+    return dict(presets.get(getattr(settings, key, fallback),
+                            presets[fallback]))
+
+
+#: Kept as names of their own because they are what the interpolation
+#: docstrings, the tests and docs/mpv-backends.md §6 already cite.
+INTERPOLATION_KEYS = preset_keys("motion_interpolation")
+
+
+def interpolation_props():
+    """``{mpv property: value}`` for the configured preset, or ``{}``.
+    See :func:`preset_props`."""
+    return preset_props("motion_interpolation")
 
 
 def deinterlace_value(override=None):

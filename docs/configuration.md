@@ -18,6 +18,18 @@ on Linux or macOS from the terminal, the location of the config file will be pri
 
 You can specify a custom configuration folder with the `--config` option.
 
+### When a setting takes effect
+
+**Unless an entry says otherwise, a setting applies straight away, or to the
+next thing you play.** The exceptions are the ones that do nothing at all until
+the app is started again, and those are called out here and marked *Requires
+restart* on their row in the Settings screen — which also offers to do the
+restart for you.
+
+That is the whole vocabulary. It is stated once here rather than repeated per
+setting, because a reader comparing three differently-worded versions of the
+same sentence learns less than one who is told the rule.
+
 ## Transcoding
 
 You can adjust the basic transcoder settings via the menu.
@@ -159,7 +171,88 @@ You can adjust the basic transcoder settings via the menu.
       monitor you meant, which is the thing that is already wrong.
   - The playback HUD's *Playback Info* panel reports dropped frames, split
       into decoder and output. Output drops are the ones this causes.
-  - Takes effect on the next thing you play, like `hwdec`.
+- `deband` - Smooth the blocky steps that appear in gradients. Default: `off`
+  - Values: `off`, `light`, `standard`, `strong`.
+  - Banding is the visible stepping in a smooth gradient — a sky, a fade to
+      black, a dark scene — left behind when a gradient that needed more
+      precision than the file carries is quantized. Debanding detects those
+      flat regions and dithers across them.
+  - **Animation benefits most**, because flat gradients are most of the
+      picture. Live action is largely unaffected: the filter only acts where
+      neighbouring samples fall within `deband-threshold`, and detailed or
+      grainy footage fails that test almost everywhere. `strong` is the one
+      that can visibly soften genuinely fine, low-contrast texture, which is
+      why the ladder is labelled by content rather than by quality.
+  - It is **not free on content it does nothing for**: each iteration is a
+      GPU pass, which is worth knowing on integrated graphics or a
+      single-board machine at 4K.
+  - What each preset writes (mpv's own defaults are threshold 48, range 16,
+      grain 32, one iteration):
+
+    | | iterations | threshold | range | grain |
+    |---|---|---|---|---|
+    | `light` | 1 | 32 | 16 | 16 |
+    | `standard` | 2 | 48 | 14 | 24 |
+    | `strong` | 4 | 64 | 12 | 32 |
+
+  - Iterations, threshold and grain rise together — they are the strength
+      axes. **`range` falls**, because it is the filter's initial radius and
+      mpv's manual says the radius "increases linearly for each iteration",
+      then: "If you increase the `--deband-iterations`, you should probably
+      decrease this to compensate." `light` runs mpv's own single iteration,
+      so it keeps mpv's own radius.
+
+  - The parameters are deliberately not exposed individually. **Leave this
+      at `off` and set the `deband*` options in your own `mpv.conf` if you
+      want a specific combination** — `off` writes nothing at all, so your
+      values are left exactly as you set them. That is true of every setting
+      in this group.
+  - The shader pack also enables debanding, through the `deband-default`
+      group that every shader profile pulls in — so before this setting
+      existed, debanding arrived bundled with picking an upscaler and left
+      again when you unloaded one. This setting outranks the pack's while it
+      is not `off`, and is reasserted whenever a profile is loaded or
+      unloaded.
+- `tone_mapping` - How HDR video is fitted to an SDR display. Default: `auto`
+  - Values: `auto`, `bt.2390`, `bt.2446a`, `spline`, `hable`, `reinhard`,
+      `clip`. These are mpv's `--tone-mapping` curves, and they are different
+      trades rather than a quality ladder, which is why they are not renamed
+      here.
+  - **This does nothing when HDR is being passed through to an HDR
+      display**, because in that case mpv is not tone mapping at all. See
+      `target-colorspace-hint` handling in `player_window.py`.
+  - `auto` leaves mpv's own choice alone and writes nothing. `bt.2390` is the
+      reference curve. `clip` does no tone mapping and simply clips out-of-
+      range highlights — worth trying if HDR films look grey and flat rather
+      than merely dark.
+- `render_quality` - Apply mpv's own high-quality rendering preset.
+      Default: `default`
+  - Values: `default`, `high`.
+  - `high` writes what mpv's `high-quality` profile sets: `scale=ewa_lanczossharp`,
+      `scale-antiring=0.6`, `hdr-peak-percentile=99.995` and
+      `hdr-contrast-recovery=0.30`. (mpv's `gpu-hq` is now just an alias for
+      that profile, and neither includes debanding.)
+  - A middle tier between mpv's defaults and the shader pack: better
+      upscaling for some GPU cost, no shader files, and it does not use up
+      your single shader profile. Try it before the shader pack.
+  - It is written as individual properties rather than as
+      `profile=high-quality` because mpv cannot report what a profile
+      contained, so a profile can be applied and never taken back — which
+      would make this a setting that only turns on. The last two options
+      need **mpv 0.37 or newer**; on an older build they are skipped and the
+      scaling half still applies.
+  - `hdr-peak-percentile` is documented by mpv as **`--vo=gpu-next` only**.
+      That is mpv's default output from **0.41**; on 0.40 and older the
+      default is `gpu`, where it is accepted and ignored. Nothing breaks
+      either way — it is the same option mpv's own `high-quality` profile
+      sets — but on an older build this setting is the scaling half plus
+      `hdr-contrast-recovery` only.
+- `network_buffer` - How far ahead of playback to read. Default: `default`
+  - Values: `default`, `large` (20s readahead, 400 MiB), `huge` (60s, 1 GiB).
+  - mpv's own readahead is **one second**, which is short for a server
+      reached over the internet or a congested link. Raise this if playback
+      stalls to buffer. Larger buffers cost memory and make the first
+      seconds of a file slower to start.
 - `always_transcode` - This will tell the client to always transcode. Default: `false`
   - This may be useful if you are using limited hardware that cannot handle advanced codecs.
   - Please note that Jellyfin may still direct play files that meet the transcode profile
@@ -344,6 +437,7 @@ You can use the config file to enable and disable features.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
+  - Requires restart. The budget is baked into the artwork cache when the browser starts.
   - Decoded is the expensive form — a 4K backdrop is 33 MB decoded against ~400 KB on the wire — and this is a working set rather than a library: decoded images exist to composite tile strips, and the strips are cached in their own right, so scrolling back over a cached row never asks for one. Raise it if you browse enormous libraries on a machine with RAM to spare.
   - Two other caches sit behind this one, and neither has a setting because neither wants a number from you.
   - The **artwork cache** keeps the server's own compressed images in `$XDG_CACHE_HOME/jellyfin-mpv-shim/artwork` (`~/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows; `--config DIR` puts it in `DIR/cache` so an isolated config stays isolated). It is **persistent**: every entry is keyed by the server's own image tag, so last week's poster is still this week's poster, and it is kept between launches rather than re-fetching a whole library on every start. Up to **1 GiB**, but never more than 5% of what is free on that filesystem — so it shrinks continuously on a filling disk instead of waiting for a threshold. Anything unread for 30 days is reaped, which is also what clears out entries orphaned by changing the Cover Size or the theme's tile shape (those change the cache key rather than replacing the entry). Deleting the directory is always safe.
@@ -378,7 +472,7 @@ You can use the config file to enable and disable features.
     X11 and the compositor's factor on Wayland/macOS.
   - Set a number (`1.5`, `2.0`) to force it. Handy on a 1x display to see what
     a HiDPI user gets, or to make the UI readable on a TV across the room.
-  - Read once at startup; changing it requires a restart.
+  - Requires restart.
   - `--scale FACTOR` overrides this for a single run without touching
     the config, e.g. `jellyfin-mpv-shim --scale 1.5`.
   - Artwork is re-fetched from the server at the larger size, so scaling up
@@ -494,7 +588,7 @@ You can use the config file to enable and disable features.
   some mice, and skipping a chapter of a film is less forgiving than the
   Back press those buttons perform in the library — which is unaffected
   either way, since the library's own bindings sit on top of these.
-  Does nothing on a file with no chapters. Takes effect after a restart.
+  Does nothing on a file with no chapters. Requires restart.
   Default: `false`
 - `use_web_seek` - Use the seek times set in Jellyfin web for arrow key seek. Default: `false`
 - `headless` - Cast-target mode: show the "Ready to cast" screen instead of the library, and make the library unreachable from this machine. Default: `false`
@@ -942,6 +1036,10 @@ Other miscellaneous configuration options. You probably won't have to change the
 - `connect_retry_mins` - Number of minutes to retry connecting before showing login window. Default: `0`
   - This only applies for when you first launch the program.
 - `lang_filter` - Limit track selection to desired languages. Default: `und,eng,jpn,mis,mul,zxx`
+  - Requires restart — the list is read once at startup. The two options below
+      are read as they are used, so changing them alone takes effect at once;
+      that is why this one is worth calling out, since otherwise the filter
+      appears to start working with the *old* languages.
   - Note that you need to turn on the options below for this to actually do something.
   - If you remove `und` from the list, it will ignore untagged items.
   - Languages are typically in [ISO 639-2/B](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes),

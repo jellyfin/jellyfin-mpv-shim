@@ -42,6 +42,36 @@ Two conventions:
   reason is a permission or a missing capability, because a disabled control
   invites the user to go looking for the switch that enables it.
 
+## 2.5 Search, and what it means for how you write a note
+
+The form is about a hundred controls over three tabs, so there is a search box
+on each of them (`config.search`, drawn by `settings/__init__._search_box_row`).
+Results are drawn **across all three tabs** and are editable in place; picking a
+tab clears the query, which is the way out.
+
+Two consequences for anyone adding a setting:
+
+- **The note is part of the search corpus, and usually the useful part.** A
+  label is two or three words chosen before anyone knew what people would call
+  the thing. "banding", "buffering", "judder", "stutter", "controller" and
+  "tray" are all words users type and none of them was ever a label.
+  `tests/test_settings_search.py` holds those cases as cases, because a query
+  that finds nothing is invisible from the code.
+- **Matching is substring and therefore directional.** A query word must appear
+  *in* the haystack: a note saying "buffering" is found by `buffer`, but a note
+  saying only "buffer" is **not** found by `buffering`. So write the longer,
+  more colloquial form into the note — `network_buffer`'s says "stopping for
+  buffering" for exactly this reason.
+
+Search is built on `sections()` rather than on the schema, so a control the form
+is currently hiding — the passthrough toggles the audio mode cannot carry,
+whichever of `close_to_tray`/`allow_background` does not apply — cannot be found
+either. A result that leads to a control the form then refuses to draw would be
+worse than no result. Advanced groups *are* searched, and returned without the
+disclosure: somebody who typed a query has already narrowed it, and hiding half
+the answers behind a checkbox that is not on screen would make the search
+quietly incomplete.
+
 ## 3. Does it take effect now, or at the next start?
 
 This is the table a future "restart to apply?" prompt would be built from. The
@@ -65,7 +95,75 @@ picked was the wrong one or whether the control does nothing.
 | `reader_font_size`, `reader_theme`, `reader_justify` | re-read every frame by the reader |
 | `comic_fit` | read per call |
 
+### Applies to the next thing you play
+
+Neither live nor restart, and worth its own row because "restart to apply" would
+be wrong in the direction that makes users restart for nothing.
+
+**Neither this group nor the live one says so in its own note, and new settings
+must not start.** The user-facing vocabulary is one word: a row is either marked
+*Requires restart* — meaning literally nothing has happened yet — or it is not,
+and then it applies now or to the next thing played. That sentence used to be
+written into nine notes in three different phrasings, plus a page footer saying
+"some changes" without saying which, which left a reader nothing to do but
+distrust every control on the page. The only prose exception is a setting whose
+two directions differ (`trickplay_fast_mode`) or which splits (`theme`).
+
+| setting(s) | how |
+|---|---|
+| `hwdec` | `_play_media` writes it per item |
+| `deinterlace_auto` | `_apply_deinterlace`, per item |
+| `motion_interpolation`, `deband`, `tone_mapping`, `render_quality` | `_apply_render_presets`, per item |
+| `network_buffer` | per item, and it could not be sooner — the demuxer reads those options when it opens a file |
+
 ### Needs a restart
+
+`config.RESTART_REQUIRED` is this list as data, and `settings/base.py`'s
+`_set_setting` raises the restart banner when a key in it is written to a value
+that differs from the one it had (compared *after* coercion, so re-submitting an
+unchanged text field is not a change). The banner names the settings, offers
+**Restart Now** where `restart.supported()` says the launch can be
+reconstructed, and **Later** always.
+
+Three rules for editing that set:
+
+- **Under-listing is the safe direction.** A missing key costs a banner nobody
+  sees; a key wrongly in the set asks somebody to restart for a change that had
+  already taken effect, which teaches them to ignore the banner.
+- **It is not the complement of the live-apply list.** The "next thing you
+  play" group above is neither, and a restart banner for `deband` or `hwdec`
+  would be asking for a restart that is not needed.
+- **A setting whose whole subject is startup is not pending.** `start_minimized`
+  and the tray pair have already taken full effect the moment they are saved;
+  there is nothing waiting on a restart.
+
+The restart itself is `restart.py`, and the two things to know about it are
+*where* it happens and why it is not written where you would expect.
+
+It is registered with `exit_watchdog.set_final_action`, which runs immediately
+before `os._exit` on **both** ways out of the process: the orderly `finish()`
+and the deadline in `arm()` that force-kills a wedged shutdown. Written into
+`main` below the shutdown loop instead, it would cover only the tidy exit — so
+a wedged step would take the app away and never bring it back, which is the one
+occasion the process most needs help coming back. The deadline itself is
+unchanged: the old copy still has to die for the new one to take the instance
+lock. What changed is that dying is no longer the last word.
+
+The registered action releases the instance lock before relaunching, because on
+the forced path the wedge can be anywhere and the lock may never have been given
+up — and a new copy that finds it held hands off to the dying process and exits,
+so the restart would look like a plain quit.
+
+**Nothing may follow `exit_watchdog.finish()` in `main`.** It ends in `os._exit`
+and never returns; the relaunch was originally placed after it and was dead code
+that armed, quit, and never came back. `tests/test_restart.py` measures that
+`finish()` does not return and walks `main`'s syntax tree to fail on any
+statement below it — the general rule rather than one about the relaunch, since
+the mistake was not specific to it.
+
+That file also pins the argv rebuild, which is an allowlist so that `--password`
+from a one-off `--server` login can never reappear on a launch the user did not
+type.
 
 | setting(s) | why |
 |---|---|

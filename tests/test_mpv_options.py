@@ -10,6 +10,8 @@ rest of the file possible.
 
 import sys
 import unittest
+
+from tests import _tmpdirs
 from unittest import mock
 
 sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
@@ -418,7 +420,7 @@ class HwdecConfigPinTest(SettingsCase):
     def _with_conf(self, text):
         import tempfile
         import os
-        d = tempfile.mkdtemp()
+        d = _tmpdirs.tmpdir("jms-mpvopts-")
         path = os.path.join(d, "mpv.conf")
         with open(path, "w") as fh:
             fh.write(text)

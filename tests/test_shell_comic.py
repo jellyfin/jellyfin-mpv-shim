@@ -61,6 +61,43 @@ class ComicHarness(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.cbz = build_cbz(os.path.join(self._tmp.name, "a.cbz"))
+        self._track_archives()
+
+    def _track_archives(self):
+        """Close every ComicArchive this test opens, however it opened it.
+
+        An archive holds an extraction directory until `close()`, and in the
+        app that happens when the comic ROUTE is left -- which a test never
+        does. Closing the current route's page is not enough either: a test
+        that opens a second comic leaves the first one's directory behind.
+
+        So the constructor is wrapped for the duration, which catches every
+        path into it -- the page, and the two tests that build one directly.
+        Patched on `pages.comic`, not on `comic`: the page binds the name at
+        import (`from ...comic import ComicArchive`), so replacing it on the
+        defining module would not be seen.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.pages import comic as page_mod
+
+        opened = []
+        real = page_mod.ComicArchive
+
+        def tracking(*args, **kwargs):
+            archive = real(*args, **kwargs)
+            opened.append(archive)
+            return archive
+
+        page_mod.ComicArchive = tracking
+        self.addCleanup(setattr, page_mod, "ComicArchive", real)
+
+        def close_all():
+            for archive in opened:
+                try:
+                    archive.close()
+                except Exception:
+                    pass
+
+        self.addCleanup(close_all)
 
     def _restore_settings(self):
         from jellyfin_mpv_shim.conf import settings

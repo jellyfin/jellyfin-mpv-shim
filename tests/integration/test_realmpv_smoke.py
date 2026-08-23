@@ -77,7 +77,37 @@ def _import_real_player():
     import jellyfin_mpv_shim.player as player_module
     assert not _is_fake(player_module.mpv), \
         "real-mpv smoke test is bound to FakeMPV"
+    # The player is a process-wide singleton and this class terminates it in
+    # tearDownClass, so a module that runs after this one in the same
+    # process inherits a dead one. The app re-creates mpv on demand for the
+    # same reason (idle quit, crash recovery), so do what it does -- the
+    # alternative is a later module interrogating a corpse and reporting the
+    # silence as a real answer, which is how "mpv listed no audio devices"
+    # and nine picture-setting errors first appeared on the jsonipc leg.
+    manager = getattr(player_module, "playerManager", None)
+    if manager is not None and not _player_answers(manager):
+        # Not `if not manager._mpv_alive`: `terminate()` kills the external
+        # mpv without clearing that flag, because nothing in the app outlives
+        # a terminate and the flag has no reader afterwards. In a test
+        # process it does have a reader -- us -- and it says "alive" about a
+        # process that is gone, which is why only the jsonipc leg broke.
+        manager._mpv_alive = False
+        manager._init_mpv()
     return player_module
+
+
+def _player_answers(manager):
+    """Whether this manager's mpv is actually there, asked rather than
+    assumed. One property read: a dead libmpv handle and a closed IPC socket
+    both raise."""
+    player = getattr(manager, "_player", None)
+    if player is None:
+        return False
+    try:
+        player.mpv_version
+        return True
+    except Exception:
+        return False
 
 
 def _is_fake(mod):

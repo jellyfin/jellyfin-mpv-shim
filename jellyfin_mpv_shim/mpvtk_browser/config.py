@@ -162,7 +162,8 @@ TAB_SECTIONS = {
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
                                 "mouse_chapter_nav", "mouse_click_pauses",
                                 "trickplay_fast_mode"]),
-        (_("Playback"), ["auto_play", "hwdec", "always_transcode",
+        (_("Playback"), ["auto_play", "hwdec", "network_buffer",
+                         "always_transcode",
                          "local_kbps", "remote_kbps", "direct_paths",
                          "remote_direct_paths", "playback_timeout"]),
         # Passthrough keys are listed in full here; sections() drops the
@@ -185,7 +186,14 @@ TAB_SECTIONS = {
                             "transcode_4k", "transcode_hdr",
                             "transcode_hi10p", "transcode_dolby_vision",
                             "force_video_codec", "force_audio_codec"]),
-        (_("Video Enhancement"), ["shader_pack_enable",
+        # Debanding and rendering quality lead, ahead of the shader pack:
+        # they are the two answers that cost nothing to try and do not
+        # spend the single shader-profile slot. Somebody arriving here
+        # because anime looks blocky wants the first row, not a decision
+        # about upscalers.
+        (_("Video Enhancement"), ["deband", "render_quality",
+                                  "tone_mapping",
+                                  "shader_pack_enable",
                                   "shader_pack_subtype",
                                   "shader_pack_remember",
                                   "shader_pack_gpu_api",
@@ -197,6 +205,90 @@ TAB_SECTIONS = {
                                      "skip_intro_on_seek"]),
     ],
 }
+
+#: Settings that do nothing until the app is started again.
+#:
+#: **"Requires restart" means literally nothing happened**, and the settings
+#: form marks exactly these rows and no others. Everything else is assumed
+#: to apply now or to the next thing you play, which is why no setting says
+#: so in its own note any more -- that sentence used to be repeated across
+#: nine of them, in three different phrasings, and was the only thing a
+#: reader had to reconcile them by.
+#:
+#: **Deliberately conservative, and under-listing is the safe direction.**
+#: A key missing from here costs a banner nobody sees; a key wrongly IN here
+#: asks somebody to restart for a change that had already taken effect,
+#: which teaches them to ignore the banner. So every entry below was read
+#: from its call site rather than assumed, and the ones that looked like
+#: candidates and are not (`window_controls`, `shader_pack_subtype`,
+#: `log_decisions`, `mpv_idle_quit`, `playback_timeout`, `paginated`) are
+#: absent because they are re-read as they are used.
+#:
+#: This is **not** the same question as "does it apply right now". A third
+#: group -- `hwdec`, `deband`, `deinterlace_auto` and the rest of
+#: `mpv_options.PRESET_SETTINGS` -- applies to the next thing you play,
+#: which is neither live nor a restart, and a banner for those would be
+#: asking for a restart that is not needed. docs/settings-curation.md
+#: section 3 is the full table.
+#:
+#: `start_minimized` and the tray pair are absent for a related reason:
+#: nothing about them is *pending*. They are settings whose whole subject is
+#: the next launch, so they have already taken full effect.
+RESTART_REQUIRED = frozenset({
+    # The whole interface geometry is derived once, at startup.
+    "ui_scale",
+    # `theme` is deliberately NOT here, even though half of it waits for a
+    # restart. Colours repaint the moment you pick one, so marking the row
+    # "Requires restart" would say nothing happened when something visibly
+    # did -- and that is the one claim this marker cannot afford to get
+    # wrong. It is the only setting that splits, and its own note carries
+    # the exception.
+    #
+    # Decides which OSC mpv is CONSTRUCTED with.
+    "osc_style",
+    # mpv reads it exactly once, in mp_input_load_config -- a runtime write
+    # succeeds and reads back yes while the SDL thread is never started.
+    "input_gamepad",
+    # One-way doors: both change what the app is at startup rather than what
+    # it is doing.
+    "enable_gui", "headless",
+    # player.py picks its backend at import time.
+    "mpv_ext", "mpv_ext_path", "mpv_ext_ipc", "mpv_ext_start",
+    "mpv_ext_no_ovr", "mpv_ext_start_retries", "mpv_ext_start_retry_delay_ms",
+    # Read when the profile manager is built and when the pack is loaded.
+    "shader_pack_enable", "shader_pack_custom",
+    # `if settings.discord_presence:` at module scope in player.py -- an
+    # import guard, so nothing short of a restart re-runs it.
+    "discord_presence",
+    # Handed to each JellyfinClient at construction; until then the servers
+    # go on showing the old name.
+    "player_name",
+    # Read once at startup to configure logging.
+    "mpv_log_level",
+    # mpv construction options and key bindings made with it. A re-created
+    # mpv (idle-quit, crash recovery) would pick these up too, but not
+    # predictably, so a restart is the answer that is always true.
+    #
+    # `media_key_seek` is NOT here despite sitting beside `media_keys`: the
+    # binding is unconditional and the setting is read inside the handler
+    # (player.py `_on_media_prev`), so it applies at the next key press. It
+    # was listed once, which is precisely the wrong-badge case this set's
+    # docstring warns trains people to ignore the banner.
+    "menu_mouse", "media_keys", "mouse_chapter_nav",
+    # Snapshotted at menu.py module scope (`lang_filter = set(...)` at
+    # import), and every consumer reads that copy rather than the setting.
+    # Worse than a plain missing badge: the two booleans beside it ARE read
+    # live, so the filter visibly starts working with the old language list
+    # and reads as "ignored" rather than "pending".
+    "lang_filter",
+    # Baked into the ThumbnailStore's MemoryCache at construction
+    # (mpvtk_browser/ui.py), once, when the browser starts. A setting whose
+    # whole purpose is "this machine is short on RAM" that silently does
+    # nothing until relaunch.
+    "library_image_cache_mb",
+    # Passed to both the API client and mpv at construction.
+    "tls_client_cert", "tls_client_key", "tls_server_ca",
+})
 
 #: Which tab "Advanced" (everything uncurated) is appended to. General, so
 #: the other two stay the size the split made them -- and so there is one
@@ -216,10 +308,15 @@ ADVANCED_GROUPS = frozenset({
     _("Download Tuning"),
 })
 
+#: The tabs the schema-driven config form is drawn on, in order. The other
+#: four Settings tabs are not this form: three are their own screens and
+#: the home-screen one lives on the server. `sections()` and `search()`
+#: both walk these.
+FORM_TABS = ("general", "browse", "playback")
+
 #: Flattened, in tab order. Anything that wants "every curated key" reads
 #: this rather than knowing about the tabs.
-SECTIONS = [group for tab in ("general", "browse", "playback")
-            for group in TAB_SECTIONS[tab]]
+SECTIONS = [group for tab in FORM_TABS for group in TAB_SECTIONS[tab]]
 
 # Free-text is wrong for these: an unlisted value silently breaks the feature.
 ENUMS = {
@@ -251,6 +348,47 @@ LABELED_ENUMS = {
         (_("Smooth Motion"), "smooth"),
         (_("Blend Frames"), "blend"),
         (_("Smooth (high quality)"), "hq"),
+    ],
+    # Named for the content, not the strength: the numbers behind these
+    # (mpv_options.DEBAND_PRESETS) mean nothing to anyone who has not read
+    # mpv's manual, whereas "my anime looks blocky" is exactly why somebody
+    # is on this row. "Off" is shared with motion_interpolation's, which is
+    # the same sense and so the same catalogue entry on purpose.
+    #
+    # None of these may be spelled "Light" or "Standard" alone: gettext keys
+    # on the English, `_("Light")` is already the reader's light THEME, and
+    # collapsing the two would make them one entry no language could tell
+    # apart. See docs/i18n.md section 6.
+    "deband": [
+        (_("Off"), "off"),
+        (_("Light (live action)"), "light"),
+        (_("Standard (animation)"), "standard"),
+        (_("Strong"), "strong"),
+    ],
+    # MPV's own vocabulary rather than invented names, because these are
+    # different curves and not a strength ladder -- there is no honest way
+    # to order them. "Automatic" alone is already the SVP profile and the
+    # automatic download group, so this one says what it is automatic about.
+    "tone_mapping": [
+        (_("Automatic (MPV decides)"), "auto"),
+        (_("BT.2390 (reference)"), "bt.2390"),
+        (_("BT.2446a"), "bt.2446a"),
+        (_("Spline"), "spline"),
+        (_("Hable"), "hable"),
+        (_("Reinhard"), "reinhard"),
+        (_("Clip (no tone mapping)"), "clip"),
+    ],
+    # "MPV default" rather than "Default", which is already a stream flag
+    # and a scrim style.
+    "render_quality": [
+        (_("MPV default"), "default"),
+        (_("High quality"), "high"),
+    ],
+    # Not "Default"/"Large" either -- "Large" is already a cover size.
+    "network_buffer": [
+        (_("MPV default (1 second)"), "default"),
+        (_("Large (20 seconds)"), "large"),
+        (_("Very large (60 seconds)"), "huge"),
     ],
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
@@ -395,6 +533,10 @@ LABEL_OVERRIDES = {
     "hwdec": _("Hardware Decoding"),
     "deinterlace_auto": _("Deinterlace Automatically"),
     "motion_interpolation": _("Motion Interpolation"),
+    "deband": _("Debanding"),
+    "tone_mapping": _("HDR Tone Mapping"),
+    "render_quality": _("Rendering Quality"),
+    "network_buffer": _("Network Buffer"),
     "auto_download_enable": _("Automatically Download Upcoming Episodes"),
     "auto_download_next_up": _("Include Next Up"),
     "auto_download_next_up_limit": _("Next Up Entries to Consider"),
@@ -482,7 +624,7 @@ NOTES = {
     # Both caveats are ones a user would otherwise report as bugs: input
     # arriving while another window is focused, and the setting appearing to
     # do nothing at all on an mpv that cannot do it.
-    "input_gamepad": _("Takes effect after a restart. Move with the d-pad "
+    "input_gamepad": _("Move with the d-pad "
                        "or left stick, seek with the right stick, shoulder "
                        "buttons to page, Start for the menu. A controller "
                        "is not focus-aware, so it will reach this app even "
@@ -496,8 +638,7 @@ NOTES = {
     # back", not for the word "swap".
     "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
                               "is on the right rather than at the bottom "
-                              "(Switch Pro, most 8BitDo pads). Applies "
-                              "immediately."),
+                              "(Switch Pro, most 8BitDo pads)."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.
@@ -531,6 +672,36 @@ NOTES = {
         "force it on for something that is interlaced without saying so, use "
         "Deinterlace in the player's settings menu, which lasts until you "
         "return to the library. Needs MPV 0.38 or newer."),
+    # Three things a user would otherwise report as a bug: that it is off
+    # by default, that it is not free on the hardware this app often runs
+    # on, and that leaving it off is how you keep your own mpv.conf values.
+    "deband": _(
+        "Smooths the blocky steps that appear in gradients — skies, dark "
+        "scenes, fades. Animation and anime benefit most, because flat "
+        "gradients are most of the picture; live action is largely "
+        "unaffected either way, "
+        "though a strong setting can soften genuinely fine detail. Costs GPU "
+        "work whatever the content, which is worth knowing on a small or "
+        "older machine. Leave this Off if you set the deband options in "
+        "mpv.conf yourself — Off writes nothing at all, so your values are "
+        "left alone."),
+    "tone_mapping": _(
+        "How HDR video is fitted to an SDR display. This does nothing when "
+        "HDR is being passed through to an HDR display, because no tone "
+        "mapping is happening to change. Leave it on Automatic unless HDR "
+        "films look wrong to you; BT.2390 is the reference curve, and Clip "
+        "is what to try if highlights look grey rather than bright."),
+    "render_quality": _(
+        "High quality applies the same options as MPV's own high-quality "
+        "preset: better upscaling and HDR handling, at some GPU cost. It "
+        "needs no shader files and does not use up your shader profile, so "
+        "it is the thing to try before the shader pack below."),
+    "network_buffer": _(
+        "How far ahead of playback to read. MPV's default is one second, "
+        "which is short for a server reached over the internet or a slow "
+        "connection — raise this if playback keeps stopping for buffering. "
+        "Larger buffers use more memory and make the first few seconds of a "
+        "file slower to start."),
     "motion_interpolation": _(
         "Frame blending (blends frames together, not the same as "
         "SVP/DLSS/framegen). Reduces juddering caused by mismatched frame "
@@ -580,7 +751,7 @@ NOTES = {
                              "Turning it on applies to what you are watching "
                              "the next time you seek somewhere new; turning "
                              "it off applies to the next video."),
-    "osc_style": _("Requires restart to change. MPV keybinds are used by "
+    "osc_style": _("MPV keybinds are used by "
                    "default. Press ENTER to drive the player controls by "
                    "keyboard. \"No player controls\" leaves playback bare; "
                    "the library, the keyboard shortcuts and the menu key "
@@ -607,8 +778,7 @@ NOTES = {
     # think about only invites questions. The dynamic note in
     # settings/general.py raises it, and only for someone it is actually
     # broken for.
-    "discord_presence": _("Discord Rich Presence. Takes effect after a "
-                          "restart."),
+    "discord_presence": _("Discord Rich Presence."),
     "audio_device": _("Leave this to Default unless setting up passthrough. "
                       "Note some audio servers like Pipewire don't like "
                       "passthrough and will need to be disabled for a card "
@@ -645,9 +815,8 @@ NOTES = {
                              "edges of the window, as the web client does. "
                              "It shows more of the artwork without taking "
                              "any more vertical space."),
-    "poster_scale": _("Overrides the theme's cover size. Applies "
-                      "immediately, and is also on the View menu of any "
-                      "library."),
+    "poster_scale": _("Overrides the theme's cover size. Also on the View "
+                      "menu of any library."),
     "hud_scrim": _("The controls have to stay legible over any frame. "
                    "\"None\" gives the text a drop shadow instead of "
                    "shading the picture behind it."),
@@ -658,7 +827,7 @@ NOTES = {
     "mouse_chapter_nav": _(
         "During playback only; in the library those buttons stay Back and "
         "Forward. Off by default because they are easy to hit by accident on "
-        "some mice. Takes effect after a restart."),
+        "some mice."),
     # xgettext: no-python-format
     # "100% on" reads as the conversion "% o" (space flag, octal), so xgettext
     # marks this python-format and msgfmt --check then rejects any translation
@@ -666,8 +835,8 @@ NOTES = {
     # tripped over. This string is a NOTES entry rendered as-is and is never
     # %-formatted, so the flag is wrong rather than unmet. The override changes
     # no msgid, so nothing already translated is discarded.
-    "ui_scale": _("Takes effect after a restart. \"Follow display\" uses the "
-                  "scale your desktop reports, which is 100% on X11."),
+    "ui_scale": _("\"Follow display\" uses the scale your desktop reports, "
+                  "which is 100% on X11."),
     "ui_text_scale": _(
         "Scales the text only. Interface Scale above resizes everything, "
         "artwork and spacing and controls included, so use this one when the "
@@ -793,6 +962,108 @@ def sections(tab=None):
     advanced = sorted(k for k in schema if k not in curated)
     if advanced:
         out.append((_("Advanced"), advanced))
+    return out
+
+
+#: Words a user types that appear nowhere in a setting's label, key or note.
+#:
+#: Search-only, and that is the point: these do not belong in the prose. A
+#: note exists to explain a setting to somebody already looking at it, and
+#: padding it with synonyms to feed the search would make it worse at its
+#: real job. Everything here was a measured miss -- the query returned
+#: nothing while the setting sat two tabs away.
+#:
+#: Matching is substring and directional (see `search`), so the LONGER form
+#: is what belongs here: "certificate" finds a label saying "Cert", but
+#: "Cert" alone is never found by "certificate".
+SEARCH_ALIASES = {
+    "local_kbps": "bitrate bandwidth quality",
+    "remote_kbps": "bitrate bandwidth quality",
+    "ignore_ssl_cert": "certificate https",
+    "tls_client_cert": "certificate https",
+    "tls_client_key": "certificate https",
+    "tls_server_ca": "certificate https",
+    "render_quality": "upscale upscaler sharpness",
+    # Whichever of the pair this machine shows, "tray" has to find it --
+    # and on a machine with NO tray it is `allow_background` that is
+    # offered, whose label and note never say the word. That is the machine
+    # where somebody types it.
+    "allow_background": "tray systray notification area",
+    "close_to_tray": "systray notification area",
+    "start_minimized": "minimise",
+    "ui_scale": "hidpi dpi",
+    "audio_mode": "surround 5.1 7.1",
+    "motion_interpolation": "stutter",
+}
+
+
+def search_haystack(key, title="", include_aliases=True,
+                    include_note=True):
+    """Everything a settings search should match ``key`` on.
+
+    The **note** is in here deliberately, and it is what makes the feature
+    worth having: a label is two or three words chosen before anyone knew
+    what people would call the thing. "banding", "buffer", "stutter",
+    "washed out", "controller" and "tray" are all in notes and none is in a
+    label. The cost is that a common word can pull in a setting whose note
+    merely mentions it -- which is the right way round for a search box,
+    since the alternative is a query that finds nothing and a user who
+    concludes the setting does not exist.
+
+    The raw key is included because the docs, the issue tracker and
+    `conf.json` all name settings that way, so somebody arriving from any
+    of them types `auto_download_lookahead` rather than its label.
+
+    ``include_aliases`` and ``include_note`` exist for the test that checks
+    a note-dependent case really does depend on the note: it has to be able
+    to ask what the haystack looks like with each part taken away. Without
+    that, a case could start matching via an alias or an enum label and go
+    on claiming to prove the notes are searched.
+    """
+    parts = [label_for(key), key, key.replace("_", " "), title]
+    note = NOTES.get(key) if include_note else None
+    if note:
+        parts.append(note)
+    if include_aliases:
+        alias = SEARCH_ALIASES.get(key)
+        if alias:
+            parts.append(alias)
+    for label, _value in LABELED_ENUMS.get(key) or ():
+        parts.append(label)
+    parts.extend(ENUMS.get(key) or ())
+    return " ".join(str(p) for p in parts).lower()
+
+
+def search(query, tabs=FORM_TABS):
+    """``[(tab, title, [key, ...]), ...]`` for settings matching ``query``.
+
+    Every whitespace-separated word must match somewhere in the setting's
+    haystack (AND, not OR): with a corpus this small and notes this long,
+    OR returns most of the form for any two common words, which is the same
+    as returning nothing.
+
+    Built on :func:`sections`, not on the schema, so a control the form is
+    currently **hiding** cannot be found -- the passthrough toggles the
+    selected audio mode cannot carry, `close_to_tray` on a machine with no
+    tray. Finding a setting that the form then refuses to draw would be a
+    search result that leads nowhere.
+
+    Advanced groups are searched and returned like any other. The
+    disclosure exists so the tab is not a hundred controls long; somebody
+    who has typed a query has already narrowed it, and hiding half the
+    answers behind a checkbox they cannot see from here would make the
+    search quietly incomplete.
+    """
+    words = [w for w in (query or "").lower().split() if w]
+    if not words:
+        return []
+    out = []
+    for tab in tabs:
+        for title, keys in sections(tab):
+            hits = [k for k in keys
+                    if all(w in search_haystack(k, title) for w in words)]
+            if hits:
+                out.append((tab, title, hits))
     return out
 
 

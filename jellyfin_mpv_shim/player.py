@@ -702,12 +702,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # outlives a queue advance -- a badly-flagged season is one answer,
         # not one per episode -- and nothing else.
         self._deinterlace_override = None
-        # {property: value} as they were before motion interpolation first
-        # wrote them, so turning the feature off restores the user's own
-        # values rather than our idea of "off". None means we have never
-        # written, which is also what makes off a no-op rather than an
-        # override of somebody's mpv.conf. See _apply_interpolation.
-        self._interp_saved = None
+        # {mpv property: value} for every property any preset-driven setting
+        # can write, as the FRESH mpv had them -- so the restore hands back
+        # mpv's defaults plus the user's own mpv.conf, and nothing else.
+        # Captured at construction rather than before the first write,
+        # because the shader pack writes several of these (deband above all)
+        # earlier in the play path than we do; a lazy snapshot would record
+        # the pack's values as the user's. See _snapshot_render_pristine.
+        self._render_pristine = {}
+        # Which of those settings we have actually written. Empty means we
+        # have never touched mpv, which is what makes "off" a no-op rather
+        # than an override of somebody's mpv.conf -- and what keeps "off"
+        # meaning "no opinion" rather than "undo the shader pack".
+        # See _apply_render_preset.
+        self._render_written = set()
         # Whether this mpv rejected `deinterlace=auto` (it is 0.38+). Asked
         # once; without it an old build re-discovers and re-logs on every
         # item played, forever. Same shape as `_lua_works`.
@@ -1002,6 +1010,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             loglevel=mpv_loglevel_for(settings.mpv_log_level),
         )
 
+        # **Before anything else touches this handle.** The shader pack is the
+        # reason: `OSDMenu` / `menu.update_player` below construct a
+        # VideoProfileManager, whose __init__ re-applies the remembered
+        # profile -- and `default-setting-groups` writes `deband` and, via
+        # `profile=gpu-hq`, the whole of `render_quality`. Snapshotted after
+        # that, "the user's own value" would be the PACK's, so turning the
+        # Debanding setting off would hand back `deband=yes, grain=0` over
+        # the user's mpv.conf, for ever, with no profile loaded and no grain
+        # shaders to justify the zero. `shader_pack_remember` defaults on, so
+        # that is the ordinary path for anyone who has ever picked a profile.
+        #
+        # It also means a failure between here and the end of _init_mpv
+        # cannot leave the PREVIOUS mpv's values recorded against this one.
+        self._render_written = set()
+        self._snapshot_render_pristine()
+
         try:
             self._runtime_force_window = runtime_force_window_works(
                 self._player.mpv_version)
@@ -1076,9 +1100,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # A fresh mpv starts with stats.lua's overlay off — don't let a stale
         # flag make clear_stats() toggle it back on.
         self._stats_shown = False
-        # ...and it starts with the user's own picture options, so values
-        # saved from the PREVIOUS mpv would be restored over them.
-        self._interp_saved = None
+        # The picture-option snapshot is NOT taken here -- it is taken the
+        # moment the handle exists, above, because the shader pack writes to
+        # this mpv before this line is reached. See _snapshot_render_pristine.
         # A fresh mpv may be a different build (the external binary can be
         # swapped under us), so the discovery is re-made rather than carried.
         self._no_deinterlace_auto = False
@@ -2505,12 +2529,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # Never let a decode *preference* stop playback: mpv keeps
             # whatever it had, which is at worst the previous item's.
             log.debug("could not apply the hwdec setting", exc_info=True)
-        # Deinterlacing and motion interpolation, per item and for the same
-        # reason hwdec is: both are plain settings, and applying them only
-        # at construction would mean a change took effect on the next
-        # launch rather than the next thing played. Both are also cheap
-        # property writes rather than construction options, so there is
-        # nothing to gain by doing it earlier.
+        # Deinterlacing and the preset-driven settings (interpolation,
+        # debanding, tone mapping, render quality, buffering), per item and
+        # for the same reason hwdec is: all of them are plain settings, and
+        # applying them only at construction would mean a change took effect
+        # on the next launch rather than the next thing played. They are
+        # also cheap property writes rather than construction options, so
+        # there is nothing to gain by doing it earlier.
+        #
+        # The buffering preset is the one whose granularity is not a
+        # choice: the demuxer reads those options when it starts, so
+        # per-item is the earliest they can land anyway.
         #
         # Separately guarded from hwdec above, not folded into its try:
         # they are unrelated preferences, and an mpv that rejects one has
@@ -2524,10 +2553,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         except Exception:
             log.debug("could not apply the deinterlace setting",
                       exc_info=True)
-        try:
-            self._apply_interpolation()
-        except Exception:
-            log.debug("could not apply motion interpolation", exc_info=True)
+        self._apply_render_presets()
         # How long mpv holds a still. BEFORE play(), not after the load
         # succeeds: this is what mpv reports as the file's `duration`, so
         # the duration wait below and the HUD's scrub bar both depend on it
@@ -2929,45 +2955,174 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self._no_deinterlace_auto = True
             self._player.deinterlace = "no"
 
-    def _apply_interpolation(self):
-        """Write the configured motion-interpolation preset, or undo ours.
+    def _snapshot_render_pristine(self):
+        """Read every property the preset-driven settings can write, from an
+        mpv nothing has written to yet.
 
-        **"Off" writes nothing until we have written something.** Every one of
-        these is a property somebody may have set in their own mpv.conf, and
-        the default of this setting is off -- so an off that wrote its idea of
-        "not interpolating" would reach out on the first item and turn off
-        frame blending the user configured, with no setting here to put it
-        back. (``hwdec_pinned_by_config`` exists to avoid the same mistake.)
+        This is the definition of "the user's own value" that the restore
+        hands back: mpv's defaults as modified by the user's ``mpv.conf``,
+        and nothing else.
 
-        So the undo is symmetric with the do: the first apply keeps the
-        previous value of every property any preset touches, and off restores
-        exactly those. ``_interp_saved`` is None while we have never written,
-        which is also the "leave it alone" signal.
+        **Called the moment the handle exists, before anything else touches
+        it**, because the shader pack gets there first in two different
+        ways and both would poison this:
+
+        - at construction, ``menu.update_player`` (and the first
+          ``OSDMenu``) builds a ``VideoProfileManager``, whose ``__init__``
+          re-applies the remembered profile. ``default-setting-groups``
+          writes ``deband`` and, through ``profile=gpu-hq``, every property
+          ``render_quality`` owns. ``shader_pack_remember`` defaults on, so
+          this is the ordinary path for anyone who has picked a profile
+          once;
+        - per item, ``apply_for_item`` runs earlier in ``_play_media`` than
+          the settings do.
+
+        Snapshotted after either, "the user's own value" is the pack's, and
+        turning the setting off hands the pack's values back over the user's
+        ``mpv.conf`` -- permanently, with no profile loaded, and with
+        ``deband-grain: 0`` that only made sense beside the pack's grain
+        shaders.
+
+        A property this mpv does not have is simply absent, and the restore
+        skips it. That is the right answer rather than an error: an older
+        build without ``hdr-contrast-recovery`` cannot have a value of it to
+        put back, and the preset write for it will fail on its own terms.
+        """
+        from .mpv_options import PRESET_SETTINGS, preset_keys
+
+        self._render_pristine = {}
+        if self._player is None:
+            return
+        for key in PRESET_SETTINGS:
+            for prop in preset_keys(key):
+                if prop in self._render_pristine:
+                    continue
+                try:
+                    self._render_pristine[prop] = getattr(
+                        self._player, prop.replace("-", "_"))
+                except Exception:
+                    log.debug("this mpv has no %s to remember", prop,
+                              exc_info=True)
+        if not self._render_pristine:
+            # Not fatal, but it means every preset becomes one-way for the
+            # life of this mpv: the write guard reads an empty snapshot as
+            # "never probed, write everything" while the restore reads it as
+            # "nothing to put back". Near-unreachable -- the handle has just
+            # been constructed -- so it is worth a line rather than a policy.
+            log.warning("Could not read any picture options from this mpv; "
+                        "turning a picture setting off will not restore "
+                        "your own values this session.")
+
+    def _apply_render_preset(self, key):
+        """Write ``key``'s configured preset, or undo ours.
+
+        **"Off" writes nothing until we have written something.** Every
+        property these settings touch is one somebody may have set in their
+        own mpv.conf, and all of them default to off -- so an off that wrote
+        its idea of "not doing this" would reach out on the first item and
+        undo the user's config, with no setting here to put it back.
+        (``hwdec_pinned_by_config`` exists to avoid the same mistake, the
+        other way round: hwdec's off is a real value that HAS to be written,
+        so it cannot buy the protection by staying silent and needs a pin.)
+
+        The undo is symmetric with the do: off restores the pristine value of
+        every property any preset of this key touches -- not just this
+        preset's, so switching presets before turning it off still restores
+        all of them.
+
+        ``_render_written`` is the "have we ever written this" record, and
+        the second thing off has to mean: with a shader profile loaded, off
+        is "I have no opinion, leave the pack's value alone" rather than
+        "undo the pack". Only a key we wrote is a key we may take back.
 
         Why preserving ``video-sync`` alone is worse than useless:
         docs/mpv-backends.md section 6.
         """
-        from .mpv_options import INTERPOLATION_KEYS, interpolation_props
+        from .mpv_options import preset_keys, preset_props
 
-        props = interpolation_props()
+        props = preset_props(key)
         if props:
-            if self._interp_saved is None:
-                # Read before writing, once. Reading them back later would
-                # return OUR values and make the restore a no-op. Every key
-                # any preset can write, not just this preset's, so switching
-                # presets before turning it off still restores all of them.
-                self._interp_saved = {
-                    key: getattr(self._player, key.replace("-", "_"))
-                    for key in INTERPOLATION_KEYS
-                }
+            wrote = False
             for prop, value in props.items():
+                if self._render_pristine and prop not in self._render_pristine:
+                    # This mpv has no such property -- the snapshot already
+                    # tried and logged it. `hdr-contrast-recovery` and
+                    # `hdr-peak-percentile` are 0.37+, so this is a real
+                    # build difference rather than a hypothetical one, and
+                    # dropping the ONE option is better than letting it
+                    # raise and take the rest of the preset (`scale`, the
+                    # part that does the visible work) with it.
+                    continue
                 setattr(self._player, prop.replace("-", "_"), value)
+                wrote = True
+            # Marked ours only if something actually landed. On a build with
+            # none of these properties every write is skipped, and claiming
+            # the key anyway would make a later "off" hand back values we
+            # never touched.
+            if wrote:
+                self._render_written.add(key)
             return
-        if self._interp_saved is None:
+        if key not in self._render_written:
             return                       # never ours; not ours to turn off
-        for prop, value in self._interp_saved.items():
-            setattr(self._player, prop.replace("-", "_"), value)
-        self._interp_saved = None
+        # What "off" restores TO. The pack first, where a profile is loaded
+        # and sets this property: turning our setting off means "I have no
+        # opinion", and with a profile on, the value it would have had
+        # without us is the pack's, not mpv's default.
+        #
+        # Nothing else puts the pack's back. `apply_for_item` returns early
+        # for an unchanged profile ("Already wearing it") -- deliberately,
+        # so the pack does not rewrite its settings between every two
+        # items -- so a restore to pristine here left the upscaler selected,
+        # its shaders loaded, and its debanding gone for the session.
+        pack = self._pack_applied()
+        for prop in preset_keys(key):
+            name = prop.replace("-", "_")
+            if name in pack:
+                value = pack[name]
+            elif prop in self._render_pristine:
+                value = self._render_pristine[prop]
+            else:
+                continue
+            setattr(self._player, name, value)
+        self._render_written.discard(key)
+
+    def _pack_applied(self):
+        """``{mpv property (underscored): value}`` the loaded shader profile
+        is currently holding, or ``{}``.
+
+        Read from the profile manager rather than recomputed: it records what
+        it applied, and re-deriving it here would be a second implementation
+        of the pack's group resolution -- which is the shape this codebase
+        keeps getting wrong.
+        """
+        menu = getattr(self, "menu", None)
+        manager = getattr(menu, "profile_manager", None) if menu else None
+        if manager is None or getattr(manager, "current_profile", None) is None:
+            return {}
+        return getattr(manager, "applied_settings", None) or {}
+
+    def _apply_render_presets(self):
+        """Every preset-driven mpv setting, each guarded on its own.
+
+        Separately guarded rather than one try around the loop: they are
+        unrelated preferences, and an mpv that rejects one -- an older build
+        without ``hdr-contrast-recovery``, say -- has no bearing on the
+        others. Sharing a block means the first failure silently drops the
+        rest, which is the shape the hwdec/deinterlace split in
+        ``_play_media`` already avoids.
+        """
+        from .mpv_options import PRESET_SETTINGS
+
+        for key in PRESET_SETTINGS:
+            try:
+                self._apply_render_preset(key)
+            except Exception:
+                log.debug("could not apply the %s setting", key, exc_info=True)
+
+    def _apply_interpolation(self):
+        """Motion interpolation, by its own name. See
+        :meth:`_apply_render_preset`."""
+        self._apply_render_preset("motion_interpolation")
 
     @synchronous("_lock")
     def set_deinterlace(self, on):
@@ -3020,6 +3175,41 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 return mode == "yes", mode == "auto"
             return bool(mode), False
 
+    @synchronous("_lock")
+    def reapply_render_presets(self):
+        """Write the preset-driven settings again, now.
+
+        For the shader pack, which writes some of the same properties and
+        then puts them back. ``pack.json`` lists ``deband-default`` under
+        ``default-setting-groups``, so **loading any profile turns debanding
+        on and unloading one turns it off again** -- and the value unload
+        restores is whatever mpv had when ``VideoProfileManager`` snapshotted
+        it, which is not this setting. Without this, picking an upscaler
+        mid-film and dropping it again would silently take the user's
+        debanding with it for the rest of the film; ``_play_media`` would not
+        put it back until the next item.
+
+        The rule it enforces is the one the settings are documented with: a
+        preset that is not "off" is the authority, and "off" means we have no
+        opinion and whatever the pack (or mpv.conf) wrote stands.
+
+        ``@synchronous`` because it arrives from two threads that are not the
+        one applying settings for the next item: the shader menu's
+        ``put_task`` on the action thread, and ``kb_kill_shader`` straight
+        from mpv's key handler. Every one of the settings it writes is also
+        written by ``_play_media``, so without the lock the two loops
+        interleave and the item ends up wearing half of each -- and the
+        pack's values it reads through ``_pack_applied`` are being rewritten
+        by ``unload_profile`` at the same time. Blocking a key handler on
+        this lock is what ``toggle_pause`` and ``toggle_fullscreen`` already
+        do, and ``wait_property``'s poll thread and hard timeout are what
+        keep a playback start from holding it for ever.
+        """
+        if self._player is None or not self._mpv_alive:
+            return
+        self._apply_render_presets()
+
+    @synchronous("_lock")
     def reapply_deinterlace(self):
         """Write whatever the current override-or-setting comes to, now.
 
@@ -3027,6 +3217,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         runs on the way out of playback, where there is nothing to change.
         The gear menu clears it with something still on screen, so it needs
         the write as a separate step.
+
+        ``@synchronous`` for the reason its sibling above is, and stated here
+        too because the pair is exactly the shape this codebase gets wrong:
+        the mechanism goes on one side and the second implementation is where
+        the bug turns up. It reaches mpv from the HUD gateway's ``_act``,
+        whose deferred path holds no lock at all.
         """
         if self._player is None or not self._mpv_alive:
             return

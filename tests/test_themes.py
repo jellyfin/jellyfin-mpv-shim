@@ -10,6 +10,8 @@ import os
 import tempfile
 import unittest
 
+from tests import _tmpdirs
+
 from jellyfin_mpv_shim.mpvtk_browser import hud, theme, themes
 from jellyfin_mpv_shim.mpvtk_browser.strips import (LANDSCAPE_GEOM,
                                                     POSTER_GEOM, StripStore)
@@ -732,7 +734,7 @@ class BadgeShadowTest(unittest.TestCase):
 
         theme.apply("superdark")
         art = PILImage.new("RGBA", (300, 450), (255, 255, 255, 255))
-        store = _Capture(tempfile.mkdtemp())
+        store = _Capture(_tmpdirs.tmpdir("jms-themes-"))
         self.addCleanup(store.shutdown)
         store.strip([Tile(key="t1", title="Film", poster=art, poster_tag="p",
                           badge=count)], POSTER_GEOM)
@@ -801,7 +803,7 @@ class BadgeShadowTest(unittest.TestCase):
 
         theme.apply("superdark")
         art = PILImage.new("RGBA", (300, 450), (255, 255, 255, 255))
-        store = _Capture(tempfile.mkdtemp())
+        store = _Capture(_tmpdirs.tmpdir("jms-themes-"))
         self.addCleanup(store.shutdown)
         # Every corner-badge kind at once, both stacks, and a three-digit
         # count -- the widest thing that goes up there.

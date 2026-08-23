@@ -57,7 +57,18 @@ class SettingsBase:
         return cfg
     def _set_setting(self, key, value):
         cfg = self._config()
+        restarts = getattr(cfg, "RESTART_REQUIRED", ())
+        # Read before the write, and compared AFTER it, so the comparison is
+        # between two coerced values. Re-submitting a text field with the
+        # same contents in it is not a change, and raising the restart
+        # banner for one would train people to ignore it.
+        before = cfg.get_settings().get(key) if key in restarts else None
         ok = cfg.set_setting(key, value)
+        if ok and key in restarts:
+            if cfg.get_settings().get(key) != before:
+                note = getattr(self, "note_restart_needed", None)
+                if note is not None:
+                    note(key)
         self.set_status((_("Saved: %s") if ok else _("Invalid value: %s"))
                         % key)
         # getattr: _config_obj may be a stand-in without the table, and a

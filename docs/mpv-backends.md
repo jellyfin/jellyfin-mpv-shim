@@ -342,14 +342,26 @@ Failure returns False rather than raising, and the caller falls back to putting
 the token in the URL. mpv has had `http-header-fields` for over a decade so this
 should not happen, but the cost of being wrong is that nothing plays at all.
 
-### Motion interpolation
+### The preset-driven settings
 
-**"Off" writes nothing until we have written something.** Every one of these is a
-property somebody may have set in their own `mpv.conf`, and the default of the
-setting is off — so an off that wrote its idea of "not interpolating" would reach
-out on the very first item and turn off frame blending the user configured
-themselves, for everyone, with no setting here that puts it back. That is the
-mistake `hwdec_pinned_by_config` exists to avoid.
+Motion interpolation, debanding, tone mapping, rendering quality and network
+buffering. Five settings, one table shape (`mpv_options.PRESET_SETTINGS`) and
+one apply path (`PlayerManager._apply_render_preset`), because they all have
+the same problem and the second implementation of a discipline is where it
+gets dropped.
+
+**"Off" writes nothing until we have written something.** Every one of these
+is a property somebody may have set in their own `mpv.conf`, and all five
+settings default to off — so an off that wrote its idea of "not doing this"
+would reach out on the very first item and undo the user's own config, for
+everyone, with no setting here that puts it back. That is the mistake
+`hwdec_pinned_by_config` exists to avoid. It is also what makes **"leave the
+setting off and write your own values"** a supported way to use these rather
+than an accident, which is why none of them exposes its raw parameters.
+
+`hwdec` needs a config-file pin and these do not, and the reason is worth
+stating: hwdec's off is a real value (`no`) that has to be written, so
+silence was never available to it.
 
 It is not enough to avoid it for `video-sync` alone: writing `interpolation=no`
 while carefully preserving `video-sync=display-resample` leaves the **worst
@@ -357,10 +369,54 @@ pair**, paying that mode's cost with the feature it exists for switched off.
 (mpv's manual: `--interpolation` "requires setting the --video-sync option to one
 of the display- modes, or it will be silently disabled".)
 
-So the undo is symmetric with the do. The first time a preset is applied, the
-previous value of every property any preset touches is kept, and off restores
-exactly those. `_interp_saved` is None while nothing has been written, which is
-also the "leave it alone" signal.
+So the undo is symmetric with the do, and both halves are state:
+
+- `_render_pristine` is every property any preset can write, read from the
+  **fresh mpv** in `_init_mpv`. Not lazily at first write: `apply_for_item`
+  runs earlier in `_play_media` than the settings do, and every shader profile
+  pulls in the pack's `deband-default` group — so a lazy snapshot would record
+  the pack's debanding as the user's value and never be able to hand the real
+  one back. A property this mpv does not have is simply absent, and both the
+  write and the restore skip it (`hdr-peak-percentile` and
+  `hdr-contrast-recovery` are 0.37+, so this is a real build difference).
+- `_render_written` is which settings we have actually written. It carries the
+  **second** meaning of off, and the one a lazier design gets wrong: with a
+  shader profile loaded, off is "I have no opinion, leave the pack's value
+  alone", not "undo the pack". A restore keyed on the setting being off rather
+  than on our having written would switch the pack's debanding off on the next
+  item played, under a profile the user had deliberately picked.
+
+The other direction is `reapply_render_presets`, called after every profile
+load and unload (`video_profile._reassert_user_settings`). A setting that is
+**not** off outranks the pack's bundled default, and without the reassert the
+pack's write is the last one until the next item — so picking an upscaler
+mid-film and dropping it again took the user's debanding with it for the rest
+of the film.
+
+It is `@synchronous("_lock")`, and so is `reapply_deinterlace` beside it.
+Both arrive from a thread that is not the one applying settings for the next
+item — the shader menu's `put_task` on the action thread, `kb_kill_shader`
+straight out of mpv's key handler, the HUD gateway's `_act` whose deferred
+path holds no lock at all — and every property they write `_play_media`
+writes too, so unlocked the two loops interleave and the item wears half of
+each. Blocking a key handler on this lock is what `toggle_pause` and
+`toggle_fullscreen` already do; `wait_property`'s poll thread and hard
+timeout (§9) are what stop a playback start holding it indefinitely, and
+`_lock` being an **RLock** is what lets `_play_media` reach the reassert
+through `apply_for_item` while already holding it.
+
+**And "off" restores to the PACK's value where a profile is loaded**, not to
+pristine (`_pack_applied`, fed by `VideoProfileManager.applied_settings`). Off
+means "I have no opinion"; with a profile on, the value the property would have
+had without us is the pack's. Nothing else would put it back, because
+`apply_for_item` returns early for an unchanged profile ("Already wearing it")
+so the pack does not rewrite between items — so restoring pristine left the
+upscaler selected, its shaders loaded, and its debanding gone for the session.
+
+Pinned by `tests/test_picture_processing.py` (the tables, against mpv's own
+`--list-options` and `--show-profile`), `tests/integration/test_picture_options.py`
+(what mpv ends up holding, over several items) and
+`tests/test_shader_scopes.py` (the reassert on both profile paths).
 
 ### `keepaspect`
 
@@ -483,7 +539,7 @@ get no rescue, and live streams none either: a stall there is an outage, and
 ## 10. Why the video settings default the way they do
 
 `conf.py` states each default at its declaration. This is the evidence behind the
-three that are off, all of which look conservative and are not.
+ones that are off, all of which look conservative and are not.
 
 ### `hwdec` — off, following mpv rather than the other clients
 
@@ -546,6 +602,63 @@ It also costs GPU on every frame, mpv reverts to audio timing on its own for
 low-framerate or VFR content, and `display-resample` adjusts audio speed to track
 the display — which is exactly what somebody bitstreaming to a receiver does not
 want.
+
+### `deband` — off, and the interesting half is *why it is a setting at all*
+
+mpv's own default is off, and this follows it. Two reasons, and neither is that
+debanding is risky:
+
+- It is **not free on content it does nothing for.** Each iteration is a GPU
+  pass. The filter only acts where neighbouring samples fall within
+  `deband-threshold`, so on detailed or grainy live action it mostly no-ops —
+  but it is *paid for* whether it acts or not, which matters on integrated
+  graphics and single-board machines at 4K. Animation is where flat gradients
+  make the pass worth having, which is why the presets are labelled by content
+  rather than by strength.
+- At a high threshold it can smear genuinely fine, low-contrast texture. That
+  is the `strong` end of the ladder, not the feature.
+
+**The shader pack already enabled debanding, and that is the gap this closes.**
+`pack.json` lists `deband-default` under `default-setting-groups`, which
+`video_profile.load_profile` applies — so debanding arrived bundled with picking
+an upscaler and left again on unload. Profiles are mutually exclusive and are
+*upscalers*, so "I want debanding and nothing else" was not reachable from the
+UI at all. See section 6 for how the two now compose.
+
+The pack's parameters are deliberately not copied: its `deband-grain: 0` is only
+correct because `static-grain-default` re-adds noise through shaders, and a
+standalone preset with grain 0 removes the masking without replacing it.
+
+**`deband-range` falls as the ladder rises**, against the grain of the other
+three. That is mpv's instruction, not a preference: the radius "increases
+linearly for each iteration", so the manual says to decrease it when raising
+`--deband-iterations`. The first version of the table raised all four together
+because a monotone ladder looked tidier, and the test asserted exactly that —
+pinning a number that contradicted the documentation it implemented.
+
+### `render_quality` — a copy of mpv's profile, not the profile
+
+`high` writes what `--profile=high-quality` sets, as individual properties. The
+reason it is a copy is that **a profile cannot be taken back**: mpv offers no way
+to read one back, which is why the shader pack lists `profile` in
+`setting-revert-ignore` and never reverts it. Applied as a profile this would be
+a setting that only turns on.
+
+The copy is checked against the installed mpv's own `--show-profile=high-quality`
+by `tests/test_picture_processing.py`, on the intersection rather than for
+equality — the suite runs against several mpv builds here and the profile has
+gained options across versions, so a shared option with a different value is
+drift and a missing one is a version.
+
+### `network_buffer` — default, and mpv's default is one second
+
+`--demuxer-readahead-secs` defaults to 1. For a client whose every file arrives
+from a remote server that is short, and it is the first thing to raise when
+playback stalls to buffer. Left at mpv's default because the cost is memory and a
+slower start, which is the wrong trade to impose on a LAN.
+
+These are read when the **demuxer starts**, so both raising and lowering land on
+the next file rather than the current one.
 
 ## 11. Shader packs, the GPU API and colorspace
 

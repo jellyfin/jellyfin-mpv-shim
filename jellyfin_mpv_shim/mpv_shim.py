@@ -346,6 +346,42 @@ def main():
         # such a step is unreachable. On expiry it dumps every thread, which
         # is what identifies the wedged step.
         exit_watchdog.arm()
+
+        def final_action():
+            """The last thing this process does, on **either** way out.
+
+            Registered with the watchdog rather than written below the
+            shutdown loop, because the loop is not reached when a step
+            wedges -- and that is precisely when a user who pressed
+            *Restart Now* most needs the app to come back rather than
+            simply vanish.
+
+            The release is here as well as in the loop because the wedge can
+            be anywhere: on the forced path the lock may never have been
+            given up, and a new copy that finds it held hands off to this
+            dying process and exits. It is idempotent, so the ordinary path
+            pays nothing for it.
+            """
+            # The tray first: it is a separate process, and the shutdown
+            # loop only reaches it in step six of seven. On the forced path
+            # the wedge can be anywhere before that, so without this a
+            # restart would put a live replacement beside a tray icon whose
+            # app is gone -- and on `start_minimized` that dead icon is the
+            # only thing the user would try to click.
+            #
+            # getattr: the CLI user interface has no tray.
+            stop_tray = getattr(user_interface, "stop_tray", None)
+            if stop_tray is not None:
+                try:
+                    stop_tray()
+                except Exception:
+                    log.debug("could not stop the tray", exc_info=True)
+            single.release()
+            from . import restart
+
+            restart.relaunch_if_requested()
+
+        exit_watchdog.set_final_action(final_action)
         # Covers the quit paths that do not start at a window close (tray
         # Quit, Ctrl-C): mpv is about to go away either way, and no reply
         # is worth minutes now.
@@ -372,6 +408,13 @@ def main():
                 # threads this sequence exists to clean up.
                 log.exception("Error shutting down %s", name)
         log.info("Shutdown complete.")
+        # Nothing may be added below this line: `finish` ends in `os._exit`
+        # and never returns, which is why its docstring says to call it as
+        # the last statement of main. The restart was originally written
+        # here, after it, and was simply dead code -- it armed, the app
+        # quit, and nothing came back. Whatever has to happen last goes
+        # through `set_final_action` above, which also covers the exit this
+        # line never reaches.
         exit_watchdog.finish()
 
 

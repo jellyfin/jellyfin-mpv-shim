@@ -19,7 +19,7 @@ registered in the browser's daemon table by attribute name.
 
 import time
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..mpvtk.layout import natural_size
 from ..mpvtk.widgets import (
     Box,
@@ -419,8 +419,42 @@ def history_menu_node(b):
 
 
 def banner(b):
-    # Update first: the offline banner is persistent, so checking it
-    # first meant an update notice was never seen while offline.
+    # Restart first, ahead of both the others, and the ordering is the
+    # argument: this one is about something the user did seconds ago and is
+    # dismissed the moment they act on it, while the update notice and the
+    # offline indicator are standing conditions that will still be there
+    # afterwards. Put third, it would have been invisible to exactly the
+    # people most likely to be changing settings -- anyone offline.
+    if getattr(b, "_restart_keys", None):
+        cfg = b._config()
+        names = sorted(cfg.label_for(k) for k in b._restart_keys)
+        # Named, not counted. "2 settings need a restart" makes the user
+        # go looking for which two, and the answer is not on screen once
+        # they have left the tab.
+        # No `wrap`, like the other two banners. The Row is h=48, so a
+        # wrapping Text is clamped to one line and `wrap_text`'s slop means
+        # the last word never fits -- so it ellipsized ALWAYS, including
+        # with a single pending setting ("Restart to apply: Interface…").
+        # That silently undid the whole point of naming them.
+        row = [Text(_("Restart to apply: %s") % ", ".join(names),
+                    size="normal"),
+               Spacer()]
+        if b.can_restart():
+            row.append(Button(_("Restart Now"), id="banner-restart",
+                              on_click=b._restart_now))
+        # `_p`, because Live TV's guide already has a "Later" meaning
+        # *later in time* (paired with "Earlier"). gettext keys on the
+        # English, so without a context the two collapse into one entry and
+        # no language can tell "postpone" from "forward in time". The
+        # context goes on THIS use: adding one to the existing string would
+        # discard every translation it already has.
+        row.append(Button(_p("Restart banner", "Later"),
+                          id="banner-restart-dismiss",
+                          on_click=b._dismiss_restart))
+        return Row(row, pad=10, gap=10, align="center", h=48,
+                   bg=theme.ACCENT_SOFT)
+    # Update before offline: the offline banner is persistent, so checking
+    # it first meant an update notice was never seen while offline.
     if b._update:
         return Row([
             Text(_("Update available: %s") % b._update["version"],

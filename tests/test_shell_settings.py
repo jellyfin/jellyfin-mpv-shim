@@ -16,6 +16,7 @@ from tests._shell_harness import (
     FakeSource,
     LoginController,
     MultiServerSource,
+    SearchConfig,
     _SyncPool,
     build_scene,
     ids,
@@ -363,6 +364,333 @@ class TestSettings(unittest.TestCase):
         nodes, handlers = build_scene(self.b)
         handlers["set-seek_up"]["submit"]("not-a-number")
         self.assertIn("Invalid", self.b.status)
+
+class TestSettingsSearch(unittest.TestCase):
+    """Searching the config form.
+
+    The settings form is about a hundred controls across three tabs, and the
+    tab a control sits on is a curation decision rather than something a
+    user can derive -- so "which tab is it on" is the question the search
+    exists to stop people having to answer.
+    """
+
+    def setUp(self):
+        self.cfg = SearchConfig()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg)
+        self.b._open_settings()
+
+    def _texts(self, nodes):
+        return " ".join(n.get("text", "") for n in nodes if n.get("text"))
+
+    def _type(self, query):
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"](query)
+        return build_scene(self.b)
+
+    def test_the_box_is_offered_on_the_form_tabs(self):
+        nodes, _h = build_scene(self.b)
+        self.assertIn("set-search-box", ids(nodes))
+
+    def test_the_box_is_not_offered_where_it_would_search_nothing(self):
+        """Four of the seven tabs are not this form -- three are their own
+        screens and the home screen lives on the server. A box that found
+        nothing on them would read as a broken search rather than as an
+        absent one."""
+        for tab in ("home", "servers", "downloads", "logs"):
+            with self.subTest(tab=tab):
+                self.b.route["_tab"] = tab
+                nodes, _h = build_scene(self.b)
+                self.assertNotIn("set-search-box", ids(nodes))
+
+    def test_a_query_finds_a_setting_from_another_tab(self):
+        """The whole point: `deband` lives on Playback and the search is run
+        from General. A filter that only searched the tab in front of you
+        would be answering the question the tab bar already answers."""
+        self.assertEqual(self.b.route.get("_tab", "general"), "general")
+        nodes, _h = self._type("deband")
+        self.assertIn("set-deband", ids(nodes))
+
+    def test_a_result_is_editable_where_it_is_found(self):
+        """Not a link to the tab it lives on. The control has to work from
+        the results, or the search has saved nobody anything."""
+        _nodes, handlers = self._type("deband")
+        handlers["set-deband"]["submit"]("standard")
+        self.assertEqual(self.cfg.values["deband"], "standard")
+
+    def test_the_note_is_searched_and_not_only_the_label(self):
+        """The half that makes it useful. Nothing in "Debanding" contains
+        the word people actually type; "banding" and "gradients" are both in
+        the note, and neither is in any label."""
+        nodes, _h = self._type("gradients")
+        self.assertIn("set-deband", ids(nodes))
+
+    def test_every_word_has_to_match(self):
+        """AND, not OR. With notes this long, OR returns most of the form
+        for any two common words, which is as useless as returning
+        nothing."""
+        nodes, _h = self._type("deband gradients")
+        self.assertIn("set-deband", ids(nodes))
+        nodes, _h = self._type("deband unrelatedword")
+        self.assertNotIn("set-deband", ids(nodes))
+
+    def test_a_result_keeps_the_group_it_belongs_to(self):
+        """A flat list of controls loses the context that says what a
+        setting is for."""
+        nodes, _h = self._type("deband")
+        self.assertIn("Video Enhancement", self._texts(nodes))
+
+    def test_an_advanced_setting_is_findable_without_the_disclosure(self):
+        """The disclosure exists so a tab is not a hundred controls long.
+        Somebody who typed a query has already narrowed it, and leaving half
+        the answers behind a checkbox that is not on screen would make the
+        search quietly incomplete."""
+        self.assertFalse(self.b.route.get("_advanced"))
+        nodes, _h = self._type("seek")
+        self.assertIn("set-seek_up", ids(nodes))
+
+    def test_a_query_that_matches_nothing_says_so(self):
+        """Rather than an empty page, which is indistinguishable from a
+        broken screen."""
+        nodes, _h = self._type("zzzznothing")
+        text = self._texts(nodes)
+        self.assertIn("zzzznothing", text)
+        self.assertNotIn("set-player_name", ids(nodes))
+
+    def test_picking_a_tab_ends_the_search(self):
+        """The way out. While a query is live the tab bar is not describing
+        what is on screen, which makes clicking one the obvious escape --
+        and leaving the query running would make it the one gesture that
+        did nothing."""
+        _nodes, handlers = self._type("deband")
+        nodes, handlers = build_scene(self.b)
+        handlers["stab-browse"]["click"]()
+        self.assertEqual(self.b.route.get("_q", ""), "")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("set-deband", ids(nodes))
+
+    def test_typing_asks_for_a_repaint(self):
+        """A scene assertion is not a repaint assertion: build_scene renders
+        when asked, so every test above would pass against a handler that
+        stored the query and never redrew -- and the user would type into a
+        box and watch nothing happen."""
+        nodes, handlers = build_scene(self.b)
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        handlers["set-search-box"]["change"]("deband")
+        self.assertTrue(seen)
+
+    def test_retyping_the_same_query_does_not_repaint(self):
+        """`on_change` fires per keystroke, including ones that do not
+        change the value."""
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"]("deband")
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        nodes, handlers = build_scene(self.b)
+        handlers["set-search-box"]["change"]("deband")
+        self.assertFalse(seen)
+
+    def test_the_results_scroll_apart_from_the_tab_form(self):
+        """Sharing the tab form's scroll id meant a search run from halfway
+        down Playback opened its results halfway down too."""
+        nodes, _h = build_scene(self.b)
+        self.assertIn("settings", ids(nodes))
+        nodes, _h = self._type("deband")
+        self.assertIn("settings-search", ids(nodes))
+        self.assertNotIn("settings", ids(nodes))
+
+
+class TestRestartBanner(unittest.TestCase):
+    """Settings that do nothing until the app is started again.
+
+    The failure this replaces is silent: the value is saved, the form says
+    "Saved", and nothing whatsoever happens -- which is indistinguishable
+    from a broken control.
+    """
+
+    def setUp(self):
+        self.cfg = FakeConfig()
+        self.ctl = FakeController()
+        self.b = MpvtkBrowser(app=None, source=FakeSource(), config=self.cfg,
+                              controller=self.ctl)
+        self.b._open_settings()
+
+    def _texts(self, nodes):
+        return " ".join(n.get("text", "") for n in nodes if n.get("text"))
+
+    def _change_a_restart_setting(self, value="Rename"):
+        nodes, handlers = build_scene(self.b)
+        handlers["set-player_name"]["submit"](value)
+        return build_scene(self.b)
+
+    def test_a_restart_required_setting_is_marked_on_its_row(self):
+        """The marker is the whole lifecycle vocabulary now: marked means
+        literally nothing happened, unmarked means it applied or applies to
+        the next thing you play. It has to be on the row, because that is
+        where the decision is made -- the banner only appears afterwards."""
+        self.b.route["_advanced"] = True
+        nodes, _h = build_scene(self.b)
+        self.assertIn("Requires restart", self._texts(nodes))
+
+    def test_a_setting_that_applies_now_is_not_marked(self):
+        """The half that makes the marker worth reading. Marking everything
+        would be the page footer this replaced."""
+        cfg = FakeConfig()
+        cfg.RESTART_REQUIRED = frozenset()
+        b = MpvtkBrowser(app=None, source=FakeSource(), config=cfg,
+                         controller=FakeController())
+        b._open_settings()
+        b.route["_advanced"] = True
+        nodes, _h = build_scene(b)
+        self.assertNotIn("Requires restart", self._texts(nodes))
+
+    def test_the_page_no_longer_hedges_about_every_control(self):
+        """"Some changes take effect after restarting" named no changes, so
+        the only thing a reader could do with it was distrust the whole
+        page."""
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("take effect after restarting", self._texts(nodes))
+
+    def test_no_banner_before_anything_changes(self):
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_changing_a_restart_setting_raises_the_banner(self):
+        nodes, _h = self._change_a_restart_setting()
+        self.assertIn("banner-restart", ids(nodes))
+
+    def test_the_banner_names_the_setting(self):
+        """Named, not counted: "2 settings need a restart" makes the user go
+        looking for which two, and the answer is not on screen once they
+        have left the tab."""
+        nodes, _h = self._change_a_restart_setting()
+        self.assertIn(self.cfg.label_for("player_name"), self._texts(nodes))
+
+    def test_the_banner_text_is_not_truncated(self):
+        """The banner promises to NAME the settings, and it was silently
+        ellipsizing every one of them -- `wrap=True` inside a fixed-height
+        Row is clamped to a single line, and the wrap slop then means the
+        last word never fits. With the real config a single pending setting
+        rendered as "Restart to apply: Interface…".
+
+        Three names, so the string is long enough that a returning `wrap`
+        truncates it; asserted on the text rather than on the node id, which
+        is what the other banner tests check and why none of them saw it.
+        """
+        self.b._restart_keys = {"player_name", "osc_mode", "lang"}
+        nodes, _h = build_scene(self.b)
+        line = next(t for t in
+                    (n.get("text", "") for n in nodes)
+                    if t.startswith("Restart to apply"))
+        self.assertNotIn("\u2026", line, line)
+        for key in ("player_name", "osc_mode", "lang"):
+            self.assertIn(self.cfg.label_for(key), line)
+
+    def test_a_live_setting_raises_nothing(self):
+        """The half that keeps the banner worth reading. Most settings apply
+        immediately, and a banner after every write would be furniture."""
+        nodes, handlers = build_scene(self.b)
+        handlers["set-lang"]["select"](1, "Dubbed")
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_rewriting_the_same_value_is_not_a_change(self):
+        """`on_commit` fires when a field loses focus, whether or not
+        anything was typed -- so this is the ordinary case of clicking from
+        one row to the next, and it must not raise a banner."""
+        current = self.cfg.values["player_name"]
+        nodes, _h = self._change_a_restart_setting(current)
+        self.assertNotIn("banner-restart", ids(nodes))
+
+    def test_the_value_is_still_saved(self):
+        """The banner is a notice, not a gate. Nothing about needing a
+        restart stops the setting being written."""
+        self._change_a_restart_setting("Newname")
+        self.assertEqual(self.cfg.values["player_name"], "Newname")
+
+    def test_later_puts_it_away_without_restarting(self):
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart-dismiss"]["click"]()
+        nodes, _h = build_scene(self.b)
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertEqual(self.ctl.restarts, 0)
+
+    def test_the_restart_banner_outranks_the_other_two(self):
+        """It is the only banner about something the user did seconds ago,
+        and the only one they can dismiss by acting on it. Put third it
+        would be invisible to exactly the people most likely to be changing
+        settings -- anyone offline. Nothing else asserts the ordering, so
+        moving the block below the others was a free mutation."""
+        self.b._offline = True
+        self.b._update = {"version": "9.9.9", "url": "http://example.invalid"}
+        nodes, _h = self._change_a_restart_setting()
+        ids = ids_of = {n.get("id") for n in nodes}
+        self.assertIn("banner-restart-dismiss", ids)
+        self.assertNotIn("banner-open", ids)      # the update banner
+        self.assertNotIn("banner-retry", ids)     # the offline banner
+
+    def test_later_asks_for_a_repaint(self):
+        """A scene assertion is not a repaint assertion: `build_scene`
+        renders when asked, so the dismissal test passes against a handler
+        that clears the keys and never redraws -- and the user would click
+        Later and watch the banner stay."""
+        nodes, handlers = self._change_a_restart_setting()
+        seen = []
+        self.b.invalidate = lambda *a: seen.append(1)
+        handlers["banner-restart-dismiss"]["click"]()
+        self.assertTrue(seen)
+
+    def test_restart_now_restarts(self):
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertEqual(self.ctl.restarts, 1)
+
+    def test_the_restart_is_told_which_settings_it_is_for(self):
+        """The relaunch re-passes the command-line overrides that describe
+        how this copy is running -- and three of them (`--scale`,
+        `--mpv-loglevel`, `--gui`) name a setting that requires a restart.
+        `main` applies those on top of the saved config, so a restart that
+        did not say what it was for would come back with the old value and
+        never apply the change, however many times the user pressed it."""
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertEqual(self.ctl.restart_pending, [{"player_name"}])
+
+    def test_no_button_where_the_app_cannot_restart_itself(self):
+        """A button that takes the app away and does not bring it back is
+        worse than no button, so the notice stands on its own and Later is
+        still there to dismiss it."""
+        self.ctl.restart_possible = False
+        nodes, _h = self._change_a_restart_setting()
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertIn("banner-restart-dismiss", ids(nodes))
+        self.assertIn("Restart", self._texts(nodes))
+
+    def test_a_restart_that_will_not_start_says_so_and_keeps_the_banner(self):
+        """The user is left with a working app and an unapplied setting.
+        Clearing the banner first would have left them with no sign of
+        either."""
+        self.ctl.restart_ok = False
+        nodes, handlers = self._change_a_restart_setting()
+        handlers["banner-restart"]["click"]()
+        self.assertIn("Could not restart", self.b.status)
+        nodes, _h = build_scene(self.b)
+        self.assertIn("banner-restart", ids(nodes))
+
+    def test_a_controller_without_the_seam_offers_no_button(self):
+        """The browser is built against stand-ins and older gateways; a
+        missing method must degrade to the notice rather than raise into
+        the banner and take the whole window with it.
+
+        Set to None rather than deleted, which is the same test: the guard
+        is a ``getattr(..., None)`` and an absent attribute reaches it as
+        None, so both spellings take the identical branch.
+        """
+        self.ctl.can_restart = None
+        nodes, _h = self._change_a_restart_setting()
+        self.assertNotIn("banner-restart", ids(nodes))
+        self.assertIn("banner-restart-dismiss", ids(nodes))
+
 
 class TestLogin(unittest.TestCase):
     def setUp(self):

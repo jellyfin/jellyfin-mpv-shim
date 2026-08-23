@@ -266,6 +266,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # Banners: update-available notice + offline indicator.
         self._update = None       # {"version", "url"} or None
         self._offline = False
+        # Settings changed in this session that need a restart before they
+        # do anything (config.RESTART_REQUIRED). Keys, not labels, so the
+        # banner can translate them at draw time -- and a set, so changing
+        # the same one twice is still one entry.
+        #
+        # Session state on purpose, not persisted: a restart clears it by
+        # definition, and a quit that is not a restart still applies
+        # everything at the next launch. Carrying it across launches would
+        # mean the banner outlived the thing it was about.
+        self._restart_keys = set()
+        #: Whether this launch can restart itself, asked once. See
+        #: can_restart.
+        self._can_restart = None
         # Client-side decorations: draw our own title bar because the desktop
         # is not drawing one. Pushed by refresh_window_controls rather than
         # read per frame -- the answer is an mpv property, and on the jsonipc
@@ -2919,6 +2932,79 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     def _dismiss_update(self):
         self._update = None
         self.invalidate()
+
+    def note_restart_needed(self, key):
+        """Remember that ``key`` will not do anything until a restart."""
+        self._restart_keys.add(key)
+        self.invalidate()
+
+    def _dismiss_restart(self):
+        """Put the banner away without restarting.
+
+        The settings are still saved and still pending -- this only stops
+        saying so, which is why the button is "Later" rather than
+        "Dismiss". Changing another restart-required setting afterwards
+        raises it again, naming that one: the user is being told about a
+        new decision, not nagged about the one they answered.
+        """
+        self._restart_keys = set()
+        self.invalidate()
+
+    def can_restart(self):
+        """Whether to offer a Restart button rather than only a notice.
+
+        Asked at draw time and answered by the controller, so a stand-in
+        without the method (and a machine where the launch cannot be
+        reconstructed) both fall back to the notice. False is the safe
+        answer: a button that takes the app away and does not bring it back
+        is worse than no button.
+        """
+        # Cached for the life of this browser. The banner is part of the
+        # scene, so without it this ran on every repaint -- scrolling,
+        # hovering, playback progress -- and the answer costs a stat of
+        # `sys.argv[0]`. It cannot change within a session: it asks whether
+        # this launch can be reconstructed at all.
+        if self._can_restart is not None:
+            return self._can_restart
+        can = getattr(self.controller, "can_restart", None) if self.controller else None
+        if can is None:
+            return False
+        try:
+            self._can_restart = bool(can())
+        except Exception:
+            log.debug("could not ask whether a restart is possible",
+                      exc_info=True)
+            self._can_restart = False
+        return self._can_restart
+
+    def _restart_now(self):
+        """Restart the app. The banner's button.
+
+        The keys are NOT cleared here. If the restart fails to start, the
+        settings are still pending and the banner still has something true
+        to say -- clearing first would have left the user with a working app,
+        an unapplied setting and nothing on screen about either.
+        """
+        ok = False
+        if self.controller is not None:
+            restart = getattr(self.controller, "restart_app", None)
+            if restart is not None:
+                try:
+                    # The pending keys go with the request: a command-line
+                    # override naming one of them has to be dropped from the
+                    # relaunch, or it lands on top of the value the user just
+                    # saved and the restart appears to do nothing. Passed
+                    # positionally through a getattr'd method, so a gateway
+                    # that predates the argument raises TypeError rather than
+                    # silently ignoring it -- caught below, reported as a
+                    # failed restart, which is the honest answer.
+                    ok = bool(restart(set(self._restart_keys)))
+                except Exception:
+                    log.exception("could not restart")
+        if not ok:
+            self.set_status(_("Could not restart automatically — quit and "
+                              "start the app again to apply your changes."))
+            self.invalidate()
 
     def _open_url(self, url):
         if self.controller is not None and url:

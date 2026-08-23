@@ -22,6 +22,7 @@ class PendingQueueOrderingTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.db = SyncDB(os.path.join(self.tmp.name, "cat.db"))
 
     def tearDown(self):
@@ -59,6 +60,7 @@ class PendingQueueOrderingTest(unittest.TestCase):
 class QueryErrorSurfacingTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.db = SyncDB(os.path.join(self.tmp.name, "cat.db"))
 
     def tearDown(self):
@@ -84,6 +86,7 @@ class OfflineResumePositionTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.catalog = os.path.join(self.tmp.name, "catalog.db")
         db = SyncDB(self.catalog)
         db.upsert(make_row(
@@ -216,6 +219,7 @@ class OfflineResumePositionTest(unittest.TestCase):
 class OfflineReloadTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.root = self.tmp.name
         self.catalog = os.path.join(self.root, "catalog.db")
 

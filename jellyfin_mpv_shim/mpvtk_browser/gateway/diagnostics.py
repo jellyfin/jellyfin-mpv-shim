@@ -110,3 +110,62 @@ class DiagnosticsMixin(GatewayCore):
                 subprocess.Popen(["xdg-open", path])
         except Exception:
             log.error("could not open config folder %s", path, exc_info=True)
+
+    @staticmethod
+    def can_restart():
+        """Whether a restart can be performed, asked before offering one.
+
+        Before anything is shut down, deliberately: a machine where the
+        launch cannot be reconstructed gets a banner saying "restart to
+        apply" instead of a button that takes the app away and does not
+        bring it back.
+        """
+        from ...restart import supported
+
+        return supported()
+
+    def restart_app(self, pending=()):
+        """Restart the whole application.
+
+        ``pending`` is the settings this restart is for. It is passed on so
+        the relaunch can drop a command-line override that would land on top
+        of one of them -- `--scale` over `ui_scale`, say, which `main`
+        applies after the config and which would otherwise undo the change
+        the user is restarting to get.
+
+        Arms the relaunch and then triggers the **ordinary** shutdown --
+        which is what saves the window geometry, posts the final progress
+        report and releases the single-instance lock before the new copy
+        starts. The relaunch itself is the process's last act, hung off
+        `exit_watchdog`'s final-action hook; see restart.py for why it is
+        there and not here.
+
+        Returns False if it could not be started, so the caller can say so
+        rather than leaving the user looking at an app that did not quit.
+        """
+        from ...restart import cancel, request, supported
+
+        if not supported():
+            log.error("Restart asked for, but this launch cannot be "
+                      "reconstructed; not quitting.")
+            return False
+        request(pending)
+        started = False
+        try:
+            from ..ui import user_interface
+
+            started = user_interface.quit_app()
+        except Exception:
+            log.exception("could not start the restart")
+        if not started:
+            # The flag is set but the shutdown never began, so disarm it.
+            # Leaving it armed would turn the user's NEXT ordinary quit into
+            # a surprise relaunch -- a bug that would surface minutes later,
+            # in a session that had nothing to do with this button.
+            #
+            # Checked on the RETURN VALUE, not just on an exception: quitting
+            # with no shutdown callback wired fails quietly, which is exactly
+            # the case an except clause cannot see.
+            cancel()
+            return False
+        return True
