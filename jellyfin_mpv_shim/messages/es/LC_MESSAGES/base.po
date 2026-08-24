@@ -2040,23 +2040,17 @@ msgstr ""
 "cambie esto de vuelta."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Off means command-line mode: no window, no system tray and no settings "
-#| "screen, so the only way back is editing conf.json by hand. It is not how "
-#| "you get MPV's own on-screen controls — \"Player Controls Style\" under "
-#| "Interface does that."
 msgid ""
 "Off means command-line mode: no window, no system tray and no settings "
 "screen, so the only way back is to edit conf.json by hand. This is not how "
 "you get MPV's own on-screen controls; use Player Controls Style under "
 "Interface for that."
 msgstr ""
-"Desactivado significa modo de linea de comandos: no hay ventana, no hay "
-"icono en la bandeja del sistema y no hay pantalla de ajustes, por lo tanto "
-"la única de manera de volver atrás es editando conf.json a mano. No es como "
-"conseguir los controles en pantalla propios de MPV, \"Estilo de controles de "
-"reproductor\" bajo interfaz hace eso."
+"Desactivado significa modo de línea de comandos: no hay ventana, ni bandeja "
+"del sistema, ni pantalla de configuración, por lo que la única forma de "
+"volver atrás es editar conf.json manualmente. Esto no es lo que activa los "
+"controles en pantalla propios de MPV; para eso, usa “Player Controls Style” "
+"en “Interface”."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
