@@ -192,15 +192,40 @@ function mp.get_time() now = now + 0.001; return now end
 
 function M.advance(dt) now = now + dt end
 
+--- Commands that this mpv does NOT have, by name. `mp.commandv` answers
+--- those the way the real one answers a rejected command -- `nil` plus a
+--- message, NOT an error -- which is the distinction the hover repair reads
+--- (player/lua.c `check_error`); a fake that raised instead would let a
+--- `pcall` alone look like proof the command ran.
+M.no_command = {}
+
 function mp.commandv(...)
     local args = { ... }
     table.insert(M.log.commands, args)
+    if M.no_command[args[1]] then return nil, "command not found" end
     if args[1] == "overlay-add" and M.overlay_cost > 0 then
         M.advance(M.overlay_cost)
     end
     if args[1] == "script-message" and args[2] == "mpvtk-event" then
         table.insert(M.log.events, args[3])
     end
+    -- mpv sets `mouse_hover` from MOUSE_ENTER / MOUSE_LEAVE however they are
+    -- fed, artificially included, and re-notifies mouse-pos observers.
+    -- Modelled because the renderer repairs a stranded hover this way
+    -- (#700) and the notification back is what ends its provisional state.
+    --
+    -- Delivered SYNCHRONOUSLY, where mpv queues a command and notifies from
+    -- the playloop a moment later. Deliberate: re-entering the observer from
+    -- inside its own commandv is the harder ordering, so anything that
+    -- survives here survives the real one. Do not read it as mpv's order.
+    if args[1] == "keypress"
+        and (args[2] == "MOUSE_ENTER" or args[2] == "MOUSE_LEAVE") then
+        M.hover = args[2] == "MOUSE_ENTER"
+        M.observe("mouse-pos",
+                  { x = M.mouse_x or -1, y = M.mouse_y or -1,
+                    hover = M.hover })
+    end
+    return true
 end
 
 function mp.command_native(t)
@@ -443,6 +468,12 @@ end
 
 --- Fire a property observer, as mpv would.
 function M.observe(name, value)
+    -- Remembered so a MOUSE_ENTER fed by `keypress` can report the position
+    -- mpv still has, which is the point of that repair: the flag changes and
+    -- the coordinates do not.
+    if name == "mouse-pos" and type(value) == "table" then
+        M.mouse_x, M.mouse_y, M.hover = value.x, value.y, value.hover
+    end
     for _, fn in ipairs(prop_observers[name] or {}) do fn(name, value) end
 end
 

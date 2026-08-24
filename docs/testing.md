@@ -270,12 +270,33 @@ mpv's section stack — which is what
 
 **`mouse <x> <y>` repairs `mouse-pos.hover` on the way past**: mpv synthesizes
 MOUSE_ENTER for an artificial move that lands inside the window (`command.c`,
-`cmd_mouse`). A stranded hover flag — the #700 state, where mpv believes the
-pointer is outside a window it is sitting in the middle of — therefore *cannot*
-be reached from outside the process. That half is pinned in `tests/lua/`, driving
-the real observer; from an integration test you can only pin the rest of the
-path. (An out-of-bounds `mouse <x> <y>` synthesizes MOUSE_**LEAVE** by the same
-rule, which is a second way to leave from outside the process.)
+`cmd_mouse`). So a stranded hover flag — the #700 state, where mpv believes the
+pointer is outside a window it is sitting in the middle of — cannot be reached
+through *that* command, and an integration test driving the pointer with it can
+only pin the rest of the path. The decision logic is pinned in `tests/lua/`,
+against the real observer. (An out-of-bounds `mouse <x> <y>` synthesizes
+MOUSE_**LEAVE** by the same rule, which is a second way to leave from outside
+the process.)
+
+It **is** reachable with real X input, which is what `tools/probe_hover_strand.py`
+does: grab the pointer, move the window under it with `xdotool`, ungrab, and the
+restoring EnterNotify arrives as NotifyUngrab and is dropped. That is a manual
+probe rather than a test because Xvfb, openbox, xdotool and python-xlib are none
+of them test dependencies, and a suite that skips reports exactly like one that
+passed (§7). Reach for it before shipping another guess at #700 — two attempts
+went to the reporter without anyone here having seen the state, because openbox
+and kwin ungrab before they resize and Cinnamon/muffin does not.
+
+**The repair is `keypress MOUSE_ENTER`, not `mouse <x> <y>`.** Both feed the
+enter artificially, but the latter also rewrites the pointer position — and
+`mouse-pos` reports the *consumer* coordinates, advanced when a queued move is
+dequeued, while the unchanged-position early return compares the *producer*
+ones. Handing back the position just observed can therefore replace a newer
+pending motion, and with built-in dragging live can cross the deadzone into
+`begin-vo-dragging`. Its bounds-derived hover repair is also mpv 0.33+, where
+`keypress` predates 0.29. Note that `mp.commandv` *reports* a rejected command
+(`nil` plus a message) rather than raising it, so a bare `pcall` around it
+proves nothing — read the returned value.
 
 **A real leave does not look like the one your test writes.** `keypress
 MOUSE_LEAVE`, and the Lua fake's `{same x, same y, hover=false}`, both produce a

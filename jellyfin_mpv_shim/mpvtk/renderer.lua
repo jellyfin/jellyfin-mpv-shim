@@ -209,10 +209,13 @@ local state = {
     pv_secs = 0,            -- the position it is pointing at, in seconds
     pv_rect = nil,          -- last drawn bubble rect (nil = not shown)
     ready_sent = false,
-    -- `lost`: a leave has been accepted, so the next in-window
-    -- position is mpv's hover flag being wrong rather than a leave
-    -- (see the mouse-pos observer).
-    mouse = { x = -1, y = -1, hover = false, lost = nil },
+    -- `prov`: the last sample was an in-window position mpv called a
+    -- leave, so a second one is the pointer contradicting the flag.
+    -- `down`: a mouse button is believed held (see mouse_pair).
+    -- `nofix`: this mpv rejected the hover repair; stop asking.
+    -- All three: the mouse-pos observer.
+    mouse = { x = -1, y = -1, hover = false,
+              prov = nil, down = nil, nofix = nil },
     hover_id = nil,
     hover_region = nil,     -- id of the hovered node that asked to be told
     pressed = nil,          -- node id armed by mbtn down
@@ -3965,12 +3968,20 @@ end
 -- modifier set before the shared handlers run. The _dbl variants are
 -- bound (as no-ops for modified ones) so they can't fall through to
 -- the player's defaults while browsing.
+--
+-- `state.mouse.down` is tracked HERE and not in on_mouse_down, which the
+-- debug hook also calls and which a right click never reaches. It gates the
+-- hover repair (see the mouse-pos observer): while a button is held, X keeps
+-- delivering motion to us from outside the window, so a moved in-window
+-- sample stops being evidence that the pointer is here. One flag rather than
+-- a count, because mpv itself only holds one down command at a time -- a
+-- second press cancels the first (input/input.c, `release_down_cmd`).
 local function mouse_pair(shift, ctrl)
     local function set()
         state.mods = { shift = shift, ctrl = ctrl }
     end
-    return function() set(); on_mouse_up() end,
-        function() set(); on_mouse_down() end
+    return function() set(); state.mouse.down = nil; on_mouse_up() end,
+        function() set(); state.mouse.down = true; on_mouse_down() end
 end
 
 -- ------------------------------------------- spatial navigation (10ft)
@@ -4777,7 +4788,8 @@ mp.set_key_bindings({
     { 'mbtn_left_dbl', function() on_dbl() end },
     { 'shift+mbtn_left_dbl', function() end },
     { 'ctrl+mbtn_left_dbl', function() end },
-    { 'mbtn_right', function() end, function() on_rclick() end },
+    { 'mbtn_right', function() state.mouse.down = nil end,
+                    function() state.mouse.down = true; on_rclick() end },
 }, 'mpvtk_mouse', 'force')
 -- The thumb buttons, in a section of their OWN so the playback HUD can
 -- decline them (see ui_resume).
@@ -4892,6 +4904,42 @@ state.mouse_left = function()
     end
 end
 
+-- **Give mpv its hover flag back**, instead of running a guess on top of one
+-- that will never be right again. Called once the pointer has contradicted
+-- the flag twice running (see the observer).
+--
+-- `keypress MOUSE_ENTER` feeds the enter artificially, which is what sets
+-- `mouse_hover` (input/input.c `feed_key`) -- for the rest of the session,
+-- so a pointer that then PARKS stays hovered. That is the whole point: no
+-- amount of grace can help a pointer that has stopped producing events.
+--
+-- Not the `mouse` command, which would look like the obvious choice and is
+-- wrong twice. It rewrites the pointer position, and `mouse-pos` reports the
+-- CONSUMER coordinates (advanced when a queued move is dequeued) while the
+-- unchanged-position early return compares the PRODUCER ones -- so handing
+-- back the position just observed can replace a newer pending motion, and
+-- with built-in dragging live can cross the deadzone into begin-vo-dragging.
+-- Its hover repair is also 0.33+, where `keypress` predates 0.29.
+state.mouse_repair = function()
+    if state.mouse.nofix or state.mouse.down then return end
+    -- Touch and pen both emulate the mouse by default, and both end a
+    -- contact WITHOUT a MOUSE_LEAVE -- so two moved samples from either are
+    -- not the pointer contradicting anything. Properties are 0.39 / 0.41;
+    -- missing is not "in contact", so only a positive answer declines.
+    local n = mp.get_property_native('touch-pos/count')
+    if type(n) == 'number' and n > 0 then return end
+    if mp.get_property_native('tablet-pos/tool-in-proximity') == true then
+        return
+    end
+    -- mp.commandv REPORTS a rejected command (nil + message) rather than
+    -- raising it (player/lua.c `check_error`), so the pcall proves nothing
+    -- on its own and the returned value has to be read.
+    local called, ok = pcall(mp.commandv, 'keypress', 'MOUSE_ENTER')
+    if not (called and ok == true) then
+        state.mouse.nofix = true
+    end
+end
+
 mp.observe_property('mouse-pos', 'native', function(_, pos)
     if not pos then return end
     -- **mpv can lose a hover and never get it back**, which took the whole
@@ -4924,6 +4972,14 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
     -- commits the leave; another motion re-arms it and the UI never notices.
     -- The grace is well under the HUD's shortest auto-hide, so "the pointer
     -- is off the controls" still lands in time to hide them.
+    --
+    -- **A second such event settles it, and then mpv is REPAIRED** rather
+    -- than second-guessed -- `state.mouse_repair`, which is what actually
+    -- fixes #700. The grace alone cannot: in the stranded state mouse-pos
+    -- only fires while the pointer MOVES, so a pointer that comes to rest on
+    -- a tile went dead 0.2s later and every click after that hit-tested at
+    -- -1,-1 again. That is the shape the reporter saw from the first attempt
+    -- -- each element lighting up for about half a second and then dying.
     --
     -- No "did we see a leave first" gate: an enter can be lost on its own
     -- (a fresh renderer while the pointer is outside, a crossing eaten by a
@@ -4977,8 +5033,19 @@ mp.observe_property('mouse-pos', 'native', function(_, pos)
     -- playback HUD from the flick that took the pointer off the window is
     -- the one place that guess is visible. Everything else stays live on the
     -- first event, which is the whole point of being provisional.
+    --
+    -- **Two is also the threshold for repairing mpv**, and for the same
+    -- reason in reverse: a genuine unheld leave produces exactly ONE moved
+    -- in-window sample and then silence, so repairing on the first would
+    -- strand hover TRUE on every ordinary exit -- a hover ring that never
+    -- clears, and phud_busy re-arming the HUD's auto-hide forever.
     local confirmed = not synth or state.mouse.prov
+    local repair = synth and state.mouse.prov
+    -- Recorded BEFORE the repair, not after: the enter mpv feeds notifies
+    -- this same observer back, and a notification that lands while `prov`
+    -- still says "provisional" would have its correction overwritten here.
     state.mouse.prov = synth
+    if repair then state.mouse_repair() end
     state.mouse.hover = true
     -- Record it for BOTH branches. The idle-HUD branch below returns
     -- without reaching on_mouse_move, so a mouse summon used to leave
@@ -5407,6 +5474,10 @@ local function ui_suspend()
     state.nav_rect = nil
     state.nav_pending = nil
     state.pressed = nil
+    -- Our sections go away below, so a release we are still waiting for is
+    -- never going to arrive. Left set, it would refuse the hover repair for
+    -- the rest of the session.
+    state.mouse.down = nil
     state.tip = nil
     if state.tip_timer then
         state.tip_timer:kill()

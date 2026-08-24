@@ -1038,6 +1038,80 @@ fake.key_up("mbtn_left")     -- ...and release
 ok(last_event("click") ~= nil and last_event("click").id == "tile-a",
    "a click at a stranded-hover position hit nothing")
 
+-- **And the pointer is allowed to STOP.** The grace timer alone could never
+-- do this: in the stranded state mouse-pos fires only while the pointer
+-- moves, so a pointer coming to rest went dead 0.2s later and every click
+-- after that hit-tested at -1,-1 -- each element lighting up for about half
+-- a second and then dying, which is what #700's reporter saw from the first
+-- attempt. The second contradicting sample repairs mpv's own flag instead.
+local function repairs()
+    local n = 0
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "keypress" and c[2] == "MOUSE_ENTER" then n = n + 1 end
+    end
+    return n
+end
+
+scene({ tile("tile-a", 0, 0, { hev = true }) })
+point(300, 300)
+fake.log.commands = {}
+fake.observe("mouse-pos", { x = 50, y = 40, hover = false })
+eq(repairs(), 0, "one ambiguous sample was enough to repair mpv")
+fake.observe("mouse-pos", { x = 55, y = 42, hover = false })
+eq(repairs(), 1, "a second contradicting sample did not repair the flag")
+idle_out()                        -- the pointer parks: nothing more arrives
+eq(mouse_state().hover, true,
+   "a repaired hover did not survive the pointer coming to rest")
+eq(mouse_state().x, 55, "a repaired hover forgot where the pointer was")
+fake.reset_events()
+fake.key("mbtn_left"); fake.key_up("mbtn_left")
+ok(last_event("click") ~= nil and last_event("click").id == "tile-a",
+   "a click from a PARKED pointer went nowhere")
+
+-- Once repaired, mpv answers hover itself and nothing else is synthesized.
+fake.log.commands = {}
+for _, xy in ipairs({ { 60, 44 }, { 65, 46 }, { 70, 48 } }) do
+    fake.observe("mouse-pos", { x = xy[1], y = xy[2], hover = true })
+end
+eq(repairs(), 0, "a hover mpv had already given back was repaired again")
+
+-- **A held button withdraws the evidence.** X keeps delivering motion to us
+-- from outside the window while a button is down, so a moved in-window
+-- sample stops meaning the pointer is here -- and repairing then would
+-- strand hover TRUE with the pointer somewhere else entirely.
+point(50, 40)
+fake.key("mbtn_left")             -- and NOT released
+fake.log.commands = {}
+fake.observe("mouse-pos", { x = 55, y = 42, hover = false })
+fake.observe("mouse-pos", { x = 60, y = 44, hover = false })
+eq(repairs(), 0, "mpv was repaired from under a held button")
+fake.key_up("mbtn_left")
+
+-- Touch and pen emulate the mouse and end a contact without a MOUSE_LEAVE,
+-- so their samples are not evidence either. A build too old to have the
+-- properties reports nothing, which must not read as "in contact".
+point(50, 40)
+fake.log.props["touch-pos/count"] = 1
+fake.log.commands = {}
+fake.observe("mouse-pos", { x = 55, y = 42, hover = false })
+fake.observe("mouse-pos", { x = 60, y = 44, hover = false })
+eq(repairs(), 0, "a touch contact was taken for the pointer")
+fake.log.props["touch-pos/count"] = nil
+
+-- An mpv that rejects the command is asked exactly once, and the provisional
+-- grace goes on being the fallback it always was.
+point(50, 40)
+fake.no_command["keypress"] = true
+fake.log.commands = {}
+for _, xy in ipairs({ { 55, 42 }, { 60, 44 }, { 65, 46 }, { 70, 48 } }) do
+    fake.observe("mouse-pos", { x = xy[1], y = xy[2], hover = false })
+end
+eq(repairs(), 1, "an mpv without the repair was asked more than once")
+idle_out()
+eq(mouse_state().hover, false,
+   "the grace fallback stopped working once the repair was refused")
+fake.no_command["keypress"] = nil
+
 -- **A real leave still lands** -- which is what the playback HUD's auto-hide
 -- is built on. It usually arrives carrying a MOVED position: mpv clears the
 -- flag when the LeaveNotify is fed but commits a motion's position when the
