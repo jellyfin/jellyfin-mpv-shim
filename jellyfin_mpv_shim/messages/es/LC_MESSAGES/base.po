@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-19 10:03+0000\n"
-"Last-Translator: TheRedCyclops <miguel@mpacheco.net>\n"
+"PO-Revision-Date: 2026-08-24 14:19+0000\n"
+"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -2698,10 +2698,8 @@ msgstr ""
 "Se aplica a todas las bibliotecas de este dispositivo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "View Settings"
 msgid "View settings"
-msgstr "Configuración de visualización"
+msgstr "Configuración de vista"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -3067,10 +3065,8 @@ msgid "Aspect Ratio"
 msgstr "Proporción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Interlaced"
 msgid "Deinterlace"
-msgstr "Interlazado"
+msgstr "Desentrelazar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
 msgid "Subtitle Size"
@@ -3183,10 +3179,8 @@ msgstr "Anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Servidor añadido exitosamente."
+msgstr "Capítulo anterior"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -3198,10 +3192,8 @@ msgstr "Adelante 30 segundos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Next Chapter"
 msgid "Next chapter"
-msgstr "Siguiente capítulo"
+msgstr "Capítulo siguiente"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3562,10 +3554,8 @@ msgid "Live broadcasts"
 msgstr "Emisiones en vivo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "New episodes"
-msgstr "Episodios"
+msgstr "Nuevos episodios"
 
 # seeded from jellyfin-web: Premieres
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3573,10 +3563,8 @@ msgid "Premieres"
 msgstr "Estrenos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
-#, fuzzy
-#| msgid "Episodes"
 msgid "Repeat episodes"
-msgstr "Episodios"
+msgstr "Repetir episodios"
 
 # seeded from jellyfin-web: Movies
 #: jellyfin_mpv_shim/mpvtk_browser/live_tv.py
@@ -3698,10 +3686,8 @@ msgstr "Parar"
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from favorites"
-msgstr "Eliminar servidor"
+msgstr "Eliminar de favoritos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
@@ -3716,14 +3702,8 @@ msgid "Volume"
 msgstr "Volumen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"No se pudo agregar el servidor.\n"
-"Compruebe la información de su conexión."
+msgstr "No se puede abrir ese link."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3745,10 +3725,8 @@ msgstr "Reiniciar"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to play queue"
-msgstr "Eliminar servidor"
+msgstr "Agregar a la cola de reproducción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Finished"
@@ -3798,10 +3776,8 @@ msgstr "Programas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "Configuración del servidor"
+msgstr "No hay nada aquí."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
@@ -4152,10 +4128,8 @@ msgstr "Grabar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Record series"
-msgstr "Eliminar servidor"
+msgstr "Grabar la serie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "No guide data is available for this channel."
@@ -4479,10 +4453,9 @@ msgid "On Now"
 msgstr "Transmitiendo ahora"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
-#| msgid "Recently Added"
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Añadidos recientemente"
+msgstr "Añadidos recientemente en {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, fuzzy
@@ -4601,10 +4574,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid "Require this PIN at startup"
 msgid "Requires restart"
-msgstr "Solicitar este PIN al iniciar"
+msgstr "Requiere reiniciar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
@@ -4792,10 +4763,8 @@ msgid "Logs"
 msgstr "Registros"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "Configuración de SVP"
+msgstr "Buscar configuración…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4958,28 +4927,20 @@ msgid "Mark unplayed"
 msgstr "No reproducido"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Mark played"
-msgstr "Salir y Marcar como No Visto"
+msgstr "Marcar como visto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "Eliminar servidor"
+msgstr "Agregar a la lista de reproducción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from playlist"
-msgstr "Eliminar servidor"
+msgstr "Eliminar de la lista de reproducción"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "Eliminar servidor"
+msgstr "Eliminar de la colección"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy, python-format
@@ -5111,10 +5072,8 @@ msgid "Use the default"
 msgstr "Usar predeterminado"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay Habilitado."
+msgstr "SyncPlay habilitado"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -5241,10 +5200,9 @@ msgid "{0} has left."
 msgstr "{0} se ha ido."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} está almacenando en búfer."
+msgstr "{0} está almacenando en búfer…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
