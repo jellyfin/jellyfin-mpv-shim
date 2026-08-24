@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-23 21:54+0000\n"
+"PO-Revision-Date: 2026-08-24 09:45+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -827,7 +827,7 @@ msgstr "Mėgstamas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Video"
-msgstr "Vaizdas"
+msgstr "Vaizdo įrašas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -4233,7 +4233,7 @@ msgstr "Naujas vartotojo vardas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Add User"
-msgstr "Pridėti vartotoją"
+msgstr "Pridėti naudotoją"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "No servers configured yet."
