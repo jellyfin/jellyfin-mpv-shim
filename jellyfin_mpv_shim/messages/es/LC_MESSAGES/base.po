@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-24 14:20+0000\n"
+"PO-Revision-Date: 2026-08-24 14:23+0000\n"
 "Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
@@ -2059,25 +2059,18 @@ msgstr ""
 "reproductor\" bajo interfaz hace eso."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Show only what is cast to this machine — the library, including this "
-#| "settings screen, can't be reached from here. Without a system tray icon "
-#| "the only way back is editing conf.json. For the classic cast-target setup "
-#| "you want the Interface settings instead; this is for a shared TV nobody "
-#| "should be able to browse from."
 msgid ""
 "Show only what is cast to this machine. The library, including this settings "
 "screen, cannot be reached from here, and without a system tray icon the only "
 "way back is to edit conf.json. This is for a shared TV nobody should be able "
 "to browse from; for an ordinary cast target, use the Interface settings."
 msgstr ""
-"Mostrar solo lo que es transmitido a esta maquina, la biblioteca, incluyendo "
-"esta pantalla de configuración, no es accesible por aquí. Sin un icono en la "
-"bandeja del sistema la única manera de volver atrás es editamdp conf.json, "
-"Para el sistema clasico de transmisión-objetivo quiere la configuración de "
-"interfaz en su lugar; esto es para una televisión compartida desde la que "
-"nadie debería poder navegar."
+"Mostrar únicamente lo que se transmita (cast) a esta máquina. No se podrá "
+"acceder desde aquí a la biblioteca, incluida esta pantalla de configuración, "
+"y, si no hay un icono en la bandeja del sistema, la única forma de volver "
+"atrás será editar conf.json. Esta opción está pensada para un televisor "
+"compartido en el que nadie debería poder navegar por el contenido; para un "
+"dispositivo receptor de Cast normal, usa la configuración de Interfaz."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2123,10 +2116,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Rich Presence de Discord"
+msgstr "Rich Presence de Discord."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2203,14 +2194,10 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Overrides the theme's cover size. Applies immediately, and is also on the "
-#| "View menu of any library."
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
 msgstr ""
-"Sobrescribe el tamaño de portada del tema. Se aplica inmediatamente y "
-"también está disponible en el menú Ver de cualquier biblioteca."
+"Sobrescribe el tamaño de portada del tema. También está disponible en el "
+"menú Ver de cualquier biblioteca."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2237,15 +2224,12 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy, no-python-format
-#| msgid ""
-#| "Takes effect after a restart. \"Follow display\" uses the scale your "
-#| "desktop reports, which is 100% on X11."
+#, no-python-format
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
-"Se aplica tras reiniciar. \"Seguir la pantalla\" usa la escala que indica tu "
-"escritorio, que en X11 es del 100%."
+"“Seguir la configuración de pantalla” utiliza la escala que informa tu "
+"escritorio, que en X11 es del 100 %."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
