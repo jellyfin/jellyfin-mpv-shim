@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-25 21:29+0000\n"
+"PO-Revision-Date: 2026-08-25 22:07+0000\n"
 "Last-Translator: Manuel Cid <manuelcidrodriguez@gmail.com>\n"
 "Language-Team: Galician <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/gl/>\n"
@@ -856,15 +856,15 @@ msgstr "Introduza o seu PIN"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s está bloqueado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
-msgstr ""
+msgstr "Desbloquear"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Or switch to another user"
-msgstr ""
+msgstr "Ou cambia a outro usuario"
 
 #: jellyfin_mpv_shim/mpvtk_browser/cast.py
 #, fuzzy
@@ -932,11 +932,11 @@ msgstr "Tamaño de Subtítulo: {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Lyric"
-msgstr ""
+msgstr "Letra"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Image"
-msgstr ""
+msgstr "Imaxe"
 
 # seeded from jellyfin-web: LabelProfileContainer
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -981,7 +981,7 @@ msgstr "Título"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Language"
-msgstr ""
+msgstr "Língua"
 
 # seeded from jellyfin-web: MediaInfoCodec
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1017,7 +1017,7 @@ msgstr "Radio de aspecto"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Anamorphic"
-msgstr ""
+msgstr "Anamórfico"
 
 # seeded from jellyfin-web: MediaInfoInterlaced
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1032,7 +1032,7 @@ msgstr "Taxa de cadros"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Layout"
-msgstr ""
+msgstr "Deseño"
 
 # seeded from jellyfin-web: Channels
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1047,12 +1047,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr ""
+msgstr "Taxa de bits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1062,7 +1062,7 @@ msgstr "Taxa de amostraxe"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1072,7 +1072,7 @@ msgstr "Profundidade de bits"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d bit"
-msgstr ""
+msgstr "%d bits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
@@ -1112,7 +1112,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Rotation"
-msgstr ""
+msgstr "Rotación"
 
 # seeded from jellyfin-web: Default
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
