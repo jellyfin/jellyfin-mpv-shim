@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-23 05:24+0000\n"
+"PO-Revision-Date: 2026-08-25 14:37+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -2061,10 +2061,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord Aktivitätsstatus"
+msgstr "Discord Aktivitätsstatus."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2227,24 +2225,19 @@ msgid "Unplayed"
 msgstr "Ungespielt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "Gespielt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Favorites"
-msgstr "Server entfernen"
+msgstr "Favoriten"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resumable"
-msgstr "Fortsetzen"
+msgstr "Fortsetzbar"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2255,9 +2248,8 @@ msgstr "Genres"
 
 # seeded from jellyfin-web: LabelYear
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Years"
-msgstr "Jahr"
+msgstr "Jahre"
 
 # seeded from jellyfin-web: OptionParentalRating
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2271,16 +2263,12 @@ msgid "Tags"
 msgstr "Markierungen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Audio Language"
-msgstr "Untertitel & Sprachen"
+msgstr "Ton Sprache"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitles & Languages"
 msgid "Subtitle Language"
-msgstr "Untertitel & Sprachen"
+msgstr "Untertitelsprache"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2288,34 +2276,29 @@ msgid "Features"
 msgstr "Funktionen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "Untertitelgröße: {0}"
+msgstr "Hat Untertitel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Fehler"
+msgstr "Hat Trailer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
-msgstr ""
+msgstr "Hat Extras"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Song"
-msgstr ""
+msgstr "Hat Themensong"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Theme Video"
-msgstr ""
+msgstr "Hat Themenvideo"
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Video Types"
-msgstr "Videos"
+msgstr "Videotypen"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2351,18 +2334,16 @@ msgid "ISO"
 msgstr "ISO"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Playlist"
-msgstr "Server entfernen"
+msgstr "Zu Playlist hinzufügen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
-msgstr ""
+msgstr "Noch keine Playlisten."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Name für neue Playlist…"
 
 # seeded from jellyfin-web: Create
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2371,13 +2352,11 @@ msgstr "Erstellen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Private (only you can see it)"
-msgstr ""
+msgstr "Privat (nur du kannst es sehen)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections…"
-msgstr "Server entfernen"
+msgstr "Sammlungen…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2387,22 +2366,16 @@ msgid "Close"
 msgstr "Schließen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to Collection"
-msgstr "Server entfernen"
+msgstr "Zu Sammlung hinzufügen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "No collections yet."
-msgstr "Server entfernen"
+msgstr "Noch keine Sammlungen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Benutzername: "
+msgstr "Name für neue Sammlung…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2414,14 +2387,12 @@ msgid "Back"
 msgstr "Zurück"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
 msgstr "Unbekannt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No media information is available."
-msgstr ""
+msgstr "Medieninformation ist nicht verfügbar."
 
 # seeded from jellyfin-web: MoreMediaInfo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2436,20 +2407,12 @@ msgid "OK"
 msgstr "OK"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"Server konnte nicht hinzugefügt werden.\n"
-"Bitte überprüfe deine Verbindungsinformationen."
+msgstr "Konnte nicht prüfen, was Download erfordert."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Estimating…"
-msgstr "SVP-Einstellungen"
+msgstr "Schätze…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
