@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-25 03:32+0000\n"
-"Last-Translator: Lau <lillelau4@gmail.com>\n"
+"PO-Revision-Date: 2026-08-25 18:41+0000\n"
+"Last-Translator: Lau <waulau@pm.me>\n"
 "Language-Team: Danish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/da/>\n"
 "Language: da\n"
@@ -1370,7 +1370,6 @@ msgid "BT.2446a"
 msgstr "BT.2446a"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Spline"
 msgstr "Spline"
 
@@ -1378,10 +1377,9 @@ msgstr "Spline"
 #, fuzzy
 #| msgid "Disable"
 msgid "Hable"
-msgstr "Deaktivér"
+msgstr "Hable"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Reinhard"
 msgstr "Reinhard"
 
@@ -1670,13 +1668,10 @@ msgid "Deinterlace Automatically"
 msgstr "Deinterlace automatisk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Motion Interpolation"
-msgstr "Motion Interpolation"
+msgstr "Interpoleret bevægelse"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Debanding"
 msgstr "Debanding"
 
@@ -1818,11 +1813,11 @@ msgstr "Tegneserie-tilstand"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Tilstand for casting mål (ingen biblioteks søgning)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Casting åbner biblioteks browseren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
@@ -1862,7 +1857,7 @@ msgstr "Lydenhed"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Overtag enheden til ekslusivt brug"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Enable Video Playback Profiles"
@@ -1878,7 +1873,7 @@ msgstr "Husk den sidst brugte profil"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "Grafik API til Shaders"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
@@ -1910,6 +1905,10 @@ msgid ""
 "setup: the app waits out of the way, plays fullscreen when something casts "
 "to it, and goes back to waiting when the video ends or you press Q."
 msgstr ""
+"Med \"Start minimeret\" og \"Fuldskærm\" er dette den klassiske castingmåls "
+"setup: applikationen venter ude af vejen, spiller i fuldskærm når noget "
+"caster til den, og går tilbage til at vente igen, når videoen afsluttes "
+"eller når du trykker Q."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1919,6 +1918,13 @@ msgid ""
 "with SDL2 gamepad support; if yours lacks it this setting is ignored and the "
 "log says so. Any button can be reassigned in your input.conf."
 msgstr ""
+"Ryk med d-pad eller venstre thumbstick, spol med højre thumbstick, skulder "
+"knapper til side, og start knap til menuen. Kontrolloren er opmærksom på "
+"vindue-fokus, så den vil påvirke applikationen selvom den ligger bag et "
+"andet vindue. Det er nødvendigt at have en MPV der er bygget med SDL2 "
+"gamepad support; hvis dette mangler, er denne indstilling i stedet ignoreret "
+"og logfilen vil sige så meget. Alle knapper kan tillægges anden funktion i "
+"din input.conf."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1950,6 +1956,9 @@ msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
 "window, and right click to pause. Double click is full screen either way."
 msgstr ""
+"Fra vil gøre at MPV's egen musse adfærd bruges i stedet: ryk vinduet ved at "
+"trække videoen, pause når der højreklikkes. Dobbeltklik vil være fuldskærm "
+"uanset hvad."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1960,6 +1969,13 @@ msgid ""
 "player's settings menu, which lasts until you return to the library. Needs "
 "MPV 0.38 or newer."
 msgstr ""
+"Deinterlace en video, hvis fil siger at den er interlaced. Fra er "
+"standardindstillingen, ligesom MPV har: flaget for de- og interlacing er "
+"ikke pålidelig, og hvis en progressiv video bliver dinterlaced, vil et "
+"ellers fint billede blive smurt ud. For at tvinge dette på en video der er "
+"interlaced men ikke siger det, skal du bruge \"Deinterlace\" i "
+"videoafspillerens indstillingsmenu, som varer indtil at du vender tilbage "
+"til biblioteket. Kræver MPV 0.38 eller nyere."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1971,6 +1987,15 @@ msgid ""
 "if you set the deband options in mpv.conf yourself — Off writes nothing at "
 "all, so your values are left alone."
 msgstr ""
+"Gør de grove 'trin' i gradients (himmel, mørke scener, fades osv.) mere "
+"uniforme og bløde. Animationsfilm og anime gavner mest af dette, da det "
+"meste af billedet består af flade gradients; live-action er stort set "
+"upåvirket ligemeget om dette er til eller ej, men fine detaljer kan stadig "
+"blive smurt ud hvis indstillingen er højt sat. GPU bekostningen afhænger "
+"inholdet, hvilket er vigtigt at vide på mindre eller ældre maskiner. "
+"Efterlad denne indstilling fra hvis du selv har sat deband indstillinger i "
+"mpv.conf — når indstillingen er fra vil der ikke skrives noget overhovedet, "
+"og dine egne værdier er derfor efterladt i fred."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1980,6 +2005,11 @@ msgid ""
 "is the reference curve, and Clip is what to try if highlights look grey "
 "rather than bright."
 msgstr ""
+"Hvordan HDR video indpasses til et SDR display. Dette gør intet når HDR "
+"video passeres direkte til et HDR display, da der ikke sker en tonemapping "
+"der kan ændres. Efterlad på Automatisk, medmindre at HDR film ser forkert ud "
+"til dig; BT.2390 is referencekurven, og Clip er hvad der skal afprøves hvis "
+"highlights ser grå og ikke lyse ud."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1988,6 +2018,11 @@ msgid ""
 "files and does not use up your shader profile, so it is the thing to try "
 "before the shader pack below."
 msgstr ""
+"Høj kvalitet anvender de samme indstillinger som MPV's egen høj-kvalitets "
+"forhåndsindstilling: bedre upscaling og HDR bearbejdelse, på bekostning af "
+"GPU forbrug. Der behøves ingen shader filer og din shader profil vil ikke "
+"blive brugt op, prøv derfor denne indstilling før at du prøver shader "
+"pakkerne nedenunder."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -1996,6 +2031,11 @@ msgid ""
 "this if playback keeps stopping for buffering. Larger buffers use more "
 "memory and make the first few seconds of a file slower to start."
 msgstr ""
+"Hvor langt der skal læses forud fra afspilningen. MPV's standard er et "
+"sekund, hvilket er kort for en server som skal begåes over internettet eller "
+"igennem en langsom forbindelse — øg denne indstilling hvis afspilingen ofte "
+"stopper for at buffer. Store buffers bruger mere hukommelse og gør de første "
+"sekunder af en fil langsommere at starte."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2075,10 +2115,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Discord Rich Presence"
 msgid "Discord Rich Presence."
-msgstr "Discord Rich Presence"
+msgstr "Discord Rich Presence."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2241,10 +2279,8 @@ msgid "Unplayed"
 msgstr "Uafspillet"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Played"
-msgstr "SyncPlay"
+msgstr "Afspillet"
 
 # seeded from jellyfin-web: Favorites
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2255,9 +2291,8 @@ msgstr "Favoritter"
 
 # seeded from jellyfin-web: ButtonResume
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Resumable"
-msgstr "Genoptag"
+msgstr "Genoptagelse er muligt"
 
 # seeded from jellyfin-web: Genres
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2288,10 +2323,8 @@ msgid "Audio Language"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle Language"
-msgstr "Undertekststørrelse: {0}"
+msgstr "Undertekststørrelse"
 
 # seeded from jellyfin-web: Features
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2299,16 +2332,12 @@ msgid "Features"
 msgstr "Funktioner"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Has Subtitles"
-msgstr "Undertekststørrelse: {0}"
+msgstr "Har undertekster"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Has Trailer"
-msgstr "Fejl"
+msgstr "Har trailer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Has Special Features"
@@ -2324,9 +2353,8 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderVideos
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Video Types"
-msgstr "Videoer"
+msgstr "Video typer"
 
 # seeded from jellyfin-web: ChannelResolutionSD
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2362,10 +2390,8 @@ msgid "ISO"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to Playlist"
-msgstr "Automatisk afspilning"
+msgstr "Tilføj til playliste"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "No playlists yet."
@@ -2385,10 +2411,8 @@ msgid "Private (only you can see it)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Collections…"
-msgstr "Automatisk afspilning"
+msgstr "Samlinger…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -2398,22 +2422,16 @@ msgid "Close"
 msgstr "Luk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Add to Collection"
-msgstr "Automatisk afspilning"
+msgstr "Tilføj til samling"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "No collections yet."
-msgstr "Automatisk afspilning"
+msgstr "Der er ingen samlinger endnu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "Brugernavn: "
+msgstr "Ny samlings navn…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2425,8 +2443,6 @@ msgid "Back"
 msgstr "Tilbage"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Unkn"
 msgid "Unknown"
 msgstr "Ukendt"
 
@@ -2511,10 +2527,8 @@ msgid "%d items"
 msgstr "%d elementer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SyncPlay"
 msgid "Clear All"
-msgstr "SyncPlay"
+msgstr "Ryd alt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Done"
@@ -2526,10 +2540,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Auto"
-msgstr "Automatisk afspilning"
+msgstr "Automatisk"
 
 # seeded from jellyfin-web: Poster
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2541,10 +2553,8 @@ msgid "Thumbnail"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Banner"
-msgstr "Afslut og markér som Ikke-set"
+msgstr "Banner"
 
 # seeded from jellyfin-web: Logo
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2568,15 +2578,12 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Show titles"
-msgstr "Undertekststørrelse: {0}"
+msgstr "Show titler"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
 msgid "Show years"
-msgstr "Serier"
+msgstr "Show år"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "List instead of a grid"
@@ -2598,10 +2605,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "View settings"
-msgstr "SVP-indstillinger"
+msgstr "Vis indstillinger"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid ""
@@ -2651,10 +2656,8 @@ msgid "%s stores no reading position."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Open Config Folder"
 msgid "Reading Progress"
-msgstr "Åbn konfigurationsmappen"
+msgstr "Læsefremgang"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Reading the position…"
@@ -2673,10 +2676,8 @@ msgid "The position could not be read."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Change Subtitles"
 msgid "Enter a number."
-msgstr "Skift undertekster"
+msgstr "Indtast et nummer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2696,22 +2697,17 @@ msgid "The position could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} er tilsluttet."
+msgstr "%s (tilsluttet)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Group"
-msgstr "Ny gruppe"
+msgstr "Gruppe"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "No active groups."
-msgstr "Ny gruppe"
+msgstr "Ingen aktive grupper."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py jellyfin_mpv_shim/osc_bridge.py
@@ -2725,10 +2721,8 @@ msgid "Resume local playback"
 msgstr "Fortsæt lokal afspilning"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Leave"
-msgstr "Ny gruppe"
+msgstr "Forlad"
 
 # seeded from jellyfin-web: Refresh
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2754,16 +2748,12 @@ msgid "Could not resume SyncPlay playback."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Automatic"
 msgid "Automatic: Next Up"
-msgstr "Automatisk"
+msgstr "Automatisk: Næste"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Automatic: Actively Watched"
-msgstr "Automatisk afspilning"
+msgstr "Automatisk: Aktivt set"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/svp_integration.py
@@ -2774,9 +2764,8 @@ msgstr "Automatisk"
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Audiobooks"
-msgstr "Lyd"
+msgstr "Lydbøger"
 
 # seeded from jellyfin-web: Books
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -2813,20 +2802,16 @@ msgid "Downloading %d%%"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloading"
-msgstr "Automatisk afspilning"
+msgstr "Downloader"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Queued"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
-#, fuzzy
-#| msgid "Fail"
 msgid "Failed"
-msgstr "Fejl"
+msgstr "Fejlet"
 
 # seeded from jellyfin-web: ButtonTogglePlaylist
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
@@ -2877,9 +2862,8 @@ msgstr "Fortsæt med at lytte"
 # seeded from jellyfin-web: HeaderContinueWatching
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy
 msgid "Continue Reading"
-msgstr "Fortsæt med at se"
+msgstr "Fortsæt med at læse"
 
 # seeded from jellyfin-web: NextUp
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
@@ -2906,10 +2890,8 @@ msgid "Secondary…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Subtitle Track"
 msgid "Subtitle Track"
-msgstr "Vælg undertekstspor"
+msgstr "Undertekstspor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -2926,10 +2908,8 @@ msgid "Chapters"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "Select Audio Track"
 msgid "Audio Track"
-msgstr "Vælg lydspor"
+msgstr "Lydspor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -3077,10 +3057,8 @@ msgstr "Forrige"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous chapter"
-msgstr "Serveren blev tilføjet."
+msgstr "Forrige kapitel"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
@@ -3150,9 +3128,8 @@ msgstr ""
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy
 msgid "Cancel recording?"
-msgstr "Annullér optagelse"
+msgstr "Annullér optagelse?"
 
 # seeded from jellyfin-web: RecordingCancelled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3219,10 +3196,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "Automatisk afspilning"
+msgstr "Slet den downloadede kopi af %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3276,10 +3252,9 @@ msgid "%s could not be downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Downloading %s…"
-msgstr "Automatisk afspilning"
+msgstr "Downloader %s…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -3292,10 +3267,8 @@ msgid "Series Options"
 msgstr "Serie-indstillinger"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Transkodning)"
+msgstr "Optager"
 
 # seeded from jellyfin-web: LabelRecord
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -3665,23 +3638,18 @@ msgid "Open Externally"
 msgstr "Ekstern"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
-#| msgid "Auto Play"
 msgid "Downloading…"
-msgstr "Automatisk afspilning"
+msgstr "Downloader…"
 
 # seeded from jellyfin-web: Programs
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
-#, fuzzy
 msgid "Progress…"
-msgstr "Programmer"
+msgstr "Fremskridt…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/byname.py
 #: jellyfin_mpv_shim/mpvtk_browser/tile_renderer.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing here."
-msgstr "Serverkonfiguration"
+msgstr "Her er ingenting."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "This comic could not be opened."
@@ -3909,10 +3877,8 @@ msgid "No programs are listed right now."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Day"
-msgstr "Serveren blev tilføjet."
+msgstr "Forrige dag"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Earlier"
@@ -3936,10 +3902,8 @@ msgid "Channels %(from)d-%(to)d of %(total)d"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Previous Channels"
-msgstr "Serveren blev tilføjet."
+msgstr "Forrige kanaler"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "More Channels"
@@ -3965,10 +3929,8 @@ msgid "Recording Folders"
 msgstr "Åbn konfigurationsmappen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "Nothing has been recorded yet."
-msgstr "Serverkonfiguration"
+msgstr "Der er ikke optaget noget endnu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 msgid "Nothing is scheduled to record."
@@ -4063,10 +4025,9 @@ msgid "Instant mix"
 msgstr "Øjeblikkelig Mix"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "Vælg lydspor"
+msgstr "%d spor"
 
 # seeded from jellyfin-web: Albums
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
@@ -4162,10 +4123,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Rename"
-msgstr "Brugernavn:"
+msgstr "Omdøb"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Public"
@@ -4178,10 +4137,9 @@ msgid "Delete Playlist"
 msgstr "Automatisk afspilning"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "Automatisk afspilning"
+msgstr "Slet playlisten %s?"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
@@ -4281,10 +4239,9 @@ msgid "Type in the search box above."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Results for \"%s\""
-msgstr "Server:"
+msgstr "Resultater for \"%s\""
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4341,9 +4298,9 @@ msgstr "Vises nu"
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "Nyligt tilføjet"
+msgstr "Nyligt tilføjet i {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
@@ -4440,10 +4397,9 @@ msgid "watched"
 msgstr "Afslut og markér som Ikke-set"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Auto Play"
+#, python-format
 msgid "Delete the watched downloads in %s?"
-msgstr "Automatisk afspilning"
+msgstr "Slet sete downloads i %s?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4633,10 +4589,8 @@ msgid "Browse"
 msgstr "Gennemsé"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "Server-URL: "
+msgstr "Servere og brugere"
 
 # seeded from jellyfin-web: LabelLogs
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4645,10 +4599,8 @@ msgid "Logs"
 msgstr "Logfiler"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "SVP Settings"
 msgid "Search settings…"
-msgstr "SVP-indstillinger"
+msgstr "Søg indstillinger…"
 
 # seeded from jellyfin-web: Copy
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4669,10 +4621,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "Brugernavn: "
+msgstr "Nyt brugernavn…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4681,16 +4631,12 @@ msgid "Add User"
 msgstr "Tilføj server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server Configuration"
 msgid "No servers configured yet."
-msgstr "Serverkonfiguration"
+msgstr "Der er ingen server indstillet endnu."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username:"
 msgid "Users"
-msgstr "Brugernavn:"
+msgstr "Brugere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid ""
@@ -4699,16 +4645,13 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Servers for %s"
-msgstr "Server:"
+msgstr "Servere for %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Servers"
-msgstr "Server:"
+msgstr "Servere"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4717,10 +4660,8 @@ msgid "Change PIN"
 msgstr "Skift lyd"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Set PIN"
-msgstr "Server:"
+msgstr "Sæt PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, python-format
@@ -4878,16 +4819,12 @@ msgid "Home"
 msgstr "Hjem"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Server:"
 msgid "Server"
-msgstr "Server:"
+msgstr "Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
-#| msgid "Username:"
 msgid "User"
-msgstr "Brugernavn:"
+msgstr "Bruger"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
@@ -4961,10 +4898,8 @@ msgid "Use the default"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay er aktiveret."
+msgstr "SyncPlay er aktiveret"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
@@ -5091,10 +5026,9 @@ msgid "{0} has left."
 msgstr "{0} er gået."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} er i gang med at buffe."
+msgstr "{0} er ved at buffer…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
