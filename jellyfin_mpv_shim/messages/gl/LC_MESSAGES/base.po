@@ -851,7 +851,7 @@ msgstr "Non se puido conectar co(s) seu(s) servidor(es)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Introduza o seu PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
