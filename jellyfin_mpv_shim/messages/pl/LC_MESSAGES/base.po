@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-25 20:45+0000\n"
+"PO-Revision-Date: 2026-08-25 21:29+0000\n"
 "Last-Translator: Rogal <progalin55@gmail.com>\n"
 "Language-Team: Polish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/pl/>\n"
@@ -492,16 +492,13 @@ msgid "Skip Intros"
 msgstr "Pomiń wstęp"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgctxt "setting"
 msgid "Skip Credits"
-msgstr "Pominięte napisy końcowe"
+msgstr "Pomiń napisy końcowe"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
 msgid "Skip Commercials"
-msgstr "Specjalne"
+msgstr "Pomiń reklamy"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -610,6 +607,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Nie udało się uruchomić ponownie — wyjdź i uruchom aplikację ponownie, aby "
+"zastosować zmiany."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
@@ -857,10 +856,8 @@ msgstr "Dźwięk"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
-#, fuzzy
-#| msgid "Subtitle Size: {0}"
 msgid "Subtitle"
-msgstr "Rozmiar napisów: {0}"
+msgstr "Napisy"
 
 # seeded from jellyfin-web: Lyric
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -873,16 +870,12 @@ msgid "Image"
 msgstr "Obraz"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Continuous"
 msgid "Container"
-msgstr "Ciągle"
+msgstr "Kontener"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Normal"
 msgid "Format"
-msgstr "Normalny"
+msgstr "Format"
 
 # seeded from jellyfin-web: LabelPath
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -901,10 +894,8 @@ msgstr "Tak"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
-#, fuzzy
-#| msgid "None"
 msgid "No"
-msgstr "Brak"
+msgstr "Nie"
 
 # seeded from jellyfin-web: LabelTitle
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -930,10 +921,8 @@ msgid "Codec tag"
 msgstr "Tag kodeku"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "New Group"
 msgid "Profile"
-msgstr "Nowa grupa"
+msgstr "Profil"
 
 # seeded from jellyfin-web: LabelLevel
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -957,15 +946,13 @@ msgid "Anamorphic"
 msgstr "Anamorficzne"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Interface"
 msgid "Interlaced"
-msgstr "Interfejs"
+msgstr "Z przeplotem"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Framerate"
-msgstr ""
+msgstr "Klatki na sekundę"
 
 # seeded from jellyfin-web: MediaInfoLayout
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -985,12 +972,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bitrate"
-msgstr ""
+msgstr "Bitrate"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d kbps"
-msgstr ""
+msgstr "%d kbps"
 
 # seeded from jellyfin-web: MediaInfoSampleRate
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1000,7 +987,7 @@ msgstr "Próbkowanie"
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
 msgid "%d Hz"
-msgstr ""
+msgstr "%d Hz"
 
 # seeded from jellyfin-web: MediaInfoBitDepth
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1055,16 +1042,14 @@ msgstr "Obrót"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default"
-msgstr "Domyślnie (automatycznie)"
+msgstr "Domyślnie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, fuzzy
 #| msgid " Forced"
 msgid "Forced"
-msgstr " Wymuszone"
+msgstr "Wymuszone"
 
 # seeded from jellyfin-web: MediaInfoExternal
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1130,13 +1115,11 @@ msgstr "Identyfikator zgodności sygnału DV bl"
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, python-format
 msgid "%.1f Mbps"
-msgstr ""
+msgstr "%.1f Mbps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "Direct Paths"
 msgid "Direct playing"
-msgstr "Ścieżki bezpośrednie"
+msgstr "Odtwarzanie bezpośrednie"
 
 # seeded from jellyfin-web: DirectStreaming
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1269,10 +1252,8 @@ msgid "The audio stream info is unknown"
 msgstr "Informacje o strumieniu audio są nieznane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid "There is nothing downloaded to browse."
 msgid "There was an error starting direct playback"
-msgstr "Nie pobrano niczego do przeglądania."
+msgstr "Wystąpił błąd podczas rozpoczynania odtwarzania bezpośredniego"
 
 # seeded from jellyfin-web: VideoRangeTypeNotSupported
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1281,15 +1262,15 @@ msgstr "Typ zakresu wideo nie jest obsługiwany"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "This Device"
-msgstr ""
+msgstr "To urządzenie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Wejście"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
-msgstr ""
+msgstr "Okno"
 
 # seeded from jellyfin-web: LabelTheme
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1301,10 +1282,8 @@ msgid "Library Browser"
 msgstr "Przeglądarka biblioteki"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Transcoding"
 msgid "Reading"
-msgstr "Transkoduj"
+msgstr "Czytanie"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -1349,15 +1328,15 @@ msgstr "Zaawansowane"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Off (software decoding)"
-msgstr ""
+msgstr "Wyłączone (dekodowanie programowe)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only above 1080p"
-msgstr ""
+msgstr "Tylko powyżej 1080p"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "On"
-msgstr ""
+msgstr "Włączone"
 
 # seeded from jellyfin-web: TabAdvanced
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
