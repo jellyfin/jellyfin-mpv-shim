@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-21 17:18+0000\n"
+"PO-Revision-Date: 2026-08-26 11:09+0000\n"
 "Last-Translator: queeup <queeup@zoho.com>\n"
 "Language-Team: Turkish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/tr/>\n"
@@ -5188,10 +5188,8 @@ msgid "Use the default"
 msgstr "Varsayılan tema"
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid "SyncPlay enabled."
 msgid "SyncPlay enabled"
-msgstr "SyncPlay aktif."
+msgstr "SyncPlay etkin"
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
