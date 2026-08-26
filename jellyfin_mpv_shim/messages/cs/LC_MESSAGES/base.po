@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
 "PO-Revision-Date: 2026-08-26 19:06+0000\n"
-"Last-Translator: Helak <adamhavra@seznam.cz>\n"
+"Last-Translator: Fjuro <fjuro@users.noreply.translate.jellyfin.org>\n"
 "Language-Team: Czech <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/cs/>\n"
 "Language: cs\n"
@@ -27,12 +27,12 @@ msgstr "Neznámý formát"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "Strana %(page)d z %(total)d"
+msgstr "Stránka %(page)d z %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr "Strana %d"
+msgstr "Stránka %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -783,7 +783,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Zadejte váš PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
