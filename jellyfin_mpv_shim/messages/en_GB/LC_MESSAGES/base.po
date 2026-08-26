@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-26 14:00+0000\n"
+"PO-Revision-Date: 2026-08-26 14:05+0000\n"
 "Last-Translator: Dan Bishop <d@nbishop.uk>\n"
 "Language-Team: English (United Kingdom) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/en_GB/>\n"
@@ -1506,84 +1506,84 @@ msgstr "MPV built-in default"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
-msgstr ""
+msgstr "No player controls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "75%"
-msgstr ""
+msgstr "75%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "85%"
-msgstr ""
+msgstr "85%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "90%"
-msgstr ""
+msgstr "90%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "100% (no scaling)"
-msgstr ""
+msgstr "100% (no scaling)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "110%"
-msgstr ""
+msgstr "110%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "125%"
-msgstr ""
+msgstr "125%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "150%"
-msgstr ""
+msgstr "150%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No minimum"
-msgstr ""
+msgstr "No minimum"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "14 px"
-msgstr ""
+msgstr "14 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "16 px"
-msgstr ""
+msgstr "16 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "18 px"
-msgstr ""
+msgstr "18 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "20 px"
-msgstr ""
+msgstr "20 px"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Follow display"
-msgstr ""
+msgstr "Follow display"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "200%"
-msgstr ""
+msgstr "200%"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Continuous"
-msgstr ""
+msgstr "Continuous"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Aligned to rows"
-msgstr ""
+msgstr "Aligned to rows"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "One row per notch"
-msgstr ""
+msgstr "One row per notch"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Only when the window has no title bar"
-msgstr ""
+msgstr "Only when the window has no title bar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Dark"
-msgstr ""
+msgstr "Dark"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
