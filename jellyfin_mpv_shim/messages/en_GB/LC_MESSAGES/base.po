@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-26 14:05+0000\n"
+"PO-Revision-Date: 2026-08-26 14:18+0000\n"
 "Last-Translator: Dan Bishop <d@nbishop.uk>\n"
 "Language-Team: English (United Kingdom) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/en_GB/>\n"
@@ -1588,26 +1588,26 @@ msgstr "Dark"
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Sepia"
-msgstr ""
+msgstr "Sepia"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "Light"
-msgstr ""
+msgstr "Light"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Width"
-msgstr ""
+msgstr "Fit Width"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 msgid "Fit Page"
-msgstr ""
+msgstr "Fit Page"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Panel behind the controls"
-msgstr ""
+msgstr "Panel behind the controls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1617,7 +1617,7 @@ msgstr "None (Disabled)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide unless hovered"
-msgstr ""
+msgstr "Hide unless hovered"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1627,35 +1627,35 @@ msgstr "Always Skip Credits"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Never hide while paused"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Widen the gaps"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Centre the tiles"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Leave it on the right"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
-msgstr ""
+msgstr "Theme default"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra Compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Medium"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1665,59 +1665,59 @@ msgstr "Large"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (recommended)"
-msgstr ""
+msgstr "Automatic (recommended)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Vulkan"
-msgstr ""
+msgstr "Vulkan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Direct3D 11 (Windows only)"
-msgstr ""
+msgstr "Direct3D 11 (Windows only)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "OpenGL (compatibility)"
-msgstr ""
+msgstr "OpenGL (compatibility)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Default (auto)"
-msgstr ""
+msgstr "Default (auto)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Force Stereo"
-msgstr ""
+msgstr "Force Stereo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Optical Surround"
-msgstr ""
+msgstr "Optical Surround"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDMI Passthrough"
-msgstr ""
+msgstr "HDMI Passthrough"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Unset"
-msgstr ""
+msgstr "Unset"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (shows only)"
-msgstr ""
+msgstr "Dubbed (shows only)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (shows only)"
-msgstr ""
+msgstr "Subbed (shows only)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Dubbed (all)"
-msgstr ""
+msgstr "Dubbed (all)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subbed (all)"
-msgstr ""
+msgstr "Subbed (all)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom (set in config)"
-msgstr ""
+msgstr "Custom (set in config)"
 
 # seeded from jellyfin-web: OptionPlayCount
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1727,27 +1727,27 @@ msgstr "Play Count"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Swap Confirm and Back Buttons"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
-msgstr ""
+msgstr "Download Folder"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Prefer Downloaded Copy"
-msgstr ""
+msgstr "Prefer Downloaded Copy"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Left Click Pauses Playback"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
-msgstr ""
+msgstr "Show Posters on Detail Pages"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Episode Thumbnails on Detail Pages"
-msgstr ""
+msgstr "Show Episode Thumbnails on Detail Pages"
 
 # seeded from jellyfin-web: HeaderCancelRecording
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1757,11 +1757,11 @@ msgstr "Cancel Recording"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Deinterlace Automatically"
-msgstr ""
+msgstr "Deinterlace Automatically"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Motion Interpolation"
-msgstr ""
+msgstr "Motion Interpolation"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1771,7 +1771,7 @@ msgstr " (Transcode)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "HDR Tone Mapping"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1781,27 +1781,27 @@ msgstr "Change Video Quality"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Network Buffer"
-msgstr ""
+msgstr "Network Buffer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatically Download Upcoming Episodes"
-msgstr ""
+msgstr "Automatically Download Upcoming Episodes"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Include Next Up"
-msgstr ""
+msgstr "Include Next Up"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Next Up Entries to Consider"
-msgstr ""
+msgstr "Next Up Entries to Consider"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Episodes to Keep Ahead (0 = off)"
-msgstr ""
+msgstr "Episodes to Keep Ahead (0 = off)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Storage Limit for Automatic Downloads (GB)"
-msgstr ""
+msgstr "Storage Limit for Automatic Downloads (GB)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1811,55 +1811,55 @@ msgstr "Remove Server"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Delete Unwatched After (days, 0 = never)"
-msgstr ""
+msgstr "Delete Unwatched After (days, 0 = never)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Check Every (minutes)"
-msgstr ""
+msgstr "Check Every (minutes)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "Top Up When Fewer Than (episodes)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "Top Up To (episodes)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "Maximum Downloads per Check"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "Close to Tray (keep running)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "Keep Running in Background"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "Remember Window Size"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "Window Buttons in the Top Bar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "Player Controls Style"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "Load All Seek Previews at Once"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "Show What You're Watching in Discord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "Interface Scale"
 
 # seeded from jellyfin-web: LabelTextSize
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1868,28 +1868,28 @@ msgstr "Text size"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "Minimum Text Size"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
-msgstr ""
+msgstr "Cover Size"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
-msgstr ""
+msgstr "Full-Width Backdrops"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
-msgstr ""
+msgstr "Grid Spacing"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make Live TV logos more legible"
-msgstr ""
+msgstr "Make Live TV logos more legible"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Make library logos more legible"
-msgstr ""
+msgstr "Make library logos more legible"
 
 # seeded from jellyfin-web: LabelType
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1899,63 +1899,63 @@ msgstr "Type"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Page Colour"
-msgstr ""
+msgstr "Page Colour"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Justify Text"
-msgstr ""
+msgstr "Justify Text"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Comic Reading Mode"
-msgstr ""
+msgstr "Comic Reading Mode"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Cast-target mode (no library browsing)"
-msgstr ""
+msgstr "Cast-target mode (no library browsing)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Casting Opens the Library Browser"
-msgstr ""
+msgstr "Casting Opens the Library Browser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Fullscreen Library Browser"
-msgstr ""
+msgstr "Fullscreen Library Browser"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always Bind Arrow Keys to Player Controls"
-msgstr ""
+msgstr "Always Bind Arrow Keys to Player Controls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Activation Key"
-msgstr ""
+msgstr "Player Controls Activation Key"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Shading Behind the Player Controls"
-msgstr ""
+msgstr "Shading Behind the Player Controls"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "When the Player Controls Hide"
-msgstr ""
+msgstr "When the Player Controls Hide"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Hide the Player Controls After (seconds)"
-msgstr ""
+msgstr "Hide the Player Controls After (seconds)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Mouse Back/Forward Buttons Skip Chapters"
-msgstr ""
+msgstr "Mouse Back/Forward Buttons Skip Chapters"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Mode"
-msgstr ""
+msgstr "Audio Output Mode"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Audio Output Device"
-msgstr ""
+msgstr "Audio Output Device"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Take the Device Exclusively"
-msgstr ""
+msgstr "Take the Device Exclusively"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1971,35 +1971,35 @@ msgstr "New Group"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Last Used Profile"
-msgstr ""
+msgstr "Remember Last Used Profile"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Graphics API for Shaders"
-msgstr ""
+msgstr "Graphics API for Shaders"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through AC3"
-msgstr ""
+msgstr "Pass Through AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS"
-msgstr ""
+msgstr "Pass Through DTS"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through E-AC3"
-msgstr ""
+msgstr "Pass Through E-AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through DTS-HD"
-msgstr ""
+msgstr "Pass Through DTS-HD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Pass Through TrueHD"
-msgstr ""
+msgstr "Pass Through TrueHD"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Re-encode Others to AC3"
-msgstr ""
+msgstr "Re-encode Others to AC3"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
