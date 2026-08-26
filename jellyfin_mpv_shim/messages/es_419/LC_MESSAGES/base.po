@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-26 19:06+0000\n"
+"PO-Revision-Date: 2026-08-26 19:08+0000\n"
 "Last-Translator: lolomanzanillo <lolomanzanillo@gmail.com>\n"
 "Language-Team: Spanish (Latin America) <https://translate.jellyfin.org/"
 "projects/jellyfin/jellyfin-mpv-shim/es_419/>\n"
@@ -774,7 +774,7 @@ msgstr "Conectando a tu servidor…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Work Offline"
-msgstr ""
+msgstr "Trabajar sin conexión"
 
 # seeded from jellyfin-web: ButtonSignIn
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -783,20 +783,20 @@ msgstr "Iniciar sesión"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "There is nothing downloaded to browse."
-msgstr ""
+msgstr "No hay nada descargado para explorar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Couldn't reach your saved server(s)."
-msgstr ""
+msgstr "No se pudo conectar con el/los servidor(es) guardado(s)."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter your PIN"
-msgstr ""
+msgstr "Ingresa tu PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "%s is locked."
-msgstr ""
+msgstr "%s está bloqueado."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Unlock"
