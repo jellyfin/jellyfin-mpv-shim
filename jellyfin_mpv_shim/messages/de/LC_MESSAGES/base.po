@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-25 14:37+0000\n"
+"PO-Revision-Date: 2026-08-27 11:04+0000\n"
 "Last-Translator: MrPlow <joachim.huffer@gmail.com>\n"
 "Language-Team: German <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/de/>\n"
@@ -4977,18 +4977,17 @@ msgstr "Suche…"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "Neustarten zum anwenden: %s"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restart Now"
-msgstr "Neustarten"
+msgstr "Jetzt neustarten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "Später"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -5014,24 +5013,24 @@ msgstr "Server konfigurieren"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "Downloade %(name)s — %(n)d verbleiben"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "Downloade — %(n)d verbleiben"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Downloads anzeigen"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr "Unbekannt"
+msgstr "unbekannt"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "Wiedergabedaten"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Transcode"
@@ -5051,7 +5050,7 @@ msgstr "SyncPlay aktiviert."
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Bitte warten, lade..."
 
 #: jellyfin_mpv_shim/player.py
 msgid ""
@@ -5064,7 +5063,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "Die nächste Folge ist nicht heruntergeladen."
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -5100,24 +5099,32 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"Der Downloadordner kann nicht geändert werden, während ein Download läuft. "
+"Warte bis er fertig ist und versuche es wieder."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Dieser Ordner enthält bereits Downloads. Wähle einen leeren Ordner."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
 msgstr ""
+"Dieser Ordner kann nicht erstellt werden. Prüfe den Pfad und die "
+"Berechtigungen."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Ein Download wird immer noch fertig gestellt. Warte bis er stoppt, dann "
+"versuche es erneut."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Die Downloads konnten nicht verschoben werden. Sie sind noch wo sie waren; "
+"der Downloadordner wurde nicht geändert."
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
@@ -5136,8 +5143,7 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "Der Zugriff zu der SyncPlay-Bibliothek wurde verweigert."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
 msgstr "{0}'s Gruppe"
 
@@ -5174,10 +5180,9 @@ msgid "{0} has left."
 msgstr "{0} ist gegangen."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0} is buffering."
+#, python-brace-format
 msgid "{0} is buffering…"
-msgstr "{0} puffert."
+msgstr "{0} puffert…"
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
@@ -5185,16 +5190,21 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"GNOME erstellt keine eigene Systemablage. Installiere die \"AppIndicator and "
+"KStatusNotifierItem Support\" Erweiterung um eine zu erhalten, oder stelle "
+"\"Erlaube Hintergrund\" in den Einstellungen an, damit es ohne Fenster läuft."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
 "No system tray is running on this desktop. Turn on \"Allow Background\" in "
 "Settings to run without a window anyway."
 msgstr ""
+"Keine Systemablage läuft aus diesem Desktop. Schalte \"Erlaube Hintergrund\" "
+"in den Einstellungen an, damit es ohne Fenster läuft."
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Bibliotheksbrowser anzeigen"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
@@ -5219,23 +5229,23 @@ msgstr "(Standart)"
 
 #: jellyfin_mpv_shim/users.py
 msgid "New User"
-msgstr ""
+msgstr "Neuer Benutzer"
 
 #: jellyfin_mpv_shim/users.py
 msgid "Switch to another user before deleting this one."
-msgstr ""
+msgstr "Wechsle zu einem anderen Benutzer, bevor dieser gelöscht wird."
 
 #: jellyfin_mpv_shim/users.py
 msgid "At least one user is required."
-msgstr ""
+msgstr "Mindestens ein Benutzer wird benötigt."
 
 #: jellyfin_mpv_shim/users.py
 msgid "User not found."
-msgstr ""
+msgstr "Benutzer nicht gefunden."
 
 #: jellyfin_mpv_shim/utils.py
 msgid "Unkn"
-msgstr "Unbekannt"
+msgstr "Unbek"
 
 #: jellyfin_mpv_shim/utils.py
 msgid " Forced"
