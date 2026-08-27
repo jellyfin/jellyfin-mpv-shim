@@ -32,6 +32,12 @@ from typing import Optional
 import requests
 from PIL import Image
 
+try:
+    import pillow_jxl
+except ImportError:
+    pass
+
+
 log = logging.getLogger("mpvtk_browser.thumbnails")
 
 # Default in-memory budget for decoded images, sized by bytes (not entry
