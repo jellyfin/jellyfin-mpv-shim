@@ -24,6 +24,7 @@ and add to ``SYSTEM_DLLS`` -- it is a lead, not a verdict.
 """
 
 import argparse
+import os
 import struct
 import sys
 from typing import List, Optional, Set, Tuple
@@ -194,16 +195,33 @@ def main(argv: Optional[list] = None) -> int:
         "--allow",
         action="append",
         default=[],
-        help="an additional DLL name to accept, for one that is shipped "
-             "beside the file being checked (repeatable)",
+        help="a DLL name to accept because it ships beside the file being "
+             "checked. Verified, not believed: the named file must really be "
+             "in that directory or this fails (repeatable)",
     )
     parser.add_argument("files", nargs="+", help="PE files (.dll/.exe) to check")
     args = parser.parse_args(argv)
 
-    allowed = {name.lower() for name in args.allow}
     problems = []
 
     for path in args.files:
+        # "--allow X" is a claim that X ships beside this file, and it is
+        # checked rather than believed. The whole value of this tool is that
+        # it asks a question nothing downstream can -- an allowance taken on
+        # trust would let a build that forgot to copy the DLL pass, which is
+        # the same startup failure with a flag in front of it. Same rule as
+        # check_win_raqm's --require-bundled.
+        beside = os.path.dirname(os.path.abspath(path))
+        allowed = set()
+        for name in args.allow:
+            if os.path.exists(os.path.join(beside, name)):
+                allowed.add(name.lower())
+            else:
+                problems.append(
+                    f"{path}: --allow {name}, but no {name} is beside it in "
+                    f"{beside} -- nothing would ship it"
+                )
+
         try:
             hard, delayed = imported_dlls(path)
         except (OSError, NotAPeFile, struct.error) as error:

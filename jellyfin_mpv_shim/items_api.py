@@ -77,3 +77,66 @@ def build_query(ids=None, params=None, **kwargs):
 def get_items(api, ids=None, params=None, **kwargs):
     """``GET /Items`` -- the modern twin of ``api.get_user_items``."""
     return api.items(params=build_query(ids=ids, params=params, **kwargs))
+
+
+#: Keyword -> query parameter for :func:`get_resume`. Its own map rather
+#: than a slice of ``_QUERY_KEYS``: ``/UserItems/Resume`` takes fifteen
+#: parameters and fixes the rest of the query itself (``IsResumable``,
+#: ``DatePlayed`` descending, recursive), so ``sort_by`` or ``filters``
+#: would go out and be dropped -- the failure this module exists to stop.
+#: `tests/test_items_api.py` checks it against the endpoint's real list.
+_RESUME_KEYS = {
+    "start_index": "StartIndex",
+    "limit": "Limit",
+    "search_term": "SearchTerm",
+    "parent_id": "ParentId",
+    "fields": "Fields",
+    "media_types": "MediaTypes",
+    "enable_user_data": "EnableUserData",
+    "image_type_limit": "ImageTypeLimit",
+    "enable_image_types": "EnableImageTypes",
+    "exclude_item_types": "ExcludeItemTypes",
+    "include_item_types": "IncludeItemTypes",
+    "enable_total_record_count": "EnableTotalRecordCount",
+    "enable_images": "EnableImages",
+    "exclude_active_sessions": "ExcludeActiveSessions",
+}
+
+
+def build_resume_query(params=None, **kwargs):
+    """The query dict for :func:`get_resume`. Pure, so it can be asserted on."""
+    unknown = set(kwargs) - set(_RESUME_KEYS)
+    if unknown:
+        raise TypeError("get_resume() got unexpected keyword arguments: %s"
+                        % ", ".join(sorted(unknown)))
+    query = {_RESUME_KEYS[k]: v for k, v in kwargs.items() if v is not None}
+    # A query parameter here, not a route segment: this endpoint is the
+    # de-userId'd one. Substituted by the http layer, as everywhere else.
+    query["UserId"] = "{UserId}"
+    if params:
+        query.update(params)
+    return query
+
+
+def get_resume(api, params=None, **kwargs):
+    """``GET /UserItems/Resume`` -- Continue Watching, and the *only* route
+    that applies the user's per-library "Display in home screen sections"
+    exclusions.
+
+    ``api.get_resume_items`` does not go here. It builds
+    ``GET /Users/{userId}/Items?Filters=IsResumable&SortBy=DatePlayed``,
+    which is the generic item query and knows nothing about
+    ``LatestItemExcludes`` -- that lives in ``ItemsController.GetResumeItems``
+    and nowhere else, so unticking a library went on showing its films in
+    Continue Watching (#703). Measured against a 12.0 server: the exclusion
+    applies on both Resume routes and on neither generic one, and the two
+    answer byte-identical payloads for the video, audio and book rows.
+
+    Reaching ``_get`` is the wart. The apiclient has a public helper per
+    route prefix and none for ``UserItems``, and the alternative -- its
+    ``users("/Items/Resume")``, the ``[Obsolete]`` legacy route -- is the
+    kind of route this module exists to move off. Delete this the day
+    ``get_resume_items`` is fixed upstream and the pin can be raised.
+    """
+    return api._get("UserItems/Resume",
+                    build_resume_query(params=params, **kwargs))

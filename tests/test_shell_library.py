@@ -1014,6 +1014,101 @@ class TestCarouselRestore(unittest.TestCase):
                          "a yielded park overwrote the real snapshot")
 
 
+class TestGridScrollRestore(unittest.TestCase):
+    """The same one-shot rule as ``TestCarouselRestore``, for the scroller a
+    page builds by hand.
+
+    A carousel is restored through ``ScrollState.pending`` and a page's own
+    ``VScroll`` through ``Page.parked_scroll``, and only the first of those
+    honoured ``_seeded`` — so the parked value stayed a standing order for
+    every screen in ``pages/``. What made it visible is that an in-place
+    reload takes the container off screen: ``GridPage._reload`` drops
+    ``_items`` and ``render`` draws the header over a spinner, so the
+    scroller that comes back with the results is one the renderer has never
+    met and ``offset=`` bites again.
+    """
+
+    ROUTE = {"kind": "grid", "parent_id": "lib1", "title": "Movies",
+             "collection_type": "movies"}
+
+    def setUp(self):
+        self.r = _Renderer()
+        self.b = MpvtkBrowser(app=self.r, source=FakeSource())
+        self.b._pool = _SyncPool()
+        self.b.navigate(dict(self.ROUTE, server=self.b.server))
+        build_scene(self.b)
+
+    def _scrolled_to(self, offset):
+        self.r.on_screen.add("grid")
+        self.r.scroll["grid"] = offset
+
+    def _off0(self):
+        return {n["id"]: n for n in build_scene(self.b)[0]}.get(
+            "grid", {}).get("off0")
+
+    def _leave_and_return(self):
+        """Into a detail page and back — what parks the offset."""
+        self.b.navigate({"kind": "detail", "server": self.b.server,
+                         "item_id": "g1"})
+        self.r.on_screen.clear()
+        self.b.go_back()
+
+    def _requery(self, key="_sort", value=1):
+        """A sort change, with the refetch genuinely in flight.
+
+        A ``_SyncPool`` would answer inside ``_set`` and the scroller would
+        never leave the scene, which is the whole of the bug — so this is
+        the one place the browser suite needs a deferred pool.
+        """
+        pool = _DeferredPool()
+        self.b._pool = pool
+        self.b._page_for(self.b.route)._set(key, value)
+        self.assertNotIn("grid", ids(build_scene(self.b)[0]),
+                         "the reload no longer blanks the tiles")
+        self.r.on_screen.discard("grid")      # the renderer drops what left
+        self.r.scroll.pop("grid", None)
+        pool.drain()
+        self.b._pool = _SyncPool()
+
+    def test_back_nav_still_lands_where_the_library_was_left(self):
+        self._scrolled_to(600)
+        self._leave_and_return()
+        self.assertAlmostEqual(self._off0(), 600)
+
+    def test_a_sort_change_does_not_drag_the_library_back_down(self):
+        """The report: scroll, open a show, come back, then sort or filter —
+        and the grid jumps to where it was before the detour, every time,
+        until the view is left."""
+        self._scrolled_to(600)
+        self._leave_and_return()
+        self.assertAlmostEqual(self._off0(), 600)
+        self._scrolled_to(600)                # the renderer honours it
+        build_scene(self.b)
+
+        self._requery()
+        self.assertIsNone(self._off0(),
+                          "a new query re-applied the old scroll position")
+
+    def test_it_does_not_come_back_on_the_second_filter_either(self):
+        """The parked offset lives on the route, so it outlives one requery.
+        Three, because the bug the user reported is that it keeps happening
+        \"until I leave the view\"."""
+        self._scrolled_to(600)
+        self._leave_and_return()
+        build_scene(self.b)
+        self._scrolled_to(600)
+        for i in range(3):
+            self._requery("_sort", i)
+            self.assertIsNone(self._off0(), "requery %d re-applied it" % i)
+
+    def test_a_requery_before_any_detour_starts_at_the_top(self):
+        """Nothing parked, nothing to re-apply — the case that always
+        worked, kept so the fix cannot be mistaken for "never restore"."""
+        self._scrolled_to(600)
+        self._requery()
+        self.assertIsNone(self._off0())
+
+
 class TestDetailActions(unittest.TestCase):
     def setUp(self):
         self.ctl = FakeController()

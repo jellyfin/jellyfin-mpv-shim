@@ -57,12 +57,13 @@
                 "-Dcplugins=enabled",
         "-Dsdl2-gamepad=enabled"
             ],
+            "//mpv-pin-note": "A master commit rather than v0.41.0, and deliberately NOT what Flathub publishes -- this manifest is the CI/dev one (see the jellyfin-mpv-shim module below). It carries the fix for #687: over an HDR video, vo_gpu_next tagged every overlay-add bitmap with the VIDEO's colorspace, so the SDR trickplay frames we hand it were emitted as PQ code values and the scrub preview blew out (~2.4x at mid-grey, clipping above code 180). Three commits fix it -- 345e783643 gates the inheritance on the caller asking, 654e9382c0 adds the primaries/transfer/max_luma/video_colorspace arguments to overlay-add, 1c2ff7d56b makes it per-part -- and the gate is what fixes US: script overlays now default to sRGB, so the shim needs no code change. They landed 2026-08-19/20, there is no release containing them (v0.41.0 is 2025-12-21 and release/0.41 has no backport), and cherry-picking onto v0.41.0 conflicts in vo_gpu_next.c, which has moved on. This exact commit is the one shinchiro's 20260828 Windows build was made from, so both platforms test the same mpv.",
             "sources": [
                 {
                     "type": "git",
                     "url": "https://github.com/mpv-player/mpv.git",
-                    "tag": "v0.41.0",
-                    "commit": "41f6a645068483470267271e1d09966ca3b9f413",
+                    "branch": "master",
+                    "commit": "182fa6ca49f455cadb884858f386e2f00540aeb7",
                     "x-checker-data": {
                         "type": "git",
                         "tag-pattern": "^v([\\d.]+)$"

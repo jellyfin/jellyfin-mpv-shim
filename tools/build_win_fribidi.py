@@ -18,12 +18,14 @@ configure and 0.54s to build.
 
 **Architecture follows the running interpreter, not a flag.** What has to
 match is the Python that loads Pillow -- not the machine, and notably not
-mpv: ``build-win32-legacy`` runs an x64 interpreter while downloading an
-i686 libmpv, so a flag copied from the job's name would be wrong there. The
-build targets the host through meson's ``--vsenv`` and the result is then
-checked against ``sys.executable``; a mismatch is an error rather than a
-silently mis-filed DLL, which is the same discipline ``check_win_arch.py``
-exists for on Windows on Arm.
+mpv, which is a separate question with a separate answer (see
+``build_win_vulkan_loader.verify``). The build targets the host through
+meson's ``--vsenv`` and the result is then checked against
+``sys.executable``; a mismatch is an error rather than a silently mis-filed
+DLL, which is the same discipline ``check_win_arch.py`` exists for on
+Windows on Arm -- and which the removed 32-bit job, shipping an x64
+executable for five green years, is the case history for
+(docs/packaging.md section 1).
 """
 
 import argparse

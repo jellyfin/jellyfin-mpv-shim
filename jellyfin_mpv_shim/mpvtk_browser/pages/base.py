@@ -128,10 +128,18 @@ class Page:
         The shell parks the offsets on the route dict, which is what makes
         them survive the ``ScrollState.reset()`` that stops one view's
         offsets bleeding into the next; see docs/browser-shell.md section 7.
-        """
-        from ..scroll_state import ScrollState
 
-        return ScrollState.parked(self.route, scroll_id)
+        **A restore is a one-shot**, which is why this goes through
+        ``ScrollState.pending`` rather than reading the route directly: the
+        parked value is not a standing order. ``offset=`` only bites the
+        first frame an id is seen (widgets.Scroll), and an in-place reload
+        makes an id un-seen — a sort or filter change drops ``_items``, the
+        page draws a spinner where the scroller was, and the container that
+        comes back with the results is new to the renderer. Reading the
+        route re-commanded it to wherever the user had been on the *previous*
+        visit, so every filter tick jumped the library back down.
+        """
+        return self.ctx.art.scroll.pending(scroll_id)
 
     def open_link(self, url):
         """Hand an external link to the desktop's browser.

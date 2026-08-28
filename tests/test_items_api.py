@@ -98,7 +98,71 @@ class BuildQueryTest(unittest.TestCase):
         self.assertIs(q["Recursive"], False)
 
 
+#: Every query parameter ``GET /UserItems/Resume`` binds, transcribed from
+#: ``Jellyfin.Api/Controllers/ItemsController.cs::GetResumeItems`` (present
+#: unchanged in 10.9 through 12.0). A copy, but a copy of the *server* --
+#: which is the only authority there is, since an unrecognised parameter is
+#: dropped and answers exactly as sending nothing does.
+RESUME_PARAMS = {
+    "UserId", "StartIndex", "Limit", "SearchTerm", "ParentId", "Fields",
+    "MediaTypes", "EnableUserData", "ImageTypeLimit", "EnableImageTypes",
+    "ExcludeItemTypes", "IncludeItemTypes", "EnableTotalRecordCount",
+    "EnableImages", "ExcludeActiveSessions",
+}
+
+
+class ResumeMappingTest(unittest.TestCase):
+    """``get_resume`` exists because the apiclient's ``get_resume_items``
+    sends the *generic* item query, which does not apply the user's
+    per-library home-screen exclusions (#703). The failure that would
+    reintroduce that quietly is a parameter this endpoint does not bind.
+    """
+
+    def test_every_mapped_parameter_is_one_the_endpoint_binds(self):
+        extra = set(items_api._RESUME_KEYS.values()) - RESUME_PARAMS
+        self.assertEqual(extra, set(), "GetResumeItems does not bind these, "
+                         "so they go out and are dropped: %s" % sorted(extra))
+
+    def test_the_items_only_knobs_are_not_reachable(self):
+        """The specific slip: Resume fixes its own sort and filter, so
+        reusing ``_QUERY_KEYS`` here would let a caller pass ``sort_by`` or
+        ``filters`` and get silence. They must raise instead."""
+        for keyword in ("sort_by", "sort_order", "filters", "recursive"):
+            with self.assertRaises(TypeError, msg=keyword) as caught:
+                items_api.build_resume_query(**{keyword: "x"})
+            self.assertIn(keyword, str(caught.exception))
+
+    def test_the_user_rides_as_a_query_parameter(self):
+        """This is the de-userId'd route -- the id is not in the path."""
+        self.assertEqual(items_api.build_resume_query()["UserId"],
+                         "{UserId}")
+
+    def test_a_false_value_is_still_sent(self):
+        q = items_api.build_resume_query(enable_total_record_count=False)
+        self.assertIs(q["EnableTotalRecordCount"], False)
+
+
 class CallSiteTest(unittest.TestCase):
+    def test_nothing_reaches_resume_through_the_apiclient(self):
+        """``get_resume_items`` is the method that looks right and is not.
+        Nothing in the package may call it; ``items_api.get_resume`` is the
+        way to that row."""
+        import pathlib
+
+        pkg = pathlib.Path(items_api.__file__).parent
+        bad = []
+        for path in sorted(pkg.rglob("*.py")):
+            if path.name == "items_api.py":
+                continue          # names it in prose, on purpose
+            for n, line in enumerate(
+                    path.read_text(encoding="utf-8").splitlines(), 1):
+                # The call, not the name: repository.py names it in prose
+                # to say why it is NOT used, which is worth keeping.
+                if ".get_resume_items(" in line:
+                    bad.append("%s:%d" % (path.relative_to(pkg), n))
+        self.assertEqual(bad, [], "get_resume_items sends the generic item "
+                         "query, which ignores LatestItemExcludes: %s" % bad)
+
     def test_nothing_calls_the_legacy_endpoint_any_more(self):
         """The migration, asserted rather than remembered."""
         import pathlib

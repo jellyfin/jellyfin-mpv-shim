@@ -69,7 +69,12 @@ class LuaIsPackagedTest(unittest.TestCase):
         time. A missing one is a build that runs and silently has no
         script."""
         builds = _win_builds()
-        self.assertGreaterEqual(len(builds), 4, "found no build scripts")
+        # Standard, ARM64 and debug. Was four until the 32-bit build was
+        # dropped (docs/packaging.md section 1). A floor rather than a
+        # count, and it is here so a glob that stopped matching cannot make
+        # the loop below vacuous -- which is the failure this whole module
+        # exists to prevent, one level up.
+        self.assertGreaterEqual(len(builds), 3, "found no build scripts")
         for name, text in builds.items():
             for path in _shipped_lua():
                 base = os.path.basename(path)
