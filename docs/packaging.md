@@ -7,10 +7,57 @@ rules.
 ## 1. Windows
 
 Build with `build-win.bat` after `gen_pkg.sh --skip-build`
-(`build-win-32.bat` for 32-bit, `build-win-arm64.bat` for ARM64,
-`build-win-dbg.bat` for debug). The installer is Inno Setup, from
-`Jellyfin MPV Shim.iss`; the ARM64 script passes `/DArm64`, which is the only thing
-that file branches on.
+(`build-win-arm64.bat` for ARM64, `build-win-dbg.bat` for debug). The installer is
+Inno Setup, from `Jellyfin MPV Shim.iss`; the ARM64 script passes `/DArm64`, which is
+the only thing that file branches on.
+
+Three installers ship: the standard x86-64-v3 one, **LEGACY64** (plain x86-64, for
+CPUs without AVX2 — a live and used build, ~5% of downloads), and ARM64.
+
+### There is no 32-bit build, and the reason is a case history
+
+`build-win-32.bat`, the `build-win32-legacy` job and the LEGACY32 installer were
+removed in August 2026. It is worth knowing why, because the failure is a shape this
+project can repeat.
+
+The build existed **by request**: #41, April 2020, one user with a 32-bit Windows 10
+tablet. It worked while that user was testing each build by hand — including catching
+the first version of this exact bug, where "PyInstaller ignored the directive to use
+the 32 bit version of MPV and instead packaged the 64 bit version".
+
+Then it broke, in two steps, and stayed broken for over five years:
+
+* **2021-04-20, `e55e1830` "Switch to GitHub Actions".** The Azure pipeline's
+  `LegacyWindows` job set `architecture: 'x86'` on its Python. The migration to
+  GitHub Actions dropped that line and never replaced it, so every LEGACY32 build
+  after it was an **x64 executable**. The Inno installer is 32-bit whatever the
+  payload is (see the `#ifdef Arm64` comment in the .iss), so it installs happily on
+  32-bit Windows and then fails launching the payload with `CreateProcess` **error
+  216**, `ERROR_EXE_MACHINE_TYPE_MISMATCH`. That is #278, filed 2022-06-29 against
+  "any version above 1.10.4" — and v1.10.4 shipped six days before that commit.
+* **2021-12-22, `847f8273` "Upgrade to MPV version 20211219 fd63bf3".** A routine
+  version bump that also switched the legacy job's download from `mpv-dev-x86_64` to
+  `mpv-dev-i686`. Until then the x64 exe at least had an x64 libmpv, so the installer
+  worked on 64-bit Windows (as a duplicate of the standard build). After it, the x64
+  exe bundles a 32-bit `mpv-2.dll`: `ctypes` cannot load it, `player.py` reads that as
+  "no libmpv", the external backend looks for an `mpv.exe` this build has never
+  shipped, and the client dies at startup. The same end state as any libmpv
+  Windows will not load, reached from the other direction.
+
+**Neither step could fail the build**, which is the lesson. Architecture mismatches
+are not build errors — every job stayed green for five years, and CI cannot notice
+that the file it just packaged is for a different machine. `tools/check_win_arch.py`
+exists because the ARM64 job has the identical exposure; it is run there against both
+the fetched libmpv and the built executable, and that is the pattern any new
+architecture must copy on day one.
+
+The evidence for removing rather than fixing: three downloads of LEGACY32 on
+v3.0.0pre13 against 382 standard and 35 ARM64; one report in five years (#278) with
+no second voice; and the last comment mentioning 32-bit anywhere in the tracker dated
+2020-08-16, eight months *before* the build stopped working. Shipping it broken was
+worse than not shipping it — a 32-bit user was downloading something official-looking
+that failed cryptically instead of reading "not supported".
+
 
 ### FriBiDi is required, and its absence is silent
 

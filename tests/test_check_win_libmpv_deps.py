@@ -135,9 +135,14 @@ class ImportTableTest(unittest.TestCase):
         self.assertEqual(delayed, ["vulkan-1.dll"])
 
     def test_reads_a_32_bit_image(self):
-        # The directories move by 16 bytes between PE32 and PE32+, and the
-        # 32-bit installer is built from a real i686 libmpv. Reading the
-        # wrong offset yields no imports, which is a silent pass.
+        # The directories move by 16 bytes between PE32 and PE32+, and
+        # reading the wrong offset yields no imports -- a silent pass, which
+        # is the one answer this tool must never give.
+        #
+        # Nothing shipped is PE32 any more (the 32-bit build is gone), so
+        # this is kept for the parser rather than for a build: an i686
+        # libmpv is one `fileName:` away in the workflow, and the failure it
+        # would cause is invisible.
         path = self._write(build_pe(hard=["vulkan-1.dll"], magic=0x10B))
         hard, _ = imported_dlls(path)
         self.assertEqual(hard, ["vulkan-1.dll"])
