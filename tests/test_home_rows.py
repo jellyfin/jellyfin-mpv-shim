@@ -45,9 +45,15 @@ class FakeApi:
         with self._lock:
             self.concurrent -= 1
 
-    def get_resume_items(self, **kwargs):
-        self._enter("get_resume_items", kwargs)
-        return {"Items": [{"Id": "r", "Name": "Resume"}]}
+    # Deliberately NO get_resume_items. The apiclient has one and it goes
+    # to the generic item query, which does not apply the user's library
+    # exclusions (#703) -- so a fake that answered it would let the
+    # regression back in green. Production reaches the endpoint directly.
+    def _get(self, handler, params=None):
+        self._enter(handler, params)
+        if handler == "UserItems/Resume":
+            return {"Items": [{"Id": "r", "Name": "Resume"}]}
+        raise AssertionError("unexpected endpoint: %s" % handler)
 
     def get_recently_added(self, **kwargs):
         self._enter("get_recently_added", kwargs)
@@ -213,18 +219,36 @@ class LayoutTest(HomeRowsHarness):
         self._source(api).get_home_rows(
             "srv", libraries=LIBS, layout=[hs.RESUME_AUDIO] + [hs.NONE] * 9)
         params = api.params[0]
-        self.assertEqual(params.get("media_types"), "Audio")
-        self.assertNotIn("include_item_types", params)
+        self.assertEqual(params.get("MediaTypes"), "Audio")
+        self.assertNotIn("IncludeItemTypes", params)
+
+    def test_the_resume_rows_go_to_the_resume_endpoint(self):
+        """#703. The user's per-library "Display in home screen sections"
+        exclusion is applied by ``ItemsController.GetResumeItems`` and by
+        nothing else -- so which route is asked *is* the feature, and the
+        apiclient's ``get_resume_items`` is not it (it sends
+        ``Users/{uid}/Items?Filters=IsResumable``, measured against a 12.0
+        server as ignoring the exclusion entirely).
+
+        All three rows, because they are three calls to one helper and the
+        rule is per-call."""
+        api = FakeApi()
+        self._source(api).get_home_rows(
+            "srv", libraries=LIBS,
+            layout=[hs.RESUME, hs.RESUME_AUDIO, hs.RESUME_BOOK]
+                   + [hs.NONE] * 7)
+        self.assertEqual(api.calls, ["UserItems/Resume"] * 3)
 
     def test_resume_rows_never_carry_a_parent_id(self):
-        """ParentId is what disables the server-side "Display in home screen
-        sections" exclusion, so these rows must not scope by library."""
+        """The other half of the same exclusion: the Resume handler applies
+        it only to a query with no ParentId, so these rows must not scope by
+        library. Being on the right endpoint is not enough."""
         api = FakeApi()
         self._source(api).get_home_rows(
             "srv", libraries=LIBS,
             layout=[hs.RESUME, hs.RESUME_AUDIO] + [hs.NONE] * 8)
         for params in api.params:
-            self.assertIsNone(params.get("parent_id"))
+            self.assertIsNone(params.get("ParentId"))
 
 
 class LatestExcludesTest(HomeRowsHarness):

@@ -838,6 +838,13 @@ class LibrarySource:
         are deliberately one request *per library*, which bypasses it. So this
         set has to be applied client-side there, exactly as jellyfin-web does
         in recentlyAdded.ts.
+
+        "The server applies it" is a claim about **which endpoint is asked**,
+        not about the parameters: only ``ItemsController.GetResumeItems`` and
+        ``TVSeriesManager.GetNextUp`` consult ``LatestItemExcludes``, so
+        Continue Watching gets it from ``items_api.get_resume`` and not from
+        the apiclient's ``get_resume_items``, which sends the generic item
+        query (#703).
         """
         api = self._conn(server_uuid).api
         user = api.get_user() or {}
@@ -895,10 +902,15 @@ class LibrarySource:
 
         def resume_row(title, collection_type=None, **extra):
             def fetch():
+                # items_api.get_resume, not api.get_resume_items -- see
+                # its docstring. The exclusion lives in the Resume handler,
+                # and the apiclient's method never reaches it (#703).
+                #
                 # Deliberately no parent_id: that is what lets the server apply
                 # the user's "Display in home screen sections" exclusions for
                 # us. Scoping this by library would silently bypass them.
-                resume = api.get_resume_items(
+                resume = items_api.get_resume(
+                    api,
                     limit=20,
                     fields=LIST_FIELDS,
                     enable_image_types="Primary,Thumb,Backdrop",

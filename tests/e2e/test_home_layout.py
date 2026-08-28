@@ -38,6 +38,12 @@ Up and by *us* for the per-library Latest rows, because those are one request
 each with a ParentId and that bypasses the server's own handling. Two halves
 of one setting, and the failure mode of getting the split wrong is a library
 the user hid showing up anyway.
+
+The server half is also a claim about **which endpoint** is asked, and that
+is why it is asserted on the row and not on the request: only
+``GetResumeItems`` and ``GetNextUp`` consult the setting, so a resume query
+sent to the generic item route carries no ParentId, looks entirely correct
+from the parameters, and ignores the exclusion (#703).
 """
 
 import os
@@ -297,33 +303,42 @@ class LatestExcludesTest(_e2e.E2ETestCase):
             "a library excluded from the home screen still got a Recently "
             "Added row")
 
-    def test_continue_watching_leaves_the_exclusion_to_the_server(self):
-        """The other half, and the reason the split exists: Continue Watching
-        and Next Up must carry **no** ParentId, which is what lets the server
-        apply this setting for them. Adding one looks like a harmless
-        narrowing and silently turns the setting off for those rows.
-        """
-        api = self.source._conn(UUID).api
-        sent = []
-        original = api.get_resume_items
-
-        def spy(*args, **kwargs):
-            sent.append(kwargs)
-            return original(*args, **kwargs)
-
-        api.get_resume_items = spy
-        self.addCleanup(setattr, api, "get_resume_items", original)
-        self.source.get_home_rows(
+    def _resume_titles(self):
+        rows = self.source.get_home_rows(
             UUID, sections=("primary",),
             layout=[home_sections.RESUME] + [home_sections.NONE] * 9,
             latest_excludes=frozenset())
+        return [item["Name"] for row in rows for item in row["items"]]
 
-        self.assertTrue(sent, "the resume row was never fetched")
-        for kwargs in sent:
-            self.assertIsNone(
-                kwargs.get("parent_id"),
-                "Continue Watching was fetched with a ParentId, which stops "
-                "the server applying LatestItemsExcludes to it")
+    def test_an_excluded_library_drops_out_of_continue_watching(self):
+        """#703, asserted on the row rather than on the request.
+
+        The predecessor of this test spied on the outgoing kwargs and checked
+        for a ParentId, and it passed for the whole life of the bug: the
+        parameter really was absent, and the exclusion still did not apply,
+        because ``api.get_resume_items`` sends
+        ``Users/{uid}/Items?Filters=IsResumable`` and the exclusion lives in
+        ``ItemsController.GetResumeItems``. Which endpoint is asked is not
+        visible from the parameters, so only the answer can settle it.
+        """
+        movies = self.session.view("Movies")
+        film = self.session.find_all(parent_id=movies["Id"],
+                                     item_type="Movie")[0]
+        self.session.api.item_played(film["Id"], False)
+        self.session.api.update_userdata_for_item(
+            film["Id"], {"PlaybackPositionTicks": 60 * 10 ** 7,
+                         "Played": False})
+        self.addCleanup(self.session.reset_played, film["Id"])
+
+        self.assertIn(film["Name"], self._resume_titles(),
+                      "%r is not in Continue Watching to begin with, so "
+                      "hiding its library proves nothing" % film["Name"])
+
+        self._exclude(movies["Id"])
+        self.assertNotIn(
+            film["Name"], self._resume_titles(),
+            "a library excluded from the home screen still contributed to "
+            "Continue Watching")
 
 
 if __name__ == "__main__":

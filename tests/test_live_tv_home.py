@@ -49,8 +49,10 @@ class FakeApi:
         self._enter("get_views")
         return {"Items": self._views}
 
-    def get_resume_items(self, **kwargs):
-        self._enter("get_resume_items", kwargs)
+    def _get(self, handler, params=None):
+        # The resume rows go to GET /UserItems/Resume directly -- see
+        # items_api.get_resume and test_home_rows (#703).
+        self._enter(handler, params)
         return {"Items": []}
 
     def get_recently_added(self, **kwargs):
