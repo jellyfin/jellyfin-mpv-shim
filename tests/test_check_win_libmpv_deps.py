@@ -179,6 +179,16 @@ class ExitCodeTest(unittest.TestCase):
         self.addCleanup(os.unlink, path)
         return path
 
+    def _beside(self, path: str, name: str) -> str:
+        """Put a file next to `path`, as the build would ship it."""
+        import os
+
+        target = os.path.join(os.path.dirname(path), name)
+        with open(target, "wb") as handle:
+            handle.write(b"stand-in")
+        self.addCleanup(lambda: os.path.exists(target) and os.unlink(target))
+        return target
+
     def _run(self, argv) -> int:
         # It is a CI script and reports on both streams; keep that out of
         # the suite's own output.
@@ -206,8 +216,22 @@ class ExitCodeTest(unittest.TestCase):
         self.assertEqual(self._run([path]), 0)
 
     def test_allow_accepts_something_shipped_beside_it(self):
+        """And it has to really be beside it. This test used to pass
+        `--allow` and assert 0 without ever putting the file anywhere, so
+        the property in its own name was the one thing it did not model --
+        which is exactly the allowance an installer that forgot to copy the
+        DLL would have been granted."""
         path = self._write(build_pe(hard=["vulkan-1.dll"]))
+        self._beside(path, "vulkan-1.dll")
         self.assertEqual(self._run(["--allow", "vulkan-1.dll", path]), 0)
+
+    def test_allow_is_refused_when_nothing_ships_it(self):
+        """The half that makes the allowance mean anything. The DLL is
+        missing, so the client would die at startup with the loader naming
+        mpv-2.dll -- and an unchecked `--allow` is how that ships with a
+        green build."""
+        path = self._write(build_pe(hard=["vulkan-1.dll"]))
+        self.assertEqual(self._run(["--allow", "vulkan-1.dll", path]), 1)
 
     def test_a_file_it_cannot_read_is_a_failure(self):
         path = self._write(b"not a pe file at all")

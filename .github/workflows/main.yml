@@ -25,21 +25,30 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        # Pinned rather than `latest: true`, and the pin is load-bearing.
-        # shinchiro's builds from 20260808 onward link vulkan-1.dll as a HARD
-        # import -- twelve vk* symbols in the import table, delay-load
-        # directory empty -- and the Vulkan loader is a driver-installed
-        # system component, not something we ship. On a machine without one,
-        # Windows refuses to load libmpv at all; the shim reads that as "no
-        # libmpv", falls back to the external backend, finds no mpv.exe to
-        # spawn, and dies at startup before any UI exists. Their own mpv.exe
-        # archive carries no vulkan-1.dll either, so this is an upstream
-        # regression and not a redistributable we were meant to be carrying.
+        # Pinned rather than `latest: true`, and the pin is load-bearing --
+        # but it is no longer held DOWN. It was stuck at 20260610 because
+        # every build from 20260808 on links vulkan-1.dll as a HARD import
+        # (twelve vk* symbols, delay-load directory empty), and the Vulkan
+        # loader is installed by the GPU driver rather than by Windows: on a
+        # machine without one, Windows refuses libmpv outright, the shim
+        # reads that as "no libmpv", falls back to the external backend,
+        # finds no mpv.exe to spawn, and dies before any UI exists. Still
+        # true of 20260828, measured.
         #
-        # 20260610 is the last release before it. Raising the pin is fine as
-        # soon as a release is clean -- the job checks, so an unpin that
-        # reintroduces this fails the build instead of shipping.
-        tag: '20260610'
+        # We ship a loader now (see "Build the Vulkan loader" below), which
+        # is what upstream mpv's own Windows builds do, so the import is
+        # satisfied and the pin can follow releases again. It has to: the
+        # fix for #687 -- SDR trickplay frames blown out over HDR video,
+        # because vo_gpu_next tagged every overlay-add bitmap with the
+        # video's colorspace -- is in mpv master only, and 20260828 is the
+        # first pinnable build that has it (mpv 182fa6ca49, the same commit
+        # the flatpak manifest pins).
+        #
+        # "Check what libmpv needs" still runs on every build, and now
+        # verifies that the loader is really beside the DLL rather than
+        # taking the allowance on trust -- so a build that stops shipping it
+        # fails here instead of on a user's machine.
+        tag: '20260828'
         fileName: 'mpv-dev-x86_64-v3*.7z'
     - name: Install dependencies
       run: |
@@ -50,14 +59,28 @@ jobs:
         winget install --id JRSoftware.InnoSetup -e -s winget || true || true
         ./gen_pkg.sh --skip-build
       shell: bash
+    - name: Build the Vulkan loader
+      # libmpv hard-imports vulkan-1.dll and Windows does not have one
+      # unless a GPU driver installed it, so without this the client cannot
+      # start at all on those machines -- and the failure names the wrong
+      # file. Upstream mpv's own Windows build ships the loader beside
+      # mpv.exe for the same reason. Built from pinned source, ~500 KB.
+      # See tools/build_win_vulkan_loader.py.
+      run: |
+        python tools/build_win_vulkan_loader.py
+      shell: bash
     - name: Check what libmpv needs
       # The pin on the download above exists because of a dependency this
       # step reads. It runs on every build rather than only when raising the
       # pin, because nothing else in the pipeline ever loads this file: an
       # mpv-2.dll that Windows will refuse is not a build error, it is a
       # client that dies at startup on the user's machine.
+      #
+      # --allow is checked, not believed: it fails unless vulkan-1.dll is
+      # really beside mpv-2.dll, so the step above going wrong is caught
+      # here rather than shipping.
       run: |
-        python tools/check_win_libmpv_deps.py mpv-2.dll
+        python tools/check_win_libmpv_deps.py --allow vulkan-1.dll mpv-2.dll
       shell: bash
     - name: Build FriBiDi
       # Pillow's wheels load FriBiDi at runtime and Windows has none, so
@@ -112,8 +135,9 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        # Pinned for the vulkan-1.dll regression; see build-win64 above.
-        tag: '20260610'
+        # Pinned, not held down -- we ship the Vulkan loader now; see
+        # build-win64 above.
+        tag: '20260828'
         fileName: 'mpv-dev-x86_64-[0-9]*-git-*.7z'
     - name: Install dependencies
       run: |
@@ -124,14 +148,28 @@ jobs:
         winget install --id JRSoftware.InnoSetup -e -s winget || true
         ./gen_pkg.sh --skip-build
       shell: bash
+    - name: Build the Vulkan loader
+      # libmpv hard-imports vulkan-1.dll and Windows does not have one
+      # unless a GPU driver installed it, so without this the client cannot
+      # start at all on those machines -- and the failure names the wrong
+      # file. Upstream mpv's own Windows build ships the loader beside
+      # mpv.exe for the same reason. Built from pinned source, ~500 KB.
+      # See tools/build_win_vulkan_loader.py.
+      run: |
+        python tools/build_win_vulkan_loader.py
+      shell: bash
     - name: Check what libmpv needs
       # The pin on the download above exists because of a dependency this
       # step reads. It runs on every build rather than only when raising the
       # pin, because nothing else in the pipeline ever loads this file: an
       # mpv-2.dll that Windows will refuse is not a build error, it is a
       # client that dies at startup on the user's machine.
+      #
+      # --allow is checked, not believed: it fails unless vulkan-1.dll is
+      # really beside mpv-2.dll, so the step above going wrong is caught
+      # here rather than shipping.
       run: |
-        python tools/check_win_libmpv_deps.py mpv-2.dll
+        python tools/check_win_libmpv_deps.py --allow vulkan-1.dll mpv-2.dll
       shell: bash
     - name: Build FriBiDi
       # Pillow's wheels load FriBiDi at runtime and Windows has none, so
@@ -194,8 +232,9 @@ jobs:
       uses: robinraju/release-downloader@v1
       with:
         repository: 'shinchiro/mpv-winbuild-cmake'
-        # Pinned for the vulkan-1.dll regression; see build-win64 above.
-        tag: '20260610'
+        # Pinned, not held down -- we ship the Vulkan loader now; see
+        # build-win64 above.
+        tag: '20260828'
         fileName: 'mpv-dev-aarch64-*.7z'
     - name: Install dependencies
       run: |
@@ -205,14 +244,28 @@ jobs:
         pip install .[all] pywin32
         ./gen_pkg.sh --skip-build
       shell: bash
+    - name: Build the Vulkan loader
+      # libmpv hard-imports vulkan-1.dll and Windows does not have one
+      # unless a GPU driver installed it, so without this the client cannot
+      # start at all on those machines -- and the failure names the wrong
+      # file. Upstream mpv's own Windows build ships the loader beside
+      # mpv.exe for the same reason. Built from pinned source, ~500 KB.
+      # See tools/build_win_vulkan_loader.py.
+      run: |
+        python tools/build_win_vulkan_loader.py
+      shell: bash
     - name: Check what libmpv needs
       # The pin on the download above exists because of a dependency this
       # step reads. It runs on every build rather than only when raising the
       # pin, because nothing else in the pipeline ever loads this file: an
       # mpv-2.dll that Windows will refuse is not a build error, it is a
       # client that dies at startup on the user's machine.
+      #
+      # --allow is checked, not believed: it fails unless vulkan-1.dll is
+      # really beside mpv-2.dll, so the step above going wrong is caught
+      # here rather than shipping.
       run: |
-        python tools/check_win_libmpv_deps.py mpv-2.dll
+        python tools/check_win_libmpv_deps.py --allow vulkan-1.dll mpv-2.dll
       shell: bash
     - name: Verify the inputs are ARM64
       # Before anything is built, because nothing downstream can tell. Windows

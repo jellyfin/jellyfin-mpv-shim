@@ -53,6 +53,10 @@ means **the mouse cursor never hides again** for the rest of the session.
   silently returns a Basic-layout font: RTL text draws reversed, and — the one with
   reach — nothing gets kerned, so `mpvtk.metrics` feeds unkerned measurements to every
   ellipsize and wrap decision. See `docs/packaging.md`.
+  It also needs `vulkan-1.dll` beside it — `python tools/build_win_vulkan_loader.py`.
+  **shinchiro's libmpv hard-imports it** and Windows has no Vulkan loader unless a
+  GPU driver installed one, so without it Windows refuses `mpv-2.dll` and the client
+  dies at startup with a traceback naming `subprocess`. `docs/packaging.md` §1.
 - Flatpak bundle of the working tree:
   `flatpak-builder build flatpak/com.github.iwalton3.jellyfin-mpv-shim.json --force-clean --repo=repo --user`,
   then `./artifacts.sh flatpak amd64`. Clone `flathub/shared-modules` into
