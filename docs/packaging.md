@@ -175,6 +175,15 @@ seconds, which beats finding a stale one minutes into a cold build. It takes the
 Flathub repo's manifest as an argument, and **that is usually the one that has
 drifted**.
 
+It also reports a git source pinned by `branch` *and* `commit`. flatpak-builder
+**verifies** that pairing — "If branch is also specified, then it is verified that
+the branch/tag is at this specific commit" — so pinning a commit out of the history
+of a moving branch is a build that breaks on the next upstream push, with
+`Git commit for branch master is <head>, but expected <pin>`. mpv is pinned to a
+master commit here (see the manifest's `//mpv-pin-note`), so it carries the commit
+alone; flatpak-builder finds no ref at it and mirrors the full repo instead of
+shallow-cloning. A `tag` is safe to name, because a tag does not move.
+
 **This manifest is not the Flathub one.** It pip-installs the checkout with
 `--share=network` instead of the pinned wheel set — convenient here and disqualifying
 there.
