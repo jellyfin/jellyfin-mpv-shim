@@ -539,11 +539,48 @@ You can use the config file to enable and disable features.
     (falls back to `mpv` otherwise). `jellyfin` is accepted as a legacy
     alias.
   - `mpv` - The stock mpv controls, patched with trickplay preview support.
-  - `default` - Whatever OSC is built into your mpv (or your own OSC scripts).
+  - `default` - Whatever OSC is built into your mpv, or your own OSC scripts.
     Thumbnail data is still published for thumbfast-aware OSCs like uosc.
+    - **Running your own OSC:** drop the script in the `scripts/` folder beside
+      `conf.json` (see the paths at the top of this file) and any font it needs
+      in `fonts/`, then put `osc=no` in `mpv.conf` there so mpv's built-in one
+      does not draw underneath it. That line is honoured — `default` is the one
+      style where the shim never overrides the option.
+    - The shim asks the OSC to get out of the way when the library browser
+      opens, and when you choose `none`, with the `osc-visibility` and
+      `osc-idlescreen` script-messages. Mpv's own OSC and the scripts forked
+      from it understand those; an OSC that implements only a private API of
+      its own may not hear them and can keep drawing over the library.
+  - `custom` - You have installed your own OSC script. Turns MPV's built-in
+    controls off (whatever your `mpv.conf` says) and has the library paint a
+    solid background of its own instead of relying on the window colour.
+    - That background is the point. A third-party OSC draws an idle screen —
+      the MPV logo and "Drop files or URLs here to play" — while the library
+      sits on a window with nothing loaded, and it is drawn *over* the window
+      colour, so no colour setting can hide it. Only something the library
+      paints itself can.
+    - This style also lets the library draw above the OSC's own layer, which
+      uosc in particular needs. That is why it is a separate choice rather
+      than something `default` does for everyone: the same layer is used by
+      MPV's console when it is showing a menu.
+    - **Two things a third-party OSC cannot do, and will not.** Both apply to
+      `default` as well; trickplay previews are the part that does work.
+      - **Tracks.** Its subtitle and audio pickers see only what MPV has, and
+        Jellyfin's external and burned-in subtitles are not MPV tracks — an
+        external one is added only when you pick it, and a burned-in one needs
+        the server to restart the stream. Choosing from the OSC's own picker
+        misses those, is not reported to Jellyfin, and is not remembered for
+        the next episode. Use the menu key (`kb_menu`, `c` by default), or the
+        library, to change tracks.
+      - **The queue.** It lives in the shim, not in MPV, so MPV's playlist has
+        one entry in it and the OSC's playlist and next/previous buttons do
+        nothing. Handing the queue to MPV would mean keeping two copies of the
+        playback state in step, which is not worth what it would buy.
+    - Trickplay previews still work, the same as under `default`.
   - `none` - No on-screen controls at all. Playback is bare; the library, the
     keyboard shortcuts and the menu key (`kb_menu`, `c` by default) still
     work, and Skip Intro/Credits falls back to its "seek to skip" prompt.
+    Applies to a third-party OSC as well, subject to the same caveat.
   - **Replaces `enable_osc`, and is not migrated from it.** That was a
     separate switch which only ever reached mpv's *own* controls, so turning
     it off did nothing under the default style and then silently took the

@@ -2633,15 +2633,44 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         if grip is not None:
             children.append(grip)
         page = Column(children, w=w, h=h, align="stretch")
+        # A page background, when something needs one. mpv's own
+        # background-color is a flat colour and stays as the base -- it is
+        # what shows before the first scene lands -- so this paints over it
+        # rather than replacing it. Bottom of the Stack, so every bit of
+        # chrome still draws on top.
         stops = theme.window_gradient()
-        if not stops:
+        if stops:
+            back = Gradient(stops=stops, axis="y", w=w, h=h)
+        elif self._wants_opaque_backdrop():
+            back = Box(bg=theme.WINDOW_BG, w=w, h=h)
+        else:
             return page
-        # A themed page background. mpv's own background-color is a flat
-        # colour and stays as the base -- it is what shows before the first
-        # scene lands -- so this paints over it rather than replacing it.
-        # Bottom of the Stack, so every bit of chrome still draws on top.
-        return Stack([Gradient(stops=stops, axis="y", w=w, h=h), page],
-                     w=w, h=h)
+        return Stack([back, page], w=w, h=h)
+
+    def _wants_opaque_backdrop(self):
+        """Whether the library has to paint its own window background.
+
+        Normally it does not: mpv's ``background-color`` is the window, and
+        one flat fill costs nothing to composite. Under "Custom OSC" that is
+        not enough. The controls are then a script we never see, it draws an
+        idle screen while the browse window sits there with nothing loaded,
+        and that screen is OSD *over* the VO background -- so no colour we
+        give mpv can hide it. Ours is a bitmap, which composites above OSD,
+        and is the only thing that can. (Asking the script to stop drawing
+        works too and we do ask, but only a fork that honours
+        ``osc-idlescreen`` hears it, and one that has already drawn may have
+        no path left that wipes it.) docs/mpv-backends.md section 12.
+
+        Through `resolve_osc_style`, never the raw setting, because that can
+        hold a legacy alias. Not through the player, which would cost this
+        module an import of `player` -- and importing that builds its
+        singleton and opens an mpv window.
+        """
+        from ..mpv_options import resolve_osc_style
+        try:
+            return resolve_osc_style() == "custom"
+        except Exception:
+            return False
 
     # How long a status message stays on screen.
     TOAST_SECS = 6.0

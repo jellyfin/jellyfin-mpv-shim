@@ -79,6 +79,78 @@ class TestLegStatus(unittest.TestCase):
         self.assertEqual(hollow, 0)
 
 
+class _Recorder:
+    """A stdout that remembers the ORDER of writes and flushes."""
+
+    def __init__(self):
+        self.events = []
+
+    def write(self, text):
+        self.events.append(("write", text))
+
+    def flush(self):
+        self.events.append(("flush", None))
+
+
+class TestOutputStreamsWhileTheLegRuns(unittest.TestCase):
+    """A leg's output must reach the log while the leg is still running.
+
+    `_run` tees the child through our own stdout, and that is block-buffered
+    whenever it is redirected -- which is every `run_integration.py > log`.
+    Flushing after the loop instead of inside it meant a whole-suite leg's
+    ~147s of output arrived in a single write when the leg ended, so the log
+    sat unchanged throughout it. A log that stops growing is indistinguishable
+    from a hung run, and twice it was read as one; the second time a
+    stall-watchdog fired during a leg that went on to report `Ran 324 tests
+    ... OK`.
+    """
+
+    LINES = ["first\n", "second\n", "third\n"]
+
+    def _drive(self):
+        import subprocess
+
+        rec = _Recorder()
+        captured = {}
+
+        class FakeProc:
+            def __init__(self):
+                self.stdout = iter(TestOutputStreamsWhileTheLegRuns.LINES)
+
+            def wait(self):
+                return 0
+
+        def fake_popen(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return FakeProc()
+
+        orig_popen, orig_stdout = subprocess.Popen, sys.stdout
+        subprocess.Popen, sys.stdout = fake_popen, rec
+        try:
+            runner._run(["tests.integration.test_example"])
+        finally:
+            subprocess.Popen, sys.stdout = orig_popen, orig_stdout
+        return rec.events, captured["cmd"]
+
+    def test_every_line_is_flushed_as_it_arrives(self):
+        events, _cmd = self._drive()
+        first = next(i for i, (k, v) in enumerate(events)
+                     if k == "write" and v == self.LINES[0])
+        last = next(i for i, (k, v) in enumerate(events)
+                    if k == "write" and v == self.LINES[-1])
+        self.assertTrue(
+            any(k == "flush" for k, _ in events[first:last]),
+            "nothing was flushed between the first line and the last, so a "
+            "running leg would look like a stalled one")
+
+    def test_the_child_is_unbuffered_too(self):
+        """Our flush cannot help if the child is holding the lines."""
+        _events, cmd = self._drive()
+        self.assertIn("-u", cmd)
+        self.assertLess(cmd.index("-u"), cmd.index("-m"),
+                        "-u must reach python, not unittest")
+
+
 class TestStrictIsWired(unittest.TestCase):
     def test_the_flag_exists(self):
         """--strict is what CI should use; a typo'd flag name would make

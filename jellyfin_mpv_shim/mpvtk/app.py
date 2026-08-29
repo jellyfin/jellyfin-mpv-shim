@@ -442,6 +442,31 @@ class MpvtkApp:
                         "m": theme.min_size()})
         )
 
+    def push_overlay_z(self):
+        """Whether our ASS should outrank other scripts'.
+
+        Only "Custom OSC" wants it: there the player UI is a script we never
+        see, and uosc draws its whole self -- idle screen included -- at
+        z=2000 while we sit at 0, so an opaque full-window fill of ours
+        still left its "Drop files or URLs to play here" on screen. Every
+        other style leaves the order alone, because 2000 is also mpv's
+        console with a selectable list up. The z landscape and the
+        measurement are in renderer.lua next to OSD_Z_HOSTILE.
+
+        Resolved rather than read raw -- `osc_style` can hold a legacy alias.
+        Pushed on ready; the setting needs a restart to take effect anyway,
+        since it also decides options mpv is constructed with.
+        """
+        from ..mpv_options import resolve_osc_style
+
+        try:
+            hostile = resolve_osc_style() == "custom"
+        except Exception:
+            hostile = False
+        self.backend.command(
+            "script-message", "mpvtk-z", "yes" if hostile else "no"
+        )
+
     def push_gamepad(self):
         """Forward the game controller binding table to the renderer.
 
@@ -647,6 +672,7 @@ class MpvtkApp:
                 self.push_scale()
                 self.push_scroll_config()
                 self.push_gamepad()
+                self.push_overlay_z()
                 self.ready.set()
             return
         if t == "debug_state":

@@ -3313,6 +3313,30 @@ scene({ { id = "udd", t = "dropdown", x = 40, y = 40, w = 200, h = 30,
           size = 18, items = { "Any", "English" }, sel = 0 } })
 eq(dd_sel("udd"), 1, "an unforced dropdown was reset by a scene push")
 
+-- ================================================== the ASS z order
+
+-- "Custom OSC" is the one style where the library has to outrank another
+-- script's ASS. uosc draws its whole self, idle screen included, at
+-- z=2000, so at our default 0 even an opaque full-window fill leaves its
+-- "Drop files or URLs to play here" on screen. Everyone else keeps 0,
+-- because 2000 is also mpv's console with a selectable list up. See the
+-- mpvtk-z handler in renderer.lua.
+
+scene({ vscroll("zorder", 100, 200) })
+eq(fake.osd.z, 0, "the renderer did not start at the neutral z order")
+
+-- advance() first: the handler asks for a repaint through request_render,
+-- which is rate-limited, so the timer is not due until the clock moves.
+fake.send("mpvtk-z", "yes")
+fake.advance(1)
+fake.fire_timers()
+eq(fake.osd.z, 3000, "mpvtk-z yes left us under uosc's 2000")
+
+fake.send("mpvtk-z", "no")
+fake.advance(1)
+fake.fire_timers()
+eq(fake.osd.z, 0, "mpvtk-z no did not put the z order back")
+
 -- ========================================================== teardown
 
 scene({})

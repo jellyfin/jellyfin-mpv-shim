@@ -199,7 +199,20 @@ class AgainstRealMpvTest(unittest.TestCase):
             import mpv
         except OSError:                                  # pragma: no cover
             self.skipTest("libmpv not loadable")
-        self.mpv = mpv.MPV(vo="null", config=False, idle=True)
+        # input_default_bindings BECAUSE THE SHIM PASSES IT (_init_mpv), and
+        # without it this measures an mpv the shim never builds.
+        #
+        # `input-bindings` reports each binding's `priority` as the index of
+        # its section in the ACTIVE list, or -1 when the section is not
+        # active -- and separately forces -1 onto every builtin binding when
+        # default bindings are off, which libmpv turns off by default. So
+        # omitting it flattened every builtin to -1, `keysweep.winning()`
+        # had nothing left to rank on, and last-defined-wins handed the
+        # arrow keys to the `{discnav}` section mpv master added in
+        # 216e26c871 -- a section that is only ever enabled while a disc
+        # menu is on screen. The shim was never affected; the harness was.
+        self.mpv = mpv.MPV(vo="null", config=False, idle=True,
+                           input_default_bindings=True)
         self.addCleanup(self.mpv.terminate)
 
     def test_it_finds_more_than_the_shim_hard_coded(self):

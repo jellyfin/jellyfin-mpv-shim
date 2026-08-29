@@ -133,14 +133,36 @@ class OscOptionTest(SettingsCase):
         for style in ("mpv", "mpvtk"):
             self.assertIs(self.build(style)["osc"], False)
 
+    def test_custom_holds_it_off_too(self):
+        """"Custom OSC" says the controls are a script of the user's, so
+        mpv's own would be a second set drawn underneath -- and unlike
+        `default`, here the answer is not the user's mpv.conf to give."""
+        self.assertIs(self.build("custom")["osc"], False)
+
     def test_no_controls_means_mpv_s_own_are_off_too(self):
         """"none" is the only style that replaces the OSC with nothing, so
         it is also the only one where forgetting this would leave mpv's own
         controls as the answer to "no controls please" (#615)."""
         self.assertIs(self.build("none")["osc"], False)
 
-    def test_default_leaves_the_users_osc_alone(self):
-        self.assertNotIn("osc", self.build("default"))
+    def test_default_asks_libmpv_for_the_one_it_turns_off(self):
+        """libmpv defaults `osc` off where cplayer leaves it on, so
+        "whatever your mpv would normally do" has to be asked for.
+
+        As a CONSTRUCTION option, which is the whole point: mpv.conf
+        overrides one of those, so a user running their own OSC out of
+        <config>/scripts/ can still say `osc=no`. Writing the property onto
+        the live player instead loaded mpv's built-in OSC underneath theirs.
+        docs/mpv-backends.md section 12."""
+        self.assertIs(self.build("default")["osc"], True)
+
+    def test_external_mpv_needs_no_help(self):
+        # It already asks for player-operation-mode=cplayer, where the
+        # option defaults on -- and there these become command-line
+        # arguments, which OUTRANK the user's mpv.conf rather than
+        # deferring to it.
+        self.set(mpv_ext=True)
+        self.assertNotIn("osc", self.build("default", ext_mpv=True))
 
 
 class ScriptPassingTest(SettingsCase):

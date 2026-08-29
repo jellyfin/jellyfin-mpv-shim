@@ -27,8 +27,13 @@ from .utils import get_resource
 log = logging.getLogger("mpv_options")
 
 #: Styles that must not leave mpv's built-in OSC on: two that replace it
-#: with something of ours, and one that replaces it with nothing.
-_REPLACES_OSC = ("mpv", "mpvtk", "none")
+#: with something of ours, one that replaces it with nothing, and one where
+#: the replacement is a script of the user's that we never see.
+#:
+#: "default" is deliberately absent -- there mpv's own OSC is the answer, and
+#: whether to have it is the user's to say in their mpv.conf (section 12 of
+#: docs/mpv-backends.md).
+REPLACES_OSC = ("mpv", "mpvtk", "none", "custom")
 
 
 #: Config value -> the mpv ``hwdec`` value, where it is a constant.
@@ -522,11 +527,24 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     if hwdec is not None:
         mpv_options["hwdec"] = hwdec
 
-    if osc_style in _REPLACES_OSC:
+    if osc_style in REPLACES_OSC:
         # "mpv" loads the patched stock OSC as a script; "mpvtk" has the
         # in-window playback HUD replace any OSC. Either way mpv's built-in
         # one must be off.
         mpv_options["osc"] = False
+    elif not ext_mpv:
+        # "default" means "whatever mpv would normally do", and under libmpv
+        # that is nothing: libmpv turns the OSC off where cplayer leaves it
+        # on. The external backend already asks for cplayer, so it needs no
+        # help here.
+        #
+        # A construction option, never a write onto the live player, and
+        # that distinction is the whole feature: mpv.conf OVERRIDES an
+        # option set at construction, so this is a default the user can say
+        # `osc=no` to when they run their own OSC out of <config>/scripts/.
+        # Writing the property afterwards instead loaded mpv's built-in OSC
+        # underneath theirs. Both measured; docs/mpv-backends.md section 12.
+        mpv_options["osc"] = True
 
     if scripts:
         if settings.mpv_ext:

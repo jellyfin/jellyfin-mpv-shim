@@ -37,7 +37,8 @@ from .player_audio import AudioMixin
 from .player_reporting import ReportingMixin
 from . import player_window
 from .player_window import WindowMixin, wlog
-from .mpv_options import build_mpv_options, mpv_scripts, resolve_osc_style
+from .mpv_options import (REPLACES_OSC, build_mpv_options, mpv_scripts,
+                          resolve_osc_style)
 from .session_reporter import SessionReporter
 from . import conf
 from .conf import settings
@@ -575,6 +576,9 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         #: An OSC style a fallback forced, or None. Survives mpv
         #: re-creation -- see _init_mpv.
         self._osc_style_override = None
+        #: Whether we have told the on-screen controls to hide. The latch
+        #: half of enable_osc; see there.
+        self._osc_suppressed = False
         self._lua_probe = None
         self.do_not_handle_pause = False
         # Throttle for periodic offline resume-position persistence on the
@@ -978,6 +982,7 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # script that is belongs to mpv_scripts; this only records that one
         # was loaded, so the built-in OSC can be held off below.
         self._osc_script_loaded = osc_style == "mpv"
+        self._osc_suppressed = False
 
         # ensure standard mpv configuration directories and files exist
         conffile.get_dir(APP_NAME, "scripts")
@@ -1069,10 +1074,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                               exc_info=True)
 
         if hasattr(self._player, "osc"):
-            # Ensure the built-in OSC stays disabled when a shim OSC script
-            # is loaded, even if the user's mpv.conf has osc=yes.
-            if self._osc_script_loaded:
-                self._player.osc = False
             self.enable_osc(self.osc_enabled)
         else:
             log.warning("This mpv version doesn't support on-screen controller.")
@@ -4422,24 +4423,39 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         if not self._mpv_alive:
             return
+        style = getattr(self, "_osc_style_resolved", None)
         try:
-            if self._osc_script_loaded:
-                # Both shim OSC scripts register the osc-visibility message.
-                self.script_message(
-                    "osc-visibility", "auto" if enabled else "never", "False"
-                )
-                if hasattr(self._player, "osc"):
-                    self._player.osc = False
-            else:
-                if hasattr(self._player, "osc"):
-                    # The mpvtk playback HUD replaces any OSC and "none"
-                    # asked for no controls — never turn the built-in one
-                    # on under either.
-                    self._player.osc = (
-                        enabled
-                        and getattr(self, "_osc_style_resolved", None)
-                        not in ("mpvtk", "none")
-                    )
+            # Broadcast: mpv's own osc.lua and every fork of it registers
+            # these, while `osc` below reaches mpv's own and nothing else.
+            # So this is the whole of what "No player controls" and the
+            # library browser can say to an OSC that is not ours.
+            #
+            # The idle logo goes unconditionally, in both directions and
+            # from _init_mpv -- it has to land BEFORE the OSC's first draw,
+            # not merely before the library appears. Once a fork has drawn
+            # it, asking again does nothing: ModernZ parks it on a second
+            # overlay that its hide path never wipes, so the mpv logo sits
+            # over the library for the rest of the session (measured: an
+            # untouched OSC inks 2.1% of an idle window, suppressing after
+            # the draw leaves exactly 2.1%, suppressing before leaves 0%).
+            # It is never handed back -- every window the shim is idle in
+            # is one it draws itself.
+            self.script_message("osc-idlescreen", "no", "False")
+            # Visibility IS handed back, and is latched for it: restoring
+            # unconditionally would also fire at construction and undo a
+            # user's own `visibility=never`. docs/mpv-backends.md §12.
+            if not enabled:
+                self.script_message("osc-visibility", "never", "False")
+                self._osc_suppressed = True
+            elif self._osc_suppressed:
+                self.script_message("osc-visibility", "auto", "False")
+                self._osc_suppressed = False
+            # Mpv's own, held off against an mpv.conf `osc=yes` -- which a
+            # construction option cannot do (build_mpv_options). Not keyed
+            # on `enabled`: these styles never want it back. "default" is
+            # the user's option and is never written.
+            if style in REPLACES_OSC and hasattr(self._player, "osc"):
+                self._player.osc = False
         except _mpv_errors:
             self._handle_mpv_disconnect()
 

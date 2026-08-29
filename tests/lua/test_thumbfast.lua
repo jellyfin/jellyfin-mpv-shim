@@ -205,6 +205,41 @@ thumb(450, 10, 20)
 eq(overlay(), nil, "kept compositing after a clear")
 eq(#asks(), 0, "asked for a window while disabled")
 
+-- --------------------------------------------- the thumbfast-info payload
+
+-- Third-party OSCs read this blob and nothing else to decide whether
+-- previews exist and how big to reserve for them, so its shape is a
+-- published interface. `scale_factor` is the one field carried purely for
+-- them: width/height already arrive pre-multiplied (as upstream thumbfast
+-- sends them), so nothing here needs it -- but an OSC that divides by it to
+-- recover a logical size gets an arithmetic error on nil rather than a
+-- thumbnail. docs/mpv-backends.md section 12.
+
+--- The last thumbfast-info payload, as the table format_json was handed.
+local function info()
+    local found
+    for _, c in ipairs(fake.log.commands) do
+        if c[1] == "script-message" and c[2] == "thumbfast-info" then
+            found = c[3]
+        end
+    end
+    return found
+end
+
+fake.log.commands = {}
+window(0, 20, 100)
+ok(info() ~= nil, "publishing a window announced no thumbfast-info")
+eq(info().scale_factor, 1, "scale_factor missing from thumbfast-info")
+eq(info().width, W, "announced the wrong width")
+eq(info().height, H, "announced the wrong height")
+eq(info().disabled, false, "announced itself disabled with a window loaded")
+eq(info().available, true, "announced itself unavailable with a window loaded")
+
+fake.log.commands = {}
+fake.client_message("shim-trickplay-clear")
+eq(info().scale_factor, 1, "scale_factor dropped on the clear announcement")
+eq(info().disabled, true, "stayed enabled after a clear")
+
 -- ------------------------------------------------------------ summary
 
 print(string.format("1..%d", n))

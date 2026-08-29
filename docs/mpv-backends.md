@@ -771,3 +771,154 @@ Two scope limits, both load-bearing:
 
 The suspend does nothing at all on an mpv without the option (built without
 gpu-next, or too old) — reading it is how we find that out.
+
+## 12. The on-screen controls, and the user's own OSC
+
+`osc_style` has four values and only three of them are ours. `default` means
+"whatever your mpv would normally do, plus your own scripts", and it is the
+supported way to run a third-party OSC (uosc, ModernZ, ModernX) against the
+shim — `mpv_scripts` loads `thumbfast.lua` whenever the TrickPlay worker
+started, regardless of style, so a thumbfast-aware OSC gets Jellyfin's
+trickplay previews for free. Three things about that path are not obvious.
+
+### libmpv turns the OSC off, and the user's mpv.conf outranks us
+
+The `osc` option defaults to **yes** — and libmpv overrides it to **no**,
+where the external backend's `player-operation-mode=cplayer` leaves it alone.
+Measured on 0.41: a bare libmpv reports `osc=False` against an
+`option-info/osc/default-value` of `True`. So under `default` the shim has to
+ask for it, or a libmpv user gets no controls from a setting that promised
+mpv's own.
+
+It asks *at construction*, in `build_mpv_options`, and the reason is
+precedence (measured; see the test named below):
+
+| set at construction | in the shim's `mpv.conf` | mpv ends up with |
+|---|---|---|
+| `osc=True` | *(nothing)* | `True` |
+| `osc=True` | `osc=no` | **`False`** |
+| *(nothing)* | *(nothing)* | `False` (libmpv default) |
+
+**`mpv.conf` wins over an option passed to the constructor** — the opposite of
+the precedence a command-line argument would get. That
+inversion is the whole mechanism: it makes `osc: True` a *default the user can
+decline*, which is what someone running their own OSC out of
+`<config>/scripts/` needs. It is a property of how the binding applies
+options, not something mpv documents, so
+`tests/test_osc_third_party.py::PrecedenceAgainstRealLibmpvTest` measures it
+against a real libmpv rather than trusting it.
+
+Writing the property onto the live player instead — which is what
+`enable_osc` used to do for every style — cannot be declined, and so it loaded
+mpv's built-in OSC underneath the user's. `enable_osc` therefore never writes
+`osc` under `default`. It still writes it for the three styles that answer
+the OSC question themselves, and there the un-decline-ability is the point:
+it is how `osc=yes` in an mpv.conf is held off.
+
+### `osc` reaches mpv's own OSC and nothing else
+
+Setting the property loads and unloads mpv's built-in `osc.lua` at runtime
+(measured: `script-binding osc/visibility` appears and disappears with it). It
+says nothing to a script in `<config>/scripts/`. The lever that reaches those
+is the script-message pair every `osc.lua` fork inherits:
+
+    script-message  osc-visibility   never|auto
+    script-message  osc-idlescreen   no|yes
+
+Broadcast, not `script-message-to`: one send reaches whichever OSC is loaded,
+and a message nobody listens for costs nothing. `enable_osc` sends them for
+every style, which is what makes **"No player controls" silence a third-party
+OSC** and what gets one off the screen when the library browser opens.
+
+A send at construction is not racing the script's registration — a client
+message goes on the target client's queue and lua processes it after its main
+chunk has run (measured 8/8 with the message sent as early as the IPC socket
+existed).
+
+`osc-idlescreen` is the second half because the browse window is
+`force_window` with nothing loaded, so `idle-active` is true and a fork that
+draws the mpv logo draws it over the library. Suppressing visibility alone is
+enough for a fork that wipes every overlay it owns on hide; not every fork
+does (ModernZ keeps a second overlay for the logo and wipes only the first).
+
+**The restore is latched** (`_osc_suppressed`). Sending `auto` whenever the
+controls are wanted would fire at construction too, and overwrite a user who
+put `visibility=never` in their own OSC's config. We un-hide only what we hid,
+and the latch resets on an mpv re-create because the new mpv brings a new OSC
+at its own default.
+
+### The idle screen needs a backdrop, not a message
+
+Suppressing `osc-idlescreen` only works if it lands before the OSC's first
+draw. After that there may be no way back: ModernZ parks the logo on a
+*second* overlay (`state.logo_osd`, z=-1000, where its bar is z=+1000) and
+`render_wipe` on it lives only in `tick()`'s non-idle branches — which
+`osc-visibility never` makes unreachable, because tick returns at the top
+once `state.enabled` is false. So under "No player controls" a logo drawn
+before we spoke survives into playback; under `default` it survives only
+until playback starts, when tick reaches a branch that wipes it. Both were
+reported, and the difference between them is what identified the overlay.
+
+Hence `osc_style: custom`, which is two things, and it took both.
+
+**A backdrop, because mpv's window colour is the wrong layer.**
+`background-color` is a **VO** colour and the idle screen is OSD drawn over
+it, so no colour we hand mpv can cover one. Something of *ours* has to paint
+the window. That is why the one theme shipping a `window_gradient` (jf-wmc)
+hid the logo when nothing else did, and `MpvtkApp._wants_opaque_backdrop`
+generalises it: under `custom` the window gets a flat `WINDOW_BG` fill at the
+bottom of the Stack even when the theme asks for no gradient.
+
+**And a z order, because the backdrop is ASS and so is the OSC.** The
+gradient is not a bitmap — `renderer.lua:draw_gradient` writes ASS events,
+and so does a `Box` — so it does not get the automatic win over OSD that
+`overlay-add` would. It beats ModernZ only because ModernZ parks its logo at
+z=-1000, below our 0. **uosc draws its whole self at z=2000**, and there an
+opaque full-window fill of ours changed nothing: measured against real uosc,
+2.2% of the window stayed inked at z=0 and 0.0% at z=3000. `mpvtk-z` raises
+the renderer's overlay for this one style. Not for the others: 2000 is also
+mpv's console showing a selectable list, and covering that is too much to
+charge everyone for a problem only a foreign OSC has.
+
+Raising it is safe in the directions that would matter. Per mpv's own
+`osd-overlay` docs the builtin OSD — subtitles included — is always *below*
+every script overlay whatever the number, and `overlay-add` bitmaps are
+always *above* every one of them. So the z reorders us against other scripts
+and against nothing else.
+
+The `osc-idlescreen` message is still sent as well: it is cheaper, and on a
+fork that honours it the logo is never drawn at all.
+
+### What a third-party OSC does not get, deliberately
+
+Trickplay works. Tracks and the queue do not, under `custom` and `default`
+alike, and neither is going to.
+
+**Tracks.** A foreign OSC's subtitle and audio pickers read mpv's track list,
+and two of Jellyfin's three subtitle flavours are not in it: an external
+track is `sub_add`ed only once chosen (`_ensure_external_sub`), and a
+burn-in one (`video.subtitle_enc`) exists only as a restarted transcode.
+Picking from the OSC's own list therefore cannot see them, bypasses
+`set_streams`, and so is neither reported to Jellyfin nor carried to the next
+episode by `_capture_track_memory`. `osc_bridge` is what has the whole
+picture, and the OSD menu and the HUD are what read it.
+
+**The queue.** `Media` owns the queue in Python; mpv's playlist holds the one
+item that is playing. So `playlist-next`, `${playlist}` and `playlist-pos-1`
+all read a one-entry playlist and every playlist affordance in a foreign OSC
+is inert. Pushing the queue into mpv would mean two copies of the playback
+state kept in step — across transcode restarts, queue edits and SyncPlay
+seeks — which is a large amount of new state for buttons the library and the
+HUD already provide. **[iw]**: "wontfix due to the state hell that would be
+putting our queue into MPV's."
+
+### The `thumbfast-info` payload is deliberately short
+
+Upstream thumbfast publishes `{width, height, scale_factor, disabled,
+available, socket, thumbnail, overlay_id}`. `socket` and `thumbnail` are
+artifacts of its second-mpv-instance design — an IPC socket and an output file
+— and the shim has neither, so it does not fake them. `scale_factor` *is*
+sent, always `1`: `width`/`height` already arrive pre-multiplied exactly as
+upstream sends them, so nothing needs it, but an OSC that divides by it to
+recover a logical size gets an arithmetic error on `nil` rather than a
+thumbnail.

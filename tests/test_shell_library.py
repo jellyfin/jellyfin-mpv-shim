@@ -2788,6 +2788,60 @@ class TestThemeGradients(unittest.TestCase):
         self.assertEqual(g["h"], 60)
         self.assertEqual(g["w"], 1280.0)
 
+    def test_custom_osc_gets_a_flat_backdrop_where_the_window_had_none(self):
+        """"Custom OSC" means a script we never see draws the controls, and
+        such a script draws an idle screen while the browse window sits
+        with nothing loaded. That screen is OSD *over* mpv's
+        background-color, so no colour setting hides it -- only a bitmap of
+        ours, composited above OSD, can. Measured: an untouched ModernZ inks
+        2.1% of an idle window. docs/mpv-backends.md section 12."""
+        from jellyfin_mpv_shim.conf import settings
+        before = settings.osc_style
+        try:
+            settings.osc_style = "custom"
+            nodes = self._scene("default")
+        finally:
+            settings.osc_style = before
+        full = [n for n in nodes
+                if n.get("t") == "rect" and (n.get("w"), n.get("h")) ==
+                (1280.0, 720.0) and n.get("fill")]
+        self.assertTrue(full, "no window-sized fill under Custom OSC")
+        # Bottom of the paint order, or it covers the library it is behind.
+        self.assertEqual(nodes.index(full[0]), 0)
+
+    def test_the_other_styles_still_leave_the_window_to_mpv(self):
+        """One flat fill is cheap but not free, and mpv's own
+        background-color is the right answer for every style whose controls
+        we drew ourselves."""
+        from jellyfin_mpv_shim.conf import settings
+        before = settings.osc_style
+        try:
+            for style in ("mpvtk", "mpv", "default", "none"):
+                with self.subTest(style):
+                    settings.osc_style = style
+                    nodes = self._scene("default")
+                    full = [n for n in nodes
+                            if n.get("t") == "rect"
+                            and (n.get("w"), n.get("h")) == (1280.0, 720.0)]
+                    self.assertEqual(full, [])
+        finally:
+            settings.osc_style = before
+
+    def test_a_themed_gradient_is_not_doubled_up_under_custom_osc(self):
+        """The gradient already covers the window; a flat fill under it
+        would be a second full-window composite for nothing."""
+        from jellyfin_mpv_shim.conf import settings
+        before = settings.osc_style
+        try:
+            settings.osc_style = "custom"
+            nodes = self._scene("jf-wmc")
+        finally:
+            settings.osc_style = before
+        self.assertEqual(len([n for n in nodes if n.get("t") == "grad"]), 1)
+        self.assertEqual(
+            [n for n in nodes if n.get("t") == "rect"
+             and (n.get("w"), n.get("h")) == (1280.0, 720.0)], [])
+
     def test_the_bar_drops_its_flat_fill_when_a_gradient_is_behind_it(self):
         """Otherwise the fill simply covers the gradient up."""
         flat = [n for n in self._scene("default")
