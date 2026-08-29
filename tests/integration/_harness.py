@@ -1122,6 +1122,9 @@ def build_player(player_module, video=None):
 
     pm.repeat_mode = "none"
     pm._osc_script_loaded = False
+    # enable_osc's latch: read directly, not via getattr, so a built player
+    # without it raises rather than silently taking the un-suppressed path.
+    pm._osc_suppressed = False
     pm.mpvtk_active = False
     pm._hud_skip = None
     pm._trickplay_pending = False
