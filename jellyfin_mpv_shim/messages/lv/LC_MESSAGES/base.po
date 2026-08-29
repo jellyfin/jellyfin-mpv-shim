@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-17 08:10+0000\n"
-"Last-Translator: Anrijs Vitolins <salixzs@gmail.com>\n"
+"PO-Revision-Date: 2026-08-29 08:25+0000\n"
+"Last-Translator: Lauris K <lauris-kairo@inbox.lv>\n"
 "Language-Team: Latvian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lv/>\n"
 "Language: lv\n"
@@ -22,23 +22,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Nezināms formāts"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Lapa %(page)d no %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Lapa %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
 msgid "%d%% read"
-msgstr ""
+msgstr "%d%% lasīt"
 
 #: jellyfin_mpv_shim/bulk_subtitle.py
 msgid "Selecting Tracks..."
@@ -77,14 +77,16 @@ msgstr "Iestata pašreizējo..."
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Atveriet Jellyfin, dodieties uz savu lietotāja izvēlni → Quick Connect un "
+"ievadiet šo kodu:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Gaida autorizāciju…"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
-msgstr ""
+msgstr "Dzēš visus esošos kontus."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Successfully added server."
@@ -96,19 +98,15 @@ msgstr "Servera pievienošana neizdevās."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Account already exists. Updating credentials."
-msgstr ""
+msgstr "Lietotāja konts jau eksistē. Atjaunina piekļuves datus."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Successfully added server."
 msgid "Successfully updated server credentials."
-msgstr "Tika veiksmīgi pievienots serveris."
+msgstr "Servera piekļuves dati ir veiksmīgi atjaunināti."
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid "Adding server failed."
 msgid "Updating server credentials failed."
-msgstr "Servera pievienošana neizdevās."
+msgstr "Servera piekļuves datu atjaunināšana neizdevās."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Server URL: "
@@ -127,41 +125,32 @@ msgid "Add another server?"
 msgstr "Pievienot vēl vienu serveri?"
 
 #: jellyfin_mpv_shim/clients.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect to the server."
-msgstr ""
-"Nevar pievienot serveri.\n"
-"Lūdzu, pārbaudiet savienojuma informāciju."
+msgstr "Neizdevās izveidot savienojumu ar serveri."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect šajā serverī nav iespējots."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Neizdevās palaist Quick Connect."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Izlaisti afišas titri"
+msgstr "Izlaist afišas titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr "Izlaisti afišas titri"
+msgstr "Izlaistie afišas titri"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
 msgstr "Meklēt, lai Izlaistu afišas titrus"
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
 msgid "Skip Commercial"
-msgstr "Speciālizlaidumi"
+msgstr "Izlaist reklāmu"
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -195,7 +184,7 @@ msgstr "Meklēt, lai Izlaistu afišas titrus"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Recap"
-msgstr ""
+msgstr "Izlaist afišas titrus."
 
 #: jellyfin_mpv_shim/media.py
 #, fuzzy
@@ -397,11 +386,11 @@ msgstr "Nekad"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Ask"
-msgstr ""
+msgstr "Jautāt"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Always"
-msgstr ""
+msgstr "Vienmēr"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Default Transcode Profile"
@@ -565,7 +554,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
-msgstr ""
+msgstr "Pirmā lapa"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
@@ -671,36 +660,33 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "Nepareizs PIN."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Serveris:"
+msgstr "Ievadīt PIN priekš %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
-msgstr ""
+msgstr "Pašreizējais PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "New PIN"
-msgstr ""
+msgstr "Jauns PIN"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Confirm"
-msgstr ""
+msgstr "Apstiprināt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Require this PIN at startup"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove PIN"
-msgstr "Noņemt serveri"
+msgstr "Noņemt PIN"
 
 # seeded from jellyfin-web: Save
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -735,7 +721,7 @@ msgstr "Pievienot serveri"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Connect to Jellyfin"
-msgstr ""
+msgstr "Savienot ar Jellyfin"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -959,7 +945,7 @@ msgstr "Ceļš"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Size"
-msgstr ""
+msgstr "Izmērs"
 
 # seeded from jellyfin-web: Yes
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1397,7 +1383,7 @@ msgstr "Atskaņošana"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Subtitles & Languages"
-msgstr ""
+msgstr "Subtitri & Valodas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Video Enhancement"
