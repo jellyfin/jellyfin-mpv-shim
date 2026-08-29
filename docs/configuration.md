@@ -563,6 +563,19 @@ You can use the config file to enable and disable features.
       uosc in particular needs. That is why it is a separate choice rather
       than something `default` does for everyone: the same layer is used by
       MPV's console when it is showing a menu.
+    - **Two things a third-party OSC cannot do, and will not.** Both apply to
+      `default` as well; trickplay previews are the part that does work.
+      - **Tracks.** Its subtitle and audio pickers see only what MPV has, and
+        Jellyfin's external and burned-in subtitles are not MPV tracks — an
+        external one is added only when you pick it, and a burned-in one needs
+        the server to restart the stream. Choosing from the OSC's own picker
+        misses those, is not reported to Jellyfin, and is not remembered for
+        the next episode. Use the menu key (`kb_menu`, `c` by default), or the
+        library, to change tracks.
+      - **The queue.** It lives in the shim, not in MPV, so MPV's playlist has
+        one entry in it and the OSC's playlist and next/previous buttons do
+        nothing. Handing the queue to MPV would mean keeping two copies of the
+        playback state in step, which is not worth what it would buy.
     - Trickplay previews still work, the same as under `default`.
   - `none` - No on-screen controls at all. Playback is bare; the library, the
     keyboard shortcuts and the menu key (`kb_menu`, `c` by default) still

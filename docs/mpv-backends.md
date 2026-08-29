@@ -889,6 +889,29 @@ and against nothing else.
 The `osc-idlescreen` message is still sent as well: it is cheaper, and on a
 fork that honours it the logo is never drawn at all.
 
+### What a third-party OSC does not get, deliberately
+
+Trickplay works. Tracks and the queue do not, under `custom` and `default`
+alike, and neither is going to.
+
+**Tracks.** A foreign OSC's subtitle and audio pickers read mpv's track list,
+and two of Jellyfin's three subtitle flavours are not in it: an external
+track is `sub_add`ed only once chosen (`_ensure_external_sub`), and a
+burn-in one (`video.subtitle_enc`) exists only as a restarted transcode.
+Picking from the OSC's own list therefore cannot see them, bypasses
+`set_streams`, and so is neither reported to Jellyfin nor carried to the next
+episode by `_capture_track_memory`. `osc_bridge` is what has the whole
+picture, and the OSD menu and the HUD are what read it.
+
+**The queue.** `Media` owns the queue in Python; mpv's playlist holds the one
+item that is playing. So `playlist-next`, `${playlist}` and `playlist-pos-1`
+all read a one-entry playlist and every playlist affordance in a foreign OSC
+is inert. Pushing the queue into mpv would mean two copies of the playback
+state kept in step — across transcode restarts, queue edits and SyncPlay
+seeks — which is a large amount of new state for buttons the library and the
+HUD already provide. **[iw]**: "wontfix due to the state hell that would be
+putting our queue into MPV's."
+
 ### The `thumbfast-info` payload is deliberately short
 
 Upstream thumbfast publishes `{width, height, scale_factor, disabled,
