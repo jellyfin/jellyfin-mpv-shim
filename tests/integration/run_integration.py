@@ -155,9 +155,10 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     if modules and modules[0] == "discover":
         # `-m unittest -v discover ...` is rejected: -v before the
         # subcommand selects the plain form, which has no `discover`.
-        cmd = [sys.executable, "-m", "unittest", "discover", "-v", *modules[1:]]
+        cmd = [sys.executable, "-u", "-m", "unittest", "discover", "-v",
+               *modules[1:]]
     else:
-        cmd = [sys.executable, "-m", "unittest", "-v", *modules]
+        cmd = [sys.executable, "-u", "-m", "unittest", "-v", *modules]
     if use_xvfb:
         xvfb = shutil.which("xvfb-run")
         if xvfb:
@@ -178,8 +179,14 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     captured = []
     for line in proc.stdout:
         sys.stdout.write(line)
+        # Per line, not per leg. Our stdout is block-buffered whenever it is
+        # redirected, which is every `run_integration.py > log 2>&1`, so
+        # flushing after the loop meant a leg's entire output landed in one
+        # write at the end of it -- ~147s of silence for a whole-suite leg.
+        # A log that stops growing then looks exactly like a hung run, and
+        # twice it got diagnosed as one.
+        sys.stdout.flush()
         captured.append(line)
-    sys.stdout.flush()
     rc = proc.wait()
     return label, rc, _counts("".join(captured))
 
