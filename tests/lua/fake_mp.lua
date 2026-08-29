@@ -155,15 +155,27 @@ function M.set_draw_cost(seconds) M.draw_cost = seconds or 0 end
 
 function M.set_overlay_cost(seconds) M.overlay_cost = seconds or 0 end
 
+--- The last overlay `create_osd_overlay` handed out.
+---
+--- Exposed because `z` is a real property of the renderer's output and a
+--- stand-in that dropped it left nothing for a test to assert against: the
+--- ASS z order is what decides whether the library draws over a
+--- third-party OSC (see the mpvtk-z handler). `z` starts nil rather than 0
+--- so "the renderer set it" and "nobody set it" stay distinguishable.
+M.osd = nil
+
 function mp.create_osd_overlay()
-    return {
+    local ov = {
         data = "",
+        z = nil,
         update = function()
             M.log.draws = M.log.draws + 1
             M.advance(M.draw_cost)
         end,
         remove = function() end,
     }
+    M.osd = ov
+    return ov
 end
 
 function mp.add_timeout(timeout, fn)

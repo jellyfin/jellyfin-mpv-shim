@@ -394,6 +394,7 @@ LABELED_ENUMS = {
         (_("Jellyfin UI"), "mpvtk"),
         (_("MPV UI with thumbnails"), "mpv"),
         (_("MPV built-in default"), "default"),
+        (_("Custom OSC"), "custom"),
         (_("No player controls"), "none"),
     ],
     # Down as well as up. Smaller is useful on a small screen, and it is
@@ -755,7 +756,10 @@ NOTES = {
                    "default. Press ENTER to drive the player controls by "
                    "keyboard. \"No player controls\" leaves playback bare; "
                    "the library, the keyboard shortcuts and the menu key "
-                   "still work."),
+                   "still work. Choose \"Custom OSC\" when you have "
+                   "installed your own OSC script: it turns MPV's own off "
+                   "and gives the library a solid background, so the "
+                   "script's idle screen cannot show through it."),
     "scroll_wheel_pixels": _(
         "Pixels one wheel notch scrolls. Raise it to scroll faster, lower it "
         "for finer control. On a grid the value is rounded so that a whole "

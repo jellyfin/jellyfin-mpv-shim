@@ -256,6 +256,7 @@ local state = {
     tb_drag = nil,          -- {id, anchor} during click-drag selection
     tb_menu = nil,          -- {id, x, y} textbox context menu
     scale = 1,              -- UI scale (mpvtk-scale); see ui_px()
+    osd_z = 0,              -- ASS z order; see the mpvtk-z handler
     tb_menu_geo = nil,
     modal = nil,            -- 'layer' meta node of the open Dialog
     modal_hidden = false,   -- dismissed locally, awaiting scene push
@@ -2509,6 +2510,7 @@ render = function()
     osd.res_x = state.w
     osd.res_y = state.h
     osd.data = ass.text
+    osd.z = state.osd_z
     osd:update()
     flush_overlays()
 end
@@ -5323,6 +5325,31 @@ local _SCALE_BASE = {
     NAV_TAIL = NAV_TAIL,
     FOLLOW_SLACK = FOLLOW_SLACK,
 }
+
+-- Raise our ASS above a third-party OSC's, or put it back ("Custom OSC"
+-- only -- see push_overlay_z).
+--
+-- Ours only ever has to outrank OTHER SCRIPTS. mpv's builtin OSD, subtitles
+-- included, is always below every script overlay whatever the number, and
+-- overlay-add bitmaps are always above every one of them (mpv
+-- DOCS/man/input.rst, `osd-overlay`), so this reorders us against scripts
+-- and nothing else.
+--
+-- The neighbourhood, measured: mpv's own osc.lua draws its bar at 1000 and
+-- its idle logo at -1000, ModernZ likewise, and **uosc puts its whole self
+-- at 2000**. At 0 the library is under all of it -- an opaque full-window
+-- fill still left uosc's "Drop files or URLs to play here" fully visible,
+-- 2.2% of the window inked either way -- and only a z above uosc's cleared
+-- it. Not the default, because 2000 is also mpv's console showing a
+-- selectable list, and covering that is too much to charge everyone for a
+-- problem only a foreign OSC has.
+--
+-- Literals, not file-scope locals: this file is AT Lua's 200-local ceiling
+-- (tests/test_renderer_lua.py::test_there_is_a_local_budget_left).
+mp.register_script_message('mpvtk-z', function(hostile)
+    state.osd_z = (hostile == 'yes') and 3000 or 0
+    request_render()
+end)
 
 mp.register_script_message('mpvtk-scale', function(json)
     local t = utils.parse_json(json)

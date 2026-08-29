@@ -38,6 +38,10 @@ function send_thumbfast_message()
     local json, err = utils.format_json({
         width = img_width,
         height = img_height,
+        -- Always 1: width/height are already what a consumer should draw,
+        -- the same as upstream thumbfast sends. Present only because an OSC
+        -- that divides by it to recover a logical size errors on nil.
+        scale_factor = 1,
         disabled = not img_enabled,
         available = img_enabled,
         overlay_id = img_overlay_id
