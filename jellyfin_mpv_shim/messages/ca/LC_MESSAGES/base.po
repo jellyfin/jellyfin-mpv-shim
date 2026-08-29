@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-22 23:24-0400\n"
-"PO-Revision-Date: 2026-08-29 22:15+0000\n"
+"PO-Revision-Date: 2026-08-29 22:50+0000\n"
 "Last-Translator: Gargotaire <gargots@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -1736,7 +1736,7 @@ msgstr "Mostra el que esteu mirant a Discord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr "Escala de la interfície"
+msgstr "Redimensiona la interfície"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Text size"
@@ -2228,29 +2228,21 @@ msgstr ""
 "es mogui el cursor per sobre\"."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "During playback only — in the library those buttons stay Back and "
-#| "Forward. Off by default because they are easy to hit by accident on some "
-#| "mice. Takes effect after a restart."
 msgid ""
 "During playback only; in the library those buttons stay Back and Forward. "
 "Off by default because they are easy to hit by accident on some mice."
 msgstr ""
-"Només durant la reproducció — a la biblioteca es queden els botons Endavant "
-"i Enrere. Desactivats per defecte perquè en alguns ratolins és fàcil pitjar-"
-"los per accident. Té efecte després de reiniciar."
+"Només durant la reproducció; a la biblioteca es queden els botons Endavant i "
+"Enrere. Desactivats per defecte perquè en alguns ratolins és fàcil pitjar-"
+"los per accident."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy, no-python-format
-#| msgid ""
-#| "Takes effect after a restart. \"Follow display\" uses the scale your "
-#| "desktop reports, which is 100% on X11."
+#, no-python-format
 msgid ""
 "\"Follow display\" uses the scale your desktop reports, which is 100% on X11."
 msgstr ""
-"Té efecte després de reiniciar. \"Disposició següent\" fa servir l'escala "
-"que informa el vostre escriptori que en X11 és del 100%."
+"\"Disposició següent\" fa servir l'escala que informa el vostre escriptori "
+"que en X11 és del 100%."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2276,11 +2268,6 @@ msgstr ""
 "decideixin. Escolliu un mode només si esteu enviant l'àudio a un receptor."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "Audio your receiver can't be sent directly is encoded to AC3, which is "
-#| "the only way surround fits down an optical cable. Turn this off if the "
-#| "encoder causes audio delay — those tracks become stereo instead."
 msgid ""
 "Audio your receiver cannot be sent directly is encoded to AC3, the only way "
 "surround fits down an optical cable. Turn this off if the encoder causes "
@@ -2288,7 +2275,7 @@ msgid ""
 msgstr ""
 "L'àudio que el vostre receptor no pot rebre directament es codifica com a "
 "AC3, que és l'única forma de so envolvent per un cable òptic. Desactiveu-ho "
-"si el codificador provoca un retard de l'àudio — aquestes pistes passaran a "
+"si el codificador provoca un retard de l'àudio; aquestes pistes passaran a "
 "ser en estèreo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
