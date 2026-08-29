@@ -59,9 +59,20 @@ So a dependency change needs no work here, and still needs
 `tools/check_flatpak_pins.py` downloads every pinned source and verifies its
 sha256, and asks `git ls-remote` whether each pinned tag still names the commit
 beside it. A cold build otherwise discovers a stale pin one source at a time,
-minutes in. Point it at the Flathub manifest to check that one too — that is
-where it earns its keep, since `pypi-dependencies.json` pins several dozen
-files:
+minutes in.
+
+It also flags a git source that pins a `branch` *and* a `commit`, which is the
+one shape that fails outright: flatpak-builder verifies that the branch is at
+that commit and refuses otherwise, so a commit taken from the history of a
+branch that is still moving dies on the next upstream push with
+`Git commit for branch master is <head>, but expected <pin>`. That is why the
+mpv source here carries a commit and no branch — flatpak-builder then finds no
+ref at it and mirrors the whole repo (about 200 MB, cached in
+`.flatpak-builder`) rather than shallow-cloning a ref. `tag` + `commit` is
+fine, and is what every other source here uses, because a tag does not move.
+
+Point it at the Flathub manifest to check that one too — that is where it earns
+its keep, since `pypi-dependencies.json` pins several dozen files:
 
 ```sh
 ./tools/check_flatpak_pins.py

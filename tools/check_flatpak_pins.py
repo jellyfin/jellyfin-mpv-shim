@@ -5,7 +5,7 @@ flatpak-builder refuses to build when a pinned sha256 no longer matches what
 the host serves, and it finds that out one source at a time, minutes into a
 cold build -- the failure that surfaced mujs. This checks every pin up front.
 
-Two kinds are checked:
+Three kinds are checked:
 
   url + sha256    Downloaded and hashed. A mismatch is usually a forge
                   regenerating an archive (Codeberg does: the tar stream
@@ -18,6 +18,14 @@ Two kinds are checked:
                   commit. A moved tag does not break the build, since
                   flatpak-builder fetches the commit, but it is the shape a
                   retagged upstream would take, so it is worth seeing.
+
+  branch + commit git ls-remote against the branch head. This one DOES break
+                  the build: flatpak-builder verifies that a named branch is
+                  at the pinned commit and refuses otherwise, so pinning a
+                  commit out of the history of a branch that is still moving
+                  fails as soon as upstream pushes. Drop the branch key and
+                  keep the commit -- flatpak-builder then fetches the whole
+                  repo and checks that commit out directly.
 
 Usage:
     tools/check_flatpak_pins.py [manifest.json ...]
@@ -59,7 +67,7 @@ def shorten(path):
     return path if relative.startswith("..") else relative
 
 
-def collect(path, hashed, tagged, visited):
+def collect(path, hashed, tagged, branched, visited):
     """Walk a manifest, gathering its pins and those of the modules it names."""
     path = os.path.abspath(path)
     if path in visited:
@@ -77,15 +85,19 @@ def collect(path, hashed, tagged, visited):
         if isinstance(node, dict):
             if "url" in node and "sha256" in node:
                 hashed.append((path, node["url"], node["sha256"]))
-            elif node.get("type") == "git" and "tag" in node and "commit" in node:
-                tagged.append((path, node["url"], node["tag"], node["commit"]))
+            elif node.get("type") == "git" and "commit" in node:
+                if "tag" in node:
+                    tagged.append((path, node["url"], node["tag"], node["commit"]))
+                elif "branch" in node:
+                    branched.append((path, node["url"], node["branch"], node["commit"]))
             for value in node.values():
                 walk(value)
         elif isinstance(node, list):
             for value in node:
                 # A module may be given as a path to another manifest file.
                 if isinstance(value, str) and value.endswith(".json"):
-                    collect(os.path.join(base, value), hashed, tagged, visited)
+                    collect(os.path.join(base, value), hashed, tagged,
+                            branched, visited)
                 else:
                     walk(value)
 
@@ -127,17 +139,36 @@ def check_tag(url, tag, want):
     return got == want, f"tag {tag} names {got}"
 
 
+def check_branch(url, branch, want):
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", url, f"refs/heads/{branch}"],
+            capture_output=True, text=True, timeout=120, check=True,
+        )
+    except (subprocess.SubprocessError, OSError) as error:
+        return None, f"{error}"
+    lines = result.stdout.strip().splitlines()
+    if not lines:
+        return False, f"branch {branch} is gone"
+    got = lines[0].split("\t")[0]
+    return got == want, f"branch {branch} is at {got}"
+
+
 def main(argv):
     manifests = argv[1:] or [DEFAULT_MANIFEST]
-    hashed, tagged, visited = [], [], set()
+    hashed, tagged, branched, visited = [], [], [], set()
     for manifest in manifests:
-        collect(manifest, hashed, tagged, visited)
+        collect(manifest, hashed, tagged, branched, visited)
 
-    print(f"{len(hashed)} hashed sources, {len(tagged)} tagged git sources")
+    print(f"{len(hashed)} hashed sources, {len(tagged)} tagged git sources, "
+          f"{len(branched)} branch-pinned git sources")
     stale = 0
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         hash_results = pool.map(lambda item: check_hash(item[1], item[2]), hashed)
         tag_results = pool.map(lambda item: check_tag(item[1], item[2], item[3]), tagged)
+        branch_results = pool.map(
+            lambda item: check_branch(item[1], item[2], item[3]), branched
+        )
 
         for (origin, url, want), (ok, detail) in zip(hashed, hash_results):
             if ok:
@@ -154,6 +185,22 @@ def main(argv):
             label = "ERROR" if ok is None else "MOVED"
             print(f"{label} {url}\n      in   {shorten(origin)}"
                   f"\n      want {want}\n      {detail}")
+
+        # Unlike a moved tag, this one fails the build outright -- and a
+        # branch that still matches only means upstream has not pushed yet,
+        # so it is worth saying either way.
+        for (origin, url, branch, want), (ok, detail) in zip(branched, branch_results):
+            if ok:
+                print(f"FRAGILE {url}\n      in   {shorten(origin)}"
+                      f"\n      {detail}, which matches for now, but it will move"
+                      f"\n      drop the branch key and keep the commit")
+                continue
+            stale += 1
+            label = "ERROR" if ok is None else "BROKEN"
+            print(f"{label} {url}\n      in   {shorten(origin)}"
+                  f"\n      want {want}\n      {detail}"
+                  f"\n      flatpak-builder verifies this and refuses to build;"
+                  f" drop the branch key and keep the commit")
 
     print("all pins current" if not stale else f"{stale} pin(s) need attention")
     return 1 if stale else 0

@@ -62,7 +62,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/mpv-player/mpv.git",
-                    "branch": "master",
+                    "//branch-note": "No `branch` key, on purpose. flatpak-builder VERIFIES that a named branch is at the pinned commit, so `branch: master` beside a commit out of master's history breaks the build on the next upstream push -- which for mpv is most days. Commit alone is the pin that holds. flatpak/README.md, and tools/check_flatpak_pins.py reports the pairing.",
                     "commit": "182fa6ca49f455cadb884858f386e2f00540aeb7",
                     "x-checker-data": {
                         "type": "git",
