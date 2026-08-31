@@ -439,6 +439,31 @@ Per the settled decision, connections still happen while locked — the gate is 
 what is on screen, not the network — and `tests/test_mpvtk_locked.py` says so rather
 than implying a boundary it does not provide.
 
+### Self-review follow-up (found while the final runs were in flight)
+
+**F5 lowered the log level of a failed explicit mark, and that was not intended.**
+Both callers of `unwatched_quit`/`watched_skip` go through `put_task`, and the action
+thread wraps its drain in `except Exception: log.exception(...)` — so a mark that failed
+was reported at ERROR with a traceback. Routing it through `SessionReporter` moves the
+swallow to that worker's `log.debug("%s failed", label)`.
+
+The ordering fix is right and stays; the visibility loss is not. A deliberate user
+action failing silently is the shape that produces unreproducible reports. Fix is to log
+inside the submitted callable, at warning, so the queue still orders it:
+
+```python
+def _mark():
+    try:
+        video.set_played(watched)
+    except Exception:
+        log.warning("Could not mark %s ...", exc_info=True)
+self._reporter.submit(_mark, "item_played")
+```
+
+Deliberately NOT applied while the final integration/e2e runs were in flight — the merge
+gate is a green matrix **on the tree being merged**, and editing source mid-run would
+have made that result describe a tree that no longer existed.
+
 ### Widened scope complete
 
 F5, F16, F8, F24, F22, F9, F23, F10, F18, F17, F19, F20 are all done. With

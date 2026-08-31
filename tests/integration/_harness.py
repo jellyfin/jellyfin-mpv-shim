@@ -309,19 +309,27 @@ class ShutdownError(Exception):
 #: line the user wrote; the seek distances and the fullscreen toggle are
 #: mpv's real defaults, character for character, because ``_seek_is_ours``
 #: compares against exactly those.
+#: mpv's builtin bindings, as `input-bindings` actually reports them.
+#:
+#: `priority: 0`, measured on a real mpv (and again on the shim's own): of 206
+#: builtins, 194 are priority 0 and the only 12 at -1 are the INACTIVE
+#: `encode` and `discnav` sections. This fixture said -1 throughout, i.e. it
+#: modelled every builtin as coming from a disabled section -- the one state a
+#: sweep must ignore. FOUR test fixtures carried that wrong model, which is
+#: why nothing noticed `winning()` ranking disabled bindings as live.
 DEFAULT_BINDINGS = [
-    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": -1},
-    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": -1},
-    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": -1},
-    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": -1},
-    {"key": "RIGHT", "cmd": "seek 5", "is_weak": True, "priority": -1},
-    {"key": "UP", "cmd": "seek 60", "is_weak": True, "priority": -1},
-    {"key": "DOWN", "cmd": "seek -60", "is_weak": True, "priority": -1},
-    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": -1},
+    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": 0},
+    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": 0},
+    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": 0},
+    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": 0},
+    {"key": "RIGHT", "cmd": "seek 5", "is_weak": True, "priority": 0},
+    {"key": "UP", "cmd": "seek 60", "is_weak": True, "priority": 0},
+    {"key": "DOWN", "cmd": "seek -60", "is_weak": True, "priority": 0},
+    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": 0},
     {"key": "WHEEL_LEFT", "cmd": "seek -10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
     {"key": "WHEEL_RIGHT", "cmd": "seek 10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
 ]
 
 
