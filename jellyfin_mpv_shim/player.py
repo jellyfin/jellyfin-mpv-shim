@@ -2635,6 +2635,24 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             except (_mpv_errors, ValueError, TypeError):
                 log.debug("could not set the photo display duration",
                           exc_info=True)
+        # Repeat-one loops the current file, and only audio may do that.
+        #
+        # BEFORE play(), not after the load: `loop-file` is a global option
+        # that outlives the item it was set for (docs/mpv-backends.md), and
+        # this used to be written at the very end of the start -- past the
+        # `if not loaded: return` above it. So a video whose load failed left
+        # whatever the previous item set, and if that was a track playing
+        # under repeat-one it stayed "inf". Neutralising it here means a video
+        # cannot inherit a loop from anything, however the start ends.
+        #
+        # `_current_is_audio` reads the ITEM's metadata, not mpv's track list,
+        # so it answers correctly before a single byte has been demuxed.
+        try:
+            self._player.loop_file = (
+                "inf" if self.repeat_mode == "one" and self._current_is_audio()
+                else "no")
+        except _mpv_errors:
+            pass
         # Arm load-failure detection before play(): mpv can report the file
         # unloadable before the duration wait below even starts.
         self._load_generation += 1
@@ -2809,16 +2827,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Fresh offline-record throttle window for each newly playing item.
         self._last_offline_record = float("-inf")
         self.do_not_handle_pause = False
-        # Repeat-one loops the current file, but only for audio — re-apply per
-        # track so a video started while repeat="one" is held over never loops.
-        # (Volume was already applied before play(); set_paused above already
-        # pushed the now-playing state to the music bar.)
-        try:
-            self._player.loop_file = (
-                "inf" if self.repeat_mode == "one" and self._current_is_audio()
-                else "no")
-        except _mpv_errors:
-            pass
         if self._finished_lock.locked():
             self._finished_lock.release()
 
