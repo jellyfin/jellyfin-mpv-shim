@@ -176,8 +176,8 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group K — input claims · 4 findings
 | Tag | Site | Defect |
 |-----|------|--------|
-| F18 | `keysweep.py:161` | `_rank` never filters `priority < 0`, so a **disabled** non-weak binding outranks mpv's live builtin and gets activated. |
-| F17 | `player.py:4512` | Remote seek: uppercase/lowercase key mismatch **and** a parsed tuple fed to a string parser. Both land on the stock default. Not a race — always wrong. |
+| ~~F18~~ **DONE** | `keysweep.py:161` | `_rank` never filters `priority < 0`, so a **disabled** non-weak binding outranks mpv's live builtin and gets activated. |
+| ~~F17~~ **DONE** | `player.py:4512` | Remote seek: uppercase/lowercase key mismatch **and** a parsed tuple fed to a string parser. Both land on the stock default. Not a race — always wrong. |
 | F19 | `app.py:2591` | A stale reader frame reinstalls SPACE after yielding to video; SPACE stops pausing for the session. |
 | F20 | `menu.py:151` vs `:214` | Menu keys claimed on the outgoing mpv handle before `force_window` recreates it. |
 
@@ -455,7 +455,7 @@ code without fixing the test yields no evidence.
 | F24 | `tests/test_shell_delete_item.py:234` | Asserts only `assertNotIn("_items", ...)` — one step, and the stale `_pages` is the other one. |
 | ~~F23~~ **DONE** | `tests/test_shell_comic.py:656` | Sets `_error` *after* a successful open, so `_showing` is True and the `elif` never fires; and it is a scene assertion, not a repaint one. |
 | ~~F10~~ **DONE** | `tests/_shell_harness.py` | Each fake records to its own list, so **one shared document is not representable** — the clobber cannot be written as a test until the fake models the DTO. |
-| F18 | — | No coverage of inactive non-weak sections. Needs a real-mpv regression test. |
+| ~~F18~~ **DONE** | — | No coverage of inactive non-weak sections, and THREE fixtures modelled builtins at priority -1 (i.e. as disabled), so every test agreed with the bug. Corrected against a real-mpv measurement: 194 of 206 builtins are priority 0. |
 
 Two standing rules from `CLAUDE.md` that most of the above violate, worth re-reading
 before writing replacements: assert the property over ≥3 steps rather than the
