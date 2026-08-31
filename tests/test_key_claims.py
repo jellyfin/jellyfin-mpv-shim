@@ -26,24 +26,32 @@ from jellyfin_mpv_shim.keysweep import (                      # noqa: E402
 from jellyfin_mpv_shim.player import PlayerManager            # noqa: E402
 
 
+# mpv's builtin bindings, as `input-bindings` actually reports them.
+#
+# `priority: 0`, measured on a real mpv: of 206 builtins, 194 are priority 0
+# and the only 12 at -1 are the INACTIVE `encode` and `discnav` sections. This
+# fixture said -1 throughout, i.e. it modelled every builtin as coming from a
+# disabled section -- the one state a sweep must ignore. Three test files
+# carried the same wrong model, which is why nothing noticed that `winning()`
+# ranked disabled bindings as live.
 BINDINGS = [
-    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": -1},
-    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": -1},
+    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": 0},
+    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": 0},
     {"key": "PLAYONLY", "cmd": "set pause no", "is_weak": True,
-     "priority": -1},
-    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": -1},
+     "priority": 0},
+    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": 0},
     {"key": "Shift+RIGHT", "cmd": "seek 1 exact", "is_weak": True,
-     "priority": -1},
-    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": -1},
-    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": -1},
+     "priority": 0},
+    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": 0},
+    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": 0},
     {"key": "WHEEL_LEFT", "cmd": "seek -10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
     {"key": "WHEEL_RIGHT", "cmd": "seek 10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
     {"key": "WHEEL_UP", "cmd": "add volume 2", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
     {"key": "MBTN_LEFT_DBL", "cmd": "cycle fullscreen", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
 ]
 
 

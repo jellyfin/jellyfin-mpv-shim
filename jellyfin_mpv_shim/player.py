@@ -4604,12 +4604,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         from . import keysweep
 
         try:
-            for key, semantic, cmd in self._swept_keys():
-                if semantic != "seek" or key != action:
+            for key, semantic, arg in self._swept_keys():
+                # `key.lower()`: the sweep reports mpv's key names (`RIGHT`)
+                # and the remote's actions are lowercase (`right`), so a
+                # direct comparison never matched and every arrow silently
+                # took the stock distance below.
+                if semantic != keysweep.SEEK or key.lower() != action.lower():
                     continue
-                got = keysweep.action(cmd)
-                if got is not None:
-                    return got[1]
+                # `sweep` has ALREADY parsed the command: its third element is
+                # `action()`'s argument, which for a seek is exactly the
+                # `(seconds, exact)` this method returns. Feeding it back to
+                # `action()` -- which takes a command string -- was the second
+                # of the two bugs here, and either one alone was enough to
+                # land on the default.
+                if isinstance(arg, tuple) and len(arg) == 2:
+                    return arg
         except Exception:
             log.debug("could not read mpv's seek binding for %r", action,
                       exc_info=True)

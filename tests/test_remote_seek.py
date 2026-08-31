@@ -58,15 +58,25 @@ class RemoteSeekTest(unittest.TestCase):
             pm.kb_seek(action)
         return pm.seeks
 
+    # The tuples below are what `keysweep.sweep` ACTUALLY returns:
+    # `(mpv key name, semantic, parsed argument)`. They used to say
+    # `("up", "seek", "seek 30")` -- lowercase, and the raw command -- which
+    # is neither. That fixture agreed with the two bugs in
+    # `_seek_like_the_keyboard` (it compared `RIGHT` with `right`, and fed the
+    # already-parsed argument back to the command parser), so the tests passed
+    # while every remote arrow silently used the stock distance. A stand-in
+    # that models the shape the caller assumes rather than the shape the
+    # callee returns cannot fail.
+
     def test_it_uses_the_distance_in_mpvs_binding(self):
         # The migrated case: input.conf says `up seek 30`, so the remote's
         # Up must seek 30 -- not the 60 the deleted setting used to hold.
-        got = self._seek("up", [("up", "seek", "seek 30")])
-        self.assertEqual(got, [(30, False)])
+        got = self._seek("up", [("UP", "seek", (30.0, False))])
+        self.assertEqual(got, [(30.0, False)])
 
     def test_it_carries_exactness_too(self):
-        got = self._seek("right", [("right", "seek", "seek 5 exact")])
-        self.assertEqual(got, [(5, True)])
+        got = self._seek("right", [("RIGHT", "seek", (5.0, True))])
+        self.assertEqual(got, [(5.0, True)])
 
     def test_an_mpv_that_says_nothing_gets_mpvs_own_defaults(self):
         # No binding swept (an mpv whose input-bindings could not be read).
@@ -78,11 +88,11 @@ class RemoteSeekTest(unittest.TestCase):
                 self.assertEqual(self._seek(action, []), [(want, False)])
 
     def test_it_ignores_a_binding_for_a_different_key(self):
-        got = self._seek("up", [("down", "seek", "seek -30")])
+        got = self._seek("up", [("DOWN", "seek", (-30.0, False))])
         self.assertEqual(got, [(60, False)])
 
     def test_a_non_seek_binding_on_the_key_is_not_read_as_a_distance(self):
-        got = self._seek("up", [("up", "pause", "cycle pause")])
+        got = self._seek("up", [("UP", "pause", None)])
         self.assertEqual(got, [(60, False)])
 
     def test_web_seek_replaces_the_distance_by_sign(self):
@@ -90,10 +100,10 @@ class RemoteSeekTest(unittest.TestCase):
         # applied here, routed by the sign of whatever the binding says --
         # a binding tells you which way it goes, never which arrow it was.
         self.assertEqual(
-            self._seek("up", [("up", "seek", "seek 30")], use_web_seek=True),
+            self._seek("up", [("UP", "seek", (30.0, False))], use_web_seek=True),
             [(30.0, False)])
         self.assertEqual(
-            self._seek("down", [("down", "seek", "seek -30")],
+            self._seek("down", [("DOWN", "seek", (-30.0, False))],
                        use_web_seek=True),
             [(-15.0, False)])
 
