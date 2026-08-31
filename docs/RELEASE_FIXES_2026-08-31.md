@@ -155,6 +155,12 @@ textually if worked in parallel branches.** One work stream per group.
 | F19 | `app.py:2591` | A stale reader frame reinstalls SPACE after yielding to video; SPACE stops pausing for the session. |
 | F20 | `menu.py:151` vs `:214` | Menu keys claimed on the outgoing mpv handle before `force_window` recreates it. |
 
+**F14 — considered and rejected:** prefetching the library id on the detail page. It
+would keep the play path free of the request entirely, but it only helps items reached
+*through* a detail page — not Play All, not a queue advance, not a cast — so the play
+path would still need the lookup as a fallback and nothing would be saved. Decided
+2026-08-31; do not re-propose without a reason the fallback goes away.
+
 ### Group Y — found while fixing, not in the original review
 | Tag | Site | Defect |
 |-----|------|--------|
