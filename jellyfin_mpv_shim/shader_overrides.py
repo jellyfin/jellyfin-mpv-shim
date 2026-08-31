@@ -83,15 +83,43 @@ class ShaderOverrides:
             }
 
     def save(self):
+        """Persist the overrides. Returns whether they reached disk.
+
+        Write-temp-then-replace, like ``conf.py`` and ``users.py``.
+        ``open(path, "w")`` truncates the existing file before a byte is
+        written, so ENOSPC -- or a crash, or a kill -- part-way through the
+        dump left an empty or fragmentary file. ``load()`` answers an
+        unreadable file by ignoring EVERY override, so the blast radius was
+        the whole store rather than the key being written, and the user found
+        out at the next launch with no warning in between.
+
+        Catches Exception, not just OSError: a value that will not serialise
+        must not destroy the file either, and with the temp file it no longer
+        can.
+        """
         if not self.path:
-            return
+            # Nothing to persist and nothing lost: the in-memory change is
+            # all there is, so this is not a failure to report.
+            return True
         payload = {"version": 1}
         payload.update({scope: self._data[scope] for scope in SCOPES})
+        tmp = self.path + ".tmp"
         try:
-            with open(self.path, "w", encoding="utf-8") as fh:
+            with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh, indent=4)
-        except OSError:
+                fh.flush()
+            os.replace(tmp, self.path)
+            return True
+        except Exception:
             log.warning("Could not write %s.", self.path, exc_info=True)
+            # Our own debris rather than the user's data. Left behind it is
+            # confusing, and a later partial write would be indistinguishable
+            # from a good one.
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            return False
 
     # -- reads -----------------------------------------------------------
 
@@ -134,8 +162,9 @@ class ShaderOverrides:
         if scope not in self._data or key is None:
             return False
         self._data[scope][key] = profile
-        self.save()
-        return True
+        # The save's answer, not True regardless: this used to confirm a
+        # change that never reached disk, and the caller had no way to know.
+        return self.save()
 
     def clear(self, scope, key):
         """Drop ``key``'s override at ``scope``, so it inherits again."""
@@ -144,5 +173,4 @@ class ShaderOverrides:
         if key not in self._data[scope]:
             return False
         del self._data[scope][key]
-        self.save()
-        return True
+        return self.save()
