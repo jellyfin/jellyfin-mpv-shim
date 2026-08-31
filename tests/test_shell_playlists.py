@@ -1270,3 +1270,66 @@ class BackToAnUnfinishedLoadRefetchesTest(unittest.TestCase):
 
         self.assertEqual(b.route.get("_error"), "Failed to load.",
                          "Back threw away the error the page was holding")
+
+
+class TwoLoadsAtOneEpochAreDistinguishableTest(unittest.TestCase):
+    """A load that fails late must not write over a newer one that succeeded.
+
+    `_route_async` stamped the ASYNC EPOCH as "which load owns this route's
+    outcome". Its own comment explains what that guard is for: a hung server's
+    request timing out half a minute later must not write an error over a home
+    screen that has since loaded fine, and -- for anyone with downloads --
+    drop them onto the offline catalog from a working screen.
+
+    But §4's refresh is deliberately a load, not a *re*load: `refresh_home`
+    calls `_load_route` with no `_bump_epoch()`, because bumping would cancel
+    everything else in flight. Two such loads therefore stamp the same value,
+    the guard compares equal, and it does not fire. Its only other overlap
+    check is `route.get("_loading")`, and the sole writer of that in the tree
+    is `pagination.py` (infinite scroll) -- Home does not page, so it is
+    vacuous. `refresh_live_tv` has its own `_refreshing` marker for exactly
+    this.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _DeferredPool()
+        b.server = "srv1"
+        return b
+
+    def test_a_late_failure_does_not_overwrite_a_newer_success(self):
+        b = self._browser()
+        route = b.route
+        epoch = b._epoch
+
+        boom = RuntimeError("the server hung, then gave up")
+        # Load A: dispatched first, answers last. Load B: the refresh that
+        # follows it at the SAME epoch, which is what refresh_home does.
+        b._route_async(route, lambda: (_ for _ in ()).throw(boom),
+                       lambda data: route.update(_data=data), epoch)
+        b._route_async(route, lambda: {"ok": True},
+                       lambda data: route.update(_data=data), epoch)
+
+        b._pool.release(1)          # B lands: the screen is correct
+        self.assertEqual(route.get("_data"), {"ok": True})
+
+        b._pool.release(0)          # A finally fails
+        self.assertIsNone(
+            route.get("_error"),
+            "the older load's failure was written over a screen that had "
+            "already loaded fine")
+        self.assertEqual(route.get("_data"), {"ok": True})
+
+    def test_the_newest_load_can_still_report_its_own_failure(self):
+        """The control: distinguishing the two must not stop a genuine
+        failure being shown, or the view spins instead of offering a retry."""
+        b = self._browser()
+        route = b.route
+        boom = RuntimeError("nope")
+        b._route_async(route, lambda: (_ for _ in ()).throw(boom),
+                       lambda data: route.update(_data=data), b._epoch)
+        b._pool.release(0)
+        self.assertTrue(route.get("_error"),
+                        "a failing load reported nothing, so the view has no "
+                        "error to show and no retry to offer")

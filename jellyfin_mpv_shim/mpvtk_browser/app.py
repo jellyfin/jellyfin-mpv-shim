@@ -287,6 +287,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # by the navigation itself rather than derived from the async epoch;
         # see _shed_caches_on_screen_change.
         self._screen_seq = 0
+        # Unique per dispatched route load; see LOAD_ID_KEY. Only ever
+        # touched on the loop thread, which is where loads are dispatched.
+        self._load_seq = 0
         self._shed_seq = 0
         #: The Page currently on screen, so the one before it can be told
         #: it is not. See _retire_page.
@@ -1296,8 +1299,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._async.run(work, on_done, epoch,
                         on_error=on_error, always=always)
 
-    #: Epoch of the newest load dispatched for a route, stamped on its dict.
-    LOAD_EP_KEY = "_load_ep"
+    #: Id of the newest load dispatched for a route, stamped on its dict.
+    #:
+    #: NOT the epoch, and the old name (`_load_ep`) is what invited stamping
+    #: one. A refresh is deliberately a load rather than a *re*load --
+    #: `refresh_home` calls `_load_route` with no `_bump_epoch()`, since
+    #: bumping would cancel everything else in flight -- so two loads of the
+    #: same route routinely share an epoch, and a guard comparing epochs
+    #: cannot tell them apart. This is unique per dispatch.
+    LOAD_ID_KEY = "_load_id"
+
+    def _next_load_id(self):
+        self._load_seq += 1
+        return self._load_seq
 
     def _route_async(self, route, work, on_done, ep):
         """run_async for a route's data, recording a failure on the route so
@@ -1309,7 +1323,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # the user had navigated AWAY from. The Home button now re-navigates
         # the dict it finds in the stack (see go_home), so a stale load can
         # be holding the route that is the screen again.
-        route[self.LOAD_EP_KEY] = ep
+        load_id = self._next_load_id()
+        route[self.LOAD_ID_KEY] = load_id
 
         def failed(exc):
             # Paging guards must not survive the failure or the view stops
@@ -1317,7 +1332,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # like before: the guard belongs to the request, not the screen.
             route.pop("_loading", None)
             log.info("route %r failed to load: %s", route.get("kind"), exc)
-            if route.get(self.LOAD_EP_KEY) != ep:
+            if route.get(self.LOAD_ID_KEY) != load_id:
                 # A newer load owns this route, and the screen should reflect
                 # that one's outcome. Without this, a hung server's request
                 # timing out half a minute later writes an error over a home
