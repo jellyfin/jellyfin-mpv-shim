@@ -115,9 +115,9 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group P — the playback start sequence · 4 findings · **highest interaction risk**
 | Tag | Site | Defect |
 |-----|------|--------|
-| F1 | `player.py:2294` → `media.py:594` | Auth header installed before the URL exists; a direct-path `Http` source sends the token to a third-party host. |
-| F13 | `media.py:830` vs `:838` | `language_config` resolved *after* `get_play_info`, so it is inert for every transcode. Reaches every queue advance (`get_next` drops `explicit_tracks`). |
-| F6 | `player.py:2705` | Remembered episode tracks applied after the URL loads; same root cause as F13, narrower reach. |
+| ~~F1~~ **DONE** | `player.py:2294` → `media.py:594` | Auth header installed before the URL exists; a direct-path `Http` source sends the token to a third-party host. |
+| ~~F13~~ **DONE** | `media.py:830` vs `:838` | `language_config` resolved *after* `get_play_info`, so it is inert for every transcode. Reaches every queue advance (`get_next` drops `explicit_tracks`). |
+| ~~F6~~ **DONE** | `player.py:2705` | Remembered episode tracks applied after the URL loads; same root cause as F13, narrower reach. |
 | F14 | `video_profile.py:576` vs `player.py:2524` | Library-scope shader profile resolves off-lock and lands after `hwdec` was written and the decoder initialised. |
 
 ### Group L — lifecycle gates and identity · 4 findings
@@ -154,6 +154,11 @@ textually if worked in parallel branches.** One work stream per group.
 | F17 | `player.py:4512` | Remote seek: uppercase/lowercase key mismatch **and** a parsed tuple fed to a string parser. Both land on the stock default. Not a race — always wrong. |
 | F19 | `app.py:2591` | A stale reader frame reinstalls SPACE after yielding to video; SPACE stops pausing for the session. |
 | F20 | `menu.py:151` vs `:214` | Menu keys claimed on the outgoing mpv handle before `force_window` recreates it. |
+
+### Group Y — found while fixing, not in the original review
+| Tag | Site | Defect |
+|-----|------|--------|
+| ~~F28~~ **DONE** | `media.py` `get_playback_url` | **PlaybackInfo silently ignores `AudioStreamIndex` unless `MediaSourceId` is sent with it**, falling back to `DefaultAudioStreamIndex`. Measured on Jellyfin 12.0: six different requested tracks all returned the default; adding the id returned each one, in both query and body form. `media_source_id=self.srcid` is None for any ordinary play, so **audio track selection on a transcode was inert for every normal playback** — including the one F13 had just arranged to resolve at the right moment. Only sent when a track is actually requested, so a multi-version item still lets the server choose. Found by e2e and *only* by e2e. |
 
 ### Group T — tooling (not shipped code)
 | Tag | Site | Defect |
@@ -326,6 +331,30 @@ the queue rather than being replayed forever. Suite: 5,139.
 
 F2, F12, F11, F7 done and committed; F25 was moved to Phase 5 by the Work Offline
 decision. **All four data-loss findings are closed.** Group S is finished.
+
+**F1, F13, F6 and F28 — done.** Phase 2's ordering conflict resolved more cheaply than
+the plan assumed: F1 keeps the install where it was and **revokes** the header once the
+origin is known, so the "mpv refuses http-header-fields, url carries the token instead"
+fallback survives — a "decide later" restructure would have stranded it.
+
+**Two things only e2e could find**, which is the lesson of this phase:
+
+1. **F28.** F13's fix was correct client-side and had *no user-visible effect*, because
+   the server drops a stream index sent without its source. The unit tests passed
+   because they hand-build items; the real server does not behave like the fake.
+2. **`TranscodedTrackTest` was tautological.** Its `setUp` said "the last one: never the
+   server's default" — on the current fixture the last audio track *is*
+   `DefaultAudioStreamIndex`, so the only transcode track coverage in the tree asked
+   for the one index a client ignoring the request entirely would still return. It now
+   picks a non-default track and asserts that premise. **Add this to §4's list of tests
+   that cannot fail** — it was not in the original ten.
+
+Also caught, by the unit suite this time: `play()` now calls a new hook on every video,
+and `OfflineVideo.__init__` deliberately skips `super().__init__` — so the state had to
+be a **class** attribute and `OfflineVideo` needed an explicit no-op override, or
+offline playback raised AttributeError. The online tests could not see it.
+
+Suite: 5,155 unit; 21 e2e track-selection tests pass against Jellyfin 12.0.0.
 
 ## 4. Tests that must be rewritten *before* the fix
 
