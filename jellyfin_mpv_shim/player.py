@@ -2298,6 +2298,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # it -- the precedence the old ordering gave for free, when the
             # rule ran in map_streams and memory overwrote it in _play_media.
             video.resolve_tracks_for_negotiation()
+            # Also before _play_media, and for the same class of reason: that
+            # method holds the player lock and writes `hwdec` there, which mpv
+            # reads when the decoder is initialised. A library-scope shader
+            # profile naming a decoder has to be known by then, and resolving
+            # the library is a request -- which belongs here, off the lock,
+            # beside the PlaybackInfo round trip, not inside it.
+            try:
+                profiles = self.menu.profile_manager if self.menu else None
+                warm = getattr(profiles, "warm_library_scope", None)
+                if warm is not None:
+                    warm(getattr(video, "item", None) or {},
+                         getattr(video, "client", None))
+            except Exception:
+                log.debug("could not warm the shader library scope",
+                          exc_info=True)
             if is_initial_play:
                 self._track_memory = None  # new queue; start fresh
             elif apply_memory and self._track_memory is not None:

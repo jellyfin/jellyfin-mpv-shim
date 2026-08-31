@@ -590,6 +590,38 @@ class VideoProfileManager:
             return True
         return self.load_profile(profile)
 
+    def warm_library_scope(self, item, client=ASK_PLAYER):
+        """Resolve this item's library id **now**, before playback starts.
+
+        Called from ``play()``, which does not hold the player lock -- it is
+        where PlaybackInfo is already fetched, so a request here costs the
+        start nothing it was not already paying.
+
+        This exists because the deferred version could not be right for every
+        setting a profile carries. ``_warm_library_later`` lands the profile a
+        beat into playback, and argues that is fine because "shader profiles
+        are applied to a running mpv". True of ``glsl-shaders``; false of
+        ``hwdec``, which mpv reads when the decoder is initialised -- so a
+        library-scope profile naming a decoder was applied *after* the first
+        item had already opened without it, and only the second item was
+        right.
+
+        Cheap and rare by construction: nothing happens unless a library
+        override exists, and the id is cached (and comes free from the
+        catalog for anything downloaded) after the first lookup.
+        """
+        try:
+            if self.suppressed or not self.overrides.has_any("library"):
+                return
+            item = item or {}
+            lookup = item.get("SeriesId") or item.get("Id")
+            if not lookup or lookup in self._library_ids:
+                return
+            self._library_id(item, client)
+        except Exception:
+            log.debug("could not resolve the library scope before playback",
+                      exc_info=True)
+
     def _warm_library_later(self, item, client):
         """Resolve this item's library **off the player lock**, if it still
         needs resolving, and re-apply once it is known.
