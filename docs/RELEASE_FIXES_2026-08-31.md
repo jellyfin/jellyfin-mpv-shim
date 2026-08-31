@@ -171,7 +171,7 @@ textually if worked in parallel branches.** One work stream per group.
 | Tag | Site | Defect |
 |-----|------|--------|
 | F10 | `repository.py:803, 697, 736, 1153` | **Four** unserialised GET-whole-DTO / mutate / POST-whole-DTO writers on one document. Zero locks in the file. Two share a settings tab. |
-| F16 | `shader_overrides.py:91` | Bare `open(w)` truncates the whole override store; the only non-atomic whole-file write left in the tree. |
+| ~~F16~~ **DONE** | `shader_overrides.py:91` | Bare `open(w)` truncates the whole override store; the only non-atomic whole-file write left in the tree. |
 
 ### Group K — input claims · 4 findings
 | Tag | Site | Defect |
@@ -229,7 +229,7 @@ relaunching — it is rewritten on every start**) and mpv's own log, plus whethe
 | ~~F27~~ **DONE** | `tests/integration/run_integration.py` | The matrix **hangs indefinitely after the final leg has already passed**. A test mpv outliving its leg is reparented to PID 1 while still holding the write end of that leg's stdout/stderr pipe; the runner reads to EOF, which can never arrive. Signature: runner `WCHAN=pipe_read` at 0% CPU, its `xvfb-run` child `<defunct>`, and `/proc/<mpv>/fd/1` pointing at the very inode the runner blocks on. Unwedged by `kill <mpv pid>` — by PID, never `pkill -f`. Real fix: reap the child then read with a deadline, or give mpv its own process group and closed fds. The 2026-08-30 review saw this and could not trace it; traced 2026-08-31. Costs a ~7-minute run whenever it fires, and would hang CI forever. |
 
 ### Group X — isolated
-F5 report ordering (`player_reporting.py:542` vs `media.py:900`) · F26 cast parks the
+~~F5~~ **DONE** report ordering · F26 cast parks the
 last composite (`cast.py:319`) · F15 `set_picture_view` guard asymmetry
 (`player_window.py:516`, **unverified — construct the interleaving before fixing**).
 
