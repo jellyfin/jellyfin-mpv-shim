@@ -1120,7 +1120,11 @@ class SyncManager:
                 if update:
                     client.jellyfin.update_userdata_for_item(entry["item_id"],
                                                              update)
-                done.append(entry["id"])
+                # The values as they were READ, not just the id: the row is
+                # updated in place by upsert_playstate, so acknowledging by id
+                # would retire progress written while we were on the network.
+                done.append((entry["id"], entry.get("position_ticks"),
+                             entry.get("played")))
             except Exception:
                 log.debug("Failed to replay playstate %s", entry.get("id"),
                           exc_info=True)

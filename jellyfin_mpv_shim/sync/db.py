@@ -610,15 +610,34 @@ class SyncDB:
                 self._conn.rollback()
                 raise
 
-    def clear_playstate(self, ids):
-        if not ids:
+    def clear_playstate(self, entries):
+        """Retire replayed rows -- but only those still holding the values
+        that were actually sent.
+
+        Acknowledged **by value, not by id**. There is one row per item and
+        `upsert_playstate` advances it in place, so a report landing while the
+        replay is on the network leaves the same id holding data nobody has
+        uploaded. Deleting by id alone discarded exactly that: the newer
+        position, and a final watched mark, neither of which the server ever
+        heard. A row that moved on simply stays pending and goes out on the
+        next sweep.
+
+        ``entries`` is an iterable of ``(id, position_ticks, played)`` as they
+        were read. ``IS`` rather than ``=`` because both columns are nullable
+        and ``NULL = NULL`` is NULL in SQL, which would match nothing and
+        leave the queue undrainable.
+        """
+        entries = [tuple(e) for e in (entries or ())]
+        if not entries:
             return
         with self._lock:
             if self._conn is None:
                 return
             try:
                 self._conn.executemany(
-                    "DELETE FROM pending_playstate WHERE id=?", [(i,) for i in ids])
+                    "DELETE FROM pending_playstate "
+                    "WHERE id=? AND position_ticks IS ? AND played IS ?",
+                    entries)
                 self._conn.commit()
             except sqlite3.Error:
                 self._conn.rollback()

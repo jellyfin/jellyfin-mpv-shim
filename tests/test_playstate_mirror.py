@@ -1236,3 +1236,127 @@ class HomeAsksForAFreshPullTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
+    """Offline playstate replay must not delete progress it never uploaded.
+
+    `_sync_playstate` snapshots the pending rows, does its network I/O, then
+    deletes the ids it finished. `upsert_playstate` keeps **one row per item**
+    and updates it in place -- same id, advanced values -- so a report landing
+    during the upload changed the row the replay was about to delete by id.
+    The newer position and a final `played` went with it, and the server never
+    heard either.
+
+    This is reachable without any thread scheduling luck: playback starts
+    offline, the server comes back mid-session, and `OfflineVideo.client`
+    stays the captured None while the sync worker has a live client.
+
+    `app.py`'s `clear_status_if` is the in-tree model -- it acks **by value**.
+    """
+
+    SERVER = "srv-uuid"
+
+    def _manager(self, db, client):
+        from jellyfin_mpv_shim.sync import manager as sync_manager
+        mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
+        mgr.db = db
+        mgr.get_client = lambda uuid: client
+        return mgr
+
+    def _db(self):
+        import tempfile, shutil
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        db = SyncDB(os.path.join(tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        return db
+
+    def test_a_report_during_the_upload_is_not_acknowledged_away(self):
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        pushed = []
+        test = self
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                # The window: playback writes newer progress while the replay
+                # is still talking to the server about the old value.
+                db.upsert_playstate(test.SERVER, "ep1",
+                                    position_ticks=100, played=True)
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pushed.append((item_id, dict(data)))
+
+        class Client:
+            jellyfin = Api()
+
+        self._manager(db, Client())._sync_playstate()
+
+        self.assertEqual(pushed, [("ep1", {"PlaybackPositionTicks": 10})],
+                         "the replay should have sent the value it snapshotted")
+        pending = db.list_playstate()
+        self.assertEqual(len(pending), 1,
+                         "the replay deleted a row that had moved on, so the "
+                         "newer position and the watched mark are gone and "
+                         "the server will never hear them")
+        self.assertEqual(pending[0]["position_ticks"], 100)
+        self.assertTrue(pending[0]["played"])
+
+    def test_an_untouched_row_is_still_cleared(self):
+        """The other half. Acking by value must not turn the queue into one
+        that never drains -- that would re-push the same mark on every
+        reconnect, forever."""
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", played=True)
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pass
+
+        class Client:
+            jellyfin = Api()
+
+        self._manager(db, Client())._sync_playstate()
+        self.assertEqual(db.list_playstate(), [],
+                         "an unchanged row was not cleared, so it will be "
+                         "re-pushed on every reconnect")
+
+    def test_it_drains_over_repeated_sweeps(self):
+        """Multi-step, per the standing rule: the row is rewritten during the
+        first sweep and must still leave the queue on a later one rather than
+        being replayed forever."""
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        pushed = []
+        test = self
+        state = {"disturb": True}
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                if state["disturb"]:
+                    state["disturb"] = False
+                    db.upsert_playstate(test.SERVER, "ep1",
+                                        position_ticks=100, played=True)
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pushed.append((item_id, dict(data)))
+
+        class Client:
+            jellyfin = Api()
+
+        mgr = self._manager(db, Client())
+        for _ in range(3):
+            mgr._sync_playstate()
+
+        self.assertEqual(db.list_playstate(), [],
+                         "the queue never drained: acking by value must not "
+                         "leave a row that is replayed on every sweep")
+        self.assertIn(("ep1", {"Played": True,
+                               "PlaybackPositionTicks": 100}), pushed)
