@@ -905,8 +905,24 @@ class Video(object):
         # Before the negotiation, not after it: the aid below is what the
         # server bakes into a transcode.
         self.resolve_tracks_for_negotiation()
+        # A stream index means nothing without the source it indexes into, and
+        # the server treats it that way: measured on Jellyfin 12.0, PlaybackInfo
+        # **silently ignores AudioStreamIndex unless MediaSourceId is sent with
+        # it** and falls back to the source's DefaultAudioStreamIndex. Asking
+        # for six different tracks returned the default six times; adding the
+        # id returned each one. (docs/jellyfin-api-notes.md: the server drops
+        # what it cannot use, and a dropped parameter looks like a working
+        # client.) So track selection on a transcode was inert for every
+        # ordinary play, where srcid is None.
+        #
+        # Only when we are actually asking for a track. With no aid/sid there
+        # is nothing to pin and the server should keep choosing the source
+        # itself, which is what multi-version items rely on.
+        srcid = self.srcid
+        if srcid is None and (self.aid is not None or self.sid is not None):
+            srcid = (self.source_for_track_rules() or {}).get("Id")
         self.playback_info = self.client.jellyfin.get_play_info(
-            self.item_id, profile, self.aid, self.sid, media_source_id=self.srcid
+            self.item_id, profile, self.aid, self.sid, media_source_id=srcid
         )
 
         self.media_source = self.get_best_media_source(self.srcid)

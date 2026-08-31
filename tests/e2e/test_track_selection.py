@@ -42,6 +42,7 @@ import os
 import sys
 import time
 import unittest
+from unittest import mock
 import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -398,9 +399,18 @@ class TranscodedTrackTest(_e2e.E2ETestCase):
             len(audio), 1,
             "this needs a fixture with more than one audio track, or asking "
             "for a particular one proves nothing")
-        # The last one: never the server's default, so a client that quietly
-        # ignored the request would come back with a different number.
-        self.pick = audio[-1]
+        # NOT the server's default, and asserted rather than assumed: on the
+        # current fixture the last audio track *is* DefaultAudioStreamIndex,
+        # so "the last one" quietly turned this into a test a client that
+        # ignored the request entirely would still pass. It did pass, while
+        # the server was dropping every index it was sent.
+        source = self.session.api.get_item(self.item["Id"])["MediaSources"][0]
+        default = source.get("DefaultAudioStreamIndex")
+        self.pick = next((s for s in audio if s["Index"] != default), None)
+        self.assertIsNotNone(
+            self.pick,
+            "every audio track is the server default, so asking for one "
+            "proves nothing")
 
     def play_transcoded(self, aid):
         """Play the fixture with `aid`, forced through the transcoder.
@@ -472,6 +482,132 @@ class TranscodedTrackTest(_e2e.E2ETestCase):
             "the server reports audio index %r for a transcode of index %d"
             % (((self.session.my_session() or {}).get("PlayState") or {})
                .get("AudioStreamIndex"), self.pick["Index"]))
+
+
+class TranscodedTrackRulesTest(_e2e.E2ETestCase):
+    """A track chosen by RULE, on a stream the server re-encodes.
+
+    ``TranscodedTrackTest`` above covers a deliberate pick, and every one of
+    its plays passes ``explicit_tracks=True`` -- which returns before
+    ``language_config`` is ever consulted. That is exactly how the rule came
+    to be inert for every transcode while the suite stayed green: the only
+    transcode coverage there is structurally bypassed the path.
+
+    ``explicit_tracks`` is set in one place in the app
+    (``gateway/playback.py``), so the un-explicit path here is the ordinary
+    one: a grid tile, Continue Watching, Play All, a cast -- and every episode
+    after the first in a queue, since ``Media.get_next`` does not forward the
+    flag.
+
+    The assertion is on the ``TranscodingUrl`` the server came back with,
+    because for a transcode that is the only place the choice can land. By the
+    time mpv has the stream there is one audio track and the decision is made.
+    """
+
+    ITEM = "Six audio tracks"
+
+    def setUp(self):
+        super().setUp()
+        self.item = self.session.find(self.ITEM, library=LIBRARY)
+        source = self.session.api.get_item(self.item["Id"])["MediaSources"][0]
+        self.audio = [s for s in source["MediaStreams"]
+                      if s["Type"] == "Audio"]
+        self.by_lang = {}
+        for stream in self.audio:
+            self.by_lang.setdefault(stream.get("Language"), stream)
+        for lang in ("jpn", "fra"):
+            self.assertIn(lang, self.by_lang,
+                          "this needs a fixture carrying %s audio, or a rule "
+                          "naming it proves nothing" % lang)
+        self.server_default = source.get("DefaultAudioStreamIndex")
+        self.assertNotEqual(
+            self.server_default, self.by_lang["jpn"]["Index"],
+            "the server already defaults to the track the rule asks for, so "
+            "this could not tell the rule from the default")
+
+    def play_by_rule(self, rules=None, memory=None):
+        """Play the fixture the way the library does -- no explicit tracks --
+        forced through the transcoder."""
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.language_config import parse_language_config
+        from jellyfin_mpv_shim.media import Media
+
+        media = Media(self.session.client, [self.item["Id"]],
+                      user_id=self.session.user_id)
+        video = media.video
+        self.assertFalse(video.explicit_tracks,
+                         "this test is about the path where the user has NOT "
+                         "picked a track")
+        video.set_trs_override(None, True)
+        parsed = parse_language_config(rules) if rules else None
+        with mock.patch.object(settings, "language_config", parsed), \
+                mock.patch.object(settings, "remember_audio_track", True):
+            self.pm._track_memory = memory
+            self.pm.play(video, is_initial_play=memory is None)
+        self.assertTrue(video.is_transcode,
+                        "the server direct played it, so nothing here is "
+                        "about a transcode")
+        self.assertTrue(_e2e.wait_for(lambda: self.pm._player.duration),
+                        "mpv never opened the transcoded stream")
+        return video
+
+    def negotiated_index(self, video):
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(
+            video.media_source.get("TranscodingUrl") or "").query)
+        got = query.get("AudioStreamIndex")
+        return int(got[0]) if got else None
+
+    def test_a_language_rule_reaches_the_transcode(self):
+        want = self.by_lang["jpn"]["Index"]
+        video = self.play_by_rule(rules=[{"alang": "jpn"}])
+        self.assertEqual(
+            self.negotiated_index(video), want,
+            "the server is transcoding audio index %r; the rule asked for "
+            "%d (jpn) and the server default is %r -- the rule was resolved "
+            "after the negotiation it exists to influence"
+            % (self.negotiated_index(video), want, self.server_default))
+        self.assertEqual(video.aid, want)
+
+    def test_the_stream_really_carries_that_language(self):
+        """The negotiated url is the mechanism; this is the outcome. A
+        transcode has one audio track, so what mpv opened IS the choice."""
+        self.play_by_rule(rules=[{"alang": "jpn"}])
+        tracks = [t for t in self.pm._player.track_list
+                  if t["type"] == "audio"]
+        self.assertEqual(len(tracks), 1,
+                         "a transcode should carry one audio track, got %d"
+                         % len(tracks))
+        lang = tracks[0].get("lang")
+        if not lang:
+            self.skipTest("this mpv/stream exposes no track language; the "
+                          "negotiation assertion above still holds")
+        self.assertTrue(lang.startswith("jp") or lang == "jpn",
+                        "mpv is playing %r audio for a jpn rule" % lang)
+        self.assertTrue(
+            self.pump_until(lambda: (self.pm._player.playback_time or 0) > 1.0),
+            "the transcode never advanced")
+
+    def test_a_remembered_track_outranks_the_rule(self):
+        """Precedence. It used to come for free -- the rule ran in
+        map_streams and the memory overwrote it afterwards in _play_media.
+        Both now run before the negotiation, so the order between them is
+        deliberate and nothing else would notice if it inverted."""
+        prev = {"MediaStreams": self.audio}
+        want = self.by_lang["fra"]["Index"]
+        video = self.play_by_rule(rules=[{"alang": "jpn"}],
+                                  memory=(prev, want, None))
+        self.assertEqual(
+            self.negotiated_index(video), want,
+            "language_config overwrote the track carried over from the "
+            "previous episode: negotiated %r, remembered %d (fra)"
+            % (self.negotiated_index(video), want))
+
+    def test_no_rule_leaves_the_choice_to_the_server(self):
+        """The control. Resolving a default client-side and posting it would
+        be a behaviour change; posting nothing is what keeps the client and
+        the server agreeing."""
+        video = self.play_by_rule()
+        self.assertEqual(self.negotiated_index(video), self.server_default)
 
 
 if __name__ == "__main__":

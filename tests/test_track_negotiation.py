@@ -59,7 +59,10 @@ class _Recorder:
         self.asked = []
 
     def get_play_info(self, item_id, profile, aid, sid, media_source_id=None):
-        self.asked.append({"aid": aid, "sid": sid})
+        # media_source_id is recorded because the server needs it to honour
+        # the index at all -- see TheSourceIsPinnedWithTheIndexTest.
+        self.asked.append({"aid": aid, "sid": sid,
+                           "srcid": media_source_id})
         return {"MediaSources": [self.source]}
 
     def get_item(self, item_id, **kw):
@@ -254,6 +257,49 @@ class ConstructedWithoutInitTest(unittest.TestCase):
 
         self.assertIsNot(OfflineVideo.resolve_tracks_for_negotiation,
                          Video.resolve_tracks_for_negotiation)
+
+
+class TheSourceIsPinnedWithTheIndexTest(unittest.TestCase):
+    """A stream index means nothing without the source it indexes into.
+
+    Measured on Jellyfin 12.0: PlaybackInfo **silently ignores
+    AudioStreamIndex unless MediaSourceId is sent with it**, and falls back to
+    the source's DefaultAudioStreamIndex. Asking for six different tracks
+    returned the default six times; adding the id returned each one. So track
+    selection on a transcode was inert for every ordinary play, where `srcid`
+    is None -- and the e2e test that should have caught it asked for the one
+    index that happened to BE the default.
+    """
+
+    def _asked(self, video, api):
+        from jellyfin_mpv_shim.conf import settings
+        with mock.patch.object(settings, "always_transcode", False):
+            video.get_playback_url()
+        return api.asked[0]
+
+    def test_asking_for_a_track_pins_the_source(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _video(_source())
+        with mock.patch.object(settings, "language_config",
+                               _rules([{"alang": "jpn"}])):
+            asked = self._asked(v, api)
+        self.assertEqual(asked["aid"], 2)
+        self.assertEqual(asked["srcid"], "src1",
+                         "an index was sent with no source to index into, "
+                         "which the server drops")
+
+    def test_asking_for_nothing_leaves_the_source_to_the_server(self):
+        """Pinning unconditionally would stop the server choosing between the
+        versions of a multi-version item, which is what it does when no track
+        is requested."""
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _video(_source())
+        with mock.patch.object(settings, "language_config", None):
+            asked = self._asked(v, api)
+        self.assertIsNone(asked["aid"])
+        self.assertIsNone(asked["srcid"])
 
 
 if __name__ == "__main__":
