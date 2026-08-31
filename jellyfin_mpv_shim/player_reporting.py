@@ -549,6 +549,28 @@ class ReportingMixin:
             except Exception:
                 log.error("Could not clear Discord Rich Presence.", exc_info=True)
 
+    def queue_played_mark(self, video, watched: bool = True):
+        """Send an explicit watched/unwatched mark, BEHIND whatever is queued.
+
+        The player's deliberate marks -- "Quit and Mark Unwatched", "Mark
+        Watched and Skip", the force_set_played finish -- are each preceded by
+        a stop report, and the stop must reach the server first: it carries a
+        position, and a stop landing after the mark overwrites a fully-watched
+        item with mid-episode progress, or restores a resume point on the item
+        the user just marked unwatched.
+
+        That used to be free, because both were synchronous and the call order
+        was the delivery order. Once `session_stop` moved onto this FIFO and
+        `set_played` stayed inline, the Python order stopped meaning anything:
+        with a slow report already queued -- or an unreachable server -- the
+        mark went first. Submitting it here puts it back in the same queue, so
+        the ordering is the FIFO's rather than a coincidence of timing.
+        """
+        if video is None:
+            return
+        self._reporter.submit(lambda: video.set_played(watched),
+                              "item_played")
+
     def release_stream(self, video):
         """Free ``video``'s server-side stream without blocking the caller.
 

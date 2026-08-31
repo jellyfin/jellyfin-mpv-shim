@@ -3484,7 +3484,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Only mark played on a genuine end-of-file. An errored/aborted stream
         # (playback-abort far from the end) must not be recorded as watched.
         if settings.force_set_played and self._finished_at_eof(video):
-            video.set_played()
+            # Queued, not called: the advance below sends a stop report
+            # through the same FIFO, and a mark that overtook it would be
+            # overwritten by the position that stop carries.
+            self.queue_played_mark(video)
         # Repeat-all wraps back to the first track when the queue runs out
         # (repeat-one loops in mpv and never reaches here). SyncPlay drives its
         # own advance, so wrap only applies to normal local playback.
@@ -3563,16 +3566,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         # Advance (which sends the final stop report at the current position)
         # BEFORE marking played: the other order let the stop report land
-        # after set_played and overwrite the fully-watched state with
+        # after the mark and overwrite the fully-watched state with
         # mid-episode progress. unwatched_quit uses the same stop-then-mark
         # order for the same reason. finally: the user's explicit mark must
         # not be lost just because the advance failed (e.g. the next item's
         # playback-info errored).
+        #
+        # Calling them in this order is no longer enough to deliver them in
+        # it. The stop goes onto the SessionReporter's FIFO and an inline mark
+        # would overtake anything already queued, so the mark goes on the same
+        # queue -- which is what makes the paragraph above true again rather
+        # than merely intended.
         video = self._video
         try:
             self.play_next()
         finally:
-            video.set_played()
+            self.queue_played_mark(video)
 
     @synchronous("_lock")
     def unwatched_quit(self):
@@ -3581,7 +3590,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         video = self._video
         self.stop_and_close()
-        video.set_played(False)
+        # Behind the stop that stop_and_close queued: an inline mark would
+        # arrive first and the stop's position would restore a resume point
+        # on the item the user just asked to forget.
+        self.queue_played_mark(video, False)
 
     @synchronous("_lock")
     def play_next(self):
