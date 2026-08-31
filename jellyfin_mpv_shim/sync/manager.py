@@ -10,7 +10,6 @@ import json
 import logging
 import math
 import os
-from urllib.parse import urlparse
 import shutil
 import threading
 import time
@@ -710,6 +709,15 @@ class SyncManager:
         # deleted item (the worker's finally only clears _cancelled).
         self._short_read_stalls.pop(item_id, None)
         if self._cancel_if_active(item_id):
+            # Not for the reaper: cancelling an in-flight download is a
+            # deletion too, and `only_if_auto` exists so it cannot touch a row
+            # the user has claimed. Unreachable today -- the reaper only walks
+            # COMPLETE and ERROR rows, never the active one -- but the guard
+            # should not have a hole in it that a future caller can find.
+            if only_if_auto:
+                row = self.db.get(item_id)
+                if row is not None and not is_auto(row.get("origin")):
+                    return False
             self._notify_change()
             return True
         if only_if_auto:

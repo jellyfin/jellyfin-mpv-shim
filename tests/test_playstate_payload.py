@@ -959,3 +959,45 @@ class LoopFileNeverOutlivesAudioTest(unittest.TestCase):
         pm._video = type("V", (), {"item": {"Type": "Audio",
                                             "MediaType": "Audio"}})()
         self.assertTrue(pm._current_is_audio())
+
+    def test_the_decision_is_about_the_INCOMING_item(self):
+        """The half the ordering tests above cannot see.
+
+        The write happens before `self._video = video`, so asking the player
+        answers about the OUTGOING item: a film started after a track under
+        repeat-one got loop-file "inf" -- the exact case the write exists to
+        prevent -- and the first track after a film got "no", so repeat-one
+        silently did nothing. Asserting the ORDER of the statements, and that
+        `_current_is_audio` reads metadata, both pass against that.
+        """
+        from jellyfin_mpv_shim.player import PlayerManager, _item_is_audio
+
+        pm = PlayerManager.__new__(PlayerManager)
+        audio = type("V", (), {"item": {"Type": "Audio",
+                                        "MediaType": "Audio"}})()
+        film = type("V", (), {"item": {"Type": "Movie",
+                                       "MediaType": "Video"}})()
+
+        # The player still holds the track; the film is what is starting.
+        pm._video = audio
+        self.assertTrue(pm._current_is_audio())
+        self.assertFalse(
+            _item_is_audio(film),
+            "the loop decision would be made from the outgoing track, so a "
+            "film started under repeat-one loops")
+        pm._video = film
+        self.assertTrue(
+            _item_is_audio(audio),
+            "the first track after a film would not loop under repeat-one")
+
+    def test_the_write_asks_about_the_incoming_video(self):
+        """...and the production line actually uses it."""
+        import inspect
+
+        from jellyfin_mpv_shim import player as player_mod
+
+        src = inspect.getsource(player_mod.PlayerManager._play_media)
+        write = src[src.index("self._player.loop_file"):][:220]
+        self.assertIn("_item_is_audio(video)", write,
+                      "the loop-file write asks the player, which still holds "
+                      "the previous item at this point in the start")

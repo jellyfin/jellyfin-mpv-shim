@@ -461,6 +461,17 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 #    the event thread, which would cause deadlock if they run there.
 
 
+def _item_is_audio(video):
+    """Whether ``video`` is an audio item, from its metadata.
+
+    Takes the video rather than reading ``self._video`` so it can be asked
+    during a start, before the player has adopted the new item. Metadata, not
+    mpv's track list, so it answers before a byte has been demuxed.
+    """
+    item = getattr(video, "item", None) or {} if video is not None else {}
+    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+
+
 def _rank_stream(prev_source, prev_index, streams, stream_type):
     """Find the stream in `streams` best matching the previously-selected one
     (jellyfin-web heuristic): +2 language, +2 display title, +1 relative index,
@@ -2658,8 +2669,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # `_current_is_audio` reads the ITEM's metadata, not mpv's track list,
         # so it answers correctly before a single byte has been demuxed.
         try:
+            # `video`, NOT self._video: this runs before `self._video = video`
+            # further down, so asking the player would answer about the
+            # OUTGOING item -- setting loop-file "inf" on a film started after
+            # a track under repeat-one, which is the exact thing the write
+            # exists to prevent, and "no" on the first track after a film.
             self._player.loop_file = (
-                "inf" if self.repeat_mode == "one" and self._current_is_audio()
+                "inf" if self.repeat_mode == "one" and _item_is_audio(video)
                 else "no")
         except _mpv_errors:
             pass
@@ -3484,9 +3500,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Only mark played on a genuine end-of-file. An errored/aborted stream
         # (playback-abort far from the end) must not be recorded as watched.
         if settings.force_set_played and self._finished_at_eof(video):
-            # Queued, not called: the advance below sends a stop report
-            # through the same FIFO, and a mark that overtook it would be
-            # overwritten by the position that stop carries.
+            # Queued, not called -- but note this is submitted BEFORE the
+            # advance's stop report, unlike watched_skip and unwatched_quit
+            # where the mark deliberately follows it. That is the pre-existing
+            # order (the inline set_played was here too) and it is safe at a
+            # genuine EOF: the stop carries a position at the end of the item,
+            # which Jellyfin does not read as "unwatched". What the queue buys
+            # here is ordering behind reports ALREADY in flight, not ordering
+            # against the stop below.
             self.queue_played_mark(video)
         # Repeat-all wraps back to the first track when the queue runs out
         # (repeat-one loops in mpv and never reaches here). SyncPlay drives its
@@ -4179,11 +4200,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.timeline_handle()
 
     def _current_is_audio(self):
-        video = self._video
-        if video is None:
-            return False
-        item = getattr(video, "item", None) or {}
-        return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+        """Whether the item now playing is audio. See :func:`_item_is_audio`.
+
+        Anything asking this BEFORE `self._video` is assigned must call
+        `_item_is_audio(video)` with the incoming item instead -- this answers
+        about the outgoing one.
+        """
+        return _item_is_audio(self._video)
 
     def _maybe_save_volume(self):
         """Persist the current volume into its per-type bucket if it changed.

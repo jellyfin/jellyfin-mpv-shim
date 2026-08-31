@@ -919,7 +919,14 @@ class Video(object):
         # is nothing to pin and the server should keep choosing the source
         # itself, which is what multi-version items rely on.
         srcid = self.srcid
-        if srcid is None and (self.aid is not None or self.sid is not None):
+        # Only for an index that actually INDEXES INTO a source. `sid = -1` is
+        # "no subtitles", which is source-independent -- and the remembered
+        # track sets it on every advance whose previous item had subs off, so
+        # keying off "not None" pinned MediaSources[0] for almost every play
+        # and took the source choice away from the server on multi-version
+        # items, which is the opposite of what this is for.
+        if srcid is None and ((self.aid is not None and self.aid >= 0)
+                              or (self.sid is not None and self.sid >= 0)):
             srcid = (self.source_for_track_rules() or {}).get("Id")
         self.playback_info = self.client.jellyfin.get_play_info(
             self.item_id, profile, self.aid, self.sid, media_source_id=srcid

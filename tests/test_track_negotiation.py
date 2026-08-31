@@ -302,5 +302,45 @@ class TheSourceIsPinnedWithTheIndexTest(unittest.TestCase):
         self.assertIsNone(asked["srcid"])
 
 
+class TheSourcePinIsOnlyForARealIndexTest(unittest.TestCase):
+    """`sid = -1` is "no subtitles", not an index into a source.
+
+    `_apply_remembered_tracks` sets it on every advance whose previous item
+    had subtitles off, and `remember_subtitle_track` defaults on -- so keying
+    the MediaSourceId pin off "not None" pinned `MediaSources[0]` for almost
+    every play, taking the source choice away from the server on
+    multi-version items. Which is the opposite of what the pin is for.
+    """
+
+    def _asked(self, video, api):
+        from jellyfin_mpv_shim.conf import settings
+        with mock.patch.object(settings, "always_transcode", False):
+            video.get_playback_url()
+        return api.asked[0]
+
+    def test_subtitles_off_does_not_pin_the_source(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _video(_source())
+        v.sid = -1                      # what the memory sets
+        with mock.patch.object(settings, "language_config", None):
+            asked = self._asked(v, api)
+        self.assertEqual(asked["sid"], -1, "the choice must still be sent")
+        self.assertIsNone(
+            asked["srcid"],
+            "a source was pinned for `no subtitles`, which indexes into "
+            "nothing -- so the server can no longer choose between versions")
+
+    def test_a_real_index_still_pins(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v, api = _video(_source())
+        with mock.patch.object(settings, "language_config",
+                               _rules([{"alang": "jpn"}])):
+            asked = self._asked(v, api)
+        self.assertEqual(asked["aid"], 2)
+        self.assertEqual(asked["srcid"], "src1")
+
+
 if __name__ == "__main__":
     unittest.main()

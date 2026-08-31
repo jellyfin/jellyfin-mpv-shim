@@ -282,3 +282,72 @@ class OfflineSegmentsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OfflineTrackPrecedenceTest(unittest.TestCase):
+    """A remembered track must outrank language_config for a downloaded item.
+
+    `play()` resolves the rule and then applies the remembered choice over it,
+    both before `get_playback_url`. `Video.map_streams` skips the rule
+    afterwards (`_tracks_resolved`) so it cannot overwrite the memory.
+    `OfflineVideo.map_streams` is a full override and had no such guard, and
+    its `resolve_tracks_for_negotiation` was a deliberate no-op -- so the flag
+    was never set, the rule ran again from `get_playback_url`, and it
+    overwrote the track the user picked on the previous episode. Downloaded
+    items only; the online path was covered and correct.
+    """
+
+    STREAMS = [
+        {"Index": 0, "Type": "Video", "Codec": "h264"},
+        {"Index": 1, "Type": "Audio", "Codec": "aac", "Language": "eng"},
+        {"Index": 2, "Type": "Audio", "Codec": "aac", "Language": "jpn"},
+    ]
+
+    def _video(self):
+        from jellyfin_mpv_shim.sync import offline_media
+
+        v = offline_media.OfflineVideo.__new__(offline_media.OfflineVideo)
+        v.item = {"Id": "ep1", "MediaSources": []}
+        v._source = {"Id": "s", "MediaStreams": [dict(x) for x in self.STREAMS]}
+        v.media_source = None
+        v.explicit_tracks = False
+        v.aid = v.sid = None
+        return v
+
+    def _rules(self):
+        from jellyfin_mpv_shim.language_config import parse_language_config
+        return parse_language_config([{"alang": "jpn"}])
+
+    def test_the_hook_settles_the_rule_and_marks_it_done(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v = self._video()
+        with mock.patch.object(settings, "language_config", self._rules()):
+            v.resolve_tracks_for_negotiation()
+        self.assertEqual(v.aid, 2, "the rule did not apply offline")
+        self.assertTrue(v._tracks_resolved)
+
+    def test_map_streams_does_not_overwrite_a_remembered_track(self):
+        from jellyfin_mpv_shim.conf import settings
+
+        v = self._video()
+        with mock.patch.object(settings, "language_config", self._rules()):
+            v.resolve_tracks_for_negotiation()   # rule picks jpn (2)
+            v.aid = 1                            # ...then memory picks eng
+            v.media_source = v._source
+            v.map_streams()
+        self.assertEqual(
+            v.aid, 1,
+            "language_config overwrote the track carried over from the "
+            "previous episode, on a downloaded item")
+
+    def test_the_rule_still_applies_with_no_memory(self):
+        """The control: guarding must not make the rule inert offline."""
+        from jellyfin_mpv_shim.conf import settings
+
+        v = self._video()
+        with mock.patch.object(settings, "language_config", self._rules()):
+            v.resolve_tracks_for_negotiation()
+            v.media_source = v._source
+            v.map_streams()
+        self.assertEqual(v.aid, 2)

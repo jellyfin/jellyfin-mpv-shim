@@ -196,3 +196,47 @@ class TestNoRouteEscapesTheGate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSwitchingUserOffTheLockScreen(LockedBase):
+    """The other way off the gate, and it must not be a dead end.
+
+    `_render_locked` offers a user switcher precisely so a locked user cannot
+    lock the whole client out. `set_source` no longer clears `_locked` -- a
+    server connecting must not open the gate -- so the switch has to clear it
+    itself. Without that the switch lands back on the lock screen, and if the
+    new user has no PIN then `verify_pin` answers False for every entry
+    (users.py: no `pin_hash`, no match), so nothing can unlock it again for
+    the life of the process.
+
+    Driven through the REAL `_do_switch_user`. Two earlier versions of this
+    test were worthless: one hand-set `_locked = False` before calling
+    `set_source`, i.e. performed the fix itself; the other read the method's
+    source for `self._locked = False`, which the `source is None` branch
+    already contains earlier in the text. Both passed with the fix reverted.
+    """
+
+    def test_a_successful_switch_leaves_the_gate_open(self):
+        b = self._browser()
+        self.assertTrue(b._locked)
+        self.assertEqual(b.route["kind"], "locked")
+
+        b.controller.switch_user = lambda user_id, pin: FakeSource()
+        b._do_switch_user({"id": "u2"}, "1234")
+
+        self.assertFalse(
+            b._locked,
+            "the switch landed back on the lock screen; if the new user has "
+            "no PIN nothing can ever unlock it again")
+        self.assertNotEqual(b.route["kind"], "locked")
+
+    def test_a_refused_switch_leaves_the_gate_shut(self):
+        """The control: a wrong PIN must NOT open the gate."""
+        b = self._browser()
+        b.controller.switch_user = lambda user_id, pin: False
+        bad = []
+        b._do_switch_user({"id": "u2"}, "0000", on_bad_pin=lambda: bad.append(1))
+
+        self.assertTrue(b._locked, "a refused switch opened the gate")
+        self.assertEqual(b.route["kind"], "locked")
+        self.assertEqual(bad, [1])

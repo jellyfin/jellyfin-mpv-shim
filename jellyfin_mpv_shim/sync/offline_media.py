@@ -104,17 +104,33 @@ class OfflineVideo(Video):
         self.intro_tried = False
 
     def resolve_tracks_for_negotiation(self):
-        """No-op: there is no negotiation to get ahead of.
+        """Settle language_config from the LOCAL source, before playback.
 
-        The base class settles language_config before PlaybackInfo because the
-        server bakes the audio index into a transcode. Nothing here is
-        negotiated and nothing is transcoded, and this class's own
-        `map_streams` applies the rule from the *local* source -- which is the
-        authoritative one for a downloaded file. Running the base version as
-        well would resolve the same rule against the item's stored
-        MediaSources, a second answer to a question already answered.
+        Nothing here is negotiated -- there is no PlaybackInfo and no
+        transcode -- so this is not about getting ahead of the server. It is
+        about ORDER relative to the remembered track, which `play()` applies
+        immediately after calling this: the rule first, the carried-over
+        choice over it.
+
+        This was a no-op, on the reasoning that `map_streams` below applies
+        the rule anyway. That inverted the precedence for downloaded items:
+        `map_streams` runs from `get_playback_url`, i.e. AFTER `play()` has
+        applied the memory, so the rule overwrote the track the user picked on
+        the previous episode. Setting `_tracks_resolved` here is what stops it
+        running twice.
         """
-        return
+        if self.explicit_tracks or self._tracks_resolved:
+            return
+        source = self.media_source or self._source
+        if not source:
+            return
+        self._tracks_resolved = True
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, source, self.item)
+        if rule_aid is not None:
+            self.aid = rule_aid
+        if rule_sid is not None:
+            self.sid = rule_sid
 
     def get_playback_url(self, video_bitrate=None, force_transcode=False):
         self.media_source = dict(self._source)
@@ -175,12 +191,17 @@ class OfflineVideo(Video):
         if self.explicit_tracks:
             return
 
-        rule_aid, rule_sid = apply_language_config(
-            settings.language_config, source, self.item)
-        if rule_aid is not None:
-            self.aid = rule_aid
-        if rule_sid is not None:
-            self.sid = rule_sid
+        # Skipped once resolve_tracks_for_negotiation has run, exactly as
+        # Video.map_streams does: `play()` applies the remembered track AFTER
+        # that hook and BEFORE this, so re-running the rule here would
+        # overwrite the choice the user carried over from the last episode.
+        if not self._tracks_resolved:
+            rule_aid, rule_sid = apply_language_config(
+                settings.language_config, source, self.item)
+            if rule_aid is not None:
+                self.aid = rule_aid
+            if rule_sid is not None:
+                self.sid = rule_sid
         user_aid = source.get("DefaultAudioStreamIndex")
         user_sid = source.get("DefaultSubtitleStreamIndex")
         if user_aid is not None and self.aid is None:
