@@ -170,7 +170,7 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group W — shared-document writes · 2 findings
 | Tag | Site | Defect |
 |-----|------|--------|
-| F10 | `repository.py:803, 697, 736, 1153` | **Four** unserialised GET-whole-DTO / mutate / POST-whole-DTO writers on one document. Zero locks in the file. Two share a settings tab. |
+| ~~F10~~ **DONE** | `repository.py:803, 697, 736, 1153` | **Four** unserialised GET-whole-DTO / mutate / POST-whole-DTO writers on one document. Zero locks in the file. Two share a settings tab. |
 | ~~F16~~ **DONE** | `shader_overrides.py:91` | Bare `open(w)` truncates the whole override store; the only non-atomic whole-file write left in the tree. |
 
 ### Group K — input claims · 4 findings
@@ -454,7 +454,7 @@ code without fixing the test yields no evidence.
 | ~~F22~~ **DONE** | — | `_load_ep` / `LOAD_EP_KEY` appeared nowhere in `tests/`. Now `LOAD_ID_KEY`, covered by `TwoLoadsAtOneEpochAreDistinguishableTest`. |
 | F24 | `tests/test_shell_delete_item.py:234` | Asserts only `assertNotIn("_items", ...)` — one step, and the stale `_pages` is the other one. |
 | ~~F23~~ **DONE** | `tests/test_shell_comic.py:656` | Sets `_error` *after* a successful open, so `_showing` is True and the `elif` never fires; and it is a scene assertion, not a repaint one. |
-| F10 | `tests/_shell_harness.py` | Each fake records to its own list, so **one shared document is not representable** — the clobber cannot be written as a test until the fake models the DTO. |
+| ~~F10~~ **DONE** | `tests/_shell_harness.py` | Each fake records to its own list, so **one shared document is not representable** — the clobber cannot be written as a test until the fake models the DTO. |
 | F18 | — | No coverage of inactive non-weak sections. Needs a real-mpv regression test. |
 
 Two standing rules from `CLAUDE.md` that most of the above violate, worth re-reading
