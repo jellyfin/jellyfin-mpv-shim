@@ -16,7 +16,19 @@ on trust.
 
 ## Decisions (settled 2026-08-31 — do not relitigate)
 
-**Scope: 3.0.0 ships Phases 1-3 only.** Phases 4-5 are held. The reasoning is not
+**Scope widened 2026-08-31, after Phases 1-3 landed.** Also in 3.0.0: F5, F8, F24, F9,
+F22, F23, F10, F16, F17, F18, F19, F20. The criterion was "not a massive change to a hot
+path", and none of them is — the largest are F10 (one serialiser over four call sites)
+and F23 (a guard plus an in-flight marker). F24 is folded in with F8 because they are
+the same function. **Still deferred: F15, F25, F26, F29, F30.**
+
+F10 was conditional on the settings calls being slow enough to matter. Measured against
+the QA server: GET 4.8 ms, POST 5.3 ms, so ~10 ms per read-modify-write on localhost —
+but the race window is the whole round trip, and the real servers are remote HTTPS where
+that is 50-200 ms. Two checkboxes on one settings tab, a fifth of a second apart, is an
+ordinary action. It stays in.
+
+**Original scope (superseded): 3.0.0 ships Phases 1-3 only.** Phases 4-5 are held. The reasoning is not
 that they matter less: the app has been through several pre-releases and the bug
 tracker has largely gone quiet, and Groups N/R are broad edits to browser navigation
 and retry logic — the highest-risk place to be making 19 extra changes against a
