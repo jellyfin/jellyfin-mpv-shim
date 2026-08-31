@@ -80,6 +80,8 @@ def _pm():
     pm._load_cancelled = False
     pm._start_in_progress = False
     pm._track_memory = None
+    # A real PlayerManager always has one; CLI mode sets it None.
+    pm.menu = None
     pm.played = []
     pm._play_media = lambda video, url, *a, **kw: pm.played.append(url)
     return pm

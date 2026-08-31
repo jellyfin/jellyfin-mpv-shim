@@ -124,5 +124,70 @@ class LibraryScopeIsKnownBeforeTheDecoderTest(unittest.TestCase):
         self.assertEqual(pm.seen, [False])
 
 
+class ASlowLookupDoesNotHoldTheStartTest(unittest.TestCase):
+    """The lookup is optional; the start is not.
+
+    It runs after PlaybackInfo, so the stream url is already in hand. A server
+    that ACCEPTS and then hangs costs the apiclient 5 x 30s with a second
+    between each -- about two and a half minutes -- on a request the start
+    does not depend on. Bounded: wait a moment, then play without it, which is
+    exactly the behaviour before this moved off the action thread. The lookup
+    keeps running and caches for the next item.
+    """
+
+    def test_a_hanging_lookup_does_not_block_playback(self):
+        import threading
+        import time
+
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        profiles = _Profiles()
+        release = threading.Event()
+
+        def hangs(item, client=None):
+            release.wait(30)          # a server that accepts and says nothing
+            profiles.resolved = True
+
+        profiles.warm_library_scope = hangs
+        pm = _pm(profiles)
+        pm.SHADER_SCOPE_WAIT_SECS = 0.2
+
+        started = time.monotonic()
+        pm.play(_video())
+        elapsed = time.monotonic() - started
+        release.set()
+
+        self.assertEqual(len(pm.seen), 1,
+                         "playback never started while the optional profile "
+                         "lookup hung")
+        self.assertLess(elapsed, 5,
+                        "the start waited on the lookup for %.1fs" % elapsed)
+
+    def test_a_prompt_lookup_is_still_applied_to_the_first_item(self):
+        """The control: bounding it must not make the fix pointless."""
+        profiles = _Profiles()
+        pm = _pm(profiles)
+        pm.play(_video())
+        self.assertEqual(pm.seen, [True],
+                         "the profile was not known by the time hwdec was "
+                         "written, which is the whole point of resolving it "
+                         "here rather than on the action thread")
+
+    def test_a_cancel_during_the_lookup_is_honoured(self):
+        """Cancel is a button on the loading screen; it must not appear dead
+        for the length of an optional request."""
+        profiles = _Profiles()
+
+        def cancel_meanwhile(item, client=None):
+            pm._load_cancelled = True
+
+        profiles.warm_library_scope = cancel_meanwhile
+        pm = _pm(profiles)
+        pm.play(_video())
+        self.assertEqual(pm.seen, [],
+                         "the start ignored a cancel raised during the "
+                         "profile lookup")
+
+
 if __name__ == "__main__":
     unittest.main()

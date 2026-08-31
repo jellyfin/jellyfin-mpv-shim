@@ -2363,15 +2363,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # library-scope override exists, and the id is cached after the
             # first lookup (and comes from the catalog for anything
             # downloaded).
-            try:
-                profiles = self.menu.profile_manager if self.menu else None
-                warm = getattr(profiles, "warm_library_scope", None)
-                if warm is not None:
-                    warm(getattr(video, "item", None) or {},
-                         getattr(video, "client", None))
-            except Exception:
-                log.debug("could not warm the shader library scope",
-                          exc_info=True)
+            self._warm_shader_scope(video)
+            if self._load_cancelled:
+                # The warm above is bounded but not instant, and cancel is a
+                # button on the loading screen. Without this it appears dead
+                # for the length of the lookup.
+                log.info("Playback start cancelled during the profile lookup.")
+                self._load_cancelled = False
+                return
             self._play_media(video, url, offset, no_initial_timeline,
                              is_initial_play, apply_memory, pause_stills)
         finally:
@@ -2445,6 +2444,59 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         "to a token in the URL", exc_info=True)
             return False
         return True
+
+    #: How long a start will wait for the shader library lookup before going
+    #: on without it. Measured at 15-19 ms locally; a remote server is tens to
+    #: low hundreds. The cap is not for the normal case -- it is for a server
+    #: that ACCEPTS and then hangs, where the apiclient spends 5 x 30 s with a
+    #: second between each, about two and a half minutes, on a request the
+    #: start does not depend on and after the url is already in hand.
+    SHADER_SCOPE_WAIT_SECS = 2.0
+
+    def _warm_shader_scope(self, video):
+        """Resolve this item's library id, bounded, before _play_media.
+
+        `hwdec` is written under the player lock and read when the decoder is
+        initialised, so a library-scope profile naming a decoder has to be
+        known by then -- but the lookup is a request, and a request on the
+        start path must not be able to hold it open indefinitely.
+
+        So: run it on a thread and wait a moment. A server that answers gets
+        the profile applied to the first item, which is the whole point; one
+        that hangs costs the start `SHADER_SCOPE_WAIT_SECS` and then plays
+        without it, which is exactly the behaviour before this was moved off
+        the action thread. The lookup keeps running and caches its answer for
+        the next item either way.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+        except Exception:
+            # No menu at all is CLI mode; anything else here is a player that
+            # is not fully wired, and neither is a reason to fail a start.
+            return
+        warm = getattr(profiles, "warm_library_scope", None)
+        if warm is None:
+            return
+        item = getattr(video, "item", None) or {}
+        client = getattr(video, "client", None)
+
+        def work():
+            try:
+                warm(item, client)
+            except Exception:
+                log.debug("could not warm the shader library scope",
+                          exc_info=True)
+
+        try:
+            thread = threading.Thread(target=work, daemon=True,
+                                      name="shader-scope-warm")
+            thread.start()
+            thread.join(self.SHADER_SCOPE_WAIT_SECS)
+            if thread.is_alive():
+                log.info("The shader library lookup is slow; starting without "
+                         "it. The profile applies from the next item.")
+        except Exception:
+            log.debug("could not run the shader library lookup", exc_info=True)
 
     def _revoke_auth_header(self, video=None):
         """Take back a header installed before the stream's host was known.
