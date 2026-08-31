@@ -159,7 +159,7 @@ textually if worked in parallel branches.** One work stream per group.
 |-----|------|--------|
 | ~~F8~~ **DONE** | `app.py:727` `_land_back` | Does not restart a load the epoch dropped → permanent spinner. |
 | ~~F24~~ **DONE** | `app.py:701, 715` `_land_back` | Its two reload branches drop `_items` but not `_pages`/`_win_tried`, so a deleted item is served from the stale page cache. **Same function as F8.** |
-| F22 | `app.py:1270` | `_load_ep` stamps the *epoch*; `refresh_home` loads without bumping, so two same-epoch loads are indistinguishable and a late failure drops a working session onto the offline catalog. |
+| ~~F22~~ **DONE** | `app.py:1270` | `_load_ep` stamps the *epoch*; `refresh_home` loads without bumping, so two same-epoch loads are indistinguishable and a late failure drops a working session onto the offline catalog. |
 
 ### Group R — retry / in-flight markers · 2 findings
 | Tag | Site | Defect |
@@ -451,7 +451,7 @@ code without fixing the test yields no evidence.
 | F13 | `tests/e2e/test_track_selection.py` | The only transcode track coverage builds `Media(explicit_tracks=True)`, returning at `media.py:383` before the rule runs. Bypasses the path by construction. |
 | F11 | `tests/test_auto_download.py` `ReapProtectionTest` | Pins only the static case; `FakeManager.delete` never re-reads origin and no test mutates the catalog mid-pass. |
 | F12 | `tests/test_playlist_offline.py:146` | Pins the empty-expansion branch from an empty catalog with a *successful* server — and by pinning it, makes the bug look intentional. |
-| F22 | — | `_load_ep` / `LOAD_EP_KEY` appear nowhere in `tests/`. |
+| ~~F22~~ **DONE** | — | `_load_ep` / `LOAD_EP_KEY` appeared nowhere in `tests/`. Now `LOAD_ID_KEY`, covered by `TwoLoadsAtOneEpochAreDistinguishableTest`. |
 | F24 | `tests/test_shell_delete_item.py:234` | Asserts only `assertNotIn("_items", ...)` — one step, and the stale `_pages` is the other one. |
 | F23 | `tests/test_shell_comic.py:656` | Sets `_error` *after* a successful open, so `_showing` is True and the `elif` never fires; and it is a scene assertion, not a repaint one. |
 | F10 | `tests/_shell_harness.py` | Each fake records to its own list, so **one shared document is not representable** — the clobber cannot be written as a test until the fake models the DTO. |
