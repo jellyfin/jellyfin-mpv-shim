@@ -1214,3 +1214,59 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackToAnUnfinishedLoadRefetchesTest(unittest.TestCase):
+    """Going Back to a page whose fetch never landed must re-issue it.
+
+    A page can be left before its load returns -- the always-visible search
+    field submits, which bumps the epoch and drops the in-flight result on the
+    floor. Nothing then re-issues it: the render path spins on a route with no
+    data, no error and no outstanding request, forever.
+
+    `_land_forward` has had this recovery, and its comment argued the Back
+    case was impossible -- "going *back* to such a page is impossible (it was
+    never below you)". True only when the epoch bump came from *leaving* the
+    page; the search field bumps it while the page is still below you.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"}, reset=True)
+        return b
+
+    def test_back_to_a_page_that_never_loaded_re_issues_it(self):
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        # The grid's fetch was dropped by an epoch bump: no data, no items,
+        # no error, and no request outstanding.
+        for key in ("_data", "_items", "_error", "_loading"):
+            b.route.pop(key, None)
+        b.navigate({"kind": "search", "server": "srv1"})
+        b.go_back()
+
+        self.assertEqual(b.route["kind"], "grid")
+        self.assertTrue(
+            b.route.get("_items") is not None or b.route.get("_data")
+            is not None or b.route.get("_loading") or b.route.get("_error"),
+            "Back landed on a page with no data, no error and nothing in "
+            "flight -- a spinner that never resolves")
+
+    def test_a_page_holding_an_error_is_left_alone(self):
+        """The other direction. `_route_async`'s failure handler is
+        deliberately NOT epoch-gated, because an error is a rollback and a
+        route you navigated away from must still be holding it when you come
+        back. Refetching here would discard exactly that."""
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        for key in ("_data", "_items", "_loading"):
+            b.route.pop(key, None)
+        b.route["_error"] = "Failed to load."
+        b.navigate({"kind": "search", "server": "srv1"})
+        b.go_back()
+
+        self.assertEqual(b.route.get("_error"), "Failed to load.",
+                         "Back threw away the error the page was holding")

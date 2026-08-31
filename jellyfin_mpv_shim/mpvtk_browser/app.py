@@ -710,10 +710,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # editor from further in.
         elif (any((r or {}).get("kind") == "playlist_edit" for r in left)
               and self.route.get("kind") in ("playlist", "grid")):
-            self.route.pop("_data", None)
-            self.route.pop("_items", None)
-            self.route.pop("_loading", None)
-            self._load_route(self.route)
+            self._refetch_underneath(self.route)
         # The page we left was DELETED out from under itself. Whatever is
         # underneath still lists it, so it draws a tile pointing at nothing
         # — which invites a second press, and the second press 404s.
@@ -725,10 +722,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # every route left, like the playlist-editor case above, so a jump
         # through the history menu behaves the same as one Back press.
         elif any((r or {}).get("_deleted") for r in left):
-            self.route.pop("_data", None)
-            self.route.pop("_items", None)
-            self.route.pop("_loading", None)
-            self._load_route(self.route)
+            self._refetch_underneath(self.route)
         # Coming out of a reader: the position moved while it was open, and
         # it moved on the READER's copy of the DTO. The book page below
         # holds its own dict, fetched before any of that, so without this
@@ -736,9 +730,47 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # under a Resume button that resumes at 61%.
         elif (any((r or {}).get("kind") in ("reader", "comic") for r in left)
               and self.route.get("kind") == "book"):
+            # Only `_data`: a book page holds a DTO, not a paged list, so
+            # there is no result set to reset.
             self.route.pop("_data", None)
             self._load_route(self.route)
+        # A page can be left before its fetch ever landed -- the always-visible
+        # search field submits, which bumps the epoch and drops the in-flight
+        # result -- and nothing else re-issues it, so the render path spins on
+        # a route with no data and no request outstanding, for the rest of the
+        # session. `_land_forward` has had this recovery; its comment argued
+        # the Back case was impossible because such a page "was never below
+        # you", which holds only when the epoch bump came from LEAVING the
+        # page.
+        #
+        # `_error` is checked here and not there, deliberately: `_route_async`
+        # does not epoch-gate its failure handler because an error is a
+        # rollback and a route you navigated away from must still be holding
+        # it when you come back. Refetching would discard exactly that;
+        # `_retry_route` is the way out of an error, and it is a button.
+        elif (self.route.get("_data") is None
+                and not self.route.get("_items")
+                and not self.route.get("_error")
+                and not self.route.get("_loading")):
+            self._refetch_underneath(self.route)
         self.invalidate()
+
+    def _refetch_underneath(self, route):
+        """Drop a route's cached result set and load it again.
+
+        The paginator goes with the items. `ensure()` only rebuilds `_pages`
+        when the page SIZE changes, so a cache left behind is served straight
+        back -- the deleted tile still drawn, from a page dict, with `_items`
+        correctly gone. Every other place that replaces a result set resets it
+        (`_retry_route`, `after_playlist_deleted`, `grid.py`); `_land_back`
+        was the one that did not, which is the same one-step-of-two the test
+        for it made: it asserted `_items` and nothing else.
+        """
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
+        self._pages.reset(route)
+        self._load_route(route)
 
     def go_forward(self):
         """Return to a page ``go_back`` left. Mouse-only (the thumb button),
