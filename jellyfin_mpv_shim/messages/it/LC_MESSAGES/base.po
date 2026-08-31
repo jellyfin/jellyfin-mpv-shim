@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-26 14:42+0000\n"
-"Last-Translator: Mattexe <matterello2008@gmail.com>\n"
+"PO-Revision-Date: 2026-08-31 07:17+0000\n"
+"Last-Translator: Vincenzo Reale <smart2128vr@gmail.com>\n"
 "Language-Team: Italian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/it/>\n"
 "Language: it\n"
@@ -1390,7 +1390,7 @@ msgstr "MPV integrato predefinito"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "OSC personalizzato"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -2101,11 +2101,6 @@ msgstr ""
 "disattivazione si applica al video successivo."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid ""
-#| "MPV keybinds are used by default. Press ENTER to drive the player "
-#| "controls by keyboard. \"No player controls\" leaves playback bare; the "
-#| "library, the keyboard shortcuts and the menu key still work."
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard. \"No player controls\" leaves playback bare; the library, the "
@@ -2115,9 +2110,13 @@ msgid ""
 "it."
 msgstr ""
 "Per impostazione predefinita, vengono utilizzate le scorciatoie da tastiera "
-"MPV. Premi INVIO per controllare il lettore tramite tastiera. \"Nessun "
+"di MPV. Premi INVIO per controllare il lettore tramite la tastiera. \"Nessun "
 "controllo del lettore\" lascia la riproduzione senza controlli; la raccolta, "
-"le scorciatoie da tastiera e il tasto Menu rimangono funzionanti."
+"le scorciatoie da tastiera e il tasto Menu rimangono funzionanti. Scegli "
+"\"OSC personalizzato\" quando hai installato il tuo script OSC: in questo "
+"modo disattiva quello predefinito di MPV e conferisce alla raccolta uno "
+"sfondo uniforme, impedendo così che la schermata di inattività dello script "
+"venga visualizzata."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -3358,10 +3357,8 @@ msgid "All episodes"
 msgstr "Tutti gli episodi"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid "Skip episodes already in my library"
 msgid "Don't record episodes that are already in my library"
-msgstr "Salta gli episodi già presenti nella mia libreria"
+msgstr "Non registrare episodi già presenti nella mia raccolta"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 #, python-format
