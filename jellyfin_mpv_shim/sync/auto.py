@@ -103,6 +103,16 @@ def hysteresis():
     return lo, hi
 
 
+def _expand_failed():
+    """``manager.ExpandFailed``, imported per call.
+
+    `manager` imports this module to build its `AutoDownloader`, so naming it
+    at module scope here is a circular import that breaks the whole package.
+    """
+    from .manager import ExpandFailed
+    return ExpandFailed
+
+
 class AutoDownloader:
     """Policy and scheduling for automatic downloads.
 
@@ -371,9 +381,20 @@ class AutoDownloader:
                 continue        # downloaded, queued, or errored — leave it
             if item_id in discarded:
                 continue        # reaped on age; do not fetch it again
-            added = self.manager.enqueue(server_uuid, item_id,
-                                         item.get("Type") or "Episode",
-                                         origin=origin)
+            try:
+                added = self.manager.enqueue(server_uuid, item_id,
+                                             item.get("Type") or "Episode",
+                                             origin=origin)
+            except _expand_failed():
+                # Skip the item, do not end the pass. Letting this propagate
+                # to tick()'s catch would abort the whole run, and the next
+                # pass would reach the same item first and abort again --
+                # never getting to the candidates behind it. That is the
+                # head-of-line block `_next_runnable` exists to avoid,
+                # reintroduced one layer up.
+                log.debug("Auto-download: could not expand %s; skipping it "
+                          "this pass.", item_id, exc_info=True)
+                continue
             if added:
                 queued += added
                 budget -= self._size_of(item)

@@ -531,6 +531,10 @@ class RelocateTest(TmpTest):
         self.assertIsNotNone(m.db.get("a"))
 
     def test_move_failure_leaves_downloads_in_place(self):
+        """The move raises before it starts. Stubbing `_move_tree` is what
+        makes this the EASY half -- nothing was copied, so nothing can have
+        been half-deleted. The hard half is the test below, which must not
+        be folded into this one: a stub cannot fail partway."""
         old = os.path.join(self.tmp, "old")
         os.makedirs(old)
         m = make_manager(old, self.addCleanup)
@@ -544,6 +548,156 @@ class RelocateTest(TmpTest):
         self.assertEqual(m.db.get("keep")["status"], STATUS_COMPLETE)
         self.assertTrue(os.path.exists(
             os.path.join(old, "srv", "keep", "media.mkv")))
+
+    def test_a_cross_drive_move_that_fails_partway_destroys_nothing(self):
+        """A real partial move, which is where the downloads were lost.
+
+        `_move_tree` used to copy each entry and delete the original
+        immediately, so a cross-device move that copied `catalog.db` and then
+        ran out of space on the media had *already* destroyed the catalog.
+        The recovery reopens the old root, finds no catalog, creates an empty
+        one -- and `_open_and_run`'s startup `_reconcile_disk` then removes
+        every surviving media directory as an orphan, because an empty
+        catalog says nothing on disk is known. The user was told their
+        downloads had been left in place.
+
+        Not a stub: the whole defect lives in the half-finished state, which
+        is exactly what a stubbed `_move_tree` cannot produce.
+
+        The listdir order is pinned rather than left to the filesystem
+        because the catastrophic case is specifically catalog-then-media --
+        with the media first, the catalog survives and the reconcile is
+        harmless. Sorted puts `catalog.db` before `srv`.
+        """
+        import errno
+        from unittest import mock
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        self._seed_download(m)
+        media = os.path.join(old, "srv", "keep", "media.mkv")
+        real_listdir = os.listdir
+        real_copy_tree = m._copy_tree
+
+        def copy_tree(src, dst, state, progress):
+            # The disk fills on the media, after the catalog has gone across.
+            if os.path.basename(src) == "srv":
+                raise OSError(errno.ENOSPC, "No space left on device")
+            return real_copy_tree(src, dst, state, progress)
+
+        m._copy_tree = copy_tree
+
+        def no_rename(src, dst):
+            raise OSError(errno.EXDEV, "cross-device link")
+
+        with mock.patch("jellyfin_mpv_shim.sync.manager.os.rename",
+                        side_effect=no_rename), \
+                mock.patch("jellyfin_mpv_shim.sync.manager.os.listdir",
+                           side_effect=lambda p: sorted(real_listdir(p))):
+            ok, msg = m.relocate(os.path.join(self.tmp, "drive2"))
+
+        self.assertFalse(ok)
+        self.assertTrue(msg)
+        self.assertEqual(m.root, old)
+        # The media itself. This is the assertion the old stubbed test could
+        # never make fail, and the one the user cares about.
+        self.assertTrue(os.path.exists(media),
+                        "a failed move deleted the downloaded media")
+        # ...and the catalog still knows about it, so it is still reachable
+        # from the UI rather than being an unreferenced file on disk.
+        row = m.db.get("keep")
+        self.assertIsNotNone(row, "a failed move emptied the catalog")
+        self.assertEqual(row["status"], STATUS_COMPLETE)
+
+
+    def test_a_disk_full_move_says_so(self):
+        """ENOSPC is the one failure the user can act on, so it gets its own
+        wording. The generic message sent people hunting for a bug."""
+        import errno
+        m = make_manager(os.path.join(self.tmp, "old"), self.addCleanup)
+        self.addCleanup(m.stop)
+        os.makedirs(m.root, exist_ok=True)
+        self._seed_download(m)
+
+        def full(*a, **k):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        m._move_tree = full
+        ok, msg = m.relocate(os.path.join(self.tmp, "drive2"))
+        self.assertFalse(ok)
+        self.assertIn("space", msg.lower())
+
+    def test_a_failed_copy_leaves_no_partial_destination(self):
+        """A half-copied destination directory would be skipped by the
+        `already there` guard on the next attempt, so retrying after freeing
+        space would silently finish a partial tree."""
+        import errno
+        from unittest import mock
+        old = os.path.join(self.tmp, "old")
+        os.makedirs(old)
+        m = make_manager(old, self.addCleanup)
+        self.addCleanup(m.stop)
+        self._seed_download(m)
+        new = os.path.join(self.tmp, "drive2")
+        real_copy_tree = m._copy_tree
+
+        def die_after_writing_something(src, dst, state, progress):
+            real_copy_tree(src, dst, state, progress)   # creates dst for real
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        m._copy_tree = die_after_writing_something
+
+        def no_rename(src, dst):
+            raise OSError(errno.EXDEV, "cross-device link")
+
+        with mock.patch("jellyfin_mpv_shim.sync.manager.os.rename",
+                        side_effect=no_rename):
+            ok, _msg = m.relocate(new)
+        self.assertFalse(ok)
+        self.assertFalse(os.path.exists(os.path.join(new, "srv")),
+                         "a half-copied destination was left behind")
+        self.assertTrue(os.path.exists(
+            os.path.join(old, "srv", "keep", "media.mkv")))
+
+
+class ReconcileGateTest(TmpTest):
+    """`_reconcile_disk` deletes on-disk item dirs with no catalog row. An
+    empty catalog therefore says "delete everything", which is precisely the
+    state a failed relocation used to leave behind."""
+
+    def test_a_brand_new_catalog_does_not_sweep_existing_media(self):
+        root = os.path.join(self.tmp, "root")
+        os.makedirs(os.path.join(root, "srv", "keep"))
+        media = os.path.join(root, "srv", "keep", "media.mkv")
+        with open(media, "wb") as fh:
+            fh.write(b"x" * 100)
+        self.assertFalse(os.path.exists(os.path.join(root, "catalog.db")))
+
+        m = SyncManager()
+        m.root = root
+        m.get_client = lambda uuid: None
+        self.addCleanup(m.stop)
+        m._open_and_run()          # creates catalog.db, then would sweep
+        self.addCleanup(lambda: m.db.close())
+
+        self.assertTrue(os.path.exists(media),
+                        "the orphan sweep ran against a catalog it had just "
+                        "created and deleted media it could not know about")
+
+    def test_an_existing_catalog_still_sweeps_orphans(self):
+        """The other half: the sweep must still do its job, or this fix has
+        quietly disabled a feature instead of gating it."""
+        root = os.path.join(self.tmp, "root")
+        os.makedirs(root)
+        m = make_manager(root, self.addCleanup)   # creates the catalog
+        self.addCleanup(m.stop)
+        m.db.close()
+        orphan = os.path.join(root, "srv", "nobody")
+        os.makedirs(orphan)
+        m._open_and_run()
+        self.assertFalse(os.path.exists(orphan),
+                         "an orphan next to a real catalog was not swept")
 
 
 class StopTest(TmpTest):

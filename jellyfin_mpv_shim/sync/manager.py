@@ -5,6 +5,7 @@ it over IPC (estimate / enqueue / delete) and receives change + progress pushes.
 Downloads pull the original file via /Items/{id}/Download.
 """
 
+import errno
 import json
 import logging
 import math
@@ -110,6 +111,21 @@ class _Stopped(Exception):
 
 class _Cancelled(Exception):
     """Raised inside the worker when the active download is being deleted."""
+
+
+class ExpandFailed(Exception):
+    """The server could not be asked what is inside a container.
+
+    Deliberately distinct from an empty answer. "This playlist holds nothing
+    downloadable" is a fact about the playlist and a reason to drop its
+    record; "the request failed" is a fact about the network and must never
+    be read that way. Both were the bare value ``[]`` until this existed,
+    which is how a 500 on the ordinary top-up gesture deleted a downloaded
+    playlist and its ownership rows while the dialog reported success.
+
+    Public because ``AutoDownloader.fill`` catches it by name: one unlistable
+    item has to be skipped rather than end the pass.
+    """
 
 
 def _same_origin(url, server):
@@ -258,15 +274,35 @@ class SyncManager:
         # Stamped before anything slow: the settle is measured from the app
         # opening its catalog, not from the end of a disk reconcile.
         self._started_at = time.monotonic()
-        self.db = SyncDB(os.path.join(self.root, "catalog.db"))
+        catalog_path = os.path.join(self.root, "catalog.db")
+        # Asked BEFORE SyncDB, which creates the file.
+        had_catalog = os.path.exists(catalog_path)
+        self.db = SyncDB(catalog_path)
         # Recover rows interrupted mid-download on a previous run.
         for row in self.db.list(status=STATUS_DOWNLOADING):
             self.db.update(row["item_id"], status=STATUS_PENDING)
-        # Reconcile the catalog with what is actually on disk (best-effort).
-        try:
-            self._reconcile_disk()
-        except Exception:
-            log.debug("Startup disk reconcile failed.", exc_info=True)
+        # Reconcile the catalog with what is actually on disk (best-effort) --
+        # but NEVER against a catalog that did not exist a moment ago.
+        #
+        # An empty catalog says "nothing on disk is known", and the sweep
+        # believes it: every media directory becomes an orphan and is deleted.
+        # That is not hypothetical. A relocation that moved `catalog.db` across
+        # and then failed on the media reopened here, at the old root, with the
+        # catalog gone -- and the sweep finished the job the failed move had
+        # started, while the user was being told their downloads were left in
+        # place. A first run has no catalog and no media either, so skipping
+        # costs nothing; anything else is media we cannot prove is orphaned.
+        if had_catalog:
+            try:
+                self._reconcile_disk()
+            except Exception:
+                log.debug("Startup disk reconcile failed.", exc_info=True)
+        elif any(os.path.isdir(os.path.join(self.root, n))
+                 for n in (os.listdir(self.root) if os.path.isdir(self.root)
+                           else [])):
+            log.warning("Opened a new catalog at %s next to existing media; "
+                        "skipping the orphan sweep so nothing is removed on "
+                        "the strength of an empty catalog.", self.root)
         self._stop = False
         self._generation += 1
         self._worker = threading.Thread(target=self._run,
@@ -333,7 +369,7 @@ class SyncManager:
                             "stop, then try again.")
         try:
             self._move_tree(old_root, new_root, progress)
-        except Exception:
+        except Exception as exc:
             log.error("Failed to move download folder from %r to %r",
                       old_root, new_root, exc_info=True)
             self.root = old_root
@@ -342,6 +378,13 @@ class SyncManager:
             finally:
                 # Cleared only once the catalog is open again -- see below.
                 self._relocating = False
+            # Named separately because it is the one the user can act on, and
+            # the generic wording sent people looking for a bug instead of at
+            # their free space.
+            if getattr(exc, "errno", None) == errno.ENOSPC:
+                return False, _("There isn't enough space on that drive to "
+                                "move the downloads. Free some space and try "
+                                "again — nothing was moved.")
             return False, _("Moving the downloads failed. They were left in "
                             "place; the download folder was not changed.")
         self.root = new_root
@@ -370,11 +413,22 @@ class SyncManager:
             return
         names = [n for n in os.listdir(old_root)
                  if not os.path.exists(os.path.join(new_root, n))]
+        # catalog.db LAST. While it is still at the old root, a move that dies
+        # partway can reopen the real catalog there -- which is what keeps the
+        # startup sweep in `_open_and_run` from mistaking surviving media for
+        # orphans. Moving it first is what turned "the copy failed" into "the
+        # downloads are gone".
+        names.sort(key=lambda n: n == "catalog.db")
         sizes = {n: self._tree_size(os.path.join(old_root, n)) for n in names}
         # [copied so far, total, bytes at last emit] — mutated as we go.
         state = [0, sum(sizes.values()), 0]
         if progress:
             progress(0, state[1])
+        # Sources of entries copied across, removed only once EVERY entry is
+        # over. Deleting each one as it finished meant a later failure had
+        # already destroyed the earlier originals, and the caller's "they were
+        # left in place" was a straight untruth by then.
+        placed = []
         for name in names:
             src = os.path.join(old_root, name)
             dest = os.path.join(new_root, name)
@@ -383,15 +437,34 @@ class SyncManager:
                 state[0] += sizes[name]
                 self._emit_progress(state, progress, force=True)
             except OSError:
-                # Different drive (EXDEV): copy across, then drop the original.
-                self._copy_tree(src, dest, state, progress)
-                if os.path.isdir(src):
-                    shutil.rmtree(src, ignore_errors=True)
-                else:
-                    try:
-                        os.remove(src)
-                    except OSError:
-                        pass
+                # Different drive (EXDEV): copy across; the original stays put
+                # until the whole move has succeeded.
+                try:
+                    self._copy_tree(src, dest, state, progress)
+                except BaseException:
+                    # Our own half-written destination, not the user's data --
+                    # remove it so a retry after freeing space does not hit the
+                    # "already there, skip it" guard above and silently finish
+                    # a partial tree. Anything that was in `new_root` before we
+                    # started was never in `names` and is not touched.
+                    if os.path.isdir(dest):
+                        shutil.rmtree(dest, ignore_errors=True)
+                    else:
+                        try:
+                            os.remove(dest)
+                        except OSError:
+                            pass
+                    raise
+                placed.append(src)
+        # Everything is across. Only now is dropping the originals safe.
+        for src in placed:
+            if os.path.isdir(src):
+                shutil.rmtree(src, ignore_errors=True)
+            else:
+                try:
+                    os.remove(src)
+                except OSError:
+                    pass
         # Drop the now-empty old folder (best-effort; harmless if it lingers).
         try:
             os.rmdir(old_root)
@@ -748,9 +821,16 @@ class SyncManager:
                 return [i for i in items if i.get("Type") in DOWNLOADABLE]
             item = api.get_item(item_id, fields="MediaSources,Path")
             return [item] if item else []
-        except Exception:
+        except Exception as exc:
+            # Raised, not swallowed into []. Two documented contracts above
+            # this depend on it: `gateway.download_enqueue` ("Raises on
+            # failure... swallowed, a rejected enqueue looked exactly like a
+            # queued one") and `gateway.download_estimate` (a zero estimate
+            # made failure indistinguishable from "already fully downloaded"
+            # and hid the retry control). Both were defeated here.
             log.error("Failed to expand %s (%s)", item_id, item_type, exc_info=True)
-            return []
+            raise ExpandFailed(
+                "could not list %s (%s)" % (item_id, item_type)) from exc
 
     @staticmethod
     def _source_size(item):

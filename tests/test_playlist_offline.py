@@ -146,6 +146,11 @@ class PlaylistOwnershipTest(TmpTest):
     def test_unsupported_playlist_records_nothing(self):
         # A playlist of only unsupported types (e.g. MusicVideo, not in
         # PLAYLIST_SUPPORTED_TYPES) expands to nothing, so no playlist is made.
+        #
+        # This is the GENUINELY-empty case and dropping the record is correct.
+        # It is not evidence about the failed-expansion case, which looked
+        # identical from inside enqueue until _expand learned to raise -- see
+        # PlaylistExpansionFailureTest.
         jf = FakeJellyfin([{"Id": "s1", "Type": "MusicVideo",
                             "MediaSources": [{"Id": "ms", "Size": 1}],
                             "UserData": {}}])
@@ -154,6 +159,77 @@ class PlaylistOwnershipTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("PL"), set())
         self.assertEqual(m.db.list_playlists(), [])
         m.db.close()
+
+
+class PlaylistExpansionFailureTest(TmpTest):
+    """A server error while listing a playlist must not be read as "this
+    playlist is empty now".
+
+    `_expand` caught everything and returned [], so a 500 on the ordinary
+    top-up gesture -- press Download on a playlist you already have -- reached
+    `_record_playlist(member_ids=[])`, which deletes the playlist row and every
+    ownership row with it. `enqueue` then returned 0 without raising, so the
+    dialog ran its `on_ok` and told the user it had worked.
+
+    The ownership loss outlived the outage: with the rows gone, the next
+    successful download sees an empty `already_owned` and a full
+    `pre_existing`, marks every track unowned, and "Delete playlist" from then
+    on removes the record and no files at all.
+    """
+
+    class AngryJellyfin(FakeJellyfin):
+        def get_playlist_items(self, playlist_id, fields=None):
+            raise RuntimeError("500 Internal Server Error")
+
+    def _downloaded_playlist(self):
+        """A playlist actually *downloaded*, not merely queued.
+
+        `list_playlists()` only returns playlists holding at least one
+        COMPLETE item, so leaving these PENDING would make its assertion pass
+        trivially -- it would read [] both before and after.
+        """
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        for iid in ("a", "b"):
+            m.db.update(iid, status=STATUS_COMPLETE)
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"})
+        self.assertEqual([p["playlist_id"] for p in m.db.list_playlists()],
+                         ["PL"], "the fixture did not record a playlist")
+        return m
+
+    def test_a_failed_listing_keeps_the_playlist_and_its_ownership(self):
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.enqueue("uuid", "PL", "Playlist")
+        self.assertEqual([p["playlist_id"] for p in m.db.list_playlists()],
+                         ["PL"], "a server error deleted the playlist record")
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"},
+                         "a server error dropped playlist ownership, so a "
+                         "later delete would remove the record and no files")
+
+    def test_the_failure_reaches_the_caller(self):
+        """`gateway.download_enqueue` documents "Raises on failure" and the
+        dialog's `_edit_call` deliberately does not swallow, so the whole
+        chain above this already reports it -- once enqueue stops returning
+        0 as though it had succeeded."""
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.enqueue("uuid", "PL", "Playlist")
+
+    def test_estimate_also_reports_the_failure(self):
+        """Same swallow, second victim: `download_estimate` says returning a
+        zero estimate made failure indistinguishable from "already fully
+        downloaded", and the dialog then hides the retry control."""
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.estimate("uuid", "PL", "Playlist")
 
 
 class PlaylistDeleteTest(TmpTest):
