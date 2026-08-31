@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-31 07:59+0000\n"
+"PO-Revision-Date: 2026-08-31 08:17+0000\n"
 "Last-Translator: khao_lek <khao_lek@yahoo.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -4158,10 +4158,9 @@ msgid "Delete Playlist"
 msgstr "ลบเซิร์ฟเวอร์"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the playlist %s?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบเพลย์ลิสต์ %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/queue_edit.py
 msgid "Type"
