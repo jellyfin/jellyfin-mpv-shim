@@ -118,7 +118,7 @@ textually if worked in parallel branches.** One work stream per group.
 | ~~F1~~ **DONE** | `player.py:2294` → `media.py:594` | Auth header installed before the URL exists; a direct-path `Http` source sends the token to a third-party host. |
 | ~~F13~~ **DONE** | `media.py:830` vs `:838` | `language_config` resolved *after* `get_play_info`, so it is inert for every transcode. Reaches every queue advance (`get_next` drops `explicit_tracks`). |
 | ~~F6~~ **DONE** | `player.py:2705` | Remembered episode tracks applied after the URL loads; same root cause as F13, narrower reach. |
-| F14 | `video_profile.py:576` vs `player.py:2524` | Library-scope shader profile resolves off-lock and lands after `hwdec` was written and the decoder initialised. |
+| ~~F14~~ **DONE** | `video_profile.py:576` vs `player.py:2524` | Library-scope shader profile resolves off-lock and lands after `hwdec` was written and the decoder initialised. |
 
 ### Group L — lifecycle gates and identity · 4 findings
 | Tag | Site | Defect |
@@ -159,6 +159,35 @@ textually if worked in parallel branches.** One work stream per group.
 | Tag | Site | Defect |
 |-----|------|--------|
 | ~~F28~~ **DONE** | `media.py` `get_playback_url` | **PlaybackInfo silently ignores `AudioStreamIndex` unless `MediaSourceId` is sent with it**, falling back to `DefaultAudioStreamIndex`. Measured on Jellyfin 12.0: six different requested tracks all returned the default; adding the id returned each one, in both query and body form. `media_source_id=self.srcid` is None for any ordinary play, so **audio track selection on a transcode was inert for every normal playback** — including the one F13 had just arranged to resolve at the right moment. Only sent when a track is actually requested, so a multi-version item still lets the server choose. Found by e2e and *only* by e2e. |
+
+### Group Z — reported from the field, NOT yet reproduced
+| Tag | Site | Report |
+|-----|------|--------|
+| F29 | `player.py` load gate / `_on_cache_pause` | **User report, Windows 11 + external mpv (shinchiro), NAS drives asleep:** playing a video straight after waking the HTPC makes mpv loop ~2-3 s until the NAS spins up; skipping back a few seconds recovers it. **On 2.10 the screen stayed blank instead.** |
+
+**What is established.** The change in symptom is explained by `672ef1ac` ("stop gating
+the start on a duration that may never arrive"). Before it, the start waited for
+`duration`; a stalled SMB source never reports one, so the wait ran out the whole
+`playback_timeout` and stopped playback — a blank screen, exactly as reported for 2.10.
+After it the wait is *also* satisfied by `file-loaded`, which fires as soon as mpv has
+the tracks, so the start now proceeds and playback runs against a source that is not
+delivering. That commit is right about its own case (a live channel never reports a
+duration) and this is its cost.
+
+**What is NOT established:** what produces the ~2-3 s loop. Candidates read but not
+confirmed — the offset seek applied while the demuxer is starved, or mpv replaying its
+small cache. Nothing was reproduced, so nothing here is a diagnosis.
+
+**One real gap found while looking.** `_on_cache_pause` (`player.py:1567`), the observer
+on `paused-for-cache`, returns immediately unless SyncPlay is enabled. Outside a
+SyncPlay group the client does **nothing** when mpv stalls on its cache: it neither
+surfaces the state nor recovers from it, so a starving source is indistinguishable from
+a broken one. That is not the loop's cause, but it is why the user has nothing on
+screen telling them the NAS is still spinning up.
+
+**Before acting, ask for:** the shim's `log.txt` from the affected run (**grabbed before
+relaunching — it is rewritten on every start**) and mpv's own log, plus whether
+`direct_paths` is on (the report says SMB and a NAS, which implies it).
 
 ### Group T — tooling (not shipped code)
 | Tag | Site | Defect |
