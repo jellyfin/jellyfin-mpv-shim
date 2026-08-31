@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 23:24-0400\n"
+"POT-Creation-Date: 2026-08-30 22:19-0400\n"
 "PO-Revision-Date: 2026-08-22 01:47+0000\n"
 "Last-Translator: Chris van den Berg <chris.vandenberg@bergplaza.nl>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1452,6 +1452,10 @@ msgid "MPV built-in default"
 msgstr "Ingebouwde standaard MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Custom OSC"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
 #| msgid "Player Controls Style"
 msgid "No player controls"
@@ -2119,7 +2123,10 @@ msgstr ""
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard. \"No player controls\" leaves playback bare; the library, the "
-"keyboard shortcuts and the menu key still work."
+"keyboard shortcuts and the menu key still work. Choose \"Custom OSC\" when "
+"you have installed your own OSC script: it turns MPV's own off and gives the "
+"library a solid background, so the script's idle screen cannot show through "
+"it."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3258,7 +3265,9 @@ msgstr ""
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "Dit zal dit item verwijderen van zowel het bestandssysteem als uit je mediabibliotheek. Weet je zeker dat je wilt doorgaan?"
+msgstr ""
+"Dit zal dit item verwijderen van zowel het bestandssysteem als uit je "
+"mediabibliotheek. Weet je zeker dat je wilt doorgaan?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -4719,7 +4728,8 @@ msgstr ""
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "Afleveringsafbeeldingen gebruiken in de secties 'Volgende' en 'Verderkijken'"
+msgstr ""
+"Afleveringsafbeeldingen gebruiken in de secties 'Volgende' en 'Verderkijken'"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""

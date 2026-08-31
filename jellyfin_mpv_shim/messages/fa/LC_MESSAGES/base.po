@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 23:24-0400\n"
+"POT-Creation-Date: 2026-08-30 22:19-0400\n"
 "PO-Revision-Date: 2025-08-23 13:20+0000\n"
 "Last-Translator: RadvinM <tworadvin@gmail.com>\n"
 "Language-Team: Persian <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1497,6 +1497,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Custom OSC"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
 msgstr ""
 
@@ -2136,7 +2140,10 @@ msgstr ""
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard. \"No player controls\" leaves playback bare; the library, the "
-"keyboard shortcuts and the menu key still work."
+"keyboard shortcuts and the menu key still work. Choose \"Custom OSC\" when "
+"you have installed your own OSC script: it turns MPV's own off and gives the "
+"library a solid background, so the script's idle screen cannot show through "
+"it."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3320,7 +3327,9 @@ msgstr ""
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "حذف این مورد، آن را هم از فایل سیستمی و هم از کتابخانه رسانه شما حذف می کند. آیا اطمینان دارید که می‌خواهید ادامه دهید؟"
+msgstr ""
+"حذف این مورد، آن را هم از فایل سیستمی و هم از کتابخانه رسانه شما حذف می کند. "
+"آیا اطمینان دارید که می‌خواهید ادامه دهید؟"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
