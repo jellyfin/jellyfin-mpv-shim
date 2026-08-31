@@ -168,6 +168,26 @@ class RealVideo:
         self.subtitle_enc = set()
         self.played = []
 
+    def source_for_track_rules(self):
+        """The source track rules resolve against. `Video` prefers the
+        negotiated one and falls back to the item's; there is only one here.
+
+        Called by `_apply_remembered_tracks`, which now runs BEFORE the url --
+        so, like the method below, omitting it does not leave a path uncovered,
+        it breaks every start that carries track memory.
+        """
+        return self.media_source
+
+    def resolve_tracks_for_negotiation(self):
+        """No-op, like OfflineVideo's: nothing here is negotiated.
+
+        Modelled rather than omitted because `play()` calls it on every video
+        before the url -- that is where the audio index handed to PlaybackInfo
+        is settled -- so a stand-in without it does not leave a path untested,
+        it makes the whole start unreachable. See docs/testing.md on fakes.
+        """
+        return
+
     def get_transcode_bitrate(self):
         return "none"
 
