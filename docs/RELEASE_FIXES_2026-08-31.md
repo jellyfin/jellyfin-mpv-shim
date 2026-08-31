@@ -107,7 +107,7 @@ textually if worked in parallel branches.** One work stream per group.
 | Tag | Site | Defect |
 |-----|------|--------|
 | ~~F2~~ **DONE** | `sync/manager.py:359` `_move_tree` | Copy-then-delete per entry; catalog moves first, media copy fails, reopen builds an empty catalog, `_reconcile_disk` deletes the survivors as orphans. Error says "left in place". **Destroys downloads.** |
-| F11 | `sync/auto.py:243` → `:324` | Reaper snapshots complete auto rows, spends seconds in per-row HTTP, then deletes by `item_id`; `delete_item` never re-reads `origin`, so a download the user claimed mid-pass is deleted. **Destroys media.** |
+| ~~F11~~ **DONE** | `sync/auto.py:243` → `:324` | Reaper snapshots complete auto rows, spends seconds in per-row HTTP, then deletes by `item_id`; `delete_item` never re-reads `origin`, so a download the user claimed mid-pass is deleted. **Destroys media.** |
 | ~~F12~~ **DONE** | `sync/manager.py:595` via `:752` | `_expand` swallows all errors → `[]`; `enqueue` has no empty guard; `_record_playlist([])` calls `delete_playlist`. Returns 0, does not raise, UI reports success. Ownership loss is permanent. **Destroys the playlist record.** |
 | F7 | `sync/manager.py:1021` | Snapshot → network → `clear_playstate(ids)`; `upsert_playstate` updates in place, so the ack deletes unsent progress. |
 | F25 | `sync/manager.py:918`, `sync/auto.py:149` | `work_offline` appears nowhere in `sync/` except playback source selection. Live toggle leaves the worker streaming on a metered link. |
@@ -287,6 +287,25 @@ the new test in 25s with its own message rather than hanging the suite.
 `whole suite [jsonipc]` leg — a test mpv is not being torn down on that backend. The
 harness now tolerates it; nobody has found out why it happens. Worth a look before
 trusting jsonipc teardown in production.
+
+**F11 — done** (`9de2d1a0`). The claim is **atomic, not merely narrower**:
+`db.delete_if_auto()` checks the origin and deletes under one lock acquisition, and
+`update()` takes the same lock, so the window is closed rather than shrunk. Re-reading
+the origin without the lock would have been the tempting fix and is not one.
+
+`delete_item(only_if_auto=True)` deletes the row **before** removing the files, which
+also settles the "Minor" ordering item the durability audit raised for this path: a
+failed unlink leaves orphans the next reconcile sweeps, while files-first with a failed
+row delete leaves a COMPLETE row pointing at nothing that the same sweep answers by
+re-downloading it. The main `delete_item` path is unchanged and still files-first —
+that half of the minor finding is open.
+
+`_delete` now returns whether the row went, so a skipped item is not counted as reaped,
+not credited as a cap eviction, and **not tombstoned** — a tombstone would be the reaper
+recording a decision about an item that is no longer its business.
+
+`FakeManager.delete` models `only_if_auto`; without it the fake deletes what the real
+manager refuses to, leaving the race untestable while reporting a pass. Suite: 5,136.
 
 ## 4. Tests that must be rewritten *before* the fix
 
