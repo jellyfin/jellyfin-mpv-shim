@@ -1710,7 +1710,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         claim = getattr(self.app, "claim_keys", None)
         if claim is None:
             return
-        page = self._page_for(route)
+        # Nothing at all once the library is off screen, and this is the
+        # whole of the fix for a stale frame reinstalling a page's keys.
+        #
+        # `build()` returns early on `not self._browsing`, but a playback
+        # update arrives on a foreign thread and can flip that flag DURING
+        # `_render_route` -- and this call is unconditional, deliberately,
+        # because it is what makes leaving a page drop its claim. So a frame
+        # already in flight when the browser yielded put the reader's keys
+        # back, Lua accepted them from a renderer that is no longer active,
+        # and every later playback build returned before reaching here. SPACE
+        # stopped pausing the video for the rest of the session.
+        #
+        # Answering "no keys" keeps the call unconditional and turns the
+        # stale frame into a release instead of a reinstall. Guarding the
+        # CALL instead would have broken the release-on-leave the comment
+        # above describes.
+        page = self._page_for(route) if self._browsing else None
         try:
             claim(getattr(page, "claimed_keys", ()) or ())
         except Exception:
