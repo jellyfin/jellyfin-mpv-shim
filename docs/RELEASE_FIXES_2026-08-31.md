@@ -69,6 +69,42 @@ fixed too:
 A free-space precheck is a nice-to-have on top; it is not a substitute for (1) and (2),
 since ENOSPC can arrive from another writer filling the disk mid-copy.
 
+## Post-review state (2026-08-31)
+
+Both reviews ran against the branch and **found eight real regressions in the fixes
+themselves** — four from `/code-review high`, four from codex. Every one passed the
+tests I had written for the fix it broke. All eight are fixed, each with a test that
+fails when the fix is reverted.
+
+The two that mattered most:
+
+* **Switching user from the lock screen bricked the client.** Removing the `_locked`
+  clear from `set_source` was right; `_do_switch_user`'s success path depended on it.
+  And `verify_pin` answers False for a user with no `pin_hash`, so switching to a
+  PIN-less user made the client unusable for the life of the process — off a screen
+  whose switcher exists precisely so a locked user cannot be locked out.
+* **`loop-file` was decided from the OUTGOING item.** The write was moved before
+  `self._video = video`, so a film started after a track under repeat-one got
+  `loop_file="inf"` — the exact case the write exists to prevent, reintroduced while
+  fixing a neighbouring bug.
+
+Codex additionally found that **F22 was fixed by half** (the load-id guard covered
+failures, not successes, leaving #560's mirror open), that revoking the auth header
+**stranded our own subtitles** with no credential, that the connection generation was
+bumped **after** the drain rather than before, and that the DisplayPreferences lock was
+**per-instance** so a reconnect reopened the clobber window.
+
+**The recurring cause, six times over: a test fixture that agreed with the bug.** The
+mocked reporter, `explicit_tracks=True`, `priority: -1` builtins in four separate
+fixtures, the swept-tuple shape, `RealVideo` missing two methods, two player fakes
+missing `menu`. Where a fix here changed a fixture, that fixture was the reason the
+defect was invisible.
+
+Two of my own first-attempt tests for these were themselves worthless — one performed
+the fix inside the test before asserting, the other read method source that already
+contained a different branch's clear. Both passed with the fix reverted. **Mutation-test
+every new assertion**; it is the only thing that caught them.
+
 ## Merge gate
 
 **A green integration matrix is the merge gate for this branch** (agreed 2026-08-31).
