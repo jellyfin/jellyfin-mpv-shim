@@ -123,10 +123,10 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group L — lifecycle gates and identity · 4 findings
 | Tag | Site | Defect |
 |-----|------|--------|
-| F3a | `clients.py:206` | `PeriodicHealthCheck` starts in `__init__`, so it reconnects regardless of the PIN gate. |
-| F3b | `app.py:2451` | `set_source()` clears `_locked` unconditionally. |
-| F21 | `app.py:901` | `on_nav_command("home")` never checks `_locked`; a remote `GoHome` walks past the gate **and permanently disarms it** (`show_locked`'s idempotence guard then no-ops forever). |
-| F4 | `clients.py:933` | `switch_user` does not invalidate in-flight auth; publication checks shutdown/removal, and the switch clears `_removed_uuids` itself. |
+| ~~F3a~~ **DONE** | `clients.py:206` | `PeriodicHealthCheck` starts in `__init__`, so it reconnects regardless of the PIN gate. |
+| ~~F3b~~ **DONE** | `app.py:2451` | `set_source()` clears `_locked` unconditionally. |
+| ~~F21~~ **DONE** | `app.py:901` | `on_nav_command("home")` never checks `_locked`; a remote `GoHome` walks past the gate **and permanently disarms it** (`show_locked`'s idempotence guard then no-ops forever). |
+| ~~F4~~ **DONE** | `clients.py:933` | `switch_user` does not invalidate in-flight auth; publication checks shutdown/removal, and the switch clears `_removed_uuids` itself. |
 
 ### Group N — browser navigation and loading · 3 findings
 | Tag | Site | Defect |
@@ -392,6 +392,26 @@ be a **class** attribute and `OfflineVideo` needed an explicit no-op override, o
 offline playback raised AttributeError. The online tests could not see it.
 
 Suite: 5,155 unit; 21 e2e track-selection tests pass against Jellyfin 12.0.0.
+
+### Phase 3 complete
+
+F3a/F3b/F21 landed as one enumeration (`dad789c5`) and F4 as a connection
+generation (see below). **All of Phases 1-3 — the 3.0.0 scope — are now done.**
+
+The PIN gate is enforced where headless already is: `Navigator.allows`, which
+`navigate()` consults before touching the stack. **Removing that check makes the
+catch-all report 30 reachable routes**, against the two doors that had individual
+checks. `_default_route` is lock-aware for the same reason it is headless-aware —
+every stack-emptying path backfills through it, so without that `set_source`'s reset
+still landed on Home while the PIN was unanswered.
+
+Clearing the flag moved to the unlock handler: `set_source` was doing double duty as
+"a source arrived" and "the user answered the PIN", and only the first is what its
+callers mean. Two pre-existing tests caught the move immediately.
+
+Per the settled decision, connections still happen while locked — the gate is about
+what is on screen, not the network — and `tests/test_mpvtk_locked.py` says so rather
+than implying a boundary it does not provide.
 
 ## 4. Tests that must be rewritten *before* the fix
 
