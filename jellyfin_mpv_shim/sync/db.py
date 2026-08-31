@@ -315,6 +315,43 @@ class SyncDB:
                 self._conn.rollback()
                 raise
 
+    def delete_if_auto(self, item_id):
+        """Delete ``item_id`` only while it is *still* an auto-download.
+
+        Returns the row that was deleted, or None if it no longer qualifies
+        (promoted to user-owned, or already gone).
+
+        The check and the delete share ONE lock acquisition, because the
+        window between them is the entire bug. The reaper reads a row, then
+        spends seconds on the network deciding about it -- one
+        get_userdata_for_item per row -- and `enqueue` can promote that row
+        with `set_origin` at any point in there. Re-reading the origin
+        without holding the lock only makes the window smaller; holding it
+        makes the claim atomic against every writer, since `update` takes the
+        same lock.
+        """
+        with self._lock:
+            if self._conn is None:
+                return None
+            try:
+                found = self._conn.execute(
+                    "SELECT * FROM downloads WHERE item_id=?",
+                    (item_id,)).fetchone()
+                if found is None:
+                    return None
+                row = dict(found)
+                if not is_auto(row.get("origin")):
+                    return None
+                self._conn.execute("DELETE FROM downloads WHERE item_id=?",
+                                   (item_id,))
+                self._conn.execute("DELETE FROM playlist_items WHERE item_id=?",
+                                   (item_id,))
+                self._conn.commit()
+                return row
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
     def delete_playlist(self, playlist_id):
         with self._lock:
             if self._conn is None:

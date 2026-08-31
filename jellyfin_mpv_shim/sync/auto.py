@@ -245,8 +245,8 @@ class AutoDownloader:
             for row in self.manager.db.list_auto_incomplete():
                 if self._interrupted():
                     return removed
-                self._delete(row, "failed download")
-                removed += 1
+                if self._delete(row, "failed download"):
+                    removed += 1
         except Exception:
             log.debug("Could not reclaim failed auto downloads",
                       exc_info=True)
@@ -263,8 +263,9 @@ class AutoDownloader:
                 # skipped by enqueue's own include_watched=False, and a
                 # cap eviction is space pressure rather than a judgement
                 # that the user does not want the episode.
-                self._delete(row, reason, tombstone=reason.startswith("un"))
-                removed += 1
+                if self._delete(row, reason,
+                                tombstone=reason.startswith("un")):
+                    removed += 1
             else:
                 keep.append(row)
         # Whatever survived retention still has to fit the budget — but only
@@ -282,7 +283,8 @@ class AutoDownloader:
                     break
                 if not self._is_watched(row):
                     continue
-                self._delete(row, "over the cap")
+                if not self._delete(row, "over the cap"):
+                    continue    # claimed by the user; it is not ours to evict
                 size -= row["downloaded_bytes"] or 0
                 removed += 1
         return removed
@@ -332,9 +334,19 @@ class AutoDownloader:
             return False
 
     def _delete(self, row, reason, tombstone=False):
+        """Remove one auto-download. Returns whether it actually went.
+
+        ``only_if_auto`` makes the manager re-check the origin under the
+        catalog lock instead of trusting `row`, which was read before the
+        retention loop's network calls. A user pressing Download in that
+        window promotes the row to user-owned, and `enqueue` promises that
+        takes it out of the reaper's reach; the snapshot alone could not
+        honour that. False here means they got in first.
+        """
+        if not self.manager.delete(item_id=row["item_id"], only_if_auto=True):
+            return False
         log.info("Auto-download: removing %s (%s).",
                  row["name"] or row["item_id"], reason)
-        self.manager.delete(item_id=row["item_id"])
         if tombstone:
             # Remember the decision. An unwatched episode dropped on age is
             # still the server's Next Up -- unwatched is why it is there --
@@ -345,6 +357,7 @@ class AutoDownloader:
             except Exception:
                 log.debug("Could not record the discard for %s",
                           row["item_id"], exc_info=True)
+        return True
 
     # -- planning ----------------------------------------------------------
 

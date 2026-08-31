@@ -703,22 +703,47 @@ class SyncManager:
                 return True
         return False
 
-    def delete_item(self, item_id):
+    def delete_item(self, item_id, only_if_auto=False):
+        """Remove one download. Returns whether anything was removed.
+
+        ``only_if_auto`` is the reaper's: delete the row only while it is
+        still an auto-download. The reaper decides from a snapshot taken
+        before a long run of network calls, and a user pressing Download in
+        that window promotes the row to user-owned -- which is exactly the
+        promise `enqueue` makes when it does so. Without this the episode was
+        deleted out from under them.
+        """
         # Drop any short-read stall bookkeeping so it can't linger for a
         # deleted item (the worker's finally only clears _cancelled).
         self._short_read_stalls.pop(item_id, None)
         if self._cancel_if_active(item_id):
             self._notify_change()
-            return
+            return True
+        if only_if_auto:
+            # Claimed atomically, then the files. Row first is deliberate
+            # here: a failed unlink leaves orphaned files that the next
+            # reconcile sweeps, whereas files-first with a failed row delete
+            # leaves a COMPLETE row pointing at nothing, which the same sweep
+            # answers by downloading it all over again.
+            row = self.db.delete_if_auto(item_id)
+            if row is None:
+                log.info("Not reaping %s: it is no longer an auto-download.",
+                         item_id)
+                return False
+            self._remove_files(row)
+            self._notify_change()
+            return True
         row = self.db.get(item_id)
         if not row:
-            return
+            return False
         self._remove_files(row)
         self.db.delete(item_id)
         self._notify_change()
+        return True
 
     def delete(self, item_id=None, series_id=None, season_id=None,
-               watched_only=False, watched_all=False, playlist_id=None):
+               watched_only=False, watched_all=False, playlist_id=None,
+               only_if_auto=False):
         """Flexible delete: a single item, a season, a whole series, a
         playlist's downloads, and/or only watched items within that scope.
 
@@ -730,8 +755,9 @@ class SyncManager:
         if self._relocating:
             return  # catalog is mid-move; caller can retry after
         if item_id:
-            self.delete_item(item_id)
-            return
+            # The only branch with a meaningful return -- the reaper reads it
+            # to know whether its count and its tombstone are earned.
+            return self.delete_item(item_id, only_if_auto=only_if_auto)
         if not (series_id or season_id or playlist_id or watched_all):
             log.error("sync delete called with no scope; refusing to delete "
                       "the whole catalog")
