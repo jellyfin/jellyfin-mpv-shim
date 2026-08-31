@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-24 10:20+0000\n"
+"PO-Revision-Date: 2026-08-31 09:42+0000\n"
 "Last-Translator: Vitalijus <vitalijus.n@gmail.com>\n"
 "Language-Team: Lithuanian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/lt/>\n"
@@ -2249,7 +2249,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "New playlist name…"
-msgstr ""
+msgstr "Naujas grojaraščio pavadinimas…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Create"
