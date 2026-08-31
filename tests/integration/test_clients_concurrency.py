@@ -674,5 +674,95 @@ class OneClientPerServerTest(unittest.TestCase):
                         "the other route to a connected server reads as down")
 
 
+class SwitchUserInvalidatesInFlightAuthTest(unittest.TestCase):
+    """A connect that completes AFTER a user switch must not register.
+
+    `switch_user` drains the registry and swaps the credentials, but an
+    authenticate already in flight knows nothing about it: `connect_client`
+    publishes its result checking only `is_stopping` and `_removed_uuids` --
+    and the switch CLEARS `_removed_uuids` itself, so by the time the old
+    connect lands neither guard can refuse it.
+
+    `_switching` does not cover this either. It makes the health check and the
+    websocket redial loops stand down before they *start* a tick; a connect
+    already blocked inside `authenticate` is past that check, and authenticate
+    is where the seconds are.
+
+    The result is the previous account's authenticated client registered under
+    the new user, reachable from `_collect_servers` and therefore from the
+    server list and the home screen.
+    """
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+
+    def _users(self):
+        from jellyfin_mpv_shim.users import UserManager
+
+        users = UserManager()
+        users.save = lambda: None
+        return users
+
+    def test_a_connect_landing_after_the_switch_is_refused(self):
+        users = self._users()
+        old = users.add_user("Old user")
+        new = users.add_user("New user")
+        users.set_active(old["id"])
+        users.set_active_credentials([server("old-credential")])
+
+        started, release = threading.Event(), threading.Event()
+
+        def authenticate(_client):
+            started.set()
+            self.assertTrue(release.wait(5))
+
+        fake = FakeClient(on_authenticate=authenticate)
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            pending = threading.Thread(target=cm.connect_client,
+                                       args=(cm.credentials[0],))
+            pending.start()
+            self.assertTrue(started.wait(5), "the connect never started")
+
+            self.assertTrue(cm.switch_user(new["id"]))
+            self.assertEqual(cm.credentials, [],
+                             "the new user should have no servers")
+
+            release.set()
+            pending.join(5)
+            self.assertFalse(pending.is_alive())
+
+        self.assertEqual(list(cm.clients), [],
+                         "the previous user's client was registered after the "
+                         "switch, so their account is reachable as the new user")
+        self.assertTrue(fake.stopped,
+                        "the refused client was left running, holding a "
+                        "websocket and a server session")
+
+    def test_a_connect_with_no_switch_still_registers(self):
+        """The control. Refusing everything would pass the test above and
+        break connecting altogether."""
+        users = self._users()
+        only = users.add_user("Only user")
+        users.set_active(only["id"])
+        users.set_active_credentials([server("s1")])
+
+        fake = FakeClient()
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            self.assertTrue(cm.connect_client(cm.credentials[0]))
+        self.assertEqual(list(cm.clients), ["s1"])
+        self.assertFalse(fake.stopped)
+
+
+
 if __name__ == "__main__":
     unittest.main()
