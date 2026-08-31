@@ -1014,6 +1014,14 @@ class ClientManager(object):
 
             self._switching.set()
             try:
+                # BEFORE the drain, not after the swap: a connect that
+                # completes between stop_all_clients() and the bump would
+                # otherwise still match the generation it captured, register
+                # into the just-emptied registry, and survive -- nothing
+                # drains it a second time. Bumping first makes every connect
+                # already in flight stale for the whole of the switch.
+                with self._client_lock:
+                    self._user_generation += 1
                 # Persist whatever the active user currently has, then tear its
                 # live clients down.
                 self.save_credentials()
@@ -1026,10 +1034,6 @@ class ClientManager(object):
                 # uuid-colliding) reconnects.
                 with self._client_lock:
                     self._removed_uuids.clear()
-                    # After the clear, not before: this is what still refuses
-                    # a connect started under the old user, now that the
-                    # removal ledger no longer can.
-                    self._user_generation += 1
             finally:
                 self._switching.clear()
 

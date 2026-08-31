@@ -154,3 +154,49 @@ class ForeignMediaHostTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    SIDECAR = {"Type": "Subtitle", "Index": 2, "IsExternal": True,
+               "IsExternalUrl": False, "DeliveryMethod": "External",
+               "DeliveryUrl": "/Videos/1/Subtitles/2/Stream.srt"}
+
+    def _with_sidecar(self, source, foreign_sub=False):
+        sub = dict(self.SIDECAR)
+        if foreign_sub:
+            sub["IsExternalUrl"] = True
+            sub["DeliveryUrl"] = "https://subs.example.invalid/a.srt"
+        v = _video(source, streams=[sub])
+        v.explicit_tracks = True
+        v.sid = 2
+        v.get_playback_url = lambda: (v.map_streams(),
+                                      v._get_url_from_source())[1]
+        pm = _pm()
+        pm.seen = []
+        pm._play_media = lambda video, url, *a, **k: pm.seen.append(
+            (video.subtitle_url.get(2), _headers(pm)))
+        return v, pm
+
+    def test_our_own_subtitle_keeps_a_credential_when_the_header_is_revoked(self):
+        """Revoking for a foreign MEDIA host must not strand OUR subtitle.
+
+        `map_streams` builds a sidecar url with no token because the header
+        was going to carry it. Revoking left it with no credential at all --
+        401, no captions, on exactly the items that take the direct path.
+        """
+        v, pm = self._with_sidecar(self.FOREIGN)
+        with mock.patch("jellyfin_mpv_shim.media.settings.direct_paths", True):
+            pm.play(v)
+        url, headers = pm.seen[0]
+        self.assertNotIn(TOKEN, headers,
+                         "the token went to the third-party media host")
+        self.assertIn("ApiKey=", url or "",
+                      "our own subtitle was left with no credential at all")
+
+    def test_a_foreign_subtitle_is_not_given_the_token(self):
+        """The rule the revoke exists to enforce, in the other direction."""
+        v, pm = self._with_sidecar(self.FOREIGN, foreign_sub=True)
+        with mock.patch("jellyfin_mpv_shim.media.settings.direct_paths", True):
+            pm.play(v)
+        url, headers = pm.seen[0]
+        self.assertNotIn(TOKEN, headers)
+        self.assertNotIn(TOKEN, url or "",
+                         "a third-party subtitle host was handed our token")

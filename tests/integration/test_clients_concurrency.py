@@ -745,6 +745,63 @@ class SwitchUserInvalidatesInFlightAuthTest(unittest.TestCase):
                         "the refused client was left running, holding a "
                         "websocket and a server session")
 
+    def test_a_connect_landing_between_the_drain_and_the_swap_is_refused(self):
+        """The interval the first version of this test could not see.
+
+        It released authentication only after the WHOLE switch, so it
+        exercised the interleaving the fix already handled. The generation was
+        bumped after `stop_all_clients()`, so a connect completing in between
+        still matched the generation it captured, registered into the
+        just-emptied registry, and survived -- nothing drains it twice.
+        """
+        users = self._users()
+        old = users.add_user("Old user")
+        new = users.add_user("New user")
+        users.set_active(old["id"])
+        users.set_active_credentials([server("old-credential")])
+
+        entered, release = threading.Event(), threading.Event()
+        drained, resume = threading.Event(), threading.Event()
+
+        def authenticate(_client):
+            entered.set()
+            self.assertTrue(release.wait(5))
+
+        fake = FakeClient(on_authenticate=authenticate)
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+        original_drain = cm.stop_all_clients
+
+        def drain_then_pause():
+            original_drain()
+            drained.set()
+            self.assertTrue(resume.wait(5))
+
+        cm.stop_all_clients = drain_then_pause
+
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            connector = threading.Thread(target=cm.connect_client,
+                                         args=(cm.credentials[0],))
+            connector.start()
+            self.assertTrue(entered.wait(5))
+
+            switcher = threading.Thread(target=cm.switch_user,
+                                        args=(new["id"],))
+            switcher.start()
+            self.assertTrue(drained.wait(5), "the drain never ran")
+
+            release.set()
+            connector.join(5)
+            resume.set()
+            switcher.join(5)
+            self.assertFalse(switcher.is_alive())
+
+        self.assertEqual(
+            list(cm.clients), [],
+            "a connect that landed between the drain and the identity swap "
+            "registered the previous user's client, and nothing drains twice")
+
     def test_a_connect_with_no_switch_still_registers(self):
         """The control. Refusing everything would pass the test above and
         break connecting altogether."""

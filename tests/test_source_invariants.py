@@ -464,7 +464,15 @@ class TestNoTopLevelMutableClassState(unittest.TestCase):
     after the refactor that introduces one.
     """
 
-    ALLOWED = {"ROUTES", "HEADLESS_ROUTES", "MODULES"}
+    #: `_PREFS_LOCKS` is shared ACROSS instances on purpose, which is the one
+    #: thing this test exists to catch -- so it is declared here rather than
+    #: silently exempted. The DisplayPreferences document belongs to the
+    #: server, not to whichever LibrarySource holds a connection to it, and a
+    #: reconnect builds a new source while async work still holds a writer
+    #: bound to the old one. Per-instance locks would be two locks for one
+    #: document, i.e. the lost update the lock exists to prevent.
+    ALLOWED = {"ROUTES", "HEADLESS_ROUTES", "LOCKED_ROUTES", "MODULES",
+               "_PREFS_LOCKS"}
 
     @staticmethod
     def _is_settings_schema(cls):

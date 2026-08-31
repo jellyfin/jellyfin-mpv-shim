@@ -132,6 +132,25 @@ class TwoWritersDoNotClobberEachOtherTest(unittest.TestCase):
             lambda: src.save_user_prefs("srv", {"use_episode_images": True}))
         self.assertEqual(api.posts, 2)
 
+    def test_two_library_sources_share_one_lock(self):
+        """A reconnect builds a NEW LibrarySource while async work can still
+        hold a writer bound to the old one (`ui.py` swaps the source on every
+        reconnect). Per-instance locks are two locks for one document, which
+        is the same lost update with an extra step."""
+        api = _Api(barrier=threading.Barrier(2, timeout=BARRIER_WAIT))
+        before, after = _source(api), _source(api)
+
+        self._run_both(
+            before,
+            lambda: before.save_home_layout("srv", ["resume", "nextup"]),
+            lambda: after.save_user_prefs("srv", {"use_episode_images": True}))
+
+        custom = api.doc.get("CustomPrefs") or {}
+        self.assertTrue([k for k in custom if k.startswith("homesection")],
+                        "the layout write was lost across a source rebuild")
+        self.assertTrue([k for k in custom if "pisode" in k or "mage" in k],
+                        "the prefs write was lost across a source rebuild")
+
     def test_a_single_writer_is_unaffected(self):
         """The control: no barrier, one writer, nothing to serialise."""
         api = _Api()

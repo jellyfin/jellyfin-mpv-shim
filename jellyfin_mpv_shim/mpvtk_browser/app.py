@@ -1326,6 +1326,18 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         load_id = self._next_load_id()
         route[self.LOAD_ID_KEY] = load_id
 
+        def landed(data):
+            # The success half of the same guard. `run_async` gates on_done by
+            # EPOCH, and a refresh deliberately shares one (`refresh_home`
+            # loads without bumping) -- so an older load answering after a
+            # newer one was still applied, putting stale rows back. That is
+            # the mirror of the failure case below, and gating only the
+            # failure fixed half a bug: #560's just-watched episode
+            # reappearing in Continue Watching is this half.
+            if route.get(self.LOAD_ID_KEY) != load_id:
+                return
+            on_done(data)
+
         def failed(exc):
             # Paging guards must not survive the failure or the view stops
             # requesting anything for the rest of the session. Unconditional,
@@ -1362,7 +1374,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # which runs neither callback. A marker left set would stop the
             # screen refreshing for the rest of its life.
             route.pop("_refreshing", None)
-        self.run_async(work, on_done, ep, on_error=failed, always=settled)
+        self.run_async(work, landed, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
     # thin forwarders while unconverted routes still call them as methods.

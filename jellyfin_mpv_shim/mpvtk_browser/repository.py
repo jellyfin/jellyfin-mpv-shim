@@ -661,6 +661,9 @@ class LibrarySource:
     #: any I/O.
     _PREFS_LOCK_GUARD = threading.Lock()
 
+    #: server uuid -> lock, shared by every LibrarySource. See below.
+    _PREFS_LOCKS: dict = {}
+
     def _display_prefs_lock(self, server_uuid):
         """The lock serialising this server's DisplayPreferences writes.
 
@@ -683,17 +686,22 @@ class LibrarySource:
         running the sequence in order; ``users.py:save`` is the local-document
         equivalent.
 
+        **Class-level, not per instance.** The document belongs to the
+        server, not to whichever ``LibrarySource`` happens to be holding a
+        connection to it -- and a reconnect builds a NEW source while
+        asynchronous work can still be holding a writer bound to the old one
+        (``ui.py`` swaps the source on every reconnect). Two instances with
+        two locks is the same lost update this exists to prevent, just harder
+        to see.
+
         Lazily built rather than set in ``__init__`` so every construction
-        path has one, including the subclasses and the tests that build a
+        path shares it, including the subclasses and the tests that build a
         source with ``__new__``.
         """
         with LibrarySource._PREFS_LOCK_GUARD:
-            locks = self.__dict__.get("_prefs_locks")
-            if locks is None:
-                locks = self._prefs_locks = {}
-            lock = locks.get(server_uuid)
+            lock = LibrarySource._PREFS_LOCKS.get(server_uuid)
             if lock is None:
-                lock = locks[server_uuid] = threading.Lock()
+                lock = LibrarySource._PREFS_LOCKS[server_uuid] = threading.Lock()
             return lock
 
     def _display_prefs_dto(self, api):

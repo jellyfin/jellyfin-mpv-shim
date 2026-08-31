@@ -2338,6 +2338,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.info("Not sending the auth header to mpv: this item "
                          "streams from another host.")
                 self._revoke_auth_header(video)
+                # The subtitles are still OURS. map_streams built their urls
+                # without a token because the header was going to carry it,
+                # and revoking left them with no credential at all -- a 401
+                # and no captions, on exactly the items that take this route.
+                try:
+                    video.reauthorize_sidecars()
+                except Exception:
+                    log.debug("could not re-authorize subtitle urls",
+                              exc_info=True)
             # Last thing before _play_media, which holds the player lock and
             # writes `hwdec` there -- read by mpv when the decoder is
             # initialised, so a library-scope profile naming a decoder has to

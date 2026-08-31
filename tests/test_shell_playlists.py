@@ -1321,6 +1321,26 @@ class TwoLoadsAtOneEpochAreDistinguishableTest(unittest.TestCase):
             "already loaded fine")
         self.assertEqual(route.get("_data"), {"ok": True})
 
+    def test_an_older_SUCCESS_does_not_overwrite_a_newer_one(self):
+        """The mirror of the case above, and the half the first fix missed.
+
+        `run_async` gates on_done by EPOCH, and a refresh deliberately shares
+        one -- so gating only the failure left the success path open: an older
+        load answering after a newer one put its stale rows back. That is
+        #560's just-watched episode reappearing in Continue Watching.
+        """
+        b = self._browser()
+        route, epoch = b.route, b._epoch
+        b._route_async(route, lambda: {"version": "old"},
+                       lambda d: route.update(_data=d), epoch)
+        b._route_async(route, lambda: {"version": "new"},
+                       lambda d: route.update(_data=d), epoch)
+        b._pool.release(1)
+        b._pool.release(0)
+        self.assertEqual(
+            route.get("_data"), {"version": "new"},
+            "an older load's result overwrote the newer refresh")
+
     def test_the_newest_load_can_still_report_its_own_failure(self):
         """The control: distinguishing the two must not stop a genuine
         failure being shown, or the view spins instead of offering a retry."""

@@ -390,6 +390,40 @@ class Video(object):
         if rule_sid is not None:
             self.sid = rule_sid
 
+    def reauthorize_sidecars(self):
+        """Put a token back into our own subtitle urls after the mpv header
+        has been revoked.
+
+        `map_streams` builds an external subtitle's url from its DeliveryUrl
+        and does NOT add a token: with the Authorization header installed it
+        does not need one. But the header is revoked when the *media* turns
+        out to live on somebody else's host -- and the subtitle is still ours,
+        so it is left with no credential at all and comes back 401, i.e. no
+        captions on exactly the items that take the direct-path route.
+
+        Only same-origin urls: a sidecar hosted elsewhere (IsExternalUrl) must
+        not be handed our token, which is the rule the revoke exists to
+        enforce in the first place.
+        """
+        from .utils import same_origin
+
+        if not self.subtitle_url:
+            return
+        try:
+            server = self.client.config.data["auth.server"]
+            token = self.client.config.data["auth.token"]
+        except Exception:
+            return
+        if not token:
+            return
+        for index, url in list(self.subtitle_url.items()):
+            if not url or not same_origin(url, server):
+                continue
+            if "ApiKey=" in url or "api_key=" in url:
+                continue
+            sep = "&" if "?" in url else "?"
+            self.subtitle_url[index] = "%s%sApiKey=%s" % (url, sep, token)
+
     def map_streams(self):
         self.subtitle_seq = {}
         self.subtitle_uid = {}
