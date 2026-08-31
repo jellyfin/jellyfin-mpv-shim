@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-07-28 16:27+0000\n"
-"Last-Translator: Natawan Jongnetiwisit <TKGAME11@outlook.com>\n"
+"PO-Revision-Date: 2026-08-31 07:59+0000\n"
+"Last-Translator: khao_lek <khao_lek@yahoo.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -664,10 +664,9 @@ msgid "Incorrect PIN."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "เซิร์ฟเวอร์:"
+msgstr "ตั้งค่าพินสำหรับ %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
@@ -2728,10 +2727,9 @@ msgid "The position could not be saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy, python-format
-#| msgid "{0} has joined."
+#, python-format
 msgid "%s (joined)"
-msgstr "{0} เข้าร่วมแล้ว"
+msgstr "(เข้าร่วมแล้ว) %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -3245,10 +3243,9 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Delete the downloaded copy of %s?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบสําเนาที่ดาวน์โหลดมาของ %s?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -3297,20 +3294,14 @@ msgid "%s has not been downloaded."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
+#, python-format
 msgid "%s could not be downloaded."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "%s ไม่สามารถดาวน์โหลดได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
-#, fuzzy, python-format
-#| msgid "Remove Server"
+#, python-format
 msgid "Downloading %s…"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "กำลังดาวน์โหลด %s …"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "The recording could not be read."
@@ -4053,10 +4044,9 @@ msgid "Instant mix"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
-#, fuzzy, python-format
-#| msgid "Select Audio Track"
+#, python-format
 msgid "%d tracks"
-msgstr "เลือกแทร็กเสียง"
+msgstr "%d แทร็ก"
 
 # seeded from jellyfin-web: Artists
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
