@@ -568,8 +568,24 @@ class ReportingMixin:
         """
         if video is None:
             return
-        self._reporter.submit(lambda: video.set_played(watched),
-                              "item_played")
+
+        def mark():
+            try:
+                video.set_played(watched)
+            except Exception:
+                # Logged HERE, at warning, rather than left to the reporter's
+                # `log.debug`. Both callers reach this through `put_task`, and
+                # the action thread reported a failure at `log.exception` --
+                # so moving the mark onto the queue, and nothing else, would
+                # have taken a deliberate user action from loudly logged to
+                # invisible. A watched mark that silently does not happen is
+                # the shape that produces unreproducible reports.
+                log.warning("Could not mark %s as %s.",
+                            getattr(video, "item_id", "?"),
+                            "played" if watched else "unplayed",
+                            exc_info=True)
+
+        self._reporter.submit(mark, "item_played")
 
     def release_stream(self, video):
         """Free ``video``'s server-side stream without blocking the caller.

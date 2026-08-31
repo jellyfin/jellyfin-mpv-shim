@@ -20,7 +20,7 @@ on trust.
 F22, F23, F10, F16, F17, F18, F19, F20. The criterion was "not a massive change to a hot
 path", and none of them is — the largest are F10 (one serialiser over four call sites)
 and F23 (a guard plus an in-flight marker). F24 is folded in with F8 because they are
-the same function. **Still deferred: F15, F25, F26, F29, F30.**
+the same function. **Still deferred: F15, F25, F26, F29.** F30 turned out to be a test race and is closed.
 
 F10 was conditional on the settings calls being slow enough to matter. Measured against
 the QA server: GET 4.8 ms, POST 5.3 ms, so ~10 ms per read-modify-write on localhost —
@@ -221,7 +221,7 @@ screen telling them the NAS is still spinning up.
 relaunching — it is rewritten on every start**) and mpv's own log, plus whether
 `direct_paths` is on (the report says SMB and a NAS, which implies it).
 
-| F30 | `player_window.py:131` (`clear_media_title`) | **jsonipc only; libmpv passes.** `tests.e2e.test_playback_eof.WindowTitleTest.test_stopping_puts_the_title_back` fails against a real server: after `stop()`, `media-title` still reads the previous item (`'Pilot' != ''`), so the window names a stopped film over the library. The docstring states the assumption that breaks — *"Every caller therefore clears after its `stop` command, **which both backends complete before returning**"* — and its own second paragraph explains why that is fatal rather than cosmetic: clearing `force-media-title` while a file is still loaded does not empty `media-title`, it falls back to the file's own metadata title. Which is exactly the observed value. Mechanism inferred from the failure shape, **not measured**: likely `command("stop")` returning on the IPC ack rather than on the unload. Same family as the `python-mpv-jsonipc` observations in `~/bin/python-mpv-jsonipc/ISSUES-2026-08-31-*.md`. Found in the first e2e run of this session and filed late — it was not in the original review. **INTERMITTENT: it has not reproduced since.** Re-run on 2026-08-31 after Phase 2: passes on libmpv, passes on jsonipc, and passes three consecutive times on jsonipc alone. Nothing in Phases 1-2 touches `force-media-title` or the stop path, so this is very unlikely to be fixed — it is a race that lost once, which is exactly what the inferred mechanism predicts. **Do not close it on the strength of a green run**; it needs the measurement (does the IPC ack precede the unload?) or it stays open as a known flake. |
+| ~~F30~~ **NOT A PRODUCT BUG — test fixed** | `tests/e2e/test_playback_eof.py` | Filed as "the window names a stopped film over the library", escalated when it reproduced on libmpv (~95% of users), then **measured** — which reversed it. `stop` unloads asynchronously, so `media-title` reports the outgoing item for a few tens of ms after the command returns and then empties on its own: measured on real mpv, `'Pilot'` at t=0, `None` by t=50ms, still `None` at 1.6s. The user-visible effect is a sub-frame flash, not a stuck title. The docstring's persistent case needs the file to STAY loaded, which `stop` prevents. So the defect was the assertion, not the shim: it read inside the race. The test now waits for the clear and then re-reads after 250 ms, so it still fails if the title is genuinely stuck — which is the part worth knowing. Passes on both backends. **Withdrawn from the jsonipc issue report.** Lesson: three separate write-ups of this (jsonipc-only, then intermittent, then escalated) were all built on failure *shape* rather than a measurement that took two minutes. |
 
 ### Group T — tooling (not shipped code)
 | Tag | Site | Defect |
@@ -472,7 +472,7 @@ Phases 1-3 that is **24 of the 30 findings fixed**.
 Still open, all by decision: **F15** (unverified — construct the interleaving first),
 **F25** (dev feature; "won't fix" or removal both on the table), **F26** (cast composite,
 read-verified only), **F29** (mpv's, and the HUD buffering state is a feature),
-**F30** (intermittent jsonipc — do not close it on a green run).
+~~**F30**~~ — resolved as a test race, measured; not a product bug.
 
 ## 4. Tests that must be rewritten *before* the fix
 

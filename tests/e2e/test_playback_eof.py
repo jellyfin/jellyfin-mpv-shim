@@ -19,6 +19,7 @@ previous run that died halfway cannot change the outcome either.
 
 import os
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -141,12 +142,31 @@ class WindowTitleTest(_ShowCase):
                          "playback did not put the item in the window title")
 
     def test_stopping_puts_the_title_back(self):
+        """...and it must STAY back, not merely arrive there.
+
+        `stop` unloads asynchronously, so `media-title` can still report the
+        outgoing item for a few tens of milliseconds after the command
+        returns. Measured on real mpv: 'Pilot' at t=0, None by t=50ms, still
+        None at 1.6s. Asserting immediately made this an intermittent failure
+        on BOTH backends -- it was filed as a jsonipc bug on the strength of
+        one sample -- for a flash the user cannot see.
+
+        So: wait for it, then assert it stays. The waiting half keeps the test
+        off the race; the second read is what still fails if the title is
+        genuinely stuck, which is the thing worth knowing.
+        """
         self.play_queue([self.eps[0]["Id"]])
         self.pm.stop()
-        self.assertEqual(
-            self.media_title(), "",
+        cleared = _e2e.wait_for(lambda: not self.media_title())
+        self.assertTrue(
+            cleared,
             "the window still names the stopped item, so the title reads "
             "as though it were still playing while the library is up")
+        time.sleep(0.25)
+        self.assertEqual(
+            self.media_title(), "",
+            "the title cleared and then came back, which is the shim "
+            "re-setting it rather than mpv settling")
 
     def test_the_end_of_a_queue_puts_the_title_back(self):
         """The other end-of-playback path, and the one nothing else follows:
