@@ -178,8 +178,8 @@ textually if worked in parallel branches.** One work stream per group.
 |-----|------|--------|
 | ~~F18~~ **DONE** | `keysweep.py:161` | `_rank` never filters `priority < 0`, so a **disabled** non-weak binding outranks mpv's live builtin and gets activated. |
 | ~~F17~~ **DONE** | `player.py:4512` | Remote seek: uppercase/lowercase key mismatch **and** a parsed tuple fed to a string parser. Both land on the stock default. Not a race — always wrong. |
-| F19 | `app.py:2591` | A stale reader frame reinstalls SPACE after yielding to video; SPACE stops pausing for the session. |
-| F20 | `menu.py:151` vs `:214` | Menu keys claimed on the outgoing mpv handle before `force_window` recreates it. |
+| ~~F19~~ **DONE** | `app.py:2591` | A stale reader frame reinstalls SPACE after yielding to video; SPACE stops pausing for the session. |
+| ~~F20~~ **DONE** | `menu.py:151` vs `:214` | Menu keys claimed on the outgoing mpv handle before `force_window` recreates it. |
 
 **F14 — considered and rejected:** prefetching the library id on the detail page. It
 would keep the play path free of the request entirely, but it only helps items reached
@@ -438,6 +438,16 @@ callers mean. Two pre-existing tests caught the move immediately.
 Per the settled decision, connections still happen while locked — the gate is about
 what is on screen, not the network — and `tests/test_mpvtk_locked.py` says so rather
 than implying a boundary it does not provide.
+
+### Widened scope complete
+
+F5, F16, F8, F24, F22, F9, F23, F10, F18, F17, F19, F20 are all done. With
+Phases 1-3 that is **24 of the 30 findings fixed**.
+
+Still open, all by decision: **F15** (unverified — construct the interleaving first),
+**F25** (dev feature; "won't fix" or removal both on the table), **F26** (cast composite,
+read-verified only), **F29** (mpv's, and the HUD buffering state is a feature),
+**F30** (intermittent jsonipc — do not close it on a green run).
 
 ## 4. Tests that must be rewritten *before* the fix
 
