@@ -14,6 +14,7 @@ import logging
 from urllib.parse import urlparse
 import os
 import random
+import threading
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
@@ -655,6 +656,46 @@ class LibrarySource:
 
     # -- home screen layout (shared with jellyfin-web) ---------------------
 
+    #: Guards creation of the per-server lock table below. Module-level and
+    #: tiny: it is held only long enough to hand out a lock, never across
+    #: any I/O.
+    _PREFS_LOCK_GUARD = threading.Lock()
+
+    def _display_prefs_lock(self, server_uuid):
+        """The lock serialising this server's DisplayPreferences writes.
+
+        There is no partial-update path on this API, so all four writers here
+        -- home layout, user prefs, Live TV prefs, per-view settings -- GET
+        the whole document, change their own slice of CustomPrefs and POST it
+        back. They run on the shared four-worker AsyncRunner and
+        ``settings/home.py`` puts two of them on one tab, so two were
+        routinely in flight: both read the same document, each posted its own
+        copy, and the later POST silently reverted the earlier change while
+        both calls reported success. The loss showed up on the next refresh,
+        on restart, or in jellyfin-web, which reads the same document.
+
+        Per server, because that is the scope of the document. Held across
+        the whole GET/change/POST -- serialising only the POST would leave
+        exactly the read-modify-write window that is the bug.
+
+        The in-tree model is ``gateway/editing.py:playlist_move_many``, which
+        hit this by fanning per-move tasks onto this pool and fixed it by
+        running the sequence in order; ``users.py:save`` is the local-document
+        equivalent.
+
+        Lazily built rather than set in ``__init__`` so every construction
+        path has one, including the subclasses and the tests that build a
+        source with ``__new__``.
+        """
+        with LibrarySource._PREFS_LOCK_GUARD:
+            locks = self.__dict__.get("_prefs_locks")
+            if locks is None:
+                locks = self._prefs_locks = {}
+            lock = locks.get(server_uuid)
+            if lock is None:
+                lock = locks[server_uuid] = threading.Lock()
+            return lock
+
     def _display_prefs_dto(self, api):
         """The raw DisplayPreferencesDto. There is no partial-update path on
         this API, so a save has to GET the whole document, mutate CustomPrefs
@@ -698,17 +739,19 @@ class LibrarySource:
         """Persist the section layout back to the server. Raises on failure —
         the settings screen reports it rather than pretending it saved."""
         api = self._conn(server_uuid).api
-        dto = self._display_prefs_dto(api)
-        custom = dict(dto.get("CustomPrefs") or {})
-        custom.update(home_sections.layout_to_prefs(layout))
-        dto["CustomPrefs"] = custom
-        # The DTO's own Id/Client round-trip unchanged; the server keys off the
-        # client name, which must match what jellyfin-web uses or we write a
-        # preference set only this client can see.
-        api.update_user_settings(dto,
-                                 client=home_sections.DISPLAY_PREFS_CLIENT)
-        excludes = self._home_prefs.get(server_uuid, (None, frozenset()))[1]
-        self._home_prefs[server_uuid] = (list(layout), excludes)
+        with self._display_prefs_lock(server_uuid):
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom.update(home_sections.layout_to_prefs(layout))
+            dto["CustomPrefs"] = custom
+            # The DTO's own Id/Client round-trip unchanged; the server keys off
+            # the client name, which must match what jellyfin-web uses or we
+            # write a preference set only this client can see.
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+            excludes = self._home_prefs.get(server_uuid,
+                                            (None, frozenset()))[1]
+            self._home_prefs[server_uuid] = (list(layout), excludes)
 
     def get_user_prefs(self, server_uuid, refresh=False):
         """Per-user display preferences, cached. See ``user_prefs``.
@@ -746,21 +789,22 @@ class LibrarySource:
         rest of the session.
         """
         api = self._conn(server_uuid).api
-        previous = self._user_prefs.get(server_uuid)
-        self._user_prefs[server_uuid] = dict(prefs)
-        try:
-            dto = self._display_prefs_dto(api)
-            custom = dict(dto.get("CustomPrefs") or {})
-            custom.update(user_prefs.prefs_to_custom(prefs))
-            dto["CustomPrefs"] = custom
-            api.update_user_settings(dto,
-                                     client=home_sections.DISPLAY_PREFS_CLIENT)
-        except Exception:
-            if previous is None:
-                self._user_prefs.pop(server_uuid, None)
-            else:
-                self._user_prefs[server_uuid] = previous
-            raise
+        with self._display_prefs_lock(server_uuid):
+            previous = self._user_prefs.get(server_uuid)
+            self._user_prefs[server_uuid] = dict(prefs)
+            try:
+                dto = self._display_prefs_dto(api)
+                custom = dict(dto.get("CustomPrefs") or {})
+                custom.update(user_prefs.prefs_to_custom(prefs))
+                dto["CustomPrefs"] = custom
+                api.update_user_settings(
+                    dto, client=home_sections.DISPLAY_PREFS_CLIENT)
+            except Exception:
+                if previous is None:
+                    self._user_prefs.pop(server_uuid, None)
+                else:
+                    self._user_prefs[server_uuid] = previous
+                raise
 
     def get_view_settings(self, server_uuid, parent_id, collection_type):
         """``{setting: (value, key)}`` for a library's saved view settings.
@@ -822,13 +866,14 @@ class LibrarySource:
             key = candidates[0]
         if isinstance(value, bool):
             value = "true" if value else "false"
-        dto = self._display_prefs_dto(api)
-        custom = dict(dto.get("CustomPrefs") or {})
-        custom[key] = value
-        dto["CustomPrefs"] = custom
-        api.update_user_settings(dto,
-                                 client=home_sections.DISPLAY_PREFS_CLIENT)
-        self._custom_prefs[server_uuid] = custom
+        with self._display_prefs_lock(server_uuid):
+            dto = self._display_prefs_dto(api)
+            custom = dict(dto.get("CustomPrefs") or {})
+            custom[key] = value
+            dto["CustomPrefs"] = custom
+            api.update_user_settings(dto,
+                                     client=home_sections.DISPLAY_PREFS_CLIENT)
+            self._custom_prefs[server_uuid] = custom
 
     def get_latest_excludes(self, server_uuid):
         """Library ids excluded from the home screen's generated rows.
@@ -1164,21 +1209,22 @@ class LibrarySource:
         call :meth:`cache_live_tv_prefs` on the loop thread; see there.
         """
         api = self._conn(server_uuid).api
-        previous = self._live_tv_prefs.get(server_uuid)
-        self._live_tv_prefs[server_uuid] = dict(prefs)
-        try:
-            dto = self._display_prefs_dto(api)
-            custom = dict(dto.get("CustomPrefs") or {})
-            custom.update(live_tv.prefs_to_custom(prefs))
-            dto["CustomPrefs"] = custom
-            api.update_user_settings(dto,
-                                     client=home_sections.DISPLAY_PREFS_CLIENT)
-        except Exception:
-            if previous is None:
-                self._live_tv_prefs.pop(server_uuid, None)
-            else:
-                self._live_tv_prefs[server_uuid] = previous
-            raise
+        with self._display_prefs_lock(server_uuid):
+            previous = self._live_tv_prefs.get(server_uuid)
+            self._live_tv_prefs[server_uuid] = dict(prefs)
+            try:
+                dto = self._display_prefs_dto(api)
+                custom = dict(dto.get("CustomPrefs") or {})
+                custom.update(live_tv.prefs_to_custom(prefs))
+                dto["CustomPrefs"] = custom
+                api.update_user_settings(
+                    dto, client=home_sections.DISPLAY_PREFS_CLIENT)
+            except Exception:
+                if previous is None:
+                    self._live_tv_prefs.pop(server_uuid, None)
+                else:
+                    self._live_tv_prefs[server_uuid] = previous
+                raise
 
     def get_channels(self, server_uuid, start_index=0, limit=CHANNEL_PAGE,
                      prefs=None, categories=(), add_current_program=True,
