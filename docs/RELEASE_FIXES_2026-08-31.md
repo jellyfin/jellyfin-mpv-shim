@@ -109,7 +109,7 @@ textually if worked in parallel branches.** One work stream per group.
 | ~~F2~~ **DONE** | `sync/manager.py:359` `_move_tree` | Copy-then-delete per entry; catalog moves first, media copy fails, reopen builds an empty catalog, `_reconcile_disk` deletes the survivors as orphans. Error says "left in place". **Destroys downloads.** |
 | ~~F11~~ **DONE** | `sync/auto.py:243` → `:324` | Reaper snapshots complete auto rows, spends seconds in per-row HTTP, then deletes by `item_id`; `delete_item` never re-reads `origin`, so a download the user claimed mid-pass is deleted. **Destroys media.** |
 | ~~F12~~ **DONE** | `sync/manager.py:595` via `:752` | `_expand` swallows all errors → `[]`; `enqueue` has no empty guard; `_record_playlist([])` calls `delete_playlist`. Returns 0, does not raise, UI reports success. Ownership loss is permanent. **Destroys the playlist record.** |
-| F7 | `sync/manager.py:1021` | Snapshot → network → `clear_playstate(ids)`; `upsert_playstate` updates in place, so the ack deletes unsent progress. |
+| ~~F7~~ **DONE** | `sync/manager.py:1021` | Snapshot → network → `clear_playstate(ids)`; `upsert_playstate` updates in place, so the ack deletes unsent progress. |
 | F25 | `sync/manager.py:918`, `sync/auto.py:149` | `work_offline` appears nowhere in `sync/` except playback source selection. Live toggle leaves the worker streaming on a metered link. |
 
 ### Group P — the playback start sequence · 4 findings · **highest interaction risk**
@@ -306,6 +306,26 @@ recording a decision about an item that is no longer its business.
 
 `FakeManager.delete` models `only_if_auto`; without it the fake deletes what the real
 manager refuses to, leaving the race untestable while reporting a pass. Suite: 5,136.
+
+**F7 — done** (`eb909b49`). `clear_playstate` takes `(id, position_ticks, played)` as
+read and deletes only where the row still holds them; a row that moved on stays pending
+and goes out next sweep. `app.py:2698 clear_status_if` is the model — it has acked by
+value all along.
+
+`IS` not `=`: both columns are nullable and `NULL = NULL` is NULL, which matches nothing
+and leaves the queue **undrainable**, re-pushing the same mark on every reconnect. That
+has its own test; swapping the operator fails it.
+
+Three tests — the lost update, the control that an untouched row still clears, and a
+three-sweep case per the multi-step rule pinning that a disturbed row eventually leaves
+the queue rather than being replayed forever. Suite: 5,139.
+
+---
+
+### Phase 1 complete
+
+F2, F12, F11, F7 done and committed; F25 was moved to Phase 5 by the Work Offline
+decision. **All four data-loss findings are closed.** Group S is finished.
 
 ## 4. Tests that must be rewritten *before* the fix
 
