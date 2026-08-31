@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-26 19:06+0000\n"
-"Last-Translator: Voranto <lucasiegel9@gmail.com>\n"
+"PO-Revision-Date: 2026-08-31 11:29+0000\n"
+"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1409,7 +1409,7 @@ msgstr "Configuración por defecto de MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "OSC personalizado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -2077,6 +2077,13 @@ msgid ""
 "library a solid background, so the script's idle screen cannot show through "
 "it."
 msgstr ""
+"De forma predeterminada se utilizan las combinaciones de teclas de MPV. "
+"Presiona ENTER para controlar el reproductor mediante el teclado. “Sin "
+"controles del reproductor” deja la reproducción sin controles; la "
+"biblioteca, los atajos de teclado y la tecla de menú siguen funcionando. "
+"Elegí “OSC personalizado” cuando hayas instalado tu propio script OSC: "
+"desactiva el OSC propio de MPV y le da a la biblioteca un fondo sólido, para "
+"que la pantalla inactiva del script no se vea a través de ella."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
