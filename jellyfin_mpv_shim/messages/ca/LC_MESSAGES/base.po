@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-31 07:41+0000\n"
+"PO-Revision-Date: 2026-08-31 09:01+0000\n"
 "Last-Translator: Andreu Punsola Soler <andreu4ps@gmail.com>\n"
 "Language-Team: Catalan <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ca/>\n"
@@ -2295,6 +2295,9 @@ msgid ""
 "Nothing renders smaller than this, whatever Text Size works out to. Raises "
 "the smallest labels without enlarging headings, which a percentage cannot do."
 msgstr ""
+"Res no es renderitza més petit que això, independentment de la mida del "
+"text. Augmenta les etiquetes més petites sense ampliar els encapçalaments, "
+"cosa que un percentatge no pot fer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2336,12 +2339,16 @@ msgid ""
 "In pixels, before interface scaling. The A- and A+ buttons in the reader "
 "change this too."
 msgstr ""
+"En píxels, previ a l'escalat d'interfície. Els botons A- i A+ del lector "
+"també ho canvien."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "How a comic page is fitted to the window when you open it. The reader's own "
 "buttons change this too."
 msgstr ""
+"Com s'adapta una pàgina de còmic a la finestra quan l'obres. Els botons del "
+"lector també canvien això."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2699,6 +2706,9 @@ msgid ""
 "shadows the ones whose own outline is white. Off puts the theme's card "
 "colour behind them instead, with no shadows."
 msgstr ""
+"Cobreix els logotips transparents amb la placa de llum per a la qual van ser "
+"dibuixats i ombreja aquells que tenen el contorn blanc. Desactivat posa el "
+"color temàtic de la carta darrere, sense ombres."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
@@ -2736,6 +2746,10 @@ msgid ""
 "shows you a number for — so there is nothing meaningful to set by hand. It "
 "is still read from the server and shown above."
 msgstr ""
+"%s registra la teva posició com una posició de lector de llibres "
+"electrònics, per a la qual cap aplicació et mostra un número, de manera que "
+"no hi ha res significatiu per definir manualment. Encara es llegeix des del "
+"servidor i es mostra a sobre."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -4399,6 +4413,10 @@ msgid ""
 "Hardware Decoding is the exception: set hwdec there and this app leaves it "
 "alone."
 msgstr ""
+"Les opcions avançades de MPV van a mpv.conf, en aquesta carpeta. MPV les "
+"llegeix a l'inici i aquests paràmetres s'apliquen posteriorment, de manera "
+"que la majoria els anul·len. La descodificació de maquinari és l'excepció: "
+"configureu hwdec allà i aquesta aplicació ho deixa estar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 msgid "Requires restart"
@@ -4414,6 +4432,8 @@ msgid ""
 "Only the General, Browse and Playback tabs are searched. Some settings are "
 "hidden until the setting they depend on is turned on."
 msgstr ""
+"Només es cerquen les pestanyes General, Navega i Reproducció. Alguns "
+"paràmetres s'oculten fins que s'activa el paràmetre del qual depenen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
 #, python-format
@@ -4526,6 +4546,8 @@ msgid ""
 "The rows the home screen shows, in order. Sections this app cannot draw are "
 "left as your web client set them."
 msgstr ""
+"Les files que mostra la pantalla d'inici, en ordre. Les seccions que aquesta "
+"aplicació no pot dibuixar es deixen tal com les ha definit el client web."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #, python-format
@@ -5019,6 +5041,10 @@ msgid ""
 "KStatusNotifierItem Support\" extension to get one, or turn on \"Allow "
 "Background\" in Settings to run without a window anyway."
 msgstr ""
+"El GNOME no dibuixa una safata del sistema pel seu compte. Instal·leu "
+"l'extensió \"AppIndicator and KStatusNotifierItem Support\" per obtenir-ne "
+"una o activeu \"Permet rerefons\" a Configuració per executar-se sense una "
+"finestra de totes maneres."
 
 #: jellyfin_mpv_shim/tray.py
 msgid ""
