@@ -16,7 +16,7 @@ on trust.
 
 ## Decisions (settled 2026-08-31 — do not relitigate)
 
-**Scope: v2.10.1 ships Phases 1-3 only.** Phases 4-5 are held. The reasoning is not
+**Scope: 3.0.0 ships Phases 1-3 only.** Phases 4-5 are held. The reasoning is not
 that they matter less: the app has been through several pre-releases and the bug
 tracker has largely gone quiet, and Groups N/R are broad edits to browser navigation
 and retry logic — the highest-risk place to be making 19 extra changes against a
@@ -252,7 +252,7 @@ output, so fixing the ranking first means F17 is written against correct data. F
 mechanical (tmp + `os.replace`, matching `conf.py:876` / `users.py:177`). F25 sits at
 the bottom of this phase. F15 last, and only after the interleaving is constructed.
 
-**Phases 4-5 are held out of v2.10.1.** They are the plan for the release after.
+**Phases 4-5 are held out of 3.0.0.** They are the plan for the release after.
 
 ---
 
