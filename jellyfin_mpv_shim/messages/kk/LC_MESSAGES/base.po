@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 23:24-0400\n"
+"POT-Creation-Date: 2026-08-30 22:19-0400\n"
 "PO-Revision-Date: 2022-07-04 21:06+0000\n"
 "Last-Translator: WWWesten <wwwesten@gmail.com>\n"
 "Language-Team: Kazakh <https://translate.jellyfin.org/projects/jellyfin/"
@@ -1498,6 +1498,10 @@ msgid "MPV built-in default"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Custom OSC"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
 msgstr ""
 
@@ -2135,7 +2139,10 @@ msgstr ""
 msgid ""
 "MPV keybinds are used by default. Press ENTER to drive the player controls "
 "by keyboard. \"No player controls\" leaves playback bare; the library, the "
-"keyboard shortcuts and the menu key still work."
+"keyboard shortcuts and the menu key still work. Choose \"Custom OSC\" when "
+"you have installed your own OSC script: it turns MPV's own off and gives the "
+"library a solid background, so the script's idle screen cannot show through "
+"it."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -3316,7 +3323,9 @@ msgstr ""
 msgid ""
 "Deleting this item will delete it from both the file system and your media "
 "library. Are you sure you wish to continue?"
-msgstr "Osy tarmaqty joiğanda, ol fail jüiesınen de, tasyğyşhanañyzdan da joiylady. Şynymen jalğastyru qajet pe?"
+msgstr ""
+"Osy tarmaqty joiğanda, ol fail jüiesınen de, tasyğyşhanañyzdan da joiylady. "
+"Şynymen jalğastyru qajet pe?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -4758,7 +4767,9 @@ msgstr ""
 # seeded from jellyfin-web: UseEpisodeImagesInNextUp
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Use episode images in 'Next Up' and 'Continue Watching' sections"
-msgstr "Telebölım suretterın \"Kezektı\" jäne \"Qaraudy jalğastyru\" bölımderınde paidalanu"
+msgstr ""
+"Telebölım suretterın \"Kezektı\" jäne \"Qaraudy jalğastyru\" bölımderınde "
+"paidalanu"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid ""
