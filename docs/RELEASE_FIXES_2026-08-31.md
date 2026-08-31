@@ -157,8 +157,8 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group N — browser navigation and loading · 3 findings
 | Tag | Site | Defect |
 |-----|------|--------|
-| F8 | `app.py:727` `_land_back` | Does not restart a load the epoch dropped → permanent spinner. |
-| F24 | `app.py:701, 715` `_land_back` | Its two reload branches drop `_items` but not `_pages`/`_win_tried`, so a deleted item is served from the stale page cache. **Same function as F8.** |
+| ~~F8~~ **DONE** | `app.py:727` `_land_back` | Does not restart a load the epoch dropped → permanent spinner. |
+| ~~F24~~ **DONE** | `app.py:701, 715` `_land_back` | Its two reload branches drop `_items` but not `_pages`/`_win_tried`, so a deleted item is served from the stale page cache. **Same function as F8.** |
 | F22 | `app.py:1270` | `_load_ep` stamps the *epoch*; `refresh_home` loads without bumping, so two same-epoch loads are indistinguishable and a late failure drops a working session onto the offline catalog. |
 
 ### Group R — retry / in-flight markers · 2 findings
