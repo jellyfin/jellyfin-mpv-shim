@@ -103,6 +103,19 @@ class OfflineVideo(Video):
         # behind conf.any_segment_wanted(), same as online.
         self.intro_tried = False
 
+    def resolve_tracks_for_negotiation(self):
+        """No-op: there is no negotiation to get ahead of.
+
+        The base class settles language_config before PlaybackInfo because the
+        server bakes the audio index into a transcode. Nothing here is
+        negotiated and nothing is transcoded, and this class's own
+        `map_streams` applies the rule from the *local* source -- which is the
+        authoritative one for a downloaded file. Running the base version as
+        well would resolve the same rule against the item's stored
+        MediaSources, a second answer to a question already answered.
+        """
+        return
+
     def get_playback_url(self, video_bitrate=None, force_transcode=False):
         self.media_source = dict(self._source)
         self.media_source["Path"] = self._local_path

@@ -79,6 +79,7 @@ def _pm():
     pm.start_time = 0.0
     pm._load_cancelled = False
     pm._start_in_progress = False
+    pm._track_memory = None
     pm.played = []
     pm._play_media = lambda video, url, *a, **kw: pm.played.append(url)
     return pm

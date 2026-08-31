@@ -2292,6 +2292,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # BEFORE the url is built: whether the header took decides
             # whether the url has to carry the token itself.
             video.auth_via_header = self._apply_auth_headers(video)
+            # Also before the url: the aid handed to PlaybackInfo is what the
+            # server bakes into a transcode, so a track settled afterwards
+            # cannot be heard. The rule first, then the remembered choice over
+            # it -- the precedence the old ordering gave for free, when the
+            # rule ran in map_streams and memory overwrote it in _play_media.
+            video.resolve_tracks_for_negotiation()
+            if is_initial_play:
+                self._track_memory = None  # new queue; start fresh
+            elif apply_memory and self._track_memory is not None:
+                self._apply_remembered_tracks(video)
             url = video.get_playback_url()
             if not url:
                 log.error("PlayerManager::play no URL found")
@@ -2736,10 +2746,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.external_subtitles_rev = {}
 
         self.upd_player_hide()
-        if is_initial_play:
-            self._track_memory = None  # new queue; start fresh
-        elif apply_memory and self._track_memory is not None:
-            self._apply_remembered_tracks(video)
+        # The remembered track is applied in play(), before the url: doing it
+        # here was after the negotiation AND after the load, and
+        # configure_streams skips audio on a transcode because the audio is
+        # already encoded into the stream. What is left here is the capture.
         self.configure_streams()
         self._capture_track_memory(video)
         self.update_subtitle_visuals()
@@ -3915,7 +3925,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         """Carry the previous episode's audio/subtitle choice into this one,
         matching by language/title/codec/position (jellyfin-web heuristic)."""
         prev_source, prev_aid, prev_sid = self._track_memory
-        streams = (video.media_source or {}).get("MediaStreams") or []
+        # source_for_track_rules, not media_source: this now runs before
+        # PlaybackInfo, where there is no negotiated source yet. It answers
+        # with the negotiated one once there is.
+        streams = (video.source_for_track_rules() or {}).get("MediaStreams") or []
 
         if settings.remember_audio_track and prev_aid is not None:
             match = _rank_stream(prev_source, prev_aid, streams, "Audio")

@@ -220,6 +220,13 @@ def segment_labels(segment_type):
 
 
 class Video(object):
+    #: Class-level, NOT only set in __init__: OfflineVideo deliberately does
+    #: not call super().__init__ (that would hit the server), and every test
+    #: helper that builds a Video with __new__ skips it too. An instance
+    #: attribute alone made `map_streams` raise AttributeError on exactly
+    #: those paths -- i.e. on offline playback.
+    _tracks_resolved = False
+
     def __init__(
         self,
         item_id: str,
@@ -284,6 +291,11 @@ class Video(object):
         self.srcid = srcid
         self.intros: List[Intro] = []
         self.intro_tried = False
+        #: Whether language_config has already had its say for this item.
+        #: Set by resolve_tracks_for_negotiation, read by map_streams so the
+        #: rule is not applied a second time -- which would overwrite a
+        #: remembered track chosen after it. See that method.
+        self._tracks_resolved = False
 
     def foreign_subtitle_hosts(self):
         """Hosts, other than our server, that mpv would fetch a subtitle from.
@@ -322,6 +334,61 @@ class Video(object):
                 if (parts.scheme, parts.hostname, parts.port) != mine:
                     foreign.add(parts.hostname)
         return foreign
+
+    def source_for_track_rules(self):
+        """The media source to resolve track rules against, before there is a
+        negotiated one.
+
+        The item's own MediaSources, which is what the details page already
+        uses to default its pickers (`pages/detail.py`), so the screen and the
+        stream agree. Once PlaybackInfo has run, the negotiated source is the
+        better answer and is preferred.
+        """
+        if self.media_source:
+            return self.media_source
+        sources = (self.item or {}).get("MediaSources") or []
+        if not sources:
+            return None
+        if self.srcid:
+            for src in sources:
+                if src.get("Id") == self.srcid:
+                    return src
+        return sources[0]
+
+    def resolve_tracks_for_negotiation(self):
+        """Settle aid/sid from language_config BEFORE PlaybackInfo.
+
+        `get_play_info` is sent `self.aid`/`self.sid`, and for a transcode the
+        server bakes the audio index it is given into `TranscodingUrl`. This
+        used to run inside `map_streams`, one line *after* that call, so the
+        rule was computed after the negotiation it exists to influence --
+        leaving `language_config` inert for every transcode while the HUD
+        ticked the language it had chosen. `configure_streams` cannot repair
+        it: it skips audio on a transcode, correctly, because the audio is
+        already encoded into the stream.
+
+        Idempotent, because `get_playback_url` runs again on a quality change
+        or a forced-transcode retry, and because `play()` calls this first so
+        it can apply a remembered track *over* the rule.
+
+        **Only the rule.** A source default is deliberately NOT resolved here:
+        posting nothing is what makes Jellyfin fall back to
+        DefaultAudioStreamIndex itself, so client and server agree. Resolving
+        one client-side and posting it would be a behaviour change, and
+        `map_streams` fills it in afterwards for the UI regardless.
+        """
+        if self.explicit_tracks or self._tracks_resolved:
+            return
+        source = self.source_for_track_rules()
+        if not source:
+            return
+        self._tracks_resolved = True
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, source, self.item)
+        if rule_aid is not None:
+            self.aid = rule_aid
+        if rule_sid is not None:
+            self.sid = rule_sid
 
     def map_streams(self):
         self.subtitle_seq = {}
@@ -384,13 +451,21 @@ class Video(object):
 
         # language_config overrides cast-time aid/sid; the user explicitly
         # opted into preferences and the menu is the runtime escape hatch.
-        rule_aid, rule_sid = apply_language_config(
-            settings.language_config, self.media_source, self.item
-        )
-        if rule_aid is not None:
-            self.aid = rule_aid
-        if rule_sid is not None:
-            self.sid = rule_sid
+        #
+        # Skipped once resolve_tracks_for_negotiation has run, and that guard
+        # is load-bearing rather than an optimisation: a remembered episode
+        # track is applied *after* the rule and before the negotiation, so
+        # re-running the rule here would overwrite the user's carried-over
+        # choice with it and invert a precedence that has always gone the
+        # other way.
+        if not self._tracks_resolved:
+            rule_aid, rule_sid = apply_language_config(
+                settings.language_config, self.media_source, self.item
+            )
+            if rule_aid is not None:
+                self.aid = rule_aid
+            if rule_sid is not None:
+                self.sid = rule_sid
 
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")
@@ -827,6 +902,9 @@ class Video(object):
             )
         )
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
+        # Before the negotiation, not after it: the aid below is what the
+        # server bakes into a transcode.
+        self.resolve_tracks_for_negotiation()
         self.playback_info = self.client.jellyfin.get_play_info(
             self.item_id, profile, self.aid, self.sid, media_source_id=self.srcid
         )
@@ -907,7 +985,18 @@ class Video(object):
                       self.item_id, exc_info=True)
 
     def set_streams(self, aid: Optional[int], sid: Optional[int]):
+        """A deliberate pick from the menu or the HUD.
+
+        Marked explicit, which is what stops language_config re-deciding it.
+        A transcode restarts through `play()` and negotiates again, and the
+        rule used to win that second pass -- so the stream carried the track
+        the user asked for while `video.aid`, the HUD and the progress report
+        all named the rule's. The user consciously overrode the rule; that is
+        exactly what `explicit_tracks` means.
+        """
         need_restart = False
+        if aid is not None or sid is not None:
+            self.explicit_tracks = True
 
         if aid is not None and self.aid != aid:
             self.aid = aid
