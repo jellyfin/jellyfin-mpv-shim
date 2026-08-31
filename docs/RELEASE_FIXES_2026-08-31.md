@@ -57,6 +57,20 @@ fixed too:
 A free-space precheck is a nice-to-have on top; it is not a substitute for (1) and (2),
 since ENOSPC can arrive from another writer filling the disk mid-copy.
 
+## Merge gate
+
+**A green integration matrix is the merge gate for this branch** (agreed 2026-08-31).
+Not the unit suite, and not e2e: both pass without touching the integration harness's
+stand-ins, and this branch was red for several commits with both green because
+`RealVideo` did not model two methods `play()` had started calling. Four legs failing,
+invisible to 5,177 unit tests.
+
+Run it as `xvfb-run -a python3 tests/integration/run_integration.py` and **read the leg
+table, never `$?`**. The exit code has now been masked twice in one session by things
+appended to the command — a `| tee`, and a trailing `echo "RC=$?"` — and the runner
+also exits 0 by design when a leg's tests all skip. `N/M legs passed` and the per-leg
+`[N run, M skipped]` counts are the evidence.
+
 ## 0. Read this before changing anything
 
 Twenty-six fixes across four subsystems is where a release review starts producing
