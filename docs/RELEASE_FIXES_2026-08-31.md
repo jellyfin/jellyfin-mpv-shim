@@ -164,8 +164,8 @@ textually if worked in parallel branches.** One work stream per group.
 ### Group R — retry / in-flight markers · 2 findings
 | Tag | Site | Defect |
 |-----|------|--------|
-| F9 | `pagination.py:342` | Failure clears `_page_loading`; `AsyncRunner`'s bare `finally` invalidates; next `ensure()` refetches. Unbounded loop. Windowed mode already has the fix (`_win_tried`). |
-| F23 | `pages/comic.py:459-471` | Same defect on the `elif` arm (no `_error` guard, no in-flight marker) **plus** the mirror on the `if` arm: `close()` keeps `_error` while dropping `_comic`, so in-place recovery is unreachable after a Back. |
+| ~~F9~~ **DONE** | `pagination.py:342` | Failure clears `_page_loading`; `AsyncRunner`'s bare `finally` invalidates; next `ensure()` refetches. Unbounded loop. Windowed mode already has the fix (`_win_tried`). |
+| ~~F23~~ **DONE** | `pages/comic.py:459-471` | Same defect on the `elif` arm (no `_error` guard, no in-flight marker) **plus** the mirror on the `if` arm: `close()` keeps `_error` while dropping `_comic`, so in-place recovery is unreachable after a Back. |
 
 ### Group W — shared-document writes · 2 findings
 | Tag | Site | Defect |
@@ -453,7 +453,7 @@ code without fixing the test yields no evidence.
 | F12 | `tests/test_playlist_offline.py:146` | Pins the empty-expansion branch from an empty catalog with a *successful* server — and by pinning it, makes the bug look intentional. |
 | ~~F22~~ **DONE** | — | `_load_ep` / `LOAD_EP_KEY` appeared nowhere in `tests/`. Now `LOAD_ID_KEY`, covered by `TwoLoadsAtOneEpochAreDistinguishableTest`. |
 | F24 | `tests/test_shell_delete_item.py:234` | Asserts only `assertNotIn("_items", ...)` — one step, and the stale `_pages` is the other one. |
-| F23 | `tests/test_shell_comic.py:656` | Sets `_error` *after* a successful open, so `_showing` is True and the `elif` never fires; and it is a scene assertion, not a repaint one. |
+| ~~F23~~ **DONE** | `tests/test_shell_comic.py:656` | Sets `_error` *after* a successful open, so `_showing` is True and the `elif` never fires; and it is a scene assertion, not a repaint one. |
 | F10 | `tests/_shell_harness.py` | Each fake records to its own list, so **one shared document is not representable** — the clobber cannot be written as a test until the fake models the DTO. |
 | F18 | — | No coverage of inactive non-weak sections. Needs a real-mpv regression test. |
 
