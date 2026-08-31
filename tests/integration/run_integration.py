@@ -36,8 +36,10 @@ import argparse
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
@@ -173,22 +175,89 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     # Tee rather than subprocess.call: we want the live output AND the
     # counts, because "rc == 0" alone cannot tell a leg that passed from one
     # that skipped everything (see --strict).
+    #
+    # start_new_session: the leg leads its own process group, so anything it
+    # leaks can be found and killed as a unit. Same reasoning as
+    # tools/run_tests_parallel.py, which has had this from the start; this
+    # runner had not, and the difference is the hang described below.
     proc = subprocess.Popen(cmd, cwd=REPO_ROOT, env=env,
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True)
+                            stderr=subprocess.STDOUT, text=True,
+                            start_new_session=True)
     captured = []
-    for line in proc.stdout:
-        sys.stdout.write(line)
-        # Per line, not per leg. Our stdout is block-buffered whenever it is
-        # redirected, which is every `run_integration.py > log 2>&1`, so
-        # flushing after the loop meant a leg's entire output landed in one
-        # write at the end of it -- ~147s of silence for a whole-suite leg.
-        # A log that stops growing then looks exactly like a hung run, and
-        # twice it got diagnosed as one.
-        sys.stdout.flush()
-        captured.append(line)
+
+    def pump():
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            # Per line, not per leg. Our stdout is block-buffered whenever it
+            # is redirected, which is every `run_integration.py > log 2>&1`,
+            # so flushing after the loop meant a leg's entire output landed
+            # in one write at the end of it -- ~147s of silence for a
+            # whole-suite leg. A log that stops growing then looks exactly
+            # like a hung run, and twice it got diagnosed as one.
+            sys.stdout.flush()
+            captured.append(line)
+
+    # On a thread so that the LEG'S EXIT ends the leg, never pipe EOF.
+    #
+    # Reading `proc.stdout` to EOF on this thread is what wedged the matrix
+    # indefinitely *after a leg had already passed*: a test mpv that outlives
+    # its leg is reparented to init still holding the write end of this pipe,
+    # and EOF can then never arrive. The leg had printed `Ran 324 tests ...
+    # OK`; only the exit was missing, and the run sat there until the mpv was
+    # killed by hand. The child exiting is the real end-of-leg signal, so
+    # that is what we wait for.
+    reader = threading.Thread(target=pump, name="leg-output", daemon=True)
+    reader.start()
     rc = proc.wait()
+    reader.join(OUTPUT_DRAIN_SECS)      # let genuinely buffered output land
+    if reader.is_alive():
+        # The leg is over and something is still holding the pipe: a leak, by
+        # definition. Kill the group to release it and let `pump` see EOF.
+        print("\n*** %s: the leg exited but left a process holding its "
+              "output pipe; killing the leg's process group." % label,
+              flush=True)
+        _kill_leg_group(proc)
+        reader.join(OUTPUT_DRAIN_SECS)
+    else:
+        # Nothing held the pipe, but a leak with its output closed or
+        # redirected would still be here. Cheap to check, and a leaked mpv
+        # that survives the run is how a machine collects a graveyard of them.
+        _kill_leg_group(proc, warn=label)
+    try:
+        proc.stdout.close()
+    except Exception:
+        pass
     return label, rc, _counts("".join(captured))
+
+
+#: How long to let a finished leg's buffered output drain before concluding
+#: that something is holding the pipe open rather than still writing to it.
+OUTPUT_DRAIN_SECS = 5.0
+
+
+def _kill_leg_group(proc, warn=None):
+    """SIGKILL whatever is left of a finished leg's process group.
+
+    ``proc`` led its own group (``start_new_session``), so its pid *is* the
+    group id -- which still resolves after the child itself has been reaped,
+    while ``os.getpgid(proc.pid)`` no longer does.
+
+    With ``warn``, says so only when something was actually there: an empty
+    group raises ProcessLookupError, so the probe costs nothing and a silent
+    run means the leg cleaned up after itself.
+    """
+    if os.name != "posix":
+        return
+    try:
+        pgid = proc.pid
+        if warn is not None:
+            os.killpg(pgid, 0)          # probe; raises if the group is empty
+            print("\n*** %s: leaked at least one process; cleaning up."
+                  % warn, flush=True)
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
 
 
 _RAN_RE = re.compile(r"^Ran (\d+) tests? in ", re.M)

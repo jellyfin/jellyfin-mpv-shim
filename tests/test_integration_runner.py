@@ -114,6 +114,12 @@ class TestOutputStreamsWhileTheLegRuns(unittest.TestCase):
         captured = {}
 
         class FakeProc:
+            # `pid` is not decoration: `_run` ends by cleaning up the leg's
+            # process group, and a fake without one would make that call
+            # unreachable while still reporting a pass. Negative so that a
+            # real killpg escaping the guards cannot name a live group.
+            pid = -999999
+
             def __init__(self):
                 self.stdout = iter(TestOutputStreamsWhileTheLegRuns.LINES)
 
@@ -164,3 +170,77 @@ class TestStrictIsWired(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestALegThatLeaksAProcessStillEnds(unittest.TestCase):
+    """A leg that exits while something still holds its output pipe.
+
+    This wedged the whole matrix indefinitely, *after the leg had passed*: a
+    test mpv outliving its leg is reparented to init still holding the write
+    end of the pipe `_run` was reading to EOF, so EOF could never arrive. The
+    leg's own `Ran 324 tests ... OK` was already in the log; only the exit was
+    missing, and the run sat there until the mpv was killed by hand.
+
+    `tools/run_tests_parallel.py` has had the process-group discipline from
+    the start. This runner had not.
+    """
+
+    # The grandchild outlives its parent holding stdout -- exactly what a
+    # leaked mpv does. If `_run` waits for EOF it waits this long.
+    LEAK_SECONDS = 60
+    # Generous next to OUTPUT_DRAIN_SECS, tight next to LEAK_SECONDS: the
+    # point is only to tell "returned" from "waited for the grandchild".
+    PATIENCE = 25
+
+    LEAK_SRC = (
+        "import os, sys, time\n"
+        "if os.fork() == 0:\n"
+        "    time.sleep({leak})\n"        # holds fd 1 open
+        "    os._exit(0)\n"
+        "sys.stdout.write('Ran 1 test in 0.0s\\n')\n"
+        "sys.stdout.write('OK\\n')\n"
+        "sys.stdout.flush()\n"
+        "os._exit(0)\n"
+    )
+
+    @unittest.skipUnless(hasattr(os, "fork"), "needs fork")
+    def test_it_ends_when_the_leg_ends_not_when_the_pipe_closes(self):
+        import subprocess
+        import threading
+
+        orig_popen = subprocess.Popen
+        leak_cmd = [sys.executable, "-c",
+                    self.LEAK_SRC.format(leak=self.LEAK_SECONDS)]
+
+        def fake_popen(cmd, **kwargs):
+            # The runner's own kwargs are kept -- start_new_session is the
+            # half of the fix this exercises.
+            return orig_popen(leak_cmd, **kwargs)
+
+        result = {}
+
+        def drive():
+            try:
+                result["value"] = runner._run(["tests.integration.whatever"])
+            except BaseException as exc:            # pragma: no cover
+                result["error"] = exc
+
+        subprocess.Popen = fake_popen
+        try:
+            t = threading.Thread(target=drive, daemon=True)
+            t.start()
+            t.join(self.PATIENCE)
+            # A regression must FAIL here rather than hang the suite.
+            self.assertFalse(
+                t.is_alive(),
+                "_run did not return within %ds: it is waiting for the "
+                "leaked grandchild to close the pipe instead of for the leg "
+                "to exit, which is the hang this guards" % self.PATIENCE)
+        finally:
+            subprocess.Popen = orig_popen
+
+        self.assertNotIn("error", result, repr(result.get("error")))
+        _label, rc, (ran, _skipped) = result["value"]
+        self.assertEqual(rc, 0)
+        # The leg's real output was still captured, not lost to the shortcut.
+        self.assertEqual(ran, 1)
