@@ -18,6 +18,7 @@ import time
 import requests
 
 from .. import items_api
+from ..utils import same_origin
 from ..books import AUDIOBOOK_TYPE, BOOK_TYPE, book_format, is_book
 from ..conf import settings
 from ..conffile import confdir
@@ -128,19 +129,11 @@ class ExpandFailed(Exception):
     """
 
 
-def _same_origin(url, server):
-    """Whether ``url`` is on the same host as ``server``.
-
-    Scheme and port count: an http URL is not the same origin as the https
-    server we authenticated to, and sending a bearer token over the first
-    would hand it to anyone on the path.
-    """
-    try:
-        a, b = urlparse(url), urlparse(server)
-    except Exception:
-        return False
-    return bool(a.hostname) and (a.scheme, a.hostname, a.port) == (
-        b.scheme, b.hostname, b.port)
+#: Re-exported under its old private name so the call site below and
+#: tests/test_sync_auth_headers.py keep reading as they did. The player needs
+#: the same test, and a second implementation of "is this our server" is
+#: exactly the kind of duplicate this codebase gets wrong once and then twice.
+_same_origin = same_origin
 
 
 def _disposition_ext(headers):

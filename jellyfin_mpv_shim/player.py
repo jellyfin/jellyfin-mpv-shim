@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 import threading
 
-from .utils import synchronous, Timer, get_resource
+from .utils import same_origin, synchronous, Timer, get_resource
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -2295,7 +2295,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             url = video.get_playback_url()
             if not url:
                 log.error("PlayerManager::play no URL found")
+                # Even so: the header we just installed is a GLOBAL option
+                # that outlives this attempt, so it must not sit there
+                # pointing at whatever plays next.
+                self._revoke_auth_header(video)
                 return
+            # ...and AFTER, because only now is the stream's host known.
+            # `_apply_auth_headers` can only ask about subtitles -- the media
+            # host does not exist until the negotiation above has run. This
+            # order is deliberate in both directions and neither half can move:
+            # the install has to precede the url so the url knows whether to
+            # carry a token, and the origin check has to follow it.
+            if video.auth_via_header and not same_origin(
+                    url, video.client.config.data.get("auth.server")):
+                # A direct path to somebody else's host: an http `.strm`
+                # source, or a path substitution. Revoking rather than never
+                # installing is what keeps the failure modes above intact --
+                # that branch of `_get_url_from_source` returns the url
+                # unchanged and never embeds a token, so there is nothing for
+                # the url to lose here.
+                log.info("Not sending the auth header to mpv: this item "
+                         "streams from another host.")
+                self._revoke_auth_header(video)
             self._play_media(video, url, offset, no_initial_timeline,
                              is_initial_play, apply_memory, pause_stills)
         finally:
@@ -2369,6 +2390,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         "to a token in the URL", exc_info=True)
             return False
         return True
+
+    def _revoke_auth_header(self, video=None):
+        """Take back a header installed before the stream's host was known.
+
+        ``http-header-fields`` is global and outlives the item it was set for
+        (docs/mpv-backends.md section 6), so "do not send it to this host" has
+        to mean clearing it, not merely declining to set it again.
+        """
+        if video is not None:
+            video.auth_via_header = False
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.http_header_fields = []
+        except Exception:
+            log.debug("could not clear http-header-fields", exc_info=True)
 
     def _forced_hwdec(self):
         """Whether a shader profile has named the decoder it requires.

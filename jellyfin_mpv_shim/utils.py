@@ -105,6 +105,27 @@ def is_local_domain(client: "JellyfinClient_type"):
         return False
 
 
+def same_origin(url, server):
+    """Whether ``url`` is on the same host as ``server``.
+
+    Scheme and port count: an http URL is not the same origin as the https
+    server we authenticated to, and sending a bearer token over the first
+    would hand it to anyone on the path.
+
+    One implementation, used by both the sync downloader and the player's
+    mpv header. It lived in sync/manager.py, where its own comment predicted
+    the player's defect: "'true by construction today' is exactly what stops
+    being true when someone threads a server-supplied path through one of
+    these."
+    """
+    try:
+        a, b = urllib.parse.urlparse(url), urllib.parse.urlparse(server)
+    except Exception:
+        return False
+    return bool(a.hostname) and (a.scheme, a.hostname, a.port) == (
+        b.scheme, b.hostname, b.port)
+
+
 def mpv_color_to_plex(color: str):
     return "#" + color.lower()[3:]
 
