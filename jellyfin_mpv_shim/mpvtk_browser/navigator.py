@@ -35,17 +35,25 @@ log = logging.getLogger("mpvtk_browser.navigator")
 #: Routes headless mode still allows. Everything else is the library.
 HEADLESS_ROUTES = {"cast", "connecting", "locked"}
 
+#: Routes the startup PIN still allows. Just the gate itself: unlike headless,
+#: which is a *mode* the box runs in, this is a question waiting for an answer
+#: and there is nothing else to be doing until it is answered.
+LOCKED_ROUTES = {"locked"}
+
 
 class Navigator:
     """Owns the route stack. Knows nothing about loading or rendering — the
     shell does that after asking for a stack change."""
 
-    def __init__(self, default_route, is_headless=None):
-        """``default_route()`` supplies a fresh landing route (headless-aware,
-        so it is the shell's to decide). ``is_headless()`` is read live rather
-        than captured: the flag can change when settings are saved."""
+    def __init__(self, default_route, is_headless=None, is_locked=None):
+        """``default_route()`` supplies a fresh landing route (headless- and
+        lock-aware, so it is the shell's to decide). ``is_headless()`` and
+        ``is_locked()`` are read live rather than captured: the first can
+        change when settings are saved, and the second changes every time the
+        gate is raised or answered."""
         self._default_route = default_route
         self._is_headless = is_headless or (lambda: False)
+        self._is_locked = is_locked or (lambda: False)
         self._stack = [default_route()]
         #: Routes popped by :meth:`pop`, oldest first, so the top is the page
         #: an immediate forward returns to. Browser semantics: it survives
@@ -89,11 +97,25 @@ class Navigator:
     # -- the lockdown ------------------------------------------------------
 
     def allows(self, route, force=False):
-        """Whether ``route`` may be shown. ``force`` is for the screens
-        headless itself needs to reach."""
-        if force or not self._is_headless():
+        """Whether ``route`` may be shown. ``force`` is for the screens a
+        lockdown itself needs to reach.
+
+        Two lockdowns, checked independently, because they are unrelated
+        questions with different answers: headless is a mode the box is in,
+        the PIN is a question waiting for one. Both funnel through here for
+        the same reason -- ``navigate`` is the single door every way into the
+        library goes through, so a gate here is a gate on all of them, and a
+        route added later is refused by default.
+        """
+        if force:
             return True
-        return route.get("kind") in HEADLESS_ROUTES
+        kind = route.get("kind")
+        if self._is_locked() and kind not in LOCKED_ROUTES:
+            log.debug("locked: refusing navigation to %r", kind)
+            return False
+        if self._is_headless() and kind not in HEADLESS_ROUTES:
+            return False
+        return True
 
     # -- writing -----------------------------------------------------------
 
@@ -104,7 +126,7 @@ class Navigator:
         run the load/render side effects that normally follow.
         """
         if not self.allows(route, force):
-            log.debug("headless: refusing navigation to %r", route.get("kind"))
+            log.debug("lockdown: refusing navigation to %r", route.get("kind"))
             return False
         if reset:
             self._stack = []
@@ -137,7 +159,7 @@ class Navigator:
             return None
         route = self._forward[-1]
         if not self.allows(route):
-            log.debug("headless: refusing forward to %r", route.get("kind"))
+            log.debug("lockdown: refusing forward to %r", route.get("kind"))
             return None
         self._forward.pop()
         self._stack.append(route)

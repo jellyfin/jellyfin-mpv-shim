@@ -431,7 +431,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._size = None         # last window size seen by build()
 
         self._nav = Navigator(self._default_route,
-                              is_headless=lambda: self.headless)
+                              is_headless=lambda: self.headless,
+                              is_locked=lambda: self._locked)
         self._load_route(self.route)
 
     # ------------------------------------------------------------ routing
@@ -451,6 +452,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         Navigator, so the warning is an invariant instead
         (``tests/test_source_invariants.py``).
         """
+        if self._locked:
+            # Before headless: a locked cast box must land on the gate, not
+            # on the cast screen. Every stack-emptying path backfills through
+            # here, which is what stops set_source's reset landing on Home
+            # while the PIN is still unanswered.
+            return {"kind": "locked", "title": _("Locked")}
         if self.headless:
             return {"kind": "cast"}
         return {"kind": "home", "server": self.server}
@@ -476,6 +483,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: Kept as a class attribute: tests/test_mpvtk_headless.py reads it, and
     #: it is the published name for "what headless still allows".
     HEADLESS_ROUTES = navigator.HEADLESS_ROUTES
+
+    #: The same, for the startup PIN. tests/test_mpvtk_locked.py reads it.
+    LOCKED_ROUTES = navigator.LOCKED_ROUTES
 
     def navigate(self, route, reset=False, force=False):
         """Go to ``route``, then load and repaint it.
@@ -2448,7 +2458,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # assigned here directly, which left set_offline with no production
         # caller at all — a public method only the tests reached.
         self.set_offline(isinstance(source, OfflineLibrarySource))
-        self._locked = False
+        # NOT `self._locked = False`. Connections are deliberately not
+        # deferred until unlock -- the gate is about what is on screen, not
+        # about the network -- so a server coming up while the PIN is
+        # unanswered is the ordinary case, and the periodic health check
+        # reconnects on its own schedule and arrives here with no user action
+        # at all. Clearing the flag here handed the library to whoever was in
+        # the room, and left it cleared, so `show_locked`'s idempotence guard
+        # then made every later `maybe_relock()` a no-op and the gate could
+        # not be raised again for the life of the process.
         self.source = source
         self._publish_auth_origins()
         try:

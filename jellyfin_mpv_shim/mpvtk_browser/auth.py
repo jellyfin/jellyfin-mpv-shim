@@ -597,6 +597,12 @@ class AuthMixin:
                 else:
                     self.show_login()
                 return
+            # Here, not in set_source: answering the PIN is what unlocks, and
+            # set_source is also reached by a server connecting or the health
+            # check reconnecting -- which used to clear the gate on its own.
+            # Before set_source, because navigation is refused while the flag
+            # is up and set_source lands on a route.
+            self._locked = False
             self.set_source(source)
         self.run_async(work, done, ep)
 
