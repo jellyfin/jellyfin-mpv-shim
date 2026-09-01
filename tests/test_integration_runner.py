@@ -244,3 +244,53 @@ class TestALegThatLeaksAProcessStillEnds(unittest.TestCase):
         self.assertEqual(rc, 0)
         # The leg's real output was still captured, not lost to the shortcut.
         self.assertEqual(ran, 1)
+
+
+class TestTheHarnessMakesAModuleRunnableAlone(unittest.TestCase):
+    """`python -m unittest -v tests.integration.test_mpvtk_hud` must work.
+
+    Importing almost anything under `jellyfin_mpv_shim` eventually reaches
+    `args.get_args()`, which parses the REAL argv -- so a runner's `-v` and
+    the module path leave the app's argparse printing its usage line and
+    exiting, which reads as a broken test module and is not. `_harness`
+    primes the parser at import for exactly this, and the integration
+    modules used to depend on a *sibling* in the same leg having done it:
+    each one passed in the matrix and died on its own.
+
+    A subprocess with a runner-shaped argv, because in-process this file
+    has already scrubbed sys.argv (see the top) and could not see the bug.
+    """
+
+    PROBE = (
+        "import sys, os\n"
+        "sys.path.insert(0, %r)\n"
+        "sys.path.insert(0, os.path.join(%r, 'tests', 'integration'))\n"
+        "import _harness\n"
+        "from jellyfin_mpv_shim import conffile\n"
+        "print('CONFDIR', conffile.confdir('jellyfin-mpv-shim'))\n"
+    )
+
+    def test_a_dirty_argv_no_longer_reaches_the_app_parser(self):
+        import subprocess
+        import tempfile
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        out = subprocess.run(
+            [sys.executable, "-c", self.PROBE % (root, root),
+             "-v", "tests.integration.test_mpvtk_hud"],
+            capture_output=True, text=True, cwd=root, timeout=120)
+        self.assertEqual(out.returncode, 0,
+                         "importing the harness under a runner argv exits: %s"
+                         % out.stderr[-800:])
+        line = [ln for ln in out.stdout.splitlines()
+                if ln.startswith("CONFDIR ")]
+        self.assertTrue(line, "no config dir resolved: %r" % out.stdout)
+        confdir = line[0].split(" ", 1)[1]
+        # ...and at a throwaway. The prime pins one so a leg cannot read or
+        # write the developer's own config; a prime that resolved to the
+        # real directory would satisfy the check above and be worse than
+        # the crash it replaced.
+        self.assertTrue(
+            confdir.startswith(tempfile.gettempdir()),
+            "the harness primed the arg parser at the real config dir: %r"
+            % confdir)
+

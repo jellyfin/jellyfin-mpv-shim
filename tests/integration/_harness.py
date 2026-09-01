@@ -943,6 +943,18 @@ def prime_args(config_dir=None):
         sys.argv = saved
 
 
+# Primed HERE, at import, and not left to whichever module happens to call it
+# first. Every integration module imports this one before it touches the app,
+# so this is the earliest point that covers all of them -- and it is what makes
+# a module runnable ON ITS OWN. Without it, `python -m unittest -v
+# tests.integration.test_mpvtk_hud` dies on the app's own usage line the moment
+# a test resolves the config dir (argparse rejects the runner's `-v` and the
+# module path), which reads as a broken test module and is not; the modules
+# passed only because a sibling earlier in the leg had primed the cache. The
+# same trap the tree-wide `-k, never a module name` rule is about, one layer
+# down. See prime_args.
+prime_args()
+
 _PLAYER_MODULE = None
 
 
@@ -969,14 +981,12 @@ def import_player_with_fake_mpv():
             "import_player_with_fake_mpv must run first."
         )
 
-    # Keep config writes out of the user's real ~/.config, and pin the arg
-    # parser to it so confdir resolution doesn't choke on the runner's argv.
-    tmp_conf = tempfile.mkdtemp(prefix="jms-itest-conf-")
-    # This process owns it for its whole life, so atexit is the matching
-    # scope. Without it every leg left one behind: 176 had accumulated.
-    atexit.register(shutil.rmtree, tmp_conf, ignore_errors=True)
-    os.environ["XDG_CONFIG_HOME"] = tmp_conf
-    prime_args(tmp_conf)
+    # Config writes go to the throwaway the import-time prime above pinned:
+    # `confdir` returns `get_args().config` whenever it is set, so the FIRST
+    # parse decides the config dir for the whole process and a second dir made
+    # here could never become it. (It used to make one anyway, which is why
+    # this says so rather than saying nothing.)
+    prime_args()
 
     from jellyfin_mpv_shim.conf import settings
     # Disable the heavyweight optional features so _init_mpv / OSDMenu build
