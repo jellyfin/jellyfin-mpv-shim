@@ -23,6 +23,7 @@ broken, because it sat below a call that never returns.
 
 import os
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -84,11 +85,25 @@ def main():
             from jellyfin_mpv_shim import restart
 
             restart.request()
-        # SIGTERM rather than the UI's quit: it reaches `main`'s halt event
-        # through the handler the app installs itself, so the shutdown is
-        # the same orderly one a `stop` command or a session logout gets,
-        # with nothing test-shaped in the middle of it.
-        os.kill(os.getpid(), signal.SIGTERM)
+        # Ask the app to stop the way something outside it would, so the
+        # shutdown under test is the orderly one with nothing test-shaped in
+        # the middle of it. Both routes below reach the SAME halt event --
+        # mpv_shim.main wires `single.on_stop` and its SIGTERM handler to
+        # `halt.set` alike -- so this is one property measured through
+        # whichever door the platform actually has.
+        if os.name == "nt":
+            # os.kill(pid, SIGTERM) is not a signal on Windows: any sig but
+            # CTRL_C/CTRL_BREAK_EVENT is TerminateProcess, nothing can
+            # handle it, and the exit code becomes the signal number. So the
+            # app died where it stood -- no shutdown, no relaunch, and a
+            # wedge test that saw rc 15 instead of the forced 1. The `stop`
+            # subcommand exists precisely because stopping is a message and
+            # not a signal (single_instance's module docstring).
+            subprocess.run([sys.executable, os.path.join(REPO, "run.py"),
+                            "--config", config_dir, "stop"],
+                           timeout=60, capture_output=True)
+        else:
+            os.kill(os.getpid(), signal.SIGTERM)
 
     threading.Thread(target=drive, daemon=True).start()
 
