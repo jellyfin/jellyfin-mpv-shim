@@ -586,8 +586,15 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         rect = self._open_info_panel()
         # scroll_at hit-tests against the pointer, so the pointer has to be
         # on the panel -- a notch over the bar would find nothing whatever
-        # the section says.
-        self.app.debug(cmd="moveto", id="hud-info-scroll")
+        # the section says. By COORDINATE, not by id: `moveto id=` resolves
+        # through the renderer's own state.byid, which a scene it has not
+        # reconciled yet does not contain, and a moveto that resolves to
+        # nothing is dropped in silence (see _click_when_hittable). The
+        # pointer sticks where it is put, so the retry below covers the
+        # reconcile.
+        self.app.debug(cmd="moveto",
+                       x=rect["x"] + rect["w"] / 2,
+                       y=rect["y"] + rect["h"] / 2)
         off0 = (self.app.scroll_offsets() or {}).get("hud-info-scroll", 0)
         before = self._volume()
         self._press_until(
@@ -629,6 +636,16 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self.app.debug(cmd="click", id="hud-chapters")
         self._wait(lambda: self._state().get("dd_open") == "hud-chapters",
                    msg="chapter popup never opened")
+        # `dd_open` is set by the click; `dd_geo` is computed by the next
+        # RENDER, and the two are not the same instant. Reading the geometry
+        # off the earlier one gives `{}` -- n=0, count=0, and an assertion
+        # about clipping that fails on a popup that is merely not drawn yet.
+        # (Seen once, in the whole-suite leg, which is where the renderer is
+        # slowest.)
+        self._wait(
+            lambda: ((self._state() or {}).get("dd_geo") or {}).get(
+                "count", 0) > 0,
+            msg="the popup never reported its geometry")
         geo = (self._state() or {}).get("dd_geo") or {}
         self.assertLess(geo.get("n", 0), geo.get("count", 0),
                         "the popup is not clipped, so nothing here is "
