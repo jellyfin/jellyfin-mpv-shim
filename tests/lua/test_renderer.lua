@@ -1702,6 +1702,148 @@ ok(fake.log.keybinds["mpvtk_nav_ENTER"] ~= nil,
    "browse came back from a summoned HUD with ENTER dead")
 fake.send("mpvtk-hud", "no")
 
+-- ================================================== the wheel over the HUD
+
+-- Same trade as the thumb buttons, one layer further in. Browse takes the
+-- wheel outright; a summoned playback HUD has nothing on its bar that
+-- scrolls, so holding the section there answers every notch with nothing
+-- while the user's own `WHEEL_UP add volume 5` sits behind it, unreachable
+-- for as long as the controls are up (#711). It takes the wheel BACK for
+-- the things it draws that do scroll -- a track picker, the gear menu, the
+-- Playback Info panel -- which is what makes this a release rather than a
+-- removal.
+
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "browse does not have the wheel")
+
+fake.send("mpvtk-hud", "yes", fake.token({ hide = 4, mode = "hover" }))
+fake.observe("mouse-pos", { x = 600, y = 300, hover = true })
+fake.observe("mouse-pos", { x = 600, y = 310, hover = true })  -- summons
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "a summoned HUD kept the wheel, so the user's own binding is dead "
+   .. "for as long as the bar is up")
+
+-- A track picker is the case the release must not break: its popup is the
+-- one thing on the bar with more rows than it can show.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "dd", t = "dropdown", x = 500, y = 300, w = 200, h = 30,
+          size = 18, items = { "One", "Two", "Three" }, sel = 0 } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "a picker that is merely ON the bar took the wheel back")
+click("dd")                      -- open it
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "an open track picker cannot be scrolled")
+
+-- ...and it goes again when the popup does. Closed by dropping the node
+-- from the scene, because reconcile is what clears `dd_open` and a click
+-- elsewhere would also move the pointer.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "the wheel stayed claimed after the picker closed")
+
+-- A MENU is not a claimant, and this is the assertion that says why the
+-- predicate lists on_wheel's consumers rather than everything that looks
+-- interactive. menu_geometry sizes itself to `#items`, so every row of a
+-- gear or context menu is on screen and a notch there can never spend
+-- itself -- holding the wheel for one would be #711 again with a different
+-- overlay on top.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "hud-menu", t = "menu", x = 900, y = 400, w = 250, rh = 30,
+          size = 16, items = { "Playback Info", "Subtitles" } } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "an open gear menu took the wheel it has no way to spend")
+
+-- Nor is a modal, by itself. The Playback Info panel is a Dialog whose BODY
+-- is a VScroll (hud.py `hud-info-scroll`); the scroller is the claimant and
+-- the dialog is where it happens to live, which is why a short panel with
+-- nothing to scroll leaves the wheel alone.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "dlg", t = "layer", kind = "modal", mod = true,
+          x = 340, y = 200, w = 600, h = 320 } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "a dialog with nothing to scroll took the wheel")
+
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        { id = "dlg", t = "layer", kind = "modal", mod = true,
+          x = 340, y = 200, w = 600, h = 320 },
+        vscroll("hud-info-scroll", 200, 900, { mod = true }) })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "the Playback Info panel's own body cannot be scrolled")
+
+-- ...and only its OWN body. A scroller on the page behind an open dialog is
+-- not a claimant, because scroll_at will not hand it the notch either --
+-- the dialog owns the wheel while it is up, and a section enabled over a
+-- target the hit test refuses is a notch that dies in the gap between them.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        vscroll("behind", 200, 900),
+        { id = "dlg", t = "layer", kind = "modal", mod = true,
+          x = 340, y = 200, w = 600, h = 320 } })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "a scroller behind an open dialog claimed the wheel for it")
+
+-- ...and a bare scroll container is enough on its own, which is what keeps
+-- the next list somebody puts on the bar from arriving dead.
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        vscroll("hud-list", 200, 900) })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "a scroller drawn straight onto the HUD cannot be scrolled")
+
+-- One that FITS is not one of those. The question is scroll_at's --
+-- `scroll_max > 0` -- and not "is there a scroller", because layout.py
+-- reserves a scrollbar for any view that has one rather than for one that
+-- overflows (see the gutter block above).
+scene({ { id = "hud-bar", t = "rect", x = 0, y = 640, w = 1280, h = 80 },
+        vscroll("hud-fits", 600, 400) })
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "a scroller with nothing to scroll took the wheel anyway")
+
+-- A page's wheel CLAIM is the one input change with no frame behind it: the
+-- keys arrive over a bar that is already drawn, so nothing is invalidated
+-- and the render that would otherwise carry the decision never comes. No
+-- fire_timers between the claim and the assertion, deliberately -- that is
+-- the whole property.
+fake.send("mpvtk-keys", fake.token({ keys = { "WHEEL_UP", "WHEEL_DOWN" } }))
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "a wheel claim waited for a frame that was never going to come")
+fake.send("mpvtk-keys", fake.token({ keys = {} }))
+eq(fake.log.enabled["mpvtk_wheel"], false,
+   "the wheel stayed claimed after the page dropped it")
+
+-- And browse gets it back unconditionally, including down the no-op
+-- mpvtk-active path the thumb section needed above: a section the HUD
+-- turned off stays off for the session otherwise, which here is a library
+-- that cannot be scrolled from the first video played.
+fake.send("mpvtk-active", "yes")
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "browse came back from a summoned HUD with the wheel still declined")
+fake.send("mpvtk-hud", "no")
+scene({})
+fake.advance(0.1)
+fake.fire_timers()
+eq(fake.log.enabled["mpvtk_wheel"], true,
+   "a render after browse resumed took the wheel away again")
+
 -- ============================================== scrollbar gutter is painted
 
 -- layout.py reserves the gutter whenever a view HAS a bar, not only when its

@@ -206,6 +206,23 @@ rather than addressed to a node: history belongs to the app, not to
 whatever the pointer happens to be over. An app that registers no
 `on_forward` ignores it.
 
+**The wheel is scoped the same way, and one layer finer.** The full UI
+holds it — every browse screen scrolls — but a summoned playback HUD
+holds it only while a notch would actually be *spent*: an open dropdown
+popup, a page that claimed `WHEEL_UP`/`WHEEL_DOWN`, or a `scroll`
+container the dialog on top allows and that has somewhere to go
+(`scroll_max > 0` — the same gate `scroll_at` applies, so the two must
+change together). **Not everything that looks interactive**: a gear or
+context menu draws all of its items, so it can never spend a notch, and a
+modal is not itself a claimant — the scroller inside it is. Over a bare
+control bar the section is disabled, so the user's own
+`WHEEL_UP`/`WHEEL_DOWN` (volume, in the usual `input.conf`) and mpv's
+`WHEEL_LEFT`/`WHEEL_RIGHT` keep working while the controls are up rather
+than dying with the bar's arrival (jellyfin-mpv-shim#711). It is decided
+on every render, so a HUD that grows a list gets the wheel by drawing
+one; a key claim syncs it itself, since a claim over an already-drawn bar
+invalidates nothing and no frame is coming.
+
 ## 3. Scene protocol (Python → Lua)
 
 `script-message mpvtk-scene <json>`:
@@ -612,7 +629,9 @@ empty scene is *not* enough, because the bindings are what swallow the
 clicks. HUD mode keeps the renderer attached during playback with only a
 lightweight summon surface bound (the wake key + mouse motion). Summoning
 rebinds the full input sections and fires `on_hud(True)`; the inactivity
-timer drops back to idle with `on_hud(False)`. `set_active` in either
+timer drops back to idle with `on_hud(False)`. "Full" is everything but
+the thumb buttons and, unless the scene has something that scrolls, the
+wheel — both stay with the player (§2). `set_active` in either
 direction also leaves HUD mode. A summoned HUD lands its focus on whatever
 the scene marks `af` (§3); `MpvtkApp.summon_hud()` wakes an idle one as if
 a nav key were pressed, with no pause toggle.

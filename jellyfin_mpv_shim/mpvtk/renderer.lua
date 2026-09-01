@@ -2017,6 +2017,10 @@ local function draw_scrollbar(ass, node)
 end
 
 render = function()
+    -- The wheel section follows what is on screen, so it is decided where
+    -- the screen is. Above the early return: a blank scene is still an
+    -- answer. See state.wheel_sync.
+    state.wheel_sync()
     if state.w < 1 or not state.scene then
         osd.data = ''
         osd:update()
@@ -4749,6 +4753,11 @@ function keyclaim.set(list)
         end
     end
     state.keys = want
+    -- A wheel claim is the one of these that changes an input SECTION
+    -- rather than a per-key binding, and a claim landing on a bar that is
+    -- already drawn asks for no frame -- so the render that would otherwise
+    -- carry the decision may never come. See state.wheel_sync.
+    state.wheel_sync()
 end
 
 -- **While mpv's console has the keyboard on loan, binding is recording an
@@ -4835,6 +4844,59 @@ mp.set_key_bindings({
         if state.vpan and state.vpan.on then send({ t = 'vzoom', dir = -1 }) end
     end },
 }, 'mpvtk_wheel', 'force')
+
+-- Whether we should be holding that section at all, right now.
+--
+-- Browse takes the wheel outright -- every screen there scrolls. A summoned
+-- playback HUD must not: nothing on the bar scrolls, so the forced section
+-- answered every notch with nothing while the user's own `WHEEL_UP add
+-- volume 5` sat behind it, dead for exactly as long as the controls were up
+-- (#711). Same trade `mpvtk_thumb` makes for the thumb buttons.
+--
+-- **The test is `on_wheel`'s consumers, not what looks interactive.** A
+-- gear or context menu draws all of its items (menu_geometry sizes to
+-- `#items`) and a copy menu is three rows, so neither can ever spend a
+-- notch -- holding the wheel for one is #711 again with a different overlay
+-- on top. A modal is not a consumer either; the scroller inside it is.
+-- Anything added to on_wheel belongs here too.
+--
+-- Called from render() rather than from the dozen sites that open those
+-- things, because each of them already asks for a frame. `keyclaim.set` is
+-- the exception and calls this itself: a claim over an already-drawn bar
+-- invalidates nothing, so no frame is coming to carry it.
+function state.wheel_sync()
+    local want = state.wheel_ui or false
+    if want and state.phud.mode then
+        -- An open popup takes the wheel whether or not its rows overflow:
+        -- it is a list under the pointer, and on_wheel hands it every notch.
+        want = state.dd_open ~= nil or state.keys['WHEEL_UP'] ~= nil
+            or state.keys['WHEEL_DOWN'] ~= nil
+        if not want then
+            -- Both halves of scroll_at's gate, and they must stay in step:
+            -- this decides whether the notch is delivered, scroll_at decides
+            -- where it lands, and a divergence is either a dead notch or a
+            -- claim over nothing. `scroll_max > 0` rather than "is there a
+            -- scroller" because layout.py reserves a scrollbar for any view
+            -- that HAS one, not for one that currently overflows.
+            local modal = modal_active()
+            for _, node in ipairs(state.nodes) do
+                if node.t == 'scroll' and (not modal or node.mod)
+                    and scroll_max(node) > 0 then
+                    want = true
+                    break
+                end
+            end
+        end
+    end
+    if want == state.wheel_on then return end
+    state.wheel_on = want
+    if want then
+        mp.enable_key_bindings('mpvtk_wheel', state.vodrag)
+    else
+        mp.disable_key_bindings('mpvtk_wheel')
+    end
+end
+
 -- Whether these sections may be enabled with `allow-vo-dragging`, and what
 -- the user's own `input-builtin-dragging` was before we touched it. Kept on
 -- `state` rather than as file-scope locals purely for the local budget --
@@ -4868,7 +4930,8 @@ if state.vodrag ~= '' then
     mp.set_property_bool('input-builtin-dragging', false)
 end
 mp.enable_key_bindings('mpvtk_mouse', state.vodrag)
-mp.enable_key_bindings('mpvtk_wheel', state.vodrag)
+state.wheel_ui = true
+state.wheel_sync()
 -- set_key_bindings DEFINES a section; it does not enable it. Browse owns
 -- the thumb buttons from the moment the renderer loads, and the app does
 -- not necessarily transition mpvtk-active to get there (see below).
@@ -5473,7 +5536,8 @@ local function ui_resume(no_nav)
         mp.set_property_bool('input-builtin-dragging', false)
     end
     mp.enable_key_bindings('mpvtk_mouse', state.vodrag)
-    mp.enable_key_bindings('mpvtk_wheel', state.vodrag)
+    state.wheel_ui = true
+    state.wheel_sync()
     -- Browse takes the thumb buttons; a summoned playback HUD leaves them
     -- to whatever the user has under them. See the mpvtk_thumb bindings.
     if state.phud.mode then
@@ -5519,7 +5583,8 @@ local function ui_suspend()
     state.modal = nil
     state.wsize = nil
     mp.disable_key_bindings('mpvtk_mouse')
-    mp.disable_key_bindings('mpvtk_wheel')
+    state.wheel_ui = false
+    state.wheel_sync()
     mp.disable_key_bindings('mpvtk_thumb')
     -- Give the user's own built-in dragging back: nothing of ours is on
     -- screen now, and dragging the video to move the window is what mpv
@@ -5567,6 +5632,9 @@ mp.register_script_message('mpvtk-active', function(on)
     -- always takes the arrows, so there is no no_nav case to weigh here.
     if want and not state.phud.mode then
         mp.enable_key_bindings('mpvtk_thumb', state.vodrag)
+        -- ...and the wheel, which a summoned HUD declines for the same
+        -- reason and which browse cannot do without.
+        state.wheel_sync()
         if state.kb_saved then
             -- mpv's console has them on loan; let it give them back.
             state.kb_saved.nav = true
