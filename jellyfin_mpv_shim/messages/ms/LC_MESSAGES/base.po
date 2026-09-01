@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-13 04:04+0000\n"
-"Last-Translator: ZeroAiden <zeroaiden.game@gmail.com>\n"
+"PO-Revision-Date: 2026-09-01 04:42+0000\n"
+"Last-Translator: fredsimon <fredoline.simon@gmail.com>\n"
 "Language-Team: Malay <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ms/>\n"
 "Language: ms\n"
@@ -21,18 +21,18 @@ msgstr ""
 
 #: jellyfin_mpv_shim/books.py
 msgid "Unknown format"
-msgstr ""
+msgstr "Format tidak diketahui"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Halaman %(page) daripada %(total)"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
 msgid "Page %d"
-msgstr ""
+msgstr "Halaman %d"
 
 #: jellyfin_mpv_shim/books.py
 #, python-format
@@ -73,13 +73,16 @@ msgid "Setting Current..."
 msgstr "Menetapkan Semasa..."
 
 #: jellyfin_mpv_shim/clients.py
+#, fuzzy
 msgid ""
 "Open Jellyfin, go to your user menu -> Quick Connect, and enter this code:"
 msgstr ""
+"Buka Jellyfin, pergi ke menu pengguna anda → Quick Connect, dan masukkan kod "
+"ini:"
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Waiting for authorization..."
-msgstr ""
+msgstr "Menunggu kelulusan..."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Clearing all existing accounts."
@@ -138,19 +141,19 @@ msgstr ""
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Quick Connect is not enabled on this server."
-msgstr ""
+msgstr "Quick Connect tidak diaktifkan pada pelayan ini."
 
 #: jellyfin_mpv_shim/clients.py
 msgid "Could not start Quick Connect."
-msgstr ""
+msgstr "Tidak dapat memulakan Quick Connect."
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Credits"
-msgstr ""
+msgstr "Langkau Kredit"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
-msgstr ""
+msgstr "Kredit Dilangkau"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Credits"
@@ -158,23 +161,23 @@ msgstr ""
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Commercial"
-msgstr ""
+msgstr "Langkau Iklan"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Commercial"
-msgstr ""
+msgstr "Iklan Dilangkau"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Commercial"
-msgstr ""
+msgstr "Lompat ke Iklan Dilangkau"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skip Preview"
-msgstr ""
+msgstr "Langkau Pratonton"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Preview"
-msgstr ""
+msgstr "Pratonton Dilangkau"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Seek to Skip Preview"
@@ -301,7 +304,7 @@ msgstr ""
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Quit and Mark Unplayed"
-msgstr ""
+msgstr "Keluar dan Tandakan Belum Ditonton"
 
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -340,7 +343,7 @@ msgstr "Pilih Trek Sarikata"
 #: jellyfin_mpv_shim/menu.py jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "None"
-msgstr ""
+msgstr "Tiada"
 
 #: jellyfin_mpv_shim/menu.py
 msgid "Select Transcode Quality"
@@ -531,7 +534,7 @@ msgstr "Halaman"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/comic.py
 #, python-format
 msgid "of %d"
-msgstr ""
+msgstr "daripada %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "First page"
@@ -559,18 +562,18 @@ msgstr "Halaman terakhir"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "The change could not be applied."
-msgstr ""
+msgstr "Perubahan tidak dapat digunakan."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/home_sections.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Live TV"
-msgstr ""
+msgstr "TV Siaran Langsung"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #, python-format
 msgid "Selected: %s"
-msgstr ""
+msgstr "Jumlah dipilih: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
@@ -578,18 +581,18 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/music.py
 msgid "Loading…"
-msgstr ""
+msgstr "Memuatkan…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Playback could not be started."
-msgstr ""
+msgstr "Main balik tidak dapat dimulakan."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Queue"
-msgstr ""
+msgstr "Giliran"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -597,32 +600,28 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Retry"
-msgstr ""
+msgstr "Cuba Semula"
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Tidak dapat dimulakan semula secara automatik — keluar dan buka semula "
+"aplikasi untuk menggunakan perubahan anda."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"Tidak dapat menambah pelayan.\n"
-"Sila semak maklumat sambungan anda."
+msgstr "Masih tidak dapat menghubungi pelayan."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
 msgid "Switch to %s"
-msgstr ""
+msgstr "Tukar kepada %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "PIN"
-msgstr ""
+msgstr "PIN"
 
 # seeded from jellyfin-web: ButtonCancel
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
@@ -636,17 +635,16 @@ msgstr "Batalkan"
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Switch"
-msgstr ""
+msgstr "Tukar"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Incorrect PIN."
-msgstr ""
+msgstr "PIN Salah."
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy, python-format
-#| msgid "Server:"
+#, python-format
 msgid "Set PIN for %s"
-msgstr "Pelayan:"
+msgstr "Tetapkan PIN untuk %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Current PIN"
