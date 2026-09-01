@@ -811,6 +811,16 @@ class Settings(SettingsBase):
         global config_path  # Don't want in model.
         fh, created = self.__get_file(path, "r", create)
         config_path = path
+        # Read it all in and CLOSE it before anything below can write it
+        # back. save() os.replace()s this very path, and on Windows that
+        # fails with "Access is denied" (WinError 5) while we still hold the
+        # destination open -- so both save-backs here were lost, silently
+        # except for a logged error, and the migration re-ran every launch.
+        # POSIX renames over an open file happily, which is why this stood.
+        try:
+            raw = None if created else fh.read()
+        finally:
+            fh.close()
         if created:
             # A config written from the current defaults is already current;
             # stamp it so _migrate() never re-runs against a fresh install.
@@ -818,7 +828,7 @@ class Settings(SettingsBase):
             self.save()
         if not created:
             try:
-                data = json.load(fh)
+                data = json.loads(raw)
                 safe_data = self.parse_obj(data)
 
                 # Copy and count items
@@ -854,10 +864,8 @@ class Settings(SettingsBase):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
-                fh.close()
                 return False
 
-        fh.close()
         return True
 
     def save(self):
