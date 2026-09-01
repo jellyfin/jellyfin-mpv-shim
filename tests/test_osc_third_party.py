@@ -250,7 +250,7 @@ class PrecedenceAgainstRealLibmpvTest(unittest.TestCase):
     def build(self, conf_text, **opts):
         import mpv
         import os
-        with open(os.path.join(self.dir, "mpv.conf"), "w") as fh:
+        with open(os.path.join(self.dir, "mpv.conf"), "w", encoding="utf-8") as fh:
             fh.write(conf_text)
         p = mpv.MPV(config=True, config_dir=self.dir, vo="null", **opts)
         try:

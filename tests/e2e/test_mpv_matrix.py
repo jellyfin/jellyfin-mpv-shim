@@ -69,7 +69,7 @@ class MpvMatrixTest(unittest.TestCase):
         conf = {"enable_gui": True, "osc_style": "mpvtk"}
         if binary:
             conf.update({"mpv_ext": True, "mpv_ext_path": binary})
-        with open(os.path.join(cfg, "conf.json"), "w") as fh:
+        with open(os.path.join(cfg, "conf.json"), "w", encoding="utf-8") as fh:
             json.dump(conf, fh)
 
         env = dict(os.environ)

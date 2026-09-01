@@ -75,7 +75,7 @@ class AtomicSaveTest(UserManagerTestBase):
         path = os.path.join(self.tmp, "users.json")
         self.assertTrue(os.path.exists(path))
         self.assertFalse(os.path.exists(path + ".tmp"))
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             json.load(f)  # must be valid JSON
 
     def test_settings_save_is_atomic_and_serialized(self):
@@ -91,7 +91,7 @@ class AtomicSaveTest(UserManagerTestBase):
                 t.start()
             for t in threads:
                 t.join()
-            with open(cfg) as f:
+            with open(cfg, encoding="utf-8") as f:
                 data = json.load(f)
             self.assertIn("player_name", data)
             self.assertFalse(os.path.exists(cfg + ".tmp"))

@@ -127,11 +127,11 @@ class DolbyVisionMigrationTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "conf.json")
-            with open(path, "w") as fh:
+            with open(path, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh)
             settings = Settings()
             settings.load(path)
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 return settings, json.load(fh)
 
     def test_an_old_config_is_migrated_off_dolby_vision_transcoding(self):

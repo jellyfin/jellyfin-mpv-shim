@@ -146,7 +146,7 @@ class TestNothingCallsAControllerMethodThatDoesNotExist(unittest.TestCase):
                    if "__pycache__" not in root
                    for fn in sorted(files) if fn.endswith(".py")]
         for path in sources:
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 # self.controller.NAME(...)

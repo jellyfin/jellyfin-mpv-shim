@@ -60,7 +60,7 @@ def _live_pgid_members(pgid):
         if not entry.isdigit():
             continue
         try:
-            with open(os.path.join("/proc", entry, "stat")) as fh:
+            with open(os.path.join("/proc", entry, "stat"), encoding="utf-8") as fh:
                 data = fh.read()
         except OSError:
             continue  # process exited between listing and reading

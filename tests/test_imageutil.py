@@ -226,7 +226,7 @@ class TestTheCouplingIsGone(unittest.TestCase):
                    for fn in sorted(files) if fn.endswith(".py")]
         for path in sources:
             name = os.path.relpath(path, pkg).replace(os.sep, "/")
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 tree = ast.parse(fh.read(), filename=path)
             for node in tree.body:      # module scope only, not ast.walk
                 mods = []

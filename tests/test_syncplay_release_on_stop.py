@@ -159,7 +159,8 @@ class WhichPredicateThePlayerAsks(unittest.TestCase):
         """(enclosing function, method) for every ``self.syncplay.x()`` in
         player.py."""
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(root, "jellyfin_mpv_shim", "player.py")) as fh:
+        with open(os.path.join(root, "jellyfin_mpv_shim", "player.py"),
+                       encoding="utf-8") as fh:
             tree = ast.parse(fh.read())
         parent = {}
         for node in ast.walk(tree):

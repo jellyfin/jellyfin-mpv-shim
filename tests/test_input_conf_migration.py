@@ -254,7 +254,7 @@ class FieldsSetSurvivesLoadTest(unittest.TestCase):
         import json
 
         path = _tmpdirs.tmpfile("conf.json", "jms-inputconf-")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             json.dump({"kb_menu_up": "a", "config_version": 4}, fh)
         s = Settings()
         s.load(path)

@@ -232,7 +232,8 @@ class TestBufferingIsReported(unittest.TestCase):
         import os
 
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        src = open(os.path.join(root, "jellyfin_mpv_shim", "player.py")).read()
+        src = open(os.path.join(root, "jellyfin_mpv_shim", "player.py"),
+                   encoding="utf-8").read()
         observed = set()
         for node in ast.walk(ast.parse(src)):
             if isinstance(node, ast.Call):

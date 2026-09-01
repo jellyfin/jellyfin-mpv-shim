@@ -132,6 +132,16 @@ WHOLE_SUITE = ["discover", "tests/integration"]
 BACKENDS = ("libmpv", "jsonipc")
 
 
+def _utf8_stdio():
+    """See tools/run_tests_parallel._utf8 -- a leg's output must not be able
+    to kill the runner printing it."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def _have_display():
     # os.name: Windows has a desktop and no DISPLAY. Kept in step with
     # _harness.HAVE_DISPLAY, which is where the same answer decides whether
@@ -150,6 +160,11 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     # a frozen browser passes: exactly how a route-key collision shipped with
     # 1886 tests green. Every leg runs strict.
     env["JMS_STRICT_BUILDS"] = "1"
+    # A leg's own stdout is cp1252 on Windows, so a test whose docstring
+    # holds a character outside it dies in print() rather than in anything
+    # it was testing. Children cannot reconfigure themselves here (they are
+    # plain `python -m unittest`), so it goes in the environment.
+    env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     if extra_env:
@@ -180,9 +195,14 @@ def _run(modules, *, backend=None, use_xvfb=False, extra_env=None,
     # leaks can be found and killed as a unit. Same reasoning as
     # tools/run_tests_parallel.py, which has had this from the start; this
     # runner had not, and the difference is the hang described below.
+    # encoding/errors explicitly rather than text=True: that decodes with
+    # the locale encoding, which on Windows is cp1252 -- undefined bytes
+    # there raise UnicodeDecodeError in the pump thread and the leg's output
+    # is lost even though the leg itself was fine.
     proc = subprocess.Popen(cmd, cwd=REPO_ROOT, env=env,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True,
+                            encoding="utf-8", errors="replace",
                             start_new_session=True)
     captured = []
 
@@ -311,6 +331,7 @@ def main():
                          "windows (expect ~25 of them, and a window manager "
                          "that may not honour the requested geometry)")
     args = ap.parse_args()
+    _utf8_stdio()
 
     backends = (args.backend,) if args.backend else BACKENDS
 

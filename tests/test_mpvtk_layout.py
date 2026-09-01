@@ -417,7 +417,7 @@ class TestAssWrapStyle(unittest.TestCase):
 
         path = os.path.join(os.path.dirname(jellyfin_mpv_shim.__file__),
                             "mpvtk", "renderer.lua")
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             return fh.read()
 
     def test_every_text_event_disables_libass_wrapping(self):

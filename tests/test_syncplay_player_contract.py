@@ -43,7 +43,7 @@ STAND_INS = [
 
 
 def _parse(rel_path):
-    with open(os.path.join(ROOT, rel_path)) as fh:
+    with open(os.path.join(ROOT, rel_path), encoding="utf-8") as fh:
         return ast.parse(fh.read())
 
 

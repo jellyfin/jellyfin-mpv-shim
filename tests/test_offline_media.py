@@ -144,7 +144,8 @@ class OfflineTrickplayTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def _video(self, tiles=4):
-        with open(os.path.join(self.item_dir, "trickplay.json"), "w") as fh:
+        with open(os.path.join(self.item_dir, "trickplay.json"), "w",
+                       encoding="utf-8") as fh:
             json.dump({"width": 320,
                        "data": {"Width": 320, "Height": 180, "TileWidth": 2,
                                 "TileHeight": 2, "ThumbnailCount": tiles * 4,
@@ -218,7 +219,8 @@ class OfflineSegmentsTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def _write(self, segments):
-        with open(os.path.join(self.root, "a", "segments.json"), "w") as fh:
+        with open(os.path.join(self.root, "a", "segments.json"), "w",
+                       encoding="utf-8") as fh:
             json.dump(segments, fh)
 
     def _video(self):

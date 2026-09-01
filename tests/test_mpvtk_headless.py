@@ -386,7 +386,7 @@ class TestNoRouteEscapesTheLockdown(unittest.TestCase):
                    for fn in sorted(files) if fn.endswith(".py")]
         for path in sources:
             name = os.path.relpath(path, pkg).replace(os.sep, "/")
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 src = fh.read()
             tree = ast.parse(src, filename=path)
             for node in ast.walk(tree):

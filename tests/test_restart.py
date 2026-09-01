@@ -557,7 +557,7 @@ class LogPreservationTest(unittest.TestCase):
         from types import SimpleNamespace
 
         if create:
-            with open(self.log, "w") as fh:
+            with open(self.log, "w", encoding="utf-8") as fh:
                 fh.write("Restarting: /usr/bin/python3 app\n")
         with mock.patch("jellyfin_mpv_shim.conffile.get",
                         return_value=self.log), \
@@ -569,7 +569,7 @@ class LogPreservationTest(unittest.TestCase):
         self._preserve()
         moved = os.path.join(self.dir, restart.PREVIOUS_LOG)
         self.assertTrue(os.path.exists(moved), os.listdir(self.dir))
-        with open(moved) as fh:
+        with open(moved, encoding="utf-8") as fh:
             self.assertIn("Restarting:", fh.read())
         # Moved, not copied: the successor opens `log.txt` with mode="w" and
         # a leftover would just be truncated again.

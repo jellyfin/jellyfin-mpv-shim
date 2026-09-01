@@ -40,11 +40,11 @@ def main():
     os.makedirs(config_dir, exist_ok=True)
     gen_file = _state_path(config_dir, "generation")
     try:
-        with open(gen_file) as fh:
+        with open(gen_file, encoding="utf-8") as fh:
             generation = int(fh.read().strip() or "0")
     except Exception:
         generation = 0
-    with open(gen_file, "w") as fh:
+    with open(gen_file, "w", encoding="utf-8") as fh:
         fh.write(str(generation + 1))
 
     if generation:
@@ -52,7 +52,7 @@ def main():
         # the argv is the half most likely to be wrong, and a marker that
         # only said "something started" would pass for a copy launched
         # against the default config directory.
-        with open(_state_path(config_dir, "relaunched"), "w") as fh:
+        with open(_state_path(config_dir, "relaunched"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(sys.argv))
 
     wedge = os.environ.get("JMS_RESTART_WEDGE")

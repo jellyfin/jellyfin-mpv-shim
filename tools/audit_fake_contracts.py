@@ -169,7 +169,7 @@ _ast_cache = {}
 
 def parse(path):
     if path not in _ast_cache:
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             _ast_cache[path] = ast.parse(fh.read(), filename=path)
     return _ast_cache[path]
 

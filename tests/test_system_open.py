@@ -131,7 +131,7 @@ class MissingFileTest(Harness):
         # went away -- the store was moved or pruned -- and passing the path
         # on would have the desktop report a corrupt book instead.
         os.unlink(self.book)
-        self.addCleanup(lambda: open(self.book, "w").close())
+        self.addCleanup(lambda: open(self.book, "w", encoding="utf-8").close())
         self.assertEqual(system_open.open_path(self.book), (False, None))
         self.assertEqual(self.spawned, [])
 

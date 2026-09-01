@@ -452,7 +452,7 @@ class RelocateTest(TmpTest):
         self._seed_download(m)
         target = os.path.join(self.tmp, "taken")
         os.makedirs(target)
-        open(os.path.join(target, "catalog.db"), "w").close()
+        open(os.path.join(target, "catalog.db"), "w", encoding="utf-8").close()
         ok, msg = m.relocate(target)
         self.assertFalse(ok)
         self.assertIn("already contains", msg)
@@ -868,7 +868,7 @@ class DownloadSegmentsTest(unittest.TestCase):
         path = os.path.join(self.tmp.name, "segments.json")
         if not os.path.exists(path):
             return None
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             return json.load(fh)
 
     def test_segments_are_written_beside_the_media(self):

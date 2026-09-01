@@ -167,7 +167,7 @@ class StoreTest(unittest.TestCase):
         import tempfile
 
         path = _tmpdirs.tmpfile("shader_profiles.json", "jms-shaderscope-")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             fh.write("{ not json")
         o = ShaderOverrides(path)
         self.assertEqual(o.resolve({"series": "srv/show1"}, "a"),

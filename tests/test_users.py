@@ -23,11 +23,11 @@ class UserManagerTestBase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
     def write_cred_json(self, data):
-        with open(os.path.join(self.tmp, "cred.json"), "w") as f:
+        with open(os.path.join(self.tmp, "cred.json"), "w", encoding="utf-8") as f:
             json.dump(data, f)
 
     def read_users_json(self):
-        with open(os.path.join(self.tmp, "users.json")) as f:
+        with open(os.path.join(self.tmp, "users.json"), encoding="utf-8") as f:
             return json.load(f)
 
     def fresh(self):
