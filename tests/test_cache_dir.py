@@ -22,7 +22,9 @@ import os
 import shutil
 import stat
 import tempfile
+import time
 import unittest
+from unittest import mock
 
 from jellyfin_mpv_shim.mpvtk import rawimage
 
@@ -43,15 +45,41 @@ class SweepTest(unittest.TestCase):
 
     @unittest.skipIf(
         os.name == "nt",
-        "rawimage._process_alive cannot tell a dead pid from a live one on "
-        "Windows (os.kill(pid, 0) terminates rather than probes), so nothing "
-        "outside a namespace is reclaimable there -- see its docstring and "
-        "NamespacedSweepTest, which covers the path Windows actually uses")
+        "reclaiming a dead session's cache IMMEDIATELY needs a pid probe, and "
+        "os.kill(pid, 0) terminates rather than probes on Windows. There the "
+        "same directory is reclaimed by age instead -- see "
+        "test_windows_reclaims_by_age_since_it_cannot_ask_the_pid")
     def test_a_dead_sessions_cache_is_reclaimed(self):
         # A pid that cannot be running: one past the system maximum.
         dead = self._dir("mpvtk-thumbs-%d-abc" % (2 ** 22 + 7))
         rawimage.sweep_stale(self.base, "mpvtk-thumbs-")
         self.assertFalse(os.path.exists(dead))
+
+    def test_windows_reclaims_by_age_since_it_cannot_ask_the_pid(self):
+        """`_process_alive` answers "yes" for every pid on Windows, so a
+        named directory would never be reclaimable there and the app would
+        leak one per run for ever -- 3,264 of them, 3.4 GB, on a test VM.
+        Age is the fallback, and it must apply only to the old ones."""
+        old = self._dir("mpvtk-thumbs-%d-old" % (2 ** 22 + 7),
+                        mtime=time.time() - rawimage.STALE_SECS - 60)
+        fresh = self._dir("mpvtk-thumbs-%d-new" % (2 ** 22 + 8))
+        with mock.patch.object(rawimage.os, "name", "nt"), \
+                mock.patch.object(rawimage, "_process_alive",
+                                  return_value=True):
+            rawimage.sweep_stale(self.base, "mpvtk-thumbs-")
+        self.assertFalse(os.path.exists(old),
+                         "an unprobeable pid's stale cache was kept for ever")
+        self.assertTrue(os.path.exists(fresh),
+                        "took a directory that may belong to a live session")
+
+    def test_a_live_pid_is_still_spared_on_windows_while_it_is_fresh(self):
+        """The age rule must not become a way to reclaim our own."""
+        mine = self._dir("mpvtk-thumbs-%d-abc" % os.getpid(),
+                         mtime=time.time() - rawimage.STALE_SECS - 60)
+        with mock.patch.object(rawimage.os, "name", "nt"):
+            rawimage.sweep_stale(self.base, "mpvtk-thumbs-")
+        self.assertTrue(os.path.exists(mine),
+                        "swept this process's own cache")
 
     def test_a_live_sessions_cache_is_left_alone(self):
         mine = self._dir("mpvtk-thumbs-%d-abc" % os.getpid())

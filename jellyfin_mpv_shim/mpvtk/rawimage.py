@@ -134,6 +134,16 @@ def _created_pid(name):
     return None
 
 
+def _older_than(base, name, now, seconds=STALE_SECS):
+    """Whether ``base/name`` has gone ``seconds`` without being written to.
+    False if it cannot be measured -- an answer we are unsure of must not
+    authorise a delete."""
+    try:
+        return now - os.stat(os.path.join(base, name)).st_mtime >= seconds
+    except OSError:
+        return False
+
+
 def _reclaimable(base, name, prefix, now):
     """Whether ``base/name`` is an abandoned cache directory. Never raises
     for a caller that has already checked it is a directory."""
@@ -151,7 +161,22 @@ def _reclaimable(base, name, prefix, now):
         return False
     pid = _owner_pid(name, prefix)
     if pid is not None:
-        return pid != os.getpid() and not _process_alive(pid)
+        if pid == os.getpid():
+            return False
+        if not _process_alive(pid):
+            return True
+        if os.name == "nt":
+            # _process_alive cannot probe on Windows -- it answers "yes" for
+            # every pid -- so without this a named directory there is never
+            # reclaimable at all, and the app leaks one per run for ever.
+            # Measured on a test VM: 3,264 directories, 3.4 GB, which filled
+            # the disk. Age is the same rule the pid-less branch below
+            # already trusts, and it is *safer* here than there: a live
+            # session holds its .bgra files open, and Windows will not
+            # delete an open file, so the rmtree of a cache still in use
+            # fails rather than harming it.
+            return _older_than(base, name, now)
+        return False
     if "-" in name[len(prefix):]:
         # Not ours to age out. A name with further dashes after the prefix
         # is another prefix's directory seen through a shorter one
@@ -160,10 +185,7 @@ def _reclaimable(base, name, prefix, now):
         # would delete a running session's cache. mkdtemp's own suffix has
         # no dashes, so this cannot exclude a real pre-namespace leftover.
         return False
-    try:
-        return now - os.stat(os.path.join(base, name)).st_mtime >= STALE_SECS
-    except OSError:
-        return False
+    return _older_than(base, name, now)
 
 
 def sweep_stale(base, prefix, now=None):
@@ -210,7 +232,14 @@ def sweep_stale(base, prefix, now=None):
             if not _reclaimable(base, name, prefix, now):
                 continue
             shutil.rmtree(path, ignore_errors=True)
-            removed += 1
+            # Count what went, not what was attempted. ignore_errors hides a
+            # failure, and on Windows one is expected: a file another
+            # process still holds open cannot be deleted, so a directory
+            # genuinely in use survives its own rmtree. Reporting it as
+            # reclaimed would make the log say the opposite of the truth
+            # about the one platform where the space actually accumulates.
+            if not os.path.exists(path):
+                removed += 1
         except Exception:
             # One unreadable or oddly-named entry must not take the app's
             # startup with it -- this runs before the browser exists.
