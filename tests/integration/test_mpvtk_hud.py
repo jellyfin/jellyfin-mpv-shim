@@ -8,8 +8,15 @@ landing on play/pause), ENTER activates the focused transport button,
 ESC hides it, ~4s of inactivity auto-hides it, and stopping playback
 drops HUD mode entirely as browse resumes. No player.py, no server —
 a fake controller records the transport calls.
+
+It is also where the WHEEL is proved, because ownership of a key is not
+a thing a fake mpv can model: the three tests near the end install the
+reporter's own `WHEEL_DOWN add volume -5` with mpv's `keybind` and press
+it through mpv's own dispatch, so what they measure is which section won
+(#711). All three fail on the pre-fix renderer.
 """
 
+import copy
 import os
 import sys
 import threading
@@ -83,6 +90,22 @@ class FakeController:
 
     def check_updates(self):
         pass
+
+    def playback_info(self):
+        """What the Playback Info panel reads.
+
+        The shell suite's own fixture, imported rather than retyped: the
+        wheel test below needs the panel's body to OVERFLOW to have
+        anything to scroll, and a locally-invented blob that happens to
+        fit would leave that test passing against a panel with nowhere to
+        go. Imported lazily, like test_settings_screen.py does.
+        """
+        from tests._shell_harness import HUD_PLAYBACK_INFO
+        return copy.deepcopy(HUD_PLAYBACK_INFO)
+
+    def player_stats(self):
+        from tests._shell_harness import HUD_PLAYER_STATS
+        return dict(HUD_PLAYER_STATS)
 
 
 VIDEO_STATE = {
@@ -490,6 +513,146 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
                    msg="ESC never dismissed the menu")
         self.assertTrue(self.browser.hud.shown,
                         "dismissing the menu must not hide the HUD")
+
+    # ----------------------------------------------- the wheel (#711)
+
+    def _volume(self):
+        return float(getattr(self.handle, "volume"))
+
+    def _bind_user_wheel(self):
+        """The reporter's `WHEEL_DOWN add volume -5`, installed the one way
+        a test can.
+
+        `keybind` lands where input.conf lands, so a forced script section
+        still outranks it -- which is the whole of #711. It also means the
+        notch has to go through mpv's own dispatch (`keypress`): the
+        renderer's debug wheel hook calls on_wheel directly, so it would
+        pass whoever owns the section and prove nothing about ownership.
+        """
+        self.handle.command("keybind", "WHEEL_DOWN", "add volume -5")
+
+    def _summon(self):
+        self._play_video()
+        self._wait(lambda: self._state().get("phud_mode"),
+                   msg="never entered HUD-idle")
+        self._press_until("LEFT", lambda: self.browser.hud.shown,
+                          msg="summon failed")
+
+    def _open_info_panel(self):
+        """Through the gear menu, as a viewer reaches it."""
+        self._wait(lambda: self.app.node_rect("hud-settings") is not None,
+                   msg="gear button never materialized")
+        self.app.debug(cmd="click", id="hud-settings")
+        self._wait(lambda: self._state().get("menu_open"),
+                   msg="gear click never opened the settings menu")
+        self._highlight_menu_row("Playback Info")
+        self._press_until("ENTER", lambda: self.browser.hud.info,
+                          msg="the menu never opened the panel")
+        self._wait(lambda: self.app.node_rect("hud-info-scroll") is not None,
+                   msg="the panel never reached the renderer")
+        rect = self.app.node_rect("hud-info-scroll")
+        # The precondition, asserted rather than assumed: a panel whose body
+        # fits has nothing to scroll, and every wheel assertion below would
+        # then pass against a container that could not have moved.
+        self.assertGreater(rect["ch"], rect["h"],
+                           "the info panel does not overflow, so nothing "
+                           "here is measuring a scroll")
+        return rect
+
+    def test_a_bare_hud_leaves_the_wheel_to_the_user(self):
+        """#711: the forced wheel section swallowed every notch for as long
+        as the controls were up, so `WHEEL_UP add volume 5` worked only
+        while they were hidden. Nothing on the bar scrolls, so it is not
+        ours to hold."""
+        self._summon()
+        self._bind_user_wheel()
+        before = self._volume()
+        self._press_until(
+            "WHEEL_DOWN", lambda: self._volume() < before,
+            msg="the summoned HUD swallowed the user's own wheel binding")
+        self.assertTrue(self.browser.hud.shown,
+                        "the wheel should not have dismissed the bar")
+
+    def test_the_info_panel_takes_the_wheel_and_gives_it_back(self):
+        """The other half, and the half that breaks silently: releasing the
+        wheel must not cost the one thing on the HUD that does scroll.
+
+        Both directions in one test on purpose -- "the panel scrolls" and
+        "the volume binding works" pass individually against a section that
+        is permanently on and permanently off respectively, and it is the
+        handover between them that has no other coverage."""
+        self._summon()
+        self._bind_user_wheel()
+        rect = self._open_info_panel()
+        # scroll_at hit-tests against the pointer, so the pointer has to be
+        # on the panel -- a notch over the bar would find nothing whatever
+        # the section says.
+        self.app.debug(cmd="moveto", id="hud-info-scroll")
+        off0 = (self.app.scroll_offsets() or {}).get("hud-info-scroll", 0)
+        before = self._volume()
+        self._press_until(
+            "WHEEL_DOWN",
+            lambda: (self.app.scroll_offsets() or {}).get(
+                "hud-info-scroll", 0) > off0,
+            msg="the open Playback Info panel would not scroll")
+        self.assertEqual(self._volume(), before,
+                         "the panel scrolled AND the notch reached mpv: the "
+                         "section is not taking the wheel back")
+        self.assertLessEqual(
+            (self.app.scroll_offsets() or {}).get("hud-info-scroll", 0),
+            rect["ch"] - rect["h"] + 1,
+            "scrolled past the end of the panel")
+
+        # ...and closing it hands the wheel back. This is the assertion that
+        # fails if the release is ever made unconditional-on-HUD again.
+        self._keypress("ESC")
+        self._wait(lambda: not self.browser.hud.info,
+                   msg="ESC never closed the panel")
+        self._press_until(
+            "WHEEL_DOWN", lambda: self._volume() < before,
+            msg="the wheel stayed claimed after the panel closed")
+
+    def test_an_open_picker_takes_the_wheel_over_the_hud(self):
+        """The third surface, and the other branch of the predicate: a
+        dropdown popup is handed the notch before any hit test, so this is
+        the one place on the HUD where the wheel works without the pointer
+        being over anything in particular."""
+        # Enough chapters that the popup is CLIPPED -- a list that fits
+        # scrolls nowhere, and the assertion below would pass against a
+        # popup that never moved.
+        self.ctl.chapter_list = [{"title": "Chapter %d" % i,
+                                  "time": float(i) * 0.5} for i in range(40)]
+        self._summon()
+        self._bind_user_wheel()
+        self._wait(lambda: self.app.node_rect("hud-chapters") is not None,
+                   msg="chapter picker never materialized")
+        self.app.debug(cmd="click", id="hud-chapters")
+        self._wait(lambda: self._state().get("dd_open") == "hud-chapters",
+                   msg="chapter popup never opened")
+        geo = (self._state() or {}).get("dd_geo") or {}
+        self.assertLess(geo.get("n", 0), geo.get("count", 0),
+                        "the popup is not clipped, so nothing here is "
+                        "measuring a scroll")
+        # From where it OPENED, not from zero: a popup scrolls to its
+        # selected row on open, so `off > 0` can already be true before a
+        # notch has been delivered -- and this test then passes with the
+        # section disabled, which is the state it exists to catch.
+        off0 = geo.get("off", 0)
+        before = self._volume()
+        self._press_until(
+            "WHEEL_DOWN",
+            lambda: ((self._state() or {}).get("dd_geo") or {}).get(
+                "off", 0) > off0,
+            msg="the open chapter picker would not scroll")
+        self.assertEqual(self._volume(), before,
+                         "the popup scrolled AND the notch reached mpv")
+
+        self._keypress("ESC")
+        self._wait(lambda: self._state().get("dd_open") is None,
+                   msg="ESC never closed the popup")
+        self._press_until(
+            "WHEEL_DOWN", lambda: self._volume() < before,
+            msg="the wheel stayed claimed after the picker closed")
 
     def test_default_no_grab_only_wake_key_summons(self):
         """With hud_grab_keys off (the shipped default), idle arrows

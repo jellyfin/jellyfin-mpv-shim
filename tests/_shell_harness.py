@@ -16,6 +16,7 @@ Not named ``test_*`` so unittest discovery ignores it; imported as
 pattern).
 """
 
+import copy
 import threading
 import time
 import unittest
@@ -884,6 +885,48 @@ class FakeController:
 
         return record
 
+
+#: What the playback-info panel reads, and the mpv counters beside it.
+#:
+#: Module constants rather than literals in ``HudController.__init__``
+#: because the integration HUD suite needs the same two blobs against a
+#: real mpv (tests/integration/test_mpvtk_hud.py), and a second copy of a
+#: fixture is a second thing to keep true. Deep-copied per instance: tests
+#: mutate these to put the panel in its other states.
+#:
+#: A *transcode* with real streams on it, for the reason
+#: :meth:`HudController.playback_info` gives -- and long enough that the
+#: panel's body overflows at 1280x720 (measured: 754px of content in a
+#: 420px viewport), which is what gives the integration wheel test
+#: something to scroll.
+HUD_PLAYER_STATS = {
+    "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
+    "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
+    "buffered": 42.5, "cache_speed": 1_500_000,
+}
+
+HUD_PLAYBACK_INFO = {
+    "title": "Movie", "item_type": "Movie", "media_type": "Video",
+    "play_method": "Transcode",
+    "transcode_reasons": ["VideoCodecNotSupported"],
+    "direct_path": False, "offline": False,
+    "aid": 1, "sid": None,
+    "source": {
+        "Container": "mkv", "Size": 8400000000,
+        "Path": "/media/Films/Film (2017)/film.mkv",
+        "MediaStreams": [
+            {"Type": "Video", "Index": 0, "Codec": "hevc",
+             "Width": 3840, "Height": 2160, "BitDepth": 10},
+            {"Type": "Audio", "Index": 1, "Codec": "truehd",
+             "Channels": 8, "ChannelLayout": "7.1",
+             "IsDefault": True},
+            {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
+             "Language": "eng", "IsExternal": True},
+        ],
+    },
+}
+
+
 class HudController(FakeController):
     """FakeController with real HUD data (the catch-all recorder would
     return None for the data getters)."""
@@ -930,31 +973,8 @@ class HudController(FakeController):
             {"title": "Middle", "time": 40.0},
             {"title": "End", "time": 80.0},
         ]
-        self.player_stats_blob = {
-            "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
-            "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
-            "buffered": 42.5, "cache_speed": 1_500_000,
-        }
-        self.playback_info_blob = {
-            "title": "Movie", "item_type": "Movie", "media_type": "Video",
-            "play_method": "Transcode",
-            "transcode_reasons": ["VideoCodecNotSupported"],
-            "direct_path": False, "offline": False,
-            "aid": 1, "sid": None,
-            "source": {
-                "Container": "mkv", "Size": 8400000000,
-                "Path": "/media/Films/Film (2017)/film.mkv",
-                "MediaStreams": [
-                    {"Type": "Video", "Index": 0, "Codec": "hevc",
-                     "Width": 3840, "Height": 2160, "BitDepth": 10},
-                    {"Type": "Audio", "Index": 1, "Codec": "truehd",
-                     "Channels": 8, "ChannelLayout": "7.1",
-                     "IsDefault": True},
-                    {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
-                     "Language": "eng", "IsExternal": True},
-                ],
-            },
-        }
+        self.player_stats_blob = copy.deepcopy(HUD_PLAYER_STATS)
+        self.playback_info_blob = copy.deepcopy(HUD_PLAYBACK_INFO)
 
     def use_hud(self):
         return True
