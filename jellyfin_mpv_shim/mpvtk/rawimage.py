@@ -355,6 +355,24 @@ def cache_dir(prefix="mpvtk-", min_free=MIN_FREE_BYTES):
     return path
 
 
+def cleanup_this_process():
+    """Remove every cache dir this process made. Returns the number gone.
+
+    The atexit hook in :func:`cache_dir` is the normal path. This exists for
+    a caller that ends in ``os._exit`` and so runs no atexit hook at all --
+    ``tools/run_tests_parallel``'s workers, which is where these accumulate:
+    on Windows :func:`_process_alive` cannot say a pid is dead, so a leaked
+    dir is never reclaimed by a later sweep either. 3,264 of them, ~3.4 GB,
+    filled a test VM's disk and stopped the run.
+    """
+    removed = 0
+    for path in list(_ours):
+        shutil.rmtree(path, ignore_errors=True)
+        _ours.discard(path)
+        removed += 1
+    return removed
+
+
 def _mark_temporary(path):
     if not sys.platform.startswith("win"):
         return
