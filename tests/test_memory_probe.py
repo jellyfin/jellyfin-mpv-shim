@@ -99,14 +99,18 @@ class MemoryIsTightTest(unittest.TestCase):
         def sysconf(name):
             return -1 if name == "SC_PHYS_PAGES" else 4096
 
+        # create=True: os.sysconf does not exist on Windows, and
+        # mock.patch refuses to patch an attribute that is not there.
+        # Everything about this darwin path is synthetic anyway, so the
+        # test is as meaningful there as anywhere.
         with mock.patch.object(_sys, "platform", "darwin"), \
-                mock.patch("os.sysconf", sysconf):
+                mock.patch("os.sysconf", sysconf, create=True):
             self.assertEqual(utils.system_memory(), (None, None))
             self.assertFalse(utils.memory_is_tight())
         # ...and both answering -1, whose product is a positive 1.
         utils._total_memory = None
         with mock.patch.object(_sys, "platform", "darwin"), \
-                mock.patch("os.sysconf", return_value=-1):
+                mock.patch("os.sysconf", return_value=-1, create=True):
             self.assertEqual(utils.system_memory(), (None, None))
 
     def test_unknown_is_roomy_not_tight(self):
@@ -114,7 +118,13 @@ class MemoryIsTightTest(unittest.TestCase):
         machine that may be perfectly comfortable. macOS reaches this for
         `available` — there is no cheap portable source for it — and answers
         on the total alone."""
-        self.assertFalse(utils.memory_is_tight(None, None))
+        # Both-None means "probe this machine", NOT "unknown" -- so spelling
+        # it that way asserted something about the host instead, and failed on
+        # any box under SMALL_MEMORY_BYTES (a 4 GiB CI VM, for one). The
+        # unknown answer has to come from the probe.
+        with mock.patch.object(utils, "system_memory",
+                               return_value=(None, None)):
+            self.assertFalse(utils.memory_is_tight())
         self.assertFalse(utils.memory_is_tight(64 * self.GB, None))
         self.assertTrue(utils.memory_is_tight(2 * self.GB, None),
                         "a small machine is small whether or not it is busy")

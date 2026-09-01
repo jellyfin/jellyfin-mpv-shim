@@ -41,6 +41,12 @@ class SweepTest(unittest.TestCase):
             os.utime(path, (mtime, mtime))
         return path
 
+    @unittest.skipIf(
+        os.name == "nt",
+        "rawimage._process_alive cannot tell a dead pid from a live one on "
+        "Windows (os.kill(pid, 0) terminates rather than probes), so nothing "
+        "outside a namespace is reclaimable there -- see its docstring and "
+        "NamespacedSweepTest, which covers the path Windows actually uses")
     def test_a_dead_sessions_cache_is_reclaimed(self):
         # A pid that cannot be running: one past the system maximum.
         dead = self._dir("mpvtk-thumbs-%d-abc" % (2 ** 22 + 7))
@@ -198,6 +204,12 @@ class BaseChoiceTest(unittest.TestCase):
         self.assertTrue(path.startswith(self.disk + os.sep),
                         "cached into a tmpfs with 4 MiB free")
 
+    @unittest.skipIf(
+        os.name == "nt",
+        "rawimage._process_alive cannot tell a dead pid from a live one on "
+        "Windows (os.kill(pid, 0) terminates rather than probes), so nothing "
+        "outside a namespace is reclaimable there -- see its docstring and "
+        "NamespacedSweepTest, which covers the path Windows actually uses")
     def test_space_a_dead_session_is_holding_counts_as_free(self):
         # The sweep runs before the measurement on purpose: the space this
         # app leaked on its last run is exactly the space that makes the
@@ -407,7 +419,7 @@ class WhatMayBeSweptTest(unittest.TestCase):
         """Somebody else's directory, old enough to be reclaimable by age."""
         path = os.path.join(base, name)
         os.makedirs(path)
-        with open(os.path.join(path, "theirs.txt"), "w") as fh:
+        with open(os.path.join(path, "theirs.txt"), "w", encoding="utf-8") as fh:
             fh.write("not ours")
         os.utime(path, (1_000_000, 1_000_000))
         return path
