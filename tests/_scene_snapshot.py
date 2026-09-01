@@ -89,7 +89,10 @@ def frozen_clock():
         time.time = real_time
 
 # A file path into a temp dir, or "&<address>" from MemoryStore.
-_VOLATILE_SRC = re.compile(r"^(&\d+|.*/[^/]*\.bgra)$")
+# Either separator: on Windows the cache path arrives with backslashes,
+# missed the forward-slash-only pattern, and the raw temp path (which
+# carries a pid and a random suffix) went straight into the snapshot.
+_VOLATILE_SRC = re.compile(r"^(&\d+|.*[/\\][^/\\]*\.bgra)$")
 
 
 def normalize(nodes):

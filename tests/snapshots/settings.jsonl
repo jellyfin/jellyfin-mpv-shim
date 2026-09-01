@@ -30,7 +30,7 @@
 {"axis": "y", "bar": true, "ch": 931.1, "cw": 1270.0, "h": 522.5, "id": "settings", "t": "scroll", "w": 1280.0, "x": 0.0, "y": 197.6}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.2.0.0", "sc": "settings", "size": 24, "t": "text", "text": "This Device", "w": 1238.0, "x": 16.0, "y": 213.6}
 {"align": "left", "c": "9aa0a6", "h": 21.2, "id": "r.1.2.0.1.0", "sc": "settings", "size": 17, "t": "text", "text": "Player Name", "w": 340.0, "x": 16.0, "y": 257.1}
-{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "izzie-pc", "w": 340.0, "x": 368.0, "y": 251.6}
+{"h": 32.3, "id": "set-player_name", "ph": "", "sc": "settings", "size": 17, "t": "textbox", "text": "jms-test-host", "w": 340.0, "x": 368.0, "y": 251.6}
 {"align": "left", "c": "e5c07b", "h": 17.5, "id": "r.1.2.0.2", "sc": "settings", "size": 14, "t": "text", "text": "Requires restart", "w": 1238.0, "x": 16.0, "y": 291.9}
 {"click": true, "h": 21.2, "hover": {"c": "747474"}, "id": "set-raise_mpv", "sc": "settings", "t": "rect", "w": 1238.0, "x": 16.0, "y": 317.4}
 {"fill": "00a4dc", "h": 20.0, "id": "r.1.2.0.3.0", "radius": 5, "sc": "settings", "t": "rect", "w": 20.0, "x": 16.0, "y": 318.0}
