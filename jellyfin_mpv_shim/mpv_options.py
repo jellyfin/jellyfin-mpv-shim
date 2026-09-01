@@ -515,6 +515,16 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
                 "player-operation-mode": "cplayer",
                 "start_retries": settings.mpv_ext_start_retries,
                 "start_retry_delay_ms": settings.mpv_ext_start_retry_delay_ms,
+                # mpv's stdout/stderr to devnull instead of inheriting ours.
+                # `--terminal=no` means it never writes to them, so this
+                # looks like it can only matter for tidiness -- but an mpv
+                # that outlives terminate() goes on HOLDING them, and
+                # anything waiting for EOF on our output then waits for
+                # ever. That is what hangs the integration matrix's
+                # whole-suite leg; on Linux the runner recovers by killing
+                # the process group, and on Windows there are none, so it
+                # hangs outright. Needs python-mpv-jsonipc >= 1.4.0.
+                "discard_output": True,
             }
         )
 

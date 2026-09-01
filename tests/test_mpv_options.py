@@ -173,8 +173,13 @@ class ScriptPassingTest(SettingsCase):
         self.assertNotIn("scripts", opts)
 
     def test_libmpv_takes_a_joined_string(self):
+        # The platform is mocked for the same reason its Windows twin below
+        # mocks it: build_mpv_options picks the separator from sys.platform,
+        # so an unmocked assertion here is only true on the half of the
+        # world that is not Windows -- where it read as a product failure.
         self.set(mpv_ext=False)
-        opts = self.build("default", ["a.lua", "b.lua"])
+        with mock.patch.object(sys, "platform", "linux"):
+            opts = self.build("default", ["a.lua", "b.lua"])
         self.assertEqual(opts["scripts"], "a.lua:b.lua")
         self.assertNotIn("script", opts)
 
@@ -311,6 +316,21 @@ class ExternalMpvTest(SettingsCase):
         self.assertEqual(opts["start_retries"], 3)
         self.assertNotIn("ipc_socket", self.build("default", ext_mpv=False))
 
+    def test_mpv_does_not_inherit_our_stdout(self):
+        """A terminated mpv can outlive `MPV.terminate()`, and while it does
+        it holds every handle it inherited. Anything reading our output then
+        never sees EOF: the integration matrix's whole-suite leg hung on
+        exactly that, indefinitely on Windows, where there is no process
+        group for the runner to kill instead.
+
+        `--terminal=no` is why this looks unnecessary -- mpv never writes to
+        those handles. Holding them open is the whole problem."""
+        opts = self.build("default", ext_mpv=True)
+        self.assertIs(opts["discard_output"], True)
+        # libmpv is in-process: there is no child, and the option is not
+        # one mpv itself knows.
+        self.assertNotIn("discard_output", self.build("default", ext_mpv=False))
+
     def test_an_unset_path_lets_the_library_find_mpv(self):
         self.set(mpv_ext_path=None)
         with mock.patch("platform.system", return_value="Linux"):
@@ -444,7 +464,7 @@ class HwdecConfigPinTest(SettingsCase):
         import os
         d = _tmpdirs.tmpdir("jms-mpvopts-")
         path = os.path.join(d, "mpv.conf")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             fh.write(text)
         return mock.patch("jellyfin_mpv_shim.conffile.get",
                           return_value=path)
