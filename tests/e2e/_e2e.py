@@ -60,7 +60,12 @@ _CONFIG_DIR = tempfile.mkdtemp(prefix="jms-e2e-config-")
 # every run. 433 had accumulated before this.
 atexit.register(shutil.rmtree, _CONFIG_DIR, ignore_errors=True)
 os.environ["XDG_CONFIG_HOME"] = _CONFIG_DIR
-h.prime_args()
+# conffile.win32 reads APPDATA and knows nothing about XDG_CONFIG_HOME, so on
+# Windows the line above isolates nothing and the suite rewrites the
+# developer's real cred.json -- the exact thing this block exists to prevent.
+# Same pairing as tests/integration/test_single_instance_multiproc._spawn.
+os.environ["APPDATA"] = _CONFIG_DIR
+h.prime_args(_CONFIG_DIR)
 
 # stdjflib's fixed accounts. Password is the same for all of them except
 # qa-nopassword, whose whole point is not having one.
@@ -268,6 +273,7 @@ def isolate_config():
     path = tempfile.mkdtemp(prefix="jms-e2e-config-")
     atexit.register(shutil.rmtree, path, ignore_errors=True)
     os.environ["XDG_CONFIG_HOME"] = path
+    os.environ["APPDATA"] = path      # Windows: see the module-level pairing
     return path
 
 

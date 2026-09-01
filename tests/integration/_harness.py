@@ -909,17 +909,32 @@ def prime_args(config_dir=None):
 
     The app parses ``sys.argv`` the first time any module resolves the config
     dir; under a test runner ``sys.argv`` carries pytest/unittest tokens the
-    app's argparse rejects. Parsing once here against a clean argv (optionally
-    pinning ``--config`` to a temp dir) caches a valid Namespace for the rest of
-    the process, matching how the fast suite's single_instance test sidesteps
-    the same trap by mocking ``conffile.get``.
+    app's argparse rejects. Parsing once here against a clean argv, pinned to
+    a config dir, caches a valid Namespace for the rest of the process --
+    matching how the fast suite's single_instance test sidesteps the same trap
+    by mocking ``conffile.get``.
+
+    ``config_dir`` defaults to a throwaway rather than to the real one; see
+    below for what that cost.
     """
     import jellyfin_mpv_shim.args as args_mod
     if args_mod._args is not None:
         return args_mod._args
-    argv = ["jellyfin-mpv-shim"]
-    if config_dir is not None:
-        argv += ["--config", config_dir]
+    if config_dir is None:
+        # Never the developer's real config. Four of the five callers pass
+        # nothing, and that used to mean "whatever confdir resolves to" --
+        # which on Windows is %APPDATA%, because conffile.win32 knows nothing
+        # about XDG_CONFIG_HOME. The real-mpv legs then launched mpv with
+        # --config-dir pointing at the user's own jellyfin-mpv-shim
+        # directory, reading their mpv.conf and writing their state.
+        config_dir = tempfile.mkdtemp(prefix="jms-itest-conf-")
+        atexit.register(shutil.rmtree, config_dir, ignore_errors=True)
+    # Both, because the two platforms read different ones and --config only
+    # covers what goes through conffile. Same pairing as
+    # test_single_instance_multiproc._spawn.
+    os.environ["XDG_CONFIG_HOME"] = config_dir
+    os.environ["APPDATA"] = config_dir
+    argv = ["jellyfin-mpv-shim", "--config", config_dir]
     saved = sys.argv
     sys.argv = argv
     try:
