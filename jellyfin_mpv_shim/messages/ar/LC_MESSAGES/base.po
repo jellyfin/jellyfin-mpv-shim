@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-26 19:06+0000\n"
+"PO-Revision-Date: 2026-09-01 14:58+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -28,7 +28,7 @@ msgstr "تهيئة مجهولة"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr "صفحة%(page)d of %(total)ات"
+msgstr "صفحة %(page)d من %(total)ات"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -1406,7 +1406,7 @@ msgstr "MPV المضمن تلقائيا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "OSC مخصص"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "No player controls"
@@ -4936,7 +4936,7 @@ msgstr "إعدادات الخوادم"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr "تحميل %(اسم)اء — %(n)د الباقي"
+msgstr "تنزيل %(name)ات — %(n)d باقي"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -5200,10 +5200,8 @@ msgid "ArtCNN High (C4F32)"
 msgstr "ArtCNN عالي (C4F32)"
 
 #: jellyfin_mpv_shim/video_profile.py
-#, fuzzy
-#| msgid "Default (auto)"
 msgid "Default (all media)"
-msgstr "افتراضي (تلقائي)"
+msgstr "افتراضي (كل الوسائط)"
 
 #: jellyfin_mpv_shim/video_profile.py
 msgid "This Library"
