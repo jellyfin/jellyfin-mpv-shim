@@ -63,6 +63,35 @@ def build(**player_kw):
     return pm
 
 
+def start_media(test, video=None, prepare=None, **settings_kw):
+    """Run `_play_media` start to finish and return the player.
+
+    `test` is only for `addCleanup` on the timer that answers the load
+    gate's wait for a duration — without it a failing assertion leaves a
+    thread behind. `prepare` runs against the player before the start, for
+    the collaborators a built one does not have (the trickplay worker).
+    Module-level rather than a method because both the ordering claims and
+    the trickplay arm are about what one start did.
+    """
+    pm = build()
+    if prepare is not None:
+        prepare(pm)
+    timer = threading.Timer(
+        0.05, lambda: pm._player.fire_property("duration", 100.0))
+    timer.daemon = True
+    timer.start()
+    test.addCleanup(timer.cancel)
+    with mock.patch.object(player_module.settings, "playback_timeout", 2):
+        with contextlib.ExitStack() as stack:
+            for key, value in settings_kw.items():
+                stack.enter_context(
+                    mock.patch.object(player_module.settings, key, value))
+            pm._play_media(video or make_video(),
+                           "http://example.invalid/s.mkv",
+                           is_initial_play=True)
+    return pm
+
+
 class LoadOutcomeTest(unittest.TestCase):
     """The four ways ``_play_media`` can end, told apart by what each leaves
     behind for the user: the video, the retry, and the error notice."""
@@ -219,21 +248,7 @@ class StartOrderTest(unittest.TestCase):
     """
 
     def _start(self, video=None, **settings_kw):
-        pm = build()
-        timer = threading.Timer(
-            0.05, lambda: pm._player.fire_property("duration", 100.0))
-        timer.daemon = True
-        timer.start()
-        self.addCleanup(timer.cancel)
-        with mock.patch.object(player_module.settings, "playback_timeout", 2):
-            with contextlib.ExitStack() as stack:
-                for key, value in settings_kw.items():
-                    stack.enter_context(
-                        mock.patch.object(player_module.settings, key, value))
-                pm._play_media(video or make_video(),
-                               "http://example.invalid/s.mkv",
-                               is_initial_play=True)
-        return pm
+        return start_media(self, video, **settings_kw)
 
     def test_the_volume_is_applied_before_the_file_is_handed_over(self):
         """The persisted per-type volume, set *before* playback starts "so
@@ -282,6 +297,114 @@ class StartOrderTest(unittest.TestCase):
         window showing nothing."""
         self._start().journal.order("mpv.prop:duration",
                                     "mpv.set:force_media_title")
+
+
+class _RecordingTrickplay:
+    """Stands in for the TrickPlay worker thread.
+
+    Records the POSITION as well as the call: the window is centred on it,
+    and "it fired" and "it fired at the right place" are different claims —
+    a pump that fires with 0.0 for a resumed item loads the wrong end of the
+    film and looks, to the viewer, exactly like a pump that never fired.
+    """
+
+    def __init__(self):
+        self.fetched = []
+
+    def fetch_thumbnails(self, position=0.0):
+        self.fetched.append(position)
+
+    def stop(self, join=True):
+        pass
+
+    def clear(self):
+        pass
+
+
+class TrickplayPumpTest(unittest.TestCase):
+    """When the deferred tile fetch is allowed to start.
+
+    It is deferred because the fetch is dozens of serial HTTP requests to
+    the host mpv is streaming from, and issuing them while the demuxer is
+    still opening the file starved the open (see `_pump_trickplay`). The
+    signal was "core-idle false" alone — and mpv reports a PAUSED core as
+    core-idle yes for as long as the pause lasts, so pausing in the first
+    second meant the item never got scrub thumbnails at all. Nothing else
+    re-arms it: the renderer's lazy re-ask only runs once a first window
+    has arrived.
+    """
+
+    @staticmethod
+    def _with_worker(pm):
+        """The arm is `bool(self.trickplay and ...)`, so a player with no
+        worker answers False for a reason that has nothing to do with the
+        item -- and both arming tests would pass against any rule at all."""
+        pm.trickplay = _RecordingTrickplay()
+
+    def _armed(self, core_idle=True, paused=False, position=0.0):
+        pm = build()
+        pm.trickplay = _RecordingTrickplay()
+        pm._trickplay_pending = True
+        pm._player.core_idle = core_idle
+        pm._player.pause = paused
+        pm._player.playback_time = position
+        return pm
+
+    def test_a_pause_at_the_very_start_still_gets_its_thumbnails(self):
+        """The reported case. `playback_time` is 0.0 and stays there, so a
+        positive-position fallback does not rescue this either."""
+        pm = self._armed(core_idle=True, paused=True, position=0.0)
+        pm.update()
+        self.assertEqual(pm.trickplay.fetched, [0.0],
+                         "a viewer who paused got no scrub thumbnails")
+        self.assertFalse(pm._trickplay_pending, "the arm was left set")
+
+    def test_a_pause_partway_in_fetches_around_where_it_stopped(self):
+        pm = self._armed(core_idle=True, paused=True, position=612.0)
+        pm.update()
+        self.assertEqual(pm.trickplay.fetched, [612.0],
+                         "the window was not centred where playback is")
+
+    def test_an_idle_core_that_is_not_paused_is_still_waited_for(self):
+        """The guard the deferral exists for: core-idle with no pause is
+        mpv still opening the file, which is the one moment the fetch must
+        not compete with."""
+        pm = self._armed(core_idle=True, paused=False)
+        pm.update()
+        self.assertEqual(pm.trickplay.fetched, [],
+                         "the fetch raced the demuxer's open")
+        self.assertTrue(pm._trickplay_pending,
+                        "the arm was spent on a pass that fetched nothing")
+
+    def test_a_running_core_fires_it(self):
+        pm = self._armed(core_idle=False, position=3.0)
+        pm.update()
+        self.assertEqual(pm.trickplay.fetched, [3.0])
+
+    def test_a_still_never_arms_it(self):
+        """A photo is not audio, so it armed -- and then never fired,
+        because `pause_stills` holds it paused. Now that a pause satisfies
+        the gate it WOULD fire, so a slideshow would ask the server for a
+        trickplay manifest per picture. A still has no timeline to scrub."""
+        photo = make_video()
+        photo.is_photo = True
+        pm = start_media(self, photo, prepare=self._with_worker)
+        self.assertFalse(pm._trickplay_pending,
+                         "a still armed the scrub-thumbnail fetch")
+
+    def test_a_film_does_arm_it(self):
+        """...and the exclusion above is not switching the feature off."""
+        pm = start_media(self, prepare=self._with_worker)
+        self.assertTrue(pm._trickplay_pending,
+                        "an ordinary video no longer arms the fetch")
+
+    def test_it_fires_once_per_playback(self):
+        """update() runs about once a second for the whole item; the arm is
+        what keeps that from being a fetch a second."""
+        pm = self._armed(core_idle=True, paused=True, position=5.0)
+        for _ in range(4):
+            pm.update()
+        self.assertEqual(pm.trickplay.fetched, [5.0])
 
 
 class LoadObserverLeakTest(unittest.TestCase):

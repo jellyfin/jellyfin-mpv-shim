@@ -2111,23 +2111,32 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         frames, so the open is done and the demuxer has what it needs. Falls
         back to a positive playback_time for backends that don't expose
         core-idle. Runs on the action thread, once per playback.
+
+        **A PAUSE satisfies it too, and has to.** mpv reports a paused core
+        as `core-idle yes` — indefinitely, with `playback_time` frozen at
+        wherever it stopped, which is 0.0 for someone who paused at the
+        start (measured on 0.41). So waiting on core-idle alone meant a
+        viewer who paused in the first second got no scrub thumbnails for
+        the rest of the item: nothing here fires again, and the renderer's
+        lazy re-ask cannot rescue it because that only runs once a first
+        window has arrived. A stopped core is also the one moment when
+        nothing is competing with the fetch, which is what the wait was for
+        in the first place.
         """
         if not self._trickplay_pending or self.trickplay is None:
             return
         try:
             idle = self._player.core_idle
+            paused = self._player.pause
             position = self._player.playback_time or 0
-            if idle is None:
-                live = position > 0
-            else:
-                live = not idle
+            live = (position > 0) if idle is None else not idle
         except _mpv_errors:
             return          # mpv went away; the next play re-arms this
         except Exception:
             log.debug("Could not read playback state for trickplay.",
                       exc_info=True)
             return
-        if not live:
+        if not live and not paused:
             return
         self._trickplay_pending = False
         log.debug("Playback is live; starting the trickplay fetch.")
@@ -2908,7 +2917,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # the field symptom being intermittent TLS errors and opens dragging
         # out to tens of seconds. update() fires this once playback is
         # genuinely live (see _pump_trickplay).
-        self._trickplay_pending = bool(self.trickplay and not v_audio)
+        # A photo is not audio, so it used to arm -- and then never fired,
+        # because `pause_stills` holds it paused and the gate above waited
+        # for a core that was never going to run. Now that a pause satisfies
+        # that gate, saying so is what keeps a slideshow from asking the
+        # server for a trickplay manifest per picture: a still has no
+        # timeline to scrub and nothing to preview.
+        self._trickplay_pending = bool(
+            self.trickplay and not v_audio
+            and not getattr(video, "is_photo", False))
 
         self.should_send_timeline = True
         # Fresh offline-record throttle window for each newly playing item.
