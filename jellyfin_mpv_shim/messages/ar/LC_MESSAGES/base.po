@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-01 15:05+0000\n"
+"PO-Revision-Date: 2026-09-02 16:00+0000\n"
 "Last-Translator: Translation expert <eleceng4ever@hotmail.com>\n"
 "Language-Team: Arabic <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ar/>\n"
@@ -1666,7 +1666,7 @@ msgstr "قراءة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
-msgstr ""
+msgstr "خارطة تعيير HDR"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1714,47 +1714,47 @@ msgstr "الفحص كل (دقائق)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up When Fewer Than (episodes)"
-msgstr ""
+msgstr "تزويد عندما يكون أقل من (حلقات)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Top Up To (episodes)"
-msgstr ""
+msgstr "تزويد لأجل (حلقات)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Maximum Downloads per Check"
-msgstr ""
+msgstr "أقصى عدد تنزيلات لكل فحص"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Close to Tray (keep running)"
-msgstr ""
+msgstr "اغلق بإتجاه الصينية (ابقه عاملا)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Keep Running in Background"
-msgstr ""
+msgstr "ابقه عاملا في الخلفية"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Remember Window Size"
-msgstr ""
+msgstr "تذكر حجم النافذة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window Buttons in the Top Bar"
-msgstr ""
+msgstr "أظرار النافذة في الشريط الأعلى"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
-msgstr ""
+msgstr "نمط متحكمات المشغل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Load All Seek Previews at Once"
-msgstr ""
+msgstr "تحمبل كل مراجعات البحث دفعة واحدة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show What You're Watching in Discord"
-msgstr ""
+msgstr "اظهر ما تشاهده على Discord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Interface Scale"
-msgstr ""
+msgstr "مقياس الواجهة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1764,12 +1764,12 @@ msgstr "إعادة تحجيم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Minimum Text Size"
-msgstr ""
+msgstr "اقل حجم للخط"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Cover Size"
-msgstr ""
+msgstr "حجم الغلاف"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Full-Width Backdrops"
@@ -4766,7 +4766,7 @@ msgstr "حذف الخادم"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "The server could not be removed."
-msgstr ""
+msgstr "تعذر حذف الخادم."
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "That user could not be added."
@@ -4825,22 +4825,16 @@ msgid "Mark played"
 msgstr "أخرج وعينه كـ(لم يتم مشاهدته)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Add to playlist"
-msgstr "حذف الخادم"
+msgstr "اضف إلى قائمة التشغيل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove from Playlist"
 msgid "Remove from playlist"
 msgstr "حذف من لائحة التشغيل"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Remove from collection"
-msgstr "حذف الخادم"
+msgstr "حذف من المجموعة"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, python-format
@@ -4899,18 +4893,17 @@ msgstr "بحث…"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Restart to apply: %s"
-msgstr ""
+msgstr "إعادة التشغيل لتطبيق: %s"
 
 # seeded from jellyfin-web: Restart
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
-#, fuzzy
 msgid "Restart Now"
-msgstr "إعادة التشغيل"
+msgstr "إعادة التشغيل الآن"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgctxt "Restart banner"
 msgid "Later"
-msgstr ""
+msgstr "لاحقا"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -5055,8 +5048,7 @@ msgid "Access to the SyncPlay library was denied."
 msgstr "رٌفض طلبك بالوصول إلى مكتبة في المشاهدة معا."
 
 #: jellyfin_mpv_shim/syncplay.py
-#, fuzzy, python-brace-format
-#| msgid "{0}'s Group"
+#, python-brace-format
 msgid "{0}'s group"
 msgstr "مجموعة {0}"
 
