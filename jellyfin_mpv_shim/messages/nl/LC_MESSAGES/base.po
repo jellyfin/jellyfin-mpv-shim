@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-22 01:47+0000\n"
-"Last-Translator: Chris van den Berg <chris.vandenberg@bergplaza.nl>\n"
+"PO-Revision-Date: 2026-09-02 10:02+0000\n"
+"Last-Translator: Tibo Vanheule <mail@tibovanheule.space>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
 "Language: nl\n"
@@ -598,6 +598,8 @@ msgid ""
 "Could not restart automatically — quit and start the app again to apply your "
 "changes."
 msgstr ""
+"Kon niet automatisch opnieuw opstarten — sluit af en start de app opnieuw om "
+"je wijzigingen toe te passen."
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Still can't reach the server."
@@ -1274,7 +1276,7 @@ msgstr "Dit Apparaat"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Input"
-msgstr ""
+msgstr "Input"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Window"
