@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-31 11:29+0000\n"
-"Last-Translator: GolanGitHub <wallyfp@gmail.com>\n"
+"PO-Revision-Date: 2026-09-02 16:00+0000\n"
+"Last-Translator: ern3stoGH <ern3sto@gmail.com>\n"
 "Language-Team: Spanish <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/es/>\n"
 "Language: es\n"
@@ -1262,16 +1262,12 @@ msgid "Downloads"
 msgstr "Descargas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Download Tuning"
-msgstr "Eliminar servidor"
+msgstr "Configuracion de Descarga"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "No player controls"
 msgid "Player Controls"
-msgstr "Sin controles del reproductor"
+msgstr "Controles del reproductor"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -1288,10 +1284,8 @@ msgid "Video Enhancement"
 msgstr "Mejora de vídeo"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Seek to Skip Credits"
 msgid "Skip Intro / Credits"
-msgstr "Solicitar omitir créditos"
+msgstr "Saltear introducciones / créditos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Advanced"
@@ -1310,10 +1304,8 @@ msgid "On"
 msgstr "Activado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid "Advanced"
 msgid "Copy (advanced)"
-msgstr "Avanzado"
+msgstr "Copiar (avanzado)"
 
 # seeded from jellyfin-web: Off
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1322,7 +1314,7 @@ msgstr "Apagado"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Movimiento suave"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -1331,19 +1323,19 @@ msgstr "Mezclar fotogramas"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth (high quality)"
-msgstr ""
+msgstr "Suavidad ( alta calidad )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Light (live action)"
-msgstr ""
+msgstr "Ligero ( acción real )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Standard (animation)"
-msgstr ""
+msgstr "Estándar ( animación )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Strong"
-msgstr ""
+msgstr "Fuerte"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Automatic (MPV decides)"
@@ -1351,7 +1343,7 @@ msgstr "Automático (MPV decide)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2390 (reference)"
-msgstr ""
+msgstr "BT.2390 ( referencia )"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "BT.2446a"
