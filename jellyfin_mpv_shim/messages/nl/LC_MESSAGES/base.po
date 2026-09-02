@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-02 10:02+0000\n"
+"PO-Revision-Date: 2026-09-02 10:03+0000\n"
 "Last-Translator: Tibo Vanheule <mail@tibovanheule.space>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
@@ -1361,7 +1361,7 @@ msgstr "Uit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Smooth Motion"
-msgstr ""
+msgstr "Vloeiende Beweging"
 
 # seeded from jellyfin-web: MediaInfoRefFrames
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
