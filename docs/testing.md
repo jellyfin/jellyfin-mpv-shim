@@ -201,6 +201,13 @@ Anything a scheduler, poller, health check or websocket can re-run gets a **loop
 - **Self-agreeing** — a fake written to agree with the code under test, so it cannot
   disagree.
 
+**Uncollected is checked mechanically** by `tests/test_no_uncollected_tests.py`:
+a `test_*` inside the `__main__` guard, anything after `unittest.main()` (which
+raises `SystemExit`), or a `test_*` on a class no loader collects. It was written
+after `test_player_auth_scope` was found collecting **5 of 7** — four members had
+drifted inside the guard, after the `main()` call, and the two tests among them
+described a credential rule that had gone unenforced for as long as it existed.
+
 ## 8. Firing `ready` poisons scene snapshots
 
 Firing `MpvtkApp`'s ready dispatch in a test installs measured font metrics
@@ -265,6 +272,23 @@ module it silently skips reports exactly like a module that passed.
 runs everything in one process specifically to catch cross-module interference.
 Parallelizing it would remove the thing it is for — and it drives real mpv
 through the keyboard, which is where contention bites hardest.
+
+## 9b. When the matrix hangs after the last leg passed
+
+**Signature:** the runner sits at `WCHAN=pipe_read` and 0% CPU, its `xvfb-run`
+child is `<defunct>`, and some surviving mpv's `/proc/<pid>/fd/1` points at the
+very inode the runner is blocked on. A test mpv that outlives its leg is
+reparented to PID 1 while still holding the write end of that leg's
+stdout/stderr pipe, so the runner's read to EOF can never return — after the
+leg has already passed.
+
+**Unwedge it by `kill <mpv pid>`, by PID.** Never `pkill -f`: the pattern
+matches the killing shell's own command line (see the global CLAUDE.md), and
+`~/.claude/bin/safe-pkill` is the tool if a pattern is unavoidable.
+
+Costs a ~7-minute run whenever it fires and would hang CI forever. The real fix
+is to reap the child and then read with a deadline, or to give mpv its own
+process group with closed fds.
 
 ## 10. Driving real mouse input against a real mpv
 

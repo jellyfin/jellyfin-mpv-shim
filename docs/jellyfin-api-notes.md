@@ -567,6 +567,17 @@ stores its position verbatim — see §12.
 ## 11. Playback: `PlaybackInfo`, profiles and transcoding
 
 - **Everything is 10,000,000 ticks per second.**
+- **`AudioStreamIndex` is silently ignored unless `MediaSourceId` is sent with
+  it.** A stream index means nothing without the source it indexes into, and
+  the server treats it that way: without the id it falls back to the source's
+  `DefaultAudioStreamIndex`. Measured — six different requested tracks all came
+  back as the default; adding the id returned each one, in both query and body
+  form. Same on 10.11.11 and 12.0, so this is not a v12 regression and there is
+  nothing to report upstream. `media.py:get_playback_url` therefore pins the
+  source whenever it asks for a real index, and only then, so a multi-version
+  item still lets the server choose. Another instance of section 1: the dropped
+  parameter looked exactly like a working client, and audio track selection on a
+  transcode was inert for every ordinary play. Found by e2e and only by e2e.
 - **Authenticate with `ApiKey`, not `api_key`.** The server reads both in the
   same place, but `api_key` is gated on `EnableLegacyAuthorization`, which is
   **off by default from Jellyfin v12**
