@@ -213,6 +213,65 @@ class SyncDB:
             # reads origin), but existing downloads and playback still work.
             log.error("Catalog migration failed", exc_info=True)
 
+    def healthy(self):
+        """Can the catalog's own rows actually be read?
+
+        Every read here answers ``[]`` on a ``sqlite3.Error`` so a caller
+        cannot crash on a bad catalog -- which means "unreadable" and "empty"
+        arrive as the same value. That is survivable for a screen and is
+        **not** survivable for `SyncManager._reconcile_disk`, which reads an
+        empty catalog as "none of this media is known" and deletes all of it.
+        One corrupted 4 KiB page (the `downloads` b-tree root) is enough: the
+        file still opens, the schema still reads, and every download on disk
+        is swept.
+
+        So the distinction has to exist somewhere, and this is it -- the one
+        read that reports failure instead of absorbing it.
+        """
+        try:
+            self.list(strict=True)
+            return True
+        except sqlite3.Error:
+            log.warning("The catalog at %s is unreadable.", self.path)
+            return False
+
+    def backup(self, dest):
+        """Snapshot the catalog to ``dest``. Returns whether it was written.
+
+        The catalog is not a cache: it is the only record of what the files
+        on disk *are*, and losing it turns a download folder into unlabelled
+        media that the UI cannot list, play or delete. sqlite's own backup
+        API rather than a file copy, because a plain copy of a WAL database
+        mid-write is how you manufacture the corruption this exists for.
+
+        Written to a temporary file and renamed, so an interrupted backup
+        cannot leave a half-written one where a good one used to be.
+        """
+        with self._lock:
+            if self._conn is None or self.read_only:
+                return False
+            tmp = dest + ".tmp"
+            out = None
+            try:
+                out = sqlite3.connect(tmp)
+                self._conn.backup(out)
+                out.close()
+                out = None
+                os.replace(tmp, dest)
+                return True
+            except (sqlite3.Error, OSError):
+                log.debug("Could not back up the catalog", exc_info=True)
+                if out is not None:
+                    try:
+                        out.close()
+                    except sqlite3.Error:
+                        pass
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                return False
+
     def close(self):
         with self._lock:
             if self._conn is None:
@@ -361,6 +420,25 @@ class SyncDB:
                                    (playlist_id,))
                 self._conn.execute(
                     "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def disown_playlist_items(self, item_id):
+        """Drop every playlist's *ownership* of ``item_id``, keeping the
+        membership rows so the item still lists under the playlist offline.
+
+        Ownership answers one question only: may deleting the playlist delete
+        this file. Asking for the item by hand answers it -- no.
+        """
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "UPDATE playlist_items SET owned=0 WHERE item_id=?",
+                    (item_id,))
                 self._conn.commit()
             except sqlite3.Error:
                 self._conn.rollback()
@@ -645,7 +723,7 @@ class SyncDB:
 
     # -- reads (either process) -------------------------------------------
 
-    def _query(self, sql, params=()):
+    def _query(self, sql, params=(), strict=False):
         # Reads share the one connection with the writer thread; take the lock
         # so a read can't interleave with an in-flight write/commit.
         #
@@ -655,6 +733,8 @@ class SyncDB:
         # does not catch, so it escaped to whichever thread was reading.
         with self._lock:
             if self._conn is None:
+                if strict:
+                    raise sqlite3.ProgrammingError("the catalog is closed")
                 return []
             try:
                 return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
@@ -663,7 +743,12 @@ class SyncDB:
                 # (that reads as "nothing downloaded" and can trigger silent
                 # re-downloads) — surface it loudly, but still return [] so
                 # callers don't crash.
+                #
+                # `strict` is for the one caller that cannot survive the lie:
+                # see healthy().
                 log.warning("Catalog query failed: %s", sql, exc_info=True)
+                if strict:
+                    raise
                 return []
 
     def library_id(self, lookup):
@@ -694,7 +779,7 @@ class SyncDB:
         rows = self._query("SELECT * FROM downloads WHERE item_id=?", (item_id,))
         return rows[0] if rows else None
 
-    def list(self, status=None, series_id=None):
+    def list(self, status=None, series_id=None, strict=False):
         sql = "SELECT * FROM downloads"
         clauses, params = [], []
         if status is not None:
@@ -714,7 +799,7 @@ class SyncDB:
             sql += " ORDER BY added_at, rowid"
         else:
             sql += " ORDER BY series_name, parent_index, index_number, name"
-        return self._query(sql, tuple(params))
+        return self._query(sql, tuple(params), strict=strict)
 
     def downloaded_item_ids(self):
         return {r["item_id"] for r in

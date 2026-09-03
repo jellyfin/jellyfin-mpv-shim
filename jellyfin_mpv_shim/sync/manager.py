@@ -6,6 +6,7 @@ Downloads pull the original file via /Items/{id}/Download.
 """
 
 import errno
+import glob
 import json
 import logging
 import math
@@ -42,6 +43,37 @@ DOWNLOADABLE = frozenset({"Movie", "Episode", "Video", "Audio",
 #: produce these -- everything else has a typed container (Series, Season,
 #: Playlist) with an endpoint of its own.
 FOLDER_ITEM_TYPES = frozenset({"Folder", "CollectionFolder", "UserView"})
+
+#: Directory names inside ``<root>/<server_id>/`` that are shared caches
+#: rather than per-item download directories. They are keyed by series /
+#: season / playlist id under here and are referenced by rows in states the
+#: orphan sweep does not walk, so the sweep must not treat them as items.
+#:
+#: ``playlist`` was missing for the life of the feature, so every start
+#: deleted the playlist poster cache that ``_download_playlist_art`` writes
+#: (and that ``repository._art_path_uncached`` reads) -- and nothing refetches
+#: it short of downloading the playlist again.
+RESERVED_STORE_DIRS = frozenset({"series", "season", "playlist"})
+
+#: Characters a Jellyfin item id is made of. Ids are GUIDs, normally
+#: dash-stripped hex; the dashed spelling is accepted because both reach a
+#: client depending on the endpoint.
+_ITEM_ID_CHARS = frozenset("0123456789abcdefABCDEF-")
+
+
+def _looks_like_item_id(name):
+    """Is ``name`` shaped like the item id this app names a directory after?
+
+    The orphan sweep's positive test. Deliberately narrow, and deliberately
+    not a `try: uuid.UUID(name)`: what matters is not that a name is a valid
+    GUID but that it is one *we* could have written, and a false negative
+    costs a stale directory while a false positive deletes somebody's files.
+    """
+    if not (32 <= len(name) <= 36):
+        return False
+    return all(c in _ITEM_ID_CHARS for c in name) and any(
+        c in "0123456789abcdefABCDEF" for c in name)
+
 
 CHUNK = 1 << 20            # 1 MiB
 PROGRESS_STEP = 4 << 20    # push progress every ~4 MiB
@@ -269,7 +301,7 @@ class SyncManager:
         catalog_path = os.path.join(self.root, "catalog.db")
         # Asked BEFORE SyncDB, which creates the file.
         had_catalog = os.path.exists(catalog_path)
-        self.db = SyncDB(catalog_path)
+        restored = self._open_catalog(catalog_path)
         # Recover rows interrupted mid-download on a previous run.
         for row in self.db.list(status=STATUS_DOWNLOADING):
             self.db.update(row["item_id"], status=STATUS_PENDING)
@@ -286,7 +318,12 @@ class SyncManager:
         # costs nothing; anything else is media we cannot prove is orphaned.
         if had_catalog:
             try:
-                self._reconcile_disk()
+                # A catalog restored from the backup is a catalog that is
+                # *behind*: anything downloaded since the snapshot has files
+                # on disk and no row, which is the exact shape the orphan
+                # sweep deletes. The rows come back on the next sweep-eligible
+                # launch; the files must survive until then.
+                self._reconcile_disk(sweep_orphans=not restored)
             except Exception:
                 log.debug("Startup disk reconcile failed.", exc_info=True)
         elif any(os.path.isdir(os.path.join(self.root, n))
@@ -295,11 +332,89 @@ class SyncManager:
             log.warning("Opened a new catalog at %s next to existing media; "
                         "skipping the orphan sweep so nothing is removed on "
                         "the strength of an empty catalog.", self.root)
+        # Last, so the snapshot is of a catalog that opened, migrated and
+        # reconciled cleanly -- backing up before that would happily preserve
+        # a catalog we are about to find unreadable.
+        self._backup_catalog(catalog_path)
         self._stop = False
         self._generation += 1
         self._worker = threading.Thread(target=self._run,
                                         args=(self._generation,), daemon=True)
         self._worker.start()
+
+    #: Kept beside the catalog. See `_open_catalog`.
+    CATALOG_BACKUP = "catalog.db.bak"
+
+    def _open_catalog(self, catalog_path):
+        """Open the catalog, falling back to the backup if it is unreadable.
+
+        Returns whether the backup was used, which the caller needs: a
+        restored catalog is older than the disk and must not drive the
+        orphan sweep.
+
+        A corrupt catalog is not merely a lost index. The download tree is
+        `<root>/<server_id>/<item_id>/media.<ext>` -- ids, not names -- so
+        without the catalog the UI cannot list what is there, cannot play it
+        and cannot delete it. The files stop being an offline library and
+        become unlabelled dead weight that only a file manager can clear.
+        That is the loss this guards, and it is why the corrupt file is set
+        aside rather than overwritten: it is still the better copy of
+        anything the backup predates, and recovering it by hand
+        (`.recover` in the sqlite shell) is possible right up until we
+        delete it.
+
+        Locking is not the failure mode being covered. Single-instance
+        election means one writer, and the browser's handle is read-only.
+        This is for the file itself: a power cut mid-write, a bad sector, a
+        network or removable filesystem that lied about a flush.
+        """
+        self.db = SyncDB(catalog_path)
+        if self.db.healthy():
+            return False
+        backup_path = os.path.join(os.path.dirname(catalog_path),
+                                   self.CATALOG_BACKUP)
+        if not os.path.exists(backup_path):
+            log.error("The download catalog at %s cannot be read and there is "
+                      "no backup to restore. Downloads are left untouched.",
+                      catalog_path)
+            return False
+        log.warning("The download catalog at %s cannot be read; restoring the "
+                    "backup.", catalog_path)
+        try:
+            self.db.close()
+        except Exception:
+            log.debug("Closing the unreadable catalog failed.", exc_info=True)
+        aside = "%s.corrupt-%d" % (catalog_path, int(time.time()))
+        try:
+            os.replace(catalog_path, aside)
+            # The WAL and shm belong to the file we just moved away. Left in
+            # place they are applied to the *restored* catalog on its first
+            # open, which reintroduces the pages we are recovering from.
+            for suffix in ("-wal", "-shm"):
+                try:
+                    os.remove(catalog_path + suffix)
+                except OSError:
+                    pass
+            shutil.copyfile(backup_path, catalog_path)
+        except OSError:
+            log.error("Could not restore the catalog backup.", exc_info=True)
+            self.db = SyncDB(catalog_path)
+            return False
+        self.db = SyncDB(catalog_path)
+        if not self.db.healthy():
+            log.error("The restored catalog is unreadable too.")
+            return False
+        log.warning("Restored the download catalog from %s. The corrupt file "
+                    "is kept at %s. Downloads finished since the backup was "
+                    "taken are still on disk and will be re-listed on the "
+                    "next start.", backup_path, aside)
+        return True
+
+    def _backup_catalog(self, catalog_path):
+        if self.db is None or not self.db.healthy():
+            return
+        self.db.backup(os.path.join(os.path.dirname(catalog_path),
+                                    self.CATALOG_BACKUP))
 
     def relocate(self, new_path, progress=None):
         """Move the download tree to new_path and re-point the manager at it.
@@ -326,10 +441,28 @@ class SyncManager:
                 return False, _("Can't change the download folder while a "
                                 "download is in progress. Wait for it to finish, "
                                 "then try again.")
-        have_downloads = os.path.isdir(old_root) and bool(os.listdir(old_root))
-        if have_downloads and os.path.exists(os.path.join(new_root, "catalog.db")):
-            return False, _("That folder already contains downloads. Choose an "
-                            "empty folder.")
+        # **Anything at all, not just a rival catalog.** The store owns its
+        # root: `_move_tree` moves every entry out of it, and the orphan
+        # sweep deletes item-shaped directories inside it. Sharing the folder
+        # with the user's own files makes both of those act on data this app
+        # never wrote, and the failure surfaces launches later with no
+        # gesture to connect it to. An empty folder is the only one where
+        # "the store owns this" is true when we say it.
+        try:
+            existing = os.listdir(new_root) if os.path.isdir(new_root) else []
+        except OSError:
+            return False, _("Can't read that folder. Check the path and its "
+                            "permissions.")
+        if existing:
+            if os.path.exists(os.path.join(new_root, "catalog.db")):
+                # Named apart because it is the one non-empty folder a user
+                # picks on purpose, and "choose an empty folder" reads as a
+                # refusal to find their own downloads.
+                return False, _("That folder already contains downloads. "
+                                "Choose an empty folder.")
+            return False, _("That folder isn't empty. Choose an empty folder — "
+                            "the download folder is managed by this app and "
+                            "anything else in it can be moved or removed.")
         try:
             os.makedirs(new_root, exist_ok=True)
         except OSError:
@@ -410,53 +543,55 @@ class SyncManager:
         # startup sweep in `_open_and_run` from mistaking surviving media for
         # orphans. Moving it first is what turned "the copy failed" into "the
         # downloads are gone".
-        names.sort(key=lambda n: n == "catalog.db")
+        # ...and the backup second-last, for the same reason one step down:
+        # if the move dies after the catalog has gone across but before the
+        # media has, the old root still holds the copy that describes it.
+        names.sort(key=lambda n: (n == self.CATALOG_BACKUP, n == "catalog.db"))
         sizes = {n: self._tree_size(os.path.join(old_root, n)) for n in names}
         # [copied so far, total, bytes at last emit] — mutated as we go.
         state = [0, sum(sizes.values()), 0]
         if progress:
             progress(0, state[1])
-        # Sources of entries copied across, removed only once EVERY entry is
-        # over. Deleting each one as it finished meant a later failure had
-        # already destroyed the earlier originals, and the caller's "they were
-        # left in place" was a straight untruth by then.
-        placed = []
+        # What has been done so far, as (src, dest, renamed), so a failure can
+        # put it all back. The caller tells the user "nothing was moved" and
+        # this is what has to make that true: sources copied across are removed
+        # only once EVERY entry is over (deleting each as it finished meant a
+        # later failure had already destroyed the earlier originals), and
+        # anything already across is undone rather than left where it fell.
+        #
+        # Undoing is safe by construction and is not a second authority over
+        # the user's data: a copied entry's original is still at `old_root`, so
+        # only OUR copy is removed; a renamed entry is renamed straight back;
+        # and `names` never included anything that was in `new_root` before we
+        # started, so nothing there is ever a candidate.
+        done = []
         for name in names:
             src = os.path.join(old_root, name)
             dest = os.path.join(new_root, name)
             try:
-                os.rename(src, dest)  # instant on the same filesystem
+                try:
+                    os.rename(src, dest)  # instant on the same filesystem
+                    renamed = True
+                except OSError:
+                    # Different drive (EXDEV): copy across; the original stays
+                    # put until the whole move has succeeded.
+                    self._copy_tree(src, dest, state, progress)
+                    renamed = False
+            except BaseException:
+                # This entry's own half-written destination first -- otherwise
+                # a retry after freeing space hits the "already there, skip it"
+                # filter above and silently finishes a partial tree.
+                self._discard(dest)
+                self._undo_move(done)
+                raise
+            done.append((src, dest, renamed))
+            if renamed:
                 state[0] += sizes[name]
                 self._emit_progress(state, progress, force=True)
-            except OSError:
-                # Different drive (EXDEV): copy across; the original stays put
-                # until the whole move has succeeded.
-                try:
-                    self._copy_tree(src, dest, state, progress)
-                except BaseException:
-                    # Our own half-written destination, not the user's data --
-                    # remove it so a retry after freeing space does not hit the
-                    # "already there, skip it" guard above and silently finish
-                    # a partial tree. Anything that was in `new_root` before we
-                    # started was never in `names` and is not touched.
-                    if os.path.isdir(dest):
-                        shutil.rmtree(dest, ignore_errors=True)
-                    else:
-                        try:
-                            os.remove(dest)
-                        except OSError:
-                            pass
-                    raise
-                placed.append(src)
         # Everything is across. Only now is dropping the originals safe.
-        for src in placed:
-            if os.path.isdir(src):
-                shutil.rmtree(src, ignore_errors=True)
-            else:
-                try:
-                    os.remove(src)
-                except OSError:
-                    pass
+        for src, _dest, renamed in done:
+            if not renamed:
+                self._discard(src)
         # Drop the now-empty old folder (best-effort; harmless if it lingers).
         try:
             os.rmdir(old_root)
@@ -464,6 +599,42 @@ class SyncManager:
             pass
         if progress:
             progress(state[1], state[1])
+
+    @staticmethod
+    def _discard(path):
+        """Remove a file or directory we created, best effort."""
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+    def _undo_move(self, done):
+        """Put back everything a failed move had already got across.
+
+        Without this a cross-drive move that died partway left a full second
+        copy of every entry it had finished -- at `new_root`, with the
+        original still at `old_root` -- and a retry skipped them ("already
+        there") so the duplicate was never reclaimed. On a mixed tree it was
+        worse: a renamed entry was simply gone from the old root, and
+        reopening there re-queued it for download while the file sat at the
+        new one.
+
+        Best effort throughout: this runs while something has already failed
+        (usually a full disk), so it must not raise over the top of the error
+        the caller is about to report.
+        """
+        for src, dest, renamed in reversed(done):
+            try:
+                if renamed:
+                    os.replace(dest, src)
+                else:
+                    self._discard(dest)     # the original never left old_root
+            except OSError:
+                log.warning("Could not undo the move of %s; it is at %s.",
+                            src, dest, exc_info=True)
 
     @staticmethod
     def _tree_size(path):
@@ -621,6 +792,7 @@ class SyncManager:
                     if row and is_auto(row["origin"]):
                         self.db.set_origin(iid, ORIGIN_USER)
                     self._clear_discard(iid)
+                    self._claim_from_playlists(iid, item_type)
                 continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):
                 continue
@@ -628,6 +800,7 @@ class SyncManager:
                 # Asking for it by hand overrides a previous auto discard,
                 # which is the only signal that outranks the reaper.
                 self._clear_discard(iid)
+                self._claim_from_playlists(iid, item_type)
             self._add_row(server_uuid, server_id, item, origin=origin)
             members.append(iid)
             added += 1
@@ -639,6 +812,31 @@ class SyncManager:
             self._notify_change()
             self._wake.set()
         return added
+
+    def _claim_from_playlists(self, item_id, item_type):
+        """A user download outranks a playlist's claim on the same item.
+
+        There are two things that will delete a download the user did not ask
+        to delete: the reaper, and deleting a playlist that *owns* the item.
+        `enqueue` already answers the first -- `set_origin` promotes the row
+        so the reaper stops considering it -- and answered only the first, so
+        pressing Download on an episode a downloaded playlist had pulled in
+        left it owned, and deleting that playlist deleted it anyway.
+
+        Not for `item_type == "Playlist"`: that call *is* the playlist
+        download, and `_record_playlist` recomputes ownership from
+        `pre_existing` a few lines below. Disowning here would race it.
+
+        Best-effort, like `_clear_discard` beside it: a missing table or a
+        closed catalog must not fail a download the user asked for.
+        """
+        if item_type == "Playlist":
+            return
+        try:
+            self.db.disown_playlist_items(item_id)
+        except Exception:
+            log.debug("Could not claim %s from its playlist", item_id,
+                      exc_info=True)
 
     def _clear_discard(self, item_id):
         """Best-effort: a missing tombstone table or a closed catalog must
@@ -748,13 +946,22 @@ class SyncManager:
         """Flexible delete: a single item, a season, a whole series, a
         playlist's downloads, and/or only watched items within that scope.
 
-        An unscoped call deletes NOTHING. "Delete every download" has to be
-        asked for explicitly (``watched_all`` for the watched sweep) — a
-        caller that simply forgot to pass its scope used to wipe the entire
-        catalog, and the only thing standing between that and the user was a
-        confirm dialog naming the group they thought they were deleting."""
+        An unscoped call deletes NOTHING. A caller that simply forgot to pass
+        its scope used to wipe the entire catalog, and the only thing standing
+        between that and the user was a confirm dialog naming the group they
+        thought they were deleting.
+
+        ``watched_all`` is the library-wide watched sweep, and it **implies**
+        ``watched_only``. It used to be only half of that -- a scope that
+        unlocked the whole catalog, with the filter left to a second argument
+        -- so ``watched_all=True`` alone deleted everything, watched or not,
+        under the one name in this signature that reads like a filter. There
+        is now no combination of these arguments that deletes an unwatched
+        download outside a named series, season or playlist."""
         if self._relocating:
             return  # catalog is mid-move; caller can retry after
+        if watched_all:
+            watched_only = True
         if item_id:
             # The only branch with a meaningful return -- the reaper reads it
             # to know whether its count and its tombstone are earned.
@@ -965,7 +1172,7 @@ class SyncManager:
             log.debug("Failed to remove files for %s", row.get("item_id"),
                       exc_info=True)
 
-    def _reconcile_disk(self):
+    def _reconcile_disk(self, sweep_orphans=True):
         """Best-effort startup sweep to keep the catalog and the file store in
         agreement (S12):
 
@@ -973,15 +1180,37 @@ class SyncManager:
           (PENDING) so it downloads again;
         * an on-disk per-item directory with no catalog row is removed.
 
-        The shared ``series``/``season`` artwork caches are left alone — they
-        aren't per-item download dirs and may be referenced by rows in a state
-        this sweep doesn't touch.
+        The second half **identifies what it deletes rather than inferring
+        it**, and every one of the four tests below is load-bearing:
+
+        * the catalog has to be readable (`db.healthy`) -- an unreadable one
+          answers `[]` to every query, which reads as "none of this is known";
+        * the server directory has to be one the catalog *names*, so a
+          directory this app never wrote is not a candidate at all;
+        * the child has to be shaped like a Jellyfin item id, which is what
+          this app names an item directory;
+        * and the child must not be a live row.
+
+        Inferring it -- "in the store, not in the catalog, therefore ours and
+        orphaned" -- is how a download folder pointed at an existing media
+        library (`~/Videos/Holidays/2019 Italy`) had the user's own
+        directories deleted on the second launch, the first being covered by
+        the empty-catalog guard in `_open_and_run` and no launch after it.
         """
+        if not self.db.healthy():
+            # Refusing the requeue half too: a `[]` from an unreadable catalog
+            # is not "no rows to check" either, and the write it would skip is
+            # the harmless half anyway.
+            log.error("Skipping the disk reconcile: the catalog is unreadable.")
+            return
         rows = self.db.list()
         known = {}  # server_dir -> set(item_id)
+        server_uuids = {}   # server_dir -> server_uuid, for _adopt_orphan
         for row in rows:
             server_dir = row.get("server_id") or "server"
             known.setdefault(server_dir, set()).add(row["item_id"])
+            if row.get("server_uuid"):
+                server_uuids.setdefault(server_dir, row["server_uuid"])
             if row["status"] != STATUS_COMPLETE:
                 continue
             file_path = row.get("file_path")
@@ -992,27 +1221,118 @@ class SyncManager:
                 self.db.update(row["item_id"], status=STATUS_PENDING,
                                downloaded_bytes=0, file_path=None)
 
-        try:
-            server_dirs = os.listdir(self.root)
-        except OSError:
+        if not sweep_orphans:
             return
-        for server_dir in server_dirs:
+        # Only the server directories the catalog names -- never everything
+        # in the root. A store with no rows sweeps nothing, which is correct:
+        # there is no such thing as an orphan we can prove.
+        for server_dir, item_ids in known.items():
             base = os.path.join(self.root, server_dir)
             if not os.path.isdir(base):
-                continue  # e.g. catalog.db and its WAL sidecars
-            item_ids = known.get(server_dir, set())
+                continue
             try:
                 children = os.listdir(base)
             except OSError:
                 continue
             for child in children:
-                if child in ("series", "season"):
-                    continue  # shared artwork caches, not item dirs
+                if child in RESERVED_STORE_DIRS or child in item_ids:
+                    continue
                 child_path = os.path.join(base, child)
-                if not os.path.isdir(child_path) or child in item_ids:
+                if not os.path.isdir(child_path):
+                    continue
+                if not _looks_like_item_id(child):
+                    # Not a name this app writes. Leaving it costs a stale
+                    # directory; deleting it is unrecoverable and, on a store
+                    # sharing a folder with anything else, not even ours.
+                    log.warning("Leaving %s alone: it is inside the download "
+                                "store but is not named like a download.",
+                                child_path)
+                    continue
+                if self._adopt_orphan(server_dir, child, child_path,
+                                      server_uuids):
                     continue
                 log.warning("Removing orphaned download dir: %s", child_path)
                 shutil.rmtree(child_path, ignore_errors=True)
+
+    def _adopt_orphan(self, server_dir, item_id, item_dir, server_uuids):
+        """Rebuild the catalog row for a complete download that has none.
+
+        `_download` writes `item.json` and `source.json` beside the media
+        precisely so a download describes itself, which makes "the catalog
+        forgot this" recoverable rather than terminal. Adopting is what stops
+        a catalog restored from the backup (`_open_catalog`) from turning into
+        a *delayed* wipe: everything downloaded after the snapshot has files
+        and no row, which is the orphan shape, and the launch after the
+        restore would have swept exactly those.
+
+        Both halves are required -- the manifest *and* the media. A directory
+        with a manifest and no media is an interrupted download or the residue
+        of a delete whose unlink failed, and reclaiming that space is the
+        sweep's actual job. Only a whole, playable copy is worth arguing over,
+        and where it is arguable the recoverable error is the right one: an
+        item that reappears can be deleted again, media deleted on the
+        strength of a missing row cannot be got back.
+
+        Returns whether the row was written (i.e. do not delete this).
+        """
+        manifest = os.path.join(item_dir, "item.json")
+        media = sorted(glob.glob(os.path.join(glob.escape(item_dir), "media.*")))
+        media = [m for m in media if not m.endswith(".part")]
+        if not os.path.exists(manifest) or not media:
+            return False
+        try:
+            with open(manifest) as fh:
+                item = json.load(fh)
+            source = {}
+            source_path = os.path.join(item_dir, "source.json")
+            if os.path.exists(source_path):
+                with open(source_path) as fh:
+                    source = json.load(fh)
+            media_path = media[0]
+            size = os.path.getsize(media_path)
+            self.db.upsert({
+                "item_id": item_id,
+                "server_id": None if server_dir == "server" else server_dir,
+                # Recovered from a surviving row for the same server: the id
+                # is in the path, the uuid is only ever in the catalog. None
+                # is survivable (the copy still plays offline; only its
+                # watched-state sync waits for a re-download) and is better
+                # than guessing.
+                "server_uuid": server_uuids.get(server_dir),
+                "type": item.get("Type"),
+                "name": item.get("Name"),
+                "series_id": item.get("SeriesId"),
+                "series_name": item.get("SeriesName"),
+                "season_id": item.get("SeasonId"),
+                "parent_index": item.get("ParentIndexNumber"),
+                "index_number": item.get("IndexNumber"),
+                "media_source_id": source.get("Id"),
+                "file_path": os.path.relpath(media_path, self.root),
+                "ext": os.path.splitext(media_path)[1].lstrip("."),
+                "size_bytes": size,
+                "downloaded_bytes": size,
+                "status": STATUS_COMPLETE,
+                "runtime_ticks": item.get("RunTimeTicks"),
+                "library_id": None,
+                "item_json": json.dumps(item),
+                "source_json": json.dumps(source),
+                "userdata_json": json.dumps(item.get("UserData") or {}),
+                "added_at": int(time.time()),
+                # Never auto: the reaper deletes auto rows, and a row this
+                # method invented has no evidence it was ever a scheduled
+                # download. Guessing wrong in that direction deletes it.
+                "origin": ORIGIN_USER,
+                "completed_at": int(os.path.getmtime(media_path)),
+            })
+        except Exception:
+            log.warning("Could not re-adopt the download at %s; leaving it in "
+                        "place.", item_dir, exc_info=True)
+            # Deliberately True: we could not describe it, so we certainly
+            # cannot justify deleting it.
+            return True
+        log.warning("Re-adopted the download at %s (%s) — it had no catalog "
+                    "row.", item_dir, item.get("Name") or item_id)
+        return True
 
     def _notify_change(self):
         try:
@@ -1603,6 +1923,10 @@ class SyncManager:
             log.info("Download cancelled (deleted): %s", row.get("name") or item_id)
             self._remove_files(row)
             self.db.delete(item_id)
+            # Cleared here so the `finally` below does not treat this as a
+            # delete still owed and repeat the work.
+            with self._active_lock:
+                self._cancelled.discard(item_id)
         except _Stopped:
             # App is quitting mid-download: leave it pending so it resumes next
             # launch (the .part file is kept), rather than poisoning it to error.
@@ -1639,7 +1963,36 @@ class SyncManager:
         finally:
             with self._active_lock:
                 self._active_item = None
+                # Sampled, not just discarded. Every handler above ends by
+                # writing this row back -- PENDING on shutdown and on a
+                # transient network failure, ERROR on the rest -- and each of
+                # them used to run over the top of a delete the user had
+                # already been told had succeeded, silently resurrecting the
+                # item on the next launch. The chunk loop only honours a
+                # cancel between chunks, and `stopping()` is tested first, so
+                # quitting the app during the delete of an in-flight download
+                # took that path every time.
+                #
+                # Here rather than in each handler because "the delete wins"
+                # is a property of leaving this method at all, including by
+                # paths not yet written.
+                owed = item_id in self._cancelled
                 self._cancelled.discard(item_id)
+            if owed:
+                log.info("Honouring the delete of %s that arrived while the "
+                         "download was unwinding.", row.get("name") or item_id)
+                self._remove_files(row)
+                try:
+                    self.db.delete(item_id)
+                except Exception:
+                    log.debug("Could not delete the cancelled row for %s",
+                              item_id, exc_info=True)
+                self._short_read_stalls.pop(item_id, None)
+                # Its own notify: the trailing one below is not reached on the
+                # paths that re-raise (a dropped connection, a 5xx), and
+                # relying on the caller's is a coupling that only holds while
+                # the only caller is `delete_item`.
+                self._notify_change()
         self._notify_change()
 
     def _headers_for(self, client, url):
