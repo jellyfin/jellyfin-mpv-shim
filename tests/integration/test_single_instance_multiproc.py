@@ -14,6 +14,15 @@ import tempfile
 import time
 import unittest
 
+# The repo root, before the package is imported. Run as a script -- which
+# the __main__ block at the bottom invites -- `sys.path[0]` is this
+# directory and the root is on the path nowhere, so `jellyfin_mpv_shim`
+# resolves to whatever is pip-installed: silently, and it *runs*, against
+# the previous release. run_integration.py is unaffected (it spawns
+# -m unittest with cwd=root).
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
+
 from jellyfin_mpv_shim.constants import APP_NAME  # noqa: E402
 
 _HERE = os.path.dirname(os.path.abspath(__file__))

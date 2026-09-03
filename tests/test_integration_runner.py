@@ -294,3 +294,92 @@ class TestTheHarnessMakesAModuleRunnableAlone(unittest.TestCase):
             "the harness primed the arg parser at the real config dir: %r"
             % confdir)
 
+
+
+class TestEveryModuleRunAsAScriptGetsThisTree(unittest.TestCase):
+    """`python3 tests/integration/test_foo.py` must import THIS repo.
+
+    Every module here ends in a `__main__` block, which invites exactly
+    that -- and run that way `sys.path[0]` is `tests/integration` and the
+    repo root is on the path nowhere, so `jellyfin_mpv_shim` resolves to
+    whatever is pip-installed. Silently, and it *runs*: measured once as a
+    `renderer.lua` a fortnight old failing a test about this tree, and a
+    stale install can as easily produce a false pass.
+
+    Asserted for **every** module rather than the one that was noticed:
+    nineteen of them had the same preamble, and a guard pasted into one is
+    the one the next round reports. `run_integration.py` itself is not
+    affected -- it spawns `-m unittest` with `cwd` at the root -- so
+    nothing in the matrix would ever have gone red over this.
+    """
+
+    #: Modules with no `__main__` block are not making the invitation.
+    @staticmethod
+    def _modules():
+        here = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "tests", "integration")
+        for name in sorted(os.listdir(here)):
+            if not (name.startswith("test_") and name.endswith(".py")):
+                continue
+            path = os.path.join(here, name)
+            with open(path, encoding="utf-8") as fh:
+                if 'if __name__ == "__main__"' in fh.read():
+                    yield name, path
+
+    def test_there_are_modules_to_check(self):
+        """The guard on the guard: a listing that finds nothing would make
+        every subTest below vacuous and report a pass."""
+        self.assertGreater(len(list(self._modules())), 10)
+
+    def test_the_repo_root_is_on_the_path_before_the_package_is_imported(self):
+        """Executed, not grepped for.
+
+        The module's own preamble runs up to the first `jellyfin_mpv_shim`
+        import and then reports which copy it would get, from a cwd that
+        cannot put the root on the path by accident.
+        """
+        import subprocess
+        import tempfile
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        expected = os.path.join(root, "jellyfin_mpv_shim")
+        for name, path in self._modules():
+            with self.subTest(module=name):
+                probe = (
+                    "import sys, runpy\n"
+                    # argv as `python3 path/to/test_foo.py` leaves it, and
+                    # sys.path[0] as the interpreter would set it.
+                    "sys.argv = [%r]\n"
+                    "sys.path.insert(0, %r)\n"
+                    "import ast\n"
+                    "src = open(%r, encoding='utf-8').read()\n"
+                    # Everything above the first class or def -- the imports
+                    # and the path preamble -- without running a test. Cut
+                    # with ast rather than by splitting on 'class ', because
+                    # the first one here is often decorated.
+                    "tree = ast.parse(src)\n"
+                    "tops = [n for n in tree.body if isinstance(n, "
+                    "(ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))]\n"
+                    "stop = min([tops[0].lineno] + "
+                    "[d.lineno for d in tops[0].decorator_list]) "
+                    "if tops else len(src.splitlines()) + 1\n"
+                    "head = chr(10).join(src.splitlines()[:stop - 1])\n"
+                    "exec(compile(head, %r, 'exec'), "
+                    "{'__file__': %r, '__name__': 'not_main'})\n"
+                    "import jellyfin_mpv_shim as j\n"
+                    "print('PKG', j.__file__)\n"
+                    % (path, os.path.dirname(path), path, path, path))
+                out = subprocess.run(
+                    [sys.executable, "-c", probe],
+                    capture_output=True, text=True,
+                    cwd=tempfile.gettempdir(), timeout=180)
+                line = [ln for ln in out.stdout.splitlines()
+                        if ln.startswith("PKG ")]
+                self.assertTrue(
+                    line, "%s did not resolve the package: %s"
+                    % (name, out.stderr[-600:]))
+                self.assertTrue(
+                    line[0].split(" ", 1)[1].startswith(expected),
+                    "%s would run against %s, not this tree"
+                    % (name, line[0].split(" ", 1)[1]))
