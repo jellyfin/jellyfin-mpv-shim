@@ -185,6 +185,63 @@ class TestHebrew(unittest.TestCase):
                                 "the Hebrew face draws %r as tofu, and an "
                                 "RTL line has no other face to use" % ch)
 
+    def test_the_noto_only_host_f33_was_about_still_gets_hebrew(self):
+        """F33's own case, under the order F35 reversed.
+
+        F33 existed for the host with Noto Sans and no DejaVu. Putting
+        DejaVu first for the punctuation moved Noto to *last*, so the
+        property F33 was about is now the one an order change could quietly
+        drop — and testing the new first choice does not test it.
+
+        The fixture is the whole chain cut down to what that host has, and
+        it took three attempts to make it fail for its name: removing
+        DejaVu from the Hebrew list alone leaves DejaVu drawing the Hebrew
+        through the Latin chain `font()` appends to every script, and
+        removing it from both still leaves `arial.ttf`, which is installed
+        here and has Hebrew. Both versions passed with the Noto entries
+        deleted outright.
+        """
+        from PIL import Image, ImageDraw, ImageFont
+
+        backstop = None
+        for name in ("NotoSans-Regular.ttf",
+                     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"):
+            try:
+                ImageFont.truetype(name, 28)
+            except OSError:
+                continue
+            backstop = name
+            break
+        if backstop is None:
+            self.skipTest("no Noto Sans here to stand in for that host")
+
+        for script in ("hebrew", "latin"):
+            saved = list(pilfont._CANDIDATES[script])
+            self.addCleanup(pilfont._CANDIDATES.__setitem__, script, saved)
+        self.addCleanup(pilfont.clear_cache)
+        pilfont._CANDIDATES["hebrew"] = [
+            name for name in pilfont._CANDIDATES["hebrew"] if "Noto" in name]
+        # Measured in F33: the Latin Noto has no Hebrew at all, which is
+        # what made that host's titles boxes and is what makes it the right
+        # backstop here — if the Hebrew entries go, this is what draws.
+        pilfont._CANDIDATES["latin"] = [backstop]
+        pilfont.clear_cache()
+
+        face = pilfont.font("hebrew", 28)
+
+        def bitmap(text):
+            img = Image.new("L", (120, 48), 0)
+            ImageDraw.Draw(img).text((2, 2), text, font=face, fill=255)
+            return img.tobytes()
+
+        # No "can this face draw at all" probe: a Latin character against
+        # the Hebrew-only face IS tofu -- that is F35 -- and using one as
+        # the guard made this skip on the real code and fail on the
+        # mutation, which is the wrong way round in both directions.
+        self.assertNotEqual(
+            bitmap("שלום"), bitmap("\U000FFFFF" * 4),
+            "the Noto-only host is back to a row of boxes, which is F33")
+
     def test_a_hebrew_title_reaches_a_face_that_has_it(self):
         """Against a Latin face measured to lack Hebrew -- which is what a
         box with Noto Sans and no DejaVu resolves."""
