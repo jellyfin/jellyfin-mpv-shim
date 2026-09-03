@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-02 13:59+0000\n"
-"Last-Translator: Tibo Vanheule <mail@tibovanheule.space>\n"
+"PO-Revision-Date: 2026-09-03 07:32+0000\n"
+"Last-Translator: Kas <kasjunk@proton.me>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
 "Language: nl\n"
@@ -1401,7 +1401,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Spline"
-msgstr ""
+msgstr "Spline"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
