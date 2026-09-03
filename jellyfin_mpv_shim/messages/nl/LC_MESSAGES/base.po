@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-03 07:46+0000\n"
+"PO-Revision-Date: 2026-09-03 09:00+0000\n"
 "Last-Translator: Kas <kasjunk@proton.me>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
@@ -1585,19 +1585,19 @@ msgstr "Aftiteling altijd overslaan"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Never hide while paused"
-msgstr ""
+msgstr "Nooit verbergen tijdens pauzeren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Widen the gaps"
-msgstr ""
+msgstr "Tussenruimte vergroten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Centre the tiles"
-msgstr ""
+msgstr "Tegels centreren"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Leave it on the right"
-msgstr ""
+msgstr "Rechts laten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Theme default"
@@ -1605,15 +1605,15 @@ msgstr "Themastandaard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Compact"
-msgstr ""
+msgstr "Extra Compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Compact"
-msgstr ""
+msgstr "Compact"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Medium"
-msgstr ""
+msgstr "Medium"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Extra Large"
@@ -1683,7 +1683,7 @@ msgstr "Stijl spelerbediening"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Swap Confirm and Back Buttons"
-msgstr ""
+msgstr "Bevestigings- en terugknop omwisselen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Download Folder"
@@ -1695,7 +1695,7 @@ msgstr "Gedownloade versie verkiezen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Left Click Pauses Playback"
-msgstr ""
+msgstr "Klikken met de linkermuisknop pauzeert het afspelen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Show Posters on Detail Pages"
@@ -2278,12 +2278,16 @@ msgstr ""
 msgid ""
 "\"hq\" offers heavier profiles. Pick it if you have a fast graphics card."
 msgstr ""
+"\"hq\" biedt veeleisendere profielen. Kies deze optie als je een snelle "
+"grafische kaart hebt."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Leave on Automatic unless video breaks when a profile is loaded. This only "
 "applies while a profile is active, and OpenGL can cost you HDR output."
 msgstr ""
+"Laat op Automatisch staan, tenzij video niet goed werkt met een geladen "
+"profiel. Geldt alleen bij actieve profielen. OpenGL kan HDR-uitvoer kosten."
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
@@ -2303,6 +2307,8 @@ msgid ""
 "it is enabled, because the volume has to be adjusted before your receiver "
 "gets the audio."
 msgstr ""
+"Brengt luide effecten en zachte dialogen in balans. Schakelt passthrough "
+"uit, omdat het volume wordt aangepast voordat de audio je receiver bereikt."
 
 # seeded from jellyfin-web: HeaderStatus
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2523,7 +2529,7 @@ msgstr "Schatten…"
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, python-format
 msgid "%(count)d items · %(size)s"
-msgstr ""
+msgstr "%(count)d items · %(size)s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2548,15 +2554,15 @@ msgstr "Downloaden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Include watched"
-msgstr ""
+msgstr "Bekeken items toevoegen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Nothing left to download."
-msgstr ""
+msgstr "Er valt niets meer te downloaden."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "The download could not be started."
-msgstr ""
+msgstr "De download kon niet worden gestart."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "This library offers no filters."
@@ -2677,15 +2683,15 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Notice"
-msgstr ""
+msgstr "Melding"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Copying to the clipboard is not available."
-msgstr ""
+msgstr "Kopiëren naar het klembord is niet beschikbaar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Pasting from the clipboard is not available."
-msgstr ""
+msgstr "Plakken van het klembord is niet beschikbaar."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2696,11 +2702,11 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Use MPV 0.41 or newer."
-msgstr ""
+msgstr "Gebruik MPV 0.41 of nieuwer."
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 msgid "Clipboard"
-msgstr ""
+msgstr "Klembord"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -2892,11 +2898,11 @@ msgstr "Afspeellijst"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Unknown Series"
-msgstr ""
+msgstr "Onbekende Series"
 
 #: jellyfin_mpv_shim/mpvtk_browser/downloads.py
 msgid "Movies & Videos"
-msgstr ""
+msgstr "Films & Videos"
 
 #: jellyfin_mpv_shim/mpvtk_browser/gateway/playback.py
 msgid "Default (mpv decides)"
@@ -2959,7 +2965,7 @@ msgstr "Actieve opnames"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Secondary…"
-msgstr ""
+msgstr "Secundair…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -2973,13 +2979,13 @@ msgstr "Ondertitelspoor selecteren"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
 #, python-format
 msgid "Chapter %d"
-msgstr ""
+msgstr "Hoofdstuk %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Chapters"
-msgstr ""
+msgstr "Hoofdstukken"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #, fuzzy
@@ -3140,11 +3146,11 @@ msgstr "Server succesvol toegevoegd."
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Back 10 Seconds"
-msgstr ""
+msgstr "Terug 10 Seconden"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 msgid "Forward 30 Seconds"
-msgstr ""
+msgstr "30 Seconden Vooruit"
 
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
@@ -3188,7 +3194,7 @@ msgstr "Automatisch volledig scherm"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Those items could not be added to the queue."
-msgstr ""
+msgstr "Deze items konden niet aan de wachtrij worden toegevoegd."
 
 # seeded from jellyfin-web: SeriesRecordingScheduled
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
@@ -3307,7 +3313,7 @@ msgstr "Verwijderen"
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 msgid "The download could not be removed."
-msgstr ""
+msgstr "De download kon niet worden verwijderd."
 
 #: jellyfin_mpv_shim/mpvtk_browser/item_actions.py
 #, python-format
@@ -3594,7 +3600,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 msgid "Timed out loading this item"
-msgstr ""
+msgstr "Time-out bij het laden van dit item"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -3678,7 +3684,7 @@ msgstr "Toevoegen aan afspeellijst"
 
 #: jellyfin_mpv_shim/mpvtk_browser/music.py
 msgid "Volume"
-msgstr ""
+msgstr "Volume"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
 #, fuzzy
@@ -4501,7 +4507,7 @@ msgstr "Mislukt"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded"
-msgstr ""
+msgstr "Gedownload"
 
 # seeded from jellyfin-web: TypeOptionPluralSeries
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
@@ -4515,15 +4521,15 @@ msgstr "Afspeellijsten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Movies"
-msgstr ""
+msgstr "Gedownloade Films"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Videos"
-msgstr ""
+msgstr "Gedownloade Video's"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Downloaded Shows"
-msgstr ""
+msgstr "Gedownloade Shows"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, fuzzy
@@ -4534,7 +4540,7 @@ msgstr "Downloads"
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 #, python-format
 msgid "Season %d"
-msgstr ""
+msgstr "Seizoen %d"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/base.py
 #, python-format
@@ -5005,7 +5011,7 @@ msgstr "Server verwijderen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
-msgstr ""
+msgstr "Er is niets om aan de wachtrij toe te voegen."
 
 # seeded from jellyfin-web: Search
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
@@ -5051,7 +5057,7 @@ msgstr "Gebruikersnaam:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search…"
-msgstr ""
+msgstr "Zoek…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
@@ -5072,19 +5078,19 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Update available: %s"
-msgstr ""
+msgstr "Update beschikbaar: %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Open"
-msgstr ""
+msgstr "Openen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Dismiss"
-msgstr ""
+msgstr "Sluiten"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Offline — showing what's available."
-msgstr ""
+msgstr "Offline — toont wat beschikbaar is."
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py jellyfin_mpv_shim/tray.py
 msgid "Configure Servers"
@@ -5093,24 +5099,24 @@ msgstr "Servers configureren"
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading %(name)s — %(n)d remaining"
-msgstr ""
+msgstr "Downloaden %(name)s — %(n)d resterend"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 #, python-format
 msgid "Downloading — %(n)d remaining"
-msgstr ""
+msgstr "Downloaden — %(n)d resterend"
 
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "View Downloads"
-msgstr ""
+msgstr "Downloads Bekijken"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "unknown"
-msgstr ""
+msgstr "onbekend"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 msgid "Playback Data"
-msgstr ""
+msgstr "Afspeelgegevens"
 
 #: jellyfin_mpv_shim/osc_bridge.py
 #, fuzzy
@@ -5132,7 +5138,7 @@ msgstr "SyncPlay geactiveerd."
 
 #: jellyfin_mpv_shim/player.py
 msgid "Please wait, loading..."
-msgstr ""
+msgstr "Even geduld, laden..."
 
 #: jellyfin_mpv_shim/player.py
 msgid ""
@@ -5144,7 +5150,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/player.py
 msgid "Next episode is not downloaded."
-msgstr ""
+msgstr "Volgende aflevering is niet gedownload."
 
 #: jellyfin_mpv_shim/player_reporting.py
 #, python-brace-format
@@ -5180,24 +5186,30 @@ msgid ""
 "Can't change the download folder while a download is in progress. Wait for "
 "it to finish, then try again."
 msgstr ""
+"De downloadmap kan niet worden gewijzigd terwijl er een download bezig is. "
+"Wacht tot deze is voltooid en probeer het opnieuw."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
-msgstr ""
+msgstr "Die map bevat al downloads. Kies een lege map."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "Can't create that folder. Check the path and its permissions."
-msgstr ""
+msgstr "Kan die map niet aanmaken. Controleer het pad en de machtigingen."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
 msgstr ""
+"Een download wordt nog afgerond. Wacht tot deze klaar is en probeer het "
+"opnieuw."
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid ""
 "Moving the downloads failed. They were left in place; the download folder "
 "was not changed."
 msgstr ""
+"Het verplaatsen van de downloads is mislukt. Ze zijn op hun huidige locatie "
+"gebleven; de downloadmap is niet gewijzigd."
 
 #: jellyfin_mpv_shim/syncplay.py
 msgid "The specified SyncPlay group does not exist."
@@ -5274,7 +5286,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Library Browser"
-msgstr ""
+msgstr "Bibliotheekbrowser tonen"
 
 #: jellyfin_mpv_shim/tray.py
 msgid "Show Console"
