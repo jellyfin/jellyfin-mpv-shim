@@ -139,22 +139,23 @@ def script_of(text):
     the first character outside the Latin face's coverage wins, so
     "進撃の巨人 (2013)" resolves to cjk.
 
-    **A lone symbol wins too, and that is deliberate**, even though it is
-    one character of a line that is otherwise Latin. Callers read line
-    height off this face (`components/banner.py`, `mpvtk_browser/cast.py`
-    both take `getmetrics()` from it and reserve a band that tall), while
-    ``draw_text`` puts the runs on a baseline derived from the *tallest*
-    face present. Those two agree only if the face answered here is the
-    tallest one — and it is: measured on Windows, Segoe UI Symbol is
-    (22, 6) against Arial's (19, 5) at 20px. Answering "latin" for
-    "★ 8.1" instead would reserve Arial's band and then draw into Segoe's,
-    overflowing it by 4px. The cost is that a rated banner's meta line is
-    a few px taller than an unrated one on Windows, which nothing on
-    screen is there to compare against.
+    **"symbol" is never the answer here.** It is a face for the odd glyph,
+    not for words, and this answer is used for two things it would be wrong
+    for: the line height a caller reserves (`components/banner.py`,
+    `mpvtk_browser/cast.py`), and the face handed to ``draw_text`` for a
+    *substring* — a wrapped or ellipsized line that the star need not have
+    survived into. Segoe UI Symbol's Latin is not Arial's and it carries no
+    Arabic or Hebrew at all (measured), so letting one rating choose it
+    re-typesets whole paragraphs, and for an RTL line — which cannot be
+    split at all — draws every word as a box.
+
+    The symbol face is reached per RUN instead (:func:`runs`), and for a
+    string that is nothing but symbols by the stamped-script check in
+    ``draw_text``.
     """
     for ch in text or "":
         script = script_of_char(ord(ch))
-        if script != "latin":
+        if script not in ("latin", "symbol"):
             return script
     return "latin"
 
@@ -249,9 +250,12 @@ def font(script, size, bold=False):
             log.info("no font found for script %r; text may not render", script)
     # What it was asked for, so draw_text can ask for the same in another
     # script. `size` is on FreeTypeFont already but the weight is not, and
-    # the bitmap default has neither.
+    # the bitmap default has neither. The script rides along too, so a face
+    # can be asked whether it is the right one for the run in hand -- see
+    # _run_face.
     try:
         fnt._jms_size, fnt._jms_bold = size, bool(bold)
+        fnt._jms_script = script
     except AttributeError:         # a face that will not be annotated
         pass
     _cache[key] = fnt
@@ -271,6 +275,21 @@ def _same_size(fnt, script):
                 getattr(fnt, "_jms_bold", False))
 
 
+def _run_face(fnt, script):
+    """The face to draw a run of ``script`` with, given the font a caller
+    chose — possibly for a longer string this run was wrapped out of.
+
+    ``fnt`` itself whenever it is already that script, or when it carries no
+    stamp at all: a caller who built a face by hand gets exactly the face it
+    passed, which is what keeps a single-run string drawn byte for byte as
+    it was before any of this existed.
+    """
+    stamped = getattr(fnt, "_jms_script", None)
+    if stamped is None or stamped == script:
+        return fnt
+    return _same_size(fnt, script)
+
+
 def text_length(draw, text, fnt):
     """``draw.textlength`` for a string that may need more than one face.
 
@@ -280,9 +299,11 @@ def text_length(draw, text, fnt):
     if not text:
         return 0.0
     parts = runs(text)
-    if len(parts) == 1 or has_rtl(text):
+    if has_rtl(text):
         return draw.textlength(text, font=fnt)
-    return sum(draw.textlength(chunk, font=_same_size(fnt, script))
+    if len(parts) == 1:
+        return draw.textlength(text, font=_run_face(fnt, parts[0][0]))
+    return sum(draw.textlength(chunk, font=_run_face(fnt, script))
                for script, chunk in parts)
 
 
@@ -299,15 +320,31 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None):
     and two faces do not share one, so anchoring each run that way would
     stagger them. The tallest ascent in the line decides where the baseline
     sits, and every run is drawn from it.
+
+    So a mixed line can sit a little lower than the band its caller
+    reserved, which reserves from ``script_of``'s face and not from the
+    tallest run: on Windows the symbol face is (22, 6) against Arial's
+    (19, 5) at 20px, so one star pushes the line down about 3px. That is
+    the accepted cost of *not* letting a symbol choose the whole string's
+    face — the alternative re-typesets every wrapped line of a paragraph in
+    Segoe UI Symbol. Every caller here draws into a margin that absorbs it
+    (`banner.py` has 18px below the meta line, `cast.py` a per-line gap),
+    and no tile caption carries a symbol.
     """
     if not text:
         return
     parts = runs(text)
-    if len(parts) == 1 or has_rtl(text):
+    if has_rtl(text):
+        # One draw call has to cover the line, and it is the caller's face:
+        # Pillow reorders bidi within a call and cannot across several.
         draw.text(xy, text, font=fnt, fill=fill, anchor=anchor)
         return
+    if len(parts) == 1:
+        draw.text(xy, text, font=_run_face(fnt, parts[0][0]), fill=fill,
+                  anchor=anchor)
+        return
 
-    fonts = [_same_size(fnt, script) for script, _chunk in parts]
+    fonts = [_run_face(fnt, script) for script, _chunk in parts]
     ascent = max(f.getmetrics()[0] for f in fonts)
     descent = max(f.getmetrics()[1] for f in fonts)
     x, y = xy

@@ -254,6 +254,58 @@ class TestSymbolRuns(unittest.TestCase):
         self.assertEqual(pilfont.runs("★ 進撃"),
                          [("symbol", "★ "), ("cjk", "進撃")])
 
+    def test_a_symbol_does_not_outrank_a_real_script(self):
+        """`script_of` picks the ONE face an unsplittable string is drawn
+        with, and for an RTL string that is every character of it -- Pillow
+        reorders bidi within a single draw call and cannot across several,
+        so `draw_text` refuses to split. A star appearing before the Arabic
+        must not therefore choose the face: measured, Segoe UI Symbol (the
+        Windows symbol face) has no Arabic and no Hebrew at all, so the
+        whole genre would draw as boxes.
+        """
+        self.assertEqual(pilfont.script_of("1998 · ★ 8.1 · دراما"), "arabic")
+        self.assertEqual(pilfont.script_of("★ 進撃"), "cjk")
+        self.assertEqual(pilfont.script_of("★ ภาพยนตร์"), "thai")
+
+    def test_a_string_of_nothing_but_symbols_still_reaches_the_face(self):
+        """The hole `script_of` leaves, closed on the drawing side: the
+        whole-string answer is "latin", the single run is "symbol", and the
+        stamped script is what lets `draw_text` notice and re-resolve."""
+        latin = pilfont.font("latin", 28)
+        self.assertEqual(getattr(latin, "_jms_script", None), "latin")
+        self.assertIs(pilfont._run_face(latin, "symbol"),
+                      pilfont.font("symbol", 28))
+        self.assertIs(pilfont._run_face(latin, "latin"), latin)
+
+    def test_an_unstamped_face_is_left_exactly_as_it_was_passed(self):
+        """A caller who built a face by hand gets that face, whatever the
+        run is: this is what keeps the single-run path byte-identical to
+        what it drew before any of the script machinery existed."""
+        from PIL import ImageFont
+
+        home_made = ImageFont.load_default()
+        self.assertIs(pilfont._run_face(home_made, "symbol"), home_made)
+
+    def test_a_symbol_does_not_outrank_hebrew_either(self):
+        """The case the "another script won" rule does not cover: Hebrew
+        maps to "latin" here (the Latin face has it), so nothing outranks
+        the star -- and the line is still RTL and still drawn with one
+        face. Segoe UI Symbol has no Hebrew, so this must answer the face
+        that does."""
+        self.assertTrue(pilfont.has_rtl("★ סרט"))
+        self.assertEqual(pilfont.script_of("★ סרט"), "latin")
+
+    def test_the_whole_string_answer_is_never_the_symbol_face(self):
+        """`script_of` picks the face for the *words*, and a symbol is not
+        one. It is also the face a caller hands `draw_text` for a wrapped
+        or ellipsized SUBSTRING, which the symbol need not have survived
+        into -- see `test_a_line_ellipsized_before_the_star...`."""
+        self.assertEqual(pilfont.script_of("1998 · ★ 8.1 · Drama"), "latin")
+        self.assertEqual(pilfont.script_of("★"), "latin")
+        self.assertEqual(pilfont.script_of("Drama"), "latin")
+        # ...and the runs still send the star somewhere that has one.
+        self.assertIn(("symbol", "★"), pilfont.runs("★"))
+
 
 class TestSymbolFace(unittest.TestCase):
     """That the split actually reaches a face carrying the glyph.
@@ -315,10 +367,16 @@ class TestSymbolFace(unittest.TestCase):
         self.assertNotEqual(self._bitmap(symbol), self._bitmap(latin),
                             "the symbol run drew the Latin face's tofu")
 
-    def test_draw_text_puts_the_star_on_the_symbol_face(self):
-        """End to end, through the call the banner actually makes: a mixed
-        string drawn with the font ``pil_font`` hands it must still put the
-        star on a face that has one."""
+    def test_draw_text_puts_the_star_on_the_symbol_face_AND_nothing_else(self):
+        """End to end, through the call the banner actually makes.
+
+        Asserted against an explicit run-by-run rendering rather than
+        against "not what the Latin face would have drawn". That weaker
+        form passes just as happily against drawing the WHOLE string in the
+        symbol face -- which is a different bug (Segoe UI Symbol's digits
+        are not Arial's, and it has no Arabic at all) that the weaker
+        assertion cannot see. Same construction as the CJK case above.
+        """
         from PIL import Image, ImageDraw
 
         starless = self._starless()
@@ -326,17 +384,81 @@ class TestSymbolFace(unittest.TestCase):
             self.skipTest("no face measured to lack U+2605 on this host")
         pilfont._CANDIDATES["latin"] = [starless]
         pilfont.clear_cache()
-        if self._bitmap(pilfont.font("symbol", 28)) == self._bitmap(
-                pilfont.font("symbol", 28), "\U000FFFFF"):
+        symbol, latin = pilfont.font("symbol", 28), pilfont.font("latin", 28)
+        if self._bitmap(symbol) == self._bitmap(symbol, "\U000FFFFF"):
             self.skipTest("no symbol-carrying face installed on this host")
+        if symbol is latin:
+            self.skipTest("this host resolves both to one face")
 
         text = "2001   ·   ★ 8.1"
+        parts = pilfont.runs(text)
+        self.assertEqual([script for script, _c in parts],
+                         ["latin", "symbol", "latin"],
+                         "the premise: this string has three runs")
+
         got = Image.new("L", (400, 48), 0)
         pilfont.draw_text(ImageDraw.Draw(got), (3, 5), text,
                           pilfont.font_for(text, 28), fill=255)
-        # The same string with the star drawn by the starless face, which is
-        # what shipped: the two must not agree.
+
         want = Image.new("L", (400, 48), 0)
-        ImageDraw.Draw(want).text((3, 5), text,
-                                  font=pilfont.font("latin", 28), fill=255)
-        self.assertNotEqual(got.tobytes(), want.tobytes())
+        drawer = ImageDraw.Draw(want)
+        faces = [symbol if script == "symbol" else latin
+                 for script, _c in parts]
+        baseline = 5 + max(f.getmetrics()[0] for f in faces)
+        x = 3.0
+        for (_script, chunk), face in zip(parts, faces):
+            drawer.text((x, baseline), chunk, font=face, fill=255,
+                        anchor="ls")
+            x += drawer.textlength(chunk, font=face)
+        self.assertEqual(got.tobytes(), want.tobytes())
+
+    def test_a_line_ellipsized_before_the_star_is_still_drawn_in_Latin(self):
+        """The face is chosen from the WHOLE string and then a *substring*
+        is drawn with it.
+
+        `components/banner.py` picks `pil_font(text=meta)` for the whole
+        meta line, wraps/ellipsizes it to the width, and draws the result;
+        `cast.py` picks one face for a synopsis and draws it line by line;
+        `strips.py` does the same for a caption. So a line the star did not
+        survive into is handed the star's face -- and Segoe UI Symbol's
+        Latin is not Arial's, which turns one rating into a different
+        typeface for a whole paragraph.
+        """
+        from PIL import Image, ImageDraw
+
+        starless = self._starless()
+        if starless is None:
+            self.skipTest("no face measured to lack U+2605 on this host")
+        pilfont._CANDIDATES["latin"] = [starless]
+        pilfont.clear_cache()
+        symbol, latin = pilfont.font("symbol", 28), pilfont.font("latin", 28)
+        if symbol is latin:
+            self.skipTest("this host resolves both to one face")
+
+        full = "2001   ·   PG-13   ·   ★ 8.1   ·   Drama"
+        line = "2001   ·   PG-13   ·   …"      # what wrap_pil hands back
+        font = pilfont.font_for(full, 28)      # chosen from the FULL string
+
+        got = Image.new("L", (400, 48), 0)
+        pilfont.draw_text(ImageDraw.Draw(got), (3, 5), line, font, fill=255)
+        want = Image.new("L", (400, 48), 0)
+        ImageDraw.Draw(want).text((3, 5), line, font=latin, fill=255)
+        self.assertEqual(got.tobytes(), want.tobytes(),
+                         "a Latin-only line was drawn in the symbol face")
+
+    def test_the_latin_runs_are_not_drawn_by_the_symbol_face(self):
+        """A guard on the premise of the test above: if the symbol face
+        happened to draw digits identically to the Latin one, that
+        assertion would pass against a whole-string symbol render too."""
+        starless = self._starless()
+        if starless is None:
+            self.skipTest("no face measured to lack U+2605 on this host")
+        pilfont._CANDIDATES["latin"] = [starless]
+        pilfont.clear_cache()
+        symbol, latin = pilfont.font("symbol", 28), pilfont.font("latin", 28)
+        if symbol is latin:
+            self.skipTest("this host resolves both to one face")
+        if self._bitmap(symbol, "2001") == self._bitmap(latin, "2001"):
+            self.skipTest("the two faces draw digits identically here")
+        self.assertNotEqual(self._bitmap(symbol, "2001"),
+                            self._bitmap(latin, "2001"))
