@@ -839,6 +839,56 @@ class TestEmojiTable(unittest.TestCase):
                         "U+%05X is in both tables and the symbol one won"
                         % cp)
 
+    #: Shipped by Debian's `unicode-data`. Present on this box, and the
+    #: only *authoritative* check of the table there is -- the font-based
+    #: one below can only prove a codepoint is drawable, not that Unicode
+    #: calls it emoji-presentation.
+    EMOJI_DATA = "/usr/share/unicode/emoji/emoji-data.txt"
+
+    def test_the_table_is_unicodes_emoji_presentation_set(self):
+        """Against UTS #51 itself, not against a font.
+
+        The BMP half of `_EMOJI_RANGES` was typed in from memory, and the
+        font-coverage test below cannot catch a wrong *inclusion*: Noto
+        Color Emoji's cmap is the `Emoji` property, a superset, so a
+        codepoint that is `Emoji=Yes, Emoji_Presentation=No` passes it and
+        still draws in colour where Unicode says text.
+
+        The astral whole blocks are deliberately coarser than the property
+        and are excluded here — see `_EMOJI_RANGES`.
+        """
+        import os
+
+        if not os.path.exists(self.EMOJI_DATA):
+            self.skipTest("no local UTS #51 emoji-data.txt (unicode-data)")
+        expected = set()
+        with open(self.EMOJI_DATA, encoding="utf-8") as fh:
+            for line in fh:
+                body = line.split("#", 1)[0].strip()
+                if not body or ";" not in body:
+                    continue
+                field, prop = (part.strip() for part in body.split(";", 1))
+                if prop != "Emoji_Presentation":
+                    continue
+                if ".." in field:
+                    lo, hi = (int(part, 16) for part in field.split(".."))
+                else:
+                    lo = hi = int(field, 16)
+                expected.update(cp for cp in range(lo, hi + 1)
+                                if cp <= 0xFFFF)
+        ours = {cp for lo, hi in pilfont._EMOJI_RANGES
+                for cp in range(lo, hi + 1) if cp <= 0xFFFF}
+        self.assertEqual(
+            sorted(ours - expected), [],
+            "not Emoji_Presentation, so these draw in colour where Unicode "
+            "says text: %s"
+            % " ".join("U+%04X" % cp for cp in sorted(ours - expected)))
+        self.assertEqual(
+            sorted(expected - ours), [],
+            "Emoji_Presentation and missing from the table, so these draw "
+            "monochrome: %s"
+            % " ".join("U+%04X" % cp for cp in sorted(expected - ours)))
+
     def test_the_bmp_table_is_only_codepoints_a_colour_face_has(self):
         """The transcription guard.
 

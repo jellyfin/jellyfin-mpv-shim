@@ -57,14 +57,16 @@ _CANDIDATES = {
         "malgun.ttf",
     ],
     # Arabic is RTL too, so the "one face for the line" note under "hebrew"
-    # applies -- but not the reordering. Measured: NotoSansArabic carries
-    # the full stop, comma and digits, so an ordinary Arabic sentence is
-    # whole; what it lacks is A-Z, so an Arabic line with a Latin *word* in
-    # it draws that word as boxes. There is no Linux face with both good
-    # Arabic shaping and Latin to reorder towards -- DejaVu has no Arabic at
-    # all -- and demoting Noto to Arial would trade the contextual forms
-    # Arabic is unreadable without for the rarer case. Left as it is,
-    # knowingly.
+    # applies -- but the answer is the opposite one. Measured:
+    # NotoSansArabic carries the full stop, comma and digits, so an ordinary
+    # Arabic sentence is whole; what it lacks is A-Z, so an Arabic line with
+    # a Latin *word* in it draws that word as boxes. DejaVu would fix that
+    # -- it has full Latin and real Arabic shaping (`arab` in both GSUB and
+    # GPOS) -- but it covers 165 of 256 Arabic-block codepoints against
+    # Noto's 255, and 249 of the 772 presentation forms against Noto's 751.
+    # Arabic is a script of presentation forms, so that is the wrong three
+    # quarters to give up for the occasional Latin word. Left as it is,
+    # knowingly, and not for want of a candidate.
     "arabic": [
         "NotoSansArabic-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
@@ -84,12 +86,19 @@ _CANDIDATES = {
     # carry the neutrals as well as the script. `NotoSansHebrew-Regular.ttf`
     # is 145 codepoints: no full stop, no comma, no digit, no ASCII at all
     # (measured), so putting it first drew "שלום עולם." with the stop as a
-    # box and every year in a title as four of them. DejaVu has all 88
-    # letters and points and the 46 presentation forms; the 33 it lacks are
-    # the cantillation marks U+0591-05AF, which are biblical Hebrew and are
-    # the deliberate cost of this order. Noto stays as the answer for a host
-    # with no DejaVu, which is what F33 was about.
+    # box and every year in a title as four of them.
+    #
+    # Liberation Sans leads because it needs no trade at all: measured, 87
+    # of the 88 assigned Hebrew codepoints (all but U+05EF), all 46
+    # presentation forms, all 95 printable ASCII, and `hebr` in both GSUB
+    # and GPOS so the points still stack. That is everything Noto Hebrew
+    # has plus the Latin it does not. DejaVu is next and is the same idea
+    # with a cost -- it misses 34: the cantillation marks U+0591-05AF plus
+    # U+05C4, U+05C5 and U+05EF, i.e. biblical Hebrew. Noto stays last, for
+    # the host with none of the above, which is what F33 was about.
     "hebrew": [
+        "LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         "DejaVuSans.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Supplemental/Arial Hebrew.ttc",
@@ -154,11 +163,15 @@ _CANDIDATES = {
 _FALLBACK_SCRIPTS = {"emoji": ("symbol",)}
 
 #: Pixel sizes a bitmap-strike face may be available at, tried in
-#: `_strike_order` when the asked-for size is refused. NotoColorEmoji is
-#: 109; Apple Color Emoji's sbix strikes are 20/26/32/40/48/52/64/96/160;
-#: 128 and 136 are what the older Noto and the Twemoji builds ship. A face
-#: with a strike outside this list simply is not used -- the run falls to
-#: the symbol face, which is what it does today.
+#: `_strike_order` when the asked-for size is refused. NotoColorEmoji's 109
+#: is measured here; 128 and 136 are what the older Noto and the Twemoji
+#: builds ship. The Apple Color Emoji entries (20/26/32/40/48/52/64/96/160)
+#: are a **probe set, not a verified inventory** -- nobody on this project
+#: has a Mac, and 26 and 52 in particular are unconfirmed on current
+#: releases. Being wrong either way is cheap: a size that is not a strike
+#: costs one failed load, and a strike not listed means the face is simply
+#: not used and the run falls to the symbol face, which is what it does
+#: today. `TTCollection(path).fonts[0]["sbix"].strikes` settles it on a Mac.
 _STRIKES = (16, 20, 26, 32, 40, 48, 52, 64, 96, 109, 128, 136, 160)
 
 # Bold variants, tried before the regular list for bold requests.
@@ -186,10 +199,14 @@ _SYMBOL_RANGES = ((0x2190, 0x21FF),    # arrows
                   (0x2700, 0x27BF),    # dingbats: ticks, crosses
                   (0x2B00, 0x2BFF))    # misc symbols and arrows
 
-#: Codepoints that want a **colour emoji** face. Unicode's
-#: ``Emoji_Presentation=Yes`` (UTS #51, emoji-data.txt): the codepoints that
-#: are drawn in colour by default, as opposed to the ones that only become
-#: emoji when followed by U+FE0F.
+#: Codepoints that want a **colour emoji** face.
+#:
+#: The BMP half and the picked astral singletons are exactly Unicode's
+#: ``Emoji_Presentation=Yes`` (UTS #51, emoji-data.txt) -- the codepoints
+#: drawn in colour by default, as opposed to the ones that only become
+#: emoji when followed by U+FE0F -- and a test checks that against the
+#: local copy of that file. **The whole astral blocks deliberately are
+#: not**: they are coarser than the property, for the reason below.
 #:
 #: The BMP half is a list of small ranges rather than whole blocks, and that
 #: is the load-bearing part: U+2605 and U+2713 sit inside U+2600-27BF, and
@@ -520,7 +537,13 @@ def metrics(fnt):
         size = getattr(fnt, "size", 11)
         return int(size * 0.8), int(size * 0.2)
     scale = _scale_of(fnt)
-    return ascent * scale, descent * scale
+    if scale == 1.0:
+        return ascent, descent
+    # Ints, like `getmetrics()` and like the untouched branch above. These
+    # end up in `layout.Line.ascent` and in the baselines below, and a
+    # float there is a gratuitous type change across the reader's whole
+    # geometry for a number that is pixels either way.
+    return int(round(ascent * scale)), int(round(descent * scale))
 
 
 def _same_size(fnt, script):
