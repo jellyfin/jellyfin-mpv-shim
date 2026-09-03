@@ -4,6 +4,16 @@ Includes the optimistic-update rollback path, which is where reordering and
 removal get their responsiveness and their failure modes.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import unittest
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 

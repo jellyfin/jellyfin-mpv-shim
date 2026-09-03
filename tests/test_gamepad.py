@@ -10,6 +10,16 @@ launch, with the box inside the application they can no longer open.
 So the tests here are mostly about the failure, not the feature.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import unittest
 from unittest import mock
 
