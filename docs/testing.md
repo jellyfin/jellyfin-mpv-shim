@@ -121,8 +121,27 @@ The case histories, because the abstract rule is easy to nod at and hard to appl
   observer APIs at once, which is the thing `mpv_events` dispatches on, so the matrix
   leg named "libmpv" was exercising jsonipc's.
 
+- **The Lua suite's `strip_page` gave every row a fixed id**, which is a *value* the
+  app did not send rather than a field left out — and it is the same failure with a
+  different surface. The row bitmaps the browser pushes were keyed by their path in
+  the widget tree, so the Stack that floats the hover play chip renamed the row under
+  it; the fake pushed the scene itself, so it could only ever measure the ids it
+  chose. Its whole "overlay slot order" block was therefore asserting the cheap case
+  while every hover re-uploaded a whole strip. Where a fake supplies the *input*
+  rather than standing in for a collaborator, ask what the real producer sends, and
+  pin it on that side: `tests/test_tile_play_chip.py` is what holds the id still now,
+  and `tests/integration/test_mpvtk_browser.py` asserts the cost against a real mpv.
+
 `tests/integration/test_playback_start.py` is what fixing `FakeMPV` unlocked: the
 three ways a start fails, which a real mpv cannot be asked to perform on cue.
+
+`tools/probe_hover_overlay_cost.py` is the number behind that last one: it drives a
+real mpv, sweeps the pointer across a grid, and prints the overlay traffic per move
+from the renderer's own `ov_adds` / `ov_bytes`. Measured on Windows (d3d11/WARP,
+1000x740): 1 overlay-add and 0.01 MiB per move with the rows named, against 2.9 and
+1.52 MiB with the name taken away — the same shape on Linux at 2.17 MiB. It is a
+probe rather than a test for the usual reason (§7): it wants a window and a number
+to read, not a threshold.
 
 The cheap half of this is checkable from the source, so it is:
 `tools/audit_fake_contracts.py` diffs what production code reaches on a collaborator

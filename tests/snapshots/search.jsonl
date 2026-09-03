@@ -16,23 +16,23 @@
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 32.5, "id": "r.1.0.0.0", "sc": "search", "size": 26, "t": "text", "text": "Results for \"a\"", "w": 1238.0, "x": 16.0, "y": 76.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Movies", "w": 90.0, "x": 16.0, "y": 122.5}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "search-Movies", "sc": "search", "t": "scroll", "w": 182.0, "x": 0.0, "y": 156.5}
-{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-Movies", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 16.0, "y": 161.5}
+{"h": 271.0, "id": "search-Movies#strip", "ih": 271, "iw": 150, "sc": "search-Movies", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 16.0, "y": 161.5}
 {"af": true, "click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Movies-r1", "ring": true, "sc": "search-Movies", "t": "rect", "w": 150, "x": 16.0, "y": 161.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Episodes", "w": 110.7, "x": 16.0, "y": 451.5}
 {"axis": "x", "ch": 189.0, "cw": 272.0, "h": 189.0, "id": "search-Episodes", "sc": "search", "t": "scroll", "w": 272.0, "x": 0.0, "y": 485.5}
-{"h": 179.0, "id": "r.1.0.2.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-Episodes", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 16.0, "y": 490.5}
+{"h": 179.0, "id": "search-Episodes#strip", "ih": 179, "iw": 240, "sc": "search-Episodes", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 16.0, "y": 490.5}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Episodes-r2", "ring": true, "sc": "search-Episodes", "t": "rect", "w": 240, "x": 16.0, "y": 490.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.3.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "People", "w": 81.7, "x": 16.0, "y": 688.5}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "search-people", "sc": "search", "t": "scroll", "w": 182.0, "x": 0.0, "y": 722.5}
-{"h": 271.0, "id": "r.1.0.3.1.0.0.0", "ih": 271, "iw": 150, "sc": "search-people", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 727.5}
+{"h": 271.0, "id": "search-people#strip", "ih": 271, "iw": 150, "sc": "search-people", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 727.5}
 {"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-people-p1", "ring": true, "sc": "search-people", "t": "rect", "w": 150, "x": 16.0, "y": 727.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.4.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Artists", "w": 80.1, "x": 16.0, "y": 1017.5}
 {"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-Artists", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1051.5}
-{"h": 214.0, "id": "r.1.0.4.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Artists", "src": "bitmap#3", "t": "img", "v": "v#4", "w": 170.0, "x": 16.0, "y": 1056.5}
+{"h": 214.0, "id": "search-Artists#strip", "ih": 214, "iw": 170, "sc": "search-Artists", "src": "bitmap#3", "t": "img", "v": "v#4", "w": 170.0, "x": 16.0, "y": 1056.5}
 {"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Artists-ar1", "ring": true, "sc": "search-Artists", "t": "rect", "w": 170, "x": 16.0, "y": 1056.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.5.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Albums", "w": 90.0, "x": 16.0, "y": 1289.5}
 {"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-Albums", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1323.5}
-{"h": 214.0, "id": "r.1.0.5.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-Albums", "src": "bitmap#4", "t": "img", "v": "v#5", "w": 170.0, "x": 16.0, "y": 1328.5}
+{"h": 214.0, "id": "search-Albums#strip", "ih": 214, "iw": 170, "sc": "search-Albums", "src": "bitmap#4", "t": "img", "v": "v#5", "w": 170.0, "x": 16.0, "y": 1328.5}
 {"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-Albums-r3", "ring": true, "sc": "search-Albums", "t": "rect", "w": 170, "x": 16.0, "y": 1328.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.6.0", "sc": "search", "size": 24, "t": "text", "text": "Songs", "w": 1238.0, "x": 16.0, "y": 1559.5}
 {"align": "right", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.6.1.0.1.0", "sc": "search", "size": 15, "t": "text", "text": "#", "w": 46.0, "x": 38.0, "y": 1607.1}
@@ -48,9 +48,9 @@
 {"align": "right", "c": "e8e8e8", "h": 21.2, "id": "r.1.0.6.1.1.5.0", "sc": "search", "size": 17, "t": "text", "text": "", "w": 70.0, "x": 1162.0, "y": 1637.9}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.7.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "On TV", "w": 66.1, "x": 16.0, "y": 1679.5}
 {"axis": "x", "ch": 189.0, "cw": 272.0, "h": 189.0, "id": "search-programs", "sc": "search", "t": "scroll", "w": 272.0, "x": 0.0, "y": 1713.5}
-{"h": 179.0, "id": "r.1.0.7.1.0.0.0", "ih": 179, "iw": 240, "sc": "search-programs", "src": "bitmap#5", "t": "img", "v": "v#6", "w": 240.0, "x": 16.0, "y": 1718.5}
+{"h": 179.0, "id": "search-programs#strip", "ih": 179, "iw": 240, "sc": "search-programs", "src": "bitmap#5", "t": "img", "v": "v#6", "w": 240.0, "x": 16.0, "y": 1718.5}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-programs-pr7", "ring": true, "sc": "search-programs", "t": "rect", "w": 240, "x": 16.0, "y": 1718.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.8.0.1.0", "sc": "search", "size": 24, "t": "text", "text": "Channels", "w": 110.7, "x": 16.0, "y": 1916.5}
 {"axis": "x", "ch": 224.0, "cw": 202.0, "h": 224.0, "id": "search-channels", "sc": "search", "t": "scroll", "w": 202.0, "x": 0.0, "y": 1950.5}
-{"h": 214.0, "id": "r.1.0.8.1.0.0.0", "ih": 214, "iw": 170, "sc": "search-channels", "src": "bitmap#6", "t": "img", "v": "v#7", "w": 170.0, "x": 16.0, "y": 1955.5}
+{"h": 214.0, "id": "search-channels#strip", "ih": 214, "iw": 170, "sc": "search-channels", "src": "bitmap#6", "t": "img", "v": "v#7", "w": 170.0, "x": 16.0, "y": 1955.5}
 {"click": true, "ctx": true, "h": 214, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "search-channels-c1", "ring": true, "sc": "search-channels", "t": "rect", "w": 170, "x": 16.0, "y": 1955.5}

@@ -1515,6 +1515,12 @@ fake.set_overlay_cost(0)
 
 --- Full-width artwork rows, `n` of them, optionally with a chip drawn on
 --- one and optionally missing the first (scrolled out of view).
+---
+--- A row keeps its id when a chip lands on it. That is an assumption about
+--- the Python side, and it was false: the Stack that floats the chip renamed
+--- the row under it, because a node with no id of its own is keyed by its
+--- path. So everything below measured a case the app never sent -- the cheap
+--- one. tests/test_tile_play_chip.py is what holds the id still.
 local function strip_page(opts)
     opts = opts or {}
     local nodes = {}

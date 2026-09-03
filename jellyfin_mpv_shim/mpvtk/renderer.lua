@@ -266,6 +266,14 @@ local state = {
     ov_keys = {},           -- slot -> overlay key
     ov_last = {},           -- slot -> last issued args string
     ov_used = 0,
+    -- Cumulative overlay-add traffic, reported by debug_state. A repaint is
+    -- supposed to re-issue only what CHANGED, and nothing else could see
+    -- when it stopped doing that: a whole strip re-uploaded for a hover
+    -- costs no correctness and shows up only as bytes. Fields on `state`
+    -- rather than file locals -- this chunk is at LuaJIT's 200-local
+    -- ceiling (tests/test_renderer_lua.py reports the headroom).
+    ov_adds = 0,
+    ov_bytes = 0,
     tick_timer = nil,
     tick_last = 0,
     blink_timer = nil,
@@ -935,6 +943,9 @@ local function renumber_overlays()
         local slot = i - 1
         local argstr = ov_argstr(ov)
         if state.ov_last[slot] ~= argstr then
+            state.ov_adds = state.ov_adds + 1
+            state.ov_bytes = state.ov_bytes
+                + (ov.x2 - ov.x1) * (ov.y2 - ov.y1) * 4
             mp.commandv('overlay-add', tostring(slot), unpack(ov.args))
         end
         ns[ov.key] = slot
@@ -1056,6 +1067,9 @@ local function flush_overlays()
             local argstr = ov_argstr(ov)
             if state.ov_last[ov.slot] ~= argstr then
                 state.ov_last[ov.slot] = argstr
+                state.ov_adds = state.ov_adds + 1
+                state.ov_bytes = state.ov_bytes
+                    + (ov.x2 - ov.x1) * (ov.y2 - ov.y1) * 4
                 mp.commandv('overlay-add', tostring(ov.slot),
                     unpack(ov.args))
             end
@@ -6556,6 +6570,8 @@ mp.register_script_message('mpvtk-debug', function(json)
             wheel_count = state.wheel_count or 0,
             scroll = state.scroll,
             overlays = state.ov_used,
+            ov_adds = state.ov_adds,
+            ov_bytes = state.ov_bytes,
             ov = ov,
             tip = state.tip_geo and state.tip_geo.text or nil,
             nav = state.nav,

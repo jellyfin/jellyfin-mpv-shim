@@ -33,10 +33,10 @@
 {"click": true, "fill": "2e3138", "h": 40.0, "hover": {"fill": "3a3e46"}, "id": "se-download", "radius": 6, "sc": "season", "t": "rect", "w": 115.9, "x": 350.2, "y": 128.0}
 {"c": "e8e8e8", "h": 18.0, "id": "r.1.0.1.3.0", "path": "m 0 0 l 0 0 m 24 24 l 24 24 m 19 9 l 15 9 l 15 3 l 9 3 l 9 9 l 5 9 l 12 16 l 19 9 m 5 18 l 5 20 l 19 20 l 19 18 l 5 18", "sc": "season", "t": "icon", "w": 18.0, "x": 360.2, "y": 139.0}
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.1.3.1", "sc": "season", "size": 16, "t": "text", "text": "Download", "w": 70.9, "x": 385.2, "y": 138.0}
-{"h": 179.0, "id": "r.1.0.2", "ih": 179, "iw": 1032, "sc": "season", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1032.0, "x": 16.0, "y": 180.0}
+{"h": 179.0, "id": "ep-0#strip", "ih": 179, "iw": 1032, "sc": "season", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1032.0, "x": 16.0, "y": 180.0}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-0-e0", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 16.0, "y": 180.0}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-0-e1", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 280.0, "y": 180.0}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-0-e2", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 544.0, "y": 180.0}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-0-e3", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 808.0, "y": 180.0}
-{"h": 179.0, "id": "r.1.0.3", "ih": 179, "iw": 240, "sc": "season", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 16.0, "y": 371.0}
+{"h": 179.0, "id": "ep-4#strip", "ih": 179, "iw": 240, "sc": "season", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 240.0, "x": 16.0, "y": 371.0}
 {"click": true, "ctx": true, "h": 179, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "ep-4-e4", "ring": true, "sc": "season", "t": "rect", "w": 240, "x": 16.0, "y": 371.0}

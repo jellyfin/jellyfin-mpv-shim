@@ -18,13 +18,13 @@
 {"axis": "y", "bar": true, "ch": 911.0, "cw": 1270.0, "h": 660.0, "id": "home", "snaps": [16.0, 241.0, 578.0], "t": "scroll", "w": 1280.0, "x": 0.0, "y": 60.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.0.0.1.0", "sc": "home", "size": 24, "t": "text", "text": "Libraries", "w": 109.1, "x": 16.0, "y": 78.0}
 {"axis": "x", "ch": 169.0, "cw": 272.0, "h": 169.0, "id": "row-libs", "sc": "home", "t": "scroll", "w": 272.0, "x": 0.0, "y": 112.0}
-{"h": 159.0, "id": "r.1.0.0.1.0.0.0", "ih": 159, "iw": 240, "sc": "row-libs", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 240.0, "x": 16.0, "y": 117.0}
+{"h": 159.0, "id": "row-libs#strip", "ih": 159, "iw": 240, "sc": "row-libs", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 240.0, "x": 16.0, "y": 117.0}
 {"click": true, "ctx": true, "h": 159, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-libs-lib1", "ring": true, "sc": "row-libs", "t": "rect", "w": 240, "x": 16.0, "y": 117.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.1.0", "sc": "home", "size": 24, "t": "text", "text": "Continue Watching", "w": 227.1, "x": 16.0, "y": 303.0}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "row-row-0", "sc": "home", "t": "scroll", "w": 182.0, "x": 0.0, "y": 337.0}
-{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "row-row-0", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 342.0}
+{"h": 271.0, "id": "row-row-0#strip", "ih": 271, "iw": 150, "sc": "row-row-0", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 342.0}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-row-0-m1", "ring": true, "sc": "row-row-0", "t": "rect", "w": 150, "x": 16.0, "y": 342.0}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1.0", "sc": "home", "size": 24, "t": "text", "text": "Latest Movies", "w": 174.5, "x": 16.0, "y": 640.0}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "row-row-1", "sc": "home", "t": "scroll", "w": 182.0, "x": 0.0, "y": 674.0}
-{"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "row-row-1", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 679.0}
+{"h": 271.0, "id": "row-row-1#strip", "ih": 271, "iw": 150, "sc": "row-row-1", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 679.0}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "row-row-1-m2", "ring": true, "sc": "row-row-1", "t": "rect", "w": 150, "x": 16.0, "y": 679.0}
