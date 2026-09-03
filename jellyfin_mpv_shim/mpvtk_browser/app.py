@@ -1267,6 +1267,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             self.strips.retag()
         self.invalidate()
 
+    def apply_clock_format(self):
+        """Adopt a changed "12-Hour Clock" without a restart.
+
+        Same shape as the logo one above and for the same reason: a Live TV
+        listing's air time is part of its tile caption, and a caption is
+        baked into the composited strip. A repaint alone redraws the guide
+        and the "Ends at" labels -- which are ASS -- and leaves every tile on
+        screen printing the format the user has just turned off.
+        """
+        if self.strips is not None:
+            self.strips.retag()
+        self.invalidate()
+
     def invalidate(self):
         if self.app is not None:
             self.app.invalidate()

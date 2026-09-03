@@ -91,6 +91,7 @@ picked was the wrong one or whether the control does nothing.
 | `poster_scale` (Cover Size) | `apply_cover_size()` |
 | `ui_text_scale`, `ui_text_min` | toolkit type scale **and** `apply_cover_size()` |
 | `logo_legibility_*` | `apply_logo_legibility()` → `StripStore.retag()` |
+| `clock_12h` | `apply_clock_format()` → `StripStore.retag()`, for the air time baked into a Live TV tile's caption |
 | `theme` | colours only — see below |
 | `reader_font_size`, `reader_theme`, `reader_justify` | re-read every frame by the reader |
 | `comic_fit` | read per call |

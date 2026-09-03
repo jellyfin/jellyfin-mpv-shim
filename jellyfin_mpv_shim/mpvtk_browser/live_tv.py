@@ -1,8 +1,12 @@
 """Live TV: guide preferences, time maths, and the labels the screens draw.
 
-Everything here is pure — no network, no settings singleton, no widgets — so
-the parts that are easy to get subtly wrong (timezones, cell widths, the
-"which recording state is this in" ladder) are testable without a server.
+Everything here is pure — no network, no widgets — so the parts that are easy
+to get subtly wrong (timezones, cell widths, the "which recording state is
+this in" ladder) are testable without a server. The one thing it reads from
+the settings singleton is which clock ``fmt_time`` prints, and that is read
+through ``timefmt`` rather than here, because the two "Ends at" labels
+outside Live TV have to print the same one.
+
 The I/O lives in ``repository.LibrarySource`` and ``gateway/livetv.py``; the
 widgets live in ``pages/livetv.py`` and ``guide_view.py``.
 
@@ -235,10 +239,14 @@ def floor_to_cell(when):
 def fmt_time(when):
     """Clock time for a guide header or an air-time label.
 
-    24-hour, matching the rest of the app (the detail page's "Ends at" and
-    the HUD both use it) rather than jellyfin-web's locale-driven format.
+    24-hour or 12-hour per ``clock_12h``, and the decision is
+    ``timefmt.clock``'s rather than this module's: the detail page's "Ends
+    at" and the HUD's print the same kind of thing and must agree with the
+    guide. Kept as a name here because a dozen Live TV call sites use it.
     """
-    return when.strftime("%H:%M") if when else ""
+    from . import timefmt
+
+    return timefmt.clock(when) if when else ""
 
 
 def fmt_day(when):

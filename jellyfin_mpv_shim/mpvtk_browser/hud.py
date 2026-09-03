@@ -31,7 +31,7 @@ from ..mpvtk.widgets import (
     Text,
     VScroll,
 )
-from . import theme, window_chrome
+from . import theme, timefmt, window_chrome
 from .components import media_info
 from .window_chrome import WINDOW_CONTROL_W
 
@@ -899,9 +899,8 @@ def build_hud(b, size):
             on_click=lambda: _toggle_tc(b)))
     if tiers["ends_at"] and dur > 0:
         speed = max(0.01, float(_ctl_get(b, "get_speed", 1.0)))
-        ends = time.strftime(
-            "%H:%M",
-            time.localtime(time.time() + max(0.0, dur - pos) / speed))
+        ends = timefmt.clock_epoch(
+            time.time() + max(0.0, dur - pos) / speed)
         controls.append(Text(_("Ends at {0}").format(ends),
                              size=sz(16), color="aaaaaa"))
     controls.append(Spacer())

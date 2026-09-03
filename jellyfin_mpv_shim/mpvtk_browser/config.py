@@ -128,7 +128,13 @@ TAB_SECTIONS = {
                                 "detail_poster",
                                 "detail_episode_image",
                                 "logo_legibility_live_tv",
-                                "logo_legibility_library"]),
+                                "logo_legibility_library",
+                                # Last, and not between the two detail-page
+                                # image switches or the two logo ones: both
+                                # of those pairs read as a pair, and a
+                                # setting about clocks wedged into either
+                                # makes them look unrelated.
+                                "clock_12h"]),
         # The epub reader. On this tab rather than Playback because a book
         # is not played -- and next to the browser's look because that is
         # what these are: how a page is set, in a window the same size.
@@ -562,6 +568,7 @@ LABEL_OVERRIDES = {
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
     "backdrop_full_width": _("Full-Width Backdrops"),
+    "clock_12h": _("12-Hour Clock"),
     "grid_fill": _("Grid Spacing"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
@@ -821,6 +828,13 @@ NOTES = {
                              "any more vertical space."),
     "poster_scale": _("Overrides the theme's cover size. Also on the View "
                       "menu of any library."),
+    # "am"/"pm" and "24 hour" are what somebody types; none of them is in
+    # the label, and the note is the searchable half (docs/settings-
+    # curation.md section 2.5).
+    "clock_12h": _("Show times of day as \"8:30 PM\" rather than "
+                   "\"20:30\" -- the Live TV guide and its air times, and "
+                   "the \"Ends at\" labels on a detail page and the "
+                   "player controls."),
     "hud_scrim": _("The controls have to stay legible over any frame. "
                    "\"None\" gives the text a drop shadow instead of "
                    "shading the picture behind it."),
@@ -998,6 +1012,9 @@ SEARCH_ALIASES = {
     "ui_scale": "hidpi dpi",
     "audio_mode": "surround 5.1 7.1",
     "motion_interpolation": "stutter",
+    # "am" and "24" are what somebody types and neither is in the label or
+    # the note; "pm", "clock" and "time" would be redundant with them.
+    "clock_12h": "am 24 format",
 }
 
 

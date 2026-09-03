@@ -134,6 +134,15 @@ class SettingsBase:
             apply_cover = getattr(self, "apply_cover_size", None)
             if apply_cover is not None:
                 apply_cover()
+        if ok and key == "clock_12h":
+            # Applies live. The guide and the "Ends at" labels are ASS and a
+            # repaint is enough for them; the air time on a Live TV tile is
+            # baked into the strip bitmap and is not, which is what
+            # apply_clock_format is for. getattr for the config stand-in
+            # this mixin is also exercised against.
+            apply_clock = getattr(self, "apply_clock_format", None)
+            if apply_clock is not None:
+                apply_clock()
         if ok and key.startswith("logo_legibility"):
             # Which backing a transparent logo gets is baked into the strip
             # bitmap, so the rows on screen have to be made unreachable or

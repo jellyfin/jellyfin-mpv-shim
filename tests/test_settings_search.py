@@ -40,6 +40,10 @@ class VocabularyTest(unittest.TestCase):
         ("buffering",                    "network_buffer"),
         ("judder",                       "motion_interpolation"),
         ("interlaced",                   "deinterlace_auto"),
+        # "Ends at" is not in the label either, and it is what somebody
+        # looking for the player-controls half of this setting has actually
+        # seen on screen.
+        ("ends at",                      "clock_12h"),
     ]
 
     #: Words the label already carries. Kept as cases anyway because they
@@ -50,6 +54,7 @@ class VocabularyTest(unittest.TestCase):
         ("banding",                      "deband"),
         ("controller",                   "input_gamepad"),
         ("tone mapping",                 "tone_mapping"),
+        ("12 hour",                      "clock_12h"),
     ]
 
     def test_the_words_people_type_find_the_setting(self):

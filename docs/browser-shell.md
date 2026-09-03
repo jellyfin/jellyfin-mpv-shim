@@ -672,6 +672,12 @@ Two things have to be cleared for the whole stack, not just the current route:
 **Logo legibility** bakes into the composited strip the same way a theme colour
 does, so it retags rather than clears. See `docs/artwork-pipeline.md`.
 
+**The 12-hour clock** (`apply_clock_format`) is the third of that kind and the
+least obvious, because most of what it changes is not baked: the guide and the
+two "Ends at" labels are ASS and a repaint is enough for them. But a Live TV
+listing's air time is part of its tile *caption*, so without the retag the rows
+already on screen keep the format that has just been switched off.
+
 ## 10. Four deliberate divergences from jellyfin-web
 
 The artwork audit closed the rest; these were argued and kept, so they read as

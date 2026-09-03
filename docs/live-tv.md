@@ -16,9 +16,12 @@ repeated.
 
 ## 1. Shape and the read/write split
 
-- `live_tv.py` is **pure** — no network, no settings singleton, no widgets. The
-  parts that are easy to get subtly wrong (timezones, cell widths, the "which
-  recording state is this in" ladder) are therefore testable without a server.
+- `live_tv.py` is **pure** — no network, no widgets. The parts that are easy to
+  get subtly wrong (timezones, cell widths, the "which recording state is this
+  in" ladder) are therefore testable without a server. It reads exactly one
+  setting, and not directly: `fmt_time` defers to `mpvtk_browser/timefmt.py`
+  for whether the clock is 12- or 24-hour, because the "Ends at" labels on a
+  detail page and on the player controls have to agree with the guide.
 - `guide_view.py` draws the grid. It is a component in the `components/` sense
   (render resources and callbacks, no `nav`/`source`/`route`) but its own
   module, because nothing else draws anything like it and a 200-line grid next

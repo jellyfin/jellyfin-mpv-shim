@@ -653,6 +653,14 @@ class Settings(SettingsBase):
     #: scrollbar gutter reserved on only one side of the layout) and both
     #: are fixed. docs/configuration.md and docs/artwork-pipeline.md §7.
     backdrop_full_width: bool = True
+    #: Print times of day as "8:30 PM" instead of "20:30" -- the Live TV
+    #: guide and its air times, and both "Ends at" labels
+    #: (``mpvtk_browser.timefmt``).
+    #:
+    #: Off, i.e. 24-hour, because that is what every one of those call sites
+    #: has always drawn; this exists to offer the other one, not to guess
+    #: which is wanted. Not locale-derived either -- see timefmt.
+    clock_12h: bool = False
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the
