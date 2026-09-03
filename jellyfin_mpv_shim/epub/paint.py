@@ -84,6 +84,8 @@ def render_page(page, size, style, measurer, colors, load_image=None,
 
 
 def _draw_line(draw, line, ox, oy, measurer, colors):
+    from ..mpvtk import pilfont
+
     base = oy + line.y + line.ascent
     for piece in line.pieces:
         font = measurer.font(piece.style)
@@ -95,8 +97,17 @@ def _draw_line(draw, line, ox, oy, measurer, colors):
         # reaching down past the line it is drawn on — and it is a number
         # layout worked out, not a decision taken here.
         baseline = base + piece.dy
-        draw.text((x, baseline), piece.text, font=font, fill=colors.fg,
-                  anchor="ls")
+        # pilfont.draw_text, not draw.text: one PIL face draws one face's
+        # worth of script, so a Japanese quotation in an English book, or a
+        # star or an emoji anywhere in the prose, is a row of boxes when the
+        # book's own face is the only one asked. `measurer.faces` says where
+        # each run's face comes from -- the reader's serif families, in the
+        # weight and slant the CSS asked for -- and `measurer.width`
+        # measures through the same split, which is what keeps the line
+        # breaker's answer and the drawing in agreement.
+        pilfont.draw_text(draw, (x, baseline), piece.text, font,
+                          fill=colors.fg, anchor="ls",
+                          faces=measurer.faces(piece.style))
         if piece.style.underline or piece.style.strike:
             width = measurer.width(piece.text, piece.style)
             size = measurer.size_for(piece.style)
@@ -152,13 +163,18 @@ def _draw_missing(draw, item, ox, oy, colors, measurer):
     draw.rectangle([x0, y0, x0 + item.w, y0 + item.h], outline=colors.rule)
     label = item.alt or "[image]"
     from .content import Style
+    from ..mpvtk import pilfont
 
     style = Style(scale=0.85)
     font = measurer.font(style)
     width = measurer.width(label, style)
     if width < item.w - 8:
-        draw.text((x0 + (item.w - width) / 2, y0 + item.h / 2), label,
-                  font=font, fill=colors.muted, anchor="lm")
+        # Alt text is the author's, in the book's language, and is the one
+        # string on a page that is not from the prose the book's face was
+        # chosen for. Same split as the body: see `_draw_line`.
+        pilfont.draw_text(draw, (x0 + (item.w - width) / 2, y0 + item.h / 2),
+                          label, font, fill=colors.muted, anchor="lm",
+                          faces=measurer.faces(style))
 
 
 def decode_image(data, max_pixels=40_000_000):

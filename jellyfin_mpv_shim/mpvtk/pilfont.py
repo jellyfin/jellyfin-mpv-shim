@@ -56,6 +56,15 @@ _CANDIDATES = {
         "simsun.ttc",
         "malgun.ttf",
     ],
+    # Arabic is RTL too, so the "one face for the line" note under "hebrew"
+    # applies -- but not the reordering. Measured: NotoSansArabic carries
+    # the full stop, comma and digits, so an ordinary Arabic sentence is
+    # whole; what it lacks is A-Z, so an Arabic line with a Latin *word* in
+    # it draws that word as boxes. There is no Linux face with both good
+    # Arabic shaping and Latin to reorder towards -- DejaVu has no Arabic at
+    # all -- and demoting Noto to Arial would trade the contextual forms
+    # Arabic is unreadable without for the rarer case. Left as it is,
+    # knowingly.
     "arabic": [
         "NotoSansArabic-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
@@ -68,13 +77,25 @@ _CANDIDATES = {
     # has no Hebrew at all (measured), so a box with Noto Sans and no DejaVu
     # drew every Hebrew title as boxes. A script is not covered because the
     # face you happen to have covers it.
+    #
+    # **The order is the load-bearing part, and it is the opposite of every
+    # other list here.** Hebrew is RTL, so `has_rtl` gives the whole line to
+    # ONE face -- there is no Latin run to fall to -- and that face has to
+    # carry the neutrals as well as the script. `NotoSansHebrew-Regular.ttf`
+    # is 145 codepoints: no full stop, no comma, no digit, no ASCII at all
+    # (measured), so putting it first drew "שלום עולם." with the stop as a
+    # box and every year in a title as four of them. DejaVu has all 88
+    # letters and points and the 46 presentation forms; the 33 it lacks are
+    # the cantillation marks U+0591-05AF, which are biblical Hebrew and are
+    # the deliberate cost of this order. Noto stays as the answer for a host
+    # with no DejaVu, which is what F33 was about.
     "hebrew": [
-        "NotoSansHebrew-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
         "DejaVuSans.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/System/Library/Fonts/Supplemental/Arial Hebrew.ttc",
         "arial.ttf",
+        "NotoSansHebrew-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
     ],
     "devanagari": [
         "NotoSansDevanagari-Regular.ttf",
@@ -484,6 +505,24 @@ def _scale_of(fnt):
     return float(want) / float(native)
 
 
+def metrics(fnt):
+    """``(ascent, descent)`` in the pixels a face actually draws in.
+
+    **The one place a face's metrics may be read from.** A bitmap-strike
+    emoji face reports its strike's metrics -- 101 and 27, for a face being
+    used at 20px -- so a caller reserving a line from ``getmetrics()``
+    directly reserves five lines. Tolerant of Pillow's bitmap default,
+    which has no ``getmetrics`` at all.
+    """
+    try:
+        ascent, descent = fnt.getmetrics()
+    except AttributeError:
+        size = getattr(fnt, "size", 11)
+        return int(size * 0.8), int(size * 0.2)
+    scale = _scale_of(fnt)
+    return ascent * scale, descent * scale
+
+
 def _same_size(fnt, script):
     """The face for ``script`` at the size and weight ``fnt`` was made with.
 
@@ -681,10 +720,10 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
 
     fonts = [per_run(script) for script, _chunk in parts]
     scales = [_scale_of(f) for f in fonts]
-    # Scaled, or a 109px emoji strike would decide the baseline for a 20px
-    # line and push the whole thing five lines down.
-    ascent = max(f.getmetrics()[0] * k for f, k in zip(fonts, scales))
-    descent = max(f.getmetrics()[1] * k for f, k in zip(fonts, scales))
+    # Through `metrics`, or a 109px emoji strike would decide the baseline
+    # for a 20px line and push the whole thing five lines down.
+    ascent = max(metrics(f)[0] for f in fonts)
+    descent = max(metrics(f)[1] for f in fonts)
     x, y = xy
     horizontal, vertical = (anchor or "la")[0], (anchor or "la")[1]
     if horizontal == "m":

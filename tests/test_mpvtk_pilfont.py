@@ -148,6 +148,33 @@ class TestHebrew(unittest.TestCase):
                               "U+%04X is RTL but maps to %r"
                               % (cp, pilfont.script_of_char(cp)))
 
+    def test_the_hebrew_face_carries_the_punctuation_around_it(self):
+        """An RTL face has to cover the whole LINE, not just the script.
+
+        `has_rtl` gives an RTL line to one face because Pillow reorders
+        bidi within a draw call and cannot across several -- so unlike
+        every other script here, there is no Latin run for the full stop
+        and the year to fall back to. `NotoSansHebrew-Regular.ttf` is 145
+        codepoints and has no ASCII at all, so ordering it first drew every
+        Hebrew sentence with its stop as a box.
+        """
+        from PIL import Image, ImageDraw
+
+        face = pilfont.font("hebrew", 28)
+
+        def bitmap(text):
+            img = Image.new("L", (200, 48), 0)
+            ImageDraw.Draw(img).text((2, 2), text, font=face, fill=255)
+            return img.tobytes()
+
+        tofu = bitmap("\U000FFFFF")
+        if bitmap("א") == tofu:
+            self.skipTest("no Hebrew-carrying face installed on this host")
+        for ch in (".", ",", "0", "9", "(", ")"):
+            self.assertNotEqual(bitmap(ch), tofu,
+                                "the Hebrew face draws %r as tofu, and an "
+                                "RTL line has no other face to use" % ch)
+
     def test_a_hebrew_title_reaches_a_face_that_has_it(self):
         """Against a Latin face measured to lack Hebrew -- which is what a
         box with Noto Sans and no DejaVu resolves."""
