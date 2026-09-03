@@ -259,9 +259,35 @@ relaunching — it is rewritten on every start**) and mpv's own log, plus whethe
 
 | ~~F30~~ **NOT A PRODUCT BUG — test fixed** | `tests/e2e/test_playback_eof.py` | Filed as "the window names a stopped film over the library", escalated when it reproduced on libmpv (~95% of users), then **measured** — which reversed it. `stop` unloads asynchronously, so `media-title` reports the outgoing item for a few tens of ms after the command returns and then empties on its own: measured on real mpv, `'Pilot'` at t=0, `None` by t=50ms, still `None` at 1.6s. The user-visible effect is a sub-frame flash, not a stuck title. The docstring's persistent case needs the file to STAY loaded, which `stop` prevents. So the defect was the assertion, not the shim: it read inside the race. The test now waits for the clear and then re-reads after 250 ms, so it still fails if the title is genuinely stuck — which is the part worth knowing. Passes on both backends. **Withdrawn from the jsonipc issue report.** Lesson: three separate write-ups of this (jsonipc-only, then intermittent, then escalated) were all built on failure *shape* rather than a measurement that took two minutes. |
 
+### Group F — baked-text font resolution (`mpvtk/pilfont.py`)
+
+Opened while fixing #713 (the rating star drawing as a tofu box on Windows).
+The module is now correct for the cases it names, and this is what a whole-module
+read found that it does **not** cover. All three are pre-existing; none is a
+regression from the #713 work.
+
+**Read the module docstring and `script_of` before touching any of them.** The
+rule was rewritten three times in one session under three different measurements,
+and the docstrings carry which measurement forced which half.
+
+| Tag | Site | Defect |
+|-----|------|--------|
+| F31 | `pilfont.py:130` `script_of_char` | **Everything above U+2E80 is called CJK, emoji included.** A server-supplied title with a 🎬 in it resolves the CJK face, which carries no emoji — measured, on both the Linux face (NotoSansCJK) and the Windows one (msgothic.ttc). Affects every baked path: tile captions, the detail banner, the display mirror. **Deliberately not fixed**: routing emoji to `"symbol"` trades one tofu for another, because Segoe UI Symbol and NotoSansSymbols2 do not carry them either. A real fix is an `"emoji"` bucket (`seguiemj.ttf`, `NotoColorEmoji.ttf`, `/System/Library/Fonts/Apple Color Emoji.ttc`) **plus** `ImageDraw.text(..., embedded_color=True)` for colour, which is a second decision — a monochrome emoji beside colour ASS text may look worse than the box. |
+| F32 | `epub/paint.py:98,160` | **The epub reader bypasses the run splitting entirely.** Both body text and missing-image alt text go straight to `ImageDraw.text`, and measure with `font.getlength`, using the one book-level face `epub/fonts.face()` resolved from the title's script. So a book whose body mixes scripts gets tofu for the minority one, and a star or tick in the prose gets it always — measured: `DejaVuSerif.ttf`, first in `_SERIF_FAMILIES`, has neither U+2605 nor U+2713. **Deliberately not fixed**: it is a real limitation of the reader rather than of this module, and the fix is to route `paint.py` through `pilfont.draw_text`/`text_length`, which changes how every page is laid out. Note the reader's own list bullets are safe — Georgia and Times both carry ▪ ◦ • (measured on Windows), as do the DejaVu and Liberation serifs. |
+| F33 | `pilfont.py:122` `script_of_char` | **Hebrew is mapped to `"latin"` on the strength of one candidate face.** The comment says "DejaVu has it", and it does — so do both Arials. `NotoSans-Regular.ttf`, **third in the Latin chain**, does not (measured). On a host with Noto Sans and no DejaVu — a minimal container, some distros — every Hebrew title is a row of boxes in every baked bitmap, with nothing in the code saying so. Exactly the shape of #713: a script folded into "latin" because the face the developer happened to have covered it. Cheapest honest fix is a `"hebrew"` bucket (`NotoSansHebrew-Regular.ttf`, DejaVu, `arial.ttf`) — the same three-line change the `"symbol"` bucket was. **Not fixed here** only because it is outside the scope this branch was opened for. |
+
+**Not a defect, recorded so it is not "fixed" into one:** a mixed line sits ~3px
+lower than the band its caller reserved, because the reserved metrics come from
+`script_of`'s face and the shared baseline from the tallest run (Segoe UI Symbol
+is (22, 6) against Arial's (19, 5) at 20px). The alternative — letting a symbol
+choose the whole string's face — re-typesets every wrapped line of a paragraph in
+Segoe UI Symbol and draws RTL text as boxes. `draw_text`'s docstring has the
+argument; every caller draws into a margin that absorbs the 3px.
+
 ### Group T — tooling (not shipped code)
 | Tag | Site | Defect |
 |-----|------|--------|
+| ~~F34~~ **DONE** | `tests/integration/*.py` (19 modules) | Every module ends in a `__main__` block inviting `python3 tests/integration/test_foo.py`, and run that way `sys.path[0]` is `tests/integration` and the repo root is on the path nowhere — so `jellyfin_mpv_shim` resolves to whatever is **pip-installed**. Silently, and it runs: measured once as a `renderer.lua` a fortnight old failing a test about this tree, and a stale install can as easily produce a false *pass*. `run_integration.py` never saw it (it spawns `-m unittest` with `cwd` at the root), so no matrix run would have gone red. Fixed in all nineteen and pinned by `TestEveryModuleRunAsAScriptGetsThisTree`, which executes each module's preamble from a cwd that cannot help it and asserts which copy of the package it resolves. |
 | ~~F27~~ **DONE** | `tests/integration/run_integration.py` | The matrix **hangs indefinitely after the final leg has already passed**. A test mpv outliving its leg is reparented to PID 1 while still holding the write end of that leg's stdout/stderr pipe; the runner reads to EOF, which can never arrive. Signature: runner `WCHAN=pipe_read` at 0% CPU, its `xvfb-run` child `<defunct>`, and `/proc/<mpv>/fd/1` pointing at the very inode the runner blocks on. Unwedged by `kill <mpv pid>` — by PID, never `pkill -f`. Real fix: reap the child then read with a deadline, or give mpv its own process group and closed fds. The 2026-08-30 review saw this and could not trace it; traced 2026-08-31. Costs a ~7-minute run whenever it fires, and would hang CI forever. |
 
 ### Group X — isolated
@@ -509,6 +535,30 @@ Still open, all by decision: **F15** (unverified — construct the interleaving 
 **F25** (dev feature; "won't fix" or removal both on the table), **F26** (cast composite,
 read-verified only), **F29** (mpv's, and the HUD buffering state is a feature),
 ~~**F30**~~ — resolved as a test race, measured; not a product bug.
+
+### Three UI fixes on top (2026-09-02), and what reviewing them cost
+
+Not from the review: #713 (rating star tofu), #714 (a "Web" link to the item's own
+jellyfin-web page) and a `clock_12h` setting. Shipped, both suites green, verified on
+the Windows VM. Recorded here for the **review arithmetic**, which is the part worth
+carrying forward.
+
+Two reviewers (Codex and `/code-review`), two rounds, aimed the second round at the
+first round's fixes as `CLAUDE.md` prescribes:
+
+- **Round 1: 8 findings.** Two serious, and *each reviewer found only half of the same
+  bug* — Codex that a leading star made an Arabic genre draw as boxes (Segoe UI Symbol
+  has no Arabic or Hebrew), `/code-review` that the same answer also re-faced every
+  wrapped line of a paragraph. Neither found the other's half.
+- **Round 2: 7 findings, six of them in round 1's fixes.** Including #713 reintroduced
+  on a second path (`placeholder_glyph` → `strips._paint_poster`, a bare
+  `ImageDraw.text`), a cross-cutting helper applied one place too many, two tests that
+  could not fail for their names, and clock tests that only passed at UTC-4.
+- **The count did not fall, and the findings stayed in this session's own code.** By
+  the stop rule in `CLAUDE.md` that is the signal to stop reviewing the diff and read
+  the subsystem whole, which is what produced **Group F** below. F33 in particular is a
+  bug no diff review could have found: it is in a line nobody edited.
+
 
 ## 4. Tests that must be rewritten *before* the fix
 

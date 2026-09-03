@@ -488,6 +488,14 @@ class TestSymbolFace(unittest.TestCase):
         if symbol is latin:
             self.skipTest("this host resolves both to one face")
 
+        # ...and that the symbol face actually has a star. With no symbol
+        # candidate installed, `font("symbol")` falls back down the LATIN
+        # list -- which this test has just pointed at a starless face -- so
+        # `got` and `want` would agree on identical tofu and the assertion
+        # would pass having tested nothing.
+        if self._bitmap(symbol) == self._bitmap(symbol, "\U000FFFFF"):
+            self.skipTest("no symbol-carrying face installed on this host")
+
         chosen = pilfont.font_for("★ 8.1", 28)          # -> the Latin face
         self.assertIs(chosen, latin, "the premise: a Latin-stamped font")
 
