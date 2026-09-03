@@ -52,8 +52,11 @@ the function rather than on each `return False` for exactly that reason.
 `DeliveryUrl`, because this has to be answerable before PlaybackInfo. The
 server sets `IsExternalUrl` exactly when `Path` is already an absolute
 `http(s)` URI (`StreamInfo.cs:1264-1274`), so the same test on `Path` is the
-honest pre-check. If the check itself raises, the answer is "foreign" — it
-fails closed.
+honest pre-check. If the check itself raises, `_apply_auth_headers` answers "foreign" — it
+fails closed. `Video.foreign_subtitle_hosts` on its own does not: it returns
+an empty set if parsing `auth.server` raises, i.e. "nothing foreign". Only the
+caller's guard makes the property true, so do not lift that function out and
+trust it on its own.
 
 **`IsExternalUrl` does not mean "third party."** It means the path was
 absolute, which is often the same host (a plugin, a co-located file server)

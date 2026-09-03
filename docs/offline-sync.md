@@ -262,3 +262,68 @@ it just deleted.
 - `get_episodes(start_item_id=…)` is **inclusive** — the first entry is the anchor.
 - Only the server knows what other clients have done, which is why the planner
   asks rather than inferring from the catalog.
+
+## 5. The file store, and the one place it deletes
+
+The tree is `<root>/catalog.db`, its `catalog.db.bak`, and
+`<root>/<server_id>/<item_id>/` per download — plus `series/`, `season/` and
+`playlist/` under each server directory, which are *shared artwork caches* and
+not items. `<root>` is owned by the store: `relocate` moves every entry out of
+it and refuses a destination that is non-empty or inside the current root, and
+the sweep below deletes inside it.
+
+`SyncManager._reconcile_disk` is the only code that deletes media the user did
+not ask to delete, and every one of its four tests is load-bearing. It acts on
+a directory only when:
+
+1. **the catalog is readable** — `SyncDB.healthy()`, the one strict read;
+2. **its server directory is one the catalog names** — never everything in the
+   root;
+3. **its name is shaped like an item id** — `_looks_like_item_id`;
+4. **and it is not a live row**, nor one `_adopt_orphan` can rebuild.
+
+Each of those exists because inferring instead deleted something. An
+unreadable catalog answers `[]` to every query, and one zeroed 4 KiB page (the
+`downloads` b-tree root) of a 64 KiB catalog therefore deleted 60 of 60
+downloads on startup. A download folder pointed at a directory the user
+already had files in lost `~/Videos/Holidays/2019 Italy` on the *second*
+launch — the first was covered by the empty-catalog guard in `_open_and_run`
+and no launch after it.
+
+### The catalog is the only thing that says what the files are
+
+Names on disk are ids, so without it the UI cannot list, play or delete a
+download: the folder stops being an offline library and becomes unlabelled
+weight only a file manager can clear. Three mechanisms keep it:
+
+- **`catalog.db.bak`**, written after every clean open. An **empty** catalog
+  never replaces a backup that has rows — otherwise the backup deletes itself
+  on precisely the launch it exists for.
+- **Restore**, when the catalog is unreadable *or missing*. The copy is staged
+  and renamed, so a restore that fails on a full disk has changed nothing and
+  the next start tries again; the corrupt file is kept as
+  `catalog.db.corrupt-<ts>` because it is still the better copy of anything
+  the backup predates. Its `-wal`/`-shm` go, or they replay the bad pages into
+  the restored file.
+- **`_adopt_orphan`**, which rebuilds a row from the download's own
+  `item.json` + media. This is what stops a restore being a *delayed* wipe:
+  everything downloaded after the snapshot has files and no row, which is the
+  orphan shape. A restored catalog is known stale, so its launch does not
+  sweep at all — that is what protects a part-downloaded item, which cannot be
+  adopted.
+
+A download that cannot be described — an unparseable `item.json` — is
+**left alone**, not deleted. The recoverable error is keeping something the
+user could remove by hand; the unrecoverable one is the reverse.
+
+### Two ownerships, and both must be released together
+
+A row is protected from the reaper by `origin` and from a playlist delete by
+`playlist_items.owned`. Asking for an item by hand releases **both**
+(`set_origin` and `_claim_from_playlists`); releasing only the first meant
+deleting the playlist still deleted a film the user had separately downloaded.
+
+`_cancelled` is a third, transient claim — a delete waiting for the worker to
+notice between chunks, which can take the 60 s read timeout. `enqueue`
+withdraws it (`_uncancel`), or changing your mind inside that window queued
+the item and had the worker's unwind delete it underneath.

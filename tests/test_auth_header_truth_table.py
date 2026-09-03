@@ -62,7 +62,7 @@ THEIRS = {"Protocol": "Http", "Path": "https://cdn.example.invalid/movie.mkv",
           "SupportsDirectPlay": True, "SupportsDirectStream": True}
 
 
-def _video(source, streams, header=None, client=True):
+def _video(source, streams, header=None, client=True, token=TOKEN):
     from jellyfin_mpv_shim.media import Video
 
     source = dict(source)
@@ -76,7 +76,7 @@ def _video(source, streams, header=None, client=True):
         return header
 
     cl = NS(
-        config=NS(data={"auth.server": SERVER, "auth.token": TOKEN,
+        config=NS(data={"auth.server": SERVER, "auth.token": token,
                         "auth.server-id": "sid"}),
         http=NS(_get_authenication_header=build_header),
         jellyfin=NS(get_item=lambda _id, **kw: item),
@@ -134,14 +134,14 @@ class _FakePlayer:
 
 
 def _play(source, streams, alive=True, header='MediaBrowser Token="%s"' % TOKEN,
-          client=True, refuse=False):
+          client=True, refuse=False, token=TOKEN):
     """Run the real ordering and report what the token reached.
 
     Returns ``(installed, mpv_headers, media_url, sidecar_urls)``.
     """
     from jellyfin_mpv_shim.player import PlayerManager
 
-    v = _video(source, streams, header=header, client=client)
+    v = _video(source, streams, header=header, client=client, token=token)
     pm = PlayerManager.__new__(PlayerManager)
     pm._player = _FakePlayer(refuse=refuse)
     pm._mpv_alive = alive
@@ -257,12 +257,26 @@ class WhoeverCarriesItOurSidecarsAreCoveredTest(unittest.TestCase):
         self.assertIn("ApiKey=", self._sidecar(subs))
 
     def test_an_unauthenticated_probe_does_not_strand_our_own(self):
+        """A header with no Token= in it, but a session that has one.
+
+        This asserted only that the url contained no "ApiKey=&", which
+        `reauthorize_sidecars` cannot produce for ANY token -- it appends the
+        parameter last, so nothing can follow it. The test passed with the
+        whole invariant deleted, and its comment claimed the sidecar could not
+        be credentialed when the fixture had a perfectly good token to give.
+        """
         _i, _h, _u, subs = _play(OURS, [OUR_SIDECAR],
                                  header='MediaBrowser Client="x"')
-        # No token to give, so the sidecar cannot be credentialed either --
-        # what matters is that this does not raise and the url is left alone
-        # rather than mangled with an empty ApiKey.
-        self.assertNotIn("ApiKey=&", self._sidecar(subs))
+        self.assertIn("ApiKey=" + TOKEN, self._sidecar(subs))
+
+    def test_with_no_token_anywhere_the_url_is_left_alone(self):
+        """The case the one above was *described* as. There is nothing to
+        credential the sidecar with, so the requirement is only that it is
+        left intact rather than mangled onto an empty parameter."""
+        _i, _h, _u, subs = _play(OURS, [OUR_SIDECAR],
+                                 header='MediaBrowser Client="x"', token="")
+        self.assertEqual(self._sidecar(subs),
+                         SERVER + OUR_SIDECAR["DeliveryUrl"])
 
     def test_mpv_refusing_the_option_does_not_strand_our_own(self):
         _i, _h, _u, subs = _play(OURS, [OUR_SIDECAR], refuse=True)

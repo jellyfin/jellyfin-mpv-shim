@@ -429,7 +429,9 @@ class TheTwoImplementationsAgreeTest(unittest.TestCase):
     invisible: each implementation had tests, the pair had none.
     """
 
-    def _offline(self, source, rules, memory, remember_sub=True):
+    def _offline(self, source, rules, memory, remember_sub=True,
+                 remember_audio=True, explicit=False, aid=None, sid=None,
+                 initial=False, apply_memory=True):
         from jellyfin_mpv_shim.conf import settings
         from jellyfin_mpv_shim.sync.offline_media import OfflineVideo
 
@@ -439,8 +441,8 @@ class TheTwoImplementationsAgreeTest(unittest.TestCase):
         v._source = source
         v.client = None
         v.parent = NS(client=None)
-        v.aid = v.sid = v.srcid = None
-        v.explicit_tracks = False
+        v.aid, v.sid, v.srcid = aid, sid, None
+        v.explicit_tracks = explicit
         v.media_source = None
         v.subtitle_seq = {}
         v.subtitle_uid = {}
@@ -452,17 +454,50 @@ class TheTwoImplementationsAgreeTest(unittest.TestCase):
 
         pm = _pm(memory=memory)
         with mock.patch.object(settings, "language_config", rules), \
-                mock.patch.object(settings, "remember_audio_track", True), \
+                mock.patch.object(settings, "remember_audio_track",
+                                  remember_audio), \
                 mock.patch.object(settings, "remember_subtitle_track",
                                   remember_sub):
+            # The order play() runs them in, minus the negotiation there is
+            # none of offline. is_initial_play clears the memory; a restart
+            # passes apply_memory=False.
             v.resolve_tracks_for_negotiation()
-            pm._apply_remembered_tracks(v)
+            if memory is not None and apply_memory and not initial:
+                pm._apply_remembered_tracks(v)
             v.media_source = dict(source)
             v.map_streams()
         return v.aid, v.sid
 
     PREV_NO_SUBS = {"MediaStreams": [dict(s) for s in NO_SUBS]}
     PREV = {"MediaStreams": [dict(s) for s in FULL]}
+
+    def test_the_audio_table_holds_offline(self):
+        for name, kwargs, expected in PrecedenceTest.AUDIO_CASES:
+            with self.subTest(name):
+                self.assertEqual(self._case(kwargs)[0], expected)
+
+    def test_the_subtitle_table_holds_offline(self):
+        for name, kwargs, expected in PrecedenceTest.SUBTITLE_CASES:
+            with self.subTest(name):
+                self.assertEqual(self._case(kwargs)[1], expected)
+
+    def _case(self, kwargs):
+        """One row of the shared tables, against the offline implementation.
+
+        The class used to run three hand-written cases while its docstring --
+        and docs/track-selection.md section 4 -- said it ran the tables. The
+        claim was the whole justification for the class existing.
+        """
+        kwargs = dict(kwargs)
+        source = kwargs.pop("source", None) or _source()
+        return self._offline(
+            source, kwargs.get("rules"), kwargs.get("memory"),
+            remember_audio=kwargs.get("remember_audio", True),
+            remember_sub=kwargs.get("remember_sub", True),
+            explicit=kwargs.get("explicit", False),
+            aid=kwargs.get("aid"), sid=kwargs.get("sid"),
+            initial=kwargs.get("initial", False),
+            apply_memory=kwargs.get("apply_memory", True))
 
     def test_a_downloaded_episode_keeps_the_language_rule_too(self):
         aid, sid = self._offline(_source(), _preset("subbed"),

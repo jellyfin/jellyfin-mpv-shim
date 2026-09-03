@@ -425,11 +425,16 @@ class ReconcileDiskTest(TmpTest):
         self.assertFalse(os.path.exists(item_dir))
 
     def test_shared_art_caches_preserved(self):
+        """The user-visible property: `playlist` was missing from
+        RESERVED_STORE_DIRS for the life of the feature, so every start
+        deleted the poster cache _download_playlist_art writes and nothing
+        but re-downloading the playlist put it back.
+
+        Two guards now hold this -- the reserved list and the item-id shape
+        -- so this test alone does not say which. The one below does.
+        """
         m = make_manager(self.tmp, self.addCleanup)
         add_row(m, ORPHAN_ID, status=STATUS_PENDING)
-        # `playlist` was missing from this list for the life of the feature,
-        # so every start deleted the poster cache _download_playlist_art
-        # writes and nothing but re-downloading the playlist put it back.
         dirs = [os.path.join(self.tmp, "srv", kind, "id1")
                 for kind in ("series", "season", "playlist")]
         for path in dirs:
@@ -437,6 +442,51 @@ class ReconcileDiskTest(TmpTest):
         m._reconcile_disk()
         for path in dirs:
             self.assertTrue(os.path.exists(path), path)
+
+    def test_the_reserved_list_holds_on_its_own(self):
+        """With the shape check answering yes to everything, the reserved
+        list is the only thing left between the sweep and the shared caches.
+
+        Written this way because emptying RESERVED_STORE_DIRS failed nothing:
+        the names are 6-8 characters and _looks_like_item_id wants 32, so the
+        test above was measuring the other guard and the constant was
+        untested defence in depth.
+        """
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, ORPHAN_ID, status=STATUS_PENDING)
+        # Named literally, NOT derived from RESERVED_STORE_DIRS: building the
+        # fixture out of the constant under test means emptying the constant
+        # empties the fixture and the test passes with nothing left to check.
+        # (It did. That is the second tautology this one file has grown.)
+        dirs = [os.path.join(self.tmp, "srv", kind, "id1")
+                for kind in ("series", "season", "playlist")]
+        for path in dirs:
+            os.makedirs(path)
+        original = manager_module._looks_like_item_id
+        manager_module._looks_like_item_id = lambda name: True
+        try:
+            m._reconcile_disk()
+        finally:
+            manager_module._looks_like_item_id = original
+        for path in dirs:
+            self.assertTrue(os.path.exists(path), path)
+
+    def test_a_download_that_cannot_be_described_is_left_alone(self):
+        """_adopt_orphan answers "do not delete this" when it cannot read the
+        manifest, which is an explicit delete-safety decision and had no
+        coverage at all."""
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
+        item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
+        os.makedirs(item_dir)
+        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+            fh.write('{"Id": "trunc')          # a torn write
+        with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+            fh.write(b"x" * 10)
+        m._reconcile_disk()
+        self.assertTrue(os.path.exists(item_dir),
+                        "a download whose manifest could not be parsed was "
+                        "deleted rather than left for a human to look at")
 
     def test_catalog_db_not_swept(self):
         # The catalog file lives directly in root and must survive the sweep.
@@ -1539,6 +1589,37 @@ class CorruptCatalogTest(TmpTest):
         self.assertEqual(rows["%032x" % 2]["name"], "Film 2")
         self.assertEqual(rows["%032x" % 2]["status"], STATUS_COMPLETE)
 
+    def test_a_part_file_survives_the_restore_launch(self):
+        """What suppressing the sweep on a restore actually buys.
+
+        A *complete* post-snapshot download is rescued by `_adopt_orphan`
+        whether or not the sweep ran, so the test above passes with
+        `sweep_orphans` forced True and does not pin it. An interrupted one
+        cannot be adopted -- there is no media to promote -- and it is the
+        thing a restored, known-stale catalog must not be allowed to delete.
+        """
+        root = os.path.join(self.tmp, "root")
+        os.makedirs(root)
+        m = self._launch(root)
+        self._seed(m, root, 1)
+        m.stop()
+        self._launch(root).stop()          # backup holds item 0
+        # An item queued after the snapshot, interrupted mid-download.
+        iid = "%032x" % 7
+        item_dir = os.path.join(root, "srv", iid)
+        os.makedirs(item_dir)
+        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+            json.dump({"Id": iid, "Type": "Movie", "Name": "Half"}, fh)
+        with open(os.path.join(item_dir, "media.mkv.part"), "wb") as fh:
+            fh.write(b"x" * 16)
+        _corrupt_downloads_table(os.path.join(root, "catalog.db"))
+
+        self._launch(root).stop()
+        self.assertTrue(os.path.exists(item_dir),
+                        "a part-downloaded item was swept on the strength of "
+                        "a catalog that had just been restored from an older "
+                        "snapshot and is known not to describe the disk")
+
 
 class RelocateRefusesANonEmptyFolderTest(TmpTest):
     """The store owns its root: `_move_tree` empties it and the orphan sweep
@@ -1802,3 +1883,203 @@ class WatchedAllImpliesTheFilterTest(TmpTest):
                        {"watched_all": True, "watched_only": False}):
             m.delete(**kwargs)
             self.assertIsNotNone(m.db.get("unseen"), kwargs)
+
+
+class TheBackupNeverDestroysItselfTest(TmpTest):
+    """The backup exists to survive the launch that finds the catalog broken.
+    Every one of these is a way that launch used to delete it instead."""
+
+    def _launch(self, root):
+        m = SyncManager()
+        m.root = root
+        m.get_client = lambda uuid: None
+        m._open_and_run()
+        self.addCleanup(m.stop)
+        return m
+
+    def _seeded(self, root, n=3):
+        os.makedirs(root, exist_ok=True)
+        m = self._launch(root)
+        for i in range(n):
+            iid = "%032x" % i
+            item_dir = os.path.join(root, "srv", iid)
+            os.makedirs(item_dir, exist_ok=True)
+            with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+                fh.write(b"x" * 64)
+            add_row(m, iid, status=STATUS_COMPLETE,
+                    file_path="srv/%s/media.mkv" % iid)
+        m.stop()
+        self._launch(root).stop()      # the backup now holds those rows
+        return os.path.join(root, SyncManager.CATALOG_BACKUP)
+
+    def _backup_rows(self, path):
+        db = SyncDB(path)
+        try:
+            return len(db.list())
+        finally:
+            db.close()
+
+    def test_a_missing_catalog_is_restored_not_replaced(self):
+        root = os.path.join(self.tmp, "root")
+        backup = self._seeded(root)
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.remove(os.path.join(root, "catalog.db" + suffix))
+            except OSError:
+                pass
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 3,
+                         "a missing catalog was replaced with an empty one "
+                         "while the backup that described the store sat "
+                         "beside it")
+        m.stop()
+        self.assertEqual(self._backup_rows(backup), 3)
+
+    def test_a_failed_restore_does_not_eat_the_backup(self):
+        root = os.path.join(self.tmp, "root")
+        backup = self._seeded(root)
+        _corrupt_downloads_table(os.path.join(root, "catalog.db"))
+
+        real = shutil.copyfile
+
+        def full_disk(*a, **kw):
+            raise OSError(28, "No space left on device")
+
+        shutil.copyfile = full_disk
+        try:
+            m = self._launch(root)
+        finally:
+            shutil.copyfile = real
+        m.stop()
+        self.assertEqual(self._backup_rows(backup), 3,
+                         "the launch that could not restore the backup "
+                         "overwrote it with the empty catalog it had just "
+                         "opened, so the next launch had nothing left")
+        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3)
+
+    def test_and_the_next_launch_then_recovers(self):
+        """The point of keeping it: the failure is transient, the backup is
+        not."""
+        root = os.path.join(self.tmp, "root")
+        self._seeded(root)
+        _corrupt_downloads_table(os.path.join(root, "catalog.db"))
+        real = shutil.copyfile
+        shutil.copyfile = lambda *a, **kw: (_ for _ in ()).throw(
+            OSError(28, "No space left on device"))
+        try:
+            self._launch(root).stop()
+        finally:
+            shutil.copyfile = real
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 3)
+
+    def test_an_empty_catalog_is_still_backed_up_when_there_is_no_backup(self):
+        """The control: this must not turn into "never back up an empty
+        catalog", or a fresh install never gets one."""
+        root = os.path.join(self.tmp, "root")
+        os.makedirs(root)
+        self._launch(root).stop()
+        self.assertTrue(os.path.exists(
+            os.path.join(root, SyncManager.CATALOG_BACKUP)))
+
+
+class TheCatalogLeavesTheOldRootLastTest(TmpTest):
+    def test_the_move_order_is_media_then_backup_then_catalog(self):
+        """A move killed outright never runs `_undo_move`, so the order is
+        what decides whether the old root can still describe itself. The two
+        sort keys were the wrong way round and put the backup last."""
+        m = SyncManager()
+        names = ["srv", "other", "catalog.db", SyncManager.CATALOG_BACKUP]
+        names.sort(key=lambda n: (n == "catalog.db",
+                                  n == SyncManager.CATALOG_BACKUP))
+        self.assertEqual(names[-2:], [SyncManager.CATALOG_BACKUP, "catalog.db"])
+
+
+class AskingForItAgainWithdrawsTheCancelTest(TmpTest):
+    """`_cancelled` outlives the delete that raised it — the worker only
+    honours it between chunks, and a chunk can take up to the 60s read
+    timeout. Changing your mind inside that window used to report the item
+    queued and then have the unwind delete it underneath."""
+
+    def _manager(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        item = {"Id": "a", "Type": "Movie", "Name": "Film",
+                "MediaSources": [{"Id": "s", "Container": "mkv"}]}
+
+        class C:
+            config = type("cfg", (), {"data": {"auth.server-id": "srv"}})()
+            jellyfin = type("jf", (), {
+                "get_item": staticmethod(lambda i, fields=None: item),
+                "download_url": staticmethod(
+                    lambda i, include_apikey=True: "http://example/d"),
+            })()
+
+        m.get_client = lambda uuid: C()
+        return m
+
+    def test_a_re_enqueue_during_the_unwind_survives(self):
+        m = self._manager()
+        m.enqueue("u", "a", "Movie", include_watched=True)
+
+        def fake_stream(url, dest, item_id, name, expected, stopping=None,
+                        headers=None, on_headers=None):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 8)
+            self.assertTrue(m.delete(item_id="a"))
+            self.assertEqual(m.enqueue("u", "a", "Movie", include_watched=True), 1)
+            raise manager_module.requests.RequestException("reset")
+
+        m._stream = fake_stream
+        with self.assertRaises(manager_module.requests.RequestException):
+            m._download(m.db.get("a"))
+        self.assertIsNotNone(m.db.get("a"),
+                             "the download the user re-requested was deleted "
+                             "by the unwind of the one they cancelled")
+        self.assertIsNotNone(m._next_runnable())
+
+    def test_a_delete_with_no_re_enqueue_still_goes(self):
+        """The control, so the withdrawal cannot become "never cancel"."""
+        m = self._manager()
+        m.enqueue("u", "a", "Movie", include_watched=True)
+
+        def fake_stream(url, dest, item_id, name, expected, stopping=None,
+                        headers=None, on_headers=None):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 8)
+            self.assertTrue(m.delete(item_id="a"))
+            raise manager_module.requests.RequestException("reset")
+
+        m._stream = fake_stream
+        with self.assertRaises(manager_module.requests.RequestException):
+            m._download(m.db.get("a"))
+        self.assertIsNone(m.db.get("a"))
+
+
+class RelocateRefusesItsOwnSubdirectoryTest(TmpTest):
+    """An empty folder INSIDE the current download folder passes both the
+    equality check and the non-empty check, and `_copy_tree` then walks into
+    the destination it is creating."""
+
+    def test_a_nested_destination_is_refused(self):
+        root = os.path.join(self.tmp, "offline")
+        os.makedirs(os.path.join(root, "srv", ORPHAN_ID))
+        m = make_manager(root, self.addCleanup)
+        m.db.close()
+        dest = os.path.join(root, "moved")
+        ok, message = m.relocate(dest)
+        self.assertFalse(ok)
+        self.assertIn("inside", message)
+        # And nothing was touched on the way to finding out.
+        self.assertTrue(os.path.isdir(os.path.join(root, "srv", ORPHAN_ID)))
+        self.assertFalse(os.path.exists(dest))
+
+    def test_a_sibling_is_still_accepted(self):
+        root = os.path.join(self.tmp, "offline")
+        os.makedirs(root)
+        m = make_manager(root, self.addCleanup)
+        m.db.close()
+        ok, message = m.relocate(os.path.join(self.tmp, "beside"))
+        self.addCleanup(m.stop)
+        self.assertTrue(ok, message)

@@ -24,6 +24,11 @@ Three shapes are checked, because they are the three ways this happens:
 3. a `test_*` method on a class that no test loader will collect, i.e. one
    that does not reach `unittest.TestCase`.
 
+4. a duplicate `test_*` method name in one class, or a duplicate test class
+   name in one module -- the later definition silently replaces the earlier,
+   which is how this happens by copy-paste and is the shape the three above
+   do not see.
+
 Not checked: a `test_*` method inside another method, or one that a decorator
 skips. Those are deliberate often enough that a guard would cost more than it
 caught, and `--collect`-style counting would not tell them apart either.
@@ -40,6 +45,7 @@ if __name__ == "__main__":
         os.path.dirname(os.path.abspath(__file__))))
 
 import ast
+import collections
 import os
 import unittest
 
@@ -94,7 +100,7 @@ class NoUncollectedTestsTest(unittest.TestCase):
     def test_no_test_is_defined_inside_the_main_guard(self):
         found = []
         for path in _test_modules():
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 if not _is_main_guard(node):
@@ -114,7 +120,7 @@ class NoUncollectedTestsTest(unittest.TestCase):
         the half that makes this look like it works."""
         found = []
         for path in _test_modules():
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 tree = ast.parse(fh.read(), filename=path)
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.If, ast.Module,
@@ -141,7 +147,7 @@ class NoUncollectedTestsTest(unittest.TestCase):
         """
         found = []
         for path in _test_modules():
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 tree = ast.parse(fh.read(), filename=path)
             local, imported = {}, set()
             for node in ast.walk(tree):
@@ -202,6 +208,44 @@ class NoUncollectedTestsTest(unittest.TestCase):
         self.assertEqual(sorted(found), [], "\n".join(
             ["`test_*` methods on classes that are not TestCases, so nothing "
              "collects them:"] + found))
+
+
+    def test_no_test_is_shadowed_by_a_duplicate_name(self):
+        """The later definition wins and the earlier one is simply gone.
+
+        Nothing in Python or unittest complains, the module still imports,
+        and the count of collected tests silently drops by one -- so a
+        rebased test, or a copy-pasted case somebody forgot to rename, takes
+        its predecessor with it.
+        """
+        found = []
+        for path in _test_modules():
+            with open(path, encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+
+            def report(node, what):
+                found.append("%s:%d %s" % (_rel(path), node.lineno, what))
+
+            classes = collections.Counter()
+            for node in tree.body:
+                if isinstance(node, ast.ClassDef):
+                    classes[node.name] += 1
+                    if classes[node.name] > 1:
+                        report(node, "class %s (redefined)" % node.name)
+                    methods = collections.Counter()
+                    for child in node.body:
+                        if not isinstance(child, (ast.FunctionDef,
+                                                  ast.AsyncFunctionDef)):
+                            continue
+                        if not child.name.startswith("test_"):
+                            continue
+                        methods[child.name] += 1
+                        if methods[child.name] > 1:
+                            report(child, "%s.%s (redefined)"
+                                   % (node.name, child.name))
+        self.assertEqual(sorted(found), [], "\n".join(
+            ["test names shadowed by a later definition, so the first one is "
+             "never collected:"] + found))
 
 
 if __name__ == "__main__":

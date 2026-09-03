@@ -368,11 +368,31 @@ class SyncManager:
         This is for the file itself: a power cut mid-write, a bad sector, a
         network or removable filesystem that lied about a flush.
         """
+        backup_path = os.path.join(os.path.dirname(catalog_path),
+                                   self.CATALOG_BACKUP)
+        # A catalog that is GONE is the same emergency as one that cannot be
+        # read, and it used not to be handled at all: `SyncDB` would create an
+        # empty one, `healthy()` would say yes, and the store would be left
+        # described by nothing. It is reachable -- a killed process partway
+        # through `_move_tree`, a restore that failed, a filesystem hiccup, a
+        # user tidying up.
+        if not os.path.exists(catalog_path) and os.path.exists(backup_path):
+            log.warning("The download catalog at %s is missing; restoring the "
+                        "backup.", catalog_path)
+            try:
+                shutil.copyfile(backup_path, catalog_path)
+            except OSError:
+                log.error("Could not restore the catalog backup.",
+                          exc_info=True)
+            else:
+                self.db = SyncDB(catalog_path)
+                if self.db.healthy():
+                    return True
+                log.error("The restored catalog is unreadable.")
+                return False
         self.db = SyncDB(catalog_path)
         if self.db.healthy():
             return False
-        backup_path = os.path.join(os.path.dirname(catalog_path),
-                                   self.CATALOG_BACKUP)
         if not os.path.exists(backup_path):
             log.error("The download catalog at %s cannot be read and there is "
                       "no backup to restore. Downloads are left untouched.",
@@ -385,19 +405,35 @@ class SyncManager:
         except Exception:
             log.debug("Closing the unreadable catalog failed.", exc_info=True)
         aside = "%s.corrupt-%d" % (catalog_path, int(time.time()))
+        # **Staged first, so a copy that fails has touched nothing.** Copying
+        # straight over `catalog_path` meant a full disk left an empty catalog
+        # where the corrupt one had been -- and an empty catalog is *readable*,
+        # so the next launch saw nothing wrong, never retried the restore, and
+        # the store stayed undescribed for good.
+        staged = catalog_path + ".restoring"
         try:
+            shutil.copyfile(backup_path, staged)
             os.replace(catalog_path, aside)
             # The WAL and shm belong to the file we just moved away. Left in
             # place they are applied to the *restored* catalog on its first
             # open, which reintroduces the pages we are recovering from.
+            # Between the two renames on purpose: dying here leaves no
+            # catalog at all, which the missing-catalog branch above recovers
+            # from on the next launch.
             for suffix in ("-wal", "-shm"):
                 try:
                     os.remove(catalog_path + suffix)
                 except OSError:
                     pass
-            shutil.copyfile(backup_path, catalog_path)
+            os.replace(staged, catalog_path)
         except OSError:
-            log.error("Could not restore the catalog backup.", exc_info=True)
+            log.error("Could not restore the catalog backup; leaving the "
+                      "catalog as it is so the next start can try again.",
+                      exc_info=True)
+            try:
+                os.remove(staged)
+            except OSError:
+                pass
             self.db = SyncDB(catalog_path)
             return False
         self.db = SyncDB(catalog_path)
@@ -411,10 +447,30 @@ class SyncManager:
         return True
 
     def _backup_catalog(self, catalog_path):
+        """Snapshot the catalog, unless doing so would destroy a better one.
+
+        **An empty catalog never replaces a backup that has rows in it.**
+        Without that, the backup deletes itself on exactly the launch it
+        exists for: any path that ends with an empty catalog open -- a
+        restore whose copy failed on a full disk, or the missing-catalog case
+        above failing too -- reached here, `healthy()` said yes of a catalog
+        with nothing in it, and the one artifact that could still describe
+        the store was overwritten by it.
+
+        The cost is a stale backup after somebody deletes every download: it
+        keeps rows for files that are gone, and restoring it would re-queue
+        them. That is a bounded annoyance and it self-corrects on the next
+        download; losing the only index of a full download folder does not.
+        """
         if self.db is None or not self.db.healthy():
             return
-        self.db.backup(os.path.join(os.path.dirname(catalog_path),
-                                    self.CATALOG_BACKUP))
+        backup_path = os.path.join(os.path.dirname(catalog_path),
+                                   self.CATALOG_BACKUP)
+        if not self.db.list() and os.path.exists(backup_path):
+            log.warning("Not backing up an empty catalog over %s.",
+                        backup_path)
+            return
+        self.db.backup(backup_path)
 
     def relocate(self, new_path, progress=None):
         """Move the download tree to new_path and re-point the manager at it.
@@ -441,6 +497,16 @@ class SyncManager:
                 return False, _("Can't change the download folder while a "
                                 "download is in progress. Wait for it to finish, "
                                 "then try again.")
+        # Containment, not just equality. An empty folder *inside* the current
+        # download folder passes both the equality check and the non-empty
+        # check, and then `_copy_tree` walks into the destination it is
+        # creating: ~1000 directories deep until RecursionError, undone by
+        # `_undo_move` but reported as the generic "moving failed".
+        if old_root:
+            old_abs = os.path.abspath(old_root)
+            if os.path.commonpath([old_abs, new_root]) == old_abs:
+                return False, _("That folder is inside the current download "
+                                "folder. Choose one outside it.")
         # **Anything at all, not just a rival catalog.** The store owns its
         # root: `_move_tree` moves every entry out of it, and the orphan
         # sweep deletes item-shaped directories inside it. Sharing the folder
@@ -543,10 +609,14 @@ class SyncManager:
         # startup sweep in `_open_and_run` from mistaking surviving media for
         # orphans. Moving it first is what turned "the copy failed" into "the
         # downloads are gone".
-        # ...and the backup second-last, for the same reason one step down:
-        # if the move dies after the catalog has gone across but before the
-        # media has, the old root still holds the copy that describes it.
-        names.sort(key=lambda n: (n == self.CATALOG_BACKUP, n == "catalog.db"))
+        # ...and the backup immediately before it, so a move killed outright
+        # (where `_undo_move` never runs) leaves the old root still able to
+        # describe itself: media, then the backup, then the catalog. The two
+        # keys were the wrong way round and put the BACKUP last -- so a kill
+        # in that window left the backup alone at the old root and the
+        # catalog at the new one, which is one of the states `_open_catalog`
+        # has to recover from rather than a state to arrange.
+        names.sort(key=lambda n: (n == "catalog.db", n == self.CATALOG_BACKUP))
         sizes = {n: self._tree_size(os.path.join(old_root, n)) for n in names}
         # [copied so far, total, bytes at last emit] — mutated as we go.
         state = [0, sum(sizes.values()), 0]
@@ -781,6 +851,9 @@ class SyncManager:
         members = []  # item ids that will be present offline, in playlist order
         for item in items:
             iid = item.get("Id")
+            # Before either branch: whether this item is already downloaded or
+            # about to be, asking for it withdraws a cancel still in flight.
+            self._uncancel(iid)
             if self.db.is_complete(iid):
                 members.append(iid)  # already downloaded → still a member
                 # A user asking for something the scheduler already fetched
@@ -812,6 +885,23 @@ class SyncManager:
             self._notify_change()
             self._wake.set()
         return added
+
+    def _uncancel(self, item_id):
+        """Withdraw a pending cancellation for an item that is wanted again.
+
+        `_cancelled` is a transient signal to the worker, not a record of
+        policy, and it outlives the delete that raised it: the worker only
+        honours it between chunks, and a chunk can take up to the 60s read
+        timeout. Deleting a stalled download and then changing your mind
+        inside that window used to enqueue the item, report it queued, and
+        have the worker's unwind delete the row underneath -- so the download
+        silently did not happen and pressing Download a second time worked.
+
+        Not gated on origin: this says the item is wanted, which is as true
+        of a scheduled fetch as of one asked for by hand.
+        """
+        with self._active_lock:
+            self._cancelled.discard(item_id)
 
     def _claim_from_playlists(self, item_id, item_type):
         """A user download outranks a playlist's claim on the same item.
@@ -1281,12 +1371,17 @@ class SyncManager:
         if not os.path.exists(manifest) or not media:
             return False
         try:
-            with open(manifest) as fh:
+            # Explicit encoding: `_download` writes these with json.dump's
+            # default ensure_ascii, so today they are ASCII either way -- but
+            # this reads a file some other build may have written, and a bare
+            # open() here would decode it with the locale codec (cp1252 on
+            # Windows) and fail the adopt, which answers "leave it alone".
+            with open(manifest, encoding="utf-8") as fh:
                 item = json.load(fh)
             source = {}
             source_path = os.path.join(item_dir, "source.json")
             if os.path.exists(source_path):
-                with open(source_path) as fh:
+                with open(source_path, encoding="utf-8") as fh:
                     source = json.load(fh)
             media_path = media[0]
             size = os.path.getsize(media_path)

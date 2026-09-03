@@ -104,13 +104,36 @@ worked around at the call site it happened to break.
 `OfflineVideo` reimplements steps 1 and 3: there is no PlaybackInfo to get
 ahead of and no sidecar URL to build from a `DeliveryUrl`. It is a second copy
 of a precedence chain, which is where a precedence stops being the same, so
-`TheTwoImplementationsAgreeTest` runs the tables against it as well.
+`TheTwoImplementationsAgreeTest` runs both tables — the same
+`AUDIO_CASES`/`SUBTITLE_CASES` lists, not a paraphrase of them — against it as
+well. (It ran three hand-written cases while saying it ran the tables, which
+is the whole justification for the class, so the claim mattered more than the
+gap: the behaviour agreed on all 19 rows once they were actually run.)
 
 Note that offline, step 1 resolves against `media_source or _source` (the
 downloaded source, from `source_json`) while step 2 ranks against
 `source_for_track_rules()` (the item manifest, from `item_json`). Both carry
 the server's `Index` values so they agree, but they are two different objects
 answering one question — worth knowing before adding a third caller.
+
+### One edge the table does not cover
+
+`resolve_tracks_for_negotiation` returns **without** setting
+`_tracks_resolved` when `source_for_track_rules()` answers nothing. Step 3
+then sees the flag clear, re-runs the rule against the negotiated source, and
+overwrites the memory — the inversion the flag exists to prevent, in the one
+case where the flag was never set.
+
+Reaching it needs an item whose `MediaSources` is empty on `get_item` and
+non-empty from PlaybackInfo. Probing 400 items on the QA server found none:
+`TvChannel` carries its sources, and the only empty ones were `Photo` (which
+short-circuits before `map_streams`) and `Season` (not playable). So this is
+recorded rather than fixed — the obvious repair, setting the flag before the
+early return, makes `language_config` permanently inert on such an item
+instead, and choosing between two behaviours for a case nobody can produce is
+a guess either way. Whoever finds a real trigger should move the predicate
+rather than harden it in place: what step 3 needs to know is "has anything
+decided these yet", and `_tracks_resolved` only answers "did the rule run".
 
 ## 5. How a deliberate pick reaches the next episode
 
