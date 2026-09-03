@@ -2347,10 +2347,25 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 log.info("Not sending the auth header to mpv: this item "
                          "streams from another host.")
                 self._revoke_auth_header(video)
+            if not video.auth_via_header:
                 # The subtitles are still OURS. map_streams built their urls
                 # without a token because the header was going to carry it,
-                # and revoking left them with no credential at all -- a 401
-                # and no captions, on exactly the items that take this route.
+                # so with no header they have no credential at all -- a 401
+                # and no captions.
+                #
+                # Keyed on the OUTCOME, not on the branch above it. This used
+                # to sit inside the revoke, which is one of the several ways
+                # this line is reached: `_apply_auth_headers` also declines
+                # for a foreign subtitle host, a dead mpv, a client with no
+                # token yet, and an mpv that refuses the option. The foreign
+                # subtitle case is the one guaranteed to strand something --
+                # the reason the header is declined is that the item HAS
+                # external subtitles, so there is always one of ours beside
+                # the third-party one.
+                #
+                # `reauthorize_sidecars` is same-origin-gated and idempotent,
+                # so saying this once for every outcome is safe where saying
+                # it per branch was not.
                 try:
                     video.reauthorize_sidecars()
                 except Exception:

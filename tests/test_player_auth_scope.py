@@ -163,10 +163,14 @@ class ForeignMediaHostTest(unittest.TestCase):
         self.assertIn("ApiKey", pm.played[0],
                       "with no header the url must carry the token itself")
 
-
-if __name__ == "__main__":
-    unittest.main()
-
+    # These four were stranded after a module-level `unittest.main()` inside
+    # `if __name__ == "__main__":`, so `discover` never collected them and
+    # running the file as a script never reached them either -- `main()` exits.
+    # The rule they assert (our own sidecar must keep a credential whenever
+    # mpv is not carrying the header) was therefore unenforced for as long as
+    # it existed, which is how `reauthorize_sidecars` came to be wired to one
+    # of the several paths that leave the header off. See
+    # docs/auth-headers.md section 3.
     SIDECAR = {"Type": "Subtitle", "Index": 2, "IsExternal": True,
                "IsExternalUrl": False, "DeliveryMethod": "External",
                "DeliveryUrl": "/Videos/1/Subtitles/2/Stream.srt"}
@@ -212,3 +216,7 @@ if __name__ == "__main__":
         self.assertNotIn(TOKEN, headers)
         self.assertNotIn(TOKEN, url or "",
                          "a third-party subtitle host was handed our token")
+
+
+if __name__ == "__main__":
+    unittest.main()
