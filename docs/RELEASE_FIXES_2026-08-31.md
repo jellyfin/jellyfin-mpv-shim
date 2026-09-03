@@ -263,26 +263,37 @@ relaunching — it is rewritten on every start**) and mpv's own log, plus whethe
 
 Opened while fixing #713 (the rating star drawing as a tofu box on Windows).
 Three findings from reading the module whole rather than reading its diff; all
-three pre-existing, none a regression from the #713 work. **F33 is fixed. Two
-remain, both left by decision: F31 (emoji) and F32 (the epub reader).**
+three pre-existing, none a regression from the #713 work. **All three are now
+fixed** (F33, then F31 and F32 on 2026-09-02), and fixing them turned up F35 --
+a regression in F33's own fix, found by rendering a page rather than by reading
+one.
 
 **Read the module docstring and `script_of` before touching either.** The rule
 was rewritten three times in one session under three different measurements, and
 the docstrings carry which measurement forced which half.
 
-**The shape all three share, and the thing to check first in any new one:** a
-codepoint reaching a face that cannot draw it, because a broad mapping claimed
-it. `script_of_char` is a ladder of ranges ending in two catch-alls — `cp >=
-0x2E80 → cjk` and a final `→ latin` — and every finding here is something one of
-those swallowed. F33 turned up two more of them on the way past. **F31 is the
-last known victim of the CJK catch-all**, which is a better reason to fix it than
-"emoji are not handled".
+**The shape the first three share, and the thing to check first in any new one:**
+a codepoint reaching a face that cannot draw it, because a broad mapping claimed
+it. `script_of_char` was a ladder of ranges ending in two catch-alls — `cp >=
+0x2E80 → cjk` and a final `→ latin` — and F31, F32 and F33 are all something one
+of those swallowed. The CJK catch-all is now emptied of everything it was
+measured to be drawing as boxes: emoji, the astral symbol blocks, Hebrew and
+both presentation-form blocks.
+
+**F35 is a different shape, and the one to expect next.** Not a codepoint
+reaching the wrong face, but a *face* that does not cover the line it was chosen
+for — which only bites for the RTL scripts, because they are the only ones drawn
+with one face end to end. The question to ask of any candidate list is no longer
+just "does this face have the script" but, for Hebrew and Arabic, "does it have
+the digits, the stop and the brackets that will be in the same line".
 
 | Tag | Site | Defect |
 |-----|------|--------|
-| F31 | `pilfont.py` `script_of_char` | **Everything above U+2E80 is called CJK, emoji included** — the same catch-all F33 found two other victims in. A server-supplied title with a 🎬 in it resolves the CJK face, which carries no emoji — measured, on both the Linux face (NotoSansCJK) and the Windows one (msgothic.ttc). Affects every baked path: tile captions, the detail banner, the display mirror. **Deliberately not fixed**: routing emoji to `"symbol"` trades one tofu for another, because Segoe UI Symbol and NotoSansSymbols2 do not carry them either. A real fix is an `"emoji"` bucket (`seguiemj.ttf`, `NotoColorEmoji.ttf`, `/System/Library/Fonts/Apple Color Emoji.ttc`) **plus** `ImageDraw.text(..., embedded_color=True)` for colour, which is a second decision — a monochrome emoji beside colour ASS text may look worse than the box. |
-| F32 | `epub/paint.py:98,160` | **The epub reader bypasses the run splitting entirely.** Both body text and missing-image alt text go straight to `ImageDraw.text`, and measure with `font.getlength`, using the one book-level face `epub/fonts.face()` resolved from the title's script. So a book whose body mixes scripts gets tofu for the minority one, and a star or tick in the prose gets it always — measured: `DejaVuSerif.ttf`, first in `_SERIF_FAMILIES`, has neither U+2605 nor U+2713. **Deliberately not fixed**: it is a real limitation of the reader rather than of this module, and the fix is to route `paint.py` through `pilfont.draw_text`/`text_length`, which changes how every page is laid out. Note the reader's own list bullets are safe — Georgia and Times both carry ▪ ◦ • (measured on Windows), as do the DejaVu and Liberation serifs. |
+| ~~F31~~ **DONE** | `pilfont.py` `script_of_char`, `strips.py:876` | **Everything above U+2E80 was called CJK, emoji included** — the same catch-all F33 found two other victims in. Measured: NotoSansCJK covers 0 of U+1F300-1F5FF and msgothic 0 of every emoji block, so every baked path drew a 🎬 in a title as a box. Fixed with an `"emoji"` bucket, and the two things that had to be true for one to be worth anything: (1) **`NotoColorEmoji.ttf` loads at 109px and no other size** — it is a CBDT bitmap face — so adding it to a candidate list and stopping there is the fix that changes nothing, the load fails and the run falls back to a face with no emoji in it; `_load` probes strikes, `font()` stamps `_jms_native`, `_draw_scaled` renders at the strike and shrinks. Windows needs none of it (seguiemj is COLR-outlined and loads at any size, verified on the VM). (2) **colour needs `embedded_color=True`**, passed for emoji runs only, because on a monochrome face it renders the same picture but not the same bytes. The table is Unicode's Emoji_Presentation set; its BMP half is small ranges rather than the symbol blocks it sits inside, because **U+2605 is .notdef in both colour faces** and sweeping U+2600-27BF in would put #713 straight back. A test checks every BMP codepoint in the table against the installed colour face rather than trusting the transcription. Two more victims of the same catch-all fixed alongside: the astral symbol blocks (dominoes, chess, arrows-C, legacy computing) now reach the symbol face; U+1F100-1F2FF is picked at rather than moved, because U+1F110 is the other way round. Two bugs found by mutation rather than review: a space inside an emoji run is an **emoji-wide** space (135.7 of a 109px em against DejaVu's 6.4 at 20px, so a caption had a four-space hole in it), and `_paint_poster`'s placeholder initial was a bare `draw.text` that saw none of this — the one path an emoji reaches with nothing else in the string. |
+| ~~F32~~ **DONE** | `epub/paint.py`, `epub/layout.py`, `epub/fonts.py` | **The epub reader bypassed the run splitting entirely**, drawing every piece with the face resolved once from the book's title. A serif family is a Latin family — measured, DejaVuSerif has no CJK, no Hebrew and neither U+2605 nor U+2713 — so an English book quoting a line of Japanese drew it as boxes on every host, whatever was installed. Fixed by giving `pilfont.draw_text`/`text_length` a `faces` seam and a draw-free `length()`, and routing the reader through them: the reader supplies where each run's face comes from (its own serif families, in four weight/slant combinations) and pilfont supplies the splitting. The deferral said this "changes how every page is laid out", and it does — three things had to come with it. **`Measurer.width` measures through the same split**, because the line breaker only sees the measurement and the serif reports 63px for a five-character CJK run the CJK face draws at 105. **A line's height is asked with its text in hand**, because NotoSansCJK is 25/7 at 21px against DejaVuSerif's 20/5 and a Japanese word overlapped the line below. **`fonts.metrics` goes through the new `pilfont.metrics`**, now the one place a face's metrics may be read, because a bitmap-strike emoji face reports 101/27 whatever size it is used at and an unscaled line box is 192px tall in a 21px book. The book-level face may no longer be a pseudo-script (`Measurer.__init__` folds "symbol" and "emoji" back to latin); `fonts.face` now serves *runs*, where both are the right answer. `docs/readers.md` §4.6. |
 | ~~F33~~ **DONE** | `pilfont.py` `script_of_char` | **Hebrew was mapped to `"latin"` on the strength of one candidate face.** The comment said "DejaVu has it", and it does — so do both Arials, so the developer's box and Windows both looked fine. `NotoSans-Regular.ttf`, **third in the Latin chain**, does not (measured), so a host with Noto Sans and no DejaVu drew every Hebrew title as boxes in every baked bitmap, with nothing in the code saying so. Exactly #713's shape in a line nobody had edited — which is why two review rounds over the diff could not reach it. Fixed with a `"hebrew"` bucket. **Fixing it uncovered two more of the same:** U+FB1D–FB4F (Hebrew presentation forms) and U+FE70–FEFF (Arabic Presentation Forms-B) were both landing in the `cp >= 0x2E80` CJK catch-all, and NotoSansCJK draws neither (measured) — the second was worse, because `has_rtl` already called it RTL, so an Arabic line written in those forms was drawn *end to end* with a face that cannot draw a word of it. All three are pinned by `test_every_rtl_codepoint_maps_to_an_rtl_face`, which holds `_RTL_RANGES` and `script_of_char` in step: this table decides that a line gets one face, so a codepoint in it whose script is neither Hebrew nor Arabic is by definition getting the wrong one. The Latin ligature block next door (U+FB00–FB1C) is **deliberately left** on the CJK face — measured, NotoSansCJK draws `ﬁ` fine, and moving it would be churn against nothing. |
+
+| F35 **DONE — a regression in F33's own fix** | `pilfont.py` `_CANDIDATES["hebrew"]` | **`NotoSansHebrew-Regular.ttf` is 145 codepoints: no full stop, no comma, no digit, no ASCII at all** (measured). Hebrew is RTL, so `has_rtl` gives the whole line to ONE face and there is no Latin run to fall back to — which makes the candidate order load-bearing in a way it is for no other script. F33 put Noto first, so "שלום עולם." drew its stop as a box and every year in a title as four more; before F33 the same text resolved DejaVu and was fine, so this was **new in that commit and shipped for one commit**. Found by rendering a page, not by reading the diff — which is the same lesson F33 itself carried. DejaVu now leads (all 88 letters and points, all 46 presentation forms; the 33 it lacks are the cantillation marks U+0591-05AF, i.e. biblical Hebrew, and that is the deliberate cost), with Noto kept for the Noto-Sans-and-no-DejaVu host F33 was about. Arabic has the same shape and is **left alone knowingly**: its face carries the stop, comma and digits so an ordinary sentence is whole, what it lacks is A-Z, and there is no Linux face with both good Arabic shaping and Latin to reorder towards. Pinned by `test_the_hebrew_face_carries_the_punctuation_around_it`. |
 
 **Not a defect, recorded so it is not "fixed" into one:** a mixed line sits ~3px
 lower than the band its caller reserved, because the reserved metrics come from
@@ -570,6 +581,36 @@ first round's fixes as `CLAUDE.md` prescribes:
   cannot draw them. Three real bugs, none of them from the change under review — which
   is the argument for reading the subsystem rather than running a third round.
 
+
+### Group F finished (2026-09-02), and what found the bugs this time
+
+The two rounds above did not converge — 8 findings then 7, six of the second
+round's inside the first round's fixes — which is what sent the last session to
+read `pilfont` whole. This session finished that group, and the arithmetic is
+worth recording because **not one of the six real defects came from a review
+round.** They came from three cheap habits, in descending order of yield:
+
+- **Mutation, before believing a green test.** Every new test was run against the
+  code with its own fix removed. Six of the fourteen passed anyway on the first
+  attempt, and each was a "test that cannot fail" in a shape `CLAUDE.md` already
+  names: a colour assertion that *skipped* when colour was lost rather than
+  failing; a `assertGreaterEqual` where only `assertGreater` was the property; a
+  predicate that measured the theme's own background `(16, 16, 18)` as "colour".
+  A test written alongside a fix encodes the fix; the only way to find out is to
+  break the fix.
+- **Rendering the thing and looking at it.** The four-space hole after every
+  emoji, and F35's missing full stop, are both invisible to any assertion anyone
+  would have thought to write, and both are obvious in a 700x120 PNG. F35 in
+  particular is in a candidate list that had been read three times that week.
+- **Measuring the font rather than reasoning about it.** "`NotoColorEmoji` loads
+  at 109 and nothing else", "U+2605 is .notdef in both colour faces",
+  "`NotoSansHebrew` has no ASCII at all" — three facts that each reversed a
+  design decision, none of which is guessable, all of which took under a minute.
+
+The stop signal `CLAUDE.md` describes was reached the other way this time: the
+findings are in code that predates the session (F31/F32 are pre-existing) or in
+the *previous* commit (F35), not in this session's own fixes. That is the split
+worth reporting, and it is why there is no third round here.
 
 ## 4. Tests that must be rewritten *before* the fix
 
