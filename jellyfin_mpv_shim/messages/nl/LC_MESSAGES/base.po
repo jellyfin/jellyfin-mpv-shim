@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-03 07:32+0000\n"
+"PO-Revision-Date: 2026-09-03 07:46+0000\n"
 "Last-Translator: Kas <kasjunk@proton.me>\n"
 "Language-Team: Dutch <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/nl/>\n"
@@ -1411,11 +1411,11 @@ msgstr "Uitschakelen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Reinhard"
-msgstr ""
+msgstr "Reinhard"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Clip (no tone mapping)"
-msgstr ""
+msgstr "Clip (geen tonemapping)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
@@ -1431,15 +1431,15 @@ msgstr "Videokwaliteit aanpassen"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "MPV default (1 second)"
-msgstr ""
+msgstr "MPV standaard (1 seconde)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Large (20 seconds)"
-msgstr ""
+msgstr "Groot (20 seconden)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Very large (60 seconds)"
-msgstr ""
+msgstr "Zeer groot (60 seconden)"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Jellyfin UI"
@@ -1455,7 +1455,7 @@ msgstr "Ingebouwde standaard MPV"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Custom OSC"
-msgstr ""
+msgstr "Aangepaste OSC"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #, fuzzy
