@@ -579,8 +579,9 @@ def _face_pickers(fnt, faces):
 
 
 def _split(text, fnt, faces):
-    """``(parts, single_face_or_None, pickers)`` — the one place the two
-    bypasses live, so measuring and drawing cannot disagree about them.
+    """``(runs, one_face_or_None, per_run_resolver)`` — the one place the
+    two bypasses live, so measuring and drawing cannot disagree about them.
+    A non-None second element means the whole string is drawn with it.
 
     A single **emoji** run does not take the bypass. It has to reach the
     per-run resolver (`_run_face` would hand back the caller's own face,
@@ -758,7 +759,14 @@ def clear_cache():
 
 
 def _env_extra():
-    """Allow an explicit override for exotic setups (a single font path)."""
+    """Allow an explicit override for exotic setups (a single font path).
+
+    It goes in front of **every** list, emoji included, so setting it turns
+    emoji back into whatever that one face draws for them. That is the
+    contract of "use this font" and is no worse than the answer before
+    there was an emoji bucket -- but it is why a host with this set will
+    not show the colour ones.
+    """
     path = os.environ.get("JELLYFIN_MPV_SHIM_UI_FONT")
     if path:
         for names in list(_CANDIDATES.values()) + list(_BOLD.values()):

@@ -113,6 +113,8 @@ class Measurer:
         self._widths = {}
         self._fonts = {}
         self._resolvers = {}
+        self._scripts = {}
+        self._metrics_cache = {}
 
     def size_for(self, span_style):
         return max(8, int(round(self.style.font_px * span_style.scale)))
@@ -179,25 +181,48 @@ class Measurer:
             self._widths[key] = hit
         return hit
 
+    def _scripts_of(self, text):
+        """The set of scripts in ``text``, cached per string.
+
+        `_place_line` asks every token on a line for both its height and
+        its ascent, so this runs twice per token over a whole chapter --
+        and pagination is most of the time opening a book takes. Bounded
+        the same way `_widths` is, and for the same reason.
+        """
+        hit = self._scripts.get(text)
+        if hit is None:
+            from ..mpvtk import pilfont
+
+            hit = frozenset(script for script, _chunk in pilfont.runs(text))
+            if len(self._scripts) > 80000:
+                self._scripts.clear()
+            self._scripts[text] = hit
+        return hit
+
     def _metrics(self, span_style, text=None):
         """``(ascent, descent)`` for a line, over every face it needs.
 
         ``text`` is what makes this per line rather than per style, and it
-        has to be: NotoSansCJK is 24/6 at 20px against DejaVuSerif's 19/5
+        has to be: NotoSansCJK is 25/7 at 21px against DejaVuSerif's 20/5
         (measured), so a line carrying a Japanese word inside an English
         book overlaps the line below it if the band is reserved from the
         serif alone. A line with nothing but the book's own script gets
-        exactly the answer it got before.
+        exactly the answer it got before, from the same cache entry --
+        which is what keeps an all-English chapter paying nothing for this.
         """
         from . import fonts
-        from ..mpvtk import pilfont
 
-        scripts = {self.script}
+        scripts = frozenset({self.script})
         if text:
-            scripts |= {script for script, _chunk in pilfont.runs(text)}
-        pairs = [fonts.metrics(self._face(span_style, script))
-                 for script in scripts]
-        return max(a for a, _d in pairs), max(d for _a, d in pairs)
+            scripts |= self._scripts_of(text)
+        key = (span_style.key(), scripts)
+        hit = self._metrics_cache.get(key)
+        if hit is None:
+            pairs = [fonts.metrics(self._face(span_style, script))
+                     for script in scripts]
+            hit = (max(a for a, _d in pairs), max(d for _a, d in pairs))
+            self._metrics_cache[key] = hit
+        return hit
 
     def line_height(self, span_style, text=None):
         ascent, descent = self._metrics(span_style, text)
