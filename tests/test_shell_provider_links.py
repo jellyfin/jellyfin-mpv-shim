@@ -595,9 +595,9 @@ class JellyfinWebLinkTest(unittest.TestCase):
             {"kind": "season", "item_id": "se2", "series_id": "sh1",
              "server": "srv1"})
         handlers["detail-web-link"]["click"]()
-        self.assertEqual(len(b.controller.opened_urls), 1)
-        self.assertIn("id=se2", b.controller.opened_urls[0])
-        self.assertNotIn("id=sh1", b.controller.opened_urls[0])
+        self.assertEqual(
+            b.controller.opened_urls,
+            ["https://home.example/web/#/details?id=se2&serverId=SRVID"])
 
     # -- where it sits -----------------------------------------------------
 

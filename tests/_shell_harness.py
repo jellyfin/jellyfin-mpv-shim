@@ -365,13 +365,21 @@ class FakeSource:
         # omit ExternalUrls unless asked; the single-item routes do not).
         # A stand-in without them makes that row unreachable while the
         # tests around it still pass.
+        # ServerId for the same reason as on get_item: every DTO a real
+        # server sends carries one and the jellyfin-web link puts it in the
+        # query string, so a season fixture without it can only ever
+        # exercise the omitted-serverId branch -- and would stay green if
+        # this screen started composing its link from something other than
+        # the season's own DTO.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
+                 "ServerId": "SRVID",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/1"}]},
                 {"Id": "se2", "Name": "Season 2", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
+                 "ServerId": "SRVID",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/2"}]}]
