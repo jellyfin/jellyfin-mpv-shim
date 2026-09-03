@@ -48,6 +48,21 @@ def _at(hour, minute):
     return datetime.datetime(2026, 9, 2, hour, minute)
 
 
+def _iso_at(hour, minute):
+    """A Jellyfin UTC timestamp for ``hour:minute`` **local time**.
+
+    Built from local rather than written as a UTC literal, because
+    `live_tv.parse_time` answers in local time and every assertion below is
+    a literal clock reading. A hard-coded "20:00:00Z" reads as 20:00 only
+    at UTC, and this suite runs wherever it runs -- measured failing under
+    Asia/Tokyo, Pacific/Kiritimati, Australia/Adelaide and Asia/Kathmandu.
+    Same shape as `tests/test_live_tv.py`'s own helper.
+    """
+    local = _at(hour, minute).astimezone()
+    return local.astimezone(datetime.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%S.0000000Z")
+
+
 class TestClock(ClockSettingMixin, unittest.TestCase):
     #: (hour, minute) -> (24-hour, 12-hour). Written out rather than
     #: computed, so the expectations cannot agree with the code by
@@ -126,30 +141,19 @@ class TestClock(ClockSettingMixin, unittest.TestCase):
 class TestLiveTvFollowsTheSetting(ClockSettingMixin, unittest.TestCase):
     """The guide headings and air-time labels — the biggest consumer."""
 
-    START = "2026-09-02T20:00:00.0000000Z"
-    END = "2026-09-02T20:30:00.0000000Z"
-
     def _program(self):
-        # Parsed and rendered in local time, so the assertions below are
-        # written against what parse_time answers rather than against the
-        # UTC string above.
-        return {"StartDate": self.START, "EndDate": self.END}
-
-    def _expected(self, key):
-        start = live_tv.parse_time(self.START)
-        end = live_tv.parse_time(self.END)
-        self.set_12h(key)
-        return "%s - %s" % (timefmt.clock(start), timefmt.clock(end))
+        return {"StartDate": _iso_at(20, 0), "EndDate": _iso_at(20, 30)}
 
     def test_an_air_time_range_follows_the_setting(self):
-        for on in (False, True):
-            with self.subTest(clock_12h=on):
-                want = self._expected(on)
-                self.set_12h(on)
-                self.assertEqual(
-                    live_tv.air_time_label(self._program()), want)
-                self.assertEqual(("AM" in want or "PM" in want), on,
-                                 "the fixture did not change format at all")
+        """Literal readings, not `timefmt.clock` compared against itself:
+        an expectation computed by the code under test agrees with whatever
+        answer that code gives."""
+        self.set_12h(False)
+        self.assertEqual(live_tv.air_time_label(self._program()),
+                         "20:00 - 20:30")
+        self.set_12h(True)
+        self.assertEqual(live_tv.air_time_label(self._program()),
+                         "8:00 PM - 8:30 PM")
 
     def test_a_guide_column_heading_follows_the_setting(self):
         slot = _at(20, 0)
@@ -257,38 +261,55 @@ class TestTheTilesFollowTheSetting(ClockSettingMixin, unittest.TestCase):
     and asserted the stub had been called.
     """
 
-    PROGRAM = {"Type": "Program", "Name": "News", "ChannelName": "Fake One",
-               "StartDate": "2026-09-02T20:00:00Z",
-               "EndDate": "2026-09-02T20:30:00Z"}
+    def _program(self):
+        return {"Type": "Program", "Name": "News", "ChannelName": "Fake One",
+                "StartDate": _iso_at(20, 0), "EndDate": _iso_at(20, 30)}
 
     def _tile(self, on):
         from jellyfin_mpv_shim.mpvtk_browser import components
 
         self.set_12h(on)
-        return components.tile_lines(dict(self.PROGRAM))
+        return components.tile_lines(self._program())
 
     def test_the_caption_says_the_time_in_the_chosen_format(self):
-        self.assertIn(" - ", self._tile(False)[1])
-        self.assertNotIn("PM", self._tile(False)[1])
-        self.assertIn("PM", self._tile(True)[1])
+        self.assertEqual(self._tile(False)[1],
+                         "Fake One   ·   20:00 - 20:30")
+        self.assertEqual(self._tile(True)[1],
+                         "Fake One   ·   8:00 PM - 8:30 PM")
 
     def test_the_strip_cache_key_changes_on_its_own(self):
         """The property the retag was added for, held by the key instead.
-        Asserted against `StripStore._tile_key` itself rather than against
-        a belief about it."""
-        from types import SimpleNamespace
 
-        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
+        Asserted against the real `Tile` and the real `_tile_key`, not a
+        stand-in of either: a hand-built namespace of the fields I believe
+        the key reads is a test of my belief, and it would keep passing on
+        the day the key stopped reading `subtitle`.
+        """
+        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore, Tile
 
         def key(on):
-            _title, subtitle = self._tile(on)
-            return StripStore._tile_key(None, SimpleNamespace(
-                key="p1", poster_tag="", poster=None, title="News",
-                subtitle=subtitle, subtitle2="", watched=False, badge=0,
-                progress=0, downloaded=False, kind="", recording=False,
-                record="", glyph="", contain=False, live=True, sources=0))
+            title, subtitle = self._tile(on)
+            return StripStore._tile_key(
+                None, Tile(key="p1", title=title, subtitle=subtitle))
 
         self.assertNotEqual(key(False), key(True))
+
+    def test_and_it_is_the_subtitle_that_carries_it(self):
+        """Guards the test above: if the air time stopped being part of the
+        caption the assertion would still pass on some other field, and
+        this class would be testing nothing it is named after."""
+        self.assertIn("20:00", self._tile(False)[1])
+        self.assertIn("8:00 PM", self._tile(True)[1])
+
+    def test_it_is_not_a_restart_setting(self):
+        """Went with the class that tested `apply_clock_format` and is not
+        about it: "Requires restart" means literally nothing has happened,
+        and something has. Adding `clock_12h` to `RESTART_REQUIRED` would
+        put a banner over a control that applies live, and nothing else in
+        the suite would notice."""
+        from jellyfin_mpv_shim.mpvtk_browser import config
+
+        self.assertNotIn("clock_12h", config.RESTART_REQUIRED)
 
     def test_saving_it_does_not_retag_the_whole_store(self):
         """A retag makes every cached row in the app unreachable, including
