@@ -139,25 +139,41 @@ def script_of(text):
     the first character outside the Latin face's coverage wins, so
     "進撃の巨人 (2013)" resolves to cjk.
 
-    **"symbol" is never the answer here.** It is a face for the odd glyph,
-    not for words, and this answer is used for two things it would be wrong
-    for: the line height a caller reserves (`components/banner.py`,
-    `mpvtk_browser/cast.py`), and the face handed to ``draw_text`` for a
-    *substring* — a wrapped or ellipsized line that the star need not have
-    survived into. Segoe UI Symbol's Latin is not Arial's and it carries no
-    Arabic or Hebrew at all (measured), so letting one rating choose it
-    re-typesets whole paragraphs, and for an RTL line — which cannot be
-    split at all — draws every word as a box.
+    **A symbol only wins when there is nothing else in the string.** It is a
+    face for the odd glyph, not for words, and this answer is used for two
+    things that would be wrong for: the line height a caller reserves
+    (`components/banner.py`, `mpvtk_browser/cast.py`), and the face handed
+    to ``draw_text`` for a *substring* — a wrapped or ellipsized line the
+    symbol need not have survived into. Segoe UI Symbol's Latin is not
+    Arial's and it carries no Arabic or Hebrew at all (measured), so one
+    rating choosing it re-typesets whole paragraphs, and for an RTL line —
+    which cannot be split at all — draws every word as a box.
 
-    The symbol face is reached per RUN instead (:func:`runs`), and for a
-    string that is nothing but symbols by the stamped-script check in
-    ``draw_text``.
+    Note this is not "did another script win": **Hebrew maps to "latin"**
+    here, because the Latin face covers it, so the scan below has nothing
+    to report about a Hebrew line — it is the "are there words at all"
+    half that catches it.
+
+    But a string of *nothing but* symbols has no words to protect and still
+    has to be drawn by something. `components.placeholder_glyph` answers
+    with the first character of a title, and `strips._paint_poster` draws
+    that with a bare ``ImageDraw.text`` — no runs, no `_run_face` — so an
+    album named "★" is #713 all over again if this says "latin".
     """
+    saw_symbol = saw_word = False
     for ch in text or "":
         script = script_of_char(ord(ch))
-        if script not in ("latin", "symbol"):
-            return script
-    return "latin"
+        if script == "symbol":
+            saw_symbol = True
+        elif script != "latin":
+            return script            # cjk / arabic / thai / devanagari
+        elif not ch.isspace():
+            saw_word = True
+    # No ``has_rtl`` guard needed and none added: every RTL codepoint is
+    # either Arabic (returned above) or Hebrew, which maps to "latin" and
+    # therefore sets `saw_word`. A string of nothing but symbols cannot be
+    # RTL, and a redundant condition here would read as load-bearing.
+    return "symbol" if saw_symbol and not saw_word else "latin"
 
 
 def runs(text):
@@ -283,6 +299,14 @@ def _run_face(fnt, script):
     stamp at all: a caller who built a face by hand gets exactly the face it
     passed, which is what keeps a single-run string drawn byte for byte as
     it was before any of this existed.
+
+    **Single-run only.** The multi-run paths use :func:`_same_size`, which
+    resolves a real face per script unconditionally. For a stamped font the
+    two agree exactly (the stamp came from the same `font()` call the
+    lookup would make), and for an unstamped one they must not: "leave the
+    caller's face alone" is right for a string that face can draw and
+    disastrous for the mixed string this whole path exists to handle,
+    where it puts the tofu straight back.
     """
     stamped = getattr(fnt, "_jms_script", None)
     if stamped is None or stamped == script:
@@ -300,10 +324,10 @@ def text_length(draw, text, fnt):
         return 0.0
     parts = runs(text)
     if has_rtl(text):
-        return draw.textlength(text, font=fnt)
+        return draw.textlength(text, font=_run_face(fnt, script_of(text)))
     if len(parts) == 1:
         return draw.textlength(text, font=_run_face(fnt, parts[0][0]))
-    return sum(draw.textlength(chunk, font=_run_face(fnt, script))
+    return sum(draw.textlength(chunk, font=_same_size(fnt, script))
                for script, chunk in parts)
 
 
@@ -335,16 +359,20 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None):
         return
     parts = runs(text)
     if has_rtl(text):
-        # One draw call has to cover the line, and it is the caller's face:
-        # Pillow reorders bidi within a call and cannot across several.
-        draw.text(xy, text, font=fnt, fill=fill, anchor=anchor)
+        # One draw call has to cover the line -- Pillow reorders bidi within
+        # a call and cannot across several -- but it has to be the face for
+        # THIS line, not for the longer one it may have been wrapped out of.
+        # `script_of` rather than the run list for the same reason the
+        # bypass exists: there is only going to be one face.
+        draw.text(xy, text, font=_run_face(fnt, script_of(text)), fill=fill,
+                  anchor=anchor)
         return
     if len(parts) == 1:
         draw.text(xy, text, font=_run_face(fnt, parts[0][0]), fill=fill,
                   anchor=anchor)
         return
 
-    fonts = [_run_face(fnt, script) for script, _chunk in parts]
+    fonts = [_same_size(fnt, script) for script, _chunk in parts]
     ascent = max(f.getmetrics()[0] for f in fonts)
     descent = max(f.getmetrics()[1] for f in fonts)
     x, y = xy

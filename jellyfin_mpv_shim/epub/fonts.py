@@ -120,10 +120,11 @@ def face(kind, size, bold=False, italic=False, script="latin"):
     if hit is not None:
         return hit
     font = None
-    # "symbol" is deliberately treated as latin: it is pilfont's answer for a
-    # string that merely *contains* a star or an arrow, and a book whose title
-    # has one must not be set in a symbol face from cover to cover. The reading
-    # families below are what the setting is about.
+    # "symbol" is treated as latin. `script_of` no longer answers it, so the
+    # reader cannot reach this today -- but `script` is a parameter and
+    # "symbol" is a legal pilfont script, and it is the one value that would
+    # be wrong here: it names a face for the odd glyph, and this call is
+    # choosing the face a whole book is set in.
     if script not in ("latin", "symbol", "", None):
         from ..mpvtk import pilfont
 

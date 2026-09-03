@@ -267,15 +267,52 @@ class TestSymbolRuns(unittest.TestCase):
         self.assertEqual(pilfont.script_of("★ 進撃"), "cjk")
         self.assertEqual(pilfont.script_of("★ ภาพยนตร์"), "thai")
 
-    def test_a_string_of_nothing_but_symbols_still_reaches_the_face(self):
-        """The hole `script_of` leaves, closed on the drawing side: the
-        whole-string answer is "latin", the single run is "symbol", and the
-        stamped script is what lets `draw_text` notice and re-resolve."""
+    def test_the_stamp_is_what_lets_a_face_be_asked_what_it_is_for(self):
+        """`_run_face`'s contract, in isolation. What it is *for* is
+        asserted through `draw_text` in
+        `test_a_wrapped_symbol_only_line_is_re_resolved_through_draw_text`,
+        because a unit test of the helper cannot show that anything calls
+        it."""
         latin = pilfont.font("latin", 28)
         self.assertEqual(getattr(latin, "_jms_script", None), "latin")
         self.assertIs(pilfont._run_face(latin, "symbol"),
                       pilfont.font("symbol", 28))
         self.assertIs(pilfont._run_face(latin, "latin"), latin)
+
+    def test_an_unstamped_face_still_gets_a_real_face_per_run(self):
+        """The symmetric direction of the rule below, and the one it must
+        NOT be extended to.
+
+        Leaving a hand-built font alone is right for a string that is one
+        run: the caller asked for that face and the face can draw it. It is
+        wrong for a MIXED string, which is the whole reason this path
+        exists -- a Latin face cannot draw the CJK run, and answering "the
+        font you passed" for every run puts the tofu back.
+        """
+        from PIL import Image, ImageDraw, ImageFont
+
+        latin_path = pilfont._resolved.get(("latin", False))
+        pilfont.font("latin", 20)                     # ensure it resolved
+        latin_path = pilfont._resolved.get(("latin", False))
+        if not latin_path:
+            self.skipTest("no Latin face resolved on this host")
+        home_made = ImageFont.truetype(latin_path, 20)
+        self.assertIsNone(getattr(home_made, "_jms_script", None))
+
+        text = "進撃 (2013)"
+        cjk = pilfont.font("cjk", 20)
+        if cjk is pilfont.font("latin", 20):
+            self.skipTest("no separate CJK face installed on this host")
+
+        img = Image.new("L", (300, 40), 0)
+        pilfont.draw_text(ImageDraw.Draw(img), (3, 5), text, home_made,
+                          fill=255)
+        plain = Image.new("L", (300, 40), 0)
+        ImageDraw.Draw(plain).text((3, 5), text, font=home_made, fill=255)
+        self.assertNotEqual(
+            img.tobytes(), plain.tobytes(),
+            "every run was drawn with the caller's own face, so the CJK "
+            "run is whatever that face does with characters it lacks")
 
     def test_an_unstamped_face_is_left_exactly_as_it_was_passed(self):
         """A caller who built a face by hand gets that face, whatever the
@@ -295,16 +332,37 @@ class TestSymbolRuns(unittest.TestCase):
         self.assertTrue(pilfont.has_rtl("★ סרט"))
         self.assertEqual(pilfont.script_of("★ סרט"), "latin")
 
-    def test_the_whole_string_answer_is_never_the_symbol_face(self):
+    def test_a_symbol_is_never_the_answer_for_a_string_with_words_in_it(self):
         """`script_of` picks the face for the *words*, and a symbol is not
         one. It is also the face a caller hands `draw_text` for a wrapped
         or ellipsized SUBSTRING, which the symbol need not have survived
         into -- see `test_a_line_ellipsized_before_the_star...`."""
         self.assertEqual(pilfont.script_of("1998 · ★ 8.1 · Drama"), "latin")
-        self.assertEqual(pilfont.script_of("★"), "latin")
         self.assertEqual(pilfont.script_of("Drama"), "latin")
         # ...and the runs still send the star somewhere that has one.
-        self.assertIn(("symbol", "★"), pilfont.runs("★"))
+        self.assertIn(("symbol", "★ "), pilfont.runs("★ 8.1"))
+
+    def test_a_string_that_is_ONLY_symbols_does_answer_the_symbol_face(self):
+        """There are no words to protect, and something has to draw it.
+
+        This is not a nicety: `components.placeholder_glyph` answers with
+        the first character of a title when no icon fits, and
+        `strips._paint_poster` draws that glyph with a bare
+        ``ImageDraw.text`` -- no runs, no `_run_face`, just the face
+        `font_for` picked. An album called "★" gets a tofu box on Windows
+        if this answers "latin", which is #713 again on a second path.
+        """
+        for text in ("★", "♪", "★ ★ ★", " ▶ "):
+            self.assertEqual(pilfont.script_of(text), "symbol", text)
+
+    def test_the_placeholder_glyph_path_resolves_a_face_that_has_it(self):
+        """The call `strips._paint_poster` actually makes, end to end."""
+        from jellyfin_mpv_shim.mpvtk_browser.components import (
+            placeholder_glyph)
+
+        glyph = placeholder_glyph({"Type": "Video", "Name": "★ Picks"})
+        self.assertEqual(glyph, "★")
+        self.assertEqual(pilfont.script_of(glyph), "symbol")
 
 
 class TestSymbolFace(unittest.TestCase):
@@ -411,6 +469,70 @@ class TestSymbolFace(unittest.TestCase):
                         anchor="ls")
             x += drawer.textlength(chunk, font=face)
         self.assertEqual(got.tobytes(), want.tobytes())
+
+    def test_a_wrapped_symbol_only_line_is_re_resolved_through_draw_text(self):
+        """`_run_face` asserted through the call that uses it, not directly.
+
+        The reachable case now that `script_of` protects words: a caption
+        whose face was chosen from "★ 8.1" (Latin) and which then wraps
+        down to the star alone. One run, and it is not the font's script.
+        """
+        from PIL import Image, ImageDraw
+
+        starless = self._starless()
+        if starless is None:
+            self.skipTest("no face measured to lack U+2605 on this host")
+        pilfont._CANDIDATES["latin"] = [starless]
+        pilfont.clear_cache()
+        symbol, latin = pilfont.font("symbol", 28), pilfont.font("latin", 28)
+        if symbol is latin:
+            self.skipTest("this host resolves both to one face")
+
+        chosen = pilfont.font_for("★ 8.1", 28)          # -> the Latin face
+        self.assertIs(chosen, latin, "the premise: a Latin-stamped font")
+
+        got = Image.new("L", (120, 48), 0)
+        pilfont.draw_text(ImageDraw.Draw(got), (3, 5), "★", chosen, fill=255)
+        want = Image.new("L", (120, 48), 0)
+        ImageDraw.Draw(want).text((3, 5), "★", font=symbol, fill=255)
+        self.assertEqual(got.tobytes(), want.tobytes(),
+                         "the star kept the Latin face it was handed")
+        # ...and measuring agrees with it, or a caption ellipsizes against
+        # a width it is not drawn at.
+        d = ImageDraw.Draw(Image.new("L", (10, 10)))
+        self.assertEqual(pilfont.text_length(d, "★", chosen),
+                         d.textlength("★", font=symbol))
+
+    def test_a_wrapped_rtl_line_is_re_resolved_too(self):
+        """The symmetric direction of the wrapped-substring repair.
+
+        `has_rtl` makes `draw_text` take a single draw call with the face it
+        was handed -- necessary, because Pillow reorders bidi within a call
+        and cannot across several. But "the face it was handed" was chosen
+        for a longer string: wrap "東京 دراما" and the Arabic-only line
+        inherits the CJK face. One draw call is still one draw call with
+        the *right* face, so the bypass must re-resolve rather than skip.
+        """
+        from PIL import Image, ImageDraw
+
+        cjk, arabic = pilfont.font("cjk", 28), pilfont.font("arabic", 28)
+        latin = pilfont.font("latin", 28)
+        if cjk is latin or arabic is latin or cjk is arabic:
+            self.skipTest("this host has no separate CJK and Arabic faces")
+
+        chosen = pilfont.font_for("東京 دراما", 28)
+        self.assertIs(chosen, cjk, "the premise: a CJK-stamped font")
+
+        line = "دراما"
+        got = Image.new("L", (200, 48), 0)
+        pilfont.draw_text(ImageDraw.Draw(got), (3, 5), line, chosen, fill=255)
+        want = Image.new("L", (200, 48), 0)
+        ImageDraw.Draw(want).text((3, 5), line, font=arabic, fill=255)
+        self.assertEqual(got.tobytes(), want.tobytes(),
+                         "the Arabic line kept the CJK face")
+        d = ImageDraw.Draw(Image.new("L", (10, 10)))
+        self.assertEqual(pilfont.text_length(d, line, chosen),
+                         d.textlength(line, font=arabic))
 
     def test_a_line_ellipsized_before_the_star_is_still_drawn_in_Latin(self):
         """The face is chosen from the WHOLE string and then a *substring*
