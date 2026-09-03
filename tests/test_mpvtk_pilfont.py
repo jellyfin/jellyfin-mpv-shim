@@ -100,6 +100,93 @@ class TestRuns(unittest.TestCase):
         self.assertEqual(pilfont.runs(None), [])
 
 
+class TestHebrew(unittest.TestCase):
+    """Hebrew has a face of its own (F33).
+
+    It was folded into "latin" on the strength of DejaVu having it. So does
+    Arial. `NotoSans-Regular.ttf` -- third in the Latin chain -- does not,
+    so on a host with Noto Sans and no DejaVu every Hebrew title was a row
+    of boxes in every baked bitmap. Exactly #713's shape, in a line nobody
+    had edited.
+    """
+
+    def test_the_hebrew_block_is_its_own_script(self):
+        for cp in (0x05D0, 0x05EA, 0x0590, 0x05FF):
+            self.assertEqual(pilfont.script_of_char(cp), "hebrew",
+                             "U+%04X" % cp)
+
+    def test_the_presentation_forms_go_with_it(self):
+        """U+FB1D-FB4F is Hebrew too, and was landing in the `cp >= 0x2E80`
+        CJK catch-all -- measured: NotoSansCJK cannot draw it."""
+        for cp in (0xFB1D, 0xFB2A, 0xFB4F):
+            self.assertEqual(pilfont.script_of_char(cp), "hebrew",
+                             "U+%04X" % cp)
+
+    def test_the_latin_ligatures_next_door_are_left_alone(self):
+        """U+FB00-FB1C is the Latin/Armenian half of the same block, and the
+        CJK face it currently resolves to *can* draw it (measured). Moving
+        it would be churn against nothing."""
+        self.assertEqual(pilfont.script_of_char(0xFB01), "cjk")
+
+    def test_arabic_presentation_forms_b_reaches_the_arabic_face(self):
+        """U+FE70-FEFF: `has_rtl` already called it RTL while
+        `script_of_char` sent it to CJK, so the whole line was drawn with a
+        face that cannot draw a word of it."""
+        for cp in (0xFE70, 0xFE8D, 0xFEFC):
+            self.assertEqual(pilfont.script_of_char(cp), "arabic",
+                             "U+%04X" % cp)
+
+    def test_every_rtl_codepoint_maps_to_an_rtl_face(self):
+        """The invariant behind all four tests above, and the one that
+        catches the next range added to either table.
+
+        `has_rtl` decides that a line is drawn with ONE face; `script_of`
+        decides which. If a codepoint is RTL and its script is neither
+        Hebrew nor Arabic, the one face chosen is by definition not a face
+        for it -- which is how U+FE70-FEFF ended up on a CJK face.
+        """
+        for lo, hi in pilfont._RTL_RANGES:
+            for cp in (lo, (lo + hi) // 2, hi):
+                self.assertIn(pilfont.script_of_char(cp),
+                              ("hebrew", "arabic"),
+                              "U+%04X is RTL but maps to %r"
+                              % (cp, pilfont.script_of_char(cp)))
+
+    def test_a_hebrew_title_reaches_a_face_that_has_it(self):
+        """Against a Latin face measured to lack Hebrew -- which is what a
+        box with Noto Sans and no DejaVu resolves."""
+        from PIL import Image, ImageDraw, ImageFont
+
+        def bitmap(font, text="א"):
+            img = Image.new("L", (60, 48), 0)
+            ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+            return img.tobytes()
+
+        saved = dict(pilfont._CANDIDATES)
+        self.addCleanup(pilfont.clear_cache)
+        self.addCleanup(pilfont._CANDIDATES.update, saved)
+        self.addCleanup(pilfont._CANDIDATES.clear)
+
+        hebrewless = None
+        for name in ("NotoSans-Regular.ttf",
+                     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"):
+            try:
+                face = ImageFont.truetype(name, 28)
+            except OSError:
+                continue
+            if bitmap(face) == bitmap(face, "\U000FFFFF"):
+                hebrewless = name
+                break
+        if hebrewless is None:
+            self.skipTest("no Latin face measured to lack Hebrew here")
+
+        pilfont._CANDIDATES["latin"] = [hebrewless]
+        pilfont.clear_cache()
+        hebrew = pilfont.font_for("סרט", 28)
+        self.assertNotEqual(bitmap(hebrew), bitmap(hebrew, "\U000FFFFF"),
+                            "a Hebrew title still resolves a face without it")
+
+
 class TestRtl(unittest.TestCase):
     """Right-to-left strings are deliberately left on one face.
 
@@ -324,13 +411,15 @@ class TestSymbolRuns(unittest.TestCase):
         self.assertIs(pilfont._run_face(home_made, "symbol"), home_made)
 
     def test_a_symbol_does_not_outrank_hebrew_either(self):
-        """The case the "another script won" rule does not cover: Hebrew
-        maps to "latin" here (the Latin face has it), so nothing outranks
-        the star -- and the line is still RTL and still drawn with one
-        face. Segoe UI Symbol has no Hebrew, so this must answer the face
-        that does."""
+        """Hebrew was the case the "another script won" rule did not cover:
+        it mapped to "latin", so nothing outranked the star, while the line
+        was still RTL and still drawn with one face -- and Segoe UI Symbol
+        has no Hebrew. F33 gave Hebrew a script of its own, so it is caught
+        by the same early return as every other script now, rather than by
+        the "are there words at all" half. The property is unchanged; the
+        answer is a better face than it used to be."""
         self.assertTrue(pilfont.has_rtl("★ סרט"))
-        self.assertEqual(pilfont.script_of("★ סרט"), "latin")
+        self.assertEqual(pilfont.script_of("★ סרט"), "hebrew")
 
     def test_a_symbol_is_never_the_answer_for_a_string_with_words_in_it(self):
         """`script_of` picks the face for the *words*, and a symbol is not

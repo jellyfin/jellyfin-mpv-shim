@@ -55,6 +55,20 @@ _CANDIDATES = {
         "/System/Library/Fonts/GeezaPro.ttc",
         "arial.ttf",
     ],
+    # Hebrew. Folded into "latin" until F33, on the strength of DejaVu
+    # having it -- and Arial does too, so both the developer's box and
+    # Windows looked fine. `NotoSans-Regular.ttf` is third in that list and
+    # has no Hebrew at all (measured), so a box with Noto Sans and no DejaVu
+    # drew every Hebrew title as boxes. A script is not covered because the
+    # face you happen to have covers it.
+    "hebrew": [
+        "NotoSansHebrew-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansHebrew-Regular.ttf",
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Hebrew.ttc",
+        "arial.ttf",
+    ],
     "devanagari": [
         "NotoSansDevanagari-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
@@ -119,10 +133,11 @@ def script_of_char(cp):
     """
     if cp < 0x0590:                # ASCII, Latin ext, Greek, Cyrillic
         return "latin"
-    if cp <= 0x05FF:               # Hebrew — DejaVu has it
-        return "latin"
-    if 0x0600 <= cp <= 0x06FF or 0xFB50 <= cp <= 0xFDFF:
-        return "arabic"
+    if cp <= 0x05FF or 0xFB1D <= cp <= 0xFB4F:
+        return "hebrew"            # ...and its presentation forms
+    if (0x0600 <= cp <= 0x06FF or 0xFB50 <= cp <= 0xFDFF
+            or 0xFE70 <= cp <= 0xFEFF):
+        return "arabic"            # ...and both presentation-form blocks
     if 0x0900 <= cp <= 0x097F:
         return "devanagari"
     if 0x0E00 <= cp <= 0x0E7F:
@@ -147,12 +162,8 @@ def script_of(text):
     symbol need not have survived into. Segoe UI Symbol's Latin is not
     Arial's and it carries no Arabic or Hebrew at all (measured), so one
     rating choosing it re-typesets whole paragraphs, and for an RTL line —
-    which cannot be split at all — draws every word as a box.
-
-    Note this is not "did another script win": **Hebrew maps to "latin"**
-    here, because the Latin face covers it, so the scan below has nothing
-    to report about a Hebrew line — it is the "are there words at all"
-    half that catches it.
+    which cannot be split at all — draws every word as a box. A real script
+    returns above before the question arises.
 
     But a string of *nothing but* symbols has no words to protect and still
     has to be drawn by something. `components.placeholder_glyph` answers
@@ -169,10 +180,10 @@ def script_of(text):
             return script            # cjk / arabic / thai / devanagari
         elif not ch.isspace():
             saw_word = True
-    # No ``has_rtl`` guard needed and none added: every RTL codepoint is
-    # either Arabic (returned above) or Hebrew, which maps to "latin" and
-    # therefore sets `saw_word`. A string of nothing but symbols cannot be
-    # RTL, and a redundant condition here would read as load-bearing.
+    # No ``has_rtl`` guard needed and none added: every RTL codepoint maps
+    # to hebrew or arabic and has returned above (an invariant a test
+    # holds), so anything reaching here has no RTL in it at all. A
+    # redundant condition would read as load-bearing.
     return "symbol" if saw_symbol and not saw_word else "latin"
 
 
@@ -206,8 +217,14 @@ def runs(text):
 #: right-to-left run in the wrong place -- Pillow (through Raqm) reorders
 #: within a single draw call and cannot across several. Tofu in one run is
 #: a worse-looking line; reordered text is a wrong one.
-_RTL_RANGES = ((0x0590, 0x05FF), (0x0600, 0x06FF), (0xFB50, 0xFDFF),
-               (0xFE70, 0xFEFF))
+#:
+#: **Kept in step with `script_of_char` by a test** — every codepoint here
+#: must map to "hebrew" or "arabic", because this table decides that a line
+#: gets ONE face and that one decides which. U+FE70-FEFF was in this table
+#: and mapped to *cjk*, so an Arabic line written in presentation forms was
+#: drawn end to end with a face that cannot draw a word of it.
+_RTL_RANGES = ((0x0590, 0x05FF), (0x0600, 0x06FF), (0xFB1D, 0xFB4F),
+               (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
 
 
 def has_rtl(text):
