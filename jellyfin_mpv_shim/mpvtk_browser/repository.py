@@ -559,6 +559,17 @@ class LibrarySource:
     def _conn(self, server_uuid) -> ServerConn:
         return self._conns[server_uuid]
 
+    def server_address(self, server_uuid):
+        """Base url of one connected server, or None.
+
+        For composing a link *out* of the app — the jellyfin-web page for an
+        item (#714). `.get`, like image_url: a rebuilt source can have
+        dropped this server while a screen keyed to it is still up, and the
+        honest answer then is "no link", not a KeyError on the render thread.
+        """
+        conn = self._conns.get(server_uuid)
+        return conn.address if conn is not None else None
+
     def stop(self):
         for conn in self._conns.values():
             conn.stop()
@@ -2932,6 +2943,11 @@ class OfflineLibrarySource:
 
     def servers(self):
         return [{"uuid": "offline", "name": _("Downloaded")}]
+
+    def server_address(self, server_uuid):
+        """No server to link to: this source *is* the answer to the server
+        being unreachable. The web-link button is simply not offered."""
+        return None
 
     # -- browsing ----------------------------------------------------------
 

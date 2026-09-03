@@ -171,7 +171,11 @@ class SeasonPage(Page):
         # the synopsis, which is where web has them -- there is no synopsis
         # here.
         row_buttons += detail_components.provider_link_buttons(
-            season_item, self.open_link)
+            season_item, self.open_link,
+            # The same fallback `common_actions` takes above: the season's
+            # own DTO is looked up in the sibling list and is {} until that
+            # lands, and the route knows which item this page is for.
+            web_url=self.web_url(season_item or {"Id": route["item_id"]}))
         title_row += _grouped(row_buttons, size[0] - 2 * gpad)
         header = []
         if title_row:

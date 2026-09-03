@@ -174,7 +174,28 @@ def _is_dead(url):
                for dead in DEAD_PROVIDER_HOSTS)
 
 
-def provider_link_buttons(item, on_open):
+def jellyfin_web_url(address, item):
+    """The item's page in jellyfin-web, or None when it cannot be composed.
+
+    ``#/details?id=…&serverId=…`` — read out of jellyfin-web's own
+    ``appRouter.getRouteUrl`` and checked on both supported servers (12.0 in
+    the bundle it serves, 10.11 in ``release-10.11.z``); the ``#!`` spelling
+    is 10.8 and older. ``serverId`` comes from the DTO rather than from the
+    uuid the browser keys servers by: those are the *server's* id only for a
+    login that asked for it, and a random uuid4 otherwise (``clients.py``).
+    It is left off when the DTO has none, which web reads as "the server you
+    are signed in to" — the right answer for the only source that omits it.
+    """
+    if not address or not (item or {}).get("Id"):
+        return None
+    url = "%s/web/#/details?id=%s" % (address.rstrip("/"), item["Id"])
+    server_id = item.get("ServerId")
+    if server_id:
+        url += "&serverId=%s" % server_id
+    return url
+
+
+def provider_link_buttons(item, on_open, web_url=None):
     """The provider links as a plain list of buttons, or ``[]``.
 
     Split from :func:`provider_links` because the season screen does not
@@ -197,6 +218,14 @@ def provider_link_buttons(item, on_open):
     ``on_open`` takes the url. It is passed in rather than reached for
     because opening one is the shell stepping outside the process, which is
     the gateway's job and not a component's.
+
+    ``web_url`` is the item's own page on the server it came from
+    (:func:`jellyfin_web_url`), and leads rather than joining the tail: it is
+    the one link here that is about *this* library rather than about the
+    title in general, and it is the one somebody presses to carry on with the
+    item somewhere else. Its node id is deliberately outside the
+    ``detail-link-N`` series — those are indexed by provider, and shifting
+    them by one would make every existing id name a different database.
     """
     seen, links = set(), []
     for entry in item.get("ExternalUrls") or ():
@@ -213,22 +242,33 @@ def provider_link_buttons(item, on_open):
         links.append((str(name), str(url)))
         if len(links) >= MAX_PROVIDER_LINKS:
             break
-    return [controls.action_btn(
+    buttons = []
+    if web_url:
+        # One word, like the database names beside it -- those come off the
+        # server untranslated because they are proper nouns, and a verb
+        # phrase here ("Open in Jellyfin") would read as a different KIND of
+        # control from its neighbours [iw]. This one is a word rather than a
+        # name, so it does go through gettext.
+        buttons.append(controls.action_btn(
+            "open_in_new", _("Web"), "detail-web-link",
+            lambda u=web_url: on_open(u), size=controls.ROW))
+    buttons += [controls.action_btn(
         "open_in_new", name, "detail-link-%d" % i,
         # url bound as a default argument, not closed over: the loop
         # variable would otherwise be whatever it ended on, and every
         # button on the row would open the last provider.
         lambda u=url: on_open(u), size=controls.ROW)
         for i, (name, url) in enumerate(links)]
+    return buttons
 
 
-def provider_links(item, avail, on_open):
+def provider_links(item, avail, on_open, web_url=None):
     """The provider links as a row of their own, or None when there are no
     links to draw. What the detail and series screens want, both of which
     place this under the synopsis with nothing else beside it."""
     from . import chrome
 
-    buttons = provider_link_buttons(item, on_open)
+    buttons = provider_link_buttons(item, on_open, web_url=web_url)
     if not buttons:
         return None
     return chrome.wrap_row(buttons, avail, gap=8, align="center")

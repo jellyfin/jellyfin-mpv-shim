@@ -104,7 +104,8 @@ class DetailPage(Page):
         # action on the item. No headless gate -- a detail page is already
         # unreachable in that mode (MpvtkBrowser.navigate).
         links = detail_components.provider_links(item, tiles.body_w(w),
-                                                 self.open_link)
+                                                 self.open_link,
+                                                 web_url=self.web_url(item))
         if links is not None:
             blocks.append(links)
         scenes = self._scenes_row(item, server)

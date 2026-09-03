@@ -157,6 +157,13 @@ class FakeSource:
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
 
+    def server_address(self, server_uuid):
+        """A real address per server, not one constant: the jellyfin-web link
+        names the server the item came from, and a fake with one address
+        cannot tell a right answer from a wrong one on a two-server setup."""
+        return {"srv1": "https://home.example",
+                "srv2": "https://remote.example"}.get(server_uuid)
+
     def get_libraries(self, server_uuid):
         return list(self.libraries)
 
@@ -293,6 +300,10 @@ class FakeSource:
             return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
+                # Every DTO a real server sends carries one, and the
+                # jellyfin-web link puts it in the query string -- a fixture
+                # without it can only exercise the omitted-serverId branch.
+                "ServerId": "SRVID",
                 # The server fills ExternalUrls in unconditionally on the
                 # single-item routes, so the real detail screen essentially
                 # always has some. Modelled here rather than on one fixture
