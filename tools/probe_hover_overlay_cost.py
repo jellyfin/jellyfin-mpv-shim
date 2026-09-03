@@ -224,6 +224,12 @@ def main():
         print("%s ids: %d pointer moves -> %d overlay-adds, %.1f MiB, %.1fs"
               % ("legacy" if args.legacy else "named", moves, adds,
                  nbytes / 1048576.0, elapsed))
+        if not moves:
+            # The per-move numbers are the whole point of the probe, and
+            # dividing by zero here replaces the diagnosis printed above --
+            # "chip never appeared" -- with a traceback about arithmetic.
+            print("   per move: no move produced a chip; nothing to average")
+            return 1
         print("   per move: %.1f adds, %.2f MiB"
               % (adds / float(moves), nbytes / 1048576.0 / moves))
         return 0

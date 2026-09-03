@@ -16,6 +16,16 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
+# ...and the repo root, BEFORE `_harness` reaches for jellyfin_mpv_shim.
+# Run as a script (`python3 tests/integration/test_mpvtk_browser.py`, which
+# the __main__ block below invites) `sys.path[0]` is tests/integration and
+# the root is on the path nowhere, so the package resolves to whatever is
+# pip-installed -- silently, and it *runs*, against the previous release.
+# Measured: it loads that copy's renderer.lua, and the overlay-traffic test
+# then fails for a reason that has nothing to do with the tree. Same trap
+# tools/run_tests_parallel.py documents from the other direction.
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import _harness as h  # noqa: E402
 
 
