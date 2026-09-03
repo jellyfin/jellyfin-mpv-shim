@@ -873,9 +873,19 @@ class StripStore:
                           (int(x + (g.tile_w - gsize) // 2),
                            int((g.tile_h - gsize) // 2)), glyph)
             else:
-                dr.text((x + g.tile_w / 2, g.tile_h / 2), t.glyph,
-                        font=_font(gsize, bold=True, text=t.glyph),
-                        anchor="mm", fill=theme.rgb(theme.SUBTLE_FG))
+                # pilfont.draw_text, not dr.text: the initial is the first
+                # character of a title and a title can start with anything.
+                # A bare draw.text is what put #713's star back on this
+                # path, and it is the only path an emoji can arrive at
+                # entirely on its own -- where a face has to be resolved
+                # for it, not merely kept.
+                from ..mpvtk import pilfont
+
+                pilfont.draw_text(dr, (x + g.tile_w / 2, g.tile_h / 2),
+                                  t.glyph,
+                                  _font(gsize, bold=True, text=t.glyph),
+                                  fill=theme.rgb(theme.SUBTLE_FG),
+                                  anchor="mm")
         if rounded:
             dr.rounded_rectangle(box, radius=r,
                                  outline=theme.rgb("101012", 255))

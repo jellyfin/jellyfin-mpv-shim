@@ -688,6 +688,86 @@ class TestMixedScriptCaptions(unittest.TestCase):
                            12)
 
 
+class TestEmojiInBakedText(unittest.TestCase):
+    """F31, end to end through the compositor.
+
+    Two paths, because they are two `draw.text` calls and only one of them
+    was ever routed through `pilfont`: a caption beside words, and a tile
+    whose whole artwork is the first character of its title.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="strips-emoji-")
+        self.addCleanup(shutil.rmtree, self.dir, ignore_errors=True)
+        self.store = StripStore(cache_dir=self.dir, geom=TileGeom())
+        from jellyfin_mpv_shim.mpvtk import pilfont
+        self.pilfont = pilfont
+        name = pilfont._resolved.get(("emoji", False))
+        if name is None:
+            pilfont.font("emoji", 20)
+            name = pilfont._resolved.get(("emoji", False))
+        if name is None or name not in pilfont._CANDIDATES["emoji"]:
+            self.skipTest("no emoji face installed on this host")
+
+    def strip(self, tile):
+        out = self.store.strip([tile])
+        path = out["src"]
+        if not isinstance(path, str) or not os.path.isfile(path):
+            self.skipTest("this backend does not write a readable bitmap")
+        with open(path, "rb") as fh:
+            raw = fh.read()
+        w, h = out["iw"], out["ih"]
+        return Image.frombytes("RGBA", (w, h), raw[-w * h * 4:], "raw", "BGRA")
+
+    #: How far apart a pixel's channels must be to count as colour. The
+    #: theme's own dark ground is (16, 16, 18) -- not grey, but not colour
+    #: either -- and a threshold of "the channels differ at all" measures
+    #: that and passes whatever the emoji did. Noto's grin is (251, 218,
+    #: 46), a spread of 205.
+    SATURATION = 60
+
+    def coloured(self, img):
+        rgba = img.convert("RGBA")
+        return {px[:3] for px in rgba.get_flattened_data()
+                if px[3] > 200 and max(px[:3]) - min(px[:3]) >= self.SATURATION}
+
+    def test_an_emoji_in_a_caption_is_drawn_in_colour(self):
+        geom = TileGeom()
+        img = self.strip(Tile(key="k", title="Movie \U0001F600",
+                              poster=_poster()))
+        band = img.crop((0, geom.tile_h, min(img.width, geom.tile_w),
+                         img.height))
+        if not self.coloured(self.emoji_reference()):
+            self.skipTest("the emoji face on this host is monochrome")
+        self.assertTrue(self.coloured(band),
+                        "the caption's emoji is a grey box, not an emoji")
+
+    def test_an_emoji_placeholder_tile_is_drawn_in_colour(self):
+        """`components.placeholder_glyph` answers a title's first
+        character, and `_paint_poster` used a bare `draw.text` for it — so
+        this path missed the run splitting entirely and is the one an emoji
+        reaches with nothing else in the string."""
+        geom = TileGeom()
+        img = self.strip(Tile(key="k", title="", glyph="\U0001F600"))
+        art = img.crop((0, 0, min(img.width, geom.tile_w), geom.tile_h))
+        if not self.coloured(self.emoji_reference()):
+            self.skipTest("the emoji face on this host is monochrome")
+        self.assertTrue(self.coloured(art),
+                        "the placeholder emoji is a grey box, not an emoji")
+
+    def emoji_reference(self):
+        """What the emoji face draws when asked directly. The guard has to
+        come from the face, never from the picture under test, or a
+        compositor that lost the colour skips itself instead of failing."""
+        from PIL import ImageDraw
+        img = Image.new("RGBA", (60, 60), (0, 0, 0, 0))
+        ImageDraw.Draw(img).text((2, 2), "\U0001F600",
+                                 font=self.pilfont.font("emoji", 20),
+                                 fill=(255, 255, 255, 255),
+                                 embedded_color=True)
+        return img
+
+
 class TestTheBudgetFollowsTheMachine(unittest.TestCase):
     """These bytes are memory on both backends: ctypes buffers in-process on
     libmpv, and on mpv_ext files in a scratch directory that is RAM-backed

@@ -17,6 +17,13 @@ Latin face is not a symbol face, and the one the app lands on under Windows
 (Arial) has no U+2605 — see :data:`_SYMBOL_RANGES`. **The ASS half of #713
 needed no fix**: measured on Windows, libass falls back through DirectWrite
 and draws U+2605, U+2713 and U+25B6 fine, so only text baked here was broken.
+
+"emoji" is a third such pseudo-script, and the only one where the *face* is
+awkward rather than just the choice of it: a colour-emoji face is drawn in
+its own colours (``embedded_color``) and is very often available at one
+fixed pixel size and no other. :data:`_STRIKES` and :func:`_draw_scaled` are
+the two halves of that. A symbol face is not an emoji face either — neither
+Segoe UI Symbol nor NotoSansSymbols2 carries one (measured).
 """
 
 import logging
@@ -96,7 +103,42 @@ _CANDIDATES = {
         "/System/Library/Fonts/Apple Symbols.ttf",
         "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
     ],
+    # Colour emoji. Not a script either, and the one candidate list here
+    # where the *pixel size* is part of the problem: Windows' seguiemj is
+    # COLR-outlined and loads at any size, but NotoColorEmoji.ttf -- what
+    # every Linux box has -- is a CBDT bitmap face with a single 109px
+    # strike and raises `OSError: invalid pixel size` at every other size
+    # (measured). `_load` probes strikes for this script alone, and
+    # `draw_text` shrinks what the strike draws. The two monochrome outline
+    # faces at the end are the graceful degradation: they load at the asked
+    # size and need none of that.
+    "emoji": [
+        "seguiemj.ttf",
+        "NotoColorEmoji.ttf",
+        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+        "NotoColorEmoji-Regular.ttf",
+        "/System/Library/Fonts/Apple Color Emoji.ttc",
+        "NotoEmoji-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf",
+        "Symbola.ttf",
+        "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf",
+    ],
 }
+
+#: Where a script's face falls back to *before* the Latin one. Only emoji
+#: has an entry, and it matters: with no emoji font at all, "⭐" drawn by
+#: the Latin face is a box, and drawn by the symbol face is the monochrome
+#: star it has always been. Falling straight to Latin would make this
+#: change a regression on exactly the hosts it cannot help.
+_FALLBACK_SCRIPTS = {"emoji": ("symbol",)}
+
+#: Pixel sizes a bitmap-strike face may be available at, tried in
+#: `_strike_order` when the asked-for size is refused. NotoColorEmoji is
+#: 109; Apple Color Emoji's sbix strikes are 20/26/32/40/48/52/64/96/160;
+#: 128 and 136 are what the older Noto and the Twemoji builds ship. A face
+#: with a strike outside this list simply is not used -- the run falls to
+#: the symbol face, which is what it does today.
+_STRIKES = (16, 20, 26, 32, 40, 48, 52, 64, 96, 109, 128, 136, 160)
 
 # Bold variants, tried before the regular list for bold requests.
 _BOLD = {
@@ -123,13 +165,84 @@ _SYMBOL_RANGES = ((0x2190, 0x21FF),    # arrows
                   (0x2700, 0x27BF),    # dingbats: ticks, crosses
                   (0x2B00, 0x2BFF))    # misc symbols and arrows
 
+#: Codepoints that want a **colour emoji** face. Unicode's
+#: ``Emoji_Presentation=Yes`` (UTS #51, emoji-data.txt): the codepoints that
+#: are drawn in colour by default, as opposed to the ones that only become
+#: emoji when followed by U+FE0F.
+#:
+#: The BMP half is a list of small ranges rather than whole blocks, and that
+#: is the load-bearing part: U+2605 and U+2713 sit inside U+2600-27BF, and
+#: **neither colour face draws them** -- measured, both NotoColorEmoji and
+#: seguiemj answer .notdef -- so sweeping the block into this table would put
+#: #713's star straight back to tofu. The text-presentation neighbours stay
+#: on the symbol face, which is the face that has them.
+#:
+#: The astral half is whole blocks, and can be, because up there the current
+#: answer is the ``cp >= 0x2E80`` CJK catch-all and it is **already tofu**:
+#: NotoSansCJK covers 0 of U+1F300-1F5FF and msgothic 0 of every block here
+#: (measured). The ~130 text-presentation pictographs inside U+1F300-1F5FF
+#: that Noto Color Emoji does not carry stay tofu, exactly as they are now;
+#: carving them out would be a table nobody could check.
+_EMOJI_RANGES = ((0x231A, 0x231B), (0x23E9, 0x23EC), (0x23F0, 0x23F0),
+                 (0x23F3, 0x23F3), (0x25FD, 0x25FE), (0x2614, 0x2615),
+                 (0x2648, 0x2653), (0x267F, 0x267F), (0x2693, 0x2693),
+                 (0x26A1, 0x26A1), (0x26AA, 0x26AB), (0x26BD, 0x26BE),
+                 (0x26C4, 0x26C5), (0x26CE, 0x26CE), (0x26D4, 0x26D4),
+                 (0x26EA, 0x26EA), (0x26F2, 0x26F3), (0x26F5, 0x26F5),
+                 (0x26FA, 0x26FA), (0x26FD, 0x26FD), (0x2705, 0x2705),
+                 (0x270A, 0x270B), (0x2728, 0x2728), (0x274C, 0x274C),
+                 (0x274E, 0x274E), (0x2753, 0x2755), (0x2757, 0x2757),
+                 (0x2795, 0x2797), (0x27B0, 0x27B0), (0x27BF, 0x27BF),
+                 (0x2B1B, 0x2B1C), (0x2B50, 0x2B50), (0x2B55, 0x2B55),
+                 # Astral. The enclosed-alphanumeric singletons are picked
+                 # out of blocks that are otherwise CJK's: U+1F110 (circled
+                 # A) is tofu in both colour faces and mono in NotoSansCJK,
+                 # so the block cannot move wholesale.
+                 (0x1F004, 0x1F004), (0x1F0CF, 0x1F0CF), (0x1F18E, 0x1F18E),
+                 (0x1F191, 0x1F19A), (0x1F1E6, 0x1F1FF), (0x1F201, 0x1F202),
+                 (0x1F21A, 0x1F21A), (0x1F22F, 0x1F22F), (0x1F232, 0x1F23A),
+                 (0x1F250, 0x1F251), (0x1F300, 0x1F64F), (0x1F680, 0x1F6FF),
+                 (0x1F7E0, 0x1F7FF), (0x1F900, 0x1F9FF), (0x1FA70, 0x1FAFF))
+
+#: Astral blocks that are ordinary monochrome symbols, not emoji, and that
+#: the same CJK catch-all was swallowing. Measured: NotoSansSymbols2 draws
+#: all of these and NotoSansCJK draws none of them, so the catch-all was the
+#: reason a domino or a chess piece in a title was a box.
+_ASTRAL_SYMBOL_RANGES = ((0x1F000, 0x1F0FF),   # mahjong, dominoes, cards
+                         (0x1F650, 0x1F67F),   # ornamental dingbats
+                         (0x1F700, 0x1F7DF),   # alchemical, geometric ext
+                         (0x1F800, 0x1F8FF),   # supplemental arrows-C
+                         (0x1FA00, 0x1FA6F),   # chess, symbols ext-A
+                         (0x1FB00, 0x1FBFF))   # legacy computing
+
+
+def _codepoints(ranges):
+    """A range table, flattened for lookup.
+
+    The tables above stay ranges because that is the form a human can check
+    them against emoji-data.txt in; this is the form the repaint path can
+    afford. `script_of_char` runs per character, and `strips._ellipsize`
+    re-measures a caption once per character while it trims, so walking 48
+    emoji ranges to reject one CJK character showed up: measured, 1.2us a
+    character against 0.017us for a set membership, which is 25us against
+    2us for one Japanese caption and milliseconds across a grid. The three
+    sets together are ~3,800 codepoints.
+    """
+    return frozenset(cp for lo, hi in ranges for cp in range(lo, hi + 1))
+
+
+_SYMBOL_CPS = _codepoints(_SYMBOL_RANGES)
+_EMOJI_CPS = _codepoints(_EMOJI_RANGES)
+_ASTRAL_SYMBOL_CPS = _codepoints(_ASTRAL_SYMBOL_RANGES)
+
 
 def script_of_char(cp):
     """The script one codepoint needs a face for.
 
-    Latin/Cyrillic/Greek/Hebrew and the punctuation blocks all map to
-    "latin", which is the face that covers them. The symbol blocks do not:
-    see :data:`_SYMBOL_RANGES`.
+    Latin/Cyrillic/Greek and the punctuation blocks all map to "latin",
+    which is the face that covers them. The symbol blocks do not (see
+    :data:`_SYMBOL_RANGES`), and neither do the emoji ones (see
+    :data:`_EMOJI_RANGES`) -- a symbol face is not an emoji face either.
     """
     if cp < 0x0590:                # ASCII, Latin ext, Greek, Cyrillic
         return "latin"
@@ -142,9 +255,12 @@ def script_of_char(cp):
         return "devanagari"
     if 0x0E00 <= cp <= 0x0E7F:
         return "thai"
+    # Before the CJK catch-all, because most of this table is above it.
+    if cp in _EMOJI_CPS:
+        return "emoji"
     if cp >= 0x2E80:               # CJK, kana, hangul, fullwidth forms
-        return "cjk"
-    if any(lo <= cp <= hi for lo, hi in _SYMBOL_RANGES):
+        return "symbol" if cp in _ASTRAL_SYMBOL_CPS else "cjk"
+    if cp in _SYMBOL_CPS:
         return "symbol"
     return "latin"                 # punctuation, currency, maths
 
@@ -167,14 +283,24 @@ def script_of(text):
 
     But a string of *nothing but* symbols has no words to protect and still
     has to be drawn by something. `components.placeholder_glyph` answers
-    with the first character of a title, and `strips._paint_poster` draws
-    that with a bare ``ImageDraw.text`` — no runs, no `_run_face` — so an
-    album named "★" is #713 all over again if this says "latin".
+    with the first character of a title, so an album named "★" is #713 all
+    over again if this says "latin".
+
+    **"emoji" is never the answer, not even for a string of nothing but
+    emoji**, and that is deliberate rather than an omission. A colour-emoji
+    face is very often bitmap-only -- ``NotoColorEmoji.ttf`` loads at 109px
+    and at no other size (measured) -- so the object `font("emoji", 20)`
+    returns has a 109px face's metrics, and this answer is used to reserve a
+    line's *height* (`components/banner.py`, `mpvtk_browser/cast.py`) and to
+    pick the face for a whole book (`epub/fonts.py`). Both would be wrong by
+    a factor of five. The emoji face is reached per *run*, inside
+    ``draw_text``, which knows to scale what it draws; it is not something a
+    caller should be handed.
     """
     saw_symbol = saw_word = False
     for ch in text or "":
         script = script_of_char(ord(ch))
-        if script == "symbol":
+        if script in ("symbol", "emoji"):
             saw_symbol = True
         elif script != "latin":
             return script            # cjk / arabic / thai / devanagari
@@ -185,6 +311,22 @@ def script_of(text):
     # holds), so anything reaching here has no RTL in it at all. A
     # redundant condition would read as load-bearing.
     return "symbol" if saw_symbol and not saw_word else "latin"
+
+
+#: Characters that join what is around them into one glyph and must never
+#: start a run of their own. A run boundary is a separate ``draw.text``
+#: call, and shaping does not cross one: split "👩‍💻" at the joiner
+#: and Raqm sees three strings instead of one, so it draws two emoji where
+#: the font has a single glyph. Measured with Raqm: the ZWJ sequence, the
+#: flag pair and the keycap all shape to one glyph of the same advance as
+#: one emoji, and the variation selectors are consumed rather than drawn.
+#:
+#: U+20E3 rides with the digit *before* it, which is what makes "1️⃣"
+#: come out as a keycap from an ordinary Latin face rather than as a digit
+#: and a box.
+_JOINERS = frozenset((0x200D,            # zero width joiner
+                      0xFE0E, 0xFE0F,    # text / emoji variation selectors
+                      0x20E3))           # combining enclosing keycap
 
 
 def runs(text):
@@ -201,10 +343,24 @@ def runs(text):
     Whitespace is neutral and stays with the run in progress rather than
     starting a Latin one: a space is blank in every face, and splitting on it
     would double the run count of an ordinary sentence for nothing.
+
+    **Except after emoji**, where "blank in every face" stops being true: a
+    space is blank in a colour-emoji face but as *wide* as an emoji --
+    measured, NotoColorEmoji advances 135.7 of its 109px em for U+0020,
+    against DejaVu's 6.4 at 20px -- so a caption with an emoji in the middle
+    came out with a four-space hole after it.
+
+    :data:`_JOINERS` is neutral for a harder reason, and unconditionally --
+    see there.
     """
     out = []
     for ch in text or "":
-        script = None if ch.isspace() else script_of_char(ord(ch))
+        if ord(ch) in _JOINERS:
+            script = None
+        elif ch.isspace():
+            script = "latin" if out and out[-1][0] == "emoji" else None
+        else:
+            script = script_of_char(ord(ch))
         if out and (script is None or script == out[-1][0]):
             out[-1][1].append(ch)
         else:
@@ -232,7 +388,20 @@ def has_rtl(text):
                for ch in text or "" for lo, hi in _RTL_RANGES)
 
 
-def _load(names, size):
+def _strike_order(size):
+    """Fixed sizes to try for a face that refused ``size``.
+
+    Bigger first, so what gets drawn is shrunk rather than blown up, and
+    the smallest of those, so the shrink is the gentlest available.
+    """
+    return ([s for s in _STRIKES if s > size]
+            + [s for s in reversed(_STRIKES) if s < size])
+
+
+def _load(names, size, strikes=False):
+    """``(font, name, native)``. ``native`` is the size it actually opened
+    at, which is ``size`` for every scalable face and the strike for a
+    bitmap one."""
     # Before the import, not after: Pillow resolves FriBiDi once at
     # extension init, so this is the last moment it can matter. Idempotent
     # and a no-op off Windows; `mpv_shim.main` has normally done it already
@@ -243,11 +412,12 @@ def _load(names, size):
     from PIL import ImageFont
 
     for name in names:
-        try:
-            return ImageFont.truetype(name, size), name
-        except (OSError, IOError):
-            continue
-    return None, None
+        for want in [size] + (_strike_order(size) if strikes else []):
+            try:
+                return ImageFont.truetype(name, want), name, want
+            except (OSError, IOError):
+                continue
+    return None, None, size
 
 
 def font_for(text, size, bold=False):
@@ -266,17 +436,19 @@ def font(script, size, bold=False):
     if bold:
         names += _BOLD.get(script, [])
     names += _CANDIDATES.get(script, [])
+    for other in _FALLBACK_SCRIPTS.get(script, ()):
+        names += _CANDIDATES.get(other, [])
     if script != "latin":
         # Better a Latin face than Pillow's 11px bitmap default.
         if bold:
             names += _BOLD["latin"]
         names += _CANDIDATES["latin"]
-    fnt, name = _load(names, size)
+    fnt, name, native = _load(names, size, strikes=(script == "emoji"))
     if fnt is None:
         from PIL import ImageFont
 
         fnt = ImageFont.load_default()
-        name = None
+        name, native = None, size
     if _resolved.get((script, bool(bold))) != name:
         _resolved[(script, bool(bold))] = name
         if name is None and script != "latin":
@@ -289,10 +461,27 @@ def font(script, size, bold=False):
     try:
         fnt._jms_size, fnt._jms_bold = size, bool(bold)
         fnt._jms_script = script
+        # The size it OPENED at, which is the size everything it draws and
+        # measures comes back in. `_scale_of` is the only reader.
+        fnt._jms_native = native
     except AttributeError:         # a face that will not be annotated
         pass
     _cache[key] = fnt
     return fnt
+
+
+def _scale_of(fnt):
+    """How much of its natural size a face's output has to be shrunk to.
+
+    1.0 for every scalable face, so every path below is a no-op for all of
+    them. It is not 1.0 for a bitmap-strike colour-emoji face, which draws
+    and measures at its strike and nothing else: see :data:`_STRIKES`.
+    """
+    native = getattr(fnt, "_jms_native", None)
+    want = getattr(fnt, "_jms_size", None)
+    if not native or not want or native == want:
+        return 1.0
+    return float(want) / float(native)
 
 
 def _same_size(fnt, script):
@@ -331,30 +520,136 @@ def _run_face(fnt, script):
     return _same_size(fnt, script)
 
 
-def text_length(draw, text, fnt):
+def _face_pickers(fnt, faces):
+    """``(single, per_run)`` — how to turn a script name into a face.
+
+    ``faces`` is the seam the epub reader hangs off: its faces are serif
+    families of its own, resolved per (kind, size, weight, slant), so it
+    supplies a resolver rather than borrowing this module's. **A supplied
+    resolver is authoritative for both**, which is the difference that
+    matters: `_run_face`'s "leave an unstamped caller's face exactly as it
+    was passed" rule is a promise to the *browser*, whose fonts all come
+    from `font()` and so carry a stamp. The reader's Latin faces do not,
+    and honouring the rule there would hand a CJK run a serif face --
+    which is the bug the reader was routed through here to fix.
+    """
+    if faces is not None:
+        return faces, faces
+    return ((lambda script: _run_face(fnt, script)),
+            (lambda script: _same_size(fnt, script)))
+
+
+def _split(text, fnt, faces):
+    """``(parts, single_face_or_None, pickers)`` — the one place the two
+    bypasses live, so measuring and drawing cannot disagree about them.
+
+    A single **emoji** run does not take the bypass. It has to reach the
+    per-run resolver (`_run_face` would hand back the caller's own face,
+    which is the face that cannot draw it) and, on a bitmap-strike face,
+    the scaling that only the run loop does.
+    """
+    parts = runs(text)
+    single, per_run = _face_pickers(fnt, faces)
+    if has_rtl(text):
+        return parts, single(script_of(text)), per_run
+    if len(parts) == 1 and parts[0][0] != "emoji":
+        return parts, single(parts[0][0]), per_run
+    return parts, None, per_run
+
+
+def _measure(text, fnt, faces, measure):
+    if not text:
+        return 0.0
+    parts, whole, per_run = _split(text, fnt, faces)
+    if whole is not None:
+        return measure(text, whole) * _scale_of(whole)
+    total = 0.0
+    for script, chunk in parts:
+        face = per_run(script)
+        total += measure(chunk, face) * _scale_of(face)
+    return total
+
+
+def text_length(draw, text, fnt, faces=None):
     """``draw.textlength`` for a string that may need more than one face.
 
     Measuring has to agree with drawing or a caption is ellipsized against a
     width it is not drawn at, so this and ``draw_text`` split identically.
     """
-    if not text:
-        return 0.0
-    parts = runs(text)
-    if has_rtl(text):
-        return draw.textlength(text, font=_run_face(fnt, script_of(text)))
-    if len(parts) == 1:
-        return draw.textlength(text, font=_run_face(fnt, parts[0][0]))
-    return sum(draw.textlength(chunk, font=_same_size(fnt, script))
-               for script, chunk in parts)
+    return _measure(text, fnt, faces,
+                    lambda chunk, face: draw.textlength(chunk, font=face))
 
 
-def draw_text(draw, xy, text, fnt, fill=None, anchor=None):
+def length(text, fnt, faces=None):
+    """:func:`text_length` for a caller that has no ``ImageDraw``.
+
+    The epub reader measures a chapter to paginate it long before there is
+    anything to draw on, and building a 1x1 image per measurement is the
+    thing its width cache exists to avoid. ``draw.textlength`` is
+    ``font.getlength`` with the draw's ``fontmode`` passed through, and
+    every surface here is antialiased, which is that default.
+    """
+    return _measure(text, fnt, faces,
+                    lambda chunk, face: face.getlength(chunk))
+
+
+def _draw_scaled(draw, x, baseline, chunk, face, scale, fill):
+    """Draw one run with a face that only exists at another pixel size.
+
+    Rendered at the face's own size into a scratch bitmap, shrunk, and
+    composited. There is no other way round it: ``NotoColorEmoji.ttf`` is a
+    CBDT bitmap face with one 109px strike, so a 20px caption either draws
+    its emoji at 109 and shrinks, or does not draw them.
+
+    Not premultiplied before the resize, deliberately. The glyphs are
+    already antialiased into transparent *black*, so the naive resize has no
+    halo to remove -- measured against both a white and a dark plate -- and
+    premultiplying without dividing back out darkens every edge instead.
+
+    Composited through ``draw.im`` rather than ``Image.paste`` because that
+    is all a caller gives us, and it is the same core call Pillow's own
+    ``ImageDraw.text`` makes for colour glyphs. The alpha rides in the mask
+    and not in the source, or a transparent plate squares it and the run
+    comes out thin.
+    """
+    from PIL import Image, ImageDraw
+
+    target = getattr(draw, "im", None)
+    if target is None:             # a draw with no image behind it
+        return
+    ascent, descent = face.getmetrics()
+    # Emoji bitmaps overshoot the ascent/descent box by a pixel or two, and
+    # the scratch is the only clip they have.
+    pad = max(1, int(round(ascent * 0.25)))
+    advance = draw.textlength(chunk, font=face)
+    w = max(1, int(advance) + 2 * pad)
+    h = max(1, ascent + descent + 2 * pad)
+    scratch = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(scratch).text(
+        (pad, pad + ascent), chunk, font=face,
+        fill=fill if fill is not None else (255, 255, 255, 255),
+        anchor="ls", embedded_color=True)
+    small = scratch.resize((max(1, int(round(w * scale))),
+                            max(1, int(round(h * scale)))), Image.LANCZOS)
+    body = small.convert("RGB")
+    if draw.mode != "RGB":
+        body = body.convert(draw.mode)
+    ox = int(round(x - pad * scale))
+    oy = int(round(baseline - (pad + ascent) * scale))
+    target.paste(body.im, (ox, oy, ox + small.width, oy + small.height),
+                 small.getchannel("A").im)
+
+
+def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
     """``draw.text`` with a face per script run.
 
     **A single-run string takes the original path**, byte for byte: one
     ``draw.text`` with the font it was given. That is almost every string
     this app draws, and it means the change can only alter the strings that
-    were broken.
+    were broken. The one exception is a run of emoji — see :func:`_split`.
+
+    ``faces`` overrides where a run's face comes from; the epub reader
+    passes its own resolver. See :func:`_face_pickers`.
 
     Multi-run strings are drawn run by run along a shared baseline. The
     baseline is the point: PIL's default vertical anchor is the *ascender*,
@@ -374,30 +669,28 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None):
     """
     if not text:
         return
-    parts = runs(text)
-    if has_rtl(text):
-        # One draw call has to cover the line -- Pillow reorders bidi within
-        # a call and cannot across several -- but it has to be the face for
-        # THIS line, not for the longer one it may have been wrapped out of.
-        # `script_of` rather than the run list for the same reason the
-        # bypass exists: there is only going to be one face.
-        draw.text(xy, text, font=_run_face(fnt, script_of(text)), fill=fill,
-                  anchor=anchor)
-        return
-    if len(parts) == 1:
-        draw.text(xy, text, font=_run_face(fnt, parts[0][0]), fill=fill,
-                  anchor=anchor)
+    parts, whole, per_run = _split(text, fnt, faces)
+    if whole is not None:
+        # One draw call covers the line. For an RTL line that is forced --
+        # Pillow reorders bidi within a call and cannot across several --
+        # and it has to be the face for THIS line, not for the longer one it
+        # may have been wrapped out of. For a single-run line it is the
+        # original path, byte for byte.
+        draw.text(xy, text, font=whole, fill=fill, anchor=anchor)
         return
 
-    fonts = [_same_size(fnt, script) for script, _chunk in parts]
-    ascent = max(f.getmetrics()[0] for f in fonts)
-    descent = max(f.getmetrics()[1] for f in fonts)
+    fonts = [per_run(script) for script, _chunk in parts]
+    scales = [_scale_of(f) for f in fonts]
+    # Scaled, or a 109px emoji strike would decide the baseline for a 20px
+    # line and push the whole thing five lines down.
+    ascent = max(f.getmetrics()[0] * k for f, k in zip(fonts, scales))
+    descent = max(f.getmetrics()[1] * k for f, k in zip(fonts, scales))
     x, y = xy
     horizontal, vertical = (anchor or "la")[0], (anchor or "la")[1]
     if horizontal == "m":
-        x -= text_length(draw, text, fnt) / 2.0
+        x -= text_length(draw, text, fnt, faces) / 2.0
     elif horizontal == "r":
-        x -= text_length(draw, text, fnt)
+        x -= text_length(draw, text, fnt, faces)
     if vertical == "a":
         baseline = y + ascent
     elif vertical == "m":
@@ -406,9 +699,18 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None):
         baseline = y - descent
     else:                          # "s" -- already a baseline
         baseline = y
-    for (script, chunk), face in zip(parts, fonts):
-        draw.text((x, baseline), chunk, font=face, fill=fill, anchor="ls")
-        x += draw.textlength(chunk, font=face)
+    for (script, chunk), face, scale in zip(parts, fonts, scales):
+        if scale != 1.0:
+            _draw_scaled(draw, x, baseline, chunk, face, scale, fill)
+        else:
+            # `embedded_color` for emoji only. It is what makes a colour
+            # face draw in its own colours instead of the fill's, and on a
+            # face that has no colour in it the two render the same picture
+            # -- but not the same *bytes*, and every other run here is one
+            # this module promises to leave exactly as it found it.
+            draw.text((x, baseline), chunk, font=face, fill=fill,
+                      anchor="ls", embedded_color=(script == "emoji"))
+        x += draw.textlength(chunk, font=face) * scale
 
 
 def clear_cache():

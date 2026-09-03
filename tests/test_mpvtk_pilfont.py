@@ -53,10 +53,6 @@ class TestFontFor(unittest.TestCase):
         self.assertIsNot(pilfont.font_for("Hi", 20), pilfont.font_for("Hi", 30))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestRuns(unittest.TestCase):
     """Splitting a string into the faces it needs.
 
@@ -681,3 +677,346 @@ class TestSymbolFace(unittest.TestCase):
             self.skipTest("the two faces draw digits identically here")
         self.assertNotEqual(self._bitmap(symbol, "2001"),
                             self._bitmap(latin, "2001"))
+
+
+class TestEmojiTable(unittest.TestCase):
+    """The classifier half of F31, and the regression it must not cause.
+
+    Everything astral is safe to move by construction -- the CJK catch-all
+    that owns it today draws none of it (NotoSansCJK covers 0 of
+    U+1F300-1F5FF, msgothic 0 of every emoji block, measured) -- so these
+    guard the BMP half, where the codepoints being moved *are* currently
+    drawn by a face that has them.
+    """
+
+    def test_the_713_marks_are_not_swept_up_as_emoji(self):
+        """The whole reason the BMP half of the table is a list of small
+        ranges and not the symbol blocks it sits inside.
+
+        Measured: U+2605 is .notdef in BOTH colour faces -- NotoColorEmoji
+        and seguiemj -- so calling it emoji is calling it tofu, which is
+        exactly the bug #713 fixed.
+        """
+        for cp in (0x2605, 0x2713, 0x25B6, 0x266A, 0x2764, 0x2600):
+            self.assertEqual(pilfont.script_of_char(cp), "symbol",
+                             "U+%04X left the symbol face" % cp)
+
+    def test_the_emoji_presentation_marks_do_reach_the_emoji_face(self):
+        for cp in (0x2B50, 0x2705, 0x274C, 0x2728, 0x26BD, 0x231A):
+            self.assertEqual(pilfont.script_of_char(cp), "emoji",
+                             "U+%04X did not reach the emoji face" % cp)
+
+    def test_the_astral_pictographs_leave_the_cjk_catch_all(self):
+        for cp in (0x1F3AC, 0x1F600, 0x1F680, 0x1F9E0, 0x1FA79, 0x1F1FA,
+                   0x1F7E2):
+            self.assertEqual(pilfont.script_of_char(cp), "emoji",
+                             "U+%05X is still CJK's" % cp)
+
+    def test_the_astral_symbol_blocks_leave_it_too(self):
+        """Found while fixing F31, same catch-all. Measured: Symbols2 draws
+        all of these and the CJK face draws none of them."""
+        for cp in (0x1F0A1, 0x1F660, 0x1F810, 0x1FA00, 0x1FB00, 0x1F7A0):
+            self.assertEqual(pilfont.script_of_char(cp), "symbol",
+                             "U+%05X is still CJK's" % cp)
+
+    def test_the_enclosed_alphanumerics_stay_with_the_cjk_face(self):
+        """The block U+1F100-1F2FF is *mostly* CJK's and is picked at, not
+        moved: U+1F110 is .notdef in both colour faces and drawn by
+        NotoSansCJK, while U+1F192 next door is the other way round."""
+        self.assertEqual(pilfont.script_of_char(0x1F110), "cjk")
+        self.assertEqual(pilfont.script_of_char(0x1F202), "emoji")
+        self.assertEqual(pilfont.script_of_char(0x1F192), "emoji")
+
+    def test_no_codepoint_is_claimed_by_two_tables(self):
+        """The tables overlap by block -- U+2B50 sits inside the symbol
+        range U+2B00-2BFF -- so the ORDER of the tests in `script_of_char`
+        is what separates them. That is invisible at the call site and
+        would fail silently if a range were ever added to the wrong one.
+        """
+        symbols = {cp for lo, hi in pilfont._SYMBOL_RANGES
+                   for cp in range(lo, hi + 1)}
+        symbols |= {cp for lo, hi in pilfont._ASTRAL_SYMBOL_RANGES
+                    for cp in range(lo, hi + 1)}
+        for lo, hi in pilfont._EMOJI_RANGES:
+            for cp in range(lo, hi + 1):
+                if cp in symbols:
+                    self.assertEqual(
+                        pilfont.script_of_char(cp), "emoji",
+                        "U+%05X is in both tables and the symbol one won"
+                        % cp)
+
+    def test_the_bmp_table_is_only_codepoints_a_colour_face_has(self):
+        """The transcription guard.
+
+        The BMP half of `_EMOJI_RANGES` is Unicode's Emoji_Presentation
+        list, typed in by hand, and a codepoint wrongly included is a glyph
+        moved from a face that draws it to one that does not -- silently,
+        and only on the hosts that have the emoji font. So it is checked
+        against the font rather than trusted.
+        """
+        face = self._colour_face()
+        if face is None:
+            self.skipTest("no colour emoji face installed on this host")
+        missing = [cp for lo, hi in pilfont._EMOJI_RANGES
+                   for cp in range(lo, hi + 1) if cp < 0x10000
+                   and self._tofu(face, chr(cp))]
+        self.assertEqual(missing, [],
+                         "not drawn by %r: %s"
+                         % (pilfont._resolved.get(("emoji", False)),
+                            " ".join("U+%04X" % cp for cp in missing)))
+
+    def _colour_face(self):
+        """The emoji face, but only when it really is one: `font()` falls
+        through to the symbol chain where no emoji font is installed, and
+        that face measures nothing about this table."""
+        face = pilfont.font("emoji", 28)
+        name = pilfont._resolved.get(("emoji", False))
+        if name is None or name not in pilfont._CANDIDATES["emoji"]:
+            return None
+        return face
+
+    def _tofu(self, face, text):
+        from PIL import Image, ImageDraw
+
+        def shot(s):
+            size = getattr(face, "size", 28)
+            img = Image.new("RGBA", (size * 3, size * 3), (0, 0, 0, 0))
+            ImageDraw.Draw(img).text((2, 2), s, font=face,
+                                     fill=(255, 255, 255, 255),
+                                     embedded_color=True)
+            return img.tobytes()
+
+        # U+FFFF is a noncharacter: no font maps it, so it is this face's
+        # .notdef and anything drawing the same is not drawn at all.
+        return shot(text) == shot("￿")
+
+
+class TestEmojiIsNeverAWholeStringsFace(unittest.TestCase):
+    """`script_of` must not answer "emoji", and the reason is metrics.
+
+    Its answer reserves a line's height and picks a whole book's face. A
+    colour-emoji face is very often available at one pixel size only --
+    NotoColorEmoji at 109 -- so that answer would be five times too tall.
+    """
+
+    def test_a_string_of_nothing_but_emoji_answers_the_symbol_face(self):
+        self.assertEqual(pilfont.script_of("\U0001F3AC"), "symbol")
+        self.assertEqual(pilfont.script_of("\U0001F3AC \U0001F37F"), "symbol")
+
+    def test_an_emoji_does_not_outrank_words_or_a_real_script(self):
+        self.assertEqual(pilfont.script_of("\U0001F3AC Movie Night"), "latin")
+        self.assertEqual(pilfont.script_of("\U0001F3AC 進撃の巨人"), "cjk")
+        self.assertEqual(pilfont.script_of("\U0001F3AC مسلسل"), "arabic")
+
+    def test_the_face_a_caller_gets_is_the_size_it_asked_for(self):
+        """The property the rule above exists for, asserted rather than
+        inferred: whatever `script_of` answers, the face that answer
+        resolves to has to have the metrics of the size requested."""
+        for text in ("\U0001F3AC", "\U0001F3AC Movie", "★", "Plain"):
+            font = pilfont.font_for(text, 20)
+            ascent, descent = font.getmetrics()
+            self.assertLess(ascent + descent, 20 * 2,
+                            "%r resolved a face with a %dpx body"
+                            % (text, ascent + descent))
+
+
+class TestEmojiRuns(unittest.TestCase):
+    def setUp(self):
+        from PIL import Image, ImageDraw
+
+        self.img = Image.new("RGBA", (400, 60), (0, 0, 0, 0))
+        self.draw = ImageDraw.Draw(self.img)
+        self.font = pilfont.font("latin", 20)
+
+    def test_an_emoji_is_its_own_run(self):
+        self.assertEqual(
+            pilfont.runs("Movie \U0001F3AC 2024"),
+            [("latin", "Movie "), ("emoji", "\U0001F3AC"),
+             ("latin", " 2024")])
+
+    def test_a_zwj_sequence_stays_in_one_run(self):
+        """A run boundary is a separate draw call and shaping does not
+        cross one, so splitting at the joiner draws two emoji where the
+        font has a single glyph."""
+        self.assertEqual(pilfont.runs("\U0001F469‍\U0001F4BB"),
+                         [("emoji", "\U0001F469‍\U0001F4BB")])
+        self.assertEqual(pilfont.runs("⭐️"),
+                         [("emoji", "⭐️")])
+
+    def test_a_space_after_an_emoji_is_not_an_emoji_wide_space(self):
+        """Measured, not asserted about run shape: a colour-emoji face
+        advances a full em and a bit for U+0020 (135.7 of NotoColorEmoji's
+        109px em against DejaVu's 6.4 at 20px), so leaving the space in the
+        emoji run put a four-space hole in the middle of every caption
+        carrying one."""
+        space = self.draw.textlength(" ", font=self.font)
+        with_gap = pilfont.text_length(self.draw, "\U0001F3AC A", self.font)
+        tight = pilfont.text_length(self.draw, "\U0001F3ACA", self.font)
+        self.assertAlmostEqual(with_gap - tight, space, places=3)
+
+    def test_measuring_and_drawing_split_the_same_way(self):
+        """The two have to agree or a caption is ellipsized against a width
+        it is not drawn at. Both go through `_split`; this is the assertion
+        that they still do."""
+        for text in ("Movie \U0001F3AC 2024", "\U0001F3AC", "★\U0001F3AC",
+                     "進撃 \U0001F600 (2013)", "plain text"):
+            self.assertAlmostEqual(
+                pilfont.text_length(self.draw, text, self.font),
+                pilfont.length(text, self.font), places=3,
+                msg=repr(text))
+
+
+class TestFixedStrikeFaces(unittest.TestCase):
+    """A face that only loads at its own pixel size.
+
+    `NotoColorEmoji.ttf` is a CBDT bitmap face with a single 109px strike
+    and raises OSError at every other size. Adding it to the candidate list
+    and stopping there is the fix that changes nothing: `truetype(name, 20)`
+    fails, the loop moves on, and the run lands back on a face with no
+    emoji in it.
+    """
+
+    def _emoji(self, size=20):
+        face = pilfont.font("emoji", size)
+        name = pilfont._resolved.get(("emoji", False))
+        if name is None or name not in pilfont._CANDIDATES["emoji"]:
+            self.skipTest("no emoji face installed on this host")
+        return face
+
+    def test_the_strike_is_found_rather_than_the_face_being_skipped(self):
+        face = self._emoji()
+        self.assertEqual(getattr(face, "_jms_size", None), 20)
+        self.assertTrue(getattr(face, "_jms_native", None),
+                        "the face was not told what size it opened at")
+
+    def test_a_scalable_face_needs_no_scaling(self):
+        """The no-op half. Every face that loads at the size asked for --
+        which is all of them but the bitmap emoji ones -- must come back
+        with a scale of exactly 1.0, or every path below changes for text
+        that was never broken."""
+        for script in ("latin", "cjk", "symbol", "hebrew", "arabic"):
+            self.assertEqual(pilfont._scale_of(pilfont.font(script, 20)), 1.0,
+                             "%s picked up a scale" % script)
+
+    def test_an_emoji_is_measured_at_the_size_asked_for(self):
+        """A 109px strike measures 135.7px for one emoji. Unscaled, a
+        two-emoji caption would be ellipsized to nothing and a banner would
+        be laid out around a 270px rating."""
+        face = self._emoji()
+        from PIL import Image, ImageDraw
+
+        draw = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
+        width = pilfont.text_length(draw, "\U0001F3AC",
+                                    pilfont.font("latin", 20))
+        self.assertLess(width, 20 * 2.5,
+                        "one 20px emoji measured %.1fpx" % width)
+        self.assertGreater(width, 20 * 0.5)
+
+
+class TestEmojiDrawing(unittest.TestCase):
+    def setUp(self):
+        face = pilfont.font("emoji", 20)
+        name = pilfont._resolved.get(("emoji", False))
+        if name is None or name not in pilfont._CANDIDATES["emoji"]:
+            self.skipTest("no emoji face installed on this host")
+        self.emoji_face = face
+        self.font = pilfont.font("latin", 20)
+
+    def _row_ink(self, text):
+        """Which rows of a strip of latin text have ink in them."""
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (300, 60), 0)
+        draw = ImageDraw.Draw(img)
+        pilfont.draw_text(draw, (4, 10), text, self.font, fill=255)
+        return {y for y in range(60)
+                if any(img.getpixel((x, y)) for x in range(4, 60))}
+
+    def test_an_emoji_later_in_the_line_does_not_move_the_words(self):
+        """The scaled-metrics property, over the part of the line the emoji
+        is not in. A 109px face's ascent picked as the line's would put the
+        latin text five lines down; asserting on the emoji's own rows would
+        not have caught that, because the emoji moves with it.
+        """
+        self.assertEqual(self._row_ink("Movie Night"),
+                         self._row_ink("Movie Night \U0001F3AC"))
+
+    def _ink_box(self, text, size=20):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("RGBA", (400, 300), (0, 0, 0, 0))
+        pilfont.draw_text(ImageDraw.Draw(img), (4, 4), text,
+                          pilfont.font("latin", size),
+                          fill=(255, 255, 255, 255))
+        return img.getbbox()
+
+    def test_a_lone_emoji_is_drawn_at_the_size_it_was_asked_for(self):
+        """The `_split` exclusion, asserted on the *size* of what lands.
+
+        A one-run string normally goes straight to `draw.text` with the
+        face the run resolved -- and for a bitmap-strike emoji face that
+        face is 109px, so a tile showing nothing but an emoji drew it five
+        times over its caption. Comparing against what the Latin face would
+        have drawn does not see this: both answers differ from that one.
+        """
+        box = self._ink_box("\U0001F3AC")
+        self.assertIsNotNone(box, "nothing was drawn at all")
+        self.assertLess(box[3] - box[1], 20 * 2,
+                        "a 20px emoji drew %dpx tall" % (box[3] - box[1]))
+
+    def test_it_scales_with_the_size_asked_for(self):
+        """Over three sizes, because one size cannot tell a scaled face
+        from a fixed one that happens to look right."""
+        heights = [self._ink_box("\U0001F3AC", size)[3]
+                   - self._ink_box("\U0001F3AC", size)[1]
+                   for size in (14, 28, 56)]
+        self.assertEqual(heights, sorted(heights))
+        self.assertLess(heights[0], heights[2],
+                        "the emoji is the same size whatever is asked for")
+
+    def test_an_emoji_is_drawn_in_its_own_colours(self):
+        """`embedded_color`, which is the difference between an emoji and a
+        silhouette of one.
+
+        Whether this host *can* show colour is decided from the face, not
+        from the drawing under test: asking the output would let a
+        `draw_text` that lost `embedded_color` skip itself, which is how
+        this test passed a mutation that removed exactly that.
+        """
+        from PIL import Image, ImageDraw
+
+        def hues(drawer):
+            img = Image.new("RGBA", (80, 60), (0, 0, 0, 0))
+            drawer(ImageDraw.Draw(img))
+            return {px[:3] for px in img.get_flattened_data() if px[3] > 200}
+
+        native = hues(lambda d: d.text(
+            (4, 4), "\U0001F600", font=self.emoji_face,
+            fill=(255, 255, 255, 255), embedded_color=True))
+        if not any(r != g or g != b for r, g, b in native):
+            self.skipTest("the emoji face on this host is monochrome")
+        drawn = hues(lambda d: pilfont.draw_text(
+            d, (4, 4), "\U0001F600", self.font, fill=(255, 255, 255, 255)))
+        self.assertTrue(any(r != g or g != b for r, g, b in drawn),
+                        "drawn as a silhouette of the fill colour")
+
+    def test_the_run_after_an_emoji_starts_where_it_was_measured_to(self):
+        """Drawing advances by the *scaled* width. Unscaled, everything
+        after the first emoji in a caption is drawn off the end of the
+        tile -- and the caption still measures as fitting, because
+        measuring is the half that was already right."""
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (400, 60), 0)
+        draw = ImageDraw.Draw(img)
+        pilfont.draw_text(draw, (4, 10), "\U0001F3AC End", self.font, fill=255)
+        columns = [x for x in range(400)
+                   if any(img.getpixel((x, y)) for y in range(60))]
+        self.assertTrue(columns)
+        self.assertLess(
+            max(columns),
+            4 + pilfont.text_length(draw, "\U0001F3AC End", self.font) + 6)
+
+
+if __name__ == "__main__":
+    unittest.main()
