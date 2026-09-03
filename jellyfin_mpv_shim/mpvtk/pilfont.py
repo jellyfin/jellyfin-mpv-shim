@@ -748,8 +748,19 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
             # face that has no colour in it the two render the same picture
             # -- but not the same *bytes*, and every other run here is one
             # this module promises to leave exactly as it found it.
+            #
+            # **And only onto a target that can hold colour**: Pillow
+            # raises `ValueError: Embedded color supported only in RGB and
+            # RGBA modes` otherwise. Reachable only where the emoji face
+            # loads at the asked size, so it fires on Windows (seguiemj is
+            # COLR-outlined) and never on Linux, where a bitmap strike
+            # sends the same run through `_draw_scaled` and its own RGBA
+            # scratch instead. A greyscale emoji is the right degradation
+            # for a greyscale plate; an exception is not.
             draw.text((x, baseline), chunk, font=face, fill=fill,
-                      anchor="ls", embedded_color=(script == "emoji"))
+                      anchor="ls",
+                      embedded_color=(script == "emoji"
+                                      and draw.mode in ("RGB", "RGBA")))
         x += draw.textlength(chunk, font=face) * scale
 
 

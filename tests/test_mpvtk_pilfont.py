@@ -889,7 +889,12 @@ class TestEmojiRuns(unittest.TestCase):
         space = self.draw.textlength(" ", font=self.font)
         with_gap = pilfont.text_length(self.draw, "\U0001F3AC A", self.font)
         tight = pilfont.text_length(self.draw, "\U0001F3ACA", self.font)
-        self.assertAlmostEqual(with_gap - tight, space, places=3)
+        # A delta, not places=3. What is compared is the advance of " A"
+        # minus "A" against the advance of " " alone, and a shaper does not
+        # promise those agree to the 1/64px: measured 5.984375 against 6.0
+        # on Windows, where Pillow has no Raqm and lays out glyph by glyph.
+        # The bug this guards is a 25px space against a 6px one.
+        self.assertAlmostEqual(with_gap - tight, space, delta=0.5)
 
     def test_measuring_and_drawing_split_the_same_way(self):
         """The two have to agree or a caption is ellipsized against a width
@@ -1010,6 +1015,53 @@ class TestEmojiDrawing(unittest.TestCase):
         self.assertEqual(heights, sorted(heights))
         self.assertLess(heights[0], heights[2],
                         "the emoji is the same size whatever is asked for")
+
+    def test_a_greyscale_plate_gets_a_greyscale_emoji_not_an_exception(self):
+        """The branch Linux cannot reach on its own.
+
+        `embedded_color` is refused by Pillow on anything but RGB and RGBA
+        (`ValueError: Embedded color supported only in RGB and RGBA
+        modes`), and the run only reaches that call when the emoji face
+        loads at the size asked for. On this host it does not -- the strike
+        sends it through `_draw_scaled` and its own RGBA scratch -- so the
+        whole suite was green here while every L-mode draw raised on
+        Windows, where seguiemj is COLR-outlined. Forcing a *scalable*
+        emoji face is what puts this box on the same path.
+        """
+        from PIL import Image, ImageDraw, ImageFont
+
+        scalable = None
+        for name in ("NotoEmoji-Regular.ttf",
+                     "/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf",
+                     "Symbola.ttf",
+                     "/usr/share/fonts/truetype/ancient-scripts/"
+                     "Symbola_hint.ttf",
+                     "seguiemj.ttf"):
+            try:
+                ImageFont.truetype(name, 20)
+            except OSError:
+                continue
+            scalable = name
+            break
+        if scalable is None:
+            self.skipTest("no emoji face that loads at an arbitrary size")
+
+        saved = list(pilfont._CANDIDATES["emoji"])
+        self.addCleanup(pilfont.clear_cache)
+        self.addCleanup(pilfont._CANDIDATES.__setitem__, "emoji", saved)
+        pilfont._CANDIDATES["emoji"] = [scalable]
+        pilfont.clear_cache()
+        self.assertEqual(pilfont._scale_of(pilfont.font("emoji", 20)), 1.0,
+                         "the forced face still needs scaling, so this test "
+                         "is not on the path it is named after")
+        for mode, fill in (("L", 255), ("RGB", (255, 255, 255)),
+                           ("RGBA", (255, 255, 255, 255))):
+            with self.subTest(mode=mode):
+                img = Image.new(mode, (200, 60))
+                pilfont.draw_text(ImageDraw.Draw(img), (4, 10),
+                                  "Movie \U0001F600", pilfont.font("latin", 20),
+                                  fill=fill)
+                self.assertIsNotNone(img.getbbox(), "nothing was drawn")
 
     def test_an_emoji_is_drawn_in_its_own_colours(self):
         """`embedded_color`, which is the difference between an emoji and a
