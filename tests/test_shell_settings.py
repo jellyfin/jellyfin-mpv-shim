@@ -1085,51 +1085,6 @@ class TestGamepadSwapAppliesLive(unittest.TestCase):
         b.app.push_gamepad.assert_not_called()
 
 
-class TestClockFormatAppliesLive(unittest.TestCase):
-    """A Live TV listing's air time is baked into its tile caption.
-
-    So a repaint is not enough: the guide and the "Ends at" labels are ASS
-    and redraw, but every tile on screen keeps printing the format that has
-    just been turned off until it ages out of the LRU. Same shape as
-    `logo_legibility`, which is the other setting baked into a strip.
-    """
-
-    def _browser(self):
-        cfg = FakeConfig()
-        cfg.schema["clock_12h"] = "bool"
-        cfg.values["clock_12h"] = False
-        cfg.schema["player_name"] = "str"
-        cfg.values["player_name"] = "x"
-        b = MpvtkBrowser(app=None, source=FakeSource(), config=cfg)
-        b._pool = _SyncPool()
-        self.applied = []
-        b.apply_clock_format = lambda: self.applied.append(True)
-        return b
-
-    def test_saving_it_retags_the_strips(self):
-        b = self._browser()
-        b._set_setting("clock_12h", True)
-        self.assertEqual(self.applied, [True])
-
-    def test_turning_it_off_again_does_too(self):
-        """Both directions: the captions are equally stale coming back."""
-        b = self._browser()
-        b._set_setting("clock_12h", True)
-        b._set_setting("clock_12h", False)
-        self.assertEqual(self.applied, [True, True])
-
-    def test_an_unrelated_setting_does_not(self):
-        b = self._browser()
-        b._set_setting("player_name", "Bud")
-        self.assertEqual(self.applied, [])
-
-    def test_it_is_not_a_restart_setting(self):
-        """The banner means "nothing has happened yet", and something has."""
-        from jellyfin_mpv_shim.mpvtk_browser import config
-
-        self.assertNotIn("clock_12h", config.RESTART_REQUIRED)
-
-
 class TestPinStartupSeeding(unittest.TestCase):
     """Changing a PIN silently cleared "require at startup": the dialog
     always opened with the box unticked and saved that back."""

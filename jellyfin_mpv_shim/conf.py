@@ -660,6 +660,10 @@ class Settings(SettingsBase):
     #: Off, i.e. 24-hour, because that is what every one of those call sites
     #: has always drawn; this exists to offer the other one, not to guess
     #: which is wanted. Not locale-derived either -- see timefmt.
+    #:
+    #: Applies live and needs nothing to make it: a tile's air time is part
+    #: of the caption, which is part of `StripStore._tile_key`, so a flipped
+    #: value misses the cache on its own.
     clock_12h: bool = False
     #: Left-click on the video toggles pause (#669).
     #:

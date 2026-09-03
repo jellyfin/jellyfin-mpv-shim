@@ -832,8 +832,8 @@ NOTES = {
     # the label, and the note is the searchable half (docs/settings-
     # curation.md section 2.5).
     "clock_12h": _("Show times of day as \"8:30 PM\" rather than "
-                   "\"20:30\" -- the Live TV guide and its air times, and "
-                   "the \"Ends at\" labels on a detail page and the "
+                   "\"20:30\" \u2014 the Live TV guide and its air times, "
+                   "and the \"Ends at\" labels on a detail page and the "
                    "player controls."),
     "hud_scrim": _("The controls have to stay legible over any frame. "
                    "\"None\" gives the text a drop shadow instead of "

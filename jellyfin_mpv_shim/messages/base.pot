@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 15:35-0400\n"
+"POT-Creation-Date: 2026-09-02 16:20-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2049,7 +2049,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
-"Show times of day as \"8:30 PM\" rather than \"20:30\" -- the Live TV guide "
+"Show times of day as \"8:30 PM\" rather than \"20:30\" — the Live TV guide "
 "and its air times, and the \"Ends at\" labels on a detail page and the "
 "player controls."
 msgstr ""
@@ -4388,6 +4388,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+#, python-brace-format
+msgctxt "12-hour clock"
+msgid "{time} {period}"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/timefmt.py

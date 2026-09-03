@@ -21,7 +21,7 @@ from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser       # noqa: E402
 
 from tests._scene_snapshot import FROZEN, frozen_clock             # noqa: E402
 from tests._shell_harness import (                                 # noqa: E402
-    FakeSource, HudController, build_scene, detail_page)
+    FakeSource, HudController, _SyncPool, build_scene, detail_page)
 
 
 class ClockSettingMixin:
@@ -94,6 +94,26 @@ class TestClock(ClockSettingMixin, unittest.TestCase):
             self.set_12h(on)
             seen.append(timefmt.clock(when))
         self.assertEqual(seen, ["20:30", "8:30 PM", "20:30", "8:30 PM"])
+
+    def test_a_translation_can_put_the_marker_first(self):
+        """zh/ja/ko write the day period BEFORE the time (下午8:30), and a
+        format string baked into the code cannot express that -- translating
+        only the marker gives them "8:30 下午". So the whole pattern is a
+        message, and this asserts a translator can actually reorder it."""
+        renderings = {}
+        real = timefmt._p
+        try:
+            for lang, am, pm in (("zh", "上午", "下午"),
+                                 ("ja", "午前", "午後")):
+                timefmt._p = (
+                    lambda _ctx, msg, am=am, pm=pm:
+                    "{period}{time}" if "{" in msg
+                    else (am if msg == "AM" else pm))
+                self.set_12h(True)
+                renderings[lang] = timefmt.clock(_at(20, 30))
+        finally:
+            timefmt._p = real
+        self.assertEqual(renderings, {"zh": "下午8:30", "ja": "午後8:30"})
 
     def test_clock_epoch_agrees_with_clock(self):
         when = _at(20, 30)
@@ -218,6 +238,73 @@ class TestEndsAtFollowsTheSetting(ClockSettingMixin, unittest.TestCase):
         for text in plain:
             self.assertRegex(text, r"Ends at \d\d:\d\d")
             self.assertNotRegex(text, r"\d\s*[AP]M")
+
+
+class TestTheTilesFollowTheSetting(ClockSettingMixin, unittest.TestCase):
+    """A Live TV air time is part of a tile's caption, and a caption is
+    baked into the composited strip. So the question this class answers is
+    what makes a cached row unreachable when the format changes.
+
+    The answer is: nothing extra has to. The caption text is *in* the
+    strip's cache key, so a flipped setting produces a different key on the
+    next render and the row recomposites on its own. The first draft of
+    this feature added an `apply_clock_format` that retagged the whole
+    store, on the reasoning that a baked caption cannot be repainted --
+    true of `logo_legibility`, which changes how a tile is DRAWN, and false
+    here, where it changes what the tile SAYS. It cost every cached row in
+    the app -- movie posters included -- a recomposite on the way back from
+    Settings, and it was invisible to a test that stubbed the method out
+    and asserted the stub had been called.
+    """
+
+    PROGRAM = {"Type": "Program", "Name": "News", "ChannelName": "Fake One",
+               "StartDate": "2026-09-02T20:00:00Z",
+               "EndDate": "2026-09-02T20:30:00Z"}
+
+    def _tile(self, on):
+        from jellyfin_mpv_shim.mpvtk_browser import components
+
+        self.set_12h(on)
+        return components.tile_lines(dict(self.PROGRAM))
+
+    def test_the_caption_says_the_time_in_the_chosen_format(self):
+        self.assertIn(" - ", self._tile(False)[1])
+        self.assertNotIn("PM", self._tile(False)[1])
+        self.assertIn("PM", self._tile(True)[1])
+
+    def test_the_strip_cache_key_changes_on_its_own(self):
+        """The property the retag was added for, held by the key instead.
+        Asserted against `StripStore._tile_key` itself rather than against
+        a belief about it."""
+        from types import SimpleNamespace
+
+        from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
+
+        def key(on):
+            _title, subtitle = self._tile(on)
+            return StripStore._tile_key(None, SimpleNamespace(
+                key="p1", poster_tag="", poster=None, title="News",
+                subtitle=subtitle, subtitle2="", watched=False, badge=0,
+                progress=0, downloaded=False, kind="", recording=False,
+                record="", glyph="", contain=False, live=True, sources=0))
+
+        self.assertNotEqual(key(False), key(True))
+
+    def test_saving_it_does_not_retag_the_whole_store(self):
+        """A retag makes every cached row in the app unreachable, including
+        the ones with no clock anywhere in them. Pinned because adding one
+        back is the obvious-looking repair for a caption that looks stale.
+        """
+        from tests._shell_harness import FakeConfig
+
+        cfg = FakeConfig()
+        cfg.schema["clock_12h"] = "bool"
+        cfg.values["clock_12h"] = False
+        b = MpvtkBrowser(app=None, source=FakeSource(), config=cfg)
+        b._pool = _SyncPool()
+        before = b.strips.tag
+        b._set_setting("clock_12h", True)
+        self.assertEqual(b.strips.tag, before)
 
 
 _HOUR = datetime.timedelta(hours=1)

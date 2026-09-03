@@ -88,7 +88,7 @@ You can adjust the basic transcoder settings via the menu.
       `setlocale` this app never makes, so a "follow the system" option would
       have been a guess in a Windows-shaped and a POSIX-shaped half; the switch
       says which you want instead.
-  - Applies immediately, tiles included.
+  - Applies immediately, Live TV tiles included.
 - `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
   - This is what this client has always done (the same "click anywhere" the MPV
       OSC has). Turning it off gives MPV's own mouse behaviour back: nothing

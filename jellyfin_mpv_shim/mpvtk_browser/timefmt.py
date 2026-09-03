@@ -32,10 +32,16 @@ def clock(when):
     # Not "%I:%M %p": %-I (no leading zero) is glibc-only and dies on
     # Windows, %p is untranslated C-locale text, and both would need the
     # setlocale this app does not make.
-    return "%d:%02d %s" % (
-        when.hour % 12 or 12, when.minute,
-        _p("12-hour clock", "AM") if when.hour < 12
-        else _p("12-hour clock", "PM"))
+    #
+    # The joining pattern is a message of its own, not a literal, because
+    # zh/ja/ko put the day period BEFORE the time (下午8:30) -- translating
+    # only the marker would leave them "8:30 下午", with no way to say
+    # otherwise. Braces rather than %s so a translator cannot break it on a
+    # conversion type.
+    return _p("12-hour clock", "{time} {period}").format(
+        time="%d:%02d" % (when.hour % 12 or 12, when.minute),
+        period=(_p("12-hour clock", "AM") if when.hour < 12
+                else _p("12-hour clock", "PM")))
 
 
 def clock_epoch(timestamp):
