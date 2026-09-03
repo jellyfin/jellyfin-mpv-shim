@@ -218,3 +218,125 @@ class TestDrawAndMeasure(unittest.TestCase):
         new = Image.new("L", (400, 40), 0)
         pilfont.draw_text(ImageDraw.Draw(new), (3, 5), text, font, fill=255)
         self.assertEqual(old.tobytes(), new.tobytes())
+
+
+class TestSymbolRuns(unittest.TestCase):
+    """#713 — the rating star drew as a tofu box on Windows.
+
+    Pillow has no fallback and the Latin face it lands on there is Arial,
+    which has no U+2605 (nor U+2713, U+25B6; measured against segoeui,
+    tahoma, verdana and calibri too, none of which has it either). So the
+    symbol blocks get a face of their own.
+    """
+
+    def test_a_star_is_a_symbol_run_not_a_latin_one(self):
+        self.assertEqual(pilfont.runs("★ 8.1"),
+                         [("symbol", "★ "), ("latin", "8.1")])
+
+    def test_the_meta_line_splits_around_the_rating(self):
+        """The string the bug was reported against: components.detail
+        builds "year · runtime · rating · genres" and the banner bakes it."""
+        self.assertEqual(
+            pilfont.runs("1998   ·   R   ·   ★ 8.1   ·   Drama"),
+            [("latin", "1998   ·   R   ·   "),
+             ("symbol", "★ "),
+             ("latin", "8.1   ·   Drama")])
+
+    def test_ordinary_typography_is_not_sent_to_the_symbol_face(self):
+        """The cost of over-claiming. Dashes, ellipses, middots, currency,
+        maths and letterlike marks are in every Latin face; classifying them
+        as symbols would split almost every caption the app draws."""
+        for text in ("Fahrenheit 451 — the sequel", "WALL·E", "Naïve…",
+                     "Alien³", "™ Studios", "a ≥ b", "€10", "«Léon»"):
+            self.assertEqual(pilfont.runs(text), [("latin", text)], text)
+
+    def test_a_symbol_never_hijacks_a_cjk_string(self):
+        self.assertEqual(pilfont.runs("★ 進撃"),
+                         [("symbol", "★ "), ("cjk", "進撃")])
+
+
+class TestSymbolFace(unittest.TestCase):
+    """That the split actually reaches a face carrying the glyph.
+
+    The bug is invisible on a host whose Latin face already has the star --
+    which is every Linux box with DejaVu, i.e. every machine this suite
+    normally runs on. So the Latin candidate list is pointed at a real face
+    measured to lack U+2605, and the property is asserted against that.
+    """
+
+    #: Faces on this box that do not carry U+2605. Verified in the test
+    #: rather than trusted: a font package changing under us must skip,
+    #: not pass.
+    STARLESS = ("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+                "/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf",
+                "C:\\Windows\\Fonts\\arial.ttf")
+
+    def setUp(self):
+        self._saved = dict(pilfont._CANDIDATES)
+        pilfont.clear_cache()
+
+    def tearDown(self):
+        pilfont._CANDIDATES.clear()
+        pilfont._CANDIDATES.update(self._saved)
+        pilfont.clear_cache()
+
+    def _bitmap(self, font, text="★"):
+        from PIL import Image, ImageDraw
+
+        img = Image.new("L", (60, 48), 0)
+        ImageDraw.Draw(img).text((2, 2), text, font=font, fill=255)
+        return img.tobytes()
+
+    def _starless(self):
+        import os
+
+        from PIL import ImageFont
+
+        for path in self.STARLESS:
+            if not os.path.exists(path):
+                continue
+            font = ImageFont.truetype(path, 28)
+            # .notdef against a codepoint nothing assigns: if the star draws
+            # the same box, this face is the fixture we want.
+            if self._bitmap(font) == self._bitmap(font, "\U000FFFFF"):
+                return path
+        return None
+
+    def test_the_star_is_not_the_tofu_the_latin_face_would_have_drawn(self):
+        starless = self._starless()
+        if starless is None:
+            self.skipTest("no face measured to lack U+2605 on this host")
+        pilfont._CANDIDATES["latin"] = [starless]
+        pilfont.clear_cache()
+        symbol = pilfont.font("symbol", 28)
+        latin = pilfont.font("latin", 28)
+        if self._bitmap(symbol) == self._bitmap(symbol, "\U000FFFFF"):
+            self.skipTest("no symbol-carrying face installed on this host")
+        self.assertNotEqual(self._bitmap(symbol), self._bitmap(latin),
+                            "the symbol run drew the Latin face's tofu")
+
+    def test_draw_text_puts_the_star_on_the_symbol_face(self):
+        """End to end, through the call the banner actually makes: a mixed
+        string drawn with the font ``pil_font`` hands it must still put the
+        star on a face that has one."""
+        from PIL import Image, ImageDraw
+
+        starless = self._starless()
+        if starless is None:
+            self.skipTest("no face measured to lack U+2605 on this host")
+        pilfont._CANDIDATES["latin"] = [starless]
+        pilfont.clear_cache()
+        if self._bitmap(pilfont.font("symbol", 28)) == self._bitmap(
+                pilfont.font("symbol", 28), "\U000FFFFF"):
+            self.skipTest("no symbol-carrying face installed on this host")
+
+        text = "2001   ·   ★ 8.1"
+        got = Image.new("L", (400, 48), 0)
+        pilfont.draw_text(ImageDraw.Draw(got), (3, 5), text,
+                          pilfont.font_for(text, 28), fill=255)
+        # The same string with the star drawn by the starless face, which is
+        # what shipped: the two must not agree.
+        want = Image.new("L", (400, 48), 0)
+        ImageDraw.Draw(want).text((3, 5), text,
+                                  font=pilfont.font("latin", 28), fill=255)
+        self.assertNotEqual(got.tobytes(), want.tobytes())

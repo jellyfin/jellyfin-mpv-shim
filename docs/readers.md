@@ -430,7 +430,10 @@ what a page of continuous prose was cut for and what every published book in the
 library was typeset in; the chrome around it stays in the toolkit's sans.
 Non-Latin scripts fall back to `mpvtk.pilfont`, which offers regular and bold
 only, so a Japanese book renders italic as regular — which is what Japanese
-typography does anyway.
+typography does anyway. Its `"symbol"` script is the one answer `face()` does
+**not** take: that is what pilfont says about a string merely *containing* a
+star or an arrow, and a book whose title has one would otherwise be set in a
+symbol face from cover to cover.
 
 ### 4.7 Type size, colour and the measure
 

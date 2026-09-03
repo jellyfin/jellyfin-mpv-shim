@@ -11,6 +11,12 @@ So we pick the face per string: scan for the first character outside the
 Latin/Cyrillic/Greek range our default face covers, map it to a script, and
 load a system font known to cover that script. Everything is cached, and a
 miss degrades to the default face (tofu, but never a crash).
+
+"symbol" is a script here for the same reason and is otherwise not one: a
+Latin face is not a symbol face, and the one the app lands on under Windows
+(Arial) has no U+2605 — see :data:`_SYMBOL_RANGES`. **The ASS half of #713
+needed no fix**: measured on Windows, libass falls back through DirectWrite
+and draws U+2605, U+2713 and U+25B6 fine, so only text baked here was broken.
 """
 
 import logging
@@ -59,6 +65,23 @@ _CANDIDATES = {
         "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
         "tahoma.ttf",
     ],
+    # Stars, ticks, arrows, media glyphs. Not a script anybody writes in, and
+    # on Linux it resolves to the same DejaVu the Latin text does -- it earns
+    # its place on **Windows**, where the Latin face is Arial and Arial has no
+    # U+2605 (measured, along with segoeui/tahoma/verdana/calibri, none of
+    # which has it either). That is #713: the community rating in a baked
+    # detail banner drew as a tofu box.
+    "symbol": [
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "NotoSansSymbols2-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf",
+        # Segoe UI Symbol, shipped with Windows since 7. Measured to carry
+        # U+2605, U+2713, U+25B6 and U+266A.
+        "seguisym.ttf",
+        "/System/Library/Fonts/Apple Symbols.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+    ],
 }
 
 # Bold variants, tried before the regular list for bold requests.
@@ -74,11 +97,25 @@ _cache = {}          # (script, size, bold) -> ImageFont
 _resolved = {}       # (script, bold) -> path/name that loaded, or None
 
 
+#: Blocks a text face is not expected to cover: arrows, media and geometric
+#: glyphs, stars, ticks. Deliberately **not** General Punctuation, currency,
+#: letterlike or maths — an ordinary title is full of "…", "—" and "™", every
+#: Latin face has them, and sending those to a second face would fragment
+#: almost every string we draw for nothing.
+_SYMBOL_RANGES = ((0x2190, 0x21FF),    # arrows
+                  (0x2300, 0x23FF),    # misc technical, incl. media controls
+                  (0x25A0, 0x25FF),    # geometric shapes
+                  (0x2600, 0x26FF),    # misc symbols: stars, notes
+                  (0x2700, 0x27BF),    # dingbats: ticks, crosses
+                  (0x2B00, 0x2BFF))    # misc symbols and arrows
+
+
 def script_of_char(cp):
     """The script one codepoint needs a face for.
 
-    Latin/Cyrillic/Greek/Hebrew and the punctuation and symbol blocks all
-    map to "latin", which is the face that covers them.
+    Latin/Cyrillic/Greek/Hebrew and the punctuation blocks all map to
+    "latin", which is the face that covers them. The symbol blocks do not:
+    see :data:`_SYMBOL_RANGES`.
     """
     if cp < 0x0590:                # ASCII, Latin ext, Greek, Cyrillic
         return "latin"
@@ -92,13 +129,29 @@ def script_of_char(cp):
         return "thai"
     if cp >= 0x2E80:               # CJK, kana, hangul, fullwidth forms
         return "cjk"
-    return "latin"                 # punctuation, symbols, arrows
+    if any(lo <= cp <= hi for lo, hi in _SYMBOL_RANGES):
+        return "symbol"
+    return "latin"                 # punctuation, currency, maths
 
 
 def script_of(text):
     """The single script a string is drawn with when it cannot be split:
     the first character outside the Latin face's coverage wins, so
-    "進撃の巨人 (2013)" resolves to cjk."""
+    "進撃の巨人 (2013)" resolves to cjk.
+
+    **A lone symbol wins too, and that is deliberate**, even though it is
+    one character of a line that is otherwise Latin. Callers read line
+    height off this face (`components/banner.py`, `mpvtk_browser/cast.py`
+    both take `getmetrics()` from it and reserve a band that tall), while
+    ``draw_text`` puts the runs on a baseline derived from the *tallest*
+    face present. Those two agree only if the face answered here is the
+    tallest one — and it is: measured on Windows, Segoe UI Symbol is
+    (22, 6) against Arial's (19, 5) at 20px. Answering "latin" for
+    "★ 8.1" instead would reserve Arial's band and then draw into Segoe's,
+    overflowing it by 4px. The cost is that a rated banner's meta line is
+    a few px taller than an unrated one on Windows, which nothing on
+    screen is there to compare against.
+    """
     for ch in text or "":
         script = script_of_char(ord(ch))
         if script != "latin":

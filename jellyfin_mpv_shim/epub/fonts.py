@@ -120,7 +120,11 @@ def face(kind, size, bold=False, italic=False, script="latin"):
     if hit is not None:
         return hit
     font = None
-    if script not in ("latin", "", None):
+    # "symbol" is deliberately treated as latin: it is pilfont's answer for a
+    # string that merely *contains* a star or an arrow, and a book whose title
+    # has one must not be set in a symbol face from cover to cover. The reading
+    # families below are what the setting is about.
+    if script not in ("latin", "symbol", "", None):
         from ..mpvtk import pilfont
 
         # No italic: pilfont's per-script lists are regular and bold, and a
