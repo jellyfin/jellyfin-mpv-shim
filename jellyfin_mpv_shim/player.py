@@ -4067,7 +4067,23 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _apply_remembered_tracks(self, video):
         """Carry the previous episode's audio/subtitle choice into this one,
-        matching by language/title/codec/position (jellyfin-web heuristic)."""
+        matching by language/title/codec/position (jellyfin-web heuristic).
+
+        One step of a four-step chain; `docs/track-selection.md` has the whole
+        table and `tests/test_track_truth_table.py` enforces it.
+        """
+        # **Deliberately does NOT check `explicit_tracks`**, unlike the other
+        # three steps of the chain. This step is how a deliberate pick reaches
+        # the next episode at all: the memory holds what the user last chose
+        # and `_rank_stream` re-matches it against *this* item's streams by
+        # language, title, codec and position. A forwarded `explicit_tracks`
+        # would instead carry the previous item's raw stream index, which
+        # indexes into a different source and is stale by construction.
+        #
+        # What protects a pick on the item it was made for is the caller:
+        # `is_initial_play` clears the memory (the browser's pick), and
+        # `apply_memory=False` skips this entirely (a restart after
+        # `set_streams`). See docs/track-selection.md section 4.
         prev_source, prev_aid, prev_sid = self._track_memory
         # source_for_track_rules, not media_source: this now runs before
         # PlaybackInfo, where there is no negotiated source yet. It answers
@@ -4080,9 +4096,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 video.aid = match
 
         if settings.remember_subtitle_track:
-            if prev_sid is None or prev_sid == -1:
-                video.sid = -1  # subtitles were off — keep them off
-            else:
+            # **-1 and None are not the same memory.** -1 is what the OSD
+            # menu's "None" entry and the HUD's "Off" entry send (menu.py,
+            # osc_bridge.py): a decision, and one worth carrying. None is
+            # what `video.sid` holds when nothing ever resolved a subtitle --
+            # the previous episode had no subtitle track, or no rule matched
+            # and the source named no default. That is an absence, and
+            # promoting it to "off" overwrites a language_config rule that
+            # HAS resolved a subtitle for this episode.
+            #
+            # Which turned one episode with no subtitle track into subtitles
+            # off for the rest of the season -- defeating the Subbed/Dubbed
+            # preset on precisely the run of episodes it exists to cover. The
+            # audio branch above has always distinguished the two.
+            if prev_sid == -1:
+                video.sid = -1  # subtitles were switched off — keep them off
+            elif prev_sid is not None:
                 match = _rank_stream(prev_source, prev_sid, streams, "Subtitle")
                 if match is not None:
                     video.sid = match

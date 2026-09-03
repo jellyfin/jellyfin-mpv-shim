@@ -167,6 +167,13 @@ class RealVideo:
         self.parent = RealParent(next_video)
         self.aid = None
         self.sid = -1                    # subtitles off -> configure_streams noop
+        #: Read by all four steps of the track chain, the first of which runs
+        #: before the url. The third field on this fake to carry that warning
+        #: (see the two methods below): a `Video` field omitted here does not
+        #: leave a path untested, it makes every start that reaches the field
+        #: an AttributeError -- and the symptom is "EOF did not auto-advance",
+        #: five frames from the cause. docs/track-selection.md.
+        self.explicit_tracks = False
         self.is_transcode = False
         self.media_source = {"Id": "ms-%s" % item_id, "MediaStreams": []}
         self.playback_info = {"PlaySessionId": "ps-%s" % item_id}

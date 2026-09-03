@@ -227,6 +227,14 @@ class Video(object):
     #: those paths -- i.e. on offline playback.
     _tracks_resolved = False
 
+    #: Class attributes for the same reason as `_tracks_resolved` above, and
+    #: they are read on the same paths. `explicit_tracks` in particular is now
+    #: consulted by all four steps of the track chain (docs/track-selection.md),
+    #: the first of which runs before the url is built -- so on a Video built
+    #: without `__init__` its absence is not a gap in coverage, it is an
+    #: AttributeError out of the middle of a start.
+    explicit_tracks = False
+
     def __init__(
         self,
         item_id: str,
