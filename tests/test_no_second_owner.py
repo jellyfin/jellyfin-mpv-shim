@@ -57,10 +57,16 @@ class OwnedStateTest(unittest.TestCase):
                     "self.%s is not touched anywhere in %s any more — it was "
                     "renamed or removed, and this entry has been checking "
                     "nothing" % (entry.attr, entry.module))
-                self.assertTrue(
-                    set(sites) & entry.owners,
-                    "none of the declared owners of self.%s touch it any "
-                    "more: %r" % (entry.attr, sorted(sites)))
+                phantom = sorted(entry.owners - set(sites))
+                self.assertFalse(
+                    phantom,
+                    "declared owners of self.%s that do not touch it: %r. An "
+                    "owner is a record of a site that exists, not permission "
+                    "for one that might: left standing, it pre-authorises "
+                    "exactly the second owner this audit is for, and the "
+                    "audit stays silent because the name is already listed. "
+                    "Real sites: %r"
+                    % (entry.attr, phantom, sorted(sites)))
 
 
 if __name__ == "__main__":

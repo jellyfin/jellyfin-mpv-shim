@@ -27,6 +27,13 @@ suite.
 appeared, not that it is wrong. A finding is answered either by routing
 through the accessor that already exists, or -- if the new site genuinely
 owns the state too -- by adding it to `owners` with the reason.
+
+**`owners` records the sites that exist, never the ones that may.** A name
+listed here that does not touch the attribute pre-authorises the very second
+owner this audit exists to catch: the day that method does reach the state,
+nothing is reported, because the name is already on the list.
+`tests/test_no_second_owner.py` fails on any such name -- `_active_item`
+shipped with two.
 """
 
 import ast
@@ -56,11 +63,12 @@ OWNED = [
     Owned(
         module="jellyfin_mpv_shim/sync/manager.py",
         attr="_active_item",
-        owners=("__init__", "_download", "_cancel_if_active", "relocate",
-                "state", "stop"),
+        owners=("__init__", "_download", "_cancel_if_active", "relocate"),
         why="Which item the worker owns. A second writer means a delete "
             "either yanks files out from under an open write or misses the "
-            "in-flight item entirely.",
+            "in-flight item entirely. A reader wanting "
+            "\"what is downloading\" asks the catalog, as `state` does "
+            "(`STATUS_DOWNLOADING`), rather than reaching in here.",
     ),
 ]
 

@@ -46,6 +46,27 @@ class FakeContractsTest(unittest.TestCase):
                       "\n\nSee tools/audit_fake_contracts.py — model the "
                       "field, or accept it there with a reason.")
 
+    def test_nothing_is_accepted_that_is_not_reached(self):
+        """`accepted` excuses a name production reaches. A name it does not
+        reach is an excuse issued in advance: the day the code does reach it,
+        the audit says nothing, because the name is already on the list --
+        which is the gap this whole file exists to fail on.
+
+        The same guard `tests/test_no_stale_captures.py` makes over
+        `ACCEPTED`, and `tests/test_no_second_owner.py` over `owners`.
+        """
+        for pair in audit.PAIRS:
+            with self.subTest(pair.name):
+                contract = audit.contract_for(pair)
+                self.assertTrue(contract, "the extraction found nothing")
+                dead = sorted(pair.accepted - contract)
+                self.assertFalse(
+                    dead,
+                    "%s accepts names nothing reaches on it: %s. Drop them; "
+                    "re-add one only when production actually reaches it, "
+                    "which is the moment somebody has to think about it."
+                    % (pair.name, ", ".join(dead)))
+
     def test_every_pair_still_extracts_a_contract(self):
         """The guard on the guard. An extraction that finds nothing reports
         every stand-in as perfect, which is how a check like this dies."""
