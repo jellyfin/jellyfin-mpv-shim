@@ -463,9 +463,24 @@ class SyncDB:
                 raise
 
     def playlist_owned_ids(self, playlist_id):
-        """Item ids this playlist download is responsible for (owned=1)."""
+        """Item ids this playlist download is responsible for (owned=1).
+
+        **Joined, like every other read of this table.** `owned=1` answers
+        "may deleting this playlist delete this file", and a claim over an
+        item the catalog does not have is a claim on whatever writes that row
+        next. `replace_playlist_items` will not write one, but that binds only
+        the rows this build wrote: a catalog older than it, or one an older
+        build opens afterwards, holds whatever it holds. The join is on the
+        row's existence and not on its status, because a playlist owns what it
+        is still fetching -- `_record_playlist` reads this mid-download.
+
+        A repair tool that needs to *see* dangling claims needs its own query
+        and should say so in its name; this one exists to be acted on.
+        """
         return {r["item_id"] for r in self._query(
-            "SELECT item_id FROM playlist_items WHERE playlist_id=? AND owned=1",
+            "SELECT pi.item_id FROM playlist_items pi "
+            "JOIN downloads d ON d.item_id = pi.item_id "
+            "WHERE pi.playlist_id=? AND pi.owned=1",
             (playlist_id,))}
 
     def list_playlists(self):
@@ -490,9 +505,13 @@ class SyncDB:
 
     def playlist_ownership(self):
         """Map of item_id -> playlist_id for owned items (for grouping the
-        Downloads screen). Only one owner per item."""
+        Downloads screen). Only one owner per item.
+
+        Joined for the same reason as `playlist_owned_ids` above."""
         return {r["item_id"]: r["playlist_id"] for r in self._query(
-            "SELECT item_id, playlist_id FROM playlist_items WHERE owned=1")}
+            "SELECT pi.item_id, pi.playlist_id FROM playlist_items pi "
+            "JOIN downloads d ON d.item_id = pi.item_id "
+            "WHERE pi.owned=1")}
 
     def upsert_playstate(self, server_uuid, item_id, position_ticks=None,
                          played=None):

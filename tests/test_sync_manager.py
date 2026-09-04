@@ -1903,12 +1903,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         it being made, not from already being there."""
         root = os.path.join(self.tmp, "stale-claim")
         m = self._manager(root)
-        m.db.upsert_playlist("P", "srv", "u", "My Playlist")
-        m.db._conn.execute(
-            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
-            "owned) VALUES (?,?,?,1)", ("P", self.XID, 0))
-        m.db._conn.commit()
-        self.assertEqual(m.db.playlist_owned_ids("P"), {self.XID})
+        self._stale_claim(m, self.XID)
 
         self._on_disk(root, self.XID)
         self._on_disk(root, self.YID, describe=False)
@@ -1919,7 +1914,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         row = m.db.get(self.XID)
         self.assertIsNotNone(row, "the orphan was not adopted at all")
         self.assertEqual(
-            m.db.playlist_owned_ids("P"), set(),
+            self._claims_in_the_table(m), set(),
             "the row _adopt_orphan marked never-auto to protect the file is "
             "still owned by a playlist, which deletes it unconditionally")
 
@@ -1927,11 +1922,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         """The end of the chain, which is the only part the user sees."""
         root = os.path.join(self.tmp, "end-to-end")
         m = self._manager(root)
-        m.db.upsert_playlist("P", "srv", "u", "My Playlist")
-        m.db._conn.execute(
-            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
-            "owned) VALUES (?,?,?,1)", ("P", self.XID, 0))
-        m.db._conn.commit()
+        self._stale_claim(m, self.XID)
         media = os.path.join(self._on_disk(root, self.XID), "media.mkv")
         self._on_disk(root, self.YID, describe=False)
         add_row(m, self.YID, status=STATUS_COMPLETE,
@@ -1955,6 +1946,20 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
             "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
             "owned) VALUES (?,?,?,1)", ("P", item_id, 0))
         m.db._conn.commit()
+        self.assertEqual(self._claims_in_the_table(m), {item_id},
+                         "the stale claim was not seeded")
+
+    @staticmethod
+    def _claims_in_the_table(m):
+        """`owned=1` rows as the *table* holds them.
+
+        `playlist_owned_ids` requires the download row, so it cannot see the
+        state these tests seed -- which is the point of it, and is why the
+        premise has to be read here instead. Anything that wants to find
+        dangling claims rather than act on them needs its own read like this
+        one."""
+        return {r[0] for r in m.db._conn.execute(
+            "SELECT item_id FROM playlist_items WHERE owned=1")}
 
     def test_a_scheduled_download_starts_unclaimed(self):
         """The claim is released by whoever *creates the row*, not by whoever
@@ -1970,7 +1975,6 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         root = os.path.join(self.tmp, "auto-origin")
         m = self._manager(root)
         self._stale_claim(m, self.XID)
-        self.assertEqual(m.db.playlist_owned_ids("P"), {self.XID})
 
         m.enqueue("u", self.XID, "Movie", include_watched=True,
                   origin=ORIGIN_AUTO_NEXT_UP)
@@ -2032,7 +2036,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         self.assertIsNotNone(m.db.get(self.XID),
                              "the orphan was not adopted at all")
         self.assertEqual(
-            m.db.playlist_owned_ids("P"), set(),
+            self._claims_in_the_table(m), set(),
             "the row _adopt_orphan marked never-auto to keep the file is "
             "owned by a playlist, which deletes it unconditionally")
 

@@ -298,6 +298,62 @@ class PlaylistDeleteTest(TmpTest):
         m.db.close()
 
 
+class OwnershipReadsRequireTheRowTest(TmpTest):
+    """`owned=1` means "deleting this playlist may delete this file", so every
+    reader of it has to require the file's row.
+
+    The writer checks -- `replace_playlist_items` writes an entry only for an
+    item the catalog has, inside the transaction -- but that only holds for
+    rows *this build* wrote. A catalog written before it, or by an older build
+    afterwards (`_migrate` promises those still open), still holds claims with
+    no row, and the readers are what decide whether one is acted on.
+    """
+
+    def _catalog(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        return db
+
+    def _dangling(self, db, item_id="gone"):
+        """A claim with no `downloads` row, written the only way a catalog can
+        hold one: straight into the table, as an older build left it."""
+        db._conn.execute(
+            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
+            "owned) VALUES (?,?,?,1)", ("P", item_id, 0))
+        db._conn.commit()
+
+    def test_owned_ids_does_not_answer_with_a_claim_that_has_no_row(self):
+        db = self._catalog()
+        self._dangling(db)
+        self.assertEqual(db.playlist_owned_ids("P"), set())
+
+    def test_the_ownership_map_does_not_answer_with_one_either(self):
+        db = self._catalog()
+        self._dangling(db)
+        self.assertEqual(db.playlist_ownership(), {})
+
+    def test_a_claim_that_has_its_row_is_still_answered(self):
+        """The join constrains; it must not filter. Ownership applies to a
+        download that is still being fetched, so it cannot key on status --
+        `_delete_playlist` and `_record_playlist` both read it mid-download.
+        """
+        db = self._catalog()
+        db.upsert(make_row("done", status=STATUS_COMPLETE))
+        db.upsert(make_row("busy", status=STATUS_PENDING))
+        db.replace_playlist_items("P", [("done", 0, 1), ("busy", 1, 1)])
+        self.assertEqual(db.playlist_owned_ids("P"), {"done", "busy"})
+        self.assertEqual(db.playlist_ownership(),
+                         {"done": "P", "busy": "P"})
+
+    def test_an_unowned_membership_is_still_not_ownership(self):
+        db = self._catalog()
+        db.upsert(make_row("shared", status=STATUS_COMPLETE))
+        db.replace_playlist_items("P", [("shared", 0, 0)])
+        self.assertEqual(db.playlist_owned_ids("P"), set())
+        self.assertEqual(db.playlist_ownership(), {})
+
+
 class ListPlaylistsTest(TmpTest):
     def test_only_playlists_with_complete_items_listed(self):
         db = SyncDB(os.path.join(self.tmp, "c.db"))
