@@ -798,15 +798,34 @@ class Settings(SettingsBase):
             changed = True
         return changed
 
+    #: **Stated, on both ends, and `-sig` on the way in.** This file is one a
+    #: person edits by hand (`docs/configuration.md` says so), which is where
+    #: a non-ASCII character enters -- a `sync_path` under `D:/Filme/
+    #: Übersicht`, an `mpv_ext_path` inside a profile directory with an
+    #: umlaut. Without an encoding, `open()` decodes with the *locale's*
+    #: codec, cp1252 on a Western Windows install, and the read raises
+    #: `UnicodeDecodeError` where nothing catches it: a traceback at startup,
+    #: before anything is on screen. `utf-8-sig` is identical to utf-8 except
+    #: that it tolerates the BOM Notepad adds -- left in, that BOM reaches
+    #: `json.loads`, which rejects the file, and the whole config is
+    #: discarded as "not valid JSON".
+    #:
+    #: Writing plain utf-8 is deliberate: we do not add a BOM, we only
+    #: forgive one.
+    READ_ENCODING = "utf-8-sig"
+    WRITE_ENCODING = "utf-8"
+
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
+        encoding = (self.WRITE_ENCODING if "w" in mode or "a" in mode
+                    else self.READ_ENCODING)
 
         if not os.path.exists(path):
             try:
-                _fh = open(path, mode)
+                _fh = open(path, mode, encoding=encoding)
             except IOError as e:
                 if e.errno == 2 and create:
-                    fh = open(path, "w")
+                    fh = open(path, "w", encoding=self.WRITE_ENCODING)
                     json.dump(self.dict(), fh, indent=4, sort_keys=True)
                     fh.close()
                     created = True
@@ -817,7 +836,7 @@ class Settings(SettingsBase):
                 return None
 
         # This should work now
-        return open(path, mode), created
+        return open(path, mode, encoding=encoding), created
 
     def load(self, path: str, create: bool = True):
         global config_path  # Don't want in model.
@@ -890,7 +909,7 @@ class Settings(SettingsBase):
         with _save_lock:
             tmp = config_path + ".tmp"
             try:
-                with open(tmp, "w") as fh:
+                with open(tmp, "w", encoding=self.WRITE_ENCODING) as fh:
                     json.dump(self.dict(), fh, indent=4, sort_keys=True)
                     fh.flush()
                 os.replace(tmp, config_path)
