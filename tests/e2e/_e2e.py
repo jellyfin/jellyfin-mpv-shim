@@ -665,6 +665,46 @@ class Session:
         return None
 
 
+def normalise_home_layout(session):
+    """Put this account's home layout back to the server's own defaults.
+
+    **Every module that renders the home screen owes a call to this**, not
+    just the one that writes the layout. The layout is real server state
+    shared by every run on every machine, and `test_home_layout` — the only
+    module that writes it — restores whatever it *found*, so residue left by
+    an interrupted run is faithfully preserved rather than decaying. A
+    reader that does not normalise is therefore measuring the last run that
+    died, forever.
+
+    That is not hypothetical. A stale layout holding `latestmedia` in two
+    slots made the repository build one Latest row per library per slot;
+    those rows are keyed by library, so their node ids collided and
+    `test_keyboard_nav` failed on duplicate ids. A layout that drops
+    `smalllibrarytiles` takes the library-tiles row off the screen instead,
+    and the same module fails with "no node id containing <guid>". Both read
+    as browser regressions with nothing pointing back at the layout, and
+    both survived two sessions as "pre-existing failures".
+
+    Deliberately does NOT restore on cleanup: normalised is the correct
+    resting state for the fixture account, and putting the residue back is
+    the bug this exists to stop. Only the `homesection*` keys are touched —
+    the guide settings share the document.
+    """
+    from jellyfin_mpv_shim.mpvtk_browser import home_sections
+    dto = session.api.get_user_settings(
+        client=home_sections.DISPLAY_PREFS_CLIENT) or {}
+    custom = dict(dto.get("CustomPrefs") or {})
+    # "" is "use this slot's default", which is what jellyfin-web stores for
+    # an untouched slot. Written rather than compared first: a 12.0 server
+    # does not keep the blank, it reads back as the slot's literal default,
+    # so there is no cheap way to tell "already normalised" from residue.
+    custom.update({"homesection%d" % slot: ""
+                   for slot in range(home_sections.SLOT_COUNT)})
+    dto["CustomPrefs"] = custom
+    session.api.update_user_settings(
+        dto, client=home_sections.DISPLAY_PREFS_CLIENT)
+
+
 # --------------------------------------------------------------------------
 # Driving the player
 # --------------------------------------------------------------------------

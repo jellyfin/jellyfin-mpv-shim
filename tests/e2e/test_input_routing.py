@@ -52,6 +52,9 @@ class InputRoutingTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.strips import StripStore
 
         self.session = _e2e.Session()
+        # `_focus_a_content_tile` focuses whatever the home screen drew, so a
+        # stale layout changes which tile is under test.
+        _e2e.normalise_home_layout(self.session)
         self.addCleanup(self.session.stop)
         self.source = self.session.library_source()
         self.addCleanup(self.source.stop)

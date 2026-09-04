@@ -64,6 +64,9 @@ class KeyboardNavTest(unittest.TestCase):
         cls.MpvtkBrowser = MpvtkBrowser
         cls.layout = staticmethod(layout)
         cls.session = _e2e.Session()
+        # This module asserts on the home screen's own nodes, so it owes the
+        # layout a normalise -- see _e2e.normalise_home_layout.
+        _e2e.normalise_home_layout(cls.session)
         cls.source = cls.session.library_source()
         cls.libraries = cls.source.get_libraries(_e2e.SOURCE_UUID)
         cls.by_name = {lib["Name"]: lib for lib in cls.libraries}

@@ -143,6 +143,8 @@ class RouteWalkTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser, PAGES
         cls.PAGES = PAGES
         cls.session = _e2e.Session()
+        # `test_home` renders and interacts with the home screen.
+        _e2e.normalise_home_layout(cls.session)
         cls.source = cls.session.library_source()
         cls.libraries = cls.source.get_libraries(_e2e.SOURCE_UUID)
         cls.by_name = {lib["Name"]: lib for lib in cls.libraries}
