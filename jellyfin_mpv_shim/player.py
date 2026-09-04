@@ -2112,16 +2112,14 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         back to a positive playback_time for backends that don't expose
         core-idle. Runs on the action thread, once per playback.
 
-        **A PAUSE satisfies it too, and has to.** mpv reports a paused core
-        as `core-idle yes` — indefinitely, with `playback_time` frozen at
-        wherever it stopped, which is 0.0 for someone who paused at the
-        start (measured on 0.41). So waiting on core-idle alone meant a
-        viewer who paused in the first second got no scrub thumbnails for
-        the rest of the item: nothing here fires again, and the renderer's
-        lazy re-ask cannot rescue it because that only runs once a first
-        window has arrived. A stopped core is also the one moment when
-        nothing is competing with the fetch, which is what the wait was for
-        in the first place.
+        **A PAUSE satisfies it too, and has to.** mpv reports a paused core as
+        `core-idle yes` indefinitely, with `playback_time` frozen where it
+        stopped -- 0.0 for someone who paused at the start (measured on 0.41).
+        Waiting on core-idle alone left a viewer who paused in the first
+        second with no scrub thumbnails for the rest of the item: nothing here
+        fires again, and the renderer's lazy re-ask only runs once a first
+        window has arrived. A stopped core is also the one moment nothing is
+        competing with the fetch.
         """
         if not self._trickplay_pending or self.trickplay is None:
             return
@@ -2339,33 +2337,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             if video.auth_via_header and not same_origin(
                     url, video.client.config.data.get("auth.server")):
                 # A direct path to somebody else's host: an http `.strm`
-                # source, or a path substitution. Revoking rather than never
-                # installing is what keeps the failure modes above intact --
-                # that branch of `_get_url_from_source` returns the url
-                # unchanged and never embeds a token, so there is nothing for
-                # the url to lose here.
+                # source, or a path substitution. The url is left as the
+                # server gave it and never gains a token, which is correct --
+                # it has nothing to lose (docs/auth-headers.md section 3).
                 log.info("Not sending the auth header to mpv: this item "
                          "streams from another host.")
                 self._revoke_auth_header(video)
             if not video.auth_via_header:
-                # The subtitles are still OURS. map_streams built their urls
-                # without a token because the header was going to carry it,
-                # so with no header they have no credential at all -- a 401
-                # and no captions.
+                # The subtitles are still OURS: map_streams built their urls
+                # without a token because the header was going to carry it.
                 #
-                # Keyed on the OUTCOME, not on the branch above it. This used
-                # to sit inside the revoke, which is one of the several ways
-                # this line is reached: `_apply_auth_headers` also declines
-                # for a foreign subtitle host, a dead mpv, a client with no
-                # token yet, and an mpv that refuses the option. The foreign
-                # subtitle case is the one guaranteed to strand something --
-                # the reason the header is declined is that the item HAS
-                # external subtitles, so there is always one of ours beside
-                # the third-party one.
-                #
-                # `reauthorize_sidecars` is same-origin-gated and idempotent,
-                # so saying this once for every outcome is safe where saying
-                # it per branch was not.
+                # **Keyed on the OUTCOME, never on a branch above it** -- the
+                # header ends up off several ways, and per-branch this misses
+                # exactly the likeliest one. `reauthorize_sidecars` is
+                # same-origin-gated and idempotent, which is what makes
+                # saying it once safe (docs/auth-headers.md section 3).
                 try:
                     video.reauthorize_sidecars()
                 except Exception:
@@ -3153,30 +3139,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         hands back: mpv's defaults as modified by the user's ``mpv.conf``,
         and nothing else.
 
-        **Called the moment the handle exists, before anything else touches
-        it**, because the shader pack gets there first in two different
-        ways and both would poison this:
-
-        - at construction, ``menu.update_player`` (and the first
-          ``OSDMenu``) builds a ``VideoProfileManager``, whose ``__init__``
-          re-applies the remembered profile. ``default-setting-groups``
-          writes ``deband`` and, through ``profile=gpu-hq``, every property
-          ``render_quality`` owns. ``shader_pack_remember`` defaults on, so
-          this is the ordinary path for anyone who has picked a profile
-          once;
-        - per item, ``apply_for_item`` runs earlier in ``_play_media`` than
-          the settings do.
-
-        Snapshotted after either, "the user's own value" is the pack's, and
-        turning the setting off hands the pack's values back over the user's
-        ``mpv.conf`` -- permanently, with no profile loaded, and with
-        ``deband-grain: 0`` that only made sense beside the pack's grain
-        shaders.
+        **Call it the moment the handle exists, before anything else touches
+        it.** The shader pack gets there first two different ways -- a
+        remembered profile re-applied by ``VideoProfileManager.__init__`` at
+        construction, and ``apply_for_item`` running earlier in
+        ``_play_media`` than the settings do -- and snapshotted after either,
+        "the user's own value" is the pack's (docs/mpv-backends.md section 6).
 
         A property this mpv does not have is simply absent, and the restore
-        skips it. That is the right answer rather than an error: an older
-        build without ``hdr-contrast-recovery`` cannot have a value of it to
-        put back, and the preset write for it will fail on its own terms.
+        skips it: an older build cannot have a value to put back, and the
+        preset write for it will fail on its own terms.
         """
         from .mpv_options import PRESET_SETTINGS, preset_keys
 
@@ -3206,27 +3178,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _apply_render_preset(self, key):
         """Write ``key``'s configured preset, or undo ours.
 
-        **"Off" writes nothing until we have written something.** Every
-        property these settings touch is one somebody may have set in their
-        own mpv.conf, and all of them default to off -- so an off that wrote
-        its idea of "not doing this" would reach out on the first item and
-        undo the user's config, with no setting here to put it back.
-        (``hwdec_pinned_by_config`` exists to avoid the same mistake, the
-        other way round: hwdec's off is a real value that HAS to be written,
-        so it cannot buy the protection by staying silent and needs a pin.)
+        **"Off" writes nothing until we have written something**, or the
+        first item would reach out and undo the user's own ``mpv.conf`` with
+        no setting here to put it back. The undo is symmetric with the do:
+        off restores every property any preset of this key touches, not just
+        this preset's.
 
-        The undo is symmetric with the do: off restores the pristine value of
-        every property any preset of this key touches -- not just this
-        preset's, so switching presets before turning it off still restores
-        all of them.
+        ``_render_written`` carries the second meaning of off -- with a shader
+        profile loaded, off is "I have no opinion, leave the pack's value
+        alone" rather than "undo the pack". Only a key we wrote is a key we
+        may take back.
 
-        ``_render_written`` is the "have we ever written this" record, and
-        the second thing off has to mean: with a shader profile loaded, off
-        is "I have no opinion, leave the pack's value alone" rather than
-        "undo the pack". Only a key we wrote is a key we may take back.
-
-        Why preserving ``video-sync`` alone is worse than useless:
-        docs/mpv-backends.md section 6.
+        The full account, including why preserving ``video-sync`` alone is
+        worse than useless: docs/mpv-backends.md section 6.
         """
         from .mpv_options import preset_keys, preset_props
 
@@ -3369,31 +3333,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def reapply_render_presets(self):
         """Write the preset-driven settings again, now.
 
-        For the shader pack, which writes some of the same properties and
-        then puts them back. ``pack.json`` lists ``deband-default`` under
-        ``default-setting-groups``, so **loading any profile turns debanding
-        on and unloading one turns it off again** -- and the value unload
-        restores is whatever mpv had when ``VideoProfileManager`` snapshotted
-        it, which is not this setting. Without this, picking an upscaler
-        mid-film and dropping it again would silently take the user's
-        debanding with it for the rest of the film; ``_play_media`` would not
-        put it back until the next item.
+        Called after every profile load and unload, because **loading any
+        profile turns debanding on and unloading one turns it off again** --
+        so without this, picking an upscaler mid-film and dropping it again
+        takes the user's debanding with it for the rest of the film. The rule
+        it enforces: a preset that is not "off" outranks the pack, and "off"
+        means whatever the pack (or mpv.conf) wrote stands.
 
-        The rule it enforces is the one the settings are documented with: a
-        preset that is not "off" is the authority, and "off" means we have no
-        opinion and whatever the pack (or mpv.conf) wrote stands.
-
-        ``@synchronous`` because it arrives from two threads that are not the
-        one applying settings for the next item: the shader menu's
-        ``put_task`` on the action thread, and ``kb_kill_shader`` straight
-        from mpv's key handler. Every one of the settings it writes is also
-        written by ``_play_media``, so without the lock the two loops
-        interleave and the item ends up wearing half of each -- and the
-        pack's values it reads through ``_pack_applied`` are being rewritten
-        by ``unload_profile`` at the same time. Blocking a key handler on
-        this lock is what ``toggle_pause`` and ``toggle_fullscreen`` already
-        do, and ``wait_property``'s poll thread and hard timeout are what
-        keep a playback start from holding it for ever.
+        ``@synchronous`` because it arrives from threads that are not the one
+        applying settings for the next item, and every property it writes
+        ``_play_media`` writes too -- unlocked, the item wears half of each.
+        Why blocking a key handler here is safe: docs/mpv-backends.md section 6.
         """
         if self._player is None or not self._mpv_alive:
             return
