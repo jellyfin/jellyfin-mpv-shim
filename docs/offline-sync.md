@@ -339,6 +339,22 @@ A row is protected from the reaper by `origin` and from a playlist delete by
 (`set_origin` and `_claim_from_playlists`); releasing only the first meant
 deleting the playlist still deleted a film the user had separately downloaded.
 
+`_adopt_orphan` releases both too — and not because it is a user gesture.
+`ORIGIN_USER` there means only "the reaper may not take this", since a row this
+method invented has no evidence the download was ever scheduled; it does not
+mean the user claimed the item, and `_delete_playlist` does not consult
+`origin` at all. Releasing one claim and not the other protects the file from
+whichever deleter happens not to run first.
+
+**Ownership never outlives its row.** `replace_playlist_items` writes an entry
+only for an item the catalog has, and checks that *inside* the transaction that
+writes it. The caller cannot: `_record_playlist` decides membership from a
+`pre_existing` snapshot taken before it queued anything, and nothing serialises
+it against a delete — `enqueue`, `delete_item` and `delete` take no
+manager-wide lock and the browser runs them on a worker pool. A claim left
+standing over an item with no row is a claim on whatever writes that row next,
+which is `_adopt_orphan`, on a file it is trying to keep.
+
 `_cancelled` is a third, transient claim — a delete waiting for the worker to
 notice between chunks, which can take the 60 s read timeout. `enqueue`
 withdraws it (`_uncancel`), or changing your mind inside that window queued

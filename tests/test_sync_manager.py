@@ -1782,6 +1782,133 @@ class PlaylistOwnershipTest(TmpTest):
                          "the playlist took back an item the user had claimed")
 
 
+class OwnershipNeverOutlivesItsRowTest(TmpTest):
+    """`owned=1` says "deleting this playlist may delete this file". A row
+    saying that about an item the catalog does not have is a claim on nothing
+    -- until something puts a row back, and then it is a claim on a file
+    nobody meant to give the playlist.
+
+    `_adopt_orphan` is what puts the row back, and it sets `ORIGIN_USER`
+    *specifically* so the reaper cannot delete a download it had no evidence
+    was ever scheduled. Leaving the playlist's claim standing hands the same
+    file to the other deleter, so the protection is defeated by the sequence
+    it was written for.
+    """
+
+    XID = "%032x" % 1
+    YID = "%032x" % 2
+    ITEM = {"Id": XID, "Type": "Movie", "Name": "Film",
+            "MediaSources": [{"Id": "s", "Container": "mkv"}]}
+
+    class _API:
+        def __init__(self, items):
+            self._items = items
+
+        def get_playlist_items(self, pid, fields=None):
+            return {"Items": self._items}
+
+        def get_item(self, iid, fields=None):
+            return {"Name": "My Playlist"}
+
+    def _manager(self, root):
+        os.makedirs(root, exist_ok=True)
+        m = make_manager(root, self.addCleanup)
+        api = self._API([self.ITEM])
+
+        class C:
+            config = type("cfg", (), {"data": {"auth.server-id": "srv"}})()
+            jellyfin = api
+        m.get_client = lambda uuid: C()
+        m._download_playlist_art = lambda *a, **k: None
+        return m
+
+    def _on_disk(self, root, iid, describe=True):
+        """A download as `_download` leaves it: media plus the manifests that
+        let `_adopt_orphan` rebuild the row."""
+        item_dir = os.path.join(root, "srv", iid)
+        os.makedirs(item_dir, exist_ok=True)
+        with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+            fh.write(b"x" * 64)
+        if describe:
+            with open(os.path.join(item_dir, "item.json"), "w") as fh:
+                json.dump({"Id": iid, "Type": "Movie", "Name": iid}, fh)
+            with open(os.path.join(item_dir, "source.json"), "w") as fh:
+                json.dump({"Id": "s"}, fh)
+        return item_dir
+
+    def test_a_delete_racing_the_membership_write_leaves_no_claim(self):
+        """Nothing serialises `enqueue` against `delete`: neither takes a
+        manager-wide lock, and the browser runs them on a four-worker pool.
+        So the delete can land between the row this enqueue committed and the
+        membership it is about to write, and `pre_existing` -- snapshotted
+        before the loop -- still says the playlist pulled this item in.
+        """
+        root = os.path.join(self.tmp, "raced")
+        m = self._manager(root)
+
+        real_record = m._record_playlist
+
+        def racing_record(*a, **kw):
+            m.db.update(self.XID, status=STATUS_COMPLETE)
+            m.delete_item(self.XID)          # the other worker's delete
+            return real_record(*a, **kw)
+
+        m._record_playlist = racing_record
+        m.enqueue("u", "P", "Playlist", include_watched=True)
+
+        self.assertIsNone(m.db.get(self.XID), "the racing delete did not land")
+        self.assertEqual(
+            m.db.playlist_owned_ids("P"), set(),
+            "the playlist owns an item the catalog does not have, so the "
+            "next thing to write that row hands it the file")
+
+    def test_adopting_an_orphan_releases_a_stale_playlist_claim(self):
+        """Written straight into the tables, because a catalog that reached
+        this state under an older build still has it -- the guard above stops
+        it being made, not from already being there."""
+        root = os.path.join(self.tmp, "stale-claim")
+        m = self._manager(root)
+        m.db.upsert_playlist("P", "srv", "u", "My Playlist")
+        m.db._conn.execute(
+            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
+            "owned) VALUES (?,?,?,1)", ("P", self.XID, 0))
+        m.db._conn.commit()
+        self.assertEqual(m.db.playlist_owned_ids("P"), {self.XID})
+
+        self._on_disk(root, self.XID)
+        self._on_disk(root, self.YID, describe=False)
+        add_row(m, self.YID, status=STATUS_COMPLETE,
+                file_path="srv/%s/media.mkv" % self.YID)
+        m._reconcile_disk()
+
+        row = m.db.get(self.XID)
+        self.assertIsNotNone(row, "the orphan was not adopted at all")
+        self.assertEqual(
+            m.db.playlist_owned_ids("P"), set(),
+            "the row _adopt_orphan marked never-auto to protect the file is "
+            "still owned by a playlist, which deletes it unconditionally")
+
+    def test_the_protected_file_survives_deleting_that_playlist(self):
+        """The end of the chain, which is the only part the user sees."""
+        root = os.path.join(self.tmp, "end-to-end")
+        m = self._manager(root)
+        m.db.upsert_playlist("P", "srv", "u", "My Playlist")
+        m.db._conn.execute(
+            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
+            "owned) VALUES (?,?,?,1)", ("P", self.XID, 0))
+        m.db._conn.commit()
+        media = os.path.join(self._on_disk(root, self.XID), "media.mkv")
+        self._on_disk(root, self.YID, describe=False)
+        add_row(m, self.YID, status=STATUS_COMPLETE,
+                file_path="srv/%s/media.mkv" % self.YID)
+        m._reconcile_disk()
+
+        m._delete_playlist("P")
+        self.assertTrue(os.path.exists(media),
+                        "deleting the playlist deleted the very file "
+                        "_adopt_orphan had gone out of its way to keep")
+
+
 class MoveRollbackTest(TmpTest):
     """A failed move must leave the store exactly as it was.
 

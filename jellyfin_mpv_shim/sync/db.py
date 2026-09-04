@@ -357,7 +357,23 @@ class SyncDB:
     def replace_playlist_items(self, playlist_id, entries):
         """Set a playlist's membership to ``entries`` (list of
         ``(item_id, sort_index, owned)``), replacing any prior membership so a
-        re-download reflects the current order and removals."""
+        re-download reflects the current order and removals.
+
+        **An entry is only written for an item the catalog actually has**, and
+        the check is part of this transaction rather than something the caller
+        did earlier. `owned=1` means "deleting this playlist may delete this
+        file", so an entry with no `downloads` row is a claim held over
+        whatever writes that row next -- and `_adopt_orphan` writes exactly
+        such rows, for files it is trying to protect.
+
+        The caller cannot do this check for itself. `_record_playlist` decides
+        membership from a `pre_existing` snapshot taken before it queued
+        anything, and nothing serialises it against a delete: `enqueue`,
+        `delete_item` and `delete` take no manager-wide lock and the browser
+        runs them on a worker pool. A delete landing in that window removes the
+        row and its memberships, and the enqueue then writes the membership
+        back. Inside the transaction the two orders are decided, not raced.
+        """
         with self._lock:
             if self._conn is None:
                 return
@@ -366,8 +382,10 @@ class SyncDB:
                     "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
                 self._conn.executemany(
                     "INSERT INTO playlist_items "
-                    "(playlist_id, item_id, sort_index, owned) VALUES (?,?,?,?)",
-                    [(playlist_id, iid, idx, 1 if owned else 0)
+                    "(playlist_id, item_id, sort_index, owned) "
+                    "SELECT ?,?,?,? WHERE EXISTS "
+                    "(SELECT 1 FROM downloads WHERE item_id=?)",
+                    [(playlist_id, iid, idx, 1 if owned else 0, iid)
                      for iid, idx, owned in entries])
                 self._conn.commit()
             except sqlite3.Error:

@@ -13,7 +13,8 @@ changes nothing looks exactly like one that survived. Rewrite the pattern to
 whatever now expresses the same broken behaviour, or drop the entry and say
 in the commit why that claim no longer needs evidence.
 
-All of them were killed when the round closed.
+All of them were killed when the round closed. The four at the top of the
+list are the follow-up session's repairs, added the same day and killed too.
 """
 
 SELECT = [
@@ -51,6 +52,23 @@ MUTATIONS = [
      'jellyfin_mpv_shim/sync/manager.py',
      '            shutil.copyfile(backup_path, staged)',
      '            shutil.copyfile(backup_path, catalog_path); staged = catalog_path'),
+    # --- the follow-up session's repairs (bdd30a3d, cb2b50c1, and this one)
+    ('restore: the sidecar step swallows every failure again',
+     'jellyfin_mpv_shim/sync/manager.py',
+     '                    if exc.errno != errno.ENOENT:\n                        raise',
+     '                    pass'),
+    ('delete: a removal that removed nothing still reports success',
+     'jellyfin_mpv_shim/sync/manager.py',
+     '        if os.path.exists(item_dir):\n            log.warning("Could not remove the files for %s at %s.",\n                        row.get("item_id"), item_dir)\n            return False\n        return True',
+     '        return True'),
+    ('playlist: membership is written without checking for the row',
+     'jellyfin_mpv_shim/sync/db.py',
+     '                    "(playlist_id, item_id, sort_index, owned) "\n                    "SELECT ?,?,?,? WHERE EXISTS "\n                    "(SELECT 1 FROM downloads WHERE item_id=?)",\n                    [(playlist_id, iid, idx, 1 if owned else 0, iid)',
+     '                    "(playlist_id, item_id, sort_index, owned) "\n                    "VALUES (?,?,?,?)",\n                    [(playlist_id, iid, idx, 1 if owned else 0)'),
+    ('adopt: an adopted orphan keeps the playlist claim on it',
+     'jellyfin_mpv_shim/sync/manager.py',
+     '        self._claim_from_playlists(item_id, item.get("Type"))\n        log.warning("Re-adopted the download at %s',
+     '        log.warning("Re-adopted the download at %s'),
     ('move: catalog/backup sort key the wrong way round',
      'jellyfin_mpv_shim/sync/manager.py',
      'names.sort(key=lambda n: (n == "catalog.db", n == self.CATALOG_BACKUP))',

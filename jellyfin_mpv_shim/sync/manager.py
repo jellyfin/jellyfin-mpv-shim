@@ -1098,14 +1098,20 @@ class SyncManager:
             self._cancelled.discard(item_id)
 
     def _claim_from_playlists(self, item_id, item_type):
-        """A user download outranks a playlist's claim on the same item.
+        """Release a playlist's claim on an item that must not be deleted.
 
         There are two things that will delete a download the user did not ask
         to delete: the reaper, and deleting a playlist that *owns* the item.
-        `enqueue` already answers the first -- `set_origin` promotes the row
-        so the reaper stops considering it -- and answered only the first, so
-        pressing Download on an episode a downloaded playlist had pulled in
-        left it owned, and deleting that playlist deleted it anyway.
+        Promoting the row to `ORIGIN_USER` answers only the first, and
+        `_delete_playlist` does not look at origin at all -- so a row is only
+        actually protected once both claims are released.
+
+        Two callers, for the two ways a row comes to deserve that. `enqueue`,
+        because pressing Download on an episode a downloaded playlist had
+        pulled in used to leave it owned, and deleting that playlist deleted
+        it anyway. And `_adopt_orphan`, because a row it invented is marked
+        never-auto precisely to keep the file, which the playlist would then
+        remove regardless.
 
         Not for `item_type == "Playlist"`: that call *is* the playlist
         download, and `_record_playlist` recomputes ownership from
@@ -1648,6 +1654,13 @@ class SyncManager:
             # Deliberately True: we could not describe it, so we certainly
             # cannot justify deleting it.
             return True
+        # Both claims, not just the reaper's. The `ORIGIN_USER` above exists
+        # to stop the reaper deleting a download this method invented; a
+        # playlist that still owns the item deletes it just as unconditionally,
+        # and `_delete_playlist` does not look at origin at all. Releasing one
+        # and not the other protects the file from whichever deleter happens
+        # not to run first.
+        self._claim_from_playlists(item_id, item.get("Type"))
         log.warning("Re-adopted the download at %s (%s) — it had no catalog "
                     "row.", item_dir, item.get("Name") or item_id)
         return True
