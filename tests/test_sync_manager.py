@@ -2264,9 +2264,28 @@ class TheRestoreIsOnePathTest(TmpTest):
         holder = type("m", (), {"db": db, "root": root})()
         for i in range(400):
             add_row(holder, "%032x" % (i + 500))
-        os.remove(catalog)             # the main file vanishes, the WAL stays
-        self.assertTrue(os.path.exists(catalog + "-wal"),
-                        "no stale WAL to test with")
+
+        # Take a copy of the live WAL, *then* close, then put it back. A
+        # clean close checkpoints the WAL away, and the state under test is a
+        # WAL that outlived its catalog. Closing first is also the more
+        # faithful shape -- the process that owned the catalog is gone -- and
+        # it is required on Windows, which will not unlink a file that
+        # somebody still holds open.
+        wal = catalog + "-wal"
+        self.assertTrue(os.path.exists(wal), "no WAL was written to save")
+        with open(wal, "rb") as fh:
+            stale = fh.read()
+        self.assertTrue(stale, "the WAL was empty, so it proves nothing")
+        db.close()
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.remove(catalog + suffix)
+            except OSError:
+                pass
+        with open(wal, "wb") as fh:
+            fh.write(stale)
+        self.assertFalse(os.path.exists(catalog),
+                         "the catalog did not actually go away")
 
         m = self._launch(root)
         self.assertEqual(len(m.db.list()), 3,
