@@ -17,6 +17,7 @@ the line you are about to add, so an inline comment cannot warn you.
 | Editing `player.py` or its mixins (`player_audio.py`, `player_reporting.py`, `player_window.py`, `mpv_options.py`, `mpv_events.py`) | [docs/mpv-backends.md](docs/mpv-backends.md) |
 | Any browser shell work — routes, pages, loading, navigation (`mpvtk_browser/`) | [docs/browser-shell.md](docs/browser-shell.md) |
 | Drawing anything new with the toolkit (widgets, layout, overlays) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) |
+| Baking text into a bitmap — captions, the mirror, the epub reader (`mpvtk/pilfont.py`) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) section 12 |
 | Adding or changing a server query or `Fields` list | [docs/jellyfin-api-notes.md](docs/jellyfin-api-notes.md) |
 | Anything about startup, shutdown, the tray, single-instance or the gamepad | [docs/architecture.md](docs/architecture.md) |
 | Adding a config key, or moving one between settings tabs | [docs/settings-curation.md](docs/settings-curation.md) |
@@ -350,4 +351,4 @@ discards every existing translation of it. Known cases: `Record`, `Channels`,
 | [docs/configuration.md](docs/configuration.md) | the user-facing settings reference (enforced by a test) |
 | [docs/do-not-fix.md](docs/do-not-fix.md) | code that reads as a defect and is not, ground already traced clean, settled decisions, and what is still open |
 | [docs/PERMISSION_GAPS.md](docs/PERMISSION_GAPS.md) | what breaks without each Jellyfin user permission |
-| [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) | the mpvtk toolkit itself: widgets, layout, the ASS/bitmap z-order constraint |
+| [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) | the mpvtk toolkit itself: widgets, layout, the ASS/bitmap z-order constraint; text faces, bidi and colour emoji (12) |

@@ -1,29 +1,26 @@
 """Script-aware PIL font resolution for baked bitmaps.
 
-Text drawn as ASS (Text/Icon nodes) goes through libass, which does its own
-fontconfig fallback — CJK, Arabic, emoji all just work. Text *baked into
+**Pillow has no font fallback**: one TrueType face draws the whole string and
+anything it lacks renders as tofu (□□□). libass, which draws the ASS half
+of the UI, does its own fontconfig fallback — so only text *baked into
 bitmaps* (tile captions in mpvtk_browser.strips, the display mirror's title
-block) goes through Pillow, and Pillow has no fallback at all: one TrueType
-face is used for the whole string and anything it lacks renders as tofu
-(□□□). Japanese/Chinese/Korean library titles hit this immediately.
+block) needs any of this. CJK library titles hit it immediately.
 
 So we pick the face per string: scan for the first character outside the
 Latin/Cyrillic/Greek range our default face covers, map it to a script, and
 load a system font known to cover that script. Everything is cached, and a
 miss degrades to the default face (tofu, but never a crash).
 
-"symbol" is a script here for the same reason and is otherwise not one: a
-Latin face is not a symbol face, and the one the app lands on under Windows
-(Arial) has no U+2605 — see :data:`_SYMBOL_RANGES`. **The ASS half of #713
-needed no fix**: measured on Windows, libass falls back through DirectWrite
-and draws U+2605, U+2713 and U+25B6 fine, so only text baked here was broken.
+Two pseudo-scripts, neither of which is one anywhere else. **"symbol"**,
+because a Latin face is not a symbol face (:data:`_SYMBOL_RANGES`). **"emoji"**,
+the only one where the *face* is awkward rather than the choice of it: it draws
+in its own colours (``embedded_color``) and is very often available at one
+fixed pixel size and no other, which is what :data:`_STRIKES` and
+:func:`_draw_scaled` are for. A symbol face is not an emoji face either.
 
-"emoji" is a third such pseudo-script, and the only one where the *face* is
-awkward rather than just the choice of it: a colour-emoji face is drawn in
-its own colours (``embedded_color``) and is very often available at one
-fixed pixel size and no other. :data:`_STRIKES` and :func:`_draw_scaled` are
-the two halves of that. A symbol face is not an emoji face either — neither
-Segoe UI Symbol nor NotoSansSymbols2 carries one (measured).
+The measured evidence behind every table here — face coverage, the RTL
+whole-line rule, colour-emoji strikes, shaping and the lookup cost — is in
+mpvtk/GUIDE.md section 12.
 """
 
 import logging
@@ -56,46 +53,24 @@ _CANDIDATES = {
         "simsun.ttc",
         "malgun.ttf",
     ],
-    # Arabic is RTL too, so the "one face for the line" note under "hebrew"
-    # applies -- but the answer is the opposite one. Measured:
-    # NotoSansArabic carries the full stop, comma and digits, so an ordinary
-    # Arabic sentence is whole; what it lacks is A-Z, so an Arabic line with
-    # a Latin *word* in it draws that word as boxes. DejaVu would fix that
-    # -- it has full Latin and real Arabic shaping (`arab` in both GSUB and
-    # GPOS) -- but it covers 165 of 256 Arabic-block codepoints against
-    # Noto's 255, and 249 of the 772 presentation forms against Noto's 751.
-    # Arabic is a script of presentation forms, so that is the wrong three
-    # quarters to give up for the occasional Latin word. Left as it is,
-    # knowingly, and not for want of a candidate.
+    # Arabic is RTL, so the whole-line rule under "hebrew" applies -- but
+    # here it has no clean answer. NotoSansArabic has the neutrals and no
+    # A-Z, so a Latin *word* inside an Arabic line is boxes; the face that
+    # would fix that gives up three quarters of the presentation forms,
+    # which is most of the script. Left as it is, knowingly: coverage
+    # figures in mpvtk/GUIDE.md section 12.1.
     "arabic": [
         "NotoSansArabic-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
         "/System/Library/Fonts/GeezaPro.ttc",
         "arial.ttf",
     ],
-    # Hebrew. Folded into "latin" until F33, on the strength of DejaVu
-    # having it -- and Arial does too, so both the developer's box and
-    # Windows looked fine. `NotoSans-Regular.ttf` is third in that list and
-    # has no Hebrew at all (measured), so a box with Noto Sans and no DejaVu
-    # drew every Hebrew title as boxes. A script is not covered because the
-    # face you happen to have covers it.
-    #
-    # **The order is the load-bearing part, and it is the opposite of every
-    # other list here.** Hebrew is RTL, so `has_rtl` gives the whole line to
-    # ONE face -- there is no Latin run to fall to -- and that face has to
-    # carry the neutrals as well as the script. `NotoSansHebrew-Regular.ttf`
-    # is 145 codepoints: no full stop, no comma, no digit, no ASCII at all
-    # (measured), so putting it first drew "שלום עולם." with the stop as a
-    # box and every year in a title as four of them.
-    #
-    # Liberation Sans leads because it needs no trade at all: measured, 87
-    # of the 88 assigned Hebrew codepoints (all but U+05EF), all 46
-    # presentation forms, all 95 printable ASCII, and `hebr` in both GSUB
-    # and GPOS so the points still stack. That is everything Noto Hebrew
-    # has plus the Latin it does not. DejaVu is next and is the same idea
-    # with a cost -- it misses 34: the cantillation marks U+0591-05AF plus
-    # U+05C4, U+05C5 and U+05EF, i.e. biblical Hebrew. Noto stays last, for
-    # the host with none of the above, which is what F33 was about.
+    # **The order here is load-bearing and is the opposite of every other
+    # list in this file.** Hebrew is RTL, so `has_rtl` gives the whole line
+    # to ONE face and there is no Latin run to fall to -- that face has to
+    # carry the neutrals as well as the script, or the full stop and every
+    # year in a title come out as boxes. So the script-specific face goes
+    # LAST, not first. Per-face coverage: mpvtk/GUIDE.md section 12.1.
     "hebrew": [
         "LiberationSans-Regular.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
@@ -133,15 +108,12 @@ _CANDIDATES = {
         "/System/Library/Fonts/Apple Symbols.ttf",
         "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
     ],
-    # Colour emoji. Not a script either, and the one candidate list here
-    # where the *pixel size* is part of the problem: Windows' seguiemj is
-    # COLR-outlined and loads at any size, but NotoColorEmoji.ttf -- what
-    # every Linux box has -- is a CBDT bitmap face with a single 109px
-    # strike and raises `OSError: invalid pixel size` at every other size
-    # (measured). `_load` probes strikes for this script alone, and
-    # `draw_text` shrinks what the strike draws. The two monochrome outline
-    # faces at the end are the graceful degradation: they load at the asked
-    # size and need none of that.
+    # Colour emoji. Not a script, and the one list where the *pixel size* is
+    # part of the problem: NotoColorEmoji is a CBDT bitmap face with a single
+    # 109px strike and raises `OSError: invalid pixel size` at any other one,
+    # so `_load` probes strikes for this script alone and `draw_text` shrinks
+    # what the strike draws (mpvtk/GUIDE.md section 12.2). The two monochrome
+    # outline faces at the end load at the asked size and need none of that.
     "emoji": [
         "seguiemj.ttf",
         "NotoColorEmoji.ttf",
@@ -163,15 +135,9 @@ _CANDIDATES = {
 _FALLBACK_SCRIPTS = {"emoji": ("symbol",)}
 
 #: Pixel sizes a bitmap-strike face may be available at, tried in
-#: `_strike_order` when the asked-for size is refused. NotoColorEmoji's 109
-#: is measured here; 128 and 136 are what the older Noto and the Twemoji
-#: builds ship. The Apple Color Emoji entries (20/26/32/40/48/52/64/96/160)
-#: are a **probe set, not a verified inventory** -- nobody on this project
-#: has a Mac, and 26 and 52 in particular are unconfirmed on current
-#: releases. Being wrong either way is cheap: a size that is not a strike
-#: costs one failed load, and a strike not listed means the face is simply
-#: not used and the run falls to the symbol face, which is what it does
-#: today. `TTCollection(path).fonts[0]["sbix"].strikes` settles it on a Mac.
+#: `_strike_order` when the asked-for size is refused. The Apple entries are
+#: a **probe set, not a verified inventory** -- being wrong either way is
+#: cheap, and mpvtk/GUIDE.md section 12.2 says how to settle it on a Mac.
 _STRIKES = (16, 20, 26, 32, 40, 48, 52, 64, 96, 109, 128, 136, 160)
 
 # Bold variants, tried before the regular list for bold requests.
@@ -208,19 +174,16 @@ _SYMBOL_RANGES = ((0x2190, 0x21FF),    # arrows
 #: local copy of that file. **The whole astral blocks deliberately are
 #: not**: they are coarser than the property, for the reason below.
 #:
-#: The BMP half is a list of small ranges rather than whole blocks, and that
-#: is the load-bearing part: U+2605 and U+2713 sit inside U+2600-27BF, and
-#: **neither colour face draws them** -- measured, both NotoColorEmoji and
-#: seguiemj answer .notdef -- so sweeping the block into this table would put
-#: #713's star straight back to tofu. The text-presentation neighbours stay
-#: on the symbol face, which is the face that has them.
+#: **The BMP half must stay small ranges, never whole blocks.** U+2605 and
+#: U+2713 sit inside U+2600-27BF and no colour face draws them, so sweeping
+#: the block in here puts #713's star straight back to tofu -- the
+#: text-presentation neighbours belong on the symbol face
+#: (mpvtk/GUIDE.md section 12.2).
 #:
-#: The astral half is whole blocks, and can be, because up there the current
-#: answer is the ``cp >= 0x2E80`` CJK catch-all and it is **already tofu**:
-#: NotoSansCJK covers 0 of U+1F300-1F5FF and msgothic 0 of every block here
-#: (measured). The ~130 text-presentation pictographs inside U+1F300-1F5FF
-#: that Noto Color Emoji does not carry stay tofu, exactly as they are now;
-#: carving them out would be a table nobody could check.
+#: The astral half can be whole blocks: up there the current answer is the
+#: ``cp >= 0x2E80`` CJK catch-all and it is already tofu, so the ~130
+#: text-presentation pictographs Noto Color Emoji lacks are no worse off.
+#: Carving them out would be a table nobody could check.
 _EMOJI_RANGES = ((0x231A, 0x231B), (0x23E9, 0x23EC), (0x23F0, 0x23F0),
                  (0x23F3, 0x23F3), (0x25FD, 0x25FE), (0x2614, 0x2615),
                  (0x2648, 0x2653), (0x267F, 0x267F), (0x2693, 0x2693),
@@ -258,13 +221,11 @@ def _codepoints(ranges):
     """A range table, flattened for lookup.
 
     The tables above stay ranges because that is the form a human can check
-    them against emoji-data.txt in; this is the form the repaint path can
-    afford. `script_of_char` runs per character, and `strips._ellipsize`
-    re-measures a caption once per character while it trims, so walking 48
-    emoji ranges to reject one CJK character showed up: measured, 1.2us a
-    character against 0.017us for a set membership, which is 25us against
-    2us for one Japanese caption and milliseconds across a grid. The three
-    sets together are ~3,800 codepoints.
+    against emoji-data.txt; this is the form the repaint path can afford,
+    since `script_of_char` runs per character and `strips._ellipsize`
+    re-measures a caption once per character while it trims. Measured at ~70x
+    per character (mpvtk/GUIDE.md section 12.5); the three sets together are
+    ~3,800 codepoints.
     """
     return frozenset(cp for lo, hi in ranges for cp in range(lo, hi + 1))
 
@@ -311,13 +272,10 @@ def script_of(text):
     **A symbol only wins when there is nothing else in the string.** It is a
     face for the odd glyph, not for words, and this answer is used for two
     things that would be wrong for: the line height a caller reserves
-    (`components/banner.py`, `mpvtk_browser/cast.py`), and the face handed
-    to ``draw_text`` for a *substring* — a wrapped or ellipsized line the
-    symbol need not have survived into. Segoe UI Symbol's Latin is not
-    Arial's and it carries no Arabic or Hebrew at all (measured), so one
-    rating choosing it re-typesets whole paragraphs, and for an RTL line —
-    which cannot be split at all — draws every word as a box. A real script
-    returns above before the question arises.
+    (`components/banner.py`, `mpvtk_browser/cast.py`), and the face handed to
+    ``draw_text`` for a *substring* the symbol need not have survived into.
+    One star choosing it would re-typeset whole paragraphs, and for an RTL
+    line draw every word as a box (mpvtk/GUIDE.md section 12.4).
 
     But a string of *nothing but* symbols has no words to protect and still
     has to be drawn by something. `components.placeholder_glyph` answers
@@ -352,16 +310,10 @@ def script_of(text):
 
 
 #: Characters that join what is around them into one glyph and must never
-#: start a run of their own. A run boundary is a separate ``draw.text``
-#: call, and shaping does not cross one: split "👩‍💻" at the joiner
-#: and Raqm sees three strings instead of one, so it draws two emoji where
-#: the font has a single glyph. Measured with Raqm: the ZWJ sequence, the
-#: flag pair and the keycap all shape to one glyph of the same advance as
-#: one emoji, and the variation selectors are consumed rather than drawn.
-#:
-#: U+20E3 rides with the digit *before* it, which is what makes "1️⃣"
-#: come out as a keycap from an ordinary Latin face rather than as a digit
-#: and a box.
+#: start a run of their own, because **shaping does not cross a run
+#: boundary** -- split "👩‍💻" at the joiner and Raqm draws two emoji where
+#: the font has one glyph (mpvtk/GUIDE.md section 12.3). U+20E3 rides with
+#: the digit *before* it, which is what makes "1️⃣" a keycap.
 _JOINERS = frozenset((0x200D,            # zero width joiner
                       0xFE0E, 0xFE0F,    # text / emoji variation selectors
                       0x20E3))           # combining enclosing keycap
@@ -371,12 +323,10 @@ def runs(text):
     """``[(script, chunk), ...]`` in order, adjacent same-script chars merged.
 
     **This is the whole fix for mixed strings.** A face named for a script is
-    very often a face for *only* that script: measured here, DroidSansFallback
-    (the CJK face a Debian box without Noto CJK lands on), NotoSansThai and
-    NotoSansArabic all draw the letter A as .notdef -- so "進撃の巨人 (2013)"
-    came out with the year as four tofu boxes. Splitting means the Latin run
-    is drawn with the Latin face and the CJK run with the CJK one, which is
-    what libass does for the text we hand to it.
+    very often a face for *only* that script, so "進撃の巨人 (2013)" came out
+    with the year as four tofu boxes (mpvtk/GUIDE.md section 12.5). Splitting
+    draws each run with its own face, which is what libass already does for
+    the text we hand it.
 
     Whitespace is neutral and stays with the run in progress rather than
     starting a Latin one: a space is blank in every face, and splitting on it
@@ -406,17 +356,15 @@ def runs(text):
     return [(script, "".join(chunk)) for script, chunk in out]
 
 
-#: Hebrew and Arabic. A string containing any of these is drawn with one
-#: face, because drawing runs left to right in logical order would put a
-#: right-to-left run in the wrong place -- Pillow (through Raqm) reorders
-#: within a single draw call and cannot across several. Tofu in one run is
-#: a worse-looking line; reordered text is a wrong one.
+#: Hebrew and Arabic. A string containing any of these is drawn with **one
+#: face**: Pillow reorders bidi within a single draw call and cannot across
+#: several, and reordered text is a wrong line where tofu is only an ugly
+#: one (mpvtk/GUIDE.md section 12.1).
 #:
 #: **Kept in step with `script_of_char` by a test** — every codepoint here
-#: must map to "hebrew" or "arabic", because this table decides that a line
-#: gets ONE face and that one decides which. U+FE70-FEFF was in this table
-#: and mapped to *cjk*, so an Arabic line written in presentation forms was
-#: drawn end to end with a face that cannot draw a word of it.
+#: must map to "hebrew" or "arabic", since this table decides a line gets ONE
+#: face and `script_of_char` decides which. They disagreed once, and an
+#: Arabic line in presentation forms was drawn end to end with a CJK face.
 _RTL_RANGES = ((0x0590, 0x05FF), (0x0600, 0x06FF), (0xFB1D, 0xFB4F),
                (0xFB50, 0xFDFF), (0xFE70, 0xFEFF))
 
@@ -660,20 +608,14 @@ def _draw_scaled(draw, x, baseline, chunk, face, scale, fill):
     """Draw one run with a face that only exists at another pixel size.
 
     Rendered at the face's own size into a scratch bitmap, shrunk, and
-    composited. There is no other way round it: ``NotoColorEmoji.ttf`` is a
-    CBDT bitmap face with one 109px strike, so a 20px caption either draws
-    its emoji at 109 and shrinks, or does not draw them.
+    composited -- the only route for a CBDT face with one fixed strike
+    (mpvtk/GUIDE.md section 12.2).
 
-    Not premultiplied before the resize, deliberately. The glyphs are
-    already antialiased into transparent *black*, so the naive resize has no
-    halo to remove -- measured against both a white and a dark plate -- and
-    premultiplying without dividing back out darkens every edge instead.
-
-    Composited through ``draw.im`` rather than ``Image.paste`` because that
-    is all a caller gives us, and it is the same core call Pillow's own
-    ``ImageDraw.text`` makes for colour glyphs. The alpha rides in the mask
-    and not in the source, or a transparent plate squares it and the run
-    comes out thin.
+    Two things here look wrong and are not. **Not premultiplied** before the
+    resize: the glyphs are already antialiased into transparent *black*, so
+    there is no halo to remove and premultiplying without dividing back out
+    darkens every edge. And **the alpha rides in the mask, not the source**,
+    or a transparent plate squares it and the run comes out thin.
     """
     from PIL import Image, ImageDraw
 
@@ -766,20 +708,13 @@ def draw_text(draw, xy, text, fnt, fill=None, anchor=None, faces=None):
         if scale != 1.0:
             _draw_scaled(draw, x, baseline, chunk, face, scale, fill)
         else:
-            # `embedded_color` for emoji only. It is what makes a colour
-            # face draw in its own colours instead of the fill's, and on a
-            # face that has no colour in it the two render the same picture
-            # -- but not the same *bytes*, and every other run here is one
-            # this module promises to leave exactly as it found it.
-            #
-            # **And only onto a target that can hold colour**: Pillow
-            # raises `ValueError: Embedded color supported only in RGB and
-            # RGBA modes` otherwise. Reachable only where the emoji face
-            # loads at the asked size, so it fires on Windows (seguiemj is
-            # COLR-outlined) and never on Linux, where a bitmap strike
-            # sends the same run through `_draw_scaled` and its own RGBA
-            # scratch instead. A greyscale emoji is the right degradation
-            # for a greyscale plate; an exception is not.
+            # `embedded_color` for emoji only, and only onto a target that
+            # can hold colour. On a monochrome face it renders the same
+            # picture but not the same *bytes*, and every other run here is
+            # one this module promises to leave exactly as it found it;
+            # on a non-RGB target Pillow raises. A greyscale emoji is the
+            # right degradation for a greyscale plate, an exception is not.
+            # (mpvtk/GUIDE.md section 12.2)
             draw.text((x, baseline), chunk, font=face, fill=fill,
                       anchor="ls",
                       embedded_color=(script == "emoji"
