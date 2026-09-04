@@ -17,6 +17,7 @@ if __name__ == "__main__":
         os.path.dirname(os.path.abspath(__file__))))
 
 import errno
+import glob
 import json
 import os
 import shutil
@@ -2203,6 +2204,158 @@ class TheRollbackNeverOverwritesTest(TmpTest):
         self.assertFalse(
             os.path.exists(os.path.join(new, os.path.basename(first))),
             "the move was undone but a duplicate was left at the new root")
+
+
+def _zero_page_one(catalog_path):
+    """Zero the file header. sqlite refuses the file outright."""
+    with open(catalog_path, "r+b") as fh:
+        fh.write(b"\x00" * 16)
+
+
+def _garbage_sqlite_master(catalog_path):
+    """Wreck the schema table, which `_corrupt_downloads_table` keeps intact."""
+    with open(catalog_path, "r+b") as fh:
+        fh.seek(100)
+        fh.write(b"\xff" * 3996)
+
+
+def _truncate_mid_page(catalog_path):
+    with open(catalog_path, "r+b") as fh:
+        fh.truncate(2048)
+
+
+def _make_empty_file(catalog_path):
+    """A zero-byte catalog: a truncated write, or a copy that never finished."""
+    with open(catalog_path, "wb"):
+        pass
+
+
+def _replace_with_text(catalog_path):
+    with open(catalog_path, "wb") as fh:
+        fh.write(b"this is not a database\n" * 200)
+
+
+class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
+    """`_open_catalog` promises one of three verdicts for whatever is at the
+    catalog path. It used to promise that for one modelled corruption.
+
+    The guard is `healthy()`, and it is asked *after* `SyncDB` has opened the
+    file writable -- which is not a read: the constructor runs
+    `executescript(_SCHEMA)` and the migration. So a file damaged past the
+    schema raises straight out of this method, and a zero-byte one has the
+    tables created inside it and comes back **trusted and empty**, which is
+    the one answer the whole restore path exists to prevent.
+
+    `_corrupt_downloads_table` -- the fixture the rest of the restore suite is
+    built on -- reaches neither: it zeroes the `downloads` root page and
+    deliberately leaves `sqlite_master` readable so the schema still migrates.
+    """
+
+    def _launch(self, root):
+        m = SyncManager()
+        m.root = root
+        m.get_client = lambda uuid: None
+        m._open_and_run()
+        self.addCleanup(m.stop)
+        return m
+
+    def _seeded(self, root, n=3):
+        os.makedirs(root, exist_ok=True)
+        m = self._launch(root)
+        for i in range(n):
+            iid = "%032x" % i
+            item_dir = os.path.join(root, "srv", iid)
+            os.makedirs(item_dir, exist_ok=True)
+            with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+                fh.write(b"x" * 64)
+            add_row(m, iid, status=STATUS_COMPLETE,
+                    file_path="srv/%s/media.mkv" % iid)
+        m.stop()
+        self._launch(root).stop()      # the backup now holds those rows
+        return m
+
+    def test_every_damaged_catalog_is_restored_from_the_backup(self):
+        for name, damage in (("empty file", _make_empty_file),
+                             ("zeroed header", _zero_page_one),
+                             ("garbage schema", _garbage_sqlite_master),
+                             ("truncated", _truncate_mid_page),
+                             ("not a database", _replace_with_text),
+                             ("zeroed downloads", _corrupt_downloads_table)):
+            with self.subTest(name):
+                root = os.path.join(self.tmp, "damaged-" + name.replace(" ", "-"))
+                self._seeded(root)
+                damage(os.path.join(root, "catalog.db"))
+
+                m = self._launch(root)
+                self.assertEqual(len(m.db.list()), 3,
+                                 "the backup was never restored, so the store "
+                                 "is described by nothing")
+                self.assertEqual(
+                    len(os.listdir(os.path.join(root, "srv"))), 3,
+                    "a download was swept on the strength of a catalog that "
+                    "could not be read")
+
+    def test_a_catalog_that_reads_is_still_trusted(self):
+        """The control. A guard that answers "restore" to everything would
+        pass the test above and re-list the whole store on every launch."""
+        root = os.path.join(self.tmp, "intact")
+        self._seeded(root)
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 3)
+        self.assertFalse(
+            glob.glob(os.path.join(root, "catalog.db.corrupt-*")),
+            "an intact catalog was set aside and restored over")
+
+    def test_a_catalog_that_will_not_open_and_has_no_backup_sweeps_nothing(self):
+        """The end of the road: nothing readable, nothing to restore from.
+
+        There is still one wrong answer available -- open it writable, let
+        sqlite create the tables, and hand the sweep an empty catalog that
+        says none of this media is known.
+        """
+        root = os.path.join(self.tmp, "no-backup")
+        self._seeded(root)
+        _zero_page_one(os.path.join(root, "catalog.db"))
+        os.remove(os.path.join(root, SyncManager.CATALOG_BACKUP))
+
+        m = self._launch(root)
+        self.assertFalse(m.db.healthy(),
+                         "a catalog that would not open came back healthy")
+        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+                         "the sweep ran on the strength of a catalog that "
+                         "was never read")
+
+    def test_a_backup_that_will_not_open_either_sweeps_nothing(self):
+        """The restore promotes whatever the backup is -- `copyfile` is happy
+        to copy a damaged one -- so the open that follows it needs the same
+        answer as the open before it."""
+        root = os.path.join(self.tmp, "both-damaged")
+        self._seeded(root)
+        _zero_page_one(os.path.join(root, "catalog.db"))
+        _zero_page_one(os.path.join(root, SyncManager.CATALOG_BACKUP))
+
+        m = self._launch(root)
+        self.assertFalse(m.db.healthy(),
+                         "the restored copy of a damaged backup came back "
+                         "healthy")
+        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+                         "the sweep ran after a restore that restored nothing")
+
+    def test_an_emptied_catalog_is_not_a_damaged_one(self):
+        """Deleting every download leaves a valid catalog with no rows. That
+        is *readable*, and restoring the backup over it would resurrect
+        exactly the downloads the user just removed."""
+        root = os.path.join(self.tmp, "emptied")
+        self._seeded(root)
+        db = SyncDB(os.path.join(root, "catalog.db"))
+        for i in range(3):
+            db.delete("%032x" % i)
+        db.close()
+
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 0,
+                         "an emptied catalog was mistaken for a damaged one "
+                         "and the backup was restored over it")
 
 
 class TheRestoreIsOnePathTest(TmpTest):

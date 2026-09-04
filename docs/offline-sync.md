@@ -294,8 +294,17 @@ and no launch after it.
 
 Names on disk are ids, so without it the UI cannot list, play or delete a
 download: the folder stops being an offline library and becomes unlabelled
-weight only a file manager can clear. Three mechanisms keep it:
+weight only a file manager can clear. Four mechanisms keep it:
 
+- **A read-only probe before anything opens it writable.** Opening writable is
+  not a read: the constructor runs the schema and the migration, so on a
+  zero-byte file it *creates* the tables and `healthy()` then says yes of a
+  catalog with nothing in it — trusted, empty, and never restored from. The
+  probe is `SyncDB(read_only=True).healthy()`, the same strict read, so there
+  is only ever one answer to "can the rows be read". A writable open can still
+  fail where the probe passed (the schema touches every table, the probe reads
+  `downloads`), and that failure is a verdict, never an exception past the
+  caller.
 - **`catalog.db.bak`**, written after every clean open. An **empty** catalog
   never replaces a backup that has rows — otherwise the backup deletes itself
   on precisely the launch it exists for.

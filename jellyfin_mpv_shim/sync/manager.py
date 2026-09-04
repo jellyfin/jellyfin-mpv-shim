@@ -11,6 +11,7 @@ import json
 import logging
 import math
 import os
+import sqlite3
 import shutil
 import threading
 import time
@@ -349,6 +350,49 @@ class SyncManager:
     #: Kept beside the catalog. See `_open_catalog`.
     CATALOG_BACKUP = "catalog.db.bak"
 
+    @staticmethod
+    def _catalog_reads(catalog_path):
+        """Whether the file already at `catalog_path` is a catalog that reads.
+
+        Asked **read-only, and before anything opens it writable**, because a
+        writable open is not a read: `SyncDB.__init__` runs
+        `executescript(_SCHEMA)`. On a zero-byte file -- a truncated write, a
+        copy that never finished, a restore killed between create and populate
+        -- that *creates* the tables, and `healthy()` then says yes of a
+        catalog with nothing in it. The store ends up described by nothing,
+        with no later launch finding anything wrong: the exact end state the
+        rest of this path exists to prevent.
+
+        `SyncDB(read_only=True).healthy()` rather than a query of its own, so
+        "can the rows be read" keeps one implementation. Read-only opening
+        never creates and never migrates, so asking is free of side effects.
+        """
+        try:
+            probe = SyncDB(catalog_path, read_only=True)
+        except sqlite3.Error:
+            return False
+        try:
+            return probe.healthy()
+        finally:
+            probe.close()
+
+    @staticmethod
+    def _open_writable(catalog_path):
+        """Open the catalog for use, or None if it will not open.
+
+        Separate from `_catalog_reads` because they can disagree: the probe
+        reads `downloads`, while the constructor's schema and migration touch
+        every table. Left to propagate, a failure here escapes `_open_catalog`
+        entirely -- so the caller never gets a verdict, and the backup sitting
+        beside the damaged file is never restored.
+        """
+        try:
+            return SyncDB(catalog_path)
+        except sqlite3.Error:
+            log.warning("The download catalog at %s could not be opened.",
+                        catalog_path, exc_info=True)
+            return None
+
     def _open_catalog(self, catalog_path):
         """Open the catalog, restoring the backup if it is unreadable or gone.
 
@@ -391,9 +435,18 @@ class SyncManager:
             log.warning("The download catalog at %s is missing; restoring the "
                         "backup.", catalog_path)
         else:
-            self.db = SyncDB(catalog_path)
-            if self.db.healthy():
+            self.db = (self._open_writable(catalog_path)
+                       if self._catalog_reads(catalog_path) else None)
+            if self.db is not None and self.db.healthy():
                 return CATALOG_TRUSTED
+            if self.db is None:
+                # Nothing opened, so there is no handle to answer reads with
+                # and none to close below. Read-only because it is the one
+                # open that cannot create or migrate: whatever is at that
+                # path stays exactly as damaged as it was, and `healthy()`
+                # keeps answering false, which is what holds the sweep off
+                # the disk.
+                self.db = SyncDB(catalog_path, read_only=True)
             if not os.path.exists(backup_path):
                 log.error("The download catalog at %s cannot be read and there "
                           "is no backup to restore. Downloads are left "
@@ -417,9 +470,11 @@ class SyncManager:
             # nothing rather than recording that nothing is there.
             self.db = SyncDB(catalog_path, read_only=True)
             return CATALOG_ABSENT if missing else CATALOG_BEHIND
-        self.db = SyncDB(catalog_path)
-        if not self.db.healthy():
+        self.db = self._open_writable(catalog_path)
+        if self.db is None or not self.db.healthy():
             log.error("The restored catalog is unreadable too.")
+            if self.db is None:
+                self.db = SyncDB(catalog_path, read_only=True)
             return CATALOG_BEHIND
         log.warning("Restored the download catalog from %s.%s Downloads "
                     "finished since the backup was taken are still on disk "

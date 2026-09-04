@@ -31,10 +31,22 @@ MUTATIONS = [
      'jellyfin_mpv_shim/sync/manager.py',
      '                    if aside is not None:\n                        os.replace(catalog_path + suffix, aside + suffix)\n                    else:\n                        os.remove(catalog_path + suffix)',
      '                    if aside is not None:\n                        os.replace(catalog_path + suffix, aside + suffix)'),
+    # Three sites of one rule -- never leave a writable, empty, *readable*
+    # catalog where the evidence used to be. Patterns carry the line above so
+    # each names one place; a bare `self.db = SyncDB(..., read_only=True)`
+    # matches all three.
     ('restore: a failed one opens a writable catalog',
      'jellyfin_mpv_shim/sync/manager.py',
-     '            self.db = SyncDB(catalog_path, read_only=True)',
-     '            self.db = SyncDB(catalog_path)'),
+     '            self.db = SyncDB(catalog_path, read_only=True)\n            return CATALOG_ABSENT if missing else CATALOG_BEHIND',
+     '            self.db = SyncDB(catalog_path)\n            return CATALOG_ABSENT if missing else CATALOG_BEHIND'),
+    ('open: a catalog that will not open falls back to a writable one',
+     'jellyfin_mpv_shim/sync/manager.py',
+     '                self.db = SyncDB(catalog_path, read_only=True)\n            if not os.path.exists(backup_path):',
+     '                self.db = SyncDB(catalog_path)\n            if not os.path.exists(backup_path):'),
+    ('restore: a restored catalog that will not open falls back to writable',
+     'jellyfin_mpv_shim/sync/manager.py',
+     '                self.db = SyncDB(catalog_path, read_only=True)\n            return CATALOG_BEHIND',
+     '                self.db = SyncDB(catalog_path)\n            return CATALOG_BEHIND'),
     ('restore: no staging, copy straight onto the target',
      'jellyfin_mpv_shim/sync/manager.py',
      '            shutil.copyfile(backup_path, staged)',
