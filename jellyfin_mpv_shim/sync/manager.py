@@ -1155,17 +1155,6 @@ class SyncManager:
         in the catalog), or it was already owned by this playlist on a prior
         download. Items that pre-existed from another route stay unowned so a
         later playlist delete leaves them (and their original grouping) intact."""
-        if not member_ids:
-            # Nothing supported/available offline — drop any stale record so an
-            # emptied playlist doesn't linger in the offline UI.
-            self.db.delete_playlist(playlist_id)
-            return
-        try:
-            name = (api.get_item(playlist_id) or {}).get("Name") or "Playlist"
-        except Exception:
-            log.debug("Failed to fetch playlist name for %s", playlist_id,
-                      exc_info=True)
-            name = "Playlist"
         already_owned = self.db.playlist_owned_ids(playlist_id)
         # A playlist may list the same item twice; membership is keyed by
         # item_id, so keep the first position and drop later duplicates.
@@ -1176,8 +1165,23 @@ class SyncManager:
             seen.add(iid)
             owned = iid in already_owned or iid not in pre_existing
             entries.append((iid, len(entries), owned))
+        # Membership first, and it is what answers "is any of this offline":
+        # `entries` is what we would *like* to record, and the write filters
+        # it again against the catalog. Nothing supported, nothing left after
+        # the filter, or a delete that landed in between all arrive here as
+        # zero, and the record goes with them -- so an emptied playlist does
+        # not linger in the offline UI and there is no name to fetch or art to
+        # cache for it.
+        if not self.db.replace_playlist_items(playlist_id, entries):
+            self.db.delete_playlist(playlist_id)
+            return
+        try:
+            name = (api.get_item(playlist_id) or {}).get("Name") or "Playlist"
+        except Exception:
+            log.debug("Failed to fetch playlist name for %s", playlist_id,
+                      exc_info=True)
+            name = "Playlist"
         self.db.upsert_playlist(playlist_id, server_id, server_uuid, name)
-        self.db.replace_playlist_items(playlist_id, entries)
         try:
             self._download_playlist_art(
                 self.get_client(server_uuid), server_id, playlist_id)

@@ -373,10 +373,19 @@ class SyncDB:
         runs them on a worker pool. A delete landing in that window removes the
         row and its memberships, and the enqueue then writes the membership
         back. Inside the transaction the two orders are decided, not raced.
+
+        **And therefore this decides whether the playlist exists offline at
+        all.** Filtering can write zero rows for a non-empty `entries`, which
+        no caller can predict, and `list_playlists` needs a member -- so a
+        `playlists` row with nothing under it is a record nothing lists and
+        nothing deletes, holding its cached poster art. It goes in the same
+        transaction as the membership that emptied it. Returns how many
+        entries were written, so a caller can skip work it no longer needs;
+        the invariant does not depend on the caller reading it.
         """
         with self._lock:
             if self._conn is None:
-                return
+                return 0
             try:
                 self._conn.execute(
                     "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
@@ -387,7 +396,15 @@ class SyncDB:
                     "(SELECT 1 FROM downloads WHERE item_id=?)",
                     [(playlist_id, iid, idx, 1 if owned else 0, iid)
                      for iid, idx, owned in entries])
+                written = self._conn.execute(
+                    "SELECT COUNT(*) FROM playlist_items WHERE playlist_id=?",
+                    (playlist_id,)).fetchone()[0]
+                if not written:
+                    self._conn.execute(
+                        "DELETE FROM playlists WHERE playlist_id=?",
+                        (playlist_id,))
                 self._conn.commit()
+                return written
             except sqlite3.Error:
                 self._conn.rollback()
                 raise

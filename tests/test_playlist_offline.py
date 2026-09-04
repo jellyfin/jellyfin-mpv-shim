@@ -379,6 +379,69 @@ class ListPlaylistsTest(TmpTest):
         db.close()
 
 
+class AnEmptyMembershipLeavesNoPlaylistTest(TmpTest):
+    """"This playlist has nothing offline" is answered by the statement that
+    filters the members, not by a caller looking at the list it is about to
+    hand over.
+
+    `replace_playlist_items` writes an entry only for an item the catalog
+    has -- so it can write zero rows for a non-empty `entries`, and the
+    caller's own `if not member_ids` never sees it. The `playlists` row is
+    already committed by then, and `list_playlists` requires a member, so what
+    is left is a record nothing lists, nothing deletes, and whose cached
+    poster art no path reaches again.
+    """
+
+    @staticmethod
+    def _records(db):
+        """The `playlists` table itself. `list_playlists` requires a completed
+        member, so it answers empty for a row that is merely invisible -- the
+        very state this is about."""
+        return {r[0] for r in db._conn.execute(
+            "SELECT playlist_id FROM playlists")}
+
+    def test_a_membership_that_filters_to_nothing_takes_the_record_with_it(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        db.replace_playlist_items("P", [("no-such-row", 0, 1)])
+        self.assertEqual(db.list_playlists(), [])
+        self.assertEqual(self._records(db), set(),
+                         "an invisible playlist row survived the write that "
+                         "found it has no members")
+
+    def test_a_membership_that_writes_something_keeps_the_record(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert(make_row("a", status=STATUS_COMPLETE))
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        db.replace_playlist_items("P", [("a", 0, 1), ("no-such-row", 1, 1)])
+        self.assertEqual(self._records(db), {"P"})
+        self.assertEqual([r["item_id"] for r in db.playlist_item_rows("P")],
+                         ["a"])
+
+    def test_a_delete_that_empties_the_playlist_mid_download(self):
+        """Through the manager, on the ordering that produces it: every member
+        loses its row between the snapshot `_record_playlist` decides from and
+        the membership it writes."""
+        jf = FakeJellyfin([pl_item("a")])
+        m = make_manager(self.tmp, jf)
+        self.addCleanup(m.db.close)
+        real = m.db.replace_playlist_items
+
+        def racing_replace(playlist_id, entries):
+            m.db.delete("a")          # the other worker's delete lands here
+            return real(playlist_id, entries)
+
+        m.db.replace_playlist_items = racing_replace
+        m.enqueue("uuid", "PL", "Playlist")
+
+        self.assertIsNone(m.db.get("a"), "the racing delete did not land")
+        self.assertEqual(m.db.list_playlists(), [])
+        self.assertEqual(self._records(m.db), set(),
+                         "the playlist record outlived every member it had")
+
+
 class OfflinePlaylistBrowseTest(TmpTest):
     def _catalog(self):
         db = SyncDB(os.path.join(self.tmp, "catalog.db"))
