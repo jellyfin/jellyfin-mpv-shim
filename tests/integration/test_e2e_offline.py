@@ -182,14 +182,22 @@ class OfflineEndToEndTest(unittest.TestCase):
                    "the grid opened but loaded nothing from the catalog")
 
     def test_the_keyboard_opens_an_item(self):
-        # "row-<kind>-<key>-<item>": home rows are keyed by section kind, not
-        # by position, so a reordered section cannot inherit the previous
-        # occupant's scroll offset. Offline rows use
+        # `row-<kind>-<key>#<slot>-<item>`, and every part of that is load
+        # bearing. Home rows are keyed by section kind rather than by
+        # position, so a reordered section cannot inherit the previous
+        # occupant's scroll offset; offline rows use
         # repository.OFFLINE_ROW_KIND, and -- because there are several of
-        # them under that one kind -- their collection type rather than an
-        # ordinal, so deleting every downloaded film cannot hand its scroll
-        # position to the shows row (HomePage.MULTI_ROW_KEYS).
-        self._focus("row-downloaded-movies-m1")
+        # them under that one kind -- their collection type
+        # (HomePage.MULTI_ROW_KEYS). The `#0` is the *slot*, which is what
+        # tells two rows of one kind apart, and for the offline source it is
+        # a fixed position per collection type (repository.OFFLINE_ROW_SLOTS)
+        # rather than the row's index among whichever rows had items -- so
+        # `movies` is slot 0 whether or not anything else is downloaded.
+        #
+        # Spelled out rather than asked of `_row_id`: this test exists to
+        # notice the id changing, and one derived from the code under test
+        # would agree with it whatever it said.
+        self._focus("row-downloaded-movies#0-m1")
         self._keypress("ENTER")
         self._wait(lambda: self.browser.route["kind"] == "detail",
                    "ENTER on an item tile did not open it (route is %r)"
