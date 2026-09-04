@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-31 08:17+0000\n"
-"Last-Translator: khao_lek <khao_lek@yahoo.com>\n"
+"PO-Revision-Date: 2026-09-04 15:42+0000\n"
+"Last-Translator: AlphaBeta <mangahadplae@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
 "Language: th\n"
@@ -737,7 +737,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Quick Connect"
-msgstr ""
+msgstr "เชื่อมต่อด่วน"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Enter this code in the Jellyfin app or web client:"
@@ -1093,10 +1093,8 @@ msgid "Default"
 msgstr "ค่าเริ่มต้น"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
-#, fuzzy
-#| msgid " Forced"
 msgid "Forced"
-msgstr " บังคับ"
+msgstr "บังคับ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/osc_bridge.py
@@ -1169,10 +1167,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcoding"
-msgstr " (Transcode)"
+msgstr "กำลังแปลงรหัส"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "The container is not supported"
@@ -1296,10 +1292,8 @@ msgid "Library Browser"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Reading"
-msgstr " (Transcode)"
+msgstr "กำลังอ่าน"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
@@ -4335,9 +4329,9 @@ msgstr ""
 
 # seeded from jellyfin-web: TabLatest
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Recently Added in {0}"
-msgstr "เพิ่มล่าสุด"
+msgstr "เพิ่มล่าสุดใน {0}"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "Upcoming Episodes"
