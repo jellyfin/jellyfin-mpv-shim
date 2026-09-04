@@ -2488,7 +2488,8 @@ class SyncManager:
                 log.debug("Trickplay tile %d failed for %s", i, item_id,
                           exc_info=True)
                 return
-        with open(os.path.join(item_dir, "trickplay.json"), "w") as fh:
+        with open(os.path.join(item_dir, "trickplay.json"), "w",
+                  encoding="utf-8") as fh:
             json.dump({"width": width, "data": data}, fh)
         log.debug("Downloaded %d trickplay tiles for %s.", tiles, item_id)
 
@@ -2516,7 +2517,8 @@ class SyncManager:
         if not items:
             return
         try:
-            with open(os.path.join(item_dir, "segments.json"), "w") as fh:
+            with open(os.path.join(item_dir, "segments.json"), "w",
+                      encoding="utf-8") as fh:
                 json.dump(items, fh)
         except OSError:
             log.debug("Could not write segments.json", exc_info=True)

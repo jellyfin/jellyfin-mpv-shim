@@ -72,7 +72,7 @@ class OfflineVideo(Video):
         tp_json = os.path.join(self._item_dir, "trickplay.json")
         if os.path.exists(tp_json):
             try:
-                with open(tp_json) as fh:
+                with open(tp_json, encoding="utf-8") as fh:
                     self._trickplay = json.load(fh)
             except Exception:
                 self._trickplay = None
@@ -313,7 +313,7 @@ class OfflineVideo(Video):
         self.intro_tried = True
         path = os.path.join(self._item_dir, "segments.json")
         try:
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 segments = json.load(fh)
         except (OSError, ValueError):
             return

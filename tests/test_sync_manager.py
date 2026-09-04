@@ -397,7 +397,8 @@ class ReconcileDiskTest(TmpTest):
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
         item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
         os.makedirs(item_dir)
-        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
             json.dump({"Id": ORPHAN_ID, "Type": "Movie", "Name": "Film"}, fh)
         with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 10)
@@ -419,7 +420,8 @@ class ReconcileDiskTest(TmpTest):
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
         item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
         os.makedirs(item_dir)
-        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
             json.dump({"Id": ORPHAN_ID}, fh)
         with open(os.path.join(item_dir, "media.mkv.part"), "wb") as fh:
             fh.write(b"x")
@@ -481,7 +483,8 @@ class ReconcileDiskTest(TmpTest):
         add_row(m, ORPHAN_ID.replace("f", "e"), status=STATUS_PENDING)
         item_dir = os.path.join(self.tmp, "srv", ORPHAN_ID)
         os.makedirs(item_dir)
-        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
             fh.write('{"Id": "trunc')          # a torn write
         with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 10)
@@ -1525,7 +1528,8 @@ class CorruptCatalogTest(TmpTest):
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
-            with open(os.path.join(item_dir, "item.json"), "w") as fh:
+            with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
                 json.dump({"Id": iid, "Type": "Movie", "Name": "Film %d" % i}, fh)
             add_row(m, iid, status=STATUS_COMPLETE,
                     file_path="srv/%s/media.mkv" % iid)
@@ -1610,7 +1614,8 @@ class CorruptCatalogTest(TmpTest):
         iid = "%032x" % 7
         item_dir = os.path.join(root, "srv", iid)
         os.makedirs(item_dir)
-        with open(os.path.join(item_dir, "item.json"), "w") as fh:
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
             json.dump({"Id": iid, "Type": "Movie", "Name": "Half"}, fh)
         with open(os.path.join(item_dir, "media.mkv.part"), "wb") as fh:
             fh.write(b"x" * 16)
@@ -1865,9 +1870,11 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
             fh.write(b"x" * 64)
         if describe:
-            with open(os.path.join(item_dir, "item.json"), "w") as fh:
+            with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
                 json.dump({"Id": iid, "Type": "Movie", "Name": iid}, fh)
-            with open(os.path.join(item_dir, "source.json"), "w") as fh:
+            with open(os.path.join(item_dir, "source.json"), "w",
+                  encoding="utf-8") as fh:
                 json.dump({"Id": "s"}, fh)
         return item_dir
 
@@ -1914,7 +1921,7 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         row = m.db.get(self.XID)
         self.assertIsNotNone(row, "the orphan was not adopted at all")
         self.assertEqual(
-            self._claims_in_the_table(m), set(),
+            m.db.playlist_owned_ids("P"), set(),
             "the row _adopt_orphan marked never-auto to protect the file is "
             "still owned by a playlist, which deletes it unconditionally")
 
@@ -2525,9 +2532,11 @@ class ADeleteThatRemovedNothingIsNotADeleteTest(TmpTest):
             os.makedirs(item_dir, exist_ok=True)
             with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
                 fh.write(b"x" * 64)
-            with open(os.path.join(item_dir, "item.json"), "w") as fh:
+            with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
                 json.dump({"Id": iid, "Type": "Movie", "Name": iid}, fh)
-            with open(os.path.join(item_dir, "source.json"), "w") as fh:
+            with open(os.path.join(item_dir, "source.json"), "w",
+                  encoding="utf-8") as fh:
                 json.dump({"Id": "ms"}, fh)
             add_row(m, iid, status=STATUS_COMPLETE, origin=origin,
                     file_path="srv/%s/media.mkv" % iid)
