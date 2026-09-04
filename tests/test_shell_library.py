@@ -17,6 +17,8 @@ from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
 from jellyfin_mpv_shim.mpvtk_browser import theme, tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+from jellyfin_mpv_shim.mpvtk_browser.pages.home import HomePage
+from jellyfin_mpv_shim.mpvtk_browser.repository import OFFLINE_ROW_KIND
 
 from tests._shell_harness import (
     FakeController,
@@ -1093,6 +1095,42 @@ class TestCarouselRestore(unittest.TestCase):
                     "out, so it now answers to the id slot 6's offset is "
                     "parked under. ids with both: %r; with only slot 8: %r"
                     % (both, alone))
+
+    def test_the_backstop_is_unreachable_through_the_real_producers(self):
+        """`_unique` renumbers a colliding id, and renumbering IS positional
+        -- which is the one thing a row id may not be. It stays anyway,
+        because the alternative when it fires is worse (duplicate node ids:
+        `layout()` warns and "renderer state and events target only the last
+        occurrence", so the first row's tiles go unreachable). What makes
+        that acceptable is that it cannot fire, and this is where that is
+        checked rather than argued.
+
+        `_row_id` drops the key when it is falsy, so two rows of one
+        `MULTI_ROW_KEYS` kind collide only when they share a slot AND both
+        keys are falsy. The two producers' keys are `parent_id`, which is a
+        library's `Id`, and `collection_type`, which is one of four literals.
+
+        Measured against the QA server (12.0.0) rather than assumed: 19 of 19
+        views carry an `Id`, and `BaseItemDto` marks 152 of its 155
+        properties `nullable: true` -- `Id` is one of the three it does not.
+        So a falsy key needs a server contradicting its own schema, and the
+        backstop is what covers that rather than a crash.
+        """
+        libs = [{"Id": "lib%d" % i, "Name": "L%d" % i} for i in range(3)]
+        rows = [{"title": "Latest %s" % lib["Name"], "kind": "latestmedia",
+                 "parent_id": lib["Id"], "collection_type": "movies",
+                 "slot": slot, "items": [{"Id": "i", "Type": "Movie"}]}
+                for slot in (2, 6, 8) for lib in libs]
+        rows += [{"title": "Downloaded", "kind": OFFLINE_ROW_KIND,
+                  "collection_type": ct, "slot": i,
+                  "items": [{"Id": "d", "Type": "Movie"}]}
+                 for i, ct in enumerate(
+                     ("movies", "homevideos", "tvshows", "books"))]
+        ids = [HomePage._row_id(r["kind"], r) for r in rows]
+        self.assertEqual(len(set(ids)), len(ids),
+                         "two rows the producers can really emit share a row "
+                         "id, so `_unique` is reachable after all and its "
+                         "renumbering decides which one keeps its offset")
 
     def test_parking_is_refused_while_the_browser_is_yielded(self):
         """A yielded scene holds no containers, so ``scroll_offsets()``
