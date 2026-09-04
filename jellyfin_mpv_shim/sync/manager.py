@@ -1223,7 +1223,14 @@ class SyncManager:
         row = self.db.get(item_id)
         if not row:
             return False
-        self._remove_files(row)
+        if not self._remove_files(row):
+            # The row is what stops this becoming a resurrection. A directory
+            # with no row is an orphan, and `_adopt_orphan` rebuilds it as
+            # `user` -- it has no evidence the download was ever scheduled --
+            # so the item the user just deleted comes back, in the one state
+            # `delete_if_auto` will never remove. Left in the catalog the two
+            # still agree, and a retry once the file is free does the job.
+            return False
         self.db.delete(item_id)
         self._notify_change()
         return True
@@ -1276,7 +1283,9 @@ class SyncManager:
             if self._cancel_if_active(row["item_id"]):
                 removed += 1
                 continue
-            self._remove_files(row)
+            if not self._remove_files(row):
+                continue        # see delete_item: dropping the row here
+                                # resurrects it on the next launch
             self.db.delete(row["item_id"])
             removed += 1
         if removed:
@@ -1454,11 +1463,27 @@ class SyncManager:
                             row["item_id"])
 
     def _remove_files(self, row):
+        """Remove a download's directory. Returns whether it is gone.
+
+        `rmtree(ignore_errors=True)` cannot raise, and "cannot raise" is not
+        "succeeded" -- a locked file leaves the directory standing and says
+        nothing. That is the ordinary Windows case, not a crash: the media
+        open in a player, a scanner or an indexer holding it. So the
+        observable is the only honest answer, and callers that drop the row
+        on the strength of this one hand the next launch an item directory
+        with no row, which is the orphan shape.
+        """
+        item_dir = self._item_dir(row)
         try:
-            shutil.rmtree(self._item_dir(row), ignore_errors=True)
+            shutil.rmtree(item_dir, ignore_errors=True)
         except Exception:
             log.debug("Failed to remove files for %s", row.get("item_id"),
                       exc_info=True)
+        if os.path.exists(item_dir):
+            log.warning("Could not remove the files for %s at %s.",
+                        row.get("item_id"), item_dir)
+            return False
+        return True
 
     def _reconcile_disk(self, sweep_orphans=True):
         """Best-effort startup sweep to keep the catalog and the file store in

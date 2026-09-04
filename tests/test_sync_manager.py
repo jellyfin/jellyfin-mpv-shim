@@ -2235,6 +2235,118 @@ def _replace_with_text(catalog_path):
         fh.write(b"this is not a database\n" * 200)
 
 
+class ADeleteThatRemovedNothingIsNotADeleteTest(TmpTest):
+    """`_remove_files` is `rmtree(ignore_errors=True)`, so it cannot raise --
+    and "cannot raise" is not "succeeded".
+
+    A locked item directory is the ordinary Windows case: the media open in a
+    player, an indexer or a scanner holding it. Nothing crashes; the files
+    simply stay. Dropping the row anyway hands the next launch an item
+    directory with no row, which is the orphan shape -- so `_adopt_orphan`
+    rebuilds it, and marks it `user` because a row it invented has no evidence
+    of having been scheduled. The download the user deleted comes back, and
+    comes back in the one state the reaper will never remove.
+    """
+
+    def _launch(self, root):
+        m = SyncManager()
+        m.root = root
+        m.get_client = lambda uuid: None
+        m._open_and_run()
+        self.addCleanup(m.stop)
+        return m
+
+    def _store(self, root, ids, origin=ORIGIN_USER):
+        """A store whose downloads describe themselves, as `_download` leaves
+        them -- `item.json` beside the media is what `_adopt_orphan` reads."""
+        os.makedirs(root, exist_ok=True)
+        m = self._launch(root)
+        for iid in ids:
+            item_dir = os.path.join(root, "srv", iid)
+            os.makedirs(item_dir, exist_ok=True)
+            with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+                fh.write(b"x" * 64)
+            with open(os.path.join(item_dir, "item.json"), "w") as fh:
+                json.dump({"Id": iid, "Type": "Movie", "Name": iid}, fh)
+            with open(os.path.join(item_dir, "source.json"), "w") as fh:
+                json.dump({"Id": "ms"}, fh)
+            add_row(m, iid, status=STATUS_COMPLETE, origin=origin,
+                    file_path="srv/%s/media.mkv" % iid)
+        return m
+
+    @staticmethod
+    @contextlib.contextmanager
+    def _locked_files():
+        """Every removal silently does nothing, which is what `rmtree` with
+        `ignore_errors=True` looks like from the caller's side."""
+        real = shutil.rmtree
+        shutil.rmtree = lambda *a, **kw: None
+        try:
+            yield
+        finally:
+            shutil.rmtree = real
+
+    #: A sibling download, so `srv` stays a server directory the catalog
+    #: names. The orphan sweep only walks those, so with one download the
+    #: leftover directory is never even looked at.
+    OTHER = "%032x" % 8
+
+    def test_a_delete_that_removed_no_files_keeps_the_row(self):
+        root = os.path.join(self.tmp, "kept")
+        iid = "%032x" % 7
+        m = self._store(root, [iid, self.OTHER])
+
+        with self._locked_files():
+            removed = m.delete_item(iid)
+
+        self.assertFalse(removed,
+                         "a delete that removed nothing reported success")
+        self.assertIsNotNone(m.db.get(iid),
+                             "the row went while its files stayed, which is "
+                             "the orphan shape")
+
+    def test_a_delete_that_removed_no_files_does_not_resurrect_it(self):
+        """The end state, which is worse than the leak: back in the library
+        and no longer reapable."""
+        root = os.path.join(self.tmp, "resurrected")
+        iid = "%032x" % 7
+        m = self._store(root, [iid, self.OTHER], origin=ORIGIN_AUTO_NEXT_UP)
+        with self._locked_files():
+            m.delete_item(iid)
+        m.stop()
+
+        m2 = self._launch(root)
+        row = m2.db.get(iid)
+        self.assertIsNotNone(row, "the download vanished from the catalog "
+                                  "while its files stayed on disk")
+        self.assertEqual(row.get("origin"), ORIGIN_AUTO_NEXT_UP,
+                         "the deleted download was re-adopted as a user "
+                         "download, which the reaper will never remove")
+
+    def test_a_bulk_delete_that_removed_no_files_keeps_its_rows(self):
+        root = os.path.join(self.tmp, "bulk")
+        ids = ["%032x" % i for i in range(3)]
+        m = self._store(root, ids)
+        for iid in ids:
+            m.db.update(iid, series_id="show")
+
+        with self._locked_files():
+            m.delete(series_id="show")
+
+        self.assertEqual(len(m.db.list()), 3,
+                         "every row went while every file stayed")
+
+    def test_a_delete_that_works_still_removes_both(self):
+        """The control, so the guard cannot become "never delete"."""
+        root = os.path.join(self.tmp, "control")
+        iid = "%032x" % 7
+        m = self._store(root, [iid, self.OTHER])
+
+        self.assertTrue(m.delete_item(iid))
+        self.assertIsNone(m.db.get(iid))
+        self.assertFalse(os.path.isdir(os.path.join(root, "srv", iid)))
+
+
 class EveryDamagedCatalogGetsAVerdictTest(TmpTest):
     """`_open_catalog` promises one of three verdicts for whatever is at the
     catalog path. It used to promise that for one modelled corruption.
