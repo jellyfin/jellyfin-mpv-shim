@@ -451,7 +451,9 @@ class SyncManager:
            exactly the state a crash between steps 2 and 4 leaves behind.
            Moved rather than deleted when there is an aside to keep them
            with: a WAL can hold pages newer than the file it belongs to, so
-           it is part of what a hand recovery has to work from.
+           it is part of what a hand recovery has to work from. Failing to
+           shift one aborts the restore -- this is the one step here whose
+           success step 4 assumes, rather than merely prefers.
         4. Promote the staged copy.
 
         A failure anywhere leaves the catalog **absent**, which is the state
@@ -475,8 +477,19 @@ class SyncManager:
                         os.replace(catalog_path + suffix, aside + suffix)
                     else:
                         os.remove(catalog_path + suffix)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    # ENOENT is the ordinary case -- usually there is no
+                    # sidecar at all -- and the only failure that still
+                    # leaves nothing beside the name. Every other one means
+                    # a sidecar is *still there*, and the promote below
+                    # happens on the strength of this having worked: sqlite
+                    # applies a WAL to whatever takes that name next,
+                    # checking only that the WAL is internally consistent
+                    # and never that it belongs to the file it is being
+                    # replayed into. Swallowed, that silently discarded four
+                    # rows in five and read back integrity-clean.
+                    if exc.errno != errno.ENOENT:
+                        raise
             os.replace(staged, catalog_path)
         except OSError:
             log.error("Could not restore the catalog backup; the catalog is "

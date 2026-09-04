@@ -16,6 +16,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
 
+import errno
 import json
 import os
 import shutil
@@ -2291,6 +2292,112 @@ class TheRestoreIsOnePathTest(TmpTest):
         self.assertEqual(len(m.db.list()), 3,
                          "the stale WAL of the catalog that went missing was "
                          "replayed over the backup we had just restored")
+
+    def _sidecar_fails_with(self, errnum):
+        """Make the -wal/-shm step fail the way a locked file does, and leave
+        every other removal and rename alone."""
+        real_remove, real_replace = os.remove, os.replace
+
+        def remove(path, *a, **kw):
+            if path.endswith(("-wal", "-shm")):
+                raise OSError(errnum, os.strerror(errnum), path)
+            return real_remove(path, *a, **kw)
+
+        def replace(src, dst, *a, **kw):
+            if src.endswith(("-wal", "-shm")):
+                raise OSError(errnum, os.strerror(errnum), src)
+            return real_replace(src, dst, *a, **kw)
+
+        os.remove, os.replace = remove, replace
+        self.addCleanup(setattr, os, "remove", real_remove)
+        self.addCleanup(setattr, os, "replace", real_replace)
+
+        def unlock():
+            os.remove, os.replace = real_remove, real_replace
+        return unlock
+
+    def test_a_sidecar_that_will_not_move_aborts_the_restore(self):
+        """The sidecar step is not best-effort: the promote that follows it
+        happens on the strength of it, so a failure there must abort.
+
+        ENOENT is the one tolerable failure -- there is usually no `-wal` at
+        all -- which is why the handler existed. Anything else is a sidecar
+        that is still lying beside the name we are about to promote onto.
+        """
+        for name, errnum, aborts in (("locked", errno.EACCES, True),
+                                     ("busy", errno.EBUSY, True),
+                                     ("absent", errno.ENOENT, False)):
+            with self.subTest(name):
+                root = os.path.join(self.tmp, "sidecar-" + name)
+                backup = self._seeded(root)
+                catalog = os.path.join(root, "catalog.db")
+                os.remove(catalog)
+                with open(catalog + "-wal", "wb") as fh:
+                    fh.write(b"\x00" * 32)
+                self._sidecar_fails_with(errnum)
+
+                m = SyncManager()
+                m.root = root
+                ok, _aside = m._restore_from_backup(catalog, backup)
+
+                self.assertEqual(ok, not aborts)
+                self.assertEqual(os.path.exists(catalog), not aborts,
+                                 "the backup was promoted over a sidecar that "
+                                 "is still there")
+                self.assertFalse(os.path.exists(catalog + ".restoring"),
+                                 "the staged copy was left behind")
+
+    def test_a_sidecar_that_will_not_move_leaves_every_download_alone(self):
+        """End to end, against a WAL that really does replay.
+
+        A dummy sidecar cannot fail this test -- sqlite ignores one it cannot
+        parse -- so the stale WAL here is a real one, captured while the
+        catalog held a single row. Promoted over the three-row backup it reads
+        back clean and integrity-checks ok, which is what makes the loss
+        silent: `healthy()` says yes, `_backup_catalog` overwrites the good
+        backup with it, and the launch after that sweeps the media whose rows
+        went missing.
+        """
+        root = os.path.join(self.tmp, "sidecar-e2e")
+        self._seeded(root)
+        catalog = os.path.join(root, "catalog.db")
+        ids = ["%032x" % i for i in range(3)]
+
+        # A WAL from when the catalog held one row...
+        db = SyncDB(catalog)
+        for iid in ids[1:]:
+            db.delete(iid)
+        with open(catalog + "-wal", "rb") as fh:
+            stale = fh.read()
+        db.close()
+        self.assertTrue(stale, "the WAL was empty, so it proves nothing")
+        # ...and a catalog that has since gone back to three and been backed up.
+        db = SyncDB(catalog)
+        holder = type("m", (), {"db": db, "root": root})()
+        for iid in ids[1:]:
+            add_row(holder, iid, status=STATUS_COMPLETE,
+                    file_path="srv/%s/media.mkv" % iid)
+        db.close()
+        self._launch(root).stop()
+
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.remove(catalog + suffix)
+            except OSError:
+                pass
+        with open(catalog + "-wal", "wb") as fh:
+            fh.write(stale)
+
+        unlock = self._sidecar_fails_with(errno.EACCES)
+        self._launch(root).stop()
+        unlock()          # the lock is transient; the next launch is clean
+
+        m = self._launch(root)
+        self.assertEqual(len(os.listdir(os.path.join(root, "srv"))), 3,
+                         "a download was deleted on the strength of a "
+                         "catalog restored over a live sidecar")
+        self.assertEqual(len(m.db.list()), 3,
+                         "the catalog no longer describes every download")
 
     def test_a_failed_restore_leaves_nothing_to_mistake_for_empty(self):
         """An empty catalog is *readable*, so a launch that leaves one behind
