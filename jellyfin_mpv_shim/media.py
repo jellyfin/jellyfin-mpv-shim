@@ -321,12 +321,16 @@ class Video(object):
         (StreamInfo.cs:1264-1274), so the same test on Path is the honest
         pre-check.
         """
+        from .utils import same_origin
+
         try:
-            base = urllib.parse.urlparse(
-                self.client.config.data.get("auth.server") or "")
+            server = self.client.config.data.get("auth.server") or ""
         except Exception:
-            return set()
-        mine = (base.scheme, base.hostname, base.port)
+            # Fail CLOSED, and here rather than at the caller: this swallows
+            # the failure, so an empty answer reaches `_apply_auth_headers` as
+            # "nothing foreign" and it installs the header. No guard above can
+            # supply what never gets raised.
+            return {"unknown"}
         foreign = set()
         for source in self.item.get("MediaSources") or []:
             for stream in source.get("MediaStreams") or []:
@@ -335,12 +339,16 @@ class Video(object):
                 path = stream.get("Path") or ""
                 if not path.lower().startswith(("http://", "https://")):
                     continue
-                try:
-                    parts = urllib.parse.urlparse(path)
-                except Exception:
-                    continue
-                if (parts.scheme, parts.hostname, parts.port) != mine:
-                    foreign.add(parts.hostname)
+                # `same_origin`, not a second copy of the tuple comparison.
+                # The copy that used to live here read raw ports, so our own
+                # sidecar written `https://host:443` was foreign -- and
+                # `reauthorize_sidecars` agreed, so it got no token either.
+                if not same_origin(path, server):
+                    try:
+                        host = urllib.parse.urlparse(path).hostname
+                    except Exception:
+                        host = None
+                    foreign.add(host or "unknown")
         return foreign
 
     def source_for_track_rules(self):

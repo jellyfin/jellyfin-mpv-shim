@@ -179,6 +179,74 @@ class WhenTheHeaderIsInstalledTest(unittest.TestCase):
         self.assertNotIn(TOKEN, headers)
         self.assertIn("ApiKey", url)
 
+    @staticmethod
+    def _video(server, *sub_paths):
+        from jellyfin_mpv_shim.media import Video
+
+        video = Video.__new__(Video)
+        video.client = type("c", (), {
+            "config": type("cfg", (), {"data": server})()})()
+        video.item = {"MediaSources": [{"MediaStreams": [
+            {"Type": "Subtitle", "Path": p} for p in sub_paths]}]}
+        return video
+
+    def test_a_server_url_it_cannot_parse_refuses_it(self):
+        """The one failure the caller's guard cannot supply.
+
+        `foreign_subtitle_hosts` swallows a bad `auth.server` rather than
+        raising, so an empty answer never reaches `_apply_auth_headers` as an
+        error -- it reaches it as "nothing foreign", and the token goes to
+        mpv. Whoever cannot tell whose host it is has to say "foreign".
+        """
+        class Exploding(dict):
+            def get(self, key, default=None):
+                if key == "auth.server":
+                    raise RuntimeError("no server recorded")
+                return dict.get(self, key, default)
+
+        video = self._video(Exploding(), "https://jf.example/s.srt")
+        self.assertEqual(video.foreign_subtitle_hosts(), {"unknown"},
+                         "a server url it cannot parse answered 'nothing "
+                         "foreign', which installs the header")
+
+    def test_a_malformed_port_refuses_it_the_same_way(self):
+        """`urlparse` is lazy: this one raises at `.port`, not at the parse.
+        Two failure sites, one answer -- they were on opposite sides of the
+        try, and only one of them failed closed."""
+        video = self._video({"auth.server": "http://box:notaport"},
+                            "http://box/s.srt")
+        self.assertEqual(video.foreign_subtitle_hosts(), {"box"})
+
+    def test_our_own_sidecar_may_spell_out_the_default_port(self):
+        """`https://h` and `https://h:443` are one origin everywhere else.
+        Compared as raw ports they were two, so our own sidecar was called
+        foreign -- and then got neither the header nor a token in its url."""
+        for server, path in (('https://jf.example', 'https://jf.example:443/s.srt'),
+                             ('https://jf.example:443', 'https://jf.example/s.srt'),
+                             ('http://box', 'http://box:80/s.srt')):
+            with self.subTest(server=server, path=path):
+                self.assertEqual(self._video({"auth.server": server},
+                                             path).foreign_subtitle_hosts(),
+                                 set())
+
+    def test_the_two_origin_tests_never_disagree(self):
+        """`foreign_subtitle_hosts` kept its own copy of the tuple
+        comparison while `docs/auth-headers.md` said there was one
+        implementation. The copy is the thing this pins."""
+        from jellyfin_mpv_shim.utils import same_origin
+
+        server = "https://jf.example"
+        paths = ["https://jf.example/s.srt", "https://jf.example:443/s.srt",
+                 "https://jf.example:8920/s.srt", "http://jf.example/s.srt",
+                 "https://other.example/s.srt", "https://other.example:443/s.srt"]
+        for path in paths:
+            with self.subTest(path):
+                foreign = self._video({"auth.server": server},
+                                      path).foreign_subtitle_hosts()
+                self.assertEqual(bool(foreign), not same_origin(path, server),
+                                 "the subtitle check and `same_origin` gave "
+                                 "different answers for %s" % path)
+
     def test_a_dead_mpv_refuses_it(self):
         installed, _h, url, _s = _play(OURS, [], alive=False)
         self.assertFalse(installed)
