@@ -1077,8 +1077,15 @@ class Video(object):
                 need_restart = True
 
         if sid is not None and self.sid != sid:
+            # The subtitle being LEFT counts as much as the one being taken.
+            # A "Encode" subtitle is painted into the video by the server, so
+            # a fresh stream is needed to stop showing it just as much as to
+            # start. Testing only the new sid moved `video.sid`, the HUD and
+            # the progress report while the picture kept the old subtitle
+            # burnt into it, with no way back short of another restart.
+            was_burned_in = self.sid in self.subtitle_enc
             self.sid = sid
-            if sid in self.subtitle_enc:
+            if sid in self.subtitle_enc or was_burned_in:
                 need_restart = True
 
         return need_restart

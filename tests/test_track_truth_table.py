@@ -515,5 +515,62 @@ class TheTwoImplementationsAgreeTest(unittest.TestCase):
         self.assertEqual((aid, sid), (ENG_AUDIO, JPN_SUB))
 
 
+class ABurnedInSubtitleNeedsAFreshStreamBothWaysTest(unittest.TestCase):
+    """`set_streams` decides whether a subtitle change can be applied to the
+    running stream or needs a new one.
+
+    A subtitle whose DeliveryMethod is "Encode" is drawn into the video by
+    the server, so it is the *pair* of tracks that decides -- entering one
+    and leaving one both need a restart. Written as a test of the new track
+    alone, leaving one silently did not restart: `video.sid` moved, the HUD
+    and the report followed it, and the picture kept the old subtitle.
+    """
+
+    BURNED, EMBEDDED, OFF = 7, 3, -1
+
+    def _video(self, sid):
+        from jellyfin_mpv_shim.media import Video
+
+        v = Video.__new__(Video)
+        v.aid, v.sid = 1, sid
+        v.is_transcode = True
+        v.subtitle_enc = {self.BURNED}
+        v.explicit_tracks = False
+        return v
+
+    def test_the_pair_decides_not_the_destination(self):
+        states = {"burned-in": self.BURNED, "embedded": self.EMBEDDED,
+                  "off": self.OFF}
+        for from_name, old_sid in states.items():
+            for to_name, new_sid in states.items():
+                if old_sid == new_sid:
+                    continue
+                with self.subTest("%s -> %s" % (from_name, to_name)):
+                    video = self._video(old_sid)
+                    restarted = video.set_streams(None, new_sid)
+                    expected = self.BURNED in (old_sid, new_sid)
+                    self.assertEqual(
+                        restarted, expected,
+                        "leaving a burned-in subtitle needs a new stream too"
+                        if expected else
+                        "a change between two overlay subtitles restarted the "
+                        "stream for nothing")
+                    self.assertEqual(video.sid, new_sid)
+
+    def test_nothing_restarts_when_none_of_them_is_burned_in(self):
+        """The control: without an Encode subtitle in the source, no subtitle
+        change may cost a restart."""
+        video = self._video(self.EMBEDDED)
+        video.subtitle_enc = set()
+        self.assertFalse(video.set_streams(None, self.OFF))
+        self.assertFalse(video.set_streams(None, self.BURNED))
+
+    def test_re_picking_the_same_subtitle_does_nothing(self):
+        video = self._video(self.BURNED)
+        self.assertFalse(video.set_streams(None, self.BURNED),
+                         "re-selecting the subtitle already showing restarted "
+                         "the stream")
+
+
 if __name__ == "__main__":
     unittest.main()

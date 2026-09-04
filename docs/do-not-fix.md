@@ -71,6 +71,22 @@ produce a finding a third time:
   serving requests and the sync worker streams to completion. Offline testing is
   done with firejail — real network isolation — which is why this is not worth
   fixing rather than why it is not broken.
+- **The orphan sweep identifies by name shape, and that is deliberate.** A
+  reviewer will point out that `_looks_like_item_id` proves a directory
+  *resembles* an item id, not that we wrote it, and will demonstrate the sweep
+  deleting a hand-made `<root>/<server_id>/<32-hex>/` that has no adoptable
+  `item.json`. That is accepted. Reaching it means picking a download folder,
+  passing the refusal of any non-empty destination, and then placing a file
+  inside a guid-named subdirectory of a server-id-named subdirectory of it.
+  The store owns its root and says so; guarding against that costs the sweep
+  its purpose. See `docs/offline-sync.md` §5 for what the sweep *does* refuse.
+- **`play()` cancelled during `_warm_shader_scope` returns with the new
+  server's header still installed.** Not a leak to fix at that `return`:
+  `_apply_auth_headers` clears `http-header-fields` at the top of every start,
+  which is exactly the mechanism that covers it, and nothing is playing to use
+  the stale value in between. Adding a third "revoke before returning" beside
+  the two that already exist would be the duplication this tree keeps paying
+  for. See `docs/auth-headers.md`.
 - **Prefetching the library id on the detail page was considered and rejected.**
   It only helps items reached *through* a detail page — not Play All, not a
   queue advance, not a cast — so the play path needs the lookup as a fallback
