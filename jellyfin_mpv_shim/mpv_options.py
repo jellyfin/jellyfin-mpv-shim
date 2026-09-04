@@ -46,17 +46,11 @@ _HWDEC_STATIC = {"no": "no", "auto": "auto", "auto-copy": "auto-copy"}
 HWDEC_THRESHOLD_H = 1080
 
 
-#: hwdec values that are a *policy* rather than a requirement: "use
-#: hardware decoding if you can, whatever that turns out to be here". A
-#: shader pack naming one of these is expressing an opinion about the
-#: machine, which is not its to have.
-#:
-#: Every other value is a requirement of the profile and survives -- a
-#: named decoder (``d3d11va``, which the shipped rtx-vsr needs for its
-#: Direct3D filter) **and ``no``**, which is a profile saying its shaders
-#: need software frames. Nothing in the current pack sets ``no``; it is
-#: listed as a requirement rather than a policy because that is what it
-#: would mean if one did [iw].
+#: hwdec values a shader pack may not impose, because they are a *policy*
+#: ("use hardware decoding if you can") rather than a requirement of the
+#: profile. Every other value survives, including ``no`` -- a profile saying
+#: its shaders need software frames. Why a pack does not get this opinion:
+#: docs/mpv-backends.md section 11.
 NAIVE_HWDEC = frozenset({
     "yes", "auto", "auto-safe", "auto-unsafe",
     "auto-copy", "auto-copy-safe", "auto-copy-unsafe",
@@ -66,18 +60,15 @@ NAIVE_HWDEC = frozenset({
 def hwdec_pinned_by_config():
     """The ``hwdec`` the user's own ``mpv.conf`` sets, or None.
 
-    **A pin, not a default: where this answers, nothing else writes hwdec
-    at all** -- not the setting, not the copy upgrade, not a shader
-    profile. Somebody who has written the option into mpv.conf has said
-    something more specific than any of them, and silently overriding it
-    was the complaint that the whole of this feature is downstream of.
+    **A pin, not a default: where this answers, nothing else writes hwdec at
+    all** -- not the setting, not the copy upgrade, not a shader profile
+    (docs/configuration.md under ``hwdec``).
 
-    Deliberately a plain scan of the top level of the file rather than an
-    mpv-accurate parse: profile sections (``[name]``) are conditional and
-    reading them as unconditional would pin on a value that may never
-    apply. A `hwdec` reachable only inside a profile is therefore *not*
-    treated as a pin, which is the safe direction -- the setting keeps
-    working and mpv's own precedence still applies it where it fires.
+    Deliberately a plain top-level scan rather than an mpv-accurate parse:
+    profile sections (``[name]``) are conditional, so reading them as
+    unconditional would pin on a value that may never apply. A `hwdec`
+    reachable only inside a profile is therefore *not* a pin -- the safe
+    direction, since mpv's own precedence still applies it where it fires.
     """
     from . import conffile
     from .constants import APP_NAME
@@ -107,30 +98,21 @@ _COPY_OF = {"auto": "auto-copy"}
 def hwdec_for(height=None, needs_copy=False):
     """mpv's ``hwdec`` for the configured mode and this file's height.
 
-    ``needs_copy`` says something downstream needs frames in system RAM --
-    a video filter, which the direct modes cannot feed. It **upgrades**, it
-    never enables: off stays off, because the user turning hardware
-    decoding off is not a preference about *which* hardware decoding. A
-    mode that is already copy-back is unchanged.
+    ``needs_copy`` says something downstream needs frames in system RAM, which
+    the direct modes cannot feed. It **upgrades, it never enables**: off stays
+    off, since turning hardware decoding off is not a preference about *which*
+    hardware decoding. That asymmetry is the whole design -- a pack knows what
+    it will do with the frames, not what the machine can do
+    (docs/mpv-backends.md section 11).
 
-    That asymmetry is the whole design. The shader pack asks for
-    ``hwdec: auto-copy`` in every profile, which conflates two things --
-    "turn hardware decoding on" (not the pack's call, and the reason the
-    setting defaults off is a long tail of broken drivers) and "if it is
-    on, I need the copy kind" (entirely the pack's call, since it knows
-    what it is going to do with the frames). Only the second survives.
+    ``height`` is None when nothing is loaded, which resolves the threshold
+    mode to "no": the failure modes this setting is cautious about happen at
+    *decoder init*, so starting a file with hwdec on and turning it off is the
+    wrong way round.
 
-    ``height`` is the source's video height, or None when nothing is loaded
-    (mpv's construction, and any item whose height we could not read). None
-    resolves the threshold mode to "no": starting a file with hardware
-    decoding already on and turning it off is the wrong way round -- the
-    failure modes this setting is cautious about happen at *decoder init*.
-
-    ``--disable-hwdec`` overrides everything and is checked here, so there
-    is one place that can be wrong. It is a per-run override rather than a
-    config write (like --ui-scale, unlike --reset-shaders): it exists for
-    the case where hardware decoding stops the window opening at all, and
-    once it has opened the setting is reachable in the ordinary way.
+    ``--disable-hwdec`` overrides everything and is checked here, so there is
+    one place that can be wrong. Per-run rather than a config write, for the
+    case where hardware decoding stops the window opening at all.
     """
     from .args import get_args
 
@@ -273,15 +255,11 @@ GAMEPAD_OPTION = "input_gamepad"
 
 #: What each ``motion_interpolation`` value writes, as mpv property names.
 #:
-#: All three ON values set ``video-sync`` as well, and that is not
-#: incidental: ``--interpolation`` is **silently disabled** without a
-#: display- sync mode, so a setting writing only ``interpolation`` would do
-#: nothing and report success. Hence one table rather than two independent
-#: options, and hence `tests/test_picture_processing.py` asserting that the
-#: pair travels together.
-#:
-#: The three filters are three different trades rather than three quality
-#: tiers; what each one does is in docs/configuration.md under
+#: All three ON values set ``video-sync`` as well: ``--interpolation`` is
+#: **silently disabled** without a display-sync mode, so a setting writing
+#: only ``interpolation`` would do nothing and report success. Hence one
+#: table, and `tests/test_picture_processing.py` asserting the pair travels
+#: together. What each filter trades: docs/configuration.md under
 #: ``motion_interpolation``.
 INTERPOLATION_PRESETS = {
     "off": {},
@@ -296,42 +274,18 @@ INTERPOLATION_PRESETS = {
 
 #: Debanding, which is what the ``deband`` setting picks between.
 #:
-#: **Not offered as the four raw knobs on purpose.** Anyone who wants a
-#: specific combination writes it in their own ``mpv.conf`` and leaves this
-#: on "off", which -- see :func:`preset_props` -- writes nothing at all and
-#: therefore leaves their values standing. The presets are for everyone
-#: else, who wants the banding gone and has no way to tell 32 from 48.
+#: What each preset writes, why the ladder is labelled by content, and why
+#: the four knobs are not exposed individually: docs/configuration.md under
+#: ``deband``. mpv's defaults are threshold 48, range 16, grain 32, one
+#: iteration (measured on 0.41, pinned by tests/test_picture_processing.py).
 #:
-#: ``threshold`` (how flat a region must be before it is touched),
-#: ``iterations`` (how many passes) and ``grain`` (the noise added
-#: afterwards to mask what debanding could not fix) rise together: those are
-#: the strength axes, and a strong threshold with no grain looks worse than
-#: either alone.
+#: **``range`` falls as the others rise** -- it is the initial radius and
+#: mpv's manual says to decrease it as iterations go up. It is mpv's
+#: instruction, not a preference, so do not tidy this into a monotone ladder.
 #:
-#: **``range`` moves the other way, and that is mpv's instruction rather
-#: than a preference.** It is the filter's initial radius, and mpv's manual
-#: says the radius "increases linearly for each iteration" and then, in as
-#: many words: "If you increase the --deband-iterations, you should probably
-#: decrease this to compensate." An earlier version of this table raised all
-#: four together because a monotone ladder looked tidier -- which is exactly
-#: the kind of reasoning that has no source behind it. `light` therefore
-#: sits at mpv's own default radius, since it also runs mpv's own single
-#: iteration.
-#:
-#: mpv's own defaults are threshold 48, range 16, grain 32, iterations 1
-#: (measured on 0.41, and pinned by tests/test_picture_processing.py), so
-#: "standard" is roughly mpv's strength with a second pass and "light" sits
-#: deliberately below it -- live action fails the flatness test almost
-#: everywhere, so the risk there is a threshold high enough to smear real
-#: low-contrast texture rather than debanding being wrong in principle.
-#:
-#: **This is not the shader pack's debanding.** ``pack.json`` lists
-#: ``deband-default`` under ``default-setting-groups``, which
-#: ``video_profile.load_profile`` applies -- so debanding today arrives
-#: bundled with picking an upscaler and leaves again when it is unloaded.
-#: The pack's ``deband-grain: 0`` is only correct because
-#: ``static-grain-default`` re-adds noise through shaders; copying that
-#: number here would remove the masking without replacing it.
+#: **Do not copy numbers from the shader pack.** Its ``deband-grain: 0`` is
+#: only correct because ``static-grain-default`` re-adds noise through
+#: shaders; here that would remove the masking without replacing it.
 DEBAND_PRESETS = {
     "off": {},
     "light": {"deband": True, "deband-iterations": 1,
@@ -351,12 +305,9 @@ DEBAND_PRESETS = {
 #: they are different curves with different opinions about what to do with
 #: the highlights, and mpv documents each one.
 #:
-#: **Only does anything when the output is SDR.** Where the display takes
-#: HDR and ``player_window`` has hinted the colorspace through, mpv is not
-#: tone mapping at all and every value here is equally inert. That is the
-#: note the setting carries in the UI, since a control that silently does
-#: nothing on the machines that most want HDR handled would otherwise read
-#: as broken.
+#: **Only does anything when the output is SDR.** Where the display takes HDR
+#: and ``player_window`` has hinted the colorspace through, every value here
+#: is equally inert -- which is why the setting carries a note in the UI.
 TONE_MAPPING_PRESETS = {
     "auto": {},
     "bt.2390": {"tone-mapping": "bt.2390"},
@@ -449,20 +400,14 @@ def preset_keys(key):
 def preset_props(key):
     """``{mpv property: value}`` for ``key``'s configured preset, or ``{}``.
 
-    ``{}`` for the off value is deliberate and is NOT the same as writing
-    mpv's defaults back. Every property in these tables is one somebody may
-    reasonably have set in their own ``mpv.conf``, and all five settings
-    default to off -- so an off that wrote its idea of "not doing this"
-    would reach out on the first item and undo their config, with no setting
-    here to put it back. Turning the feature off is the player's job, and it
-    restores what was there before it first wrote
-    (``PlayerManager._apply_render_preset``, docs/mpv-backends.md §6).
+    **``{}`` for the off value is NOT the same as writing mpv's defaults
+    back**: these are properties a user may have set in their own ``mpv.conf``,
+    and writing an idea of "not doing this" would undo their config with
+    nothing here to put it back. Turning a feature off is the player's job
+    (``PlayerManager._apply_render_preset``, docs/mpv-backends.md section 6).
 
-    This is also what makes "leave it off and write your own" a supported
-    way to use these settings rather than an accident.
-
-    An unrecognised value reads as off. It is a plain string in a JSON file
-    somebody can type into, and the alternative to a default is a KeyError
+    An unrecognised value reads as off -- a plain string in a JSON file
+    somebody can type into, where the alternative to a default is a KeyError
     out of the middle of starting playback.
     """
     presets, fallback = PRESET_SETTINGS[key]
@@ -621,21 +566,17 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
 
     # The in-window UI has to ask for its window on the command line.
     #
-    # force-window is only live from mpv 0.41 (docs/mpv-backends.md §3):
-    # an older build stores a runtime change and never acts on it while
-    # idle, so set_browse_window raised no window at all, the app came up
-    # invisible, and the tray's Show Library Browser had nothing to show.
+    # force-window is only live from mpv 0.41, so on an older build a runtime
+    # change is stored and never acted on while idle -- the app comes up
+    # invisible (docs/mpv-backends.md section 3). Hence a construction option.
     #
-    # First launch takes the window unless start_minimized asked for the
-    # windowless state. A re-open (crash recovery, idle-quit) takes it
-    # only if the browser was on screen: the play path doesn't need this,
-    # because loading a file brings the VO up on its own. That distinction
-    # needs the live player state, which is why the caller decides it.
+    # Whether to take the window needs live player state, which is why the
+    # caller decides it: first launch unless start_minimized, a re-open only
+    # if the browser was on screen. The play path does not need it at all.
     #
-    # Only force_window is passed here, not the browse background --
-    # background=color needs mpv 0.38, and an unknown option makes mpv
-    # exit at startup rather than raise something recoverable.
-    # set_browse_window applies the background a moment later.
+    # Only force_window goes here, not the browse background: background=color
+    # needs mpv 0.38 and an unknown option makes mpv exit at startup rather
+    # than raise. set_browse_window applies it a moment later.
     if osc_style == "mpvtk" and browser_wants_window:
         mpv_options["force_window"] = True
 
