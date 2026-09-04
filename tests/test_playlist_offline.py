@@ -265,6 +265,38 @@ class PlaylistDeleteTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("PL"), {"b"})
         m.db.close()
 
+    def test_reaping_an_auto_row_cascades_membership(self):
+        """The other statement that deletes a download row.
+
+        There is no foreign key: the schema declares none, so the cascade is
+        hand-written at each `DELETE FROM downloads`, and `delete_if_auto` --
+        the reaper's -- had no test at all. A row deleted without its
+        membership leaves `owned=1` over an item the catalog no longer has,
+        which is a claim on whatever writes that row next.
+
+        (An `ON DELETE CASCADE` is not the shortcut it looks like: sqlite
+        implements `INSERT OR REPLACE` as delete-then-insert, so an ordinary
+        `upsert` of an existing row would take the membership with it.)
+        """
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        m.db.set_origin("a", "auto:nextup")
+        self.assertIsNotNone(m.db.delete_if_auto("a"),
+                             "the reap declined, so this test proves nothing")
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"b"})
+        m.db.close()
+
+    def test_a_reap_that_declines_leaves_the_membership_alone(self):
+        """The other half: `delete_if_auto` deletes nothing for a user row,
+        so it must take no membership with it either."""
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        self.assertIsNone(m.db.delete_if_auto("a"))
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"})
+        m.db.close()
+
 
 class ListPlaylistsTest(TmpTest):
     def test_only_playlists_with_complete_items_listed(self):

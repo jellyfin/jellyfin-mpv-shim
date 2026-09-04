@@ -19,6 +19,10 @@ list are the follow-up session's repairs, added the same day and killed too.
 
 SELECT = [
     '-k', 'test_sync_manager',
+    # The playlist-ownership rules are pinned from both modules: the reaper's
+    # cascade has no killer in test_sync_manager, so a plan that did not name
+    # this one reported that mutation SURVIVED.
+    '-k', 'test_playlist_offline',
     '-k', 'test_auth_header_truth_table',
     '-k', 'test_no_second_owner',
     '-k', 'test_player_auth_scope',
@@ -84,6 +88,10 @@ MUTATIONS = [
      'jellyfin_mpv_shim/sync/manager.py',
      '        claims_its_members = item_type == "Playlist"',
      '        claims_its_members = False'),
+    ('reap: the hand-written membership cascade goes missing',
+     'jellyfin_mpv_shim/sync/db.py',
+     '                self._conn.execute("DELETE FROM playlist_items WHERE item_id=?",\n                                   (item_id,))\n                self._conn.commit()\n                return row',
+     '                self._conn.commit()\n                return row'),
     ('move: catalog/backup sort key the wrong way round',
      'jellyfin_mpv_shim/sync/manager.py',
      'names.sort(key=lambda n: (n == "catalog.db", n == self.CATALOG_BACKUP))',
