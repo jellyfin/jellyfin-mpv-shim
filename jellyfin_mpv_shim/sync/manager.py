@@ -991,6 +991,11 @@ class SyncManager:
         # only to items this playlist actually pulls down — see _record_playlist.
         pre_existing = ({i.get("Id") for i in items if self.db.get(i.get("Id"))}
                         if item_type == "Playlist" else set())
+        # Computed once, here, because this is the only place that knows it:
+        # a playlist download is what `_record_playlist` recomputes ownership
+        # for, so releasing a claim it already holds over a row it already has
+        # would disown the copy it pulled in itself.
+        claims_its_members = item_type == "Playlist"
         added = 0
         members = []  # item ids that will be present offline, in playlist order
 
@@ -1020,7 +1025,8 @@ class SyncManager:
                     if row and is_auto(row["origin"]):
                         self.db.set_origin(iid, ORIGIN_USER)
                     self._clear_discard(iid)
-                    self._claim_from_playlists(iid, item_type)
+                    if not claims_its_members:
+                        self._claim_from_playlists(iid)
                 continue
             if not include_watched and (item.get("UserData") or {}).get("Played"):
                 continue
@@ -1028,7 +1034,8 @@ class SyncManager:
                 # Asking for it by hand overrides a previous auto discard,
                 # which is the only signal that outranks the reaper.
                 self._clear_discard(iid)
-                self._claim_from_playlists(iid, item_type)
+                if not claims_its_members:
+                    self._claim_from_playlists(iid)
             keep(iid)
             self._add_row(server_uuid, server_id, item, origin=origin)
             added += 1
@@ -1097,7 +1104,7 @@ class SyncManager:
         with self._active_lock:
             self._cancelled.discard(item_id)
 
-    def _claim_from_playlists(self, item_id, item_type):
+    def _claim_from_playlists(self, item_id):
         """Release a playlist's claim on an item that must not be deleted.
 
         There are two things that will delete a download the user did not ask
@@ -1106,22 +1113,26 @@ class SyncManager:
         `_delete_playlist` does not look at origin at all -- so a row is only
         actually protected once both claims are released.
 
-        Two callers, for the two ways a row comes to deserve that. `enqueue`,
-        because pressing Download on an episode a downloaded playlist had
-        pulled in used to leave it owned, and deleting that playlist deleted
-        it anyway. And `_adopt_orphan`, because a row it invented is marked
-        never-auto precisely to keep the file, which the playlist would then
-        remove regardless.
+        Three callers, for the three ways a row comes to deserve that.
+        `enqueue`, because pressing Download on an episode a downloaded
+        playlist had pulled in used to leave it owned, and deleting that
+        playlist deleted it anyway. `_add_row`, because a row *created* over a
+        standing claim hands the playlist a file it never pulled in. And
+        `_adopt_orphan`, because a row it invented is marked never-auto
+        precisely to keep the file, which the playlist would then remove
+        regardless.
 
-        Not for `item_type == "Playlist"`: that call *is* the playlist
-        download, and `_record_playlist` recomputes ownership from
-        `pre_existing` a few lines below. Disowning here would race it.
+        **This states one proposition and takes no exception.** It used to
+        take the item's type and decline for `Playlist`, meaning "this call is
+        the playlist's own download" -- which is a fact about the *request*,
+        held only by `enqueue`, where the suppression now lives
+        (`claims_its_members`). `_adopt_orphan` passed the type from a
+        manifest some other build may have written, so a file claiming to be a
+        playlist kept the claim the adoption exists to release.
 
         Best-effort, like `_clear_discard` beside it: a missing table or a
         closed catalog must not fail a download the user asked for.
         """
-        if item_type == "Playlist":
-            return
         try:
             self.db.disown_playlist_items(item_id)
         except Exception:
@@ -1435,6 +1446,16 @@ class SyncManager:
         return found
 
     def _add_row(self, server_uuid, server_id, item, origin=ORIGIN_USER):
+        if self.db.get(item["Id"]) is None:
+            # **A row this writes starts unclaimed**, whoever asked for it. A
+            # standing `owned=1` over an item the catalog does not have is a
+            # claim on whatever writes that row next, and this is that writer
+            # for every origin -- the release above only covers the ones the
+            # user asked for, so a scheduled download inherited the claim.
+            # Guarded on the row's absence rather than on the caller: an
+            # enqueue that re-queues a playlist's own in-progress member must
+            # not disown it (see `claims_its_members`).
+            self._claim_from_playlists(item["Id"])
         source = (item.get("MediaSources") or [{}])[0]
         ext = self._ext_for(item)
         self.db.upsert({
@@ -1660,7 +1681,7 @@ class SyncManager:
         # and `_delete_playlist` does not look at origin at all. Releasing one
         # and not the other protects the file from whichever deleter happens
         # not to run first.
-        self._claim_from_playlists(item_id, item.get("Type"))
+        self._claim_from_playlists(item_id)
         log.warning("Re-adopted the download at %s (%s) — it had no catalog "
                     "row.", item_dir, item.get("Name") or item_id)
         return True

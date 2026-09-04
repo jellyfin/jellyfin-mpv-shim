@@ -339,6 +339,19 @@ A row is protected from the reaper by `origin` and from a playlist delete by
 (`set_origin` and `_claim_from_playlists`); releasing only the first meant
 deleting the playlist still deleted a film the user had separately downloaded.
 
+**Releasing is a property of row creation, not of who asked for it.**
+`_add_row` releases any claim standing over an item the catalog does not have,
+on every origin — while only the user's own request released one, a scheduled
+auto-download wrote its row straight into a claim and handed the playlist a
+file it never pulled in. The exception is a playlist download re-queuing a
+member it already holds a row for, which `enqueue` decides
+(`claims_its_members`) because it is a fact about the *request*:
+`_record_playlist` recomputes ownership from `pre_existing` a few lines later,
+so dropping the claim first would disown the copy the playlist pulled in
+itself. `_claim_from_playlists` therefore states one proposition and takes no
+exception of its own — it used to read the type out of `_adopt_orphan`'s
+manifest, a file some other build may have written.
+
 `_adopt_orphan` releases both too — and not because it is a user gesture.
 `ORIGIN_USER` there means only "the reaper may not take this", since a row this
 method invented has no evidence the download was ever scheduled; it does not

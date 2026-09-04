@@ -1781,6 +1781,35 @@ class PlaylistOwnershipTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("P"), set(),
                          "the playlist took back an item the user had claimed")
 
+    # The two below are the guard on the *other* side of this rule. A release
+    # placed where a playlist download reaches it disowns the playlist's own
+    # members: `_record_playlist` recomputes ownership from `pre_existing`,
+    # snapshotted at the top of the enqueue, so a member that already had a
+    # row reads as "was here before, and nobody owns it" the moment its claim
+    # is dropped first. Both were green before the claim-release moved and
+    # must stay green after it.
+
+    def test_re_downloading_a_playlist_keeps_a_member_it_holds(self):
+        m = self._manager([self.ITEM])
+        m.enqueue("u", "P", "Playlist", include_watched=True)
+        m.db.update("X", status=STATUS_COMPLETE)
+        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"})
+        m.enqueue("u", "P", "Playlist", include_watched=True)
+        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"},
+                         "re-downloading the playlist disowned the copy it "
+                         "had pulled in itself")
+
+    def test_re_downloading_a_playlist_keeps_a_member_still_in_progress(self):
+        """The same, through the `_add_row` arm: the member has a row but is
+        not complete, so this enqueue queues it again."""
+        m = self._manager([self.ITEM])
+        m.enqueue("u", "P", "Playlist", include_watched=True)
+        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"})
+        m.enqueue("u", "P", "Playlist", include_watched=True)
+        self.assertEqual(m.db.playlist_owned_ids("P"), {"X"},
+                         "re-downloading the playlist disowned a member it "
+                         "was still fetching")
+
 
 class OwnershipNeverOutlivesItsRowTest(TmpTest):
     """`owned=1` says "deleting this playlist may delete this file". A row
@@ -1808,6 +1837,12 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
             return {"Items": self._items}
 
         def get_item(self, iid, fields=None):
+            # By id first: `_expand` of a single item goes through here, so a
+            # stand-in that only ever answers the playlist's name makes an
+            # enqueue of a member unreachable (docs/testing.md section 4).
+            for i in self._items:
+                if i.get("Id") == iid:
+                    return i
             return {"Name": "My Playlist"}
 
     def _manager(self, root):
@@ -1907,6 +1942,99 @@ class OwnershipNeverOutlivesItsRowTest(TmpTest):
         self.assertTrue(os.path.exists(media),
                         "deleting the playlist deleted the very file "
                         "_adopt_orphan had gone out of its way to keep")
+
+
+    def _stale_claim(self, m, item_id):
+        """A `playlist_items` row saying `owned=1` over an item the catalog
+        does not have. Written straight into the tables, because that is how a
+        catalog reaches this state: an older build, or the race the class
+        docstring names, and the guard inside `replace_playlist_items` stops
+        it being *made*, not from already being there."""
+        m.db.upsert_playlist("P", "srv", "u", "My Playlist")
+        m.db._conn.execute(
+            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
+            "owned) VALUES (?,?,?,1)", ("P", item_id, 0))
+        m.db._conn.commit()
+
+    def test_a_scheduled_download_starts_unclaimed(self):
+        """The claim is released by whoever *creates the row*, not by whoever
+        asked for it.
+
+        `_add_row` runs for every origin, so a scheduled auto-download of an
+        item a stale claim still stands over hands the playlist a file nobody
+        gave it. It is bounded -- the reaper may take an auto row back anyway,
+        so what is lost is a scheduled download rather than one the user chose
+        -- but it is the same claim on the same file, reached by the origin
+        nobody released it for.
+        """
+        root = os.path.join(self.tmp, "auto-origin")
+        m = self._manager(root)
+        self._stale_claim(m, self.XID)
+        self.assertEqual(m.db.playlist_owned_ids("P"), {self.XID})
+
+        m.enqueue("u", self.XID, "Movie", include_watched=True,
+                  origin=ORIGIN_AUTO_NEXT_UP)
+
+        self.assertIsNotNone(m.db.get(self.XID),
+                             "the enqueue wrote no row, so this test proves "
+                             "nothing about the row it writes")
+        self.assertEqual(
+            m.db.playlist_owned_ids("P"), set(),
+            "the row this enqueue created is already owned by a playlist "
+            "that never downloaded it")
+
+    def test_the_scheduled_downloads_file_survives_deleting_that_playlist(self):
+        """The end of that chain, which is the only part the user sees."""
+        root = os.path.join(self.tmp, "auto-origin-end-to-end")
+        m = self._manager(root)
+        self._stale_claim(m, self.XID)
+
+        m.enqueue("u", self.XID, "Movie", include_watched=True,
+                  origin=ORIGIN_AUTO_NEXT_UP)
+        media = os.path.join(self._on_disk(root, self.XID), "media.mkv")
+        m.db.update(self.XID, status=STATUS_COMPLETE,
+                    file_path="srv/%s/media.mkv" % self.XID)
+
+        m._delete_playlist("P")
+        self.assertTrue(
+            os.path.exists(media),
+            "deleting the playlist deleted a download it never pulled in")
+
+    def test_adopting_an_orphan_that_calls_itself_a_playlist_releases_it(self):
+        """`_adopt_orphan` passed the *manifest's* type to a guard whose
+        proposition is about the *request's* type ("this call is the playlist
+        download, and `_record_playlist` recomputes ownership below").
+
+        No manifest the downloader writes says `Playlist` -- an expansion
+        returns only downloadable members -- but `_reconcile_disk` reads a
+        file some other build may have written, and its own docstring says so.
+        One that does say it buys the file the exact claim this call exists to
+        release.
+        """
+        root = os.path.join(self.tmp, "playlist-manifest")
+        m = self._manager(root)
+        self._stale_claim(m, self.XID)
+
+        item_dir = os.path.join(root, "srv", self.XID)
+        os.makedirs(item_dir, exist_ok=True)
+        with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+            fh.write(b"x" * 64)
+        with open(os.path.join(item_dir, "item.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"Id": self.XID, "Type": "Playlist", "Name": "odd"}, fh)
+        # A live row for the same server, so the sweep runs at all.
+        self._on_disk(root, self.YID, describe=False)
+        add_row(m, self.YID, status=STATUS_COMPLETE,
+                file_path="srv/%s/media.mkv" % self.YID)
+
+        m._reconcile_disk()
+
+        self.assertIsNotNone(m.db.get(self.XID),
+                             "the orphan was not adopted at all")
+        self.assertEqual(
+            m.db.playlist_owned_ids("P"), set(),
+            "the row _adopt_orphan marked never-auto to keep the file is "
+            "owned by a playlist, which deletes it unconditionally")
 
 
 class MoveRollbackTest(TmpTest):
