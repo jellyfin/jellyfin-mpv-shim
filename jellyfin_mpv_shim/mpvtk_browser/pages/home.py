@@ -288,35 +288,39 @@ class HomePage(Page):
                             art.tiles.caption_geom(data["libraries"],
                                                    art.geom_wide),
                             "Primary", "row-libs", False, True,
-                            None))
-        # Ids are derived from section kind, not from position: they key the
-        # scroll containers, so an index-based id would hand a reordered
-        # section the previous occupant's scroll offset. See ``_row_id`` for
-        # why the ordinal is not enough on its own.
-        seen: dict = {}
+                            None, home_sections.LIBRARIES))
+        # Ids are derived from section kind and slot, never from a row's
+        # position among the rows that survived: they key the scroll
+        # containers, so a row renumbered because a *sibling* went away comes
+        # back wearing that sibling's parked offset. See ``_row_id``.
         used: dict = {}
         for hr in data["rows"]:
             if not hr.get("items"):
                 continue
             kind = hr.get("kind") or "row"
-            n = seen[kind] = seen.get(kind, -1) + 1
             geom, itype = self._row_shape(hr)
-            row_id = self._unique(self._row_id(kind, n, hr), used)
+            row_id = self._unique(self._row_id(kind, hr), used)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
                             geom, itype, row_id,
                             self._latest_tv(hr),
                             inherit if kind in self.EPISODE_IMAGE_ROWS
                             else True,
-                            self._see_all(kind, hr["title"], hr)))
+                            self._see_all(kind, hr["title"], hr), kind))
         entries.sort(key=lambda e: e[0])
         rows = []
+        live_tv_buttons_drawn = False
         for (_slot, title, items, geom, itype, row_id, pitem, inh,
-             see_all) in entries:
-            # "-0": the FIRST Live TV row only. Nothing stops a layout from
-            # holding the section twice, and a second button row would
-            # duplicate every node id in it — the renderer then targets only
-            # the last occurrence, so the first row's buttons would be dead.
-            if row_id == "row-%s-0" % home_sections.LIVE_TV:
+             see_all, kind) in entries:
+            # The FIRST Live TV row only. Nothing stops a layout from holding
+            # the section twice, and a second button row would duplicate every
+            # node id in it — the renderer then targets only the last
+            # occurrence, so the first row's buttons would be dead.
+            #
+            # Asked of the kind, not of the row id: the id carries the slot,
+            # so matching a literal would silently draw no buttons at all for
+            # anyone whose Live TV section is not first in their layout.
+            if kind == home_sections.LIVE_TV and not live_tv_buttons_drawn:
+                live_tv_buttons_drawn = True
                 # jellyfin-web's Live TV home section is a row of buttons
                 # into the six Live TV screens *plus* the On Now strip. The
                 # strip alone is what the shim used to draw, which left the
@@ -402,16 +406,28 @@ class HomePage(Page):
     }
 
     @classmethod
-    def _row_id(cls, kind, ordinal, hr):
+    def _row_id(cls, kind, hr):
         """The scroll-container id for a home row.
 
-        ``row-<kind>-<n>`` for a section that appears once, which is all of
-        them but two; those two are keyed by whatever identifies the row
-        instead, so the id survives a sibling row going away.
+        ``row-<kind>-<slot>``, plus whatever identifies the row for the two
+        kinds that build several rows from one slot (``row-<kind>-<key>#<n>``,
+        one per library or collection type).
+
+        **Nothing here counts rows.** The id is a function of this row alone,
+        because any number taken from the rows around it moves when one of
+        *them* goes away -- and the repository drops a row whose own request
+        came back empty or failed, independently of its siblings. The row that
+        inherits the number inherits the scroll offset parked under it.
+
+        The slot is the user's own layout position, so it is stable across
+        renders and only moves when they reorder their home screen, which is
+        the one time a row losing its offset is the right answer.
         """
         field = cls.MULTI_ROW_KEYS.get(kind)
-        key = (hr.get(field) if field else None) or ordinal
-        return "row-%s-%s" % (kind, key)
+        key = hr.get(field) if field else None
+        slot = hr.get("slot", 0)
+        return ("row-%s-%s#%s" % (kind, key, slot) if key
+                else "row-%s-%s" % (kind, slot))
 
     @staticmethod
     def _unique(row_id, used):
@@ -428,15 +444,18 @@ class HomePage(Page):
         an *item* repeats within a row, here a *row* repeats within a screen.
         It diverges twice, so neither reads as an oversight:
 
-        * It suffixes with ``-<i>``; this uses ``#``. A row id's ``-``
-          namespace already holds children built from item ids
-          (``<row>-<itemId>``, plus ``-pl``/``-pr``/``-more``), so a numeric
-          ``-`` tail is a shape a tile can also produce. ``#`` cannot be:
-          it is already the row-level synthetic separator (``<row>#strip``).
-        * It renames every occurrence of a repeated key; this renames only
-          the repeat, so the first row keeps the id its *parked scroll
-          offset* is filed under. Tile ids key only hover and focus, which
-          are transient, so it has nothing to preserve.
+        It suffixes with ``-<i>``; this uses ``#``. A row id's ``-`` namespace
+        already holds children built from item ids (``<row>-<itemId>``, plus
+        ``-pl``/``-pr``/``-more``), so a numeric ``-`` tail is a shape a tile
+        can also produce. ``#`` cannot be: it is already the row-level
+        synthetic separator (``<row>#strip``).
+
+        **A backstop, not the mechanism.** ``_row_id`` puts the slot in every
+        id, so two rows collide here only if the repository emits two with the
+        same identity *in the same slot*. Renumbering is not a safe way to
+        keep ids apart on its own: this counter runs over the rows that
+        survived, so which occurrence gets renamed changes when one of them
+        goes away, and the survivor lands on the other's parked scroll offset.
         """
         count = used.get(row_id, 0)
         used[row_id] = count + 1

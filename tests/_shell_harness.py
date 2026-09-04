@@ -105,8 +105,13 @@ class FakeSource:
             {"Id": "lib1", "Name": "Movies", "Type": "CollectionFolder",
              "CollectionType": "movies"},
         ]
+        #: `slot` is the row's position in the user's home layout. The
+        #: repository stamps one on every row it returns, and `HomePage`
+        #: builds the scroll-container id out of it -- so a row without one
+        #: here lands on the same id as its neighbour and exercises the
+        #: collision backstop instead of the ids production actually draws.
         self.home_rows = [
-            {"title": "Continue Watching", "items": [
+            {"title": "Continue Watching", "slot": 0, "items": [
                 {"Id": "m1", "Name": "Alpha", "Type": "Movie",
                  "ProductionYear": 2001}],
              "collection_type": None},
@@ -116,7 +121,7 @@ class FakeSource:
         #: them; a fake that answered the same list for both made the whole
         #: staging invisible to the tests.
         self.home_latest_rows = [
-            {"title": "Latest Movies", "items": [
+            {"title": "Latest Movies", "slot": 1, "items": [
                 {"Id": "m2", "Name": "Beta", "Type": "Movie",
                  "ProductionYear": 2002}],
              "collection_type": "movies"},
