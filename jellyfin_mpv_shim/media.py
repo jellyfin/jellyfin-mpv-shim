@@ -375,13 +375,10 @@ class Video(object):
         """Settle aid/sid from language_config BEFORE PlaybackInfo.
 
         `get_play_info` is sent `self.aid`/`self.sid`, and for a transcode the
-        server bakes the audio index it is given into `TranscodingUrl`. This
-        used to run inside `map_streams`, one line *after* that call, so the
-        rule was computed after the negotiation it exists to influence --
-        leaving `language_config` inert for every transcode while the HUD
-        ticked the language it had chosen. `configure_streams` cannot repair
-        it: it skips audio on a transcode, correctly, because the audio is
-        already encoded into the stream.
+        server bakes the audio index it is given into `TranscodingUrl` -- so
+        this must precede the negotiation it exists to influence, and
+        `configure_streams` cannot repair it afterwards (it skips audio on a
+        transcode, correctly). Step 1 of docs/track-selection.md section 2.
 
         Idempotent, because `get_playback_url` runs again on a quality change
         or a forced-transcode retry, and because `play()` calls this first so

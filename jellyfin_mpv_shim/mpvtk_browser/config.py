@@ -215,31 +215,15 @@ TAB_SECTIONS = {
 #: Settings that do nothing until the app is started again.
 #:
 #: **"Requires restart" means literally nothing happened**, and the settings
-#: form marks exactly these rows and no others. Everything else is assumed
-#: to apply now or to the next thing you play, which is why no setting says
-#: so in its own note any more -- that sentence used to be repeated across
-#: nine of them, in three different phrasings, and was the only thing a
-#: reader had to reconcile them by.
+#: form marks exactly these rows and no others. This is **not** the same
+#: question as "does it apply right now": a third group applies to the next
+#: thing you play, which is neither. docs/settings-curation.md section 3 is
+#: the full table, including the keys that look like candidates and are not.
 #:
-#: **Deliberately conservative, and under-listing is the safe direction.**
-#: A key missing from here costs a banner nobody sees; a key wrongly IN here
-#: asks somebody to restart for a change that had already taken effect,
-#: which teaches them to ignore the banner. So every entry below was read
-#: from its call site rather than assumed, and the ones that looked like
-#: candidates and are not (`window_controls`, `shader_pack_subtype`,
-#: `log_decisions`, `mpv_idle_quit`, `playback_timeout`, `paginated`) are
-#: absent because they are re-read as they are used.
-#:
-#: This is **not** the same question as "does it apply right now". A third
-#: group -- `hwdec`, `deband`, `deinterlace_auto` and the rest of
-#: `mpv_options.PRESET_SETTINGS` -- applies to the next thing you play,
-#: which is neither live nor a restart, and a banner for those would be
-#: asking for a restart that is not needed. docs/settings-curation.md
-#: section 3 is the full table.
-#:
-#: `start_minimized` and the tray pair are absent for a related reason:
-#: nothing about them is *pending*. They are settings whose whole subject is
-#: the next launch, so they have already taken full effect.
+#: **Under-listing is the safe direction.** A key missing here costs a banner
+#: nobody sees; a key wrongly IN here asks for a restart that was not needed,
+#: which teaches people to ignore the banner. Read each entry from its call
+#: site rather than assuming.
 RESTART_REQUIRED = frozenset({
     # The whole interface geometry is derived once, at startup.
     "ui_scale",

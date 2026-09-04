@@ -359,29 +359,19 @@ class SyncDB:
         ``(item_id, sort_index, owned)``), replacing any prior membership so a
         re-download reflects the current order and removals.
 
-        **An entry is only written for an item the catalog actually has**, and
-        the check is part of this transaction rather than something the caller
-        did earlier. `owned=1` means "deleting this playlist may delete this
-        file", so an entry with no `downloads` row is a claim held over
-        whatever writes that row next -- and `_adopt_orphan` writes exactly
-        such rows, for files it is trying to protect.
-
-        The caller cannot do this check for itself. `_record_playlist` decides
-        membership from a `pre_existing` snapshot taken before it queued
-        anything, and nothing serialises it against a delete: `enqueue`,
-        `delete_item` and `delete` take no manager-wide lock and the browser
-        runs them on a worker pool. A delete landing in that window removes the
-        row and its memberships, and the enqueue then writes the membership
-        back. Inside the transaction the two orders are decided, not raced.
+        **An entry is only written for an item the catalog actually has, and
+        the check is part of THIS transaction** -- the caller cannot do it,
+        because nothing serialises `_record_playlist`'s `pre_existing` snapshot
+        against a concurrent delete (docs/offline-sync.md section 5, "Ownership
+        never outlives its row").
 
         **And therefore this decides whether the playlist exists offline at
         all.** Filtering can write zero rows for a non-empty `entries`, which
-        no caller can predict, and `list_playlists` needs a member -- so a
-        `playlists` row with nothing under it is a record nothing lists and
-        nothing deletes, holding its cached poster art. It goes in the same
-        transaction as the membership that emptied it. Returns how many
-        entries were written, so a caller can skip work it no longer needs;
-        the invariant does not depend on the caller reading it.
+        no caller can predict, and `list_playlists` needs a member -- so an
+        emptied `playlists` row is a record nothing lists and nothing deletes,
+        holding its cached poster art. It goes in the same transaction. The
+        count returned lets a caller skip work; the invariant does not depend
+        on it being read.
         """
         with self._lock:
             if self._conn is None:

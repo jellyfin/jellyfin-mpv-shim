@@ -171,19 +171,10 @@ class Settings(SettingsBase):
     #: Debanding -- ``off``, ``light``, ``standard`` or ``strong``. See
     #: mpv_options.DEBAND_PRESETS for what each writes.
     #:
-    #: **Off by default, and off writes nothing at all**, which is what
-    #: makes "leave this off and tune deband in mpv.conf" a supported
-    #: configuration rather than a setting fighting a config file. It is
-    #: also why there is no mpv.conf pin here of the kind ``hwdec`` needs:
-    #: hwdec's off is a real value (``no``) that has to be written, so
-    #: silence was not available to it.
-    #:
-    #: Debanding is not free on live action even though it mostly no-ops
-    #: there -- it costs a GPU pass per iteration, which is felt on the
-    #: integrated and embedded hardware this app is often run on. Anime is
-    #: where flat gradients make it worth paying for, which is why the
-    #: preset labels name the content rather than the strength.
-    #: See docs/mpv-backends.md section 10.
+    #: **Off by default, and off writes nothing at all**, which is what makes
+    #: "leave this off and tune deband in mpv.conf" supported rather than a
+    #: setting fighting a config file -- and why there is no mpv.conf pin of
+    #: the kind ``hwdec`` needs. See docs/mpv-backends.md section 10.
     deband: str = "off"
     #: The HDR-to-SDR tone mapping curve, or ``auto`` to leave mpv's own
     #: choice alone. **Inert while HDR is being passed through to an HDR
@@ -298,12 +289,10 @@ class Settings(SettingsBase):
     #   row         one wheel notch moves exactly one row or section, and the
     #               scrollbar steps with it. An accessibility escape hatch.
     #
-    # Replaces snapped_scrolling and force_scroll_snapping. Both old keys
-    # load as "ignored" (logged) and everyone starts on continuous --
-    # deliberately NOT migrated, because people set them to work around
-    # continuous scrolling being unavailable, so carrying them forward would
-    # pin exactly those users to the workaround with the fix one dropdown
-    # away.
+    # Replaces snapped_scrolling and force_scroll_snapping, which load as
+    # "ignored" (logged). **Deliberately NOT migrated**: those keys were set
+    # to work around continuous scrolling being unavailable, so carrying them
+    # forward would pin exactly those users to the workaround.
     scroll_mode: str = "continuous"
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to
