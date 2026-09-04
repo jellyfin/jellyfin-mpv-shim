@@ -115,14 +115,9 @@ USERDATA_SWEEP_FLOOR = 300
 #: enough that "watched on the flight out" is right by the time anyone
 #: scrolls to it.
 #:
-#: It also fixes something the floor used to do by accident. The worker
-#: starts in `mpv_shim.main` *before* `login_servers()`, so its first pass
-#: ran with no clients registered at all: it swept nothing, and stamped
-#: `_last_userdata` on the way past. The server then appeared a second
-#: later, re-armed the sweep -- and the floor held it off for five minutes,
-#: which is precisely the stretch the sweep exists to cover. So a pass with
-#: no client to ask now leaves the trigger up and costs nothing (see
-#: `_sweep_if_due`), and this settle is what paces the first real one.
+#: It also paces the first real sweep, now that a pass with no client to ask
+#: leaves the trigger up rather than consuming it (`_sweep_if_due`; why that
+#: is not "a sweep that found nothing": docs/offline-sync.md section 3).
 USERDATA_SWEEP_SETTLE = 60
 
 #: Ids per request. They travel in the query string, which servers and
@@ -354,18 +349,12 @@ class SyncManager:
     def _catalog_reads(catalog_path):
         """Whether the file already at `catalog_path` is a catalog that reads.
 
-        Asked **read-only, and before anything opens it writable**, because a
-        writable open is not a read: `SyncDB.__init__` runs
-        `executescript(_SCHEMA)`. On a zero-byte file -- a truncated write, a
-        copy that never finished, a restore killed between create and populate
-        -- that *creates* the tables, and `healthy()` then says yes of a
-        catalog with nothing in it. The store ends up described by nothing,
-        with no later launch finding anything wrong: the exact end state the
-        rest of this path exists to prevent.
-
-        `SyncDB(read_only=True).healthy()` rather than a query of its own, so
-        "can the rows be read" keeps one implementation. Read-only opening
-        never creates and never migrates, so asking is free of side effects.
+        Read-only, and asked **before** anything opens it writable: a writable
+        open is not a read, since `SyncDB.__init__` runs the schema, so on a
+        zero-byte file it *creates* the tables and `healthy()` then says yes of
+        an empty catalog. Reuses `SyncDB(read_only=True).healthy()` so "can the
+        rows be read" keeps one implementation. Why a store described by
+        nothing is unrecoverable: docs/offline-sync.md section 5.
         """
         try:
             probe = SyncDB(catalog_path, read_only=True)
@@ -380,11 +369,10 @@ class SyncManager:
     def _open_writable(catalog_path):
         """Open the catalog for use, or None if it will not open.
 
-        Separate from `_catalog_reads` because they can disagree: the probe
-        reads `downloads`, while the constructor's schema and migration touch
-        every table. Left to propagate, a failure here escapes `_open_catalog`
-        entirely -- so the caller never gets a verdict, and the backup sitting
-        beside the damaged file is never restored.
+        Separate from `_catalog_reads` because they can disagree -- the probe
+        reads `downloads`, the constructor's schema touches every table -- and
+        because a failure here must reach the caller as a verdict rather than
+        an exception, or the backup beside the damaged file is never restored.
         """
         try:
             return SyncDB(catalog_path)
@@ -397,23 +385,11 @@ class SyncManager:
         """Open the catalog, restoring the backup if it is unreadable or gone.
 
         Returns what the caller may do with the disk -- `CATALOG_TRUSTED`,
-        `CATALOG_BEHIND` or `CATALOG_ABSENT`. That is a return value rather
-        than something the caller works out for itself because it used to
-        ask `os.path.exists(catalog_path)` *before* this ran, which stopped
-        being the same question the moment a missing catalog could be
-        restored: a successful restore was reported as a first run, logged
-        as "opened a new catalog", and skipped the reconcile entirely.
-
-        A corrupt catalog is not merely a lost index. The download tree is
-        `<root>/<server_id>/<item_id>/media.<ext>` -- ids, not names -- so
-        without the catalog the UI cannot list what is there, cannot play it
-        and cannot delete it. The files stop being an offline library and
-        become unlabelled dead weight that only a file manager can clear.
-        That is the loss this guards, and it is why the corrupt file is set
-        aside rather than overwritten: it is still the better copy of
-        anything the backup predates, and recovering it by hand
-        (`.recover` in the sqlite shell) is possible right up until we
-        delete it.
+        `CATALOG_BEHIND` or `CATALOG_ABSENT` -- rather than leaving it to be
+        inferred from whether the file exists, which stops being the same
+        question the moment a missing catalog can be restored. What is lost
+        with the catalog, and the four mechanisms that keep it:
+        docs/offline-sync.md section 5.
 
         Locking is not the failure mode being covered. Single-instance
         election means one writer, and the browser's handle is read-only.
@@ -423,10 +399,8 @@ class SyncManager:
         backup_path = os.path.join(os.path.dirname(catalog_path),
                                    self.CATALOG_BACKUP)
         # A catalog that is GONE is the same emergency as one that cannot be
-        # read: `SyncDB` would create an empty one, `healthy()` would say yes,
-        # and the store would be left described by nothing. It is reachable --
-        # a killed process partway through `_move_tree`, a restore that
-        # failed, a filesystem hiccup, a user tidying up.
+        # read, and reachable: a killed `_move_tree`, a failed restore, a user
+        # tidying up.
         missing = not os.path.exists(catalog_path)
         if missing and not os.path.exists(backup_path):
             self.db = SyncDB(catalog_path)      # a genuine first run
@@ -440,12 +414,9 @@ class SyncManager:
             if self.db is not None and self.db.healthy():
                 return CATALOG_TRUSTED
             if self.db is None:
-                # Nothing opened, so there is no handle to answer reads with
-                # and none to close below. Read-only because it is the one
-                # open that cannot create or migrate: whatever is at that
-                # path stays exactly as damaged as it was, and `healthy()`
-                # keeps answering false, which is what holds the sweep off
-                # the disk.
+                # Read-only is the one open that cannot create or migrate, so
+                # the damaged file stays as it is and `healthy()` keeps
+                # answering false -- which is what holds the sweep off the disk.
                 self.db = SyncDB(catalog_path, read_only=True)
             if not os.path.exists(backup_path):
                 log.error("The download catalog at %s cannot be read and there "
@@ -461,13 +432,10 @@ class SyncManager:
                           exc_info=True)
         ok, aside = self._restore_from_backup(catalog_path, backup_path)
         if not ok:
-            # **Never a writable empty catalog where the evidence used to be.**
-            # An empty catalog is *readable*, so the next launch sees nothing
-            # wrong with it, never retries the restore, and the store stays
-            # undescribed for good. Opening read-only cannot create one: with
-            # no file it holds no connection at all, every read answers empty
-            # and every write is a no-op, so this launch runs describing
-            # nothing rather than recording that nothing is there.
+            # **Never a writable empty catalog where the evidence used to be**
+            # -- an empty catalog is *readable*, so no later launch would retry
+            # the restore (docs/offline-sync.md section 5). Read-only cannot
+            # create one: with no file it holds no connection at all.
             self.db = SyncDB(catalog_path, read_only=True)
             return CATALOG_ABSENT if missing else CATALOG_BEHIND
         self.db = self._open_writable(catalog_path)
@@ -486,38 +454,26 @@ class SyncManager:
     def _restore_from_backup(self, catalog_path, backup_path):
         """Put the backup where the catalog belongs. Returns (ok, aside).
 
-        One path for both emergencies -- a catalog that cannot be read, and
-        one that is not there -- because they differ in exactly one step
-        (there is no bad file to set aside when it is missing) and need every
-        other step alike. Written as two branches, the missing one got the
-        copy and neither the staging nor the sidecars: a full disk made the
-        loss permanent, and a stale `-wal` replayed the very pages the
-        restore was recovering from.
+        One path for both emergencies -- unreadable and missing -- since they
+        differ only in whether there is a bad file to set aside; kept as one
+        function because two branches drifted (docs/offline-sync.md section 5).
 
         The order is load-bearing:
 
         1. Stage the copy, so a failure here has touched nothing.
-        2. Move any existing catalog aside. It is still the better copy of
-           anything the backup predates, and `.recover` in the sqlite shell
-           can read it right up until we delete it.
-        3. Move the `-wal`/`-shm` off the live name -- **whether or not there
-           was a catalog to set aside**, because a catalog that has gone
-           missing can still have its WAL sitting beside it, and that is
-           exactly the state a crash between steps 2 and 4 leaves behind.
-           Moved rather than deleted when there is an aside to keep them
-           with: a WAL can hold pages newer than the file it belongs to, so
-           it is part of what a hand recovery has to work from. Failing to
-           shift one aborts the restore -- this is the one step here whose
-           success step 4 assumes, rather than merely prefers.
+        2. Move any existing catalog aside; `.recover` in the sqlite shell can
+           still read it until we delete it.
+        3. Move the `-wal`/`-shm` off the live name **whether or not there was
+           a catalog to set aside** -- a missing catalog can still have its WAL
+           beside it, and a WAL may hold pages newer than the file it belongs
+           to. **Failing to shift one aborts the restore**: it is the one step
+           here whose success step 4 assumes rather than prefers.
         4. Promote the staged copy.
 
-        A failure anywhere leaves the catalog **absent**, which is the state
-        the caller must not paper over: see `_open_catalog`, which opens
-        read-only rather than letting sqlite create the empty, readable,
-        writable catalog that no later launch would find anything wrong with.
-        Putting the aside back here as well was tried and dropped -- it made
-        no outcome differ, and a second mechanism for one rule is how the two
-        drift apart.
+        A failure anywhere leaves the catalog **absent**, which `_open_catalog`
+        must not paper over. Restoring the aside on failure was tried and
+        dropped: no outcome differed, and a second mechanism for one rule is
+        how the two drift apart.
         """
         staged = catalog_path + ".restoring"
         aside = None
@@ -533,16 +489,12 @@ class SyncManager:
                     else:
                         os.remove(catalog_path + suffix)
                 except OSError as exc:
-                    # ENOENT is the ordinary case -- usually there is no
-                    # sidecar at all -- and the only failure that still
-                    # leaves nothing beside the name. Every other one means
-                    # a sidecar is *still there*, and the promote below
-                    # happens on the strength of this having worked: sqlite
-                    # applies a WAL to whatever takes that name next,
-                    # checking only that the WAL is internally consistent
-                    # and never that it belongs to the file it is being
-                    # replayed into. Swallowed, that silently discarded four
-                    # rows in five and read back integrity-clean.
+                    # sqlite replays a WAL into whatever takes that name
+                    # next, checking only that the WAL is internally
+                    # consistent -- never that it belongs to that file. So any
+                    # error but ENOENT leaves a sidecar standing and must
+                    # abort: swallowed, it discarded four rows in five and read
+                    # back integrity-clean.
                     if exc.errno != errno.ENOENT:
                         raise
             os.replace(staged, catalog_path)
@@ -560,20 +512,14 @@ class SyncManager:
     def _backup_catalog(self, catalog_path):
         """Snapshot the catalog, unless doing so would destroy a better one.
 
-        **An empty catalog never replaces a backup that has rows in it.**
-        Without that, the backup deletes itself on exactly the launch it
-        exists for: any path that ends with an empty catalog open -- a
-        restore whose copy failed on a full disk, or the missing-catalog case
-        above failing too -- reached here, `healthy()` said yes of a catalog
-        with nothing in it, and the one artifact that could still describe
-        the store was overwritten by it.
+        **An empty catalog never replaces a backup that has rows in it**, or
+        the backup deletes itself on exactly the launch it exists for
+        (docs/offline-sync.md section 5).
 
-        The cost is a stale backup after somebody deletes every download: it
-        keeps rows for files that are gone, and restoring it would re-queue
-        them. That is a bounded annoyance, and it clears on the next launch
-        or relocate that opens a catalog with rows in it -- this has one call
-        site, `_open_and_run`, so a download alone does not do it. Losing the
-        only index of a full download folder does not clear at all.
+        The cost is a stale backup after somebody deletes every download --
+        bounded, and cleared by the next launch or relocate that opens a
+        catalog with rows. Losing the only index of a full download folder does
+        not clear at all.
         """
         if self.db is None or not self.db.healthy():
             return
@@ -1061,20 +1007,15 @@ class SyncManager:
     def _drop_cancelled(self, row):
         """Act on a pending delete for `row`. Returns whether one was owed.
 
-        **The only place a cancellation is acted on.** "The delete wins" used
-        to be written out at three sites in `_download` with three different
-        combinations of check, discard, remove-files, delete-row and notify,
-        and they drifted exactly as you would expect: the `except _Cancelled`
-        handler never re-checked, so a download the user had asked for again
-        in the meantime was deleted anyway.
+        **The only place a cancellation is acted on**, so "the delete wins" has
+        one spelling rather than one per call site in `_download`.
 
-        The sample and the row delete are **one** critical section. Sampling
-        under the lock and then acting outside it left a window in which an
-        `enqueue` could withdraw the cancel, write a fresh row, and have this
-        delete that row -- the failure `_uncancel` exists to prevent, one
-        window along. The files are removed afterwards, outside the lock:
-        losing them costs a re-download, and a re-enqueued item rebuilds its
-        directory anyway, whereas losing the row is what strands the bytes.
+        The sample and the row delete are **one** critical section: sampling
+        under the lock and acting outside it leaves a window for `enqueue` to
+        withdraw the cancel, write a fresh row, and have this delete that row
+        -- the failure `_uncancel` exists to prevent, one window along. The
+        files go afterwards, outside the lock: losing them costs a re-download,
+        whereas losing the row is what strands the bytes.
         """
         item_id = row["item_id"]
         with self._active_lock:
@@ -1107,28 +1048,16 @@ class SyncManager:
     def _claim_from_playlists(self, item_id):
         """Release a playlist's claim on an item that must not be deleted.
 
-        There are two things that will delete a download the user did not ask
-        to delete: the reaper, and deleting a playlist that *owns* the item.
-        Promoting the row to `ORIGIN_USER` answers only the first, and
-        `_delete_playlist` does not look at origin at all -- so a row is only
-        actually protected once both claims are released.
+        Two deleters can take a download the user did not ask to delete -- the
+        reaper and a playlist that *owns* the item -- and `ORIGIN_USER`
+        answers only the first, so both claims must be released together.
+        Callers and the ownership rules: docs/offline-sync.md section 5.
 
-        Three callers, for the three ways a row comes to deserve that.
-        `enqueue`, because pressing Download on an episode a downloaded
-        playlist had pulled in used to leave it owned, and deleting that
-        playlist deleted it anyway. `_add_row`, because a row *created* over a
-        standing claim hands the playlist a file it never pulled in. And
-        `_adopt_orphan`, because a row it invented is marked never-auto
-        precisely to keep the file, which the playlist would then remove
-        regardless.
-
-        **This states one proposition and takes no exception.** It used to
-        take the item's type and decline for `Playlist`, meaning "this call is
-        the playlist's own download" -- which is a fact about the *request*,
-        held only by `enqueue`, where the suppression now lives
-        (`claims_its_members`). `_adopt_orphan` passed the type from a
-        manifest some other build may have written, so a file claiming to be a
-        playlist kept the claim the adoption exists to release.
+        **This states one proposition and takes no exception.** Whether a
+        request claims its own members is a fact about the request, held by
+        `enqueue` (`claims_its_members`); deciding it here from an item type
+        meant `_adopt_orphan` reading it out of a manifest some other build
+        may have written.
 
         Best-effort, like `_clear_discard` beside it: a missing table or a
         closed catalog must not fail a download the user asked for.
@@ -1525,21 +1454,11 @@ class SyncManager:
         * an on-disk per-item directory with no catalog row is removed.
 
         The second half **identifies what it deletes rather than inferring
-        it**, and every one of the four tests below is load-bearing:
-
-        * the catalog has to be readable (`db.healthy`) -- an unreadable one
-          answers `[]` to every query, which reads as "none of this is known";
-        * the server directory has to be one the catalog *names*, so a
-          directory this app never wrote is not a candidate at all;
-        * the child has to be shaped like a Jellyfin item id, which is what
-          this app names an item directory;
-        * and the child must not be a live row.
-
-        Inferring it -- "in the store, not in the catalog, therefore ours and
-        orphaned" -- is how a download folder pointed at an existing media
-        library (`~/Videos/Holidays/2019 Italy`) had the user's own
-        directories deleted on the second launch, the first being covered by
-        the empty-catalog guard in `_open_and_run` and no launch after it.
+        it**, and all four tests are load-bearing -- the catalog reads
+        (`db.healthy`), the server directory is one the catalog *names*, the
+        child is shaped like an item id, and it is not a live row. Each exists
+        because inferring instead deleted something: docs/offline-sync.md
+        section 5.
         """
         if not self.db.healthy():
             # Refusing the requeue half too: a `[]` from an unreadable catalog
@@ -1601,21 +1520,15 @@ class SyncManager:
     def _adopt_orphan(self, server_dir, item_id, item_dir, server_uuids):
         """Rebuild the catalog row for a complete download that has none.
 
-        `_download` writes `item.json` and `source.json` beside the media
-        precisely so a download describes itself, which makes "the catalog
-        forgot this" recoverable rather than terminal. Adopting is what stops
-        a catalog restored from the backup (`_open_catalog`) from turning into
-        a *delayed* wipe: everything downloaded after the snapshot has files
-        and no row, which is the orphan shape, and the launch after the
-        restore would have swept exactly those.
+        `_download` writes `item.json` and `source.json` beside the media so a
+        download describes itself; adopting is what stops a restored catalog
+        being a *delayed* wipe (docs/offline-sync.md section 5).
 
-        Both halves are required -- the manifest *and* the media. A directory
-        with a manifest and no media is an interrupted download or the residue
-        of a delete whose unlink failed, and reclaiming that space is the
-        sweep's actual job. Only a whole, playable copy is worth arguing over,
-        and where it is arguable the recoverable error is the right one: an
-        item that reappears can be deleted again, media deleted on the
-        strength of a missing row cannot be got back.
+        **Both halves are required -- the manifest and the media.** A manifest
+        with no media is an interrupted download or a delete whose unlink
+        failed, and reclaiming that is the sweep's job. Where it is arguable,
+        take the recoverable error: an item that reappears can be deleted
+        again, media deleted on the strength of a missing row cannot.
 
         Returns whether the row was written (i.e. do not delete this).
         """
@@ -1848,19 +1761,12 @@ class SyncManager:
     def _note_connected_servers(self):
         """Watch for a server appearing, and mark a sweep due when one does.
 
-        This is the whole schedule. A sweep covers a stretch during which
-        nothing was listening, and a server *becoming reachable* is the end of
-        exactly such a stretch -- so it is the trigger, in place of the
-        interval this used to have.
-
-        **Watched here rather than subscribed to.** `clientManager`'s
-        `on_server_connected` is a single slot the browser already assigns, and
-        it is a notification fired from five call sites -- a sixth reconnect
-        path would leave a gap invisible until somebody's catalog is stale. The
-        registry is the state itself, so a set comparison cannot miss a
-        transition however the server came back.
-
-        Disappearances are recorded but trigger nothing.
+        This is the whole schedule: a server *becoming reachable* ends exactly
+        the stretch a sweep covers, so it is the trigger rather than an
+        interval. **Watched here rather than subscribed to** -- the registry is
+        the state itself, so a set comparison cannot miss a transition however
+        the server came back, where `on_server_connected` is a single slot and
+        a notification. Disappearances are recorded but trigger nothing.
         See docs/offline-sync.md section 3.
         """
         try:
@@ -1878,21 +1784,15 @@ class SyncManager:
     def request_userdata_refresh(self):
         """Ask for a catalog sweep — the home screen is loading.
 
-        The one trigger that is not an edge the app can see, and the only
-        thing left covering the gap measured in
-        `tests/e2e/test_offline_sync.py`: another client can play something
-        to the end and never report its stop, and the server announces that
-        to nobody. No reconnect happens, so nothing else here would ever
-        notice. Home is where it would show, and a person opening Home is
-        the closest thing to a signal that exists.
+        The one trigger that is not an edge the app can see, covering the gap
+        measured in `tests/e2e/test_offline_sync.py`: another client can finish
+        an item and never report its stop, and the server announces that to
+        nobody. Home is where it would show.
 
-        Not floored here -- `_run` defers rather than drops, so bouncing in
-        and out of Home cannot turn this into a poll and cannot lose a
-        request either.
-
-        Cheap and non-blocking: this only marks the sweep due and wakes the
-        worker, so the requests happen on the sync thread rather than on
-        whatever loaded the page.
+        Not floored here -- `_run` defers rather than drops, so bouncing in and
+        out of Home neither becomes a poll nor loses a request
+        (docs/offline-sync.md section 3). Cheap and non-blocking: this only
+        marks the sweep due and wakes the worker.
         """
         self._sweep_due = True
         self._wake.set()
