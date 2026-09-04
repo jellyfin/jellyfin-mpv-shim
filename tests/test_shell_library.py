@@ -1000,6 +1000,40 @@ class TestCarouselRestore(unittest.TestCase):
         self.assertIn("home-lt-guide", ids(nodes),
                       "the Live TV button row keys off that exact id")
 
+    def test_a_section_held_twice_does_not_collide_its_row_ids(self):
+        """Nothing stops a layout from holding ``latestmedia`` in two slots —
+        jellyfin-web's settings screen offers every type in every slot — and
+        the repository then builds one Latest row per library PER SLOT. Keyed
+        by library alone, both rows claimed ``row-latestmedia-<lib>``, and
+        ``layout()`` warns it targets "only the last occurrence": the first
+        row's tiles were unreachable by keyboard and its clicks landed on the
+        second row's.
+
+        Counted off the node list rather than ``ids()``, which is a set and
+        so cannot see a duplicate at all. Found on the QA server, where a
+        stale home layout did exactly this and read as a keyboard-nav
+        regression with nothing pointing at the layout.
+        """
+        self.b.route["_data"] = {
+            "libraries": [], "rows": [
+                {"title": "Latest Movies", "kind": "latestmedia",
+                 "parent_id": "lib1", "collection_type": "movies",
+                 "slot": slot,
+                 "items": [{"Id": "lib1-i%d" % j, "Name": "N%d" % j,
+                            "Type": "Movie"} for j in range(30)]}
+                for slot in (6, 8)]}
+        nodes, _h = build_scene(self.b)
+        drawn = [n["id"] for n in nodes if n.get("id")]
+        dupes = sorted({i for i in drawn if drawn.count(i) > 1})
+        self.assertEqual(
+            dupes, [],
+            "two latestmedia slots drew colliding node ids, so the renderer "
+            "reaches only the last of each: %s" % dupes[:5])
+        # The first occurrence keeps the id it has always had, so a layout
+        # holding the section once is untouched -- including its parked
+        # scroll offset.
+        self.assertIn("row-latestmedia-lib1", drawn)
+
     def test_parking_is_refused_while_the_browser_is_yielded(self):
         """A yielded scene holds no containers, so ``scroll_offsets()``
         answers None — which ``park`` cannot tell from "mpv is too old to be

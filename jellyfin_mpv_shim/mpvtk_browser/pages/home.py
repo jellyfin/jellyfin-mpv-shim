@@ -294,13 +294,14 @@ class HomePage(Page):
         # section the previous occupant's scroll offset. See ``_row_id`` for
         # why the ordinal is not enough on its own.
         seen: dict = {}
+        used: dict = {}
         for hr in data["rows"]:
             if not hr.get("items"):
                 continue
             kind = hr.get("kind") or "row"
             n = seen[kind] = seen.get(kind, -1) + 1
             geom, itype = self._row_shape(hr)
-            row_id = self._row_id(kind, n, hr)
+            row_id = self._unique(self._row_id(kind, n, hr), used)
             entries.append((hr.get("slot", 0), hr["title"], hr["items"],
                             geom, itype, row_id,
                             self._latest_tv(hr),
@@ -411,6 +412,35 @@ class HomePage(Page):
         field = cls.MULTI_ROW_KEYS.get(kind)
         key = (hr.get(field) if field else None) or ordinal
         return "row-%s-%s" % (kind, key)
+
+    @staticmethod
+    def _unique(row_id, used):
+        """``row_id``, suffixed only if this render already used it.
+
+        A layout may hold one section twice — jellyfin-web offers every type
+        in every slot — and the repository then builds the rows for it once
+        per slot. The ``MULTI_ROW_KEYS`` kinds are keyed by what identifies
+        the row rather than by position, so those repeats collide, and
+        ``layout()`` targets only the last occurrence: the earlier row's
+        tiles are unreachable and its clicks land on the later one's.
+
+        This is ``tile_renderer.tile_row``'s rule (#20) one level up: there
+        an *item* repeats within a row, here a *row* repeats within a screen.
+        It diverges twice, so neither reads as an oversight:
+
+        * It suffixes with ``-<i>``; this uses ``#``. A row id's ``-``
+          namespace already holds children built from item ids
+          (``<row>-<itemId>``, plus ``-pl``/``-pr``/``-more``), so a numeric
+          ``-`` tail is a shape a tile can also produce. ``#`` cannot be:
+          it is already the row-level synthetic separator (``<row>#strip``).
+        * It renames every occurrence of a repeated key; this renames only
+          the repeat, so the first row keeps the id its *parked scroll
+          offset* is filed under. Tile ids key only hover and focus, which
+          are transient, so it has nothing to preserve.
+        """
+        count = used.get(row_id, 0)
+        used[row_id] = count + 1
+        return row_id if not count else "%s#%d" % (row_id, count + 1)
 
     @staticmethod
     def _latest_tv(hr):
