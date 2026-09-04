@@ -17,6 +17,7 @@ import unittest
 from jellyfin_mpv_shim.sync.db import (COLUMNS, SyncDB, STATUS_COMPLETE,
                                        STATUS_PENDING)
 from jellyfin_mpv_shim.mpvtk_browser.repository import OfflineLibrarySource
+from jellyfin_mpv_shim.mpvtk_browser.pages.home import HomePage
 
 
 def make_row(item_id, **overrides):
@@ -266,6 +267,70 @@ class OfflineReloadTest(unittest.TestCase):
         # Construction (which calls reload) must not raise on a bad catalog.
         source = OfflineLibrarySource(self.catalog)
         self.assertEqual(source._snap.items, [])
+
+
+
+
+class OfflineHomeRowIdentityTest(unittest.TestCase):
+    """A home row's node id keys its parked scroll offset, so it has to be a
+    function of the row -- never of its position among the rows that happened
+    to have items this render.
+
+    The server producer stamps the row's layout slot. The offline one stamped
+    `enumerate` over the rows it had just built conditionally, so deleting
+    every downloaded film renumbered Videos, Shows and Books, and each came
+    back at the top of a strip it had been scrolled along. `_row_id`'s own
+    docstring says an id may not contain this.
+    """
+
+    def _rows(self, *types):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        catalog = os.path.join(tmp.name, "catalog.db")
+        db = SyncDB(catalog)
+        for i, t in enumerate(types):
+            db.upsert(make_row(
+                "i%d" % i, type=t, name=t, status=STATUS_COMPLETE,
+                file_path="i%d/file.mkv" % i,
+                item_json=json.dumps({"Id": "i%d" % i, "Name": t, "Type": t})))
+        db.close()
+        rows = OfflineLibrarySource(catalog).get_home_rows("offline")
+        return {r["collection_type"]:
+                HomePage._row_id(r.get("kind") or "row", r) for r in rows}
+
+    def test_a_row_keeps_its_id_when_a_sibling_row_empties(self):
+        with_movies = self._rows("Movie", "Video")
+        self.assertIn("movies", with_movies)
+        without = self._rows("Video")
+        self.assertEqual(
+            without["homevideos"], with_movies["homevideos"],
+            "the Downloaded Videos row was renumbered when the movies were "
+            "deleted, so it lost the scroll offset parked under its old id")
+
+    def test_every_row_still_has_a_distinct_id(self):
+        ids = self._rows("Movie", "Video", "Episode", "Book")
+        self.assertEqual(len(set(ids.values())), len(ids),
+                         "two home rows share a node id: %r" % (ids,))
+
+    def test_the_rows_keep_their_order(self):
+        """The slot is also what the two sources are merged by, so it still
+        has to ascend in the order the rows are built."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        catalog = os.path.join(tmp.name, "catalog.db")
+        db = SyncDB(catalog)
+        for i, t in enumerate(("Movie", "Video", "Episode", "Book")):
+            db.upsert(make_row(
+                "i%d" % i, type=t, name=t, status=STATUS_COMPLETE,
+                file_path="i%d/file.mkv" % i,
+                item_json=json.dumps({"Id": "i%d" % i, "Name": t, "Type": t})))
+        db.close()
+        rows = OfflineLibrarySource(catalog).get_home_rows("offline")
+        slots = [r["slot"] for r in rows]
+        self.assertEqual(slots, sorted(slots))
+        self.assertEqual([r["collection_type"] for r in rows],
+                         [r["collection_type"]
+                          for r in sorted(rows, key=lambda r: r["slot"])])
 
 
 if __name__ == "__main__":

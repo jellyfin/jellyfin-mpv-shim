@@ -228,6 +228,14 @@ EXCLUDED_COLLECTION_TYPES: set = set()
 #: about the *item* type rather than the library's.
 BOOKS_COLLECTION = "books"
 
+#: The slot each offline home row occupies, in build order. A **fixed**
+#: position per row kind, not the index among the rows that turned out to have
+#: items: `HomePage._row_id` puts the slot in the row's scroll-container id, so
+#: a row renumbered because a *sibling* emptied comes back under a different id
+#: and loses the offset parked on it. Only distinctness and order are read --
+#: the home page merges the two sources by sorting on it.
+OFFLINE_ROW_SLOTS = ("movies", "homevideos", "tvshows", BOOKS_COLLECTION)
+
 #: CollectionType of the Live TV view. Its own constant because three modules
 #: test for it and a bare string in each is how one of them ends up spelled
 #: "liveTv".
@@ -3152,8 +3160,8 @@ class OfflineLibrarySource:
         if snap.books:
             rows.append({"title": _("Downloaded Books"), "items": snap.books,
                          "collection_type": BOOKS_COLLECTION})
-        for slot, row in enumerate(rows):
-            row["slot"] = slot
+        for row in rows:
+            row["slot"] = OFFLINE_ROW_SLOTS.index(row["collection_type"])
             # Not a home_sections type: these are "what you downloaded", not
             # any of the server's configurable sections. The kind only
             # namespaces the row's scroll id, and calling these latestmedia
