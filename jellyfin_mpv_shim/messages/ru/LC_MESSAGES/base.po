@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-08-28 19:09+0000\n"
-"Last-Translator: qarlsson <a@kosterin.uk>\n"
+"PO-Revision-Date: 2026-09-04 23:27+0000\n"
+"Last-Translator: TaPaCuK69 <doctorfreeman14@gmail.com>\n"
 "Language-Team: Russian <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/ru/>\n"
 "Language: ru\n"
@@ -28,7 +28,7 @@ msgstr "Неизвестный формат"
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #, python-format
 msgid "Page %(page)d of %(total)d"
-msgstr ""
+msgstr "Страница %(page)d из %(total)d"
 
 #: jellyfin_mpv_shim/books.py jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, python-format
@@ -137,10 +137,8 @@ msgid "Could not start Quick Connect."
 msgstr "Не удалось использовать Быстрое подключение."
 
 #: jellyfin_mpv_shim/media.py
-#, fuzzy
-#| msgid "Skipped Credits"
 msgid "Skip Credits"
-msgstr "Пропущенные титры"
+msgstr "Пропустить титры"
 
 #: jellyfin_mpv_shim/media.py
 msgid "Skipped Credits"
