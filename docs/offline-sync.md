@@ -299,12 +299,19 @@ weight only a file manager can clear. Three mechanisms keep it:
 - **`catalog.db.bak`**, written after every clean open. An **empty** catalog
   never replaces a backup that has rows — otherwise the backup deletes itself
   on precisely the launch it exists for.
-- **Restore**, when the catalog is unreadable *or missing*. The copy is staged
-  and renamed, so a restore that fails on a full disk has changed nothing and
-  the next start tries again; the corrupt file is kept as
-  `catalog.db.corrupt-<ts>` because it is still the better copy of anything
-  the backup predates. Its `-wal`/`-shm` go, or they replay the bad pages into
-  the restored file.
+- **Restore**, when the catalog is unreadable *or missing* — **one function
+  for both**, since they differ only in whether there is a bad file to set
+  aside. Written as two branches it drifted at once, and the second copy had
+  neither of the steps below. The copy is staged and renamed, so a restore
+  that fails on a full disk has changed nothing and the next start tries
+  again; the old file is kept as `catalog.db.corrupt-<ts>` because it is
+  still the better copy of anything the backup predates, and its
+  `-wal`/`-shm` move aside with it — left at the live name they replay the
+  bad pages into the restored file, and a catalog that went *missing* can
+  still have its WAL beside it. **A failed restore leaves no catalog at
+  all**: the launch runs on a read-only handle rather than letting sqlite
+  create the empty one, which is *readable*, so every later launch would find
+  nothing wrong with it and never retry.
 - **`_adopt_orphan`**, which rebuilds a row from the download's own
   `item.json` + media. This is what stops a restore being a *delayed* wipe:
   everything downloaded after the snapshot has files and no row, which is the

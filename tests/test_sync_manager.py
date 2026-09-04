@@ -1922,11 +1922,10 @@ class TheBackupNeverDestroysItselfTest(TmpTest):
     def test_a_missing_catalog_is_restored_not_replaced(self):
         root = os.path.join(self.tmp, "root")
         backup = self._seeded(root)
-        for suffix in ("", "-wal", "-shm"):
-            try:
-                os.remove(os.path.join(root, "catalog.db" + suffix))
-            except OSError:
-                pass
+        # Only the catalog. Removing its -wal/-shm here as well was the
+        # fixture performing the repair the code is supposed to perform --
+        # see test_a_stale_wal_is_not_replayed_over_the_restore.
+        os.remove(os.path.join(root, "catalog.db"))
         m = self._launch(root)
         self.assertEqual(len(m.db.list()), 3,
                          "a missing catalog was replaced with an empty one "
@@ -1973,6 +1972,28 @@ class TheBackupNeverDestroysItselfTest(TmpTest):
         m = self._launch(root)
         self.assertEqual(len(m.db.list()), 3)
 
+    def test_deleting_every_download_does_not_overwrite_the_backup(self):
+        """The route that reaches the empty-catalog guard without any failure
+        at all.
+
+        The class's other cases stopped reaching it: they leave the catalog
+        *corrupt*, so `_backup_catalog` returns at `not healthy()` and the
+        guard below it is never evaluated. It survived being replaced with
+        `if False:` against all four of them.
+        """
+        root = os.path.join(self.tmp, "root")
+        backup = self._seeded(root)
+        m = self._launch(root)
+        for row in list(m.db.list()):
+            m.delete_item(row["item_id"])
+        self.assertEqual(m.db.list(), [])
+        m.stop()
+
+        self._launch(root).stop()      # the launch that would overwrite it
+        self.assertEqual(self._backup_rows(backup), 3,
+                         "an empty catalog replaced a backup that still "
+                         "described the store")
+
     def test_an_empty_catalog_is_still_backed_up_when_there_is_no_backup(self):
         """The control: this must not turn into "never back up an empty
         catalog", or a fresh install never gets one."""
@@ -1986,13 +2007,43 @@ class TheBackupNeverDestroysItselfTest(TmpTest):
 class TheCatalogLeavesTheOldRootLastTest(TmpTest):
     def test_the_move_order_is_media_then_backup_then_catalog(self):
         """A move killed outright never runs `_undo_move`, so the order is
-        what decides whether the old root can still describe itself. The two
-        sort keys were the wrong way round and put the backup last."""
-        m = SyncManager()
-        names = ["srv", "other", "catalog.db", SyncManager.CATALOG_BACKUP]
-        names.sort(key=lambda n: (n == "catalog.db",
-                                  n == SyncManager.CATALOG_BACKUP))
-        self.assertEqual(names[-2:], [SyncManager.CATALOG_BACKUP, "catalog.db"])
+        what decides whether the old root can still describe itself.
+
+        Watches the real `os.rename` calls `_move_tree` makes. Sorting a list
+        the test built with a key the test wrote passed against the exact bug
+        it was named for -- `_move_tree` was never called at all.
+        """
+        old = os.path.join(self.tmp, "old")
+        new = os.path.join(self.tmp, "new")
+        os.makedirs(os.path.join(old, "srv"))
+        os.makedirs(new)
+        for name in ("catalog.db", SyncManager.CATALOG_BACKUP, "other"):
+            with open(os.path.join(old, name), "wb") as fh:
+                fh.write(b"x")
+
+        moved = []
+        real_rename = os.rename
+
+        def record(src, dst, *a, **kw):
+            if os.path.dirname(src) == old:
+                moved.append(os.path.basename(src))
+            return real_rename(src, dst, *a, **kw)
+
+        os.rename = record
+        try:
+            SyncManager()._move_tree(old, new)
+        finally:
+            os.rename = real_rename
+
+        self.assertEqual(sorted(moved),
+                         sorted(["srv", "other", "catalog.db",
+                                 SyncManager.CATALOG_BACKUP]),
+                         "not every entry was moved: %r" % (moved,))
+        self.assertEqual(moved[-2:],
+                         [SyncManager.CATALOG_BACKUP, "catalog.db"],
+                         "a kill in this window has to leave the old root "
+                         "able to describe itself: media, then the backup, "
+                         "then the catalog. Order was %r" % (moved,))
 
 
 class AskingForItAgainWithdrawsTheCancelTest(TmpTest):
@@ -2083,3 +2134,546 @@ class RelocateRefusesItsOwnSubdirectoryTest(TmpTest):
         ok, message = m.relocate(os.path.join(self.tmp, "beside"))
         self.addCleanup(m.stop)
         self.assertTrue(ok, message)
+
+
+class TheRollbackNeverOverwritesTest(TmpTest):
+    """`_undo_move` puts a failed move back, and its safety rests on the old
+    name still being the empty slot it vacated.
+
+    Nothing in this process can break that -- `_relocating` shuts the
+    mutators -- but another process or the user can, and `os.replace` would
+    destroy what they wrote without a sound. Refusing costs nothing: the
+    caller reports the move failed either way, and both copies survive.
+    """
+
+    def _raced_move(self, recreate):
+        old = os.path.join(self.tmp, "old")
+        new = os.path.join(self.tmp, "new")
+        os.makedirs(old)
+        os.makedirs(new)
+        for name in ("a", "b"):
+            with open(os.path.join(old, name), "w") as fh:
+                fh.write("ORIGINAL-" + name)
+
+        m = SyncManager()
+        real_rename = os.rename
+        calls = []
+        moved_first = {}
+
+        def raced(src, dst):
+            calls.append(src)
+            if len(calls) == 1:
+                real_rename(src, dst)
+                moved_first["path"] = src
+                if recreate:
+                    with open(src, "w") as fh:
+                        fh.write("NEW USER DATA")
+                return
+            raise OSError(18, "force the copy path")   # EXDEV
+
+        def full_disk(*a, **kw):
+            raise OSError(28, "No space left on device")
+
+        os.rename = raced
+        try:
+            with self.assertRaises(OSError):
+                m._copy_tree = full_disk
+                m._move_tree(old, new)
+        finally:
+            os.rename = real_rename
+        return old, new, moved_first["path"]
+
+    def test_a_source_recreated_during_the_move_is_not_replaced(self):
+        old, new, first = self._raced_move(recreate=True)
+        with open(first) as fh:
+            self.assertEqual(fh.read(), "NEW USER DATA",
+                             "the rollback destroyed a file written into the "
+                             "store while the move was running")
+        self.assertTrue(
+            os.path.exists(os.path.join(new, os.path.basename(first))),
+            "and it did not keep the moved copy either, so that entry is gone")
+
+    def test_an_untouched_source_is_still_put_back(self):
+        """The control, so the refusal cannot become "never roll back"."""
+        old, new, first = self._raced_move(recreate=False)
+        with open(first) as fh:
+            self.assertEqual(fh.read(),
+                             "ORIGINAL-" + os.path.basename(first))
+        self.assertFalse(
+            os.path.exists(os.path.join(new, os.path.basename(first))),
+            "the move was undone but a duplicate was left at the new root")
+
+
+class TheRestoreIsOnePathTest(TmpTest):
+    """The catalog is restored from its backup in exactly one function, for
+    both emergencies -- unreadable and gone.
+
+    Written as two branches it drifted immediately: the missing-catalog one
+    got the copy and neither the staging nor the sidecar handling, so a full
+    disk made the loss permanent and a stale `-wal` replayed the very pages
+    the restore was recovering from. Each test here is one step of that
+    function, reached down whichever branch can reach it.
+    """
+
+    def _launch(self, root):
+        m = SyncManager()
+        m.root = root
+        m.get_client = lambda uuid: None
+        m._open_and_run()
+        self.addCleanup(m.stop)
+        return m
+
+    def _seeded(self, root, n=3):
+        os.makedirs(root, exist_ok=True)
+        m = self._launch(root)
+        for i in range(n):
+            iid = "%032x" % i
+            item_dir = os.path.join(root, "srv", iid)
+            os.makedirs(item_dir, exist_ok=True)
+            with open(os.path.join(item_dir, "media.mkv"), "wb") as fh:
+                fh.write(b"x" * 64)
+            add_row(m, iid, status=STATUS_COMPLETE,
+                    file_path="srv/%s/media.mkv" % iid)
+        m.stop()
+        self._launch(root).stop()      # the backup now holds those rows
+        return os.path.join(root, SyncManager.CATALOG_BACKUP)
+
+    @staticmethod
+    def _full_disk(src, dst, *a, **kw):
+        # copyfile opens the destination before it writes, so the failure
+        # leaves a zero-byte file behind — which is the whole problem.
+        with open(dst, "wb"):
+            pass
+        raise OSError(28, "No space left on device")
+
+    def _with_a_full_disk(self, fn):
+        real = shutil.copyfile
+        shutil.copyfile = self._full_disk
+        try:
+            fn()
+        finally:
+            shutil.copyfile = real
+
+    def test_a_stale_wal_is_not_replayed_over_the_restore(self):
+        """The `-wal` beside a catalog that has GONE belongs to the catalog
+        that went, and sqlite applies it to whatever takes that name next."""
+        root = os.path.join(self.tmp, "wal")
+        self._seeded(root)
+        catalog = os.path.join(root, "catalog.db")
+        db = SyncDB(catalog)
+        holder = type("m", (), {"db": db, "root": root})()
+        for i in range(400):
+            add_row(holder, "%032x" % (i + 500))
+        os.remove(catalog)             # the main file vanishes, the WAL stays
+        self.assertTrue(os.path.exists(catalog + "-wal"),
+                        "no stale WAL to test with")
+
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 3,
+                         "the stale WAL of the catalog that went missing was "
+                         "replayed over the backup we had just restored")
+
+    def test_a_failed_restore_leaves_nothing_to_mistake_for_empty(self):
+        """An empty catalog is *readable*, so a launch that leaves one behind
+        is telling every later launch there is nothing to recover."""
+        for name, break_it in (("missing", os.remove),
+                               ("corrupt", _corrupt_downloads_table)):
+            with self.subTest(name):
+                root = os.path.join(self.tmp, "failed-" + name)
+                self._seeded(root)
+                break_it(os.path.join(root, "catalog.db"))
+                self._with_a_full_disk(lambda: self._launch(root).stop())
+
+                m = self._launch(root)   # the retry launch, disk now fine
+                self.assertEqual(len(m.db.list()), 3,
+                                 "the restore was never retried")
+                self.assertEqual(
+                    len(os.listdir(os.path.join(root, "srv"))), 3,
+                    "media was swept on the strength of an empty catalog")
+
+    def test_a_failure_between_the_two_renames_is_recoverable(self):
+        """The window the staging opens: the old catalog is already aside and
+        the staged copy has not landed. Nothing may create a catalog there."""
+        root = os.path.join(self.tmp, "gap")
+        self._seeded(root)
+        _corrupt_downloads_table(os.path.join(root, "catalog.db"))
+
+        real_replace = os.replace
+
+        def fail_the_promote(src, dst, *a, **kw):
+            if str(src).endswith(".restoring"):
+                raise OSError(28, "No space left on device")
+            return real_replace(src, dst, *a, **kw)
+
+        os.replace = fail_the_promote
+        try:
+            self._launch(root).stop()
+        finally:
+            os.replace = real_replace
+
+        m = self._launch(root)
+        self.assertEqual(len(m.db.list()), 3,
+                         "the launch after a failure between the renames "
+                         "found a catalog it saw nothing wrong with")
+
+    def test_a_restored_catalog_is_reconciled_but_never_swept(self):
+        """A restore is *behind* the disk, so the sweep must not run -- and
+        the reconcile still must, or a COMPLETE row whose file is gone is
+        never requeued. Asking `os.path.exists` before the restore reported a
+        recovered catalog as a first run and skipped both."""
+        root = os.path.join(self.tmp, "behind")
+        self._seeded(root)
+        os.remove(os.path.join(root, "catalog.db"))
+        # Media the backup does not know about: the shape a sweep deletes.
+        stranger = os.path.join(root, "srv", "%032x" % 99)
+        os.makedirs(stranger)
+        with open(os.path.join(stranger, "media.mkv"), "wb") as fh:
+            fh.write(b"x" * 64)
+        # And a row whose file the user removed: the shape a reconcile fixes.
+        os.remove(os.path.join(root, "srv", "%032x" % 0, "media.mkv"))
+
+        m = self._launch(root)
+        self.assertTrue(os.path.isdir(stranger),
+                        "the orphan sweep ran against a catalog that is "
+                        "older than the disk")
+        self.assertEqual(m.db.get("%032x" % 0)["status"], STATUS_PENDING,
+                         "the reconcile was skipped entirely, so a download "
+                         "whose file is gone was never requeued")
+
+
+class RelocateAnswersInsteadOfRaisingTest(TmpTest):
+    """`relocate` is documented to return (ok, message); every refusal it can
+    reach has to arrive that way, because `settings/general.py` catches the
+    exception and shows the one generic "moving failed"."""
+
+    def test_a_second_drive_is_not_containment(self):
+        """`ntpath.commonpath` *raises* across drives. Cross-drive is the
+        entire reason the EXDEV copy path exists, so raising here made the
+        one move that needs it impossible on Windows."""
+        import ntpath
+        m = make_manager(self.tmp, self.addCleanup)
+        m.db.close()
+        m.root = r"C:\Users\Izzie\AppData\Roaming\jellyfin-mpv-shim\offline"
+
+        real = (os.path.commonpath, os.path.abspath, os.path.realpath,
+                os.path.expanduser)
+        os.path.commonpath = ntpath.commonpath
+        os.path.abspath = lambda p: p
+        os.path.realpath = lambda p: p
+        os.path.expanduser = lambda p: p
+        # `relocate` gets past containment and really tries the move, and
+        # with abspath stubbed out a Windows path is a *relative* name here.
+        # Run from the temp dir or it lands in the repo -- which it did.
+        here = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            result = m.relocate(r"D:\Media\JellyfinDownloads")
+        except Exception as exc:            # noqa: BLE001 - that is the bug
+            self.fail("relocate raised %s instead of answering: %s"
+                      % (type(exc).__name__, exc))
+        finally:
+            os.chdir(here)
+            (os.path.commonpath, os.path.abspath, os.path.realpath,
+             os.path.expanduser) = real
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        # It got past containment: whatever it says next, it is not "that
+        # folder is inside the current download folder".
+        self.assertNotIn("inside", (result[1] or "").lower())
+
+    def test_a_store_reached_through_a_link_is_still_the_store(self):
+        """The other half: the old root is itself reached through a link, so
+        the destination looks unrelated until both sides are resolved."""
+        real = os.path.join(self.tmp, "real")
+        os.makedirs(os.path.join(real, "inside"))
+        seen_as = os.path.join(self.tmp, "seen-as")
+        try:
+            os.symlink(real, seen_as)
+        except (OSError, NotImplementedError):
+            self.skipTest("no symlinks here")
+        m = make_manager(seen_as, self.addCleanup)
+        m.db.close()
+        ok, message = m.relocate(os.path.join(real, "inside"))
+        self.assertFalse(ok, "a folder inside the store was accepted because "
+                             "the store was named through a link")
+        self.assertIn("inside", message.lower())
+
+    def test_a_symlink_back_into_the_store_is_still_containment(self):
+        """The refusal is about where the bytes land. Compared textually, a
+        link resolving inside the store passed, and `_copy_tree` then walked
+        into the destination it was creating."""
+        root = os.path.join(self.tmp, "offline")
+        os.makedirs(os.path.join(root, "inside"))
+        link = os.path.join(self.tmp, "link")
+        try:
+            os.symlink(os.path.join(root, "inside"), link)
+        except (OSError, NotImplementedError):
+            self.skipTest("no symlinks here")
+        m = make_manager(root, self.addCleanup)
+        m.db.close()
+        ok, message = m.relocate(link)
+        self.assertFalse(ok, "a link resolving inside the store was accepted")
+        self.assertIn("inside", message.lower())
+
+
+class TheDeleteWinsEverywhereTest(TmpTest):
+    """One table, because "the delete wins" is a property of *leaving*
+    `_download` and not of any one exit from it.
+
+    It used to be written out at three sites with three different
+    combinations of check, discard, remove-files, delete-row and notify. The
+    handler that skipped the re-check deleted a download the user had asked
+    for again -- and the per-fix test written beside each site could not see
+    it, because each one asserted its own site.
+    """
+
+    ITEM = {"Id": "a", "Type": "Movie", "Name": "Film",
+            "MediaSources": [{"Id": "s", "Container": "mkv"}]}
+
+    def _manager(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        item = self.ITEM
+
+        class C:
+            config = type("cfg", (), {"data": {"auth.server-id": "srv"}})()
+            jellyfin = type("jf", (), {
+                "get_item": staticmethod(lambda i, fields=None: item),
+                "download_url": staticmethod(
+                    lambda i, include_apikey=True: "http://example/d"),
+            })()
+
+        m.get_client = lambda uuid: C()
+        return m
+
+    #: name -> what `_stream` does. Between them these reach every way out of
+    #: `_download`: the commit point, each handler, and the plain return.
+    EXITS = {
+        "completes": lambda m, t: (8, 8),
+        "ends_short": lambda m, t: (4, 8),
+        "chunk_sees_the_cancel": lambda m, t: _raise(manager_module._Cancelled()),
+        "shutdown": lambda m, t: _raise(manager_module._Stopped()),
+        "connection_dropped": lambda m, t: _raise(
+            manager_module.requests.RequestException("reset")),
+        "server_error": lambda m, t: _raise(_http_error(503)),
+        "gone_from_the_server": lambda m, t: _raise(_http_error(404)),
+        "something_unexpected": lambda m, t: _raise(RuntimeError("boom")),
+    }
+
+    #: name -> what the user does while the download is in flight, and
+    #: whether a delete is owed when `_download` returns.
+    TIMINGS = {
+        "no_delete": (lambda m: None, False),
+        "deleted_mid_flight": (lambda m: m.delete(item_id="a"), True),
+        "deleted_then_asked_again": (
+            lambda m: (m.delete(item_id="a"),
+                       m.enqueue("u", "a", "Movie", include_watched=True)),
+            False),
+    }
+
+    def _run_one(self, exit_name, timing_name):
+        m = self._manager()
+        m.enqueue("u", "a", "Movie", include_watched=True)
+        act, owed = self.TIMINGS[timing_name]
+        stream = self.EXITS[exit_name]
+
+        def fake_stream(url, dest, item_id, name, expected, stopping=None,
+                        headers=None, on_headers=None):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 8)
+            act(m)                       # the user, mid-transfer
+            return stream(m, self)
+
+        m._stream = fake_stream
+        try:
+            m._download(m.db.get("a"))
+        except (manager_module.requests.RequestException, RuntimeError):
+            pass                          # re-raised on purpose for the backoff
+        return m, owed
+
+    def test_every_exit_honours_a_delete_and_none_honours_a_withdrawn_one(self):
+        for exit_name in self.EXITS:
+            for timing_name in self.TIMINGS:
+                with self.subTest(exit=exit_name, timing=timing_name):
+                    m, owed = self._run_one(exit_name, timing_name)
+                    row = m.db.get("a")
+                    if owed:
+                        self.assertIsNone(
+                            row, "the delete the user was told had succeeded "
+                                 "did not survive this exit")
+                        self.assertFalse(
+                            os.path.exists(os.path.join(m.root, "srv", "a")),
+                            "the row went but the bytes stayed")
+                    else:
+                        self.assertIsNotNone(
+                            row, "the item was deleted although no delete was "
+                                 "owed on the way out")
+                    # True of every cell: nothing is left flagged or claimed.
+                    self.assertEqual(m._cancelled, set())
+                    self.assertIsNone(m._active_item)
+
+    def test_a_cancel_that_beat_the_worker_is_not_downloaded_first(self):
+        """The cancel that arrives before the worker reaches the row.
+
+        The outcome alone cannot see this check: without it the item is
+        fetched in full and *then* deleted at the commit point, which lands
+        in the same place. What the entry check is for is not starting -- so
+        that is what this asserts.
+        """
+        for withdrawn in (False, True):
+            with self.subTest(withdrawn=withdrawn):
+                m = self._manager()
+                m.enqueue("u", "a", "Movie", include_watched=True)
+                row = m.db.get("a")
+                with m._active_lock:
+                    m._cancelled.add("a")   # flagged as the worker will see it
+                if withdrawn:
+                    m._uncancel("a")
+                started = []
+
+                def fake_stream(*a, **k):
+                    started.append(True)
+                    return 8, 8
+
+                m._stream = fake_stream
+                m._download(row)
+                self.assertEqual(bool(started), withdrawn,
+                                 "a download the user had already deleted was "
+                                 "transferred in full before being thrown away"
+                                 if not withdrawn else
+                                 "the withdrawn cancel stopped the download")
+                if withdrawn:
+                    self.assertIsNotNone(m.db.get("a"))
+                else:
+                    self.assertIsNone(m.db.get("a"))
+                self.assertEqual(m._cancelled, set())
+                self.assertIsNone(m._active_item)
+
+    def test_the_row_delete_is_atomic_with_the_sample(self):
+        """Sampling the cancel under `_active_lock` and deleting the row after
+        releasing it leaves a window: an `enqueue` can withdraw the cancel and
+        write a fresh row in it, and that row is what gets deleted -- the
+        failure `_uncancel` exists to prevent, one window along.
+
+        Asserted structurally rather than by racing it: with the delete inside
+        the critical section there is no interleaving to reproduce, which is
+        the point.
+        """
+        m = self._manager()
+        m.enqueue("u", "a", "Movie", include_watched=True)
+        held = []
+        real_delete = m.db.delete
+
+        def watched_delete(item_id):
+            held.append(m._active_lock.locked())
+            return real_delete(item_id)
+
+        m.db.delete = watched_delete
+
+        def fake_stream(url, dest, item_id, name, expected, stopping=None,
+                        headers=None, on_headers=None):
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest + ".part", "wb") as fh:
+                fh.write(b"x" * 8)
+            m.delete(item_id="a")
+            raise manager_module.requests.RequestException("reset")
+
+        m._stream = fake_stream
+        with self.assertRaises(manager_module.requests.RequestException):
+            m._download(m.db.get("a"))
+        self.assertIsNone(m.db.get("a"))
+        self.assertTrue(held, "the cancelled row was never deleted at all")
+        self.assertTrue(all(held),
+                        "the row was deleted outside `_active_lock`, so an "
+                        "enqueue can slip a new row into the gap and have it "
+                        "deleted instead")
+
+
+class AnEnqueueOnlyWithdrawsWhatItKeepsTest(TmpTest):
+    """`enqueue` withdrawing a delete says "this item will be present offline
+    when I am done". Done unconditionally at the top of the loop, it also
+    spoke for every item the loop then goes on to *decline*.
+
+    The user-visible failure: delete a stalled in-flight episode, then press
+    Download on the series it belongs to. The episode is watched, so the
+    enqueue queues nothing at all -- and the deleted download resumed and
+    completed anyway.
+    """
+
+    WATCHED = {"Id": "a", "Type": "Episode", "Name": "Ep", "SeriesId": "ser",
+               "UserData": {"Played": True},
+               "MediaSources": [{"Id": "s", "Container": "mkv"}]}
+
+    def _manager(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        ep = self.WATCHED
+
+        class C:
+            config = type("cfg", (), {"data": {"auth.server-id": "srv"}})()
+            jellyfin = type("jf", (), {
+                "get_item": staticmethod(lambda i, fields=None: ep),
+                "get_episodes": staticmethod(
+                    lambda i, fields=None, season_id=None: {"Items": [ep]}),
+                "download_url": staticmethod(
+                    lambda i, include_apikey=True: "http://example/d"),
+            })()
+
+        m.get_client = lambda uuid: C()
+        return m
+
+    def test_an_enqueue_that_queues_nothing_withdraws_nothing(self):
+        m = self._manager()
+        m.enqueue("u", "a", "Episode", include_watched=True)
+        with m._active_lock:
+            m._active_item = "a"           # the worker is on it
+        self.assertTrue(m.delete(item_id="a"))
+        self.assertIn("a", m._cancelled)
+
+        self.assertEqual(m.enqueue("u", "ser", "Series"), 0,
+                         "the fixture no longer declines the item, so this "
+                         "test cannot see the bug it is named for")
+        self.assertIn("a", m._cancelled,
+                      "an enqueue that queued nothing withdrew the user's "
+                      "delete of an in-flight download")
+
+    def test_an_enqueue_that_does_keep_it_still_withdraws(self):
+        """The control, so the fix cannot become "never withdraw"."""
+        m = self._manager()
+        m.enqueue("u", "a", "Episode", include_watched=True)
+        with m._active_lock:
+            m._active_item = "a"
+        self.assertTrue(m.delete(item_id="a"))
+        self.assertIn("a", m._cancelled)
+
+        m.enqueue("u", "ser", "Series", include_watched=True)
+        self.assertNotIn("a", m._cancelled,
+                         "asking for it again did not withdraw the delete")
+
+
+class AReapItDeclinesIsNotADeleteTest(TmpTest):
+    """`delete_item(only_if_auto=True)` flags the item for the worker *before*
+    it checks whether it may delete it. Declining has to withdraw the flag, or
+    the worker carries out the delete the reaper just refused to make -- which
+    is the single thing `only_if_auto` exists to prevent."""
+
+    def test_declining_to_reap_withdraws_the_cancel(self):
+        m = make_manager(self.tmp, self.addCleanup)
+        add_row(m, "a", status=STATUS_COMPLETE, origin=ORIGIN_USER)
+        with m._active_lock:
+            m._active_item = "a"           # the worker is on it right now
+        self.assertFalse(m.delete_item("a", only_if_auto=True),
+                         "the reaper took a row the user had claimed")
+        self.assertEqual(m._cancelled, set(),
+                         "the reaper declined the delete and left the flag "
+                         "that makes the worker do it anyway")
+        self.assertIsNotNone(m.db.get("a"))
+
+
+def _raise(exc):
+    raise exc
+
+
+def _http_error(status):
+    exc = manager_module.requests.HTTPError("HTTP %d" % status)
+    exc.response = type("r", (), {"status_code": status})()
+    return exc
