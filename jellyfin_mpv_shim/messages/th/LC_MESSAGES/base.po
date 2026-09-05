@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-04 15:42+0000\n"
+"PO-Revision-Date: 2026-09-05 10:48+0000\n"
 "Last-Translator: AlphaBeta <mangahadplae@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -627,14 +627,8 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Still can't reach the server."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ยังคงไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, python-format
@@ -753,7 +747,7 @@ msgstr "การตั้งค่า SVP"
 #, fuzzy
 #| msgid "Server URL: "
 msgid "Server URL"
-msgstr "URL เซิร์ฟเวอร์: "
+msgstr "URL เซิร์ฟเวอร์:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #, fuzzy
@@ -782,14 +776,8 @@ msgid "Enter the server URL first."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Contacting the server…"
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "กำลังติดต่อเซิร์ฟเวอร์…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Waiting for approval…"
@@ -804,14 +792,8 @@ msgid "Connecting…"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not connect. Please check your details."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถเชื่อมต่อได้ โปรดตรวจสอบรายละเอียดของคุณ"
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
 msgid "Locked"
@@ -1042,7 +1024,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "Bit depth"
-msgstr ""
+msgstr "ความลึกสี"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #, python-format
@@ -1712,7 +1694,7 @@ msgstr ""
 #, fuzzy
 #| msgid " (Transcode)"
 msgid "Debanding"
-msgstr " (Transcode)"
+msgstr "ลดริ้วรอยรอยต่อสี"
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "HDR Tone Mapping"
@@ -2434,10 +2416,8 @@ msgid "No collections yet."
 msgstr "ลบเซิร์ฟเวอร์"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New collection name…"
-msgstr "ชื่อผู้ใช้: "
+msgstr "ชื่อคอลเลกชันใหม่…"
 
 # seeded from jellyfin-web: ButtonBack
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
@@ -2470,14 +2450,8 @@ msgid "OK"
 msgstr "ตกลง"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not check what needs downloading."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถตรวจสอบรายการที่ต้องดาวน์โหลดได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -2760,34 +2734,16 @@ msgid "Refresh"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not join the SyncPlay group."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถเข้าร่วมกลุ่ม SyncPlay ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not create the SyncPlay group."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถสร้างกลุ่ม SyncPlay ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not leave the SyncPlay group."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถออกจากกลุ่ม SyncPlay ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/dialogs.py
 #, fuzzy
@@ -3307,17 +3263,13 @@ msgid "Series Options"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Recording"
-msgstr " (Transcode)"
+msgstr "การบันทึก"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgctxt "series recording rule setting"
 msgid "Record"
-msgstr " (Transcode)"
+msgstr "บันทึก"
 
 #: jellyfin_mpv_shim/mpvtk_browser/livetv_dialogs.py
 msgid "New episodes only"
@@ -3517,14 +3469,8 @@ msgid "Timed out loading this item"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not play this item"
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถเล่นรายการนี้ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/load_feedback.py
 #, fuzzy
@@ -3594,14 +3540,8 @@ msgid "Volume"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/base.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not open that link."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถเปิดลิงก์นั้นได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 #, python-format
@@ -3972,10 +3912,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
-#, fuzzy
-#| msgid "Quit and Mark Unwatched"
 msgid "Watch"
-msgstr "ออกจากโปรแกรมและทำเครื่องหมายว่าไม่ได้ดู"
+msgstr "รับชม"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/livetv.py
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
@@ -4210,14 +4148,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not copy"
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถคัดลอกได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4230,14 +4162,8 @@ msgid "Contents"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Getting the book…"
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "กำลังโหลดหนังสือ…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/reader.py
 msgid "This book could not be drawn."
@@ -4265,7 +4191,7 @@ msgstr ""
 #, fuzzy, python-format
 #| msgid "Server:"
 msgid "Results for \"%s\""
-msgstr "เซิร์ฟเวอร์:"
+msgstr "ผลการค้นหาสำหรับ \"%s\""
 
 # seeded from jellyfin-web: Shows
 #: jellyfin_mpv_shim/mpvtk_browser/pages/search.py
@@ -4304,24 +4230,12 @@ msgid "Seasons"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load more items."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถโหลดรายการเพิ่มเติมได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pagination.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load this page."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถโหลดหน้านี้ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/repository.py
 msgid "On Now"
@@ -4428,9 +4342,8 @@ msgstr "ออกจากโปรแกรมและทำเครื่อ
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/downloads.py
 #, fuzzy, python-format
-#| msgid "Remove Server"
 msgid "Delete the watched downloads in %s?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบรายการดาวน์โหลดที่รับชมแล้วใน %s หรือไม่?"
 
 # seeded from jellyfin-web: ShowAdvancedSettings
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
@@ -4530,14 +4443,8 @@ msgid "Nothing downloaded to browse offline."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/general.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not reach a server."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถติดต่อเซิร์ฟเวอร์ได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
@@ -4593,42 +4500,24 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not load the home screen settings."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถโหลดการตั้งค่าหน้าหลักได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen settings saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen settings."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถบันทึกการตั้งค่าหน้าหลักได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
 msgid "Home screen layout saved."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/home.py
-#, fuzzy
-#| msgid ""
-#| "Could not add server.\n"
-#| "Please check your connection information."
 msgid "Could not save the home screen layout."
-msgstr ""
-"ไม่สามารถเพิ่มเซิร์ฟเวอร์ได้\n"
-"โปรดตรวจสอบข้อมูลการเชื่อมต่อของคุณ"
+msgstr "ไม่สามารถบันทึกเค้าโครงหน้าหลักได้"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 msgid "General"
@@ -4640,10 +4529,8 @@ msgid "Browse"
 msgstr "เรียกดู"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
-#, fuzzy
-#| msgid "Server URL: "
 msgid "Servers & Users"
-msgstr "URL เซิร์ฟเวอร์: "
+msgstr "เซิร์ฟเวอร์ & ผู้ใช้:"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/__init__.py
 #: jellyfin_mpv_shim/mpvtk_browser/settings/logs.py
@@ -4674,10 +4561,8 @@ msgid "Copied %d log lines."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
-#, fuzzy
-#| msgid "Username: "
 msgid "New user name…"
-msgstr "ชื่อผู้ใช้: "
+msgstr "ชื่อผู้ใช้ใหม่…"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4705,9 +4590,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy, python-format
-#| msgid "Server:"
 msgid "Servers for %s"
-msgstr "เซิร์ฟเวอร์:"
+msgstr "เซิร์ฟเวอร์สำหรับ %s"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy
@@ -4754,9 +4638,8 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 #, fuzzy, python-format
-#| msgid "Remove Server"
 msgid "Remove %s and its saved login?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบ %s และข้อมูลการเข้าสู่ระบบที่บันทึกไว้หรือไม่?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/settings/servers.py
 msgid "Remove Server"
@@ -4837,15 +4720,13 @@ msgstr "ลบเซิร์ฟเวอร์"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy, python-format
-#| msgid "Remove Server"
 msgid "Remove %s from this playlist?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบ %s ออกจากเพลย์ลิสต์นี้หรือไม่?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 #, fuzzy, python-format
-#| msgid "Remove Server"
 msgid "Remove %s from this collection?"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "ลบ %s ออกจากคอลเลกชันนี้หรือไม่?"
 
 #: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "There is nothing here to queue."
@@ -4953,10 +4834,8 @@ msgid "Playback Data"
 msgstr ""
 
 #: jellyfin_mpv_shim/osc_bridge.py
-#, fuzzy
-#| msgid " (Transcode)"
 msgid "Transcode"
-msgstr " (Transcode)"
+msgstr "การแปลงรหัส"
 
 #: jellyfin_mpv_shim/osc_bridge.py jellyfin_mpv_shim/video_profile.py
 msgid "Use the default"
@@ -5003,7 +4882,7 @@ msgstr "SVP ไม่ทำงาน"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "Disable"
-msgstr "ปิดการใช้งาน"
+msgstr "ปิดใช้งาน"
 
 #: jellyfin_mpv_shim/svp_integration.py
 msgid "SVP is Disabled"
