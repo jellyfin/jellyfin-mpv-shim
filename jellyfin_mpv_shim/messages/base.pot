@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-05 10:25-0400\n"
+"POT-Creation-Date: 2026-09-05 13:27-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1852,7 +1852,8 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid ""
 "Off gives MPV's own mouse behaviour instead: drag the video to move the "
-"window, and right click to pause. Double click is full screen either way."
+"window, and the right button does whatever your MPV config gives it. Double "
+"click is full screen either way."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

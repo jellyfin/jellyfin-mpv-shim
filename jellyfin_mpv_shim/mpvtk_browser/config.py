@@ -6,11 +6,14 @@ the in-process ``conf.settings`` singleton directly (no IPC — the mpvtk
 browser runs in the player's process).
 """
 
+import logging
 import sys
 import typing
 
 from ..conf import Settings, settings
 from ..i18n import _, _p
+
+log = logging.getLogger("mpvtk_browser.config")
 
 # Structured / non-scalar config that the flat form can't express, plus
 # internal bookkeeping. Everything else is editable.
@@ -67,6 +70,49 @@ EXCLUSIVE_PLATFORMS = ("win32", "darwin")
 # above is on screen permits, so offering it while that one is off is
 # offering a setting that cannot do anything. Shown directly below it.
 BACKGROUND_DEPENDENT = ("start_minimized",)
+
+#: Settings that reach the in-window playback HUD and nothing else, so they
+#: do nothing at all unless `osc_style` resolves to "mpvtk".
+#:
+#: Every one of them is read in exactly one place --
+#: `gateway/hud.py:hud_key_opts`, which builds the blob sent with the
+#: `mpvtk-hud` engage -- and that message is only ever sent by the HUD
+#: modality. Under "MPV UI with thumbnails" or "MPV built-in default" they
+#: are inert, and offering them there is what #724 reads like from the
+#: outside: "Left Click Pauses Playback" is on, the left button does
+#: nothing over the video, so the client looks broken. It is not; the
+#: setting was simply never going to reach that player.
+#:
+#: `mouse_chapter_nav` is deliberately NOT here despite sitting in the same
+#: group: `player.py` binds the thumb buttons itself, so it works under
+#: every style. Nor is `trickplay_fast_mode` -- thumbfast is loaded for
+#: both OSCs.
+#:
+#: Keyed on the RESOLVED style (`mpv_options.resolve_osc_style`), not the
+#: configured one, so the legacy "jellyfin" alias counts and the two
+#: fallbacks that quietly demote "mpvtk" do too. `osc_style` needs a
+#: restart, so these rows appear the moment the Jellyfin UI is chosen and
+#: go when it is left -- which is right: the form describes the
+#: configuration, and the restart banner covers the gap.
+HUD_ONLY = ("hud_grab_keys", "hud_wake_key", "hud_scrim", "hud_autohide",
+            "hud_hide_secs", "mouse_click_pauses")
+
+
+def hud_style_selected():
+    """Whether the in-window playback HUD is what `osc_style` resolves to.
+
+    Guarded like `visible_passthrough_keys` below: this is only ever used to
+    decide whether to DRAW a row, and a settings form that refuses to open
+    is worse than one showing a setting that does nothing.
+    """
+    try:
+        from ..mpv_options import resolve_osc_style
+
+        return resolve_osc_style() == "mpvtk"
+    except Exception:
+        log.debug("could not resolve the OSC style", exc_info=True)
+        return True
+
 
 # Curated groups, per settings tab. Anything not listed shows under
 # "Advanced", which lives on the General tab.
@@ -649,10 +695,16 @@ NOTES = {
     # What turning it OFF buys, since that is the non-obvious half: the
     # left button is what the VO drags the window with, so pausing with it
     # and dragging with it are mutually exclusive.
+    # NOT "right click to pause", which this said and which is no longer
+    # true on the mpv we ship: upstream changed MBTN_RIGHT's default from
+    # `cycle pause` to `script-binding select/context-menu` at 0.41, and
+    # both pins are past that. Naming the effect would go stale again at
+    # the next such change, so it names where the answer comes from.
     "mouse_click_pauses": _("Off gives MPV's own mouse behaviour instead: "
-                            "drag the video to move the window, and right "
-                            "click to pause. Double click is full screen "
-                            "either way."),
+                            "drag the video to move the window, and the "
+                            "right button does whatever your MPV config "
+                            "gives it. Double click is full screen either "
+                            "way."),
     # The reason this is off by default, in the place someone deciding
     # whether to change it is looking. mpv's own manual says to
     # "acknowledge that this may cause problems"; the tail it breaks for
@@ -935,7 +987,7 @@ def sections(tab=None):
     # it must not reappear under "Advanced" as an uncurated key.
     curated = ({k for _c, k in AUDIO_PASSTHROUGH_KEYS} | set(AUDIO_MODE_ONLY)
                | set(TRAY_DEPENDENT) | set(BACKGROUND_DEPENDENT)
-               | {"audio_exclusive"})
+               | set(HUD_ONLY) | {"audio_exclusive"})
     out = []
     try:
         shown = set(visible_passthrough_keys())
@@ -945,6 +997,8 @@ def sections(tab=None):
     shown |= {k for k, modes in AUDIO_MODE_ONLY.items() if mode in modes}
     if sys.platform in EXCLUSIVE_PLATFORMS:
         shown.add("audio_exclusive")
+    if hud_style_selected():
+        shown.update(HUD_ONLY)
     keep_running = "close_to_tray" if tray_available() else "allow_background"
     shown.add(keep_running)
     if getattr(settings, keep_running, False):
