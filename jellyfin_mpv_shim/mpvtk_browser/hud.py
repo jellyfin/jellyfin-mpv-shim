@@ -16,6 +16,7 @@ from typing import Optional
 from ..conf import settings
 from ..i18n import _
 from ..mpvtk.layout import natural_size
+from ..mpvtk.widgets import trigger_box
 from ..mpvtk.widgets import (
     Box,
     Button,
@@ -122,6 +123,46 @@ def _hud_action(b, verb, arg=None):
 #: responsive shrink. The transport buttons were already 30; the track
 #: pickers derived theirs from the type size and came out at 24.
 HUD_ICON = 30
+
+#: The smallest a hit target on the bar may get, in LOGICAL px. WCAG 2.2
+#: SC 2.5.8 (AA), which is 24x24 CSS px.
+#:
+#: **Logical, and deliberately not divided by `ui_scale`** -- the natural
+#: idea, and wrong in both directions. `ui_scale` is either mpv's
+#: `display-hidpi-scale` (the default) or a number the user forced. On the
+#: first, logical px are ALREADY density-independent, so dividing would let
+#: the bar shrink to a quarter size with ~12 CSS px targets -- below the
+#: minimum this constant exists to enforce, on exactly the HiDPI machines
+#: #721 was reported from. On the second, someone who sets `ui_scale=2`
+#: ("readable on a TV across the room", per docs/configuration.md) is
+#: asking for BIGGER, and shrinking back to a 24px target undoes the need
+#: they just expressed. Expressed in logical units the physical target
+#: comes out right on every display, which is the DPI-dependence that was
+#: actually wanted.
+#:
+#: 44/48 (AAA, Apple HIG, Material) were measured and rejected: at
+#: HUD_ICON they floor at 0.94-1.02, i.e. a refusal to scale at all,
+#: which does nothing on the 1x displays where this was reported.
+MIN_TARGET_PX = 24
+
+#: The floor before `hud_auto_scale`, kept as the OFF branch. Not "no
+#: scaling": off is the compatibility setting, and someone who turns it
+#: off is asking for what the previous release did, not for a third
+#: behaviour nobody has seen.
+LEGACY_SCALE_FLOOR = 0.72
+
+
+def hud_scale_floor():
+    """How far the bar may shrink before controls are given up instead.
+
+    The trigger box is the smallest interactive thing on the bar -- a
+    transport button is its glyph plus `Button`'s 10px padding either
+    side, which does not shrink -- so it is what the target applies to,
+    and `widgets.trigger_box` is asked rather than the ratio copied.
+    """
+    if not settings.hud_auto_scale:
+        return LEGACY_SCALE_FLOOR
+    return MIN_TARGET_PX / trigger_box(HUD_ICON)
 
 
 def _option_picker(b, node_id, icon, tip, options, verb,
@@ -836,11 +877,12 @@ def build_hud(b, size):
     dur = st.get("duration", 0) or 0
     pp = "play_arrow" if st.get("paused") else "pause"
     scrub = b.hud.scrub
-    # Responsive shrink, mirroring the lua OSC's jellyfin layout:
-    # everything scales down to 72% as the window narrows, and the
-    # less essential controls drop out at breakpoints (in the spirit
-    # of jellyfin-web's).
-    scale = min(1.0, max(0.72, w / 900.0))
+    # Responsive shrink, in the spirit of jellyfin-web's: everything
+    # scales down as the window narrows, and only once it has reached the
+    # floor are controls given up (`_shed`). Shrink first, sacrifice
+    # second -- 900 is the width at which the bar is drawn full size.
+    floor = hud_scale_floor()
+    scale = min(1.0, max(floor, w / 900.0))
 
     def sz(v):
         return int(v * scale + 0.5)
@@ -1020,13 +1062,54 @@ def build_hud(b, size):
         "hud-fs", lambda: b._ctl(lambda c: c.toggle_fullscreen()),
         tip=_("Fullscreen"))))
 
+    # **Decided at the NARROWEST window that draws this same glyph**, not
+    # at the actual one, and that is what keeps a control from blinking as
+    # the window is dragged.
+    #
+    # Every control on the bar takes its size from one `sz(HUD_ICON)`, so
+    # they all round down together: crossing scale 0.75 takes ~16px off
+    # the row in a single 10px step of window width, while the width
+    # available to it falls smoothly. Slack therefore sawtooths -- it
+    # climbs through a step and drops at the edge of one -- so a control
+    # sitting near zero is shed at 680, back at 670, and shed again at
+    # 630. Measured; not a rounding accident, and it recurs at every glyph
+    # step for whichever control is on the boundary. (`music.py`'s
+    # NP_TITLE_W comment describes the same class of bug from the other
+    # bar: "three widths where controls popped in as you dragged the edge
+    # inwards".)
+    #
+    # Snapping the decision to the bottom of the step makes the answer
+    # constant within one, which HALVES it -- 6 widths to 3, over a 2px
+    # sweep of 511. **It does not remove it**: the clock and the "Ends at"
+    # label step on font metrics, on a different period again, and closing
+    # that would mean measuring the row twice per repaint. The residual is
+    # bounded by a test instead (MAX_NON_MONOTONE), so do not read this as
+    # a guarantee. Conservative by at most one step (~30px), which is less
+    # than the control it would otherwise drop -- and conservative is the
+    # safe direction, since the optimistic one is the overflow this whole
+    # mechanism exists to prevent. Below the floor there is no staircase
+    # at all -- the glyph has stopped shrinking -- so the guard below
+    # leaves the real width alone there.
+    #
     # `pad` is (x, y) -- layout._pad2 -- so the row gets the bar's width
     # less its horizontal padding, and the gap it is about to be built
     # with. Recorded on the HUD state because the gear menu asks what was
     # given up (see `_menu_rows`); it is read later in THIS build, so it
     # cannot be stale for the menu that reads it.
     gap = sz(6)
-    b.hud.shed = _shed(items, w - 2 * sz(24), gap)
+    step_w = w
+    if floor < w / 900.0 < 1.0:
+        # ...and ONLY in that band. Above it the glyph is pinned at full
+        # size and below it at the floor, so in both the row's width is
+        # constant while the room for it grows with the window -- already
+        # monotone, and snapping there would report a 1920px window as
+        # having 885px and shed controls with half the bar empty. Found by
+        # the "nothing is given up that did not need to be" test; the
+        # width sweep did not see it, because shedding the same wrong set
+        # at every wide width is perfectly monotone.
+        step_w = max(900.0 * floor,
+                     900.0 * (sz(HUD_ICON) - 0.5) / HUD_ICON)
+    b.hud.shed = _shed(items, step_w - 2 * sz(24), gap)
     transport = Row([el for key, el in items if key not in b.hud.shed],
                     gap=gap, align="center")
 

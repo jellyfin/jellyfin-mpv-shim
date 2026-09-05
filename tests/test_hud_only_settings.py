@@ -168,19 +168,58 @@ class ResolverTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertIn(key, cfg.settings_schema())
 
-    def test_every_hud_only_key_is_read_by_the_hud_gateway(self):
+    def test_every_hud_only_key_is_read_by_the_hud(self):
         """The claim that earns the hiding: these reach the HUD and nothing
         else. Read from the source, so adding a key to HUD_ONLY that some
         other module also consumes fails here rather than silently hiding a
-        setting that did something."""
+        setting that did something.
+
+        **Two modules, not one.** This asked only the gateway until
+        `hud_auto_scale` arrived, which was true of the five keys it
+        started with by coincidence: they are all pushed to the renderer,
+        which is the gateway's job. A key the HUD reads while BUILDING its
+        widget tree is just as HUD-only, and asking only the gateway would
+        have forced a real HUD setting to be shown to classic-OSC users --
+        the #724 complaint this whole mechanism exists to answer."""
         import pathlib
 
+        from jellyfin_mpv_shim.mpvtk_browser import hud as hud_ui
         from jellyfin_mpv_shim.mpvtk_browser.gateway import hud as hud_gw
 
-        src = pathlib.Path(hud_gw.__file__).read_text()
+        src = "".join(pathlib.Path(m.__file__).read_text()
+                      for m in (hud_gw, hud_ui))
         for key in cfg.HUD_ONLY:
             with self.subTest(key=key):
                 self.assertIn("settings.%s" % key, src)
+
+    def test_and_by_nothing_outside_it(self):
+        """The other half, and the one that makes hiding honest: a key
+        read anywhere else does something a classic-OSC user can see, so
+        hiding it from them is a lie. Scans the package for reads outside
+        the two HUD modules and the settings plumbing itself."""
+        import pathlib
+
+        from jellyfin_mpv_shim.mpvtk_browser import hud as hud_ui
+        from jellyfin_mpv_shim.mpvtk_browser.gateway import hud as hud_gw
+
+        allowed = {pathlib.Path(hud_gw.__file__).resolve(),
+                   pathlib.Path(hud_ui.__file__).resolve()}
+        root = pathlib.Path(hud_ui.__file__).resolve().parent.parent
+        # conf.py declares them and config.py curates them; neither is a
+        # behaviour that a classic OSC would show.
+        allowed |= {(root / "conf.py").resolve(),
+                    (root / "mpvtk_browser" / "config.py").resolve()}
+        for key in cfg.HUD_ONLY:
+            offenders = []
+            for path in root.rglob("*.py"):
+                if path.resolve() in allowed:
+                    continue
+                if "settings.%s" % key in path.read_text():
+                    offenders.append(path.relative_to(root).as_posix())
+            with self.subTest(key=key):
+                self.assertEqual(offenders, [],
+                                 "%s is hidden from classic-OSC users but "
+                                 "read outside the HUD" % key)
 
 
 if __name__ == "__main__":

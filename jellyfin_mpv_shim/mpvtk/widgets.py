@@ -851,6 +851,18 @@ class Dialog(Element):
 ICON_TRIGGER = 20
 
 
+def trigger_box(glyph):
+    """The hit box an icon-trigger `Dropdown` builds around a `glyph`-px
+    icon, and the smallest interactive target the playback HUD draws.
+
+    A function rather than an expression inside `Dropdown` because the
+    HUD's accessibility floor solves it backwards -- "how far may the bar
+    shrink before this stops being a reachable target" -- and two copies
+    of the arithmetic would drift the day either changes.
+    """
+    return int(glyph / 1.2 * 1.9)
+
+
 class Dropdown(Element):
     """``trigger_icon`` replaces the boxed control with a bare Material
     icon (translucent hover wash, no border/arrow/label) — the playback
@@ -900,7 +912,7 @@ class Dropdown(Element):
             # (GUIDE.md section 7), which is what keeps it the same size as
             # the HUD transport buttons beside it at every setting.
             glyph = int(icon_size or ICON_TRIGGER * 1.2)
-            box = int(glyph / 1.2 * 1.9)
+            box = trigger_box(glyph)
             kw.setdefault("w", box)
             kw.setdefault("h", box)
             # ...and a FLOOR, because this is a button and layout's

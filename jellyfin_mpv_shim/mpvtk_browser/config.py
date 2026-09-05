@@ -95,7 +95,7 @@ BACKGROUND_DEPENDENT = ("start_minimized",)
 #: go when it is left -- which is right: the form describes the
 #: configuration, and the restart banner covers the gap.
 HUD_ONLY = ("hud_grab_keys", "hud_wake_key", "hud_scrim", "hud_autohide",
-            "hud_hide_secs", "mouse_click_pauses")
+            "hud_hide_secs", "hud_auto_scale", "mouse_click_pauses")
 
 
 def hud_style_selected():
@@ -213,6 +213,7 @@ TAB_SECTIONS = {
         # applies at all.
         (_("Player Controls"), ["osc_style", "hud_grab_keys", "hud_wake_key",
                                 "hud_scrim", "hud_autohide", "hud_hide_secs",
+                                "hud_auto_scale",
                                 "mouse_chapter_nav", "mouse_click_pauses",
                                 "trickplay_fast_mode"]),
         (_("Playback"), ["auto_play", "hwdec", "network_buffer",
@@ -641,6 +642,7 @@ LABEL_OVERRIDES = {
     "hud_scrim": _("Shading Behind the Player Controls"),
     "hud_autohide": _("When the Player Controls Hide"),
     "hud_hide_secs": _("Hide the Player Controls After (seconds)"),
+    "hud_auto_scale": _("Shrink the Player Controls on a Narrow Window"),
     "mouse_chapter_nav": _("Mouse Back/Forward Buttons Skip Chapters"),
     "audio_mode": _("Audio Output Mode"),
     "audio_device": _("Audio Output Device"),
@@ -901,6 +903,10 @@ NOTES = {
                       "the pointer is on them, paused or not."),
     "hud_hide_secs": _("0 hides them as soon as the pointer is not on "
                        "them, and forces \"Hide unless hovered\"."),
+    "hud_auto_scale": _("Narrowing the window shrinks the controls until "
+                        "the smallest button reaches the accessibility "
+                        "minimum, instead of dropping buttons sooner. "
+                        "Off keeps the older, larger floor."),
     "mouse_chapter_nav": _(
         "During playback only; in the library those buttons stay Back and "
         "Forward. Off by default because they are easy to hit by accident on "

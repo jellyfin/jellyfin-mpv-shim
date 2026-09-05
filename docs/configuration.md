@@ -649,6 +649,19 @@ You can use the config file to enable and disable features.
     mode — a zero delay means nothing without a pointer test, since mouse
     motion is also what summons them. The timer never runs shorter than
     0.5s, so the controls cannot blink out in the same frame they appear.
+- `hud_auto_scale` - Let the player controls shrink further on a narrow
+  window before any of them are dropped. Default: `true`
+  - On, the controls shrink until the smallest button reaches **24x24**
+    logical pixels — WCAG 2.2 SC 2.5.8 (AA), the published minimum for a
+    pointer target — and only then are the less important ones given up,
+    in the order under **Player Controls** below.
+  - Off restores the older floor of 72%, where the controls stop shrinking
+    sooner and buttons start disappearing instead. It is the compatibility
+    setting, not a third behaviour.
+  - The floor is in *logical* pixels, so it does not fight `ui_scale`:
+    raising that makes the controls bigger, never smaller. A forced
+    `ui_scale` for a TV across the room keeps every button above the
+    minimum by a wide margin.
 - `media_key_seek` - Use the media next/prev keys to seek instead of skip episodes. Default: `false`
 - `mouse_chapter_nav` - The mouse's back/forward buttons jump a chapter
   during playback. Off by default: they are easy to hit by accident on

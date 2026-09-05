@@ -158,8 +158,42 @@ class TestPlaybackHudLayout(unittest.TestCase):
         self.assertIn("S1E2", [n.get("text") or "" for n in nodes])
 
     def test_narrow_viewport_drops_optional_controls(self):
+        """At 460px the bar keeps what a transport needs and gives up the
+        rest.
+
+        The list of survivors GREW when `hud_auto_scale` lowered the
+        floor: the seek buttons and the clock now shrink into the space
+        instead of being dropped, which is the whole point of the setting
+        [iw] -- "first scale the icons down then start sacrificing them".
+        Asserted with the setting pinned on, because that is what this
+        case is about; the legacy floor has its own case below."""
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
         b, _ctl = self._browser()
-        nodes, _h = build_scene(b, (460, 640))
+        with mock.patch.multiple(settings, hud_auto_scale=True):
+            nodes, _h = build_scene(b, (460, 640))
+        present = ids(nodes)
+        for nid in ("hud-pp", "hud-prev", "hud-next",
+                    "hud-audio", "hud-sub", "hud-mute", "hud-fs",
+                    "hud-seek-back", "hud-seek-fwd", "hud-clock"):
+            self.assertIn(nid, present)
+        for nid in ("hud-ch-prev", "hud-ch-next", "hud-chapters",
+                    "hud-quality", "hud-vol"):
+            self.assertNotIn(nid, present)
+        self.assertFalse(any("Ends at" in (n.get("text") or "")
+                             for n in nodes),
+                         "ends-at is first to go and must not be here")
+
+    def test_the_legacy_floor_still_drops_them(self):
+        """The other side of the setting, so "off is what the previous
+        release did" is a claim under test rather than a comment."""
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
+        b, _ctl = self._browser()
+        with mock.patch.multiple(settings, hud_auto_scale=False):
+            nodes, _h = build_scene(b, (460, 640))
         present = ids(nodes)
         for nid in ("hud-pp", "hud-prev", "hud-next",
                     "hud-audio", "hud-sub", "hud-mute", "hud-fs"):
@@ -168,9 +202,6 @@ class TestPlaybackHudLayout(unittest.TestCase):
                     "hud-ch-next", "hud-chapters", "hud-quality",
                     "hud-vol", "hud-clock"):
             self.assertNotIn(nid, present)
-        self.assertFalse(any("Ends at" in (n.get("text") or "")
-                             for n in nodes),
-                         "ends-at must drop below 1000px")
 
     # ------------------------------------------------ the measured fit
 
@@ -288,6 +319,44 @@ class TestPlaybackHudLayout(unittest.TestCase):
                     % sorted(shed))
             previous = shed
 
+    #: Widths, out of the 511 swept below, at which a control returns as
+    #: the window narrows. **Not zero, and the number is a ratchet rather
+    #: than a target** -- see `test_a_control_almost_never_comes_back`.
+    MAX_NON_MONOTONE = 3
+
+    def test_a_control_almost_never_comes_back(self):
+        """Dragging the edge inward should only ever take controls away.
+
+        It very nearly does. Every control sizes from one `sz(HUD_ICON)`,
+        so they round down together and the row's natural width falls in
+        ~16px cliffs while the room for it falls smoothly -- slack
+        sawtooths, and a control sitting near zero can return for a couple
+        of pixels either side of a cliff. `build_hud` snaps the decision
+        to the bottom of the glyph step, which halves it (6 widths -> 3,
+        measured on this sweep), but cannot remove it: the clock and the
+        "Ends at" label step on FONT metrics, whose period is different
+        again.
+
+        Removing the rest means measuring the row twice per repaint -- the
+        controls at the largest size in a width bucket against the room at
+        the smallest -- which is a build of every widget more than the bar
+        currently does, to close a 2px window in a drag gesture. Recorded
+        as a bound instead, so it cannot quietly get worse. The same class
+        of bug, and the same conclusion, as `music.py`'s NP_TITLE_W.
+        """
+        seen = []
+        previous = set()
+        for width in range(1400, 379, -2):
+            b, _ctl = self._browser()
+            build_scene(b, (width, 720))
+            if not previous <= b.hud.shed:
+                seen.append((width, sorted(previous - b.hud.shed)))
+            previous = b.hud.shed
+        self.assertLessEqual(
+            len(seen), self.MAX_NON_MONOTONE,
+            "controls come back at %d widths, was at most %d: %s"
+            % (len(seen), self.MAX_NON_MONOTONE, seen))
+
     def test_the_set_does_not_flicker_as_the_clock_ticks(self):
         """The clock is the one control whose width changes DURING an
         item -- "50:00 / 1:30:00" gains two characters at the hour mark --
@@ -330,6 +399,121 @@ class TestPlaybackHudLayout(unittest.TestCase):
                     "Video Quality is %s at %dpx"
                     % ("in both places" if offered else "in neither",
                        width))
+
+    # ------------------------------------------- the accessibility floor
+
+    def _floor(self, **opts):
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+        from jellyfin_mpv_shim.mpvtk_browser import hud
+
+        with mock.patch.multiple(settings, **opts):
+            return hud.hud_scale_floor()
+
+    def test_off_is_exactly_the_old_behaviour(self):
+        """Off is the compatibility setting [iw], not a third behaviour
+        nobody has seen -- so it is the literal number the bar shipped
+        with, and this test is what stops it drifting into "1.0, no
+        scaling at all"."""
+        self.assertEqual(self._floor(hud_auto_scale=False), 0.72)
+
+    def test_on_lets_the_smallest_target_reach_the_wcag_minimum(self):
+        """The floor is the fraction at which the trigger box -- the
+        smallest interactive thing on the bar -- is exactly 24 logical
+        px. Asserted through `trigger_box` rather than against 0.51, so
+        changing HUD_ICON moves the floor instead of breaking this."""
+        from jellyfin_mpv_shim.mpvtk.widgets import trigger_box
+        from jellyfin_mpv_shim.mpvtk_browser.hud import HUD_ICON, MIN_TARGET_PX
+
+        floor = self._floor(hud_auto_scale=True)
+        self.assertAlmostEqual(trigger_box(HUD_ICON) * floor,
+                               MIN_TARGET_PX, places=6)
+        self.assertLess(floor, 0.72,
+                        "the point of the setting is to shrink FURTHER")
+
+    def test_the_floor_does_not_move_with_ui_scale(self):
+        """**The correction this setting's plan needed.** `ui_scale` is
+        either mpv's `display-hidpi-scale` or a number the user forced,
+        and dividing the floor by it is wrong both ways: on the first,
+        logical px are already density-independent, so dividing would
+        allow ~12 CSS px targets on exactly the HiDPI machines #721 came
+        from; on the second, someone who sets it to 2 to read the screen
+        across a room is asking for BIGGER, and shrinking back to a 24px
+        target undoes what they asked for.
+
+        So raising `ui_scale` may only ever make a target physically
+        larger. Asserted as a constant floor, which is what delivers
+        that."""
+        from jellyfin_mpv_shim.mpvtk import scaling
+
+        was = scaling.scale()
+        try:
+            floors = []
+            for factor in (1.0, 1.5, 2.0, 3.5):
+                scaling.set_scale(factor)
+                floors.append(round(self._floor(hud_auto_scale=True), 9))
+            self.assertEqual(floors, [floors[0]] * 4,
+                             "the floor moved with ui_scale")
+        finally:
+            scaling.set_scale(was)
+
+    def test_the_lower_floor_sheds_strictly_less(self):
+        """Shrink first, sacrifice second [iw]. Smaller controls fit in
+        less room, so at every width the accessibility floor must give up
+        no MORE than the legacy one -- if it ever gave up more, shrinking
+        would be costing controls rather than saving them."""
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
+        for width in self.WIDTHS:
+            sheds = {}
+            for on in (True, False):
+                b, _ctl = self._browser()
+                with mock.patch.multiple(settings, hud_auto_scale=on):
+                    build_scene(b, (width, 720))
+                sheds[on] = b.hud.shed
+            with self.subTest(width=width):
+                self.assertLessEqual(
+                    sheds[True], sheds[False],
+                    "auto-scale gave up %s that the legacy floor kept"
+                    % sorted(sheds[True] - sheds[False]))
+
+    def test_it_keeps_more_controls_somewhere_in_the_range(self):
+        """The premise of the test above: a subset relation is satisfied
+        by giving up exactly the same thing at every width, which would
+        make the setting do nothing at all."""
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
+        better = 0
+        for width in self.WIDTHS:
+            counts = {}
+            for on in (True, False):
+                b, _ctl = self._browser()
+                with mock.patch.multiple(settings, hud_auto_scale=on):
+                    build_scene(b, (width, 720))
+                counts[on] = len(b.hud.shed)
+            if counts[True] < counts[False]:
+                better += 1
+        self.assertGreater(better, 0,
+                           "auto-scale never kept a control the legacy "
+                           "floor dropped, so the setting is inert")
+
+    def test_the_bar_still_fits_with_the_floor_lowered(self):
+        """The fit is measured, so it should hold at any floor -- but
+        this is the pair of `test_the_bar_fits_at_every_width`, which
+        runs at the default. A floor change that broke the fit would
+        otherwise only show up once the setting shipped."""
+        from unittest import mock
+        from jellyfin_mpv_shim.conf import settings
+
+        for width in self.WIDTHS:
+            b, _ctl = self._browser()
+            with mock.patch.multiple(settings, hud_auto_scale=True):
+                nodes, _h = build_scene(b, (width, 720))
+            right, limit = self._bar_extent(nodes)
+            with self.subTest(width=width):
+                self.assertLessEqual(right, limit + 0.5)
 
     def test_volume_mute_fullscreen_and_clock_toggle(self):
         b, ctl = self._browser()
