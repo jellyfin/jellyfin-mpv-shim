@@ -64,6 +64,93 @@ class StartupForceWindowTest(unittest.TestCase):
         self.assertNotIn("force_window",
                          self._init_options(start_minimized=True))
 
+    def test_a_minimized_start_gets_a_window_when_it_is_activated(self):
+        """The other half, and the one a user notices (#718).
+
+        Launched minimized there is no window at all -- so the app somebody
+        launches a SECOND time to "open it" has nothing to raise, and
+        `raise_window` cannot help: it un-minimizes a window, and there is
+        none. What puts one back is the browse path -- `activate()` ->
+        `enter_browse()` -> `on_browse_enter` -> `set_browse_window(True)` --
+        which builds an mpv when none is alive.
+
+        The test above pins that we take no window at startup. Without this
+        one, "took no window" and "can never take a window" are the same
+        passing result.
+        """
+        pm = h.build_player(player_module)
+        pm._player = None
+        pm._mpv_alive = False
+        with mock.patch.object(settings, "enable_gui", True), \
+                mock.patch.object(settings, "osc_style", "mpvtk"):
+            pm.set_browse_window(True)
+        self.assertIsNotNone(pm._player, "no mpv was built to show")
+        self.assertTrue(pm._player.init_options.get("force_window"),
+                        "the browser was given no window to draw into")
+
+    def test_the_window_it_gets_is_the_library_browser_state(self):
+        """`set_browse_window`'s own table: the library browser is
+        playback_abort=yes AND force_window=yes. Asserting the pair rather
+        than force_window alone, because force_window with playback_abort
+        off is the *playing* row -- a window, but one waiting for video."""
+        pm = h.build_player(player_module)
+        pm._player = None
+        pm._mpv_alive = False
+        with mock.patch.object(settings, "enable_gui", True), \
+                mock.patch.object(settings, "osc_style", "mpvtk"):
+            pm.set_browse_window(True)
+        self.assertIs(pm._player.force_window, True)
+        self.assertIs(pm._player.playback_abort, True)
+
+    def test_minimizing_with_no_window_does_not_build_one(self):
+        """The guard the test above must not have broken: dropping to the
+        windowless state when there is already no window is a no-op, not a
+        reason to start mpv."""
+        pm = h.build_player(player_module)
+        pm._player = None
+        pm._mpv_alive = False
+        with mock.patch.object(settings, "enable_gui", True):
+            pm.set_browse_window(False)
+        self.assertIsNone(pm._player, "minimizing started a player")
+
+    def test_it_survives_being_minimized_and_reopened_repeatedly(self):
+        """Three rounds, because one cannot see state feeding back.
+
+        Every activation after the first runs against whatever the previous
+        minimize left behind -- and here that is nothing at all: releasing
+        the window with nothing playing lets mpv go, so round two is
+        `_init_mpv` again with a whole session's worth of state carried
+        across.
+
+        **Asserted on the live properties, not on `init_options`.** The
+        window arrives two different ways: built into the FIRST mpv's
+        construction, and written onto a REBUILT one afterwards (a reopen
+        only passes `force_window` up front when the browser is already on
+        screen -- see the reopen test above). A test that reads the
+        construction options sees the second round as a failure and the
+        product is fine; what the user has either way is a window.
+        """
+        pm = h.build_player(player_module)
+        pm._player = None
+        pm._mpv_alive = False
+        with mock.patch.object(settings, "enable_gui", True), \
+                mock.patch.object(settings, "osc_style", "mpvtk"):
+            for round_no in range(1, 4):
+                with self.subTest(round=round_no):
+                    pm.set_browse_window(True)
+                    self.assertTrue(pm._mpv_alive,
+                                    "round %d has no mpv" % round_no)
+                    self.assertIs(pm._player.force_window, True,
+                                  "round %d came back with no window"
+                                  % round_no)
+                    self.assertIs(pm._player.playback_abort, True)
+                    pm.set_browse_window(False)
+                    # ...and the minimize really released it, or "the window
+                    # came back" above would be "the window never left".
+                    self.assertIs(pm._player.force_window, False,
+                                  "round %d did not release the window"
+                                  % round_no)
+
     def test_a_reopen_takes_the_window_only_if_the_browser_is_on_screen(self):
         # Re-opened from the tray with the library up.
         self.assertTrue(

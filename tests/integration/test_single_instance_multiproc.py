@@ -39,7 +39,8 @@ def _prep_config_dir(base):
     return base
 
 
-def _spawn(config_dir, hold=0.0, wedge=False, new_session=False):
+def _spawn(config_dir, hold=0.0, wedge=False, new_session=False,
+           activate_log=None):
     env = dict(os.environ)
     env["XDG_CONFIG_HOME"] = config_dir
     # conffile.win32 reads APPDATA and knows nothing about XDG_CONFIG_HOME, so
@@ -50,6 +51,10 @@ def _spawn(config_dir, hold=0.0, wedge=False, new_session=False):
     env["APPDATA"] = config_dir
     env["SI_HOLD"] = str(hold)
     env["SI_WEDGE"] = "1" if wedge else "0"
+    if activate_log:
+        env["SI_ACTIVATE_LOG"] = activate_log
+    else:
+        env.pop("SI_ACTIVATE_LOG", None)
     # start_new_session makes the child a session/process-group leader, so its
     # pgid == its pid; any grandchild it leaks inherits that group and can be
     # spotted even after being reparented to init (see OrphanedChildOnExitTest).
@@ -97,7 +102,14 @@ def _first_line(proc, timeout=15):
     return line
 
 
-class SingleInstanceMultiprocTest(unittest.TestCase):
+class _MultiprocBase:
+    """setUp and spawn bookkeeping, shared by the two test classes below.
+
+    A plain mixin rather than a base TestCase: subclassing a TestCase makes
+    unittest collect and RUN the parent's tests again under the child's
+    name, so the five election tests would be paid for twice.
+    """
+
     def setUp(self):
         self._cfg = _prep_config_dir(tempfile.mkdtemp(prefix="jms-si-"))
         self.addCleanup(self._rmtree, self._cfg)
@@ -122,6 +134,8 @@ class SingleInstanceMultiprocTest(unittest.TestCase):
         self._procs.append(p)
         return p
 
+
+class SingleInstanceMultiprocTest(_MultiprocBase, unittest.TestCase):
     def test_exactly_one_primary_when_processes_race(self):
         # N processes launched at once against one config dir: flock must grant
         # exactly one primary; everyone else refuses to run.
@@ -160,6 +174,92 @@ class SingleInstanceMultiprocTest(unittest.TestCase):
         first.wait(10)
         second = self._spawn(self._cfg, hold=0)
         self.assertEqual(_first_line(second), "PRIMARY")
+
+
+class ActivationHandoffTest(_MultiprocBase, unittest.TestCase):
+    """A blocked launch must SURFACE the running copy, not just decline.
+
+    The tests above prove the election: exactly one primary, everyone else
+    refuses to run. None of them proves the other half -- that the refusal
+    reaches the primary and runs `on_activate`, which is what puts the
+    window back in front of somebody who double-clicked the icon because
+    they could not see the app (#718). A primary that elects correctly and
+    never runs the handler is indistinguishable from the outside, and the
+    app it leaves you with is one you cannot get at.
+
+    The handler is deliberately not `ui.activate()` here: what this file can
+    say something about is the CROSS-PROCESS delivery. What activate() then
+    does with a minimized browser is a different question, asked against a
+    real player in test_startup_window.py.
+    """
+
+    def _deliveries(self, path, want=1, timeout=15):
+        """Lines in the activation log, once there are ``want`` of them.
+
+        Polled rather than read once, and the reason is in the protocol:
+        `_serve_one` acknowledges BEFORE calling the handler, so the second
+        launch can have exited before the primary has recorded anything.
+        A single read here would be a race that passes on a fast machine.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    lines = fh.read().split()
+            except OSError:
+                lines = []
+            if len(lines) >= want:
+                return lines
+            time.sleep(0.05)
+        return lines
+
+    def _log_path(self):
+        return os.path.join(self._cfg, "activations.log")
+
+    def test_a_blocked_launch_activates_the_primary(self):
+        log = self._log_path()
+        primary = self._spawn(self._cfg, hold=8, activate_log=log)
+        self.assertEqual(_first_line(primary), "PRIMARY")
+        second = self._spawn(self._cfg, hold=0)
+        self.assertEqual(_first_line(second), "SECONDARY")
+        self.assertEqual(self._deliveries(log), ["SHOW"])
+
+    def test_a_lone_primary_is_never_activated(self):
+        """So the assertion above is about the handoff and not about the
+        handler running at startup."""
+        log = self._log_path()
+        primary = self._spawn(self._cfg, hold=2, activate_log=log)
+        self.assertEqual(_first_line(primary), "PRIMARY")
+        primary.wait(15)
+        self.assertEqual(self._deliveries(log, want=1, timeout=0.5), [])
+
+    def test_every_repeat_launch_activates_it_again(self):
+        """Three, not one. The listener serves each connection on its own
+        thread and the socket outlives the handoff; a primary that handed
+        off once and then stopped listening -- a closed socket, a thread
+        that died on an exception -- would pass a single-shot test and
+        leave the user pressing a shortcut that does nothing from the
+        second press onwards."""
+        log = self._log_path()
+        primary = self._spawn(self._cfg, hold=12, activate_log=log)
+        self.assertEqual(_first_line(primary), "PRIMARY")
+        for n in range(1, 4):
+            later = self._spawn(self._cfg, hold=0)
+            self.assertEqual(_first_line(later), "SECONDARY")
+            self.assertEqual(self._deliveries(log, want=n), ["SHOW"] * n)
+
+    def test_a_wedged_primary_blocks_without_activating(self):
+        """The state the election test already covers, from the other side:
+        the duplicate is still refused, and nothing is surfaced because
+        there is no listener to ask. Blocking is the lock's job and
+        surfacing is the socket's, and this is what says so."""
+        log = self._log_path()
+        primary = self._spawn(self._cfg, hold=6, wedge=True, activate_log=log)
+        self.assertEqual(_first_line(primary), "PRIMARY")
+        time.sleep(0.3)
+        second = self._spawn(self._cfg, hold=0)
+        self.assertEqual(_first_line(second), "SECONDARY")
+        self.assertEqual(self._deliveries(log, want=1, timeout=1.0), [])
 
 
 @unittest.skipUnless(sys.platform.startswith("linux"),

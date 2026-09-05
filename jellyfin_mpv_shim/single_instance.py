@@ -84,6 +84,9 @@ class SingleInstance:
         return True
 
     def release(self):
+        # Whether this instance is the one that WROTE the endpoint file, read
+        # before the flag is cleared below. See the removal at the end.
+        owned = self.holds_lock
         if self._sock is not None:
             try:
                 self._sock.close()
@@ -102,10 +105,24 @@ class SingleInstance:
                 pass
             self._guard_fd = None
         self.holds_lock = False
-        try:
-            os.remove(self._lockpath)
-        except OSError:
-            pass
+        # **Only the instance that wrote it may remove it.** The endpoint file
+        # is how a later launch finds the running copy to ask it to show its
+        # window; deleting it belongs to whoever owns the port it names. A
+        # non-primary release() used to unlink it anyway, and the damage is
+        # invisible and permanent: the primary keeps running and keeps
+        # listening, but nothing can find it any more, so every launch from
+        # then on silently declines to start AND fails to surface the window
+        # somebody launched it to get at.
+        #
+        # `main` returns without releasing on the blocked path, so nothing
+        # shipped hits this today -- which is exactly why it needs the guard
+        # rather than a promise, and it is the same ownership argument the
+        # guard file above already makes for itself.
+        if owned:
+            try:
+                os.remove(self._lockpath)
+            except OSError:
+                pass
 
     # -- internals ---------------------------------------------------------
 
