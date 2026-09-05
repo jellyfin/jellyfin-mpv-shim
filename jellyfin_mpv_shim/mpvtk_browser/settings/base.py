@@ -84,6 +84,16 @@ class SettingsBase:
                     _("Saved: %(key)s (also turned off \"%(other)s\")")
                     % {"key": key,
                        "other": cfg.label_for("start_minimized")})
+        if ok and key in ("window_controls", "window_controls_fullscreen"):
+            # The chrome snapshot is PUSHED, on decoration changes only
+            # (`playerManager.on_decorations_changed`), and editing the
+            # setting is not one. Without this the new answer waits for the
+            # next fullscreen, maximize or border event -- so the row looks
+            # like it did nothing. True of `window_controls` before
+            # `window_controls_fullscreen` joined it; both are live now.
+            refresh = getattr(self, "refresh_window_controls", None)
+            if refresh is not None:
+                refresh()
         if ok and key == "work_offline":
             self._apply_work_offline(bool(value))
         if ok and key == "auto_download_enable" and value:

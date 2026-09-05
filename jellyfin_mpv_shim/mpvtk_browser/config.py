@@ -157,6 +157,7 @@ TAB_SECTIONS = {
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
                        "remember_window_size", "window_controls",
+                       "window_controls_fullscreen", "hide_title_bar",
                        "close_to_tray", "allow_background",
                        "start_minimized", "display_mirror_summon"]),
     ],
@@ -273,6 +274,10 @@ TAB_SECTIONS = {
 RESTART_REQUIRED = frozenset({
     # The whole interface geometry is derived once, at startup.
     "ui_scale",
+    # A construction option: `border` is read when the window is made, and
+    # writing it live would fight `window_controls` "auto", which reads the
+    # same property to decide whether to draw its own buttons.
+    "hide_title_bar",
     # `theme` is deliberately NOT here, even though half of it waits for a
     # restart. Colours repaint the moment you pick one, so marking the row
     # "Requires restart" would say nothing happened when something visibly
@@ -595,6 +600,8 @@ LABEL_OVERRIDES = {
     "allow_background": _("Keep Running in Background"),
     "remember_window_size": _("Remember Window Size"),
     "window_controls": _("Window Buttons in the Top Bar"),
+    "window_controls_fullscreen": _("Keep Window Buttons in Full Screen"),
+    "hide_title_bar": _("Hide the Desktop Title Bar"),
     "osc_style": _("Player Controls Style"),
     "trickplay_fast_mode": _("Load All Seek Previews at Once"),
     "discord_presence": _("Show What You're Watching in Discord"),
@@ -792,6 +799,16 @@ NOTES = {
         "drag the window by it. On \"Only when the window has no title bar\", "
         "MPV is asked whether this window got one, so desktops that draw a "
         "title bar are left alone."),
+    "window_controls_fullscreen": _(
+        "Full screen has no title bar anywhere and nothing to move or "
+        "maximize, so the buttons are normally hidden there. Turn this on "
+        "to keep a way out of full screen that is not a keyboard shortcut."),
+    "hide_title_bar": _(
+        "Asks the desktop for no title bar on the player window, so the "
+        "top bar above is the only one. Pairs with the setting above: on "
+        "\"Only when the window has no title bar\" the buttons appear as "
+        "soon as this is on. Leave both off unless you want them, since a "
+        "window with neither can be awkward to move on some desktops."),
     "trickplay_fast_mode": _("Seek previews are normally fetched a few "
                              "minutes at a time around where you are "
                              "seeking, so scrubbing somewhere new waits "

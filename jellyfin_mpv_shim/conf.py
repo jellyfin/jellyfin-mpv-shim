@@ -243,6 +243,22 @@ class Settings(SettingsBase):
     #
     # "always" / "never" override it.
     window_controls: str = "auto"
+    #: Ask the desktop for no title bar at all (mpv's `border`), so the
+    #: browser's own top bar is the only one.
+    #:
+    #: Off by default because it is a one-way door on some desktops: with no
+    #: title bar and no window controls drawn, a window can be hard to move
+    #: or close. It pairs with `window_controls` -- "auto" starts answering
+    #: yes the moment this is on, because it asks mpv the same `border`
+    #: question this sets.
+    hide_title_bar: bool = False
+    #: Keep the browser's own window buttons on screen in fullscreen.
+    #:
+    #: Off, because a fullscreen window has no title bar anywhere and nothing
+    #: to minimize, maximize or drag -- so the buttons are furniture over the
+    #: top of a video. On for anyone who wants a way out of fullscreen that
+    #: is not a keyboard shortcut. See `window_controls_wanted`.
+    window_controls_fullscreen: bool = False
     # Persist the window size across launches. Off means window_width/height
     # are a fixed preference the app always opens at, which is what you want
     # if you deliberately pinned a size.

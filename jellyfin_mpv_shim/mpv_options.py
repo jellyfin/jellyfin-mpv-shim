@@ -583,6 +583,16 @@ def build_mpv_options(osc_style, scripts, ext_mpv, browser_wants_window):
     # the title follows playback without us pushing updates.
     mpv_options["title"] = "${?media-title:${media-title} - }%s" % USER_APP_NAME
 
+    # No desktop title bar, so the browser's own top bar is the only one
+    # (#727). A construction option rather than a runtime write, and only
+    # when it is ON: `border` is one of the properties `window_controls`
+    # "auto" reads to decide whether to draw its own buttons, so writing
+    # `border=True` unconditionally would override a user who set
+    # `border=no` in their mpv.conf and take those buttons away from
+    # exactly the person who wants them. Off means "say nothing".
+    if settings.hide_title_bar:
+        mpv_options["border"] = False
+
     # Window size. mpv defaults to a fixed 960x540 whatever the display
     # size, which is cramped for a browsable UI. Restored from the last
     # session when remember_window_size is on (see _save_window_geometry).

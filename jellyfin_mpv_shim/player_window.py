@@ -769,11 +769,17 @@ class WindowMixin:
         # minimize, maximize or drag. Checked ahead of "always" because
         # "always" is an answer to "does this desktop decorate my windows",
         # not a request for furniture over the top of a fullscreen video.
-        try:
-            if self._player is not None and self._player.fullscreen:
-                return False
-        except Exception:
-            pass
+        #
+        # `window_controls_fullscreen` is the opt-in for the other reading
+        # (#727): with no title bar and no keyboard, fullscreen is a room
+        # with no door. Still off by default -- the buttons are over the
+        # picture, and every other way out still works.
+        if not settings.window_controls_fullscreen:
+            try:
+                if self._player is not None and self._player.fullscreen:
+                    return False
+            except Exception:
+                pass
         if mode == "always":
             return True
         # "auto" and anything unrecognised: ask mpv. An unanswerable question

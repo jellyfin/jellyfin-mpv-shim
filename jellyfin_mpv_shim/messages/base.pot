@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-05 14:16-0400\n"
+"POT-Creation-Date: 2026-09-05 14:45-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1659,6 +1659,14 @@ msgid "Window Buttons in the Top Bar"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Keep Window Buttons in Full Screen"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "Hide the Desktop Title Bar"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Player Controls Style"
 msgstr ""
 
@@ -1939,6 +1947,22 @@ msgid ""
 "maximize and close in the top bar instead, and lets you drag the window by "
 "it. On \"Only when the window has no title bar\", MPV is asked whether this "
 "window got one, so desktops that draw a title bar are left alone."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Full screen has no title bar anywhere and nothing to move or maximize, so "
+"the buttons are normally hidden there. Turn this on to keep a way out of "
+"full screen that is not a keyboard shortcut."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Asks the desktop for no title bar on the player window, so the top bar above "
+"is the only one. Pairs with the setting above: on \"Only when the window has "
+"no title bar\" the buttons appear as soon as this is on. Leave both off "
+"unless you want them, since a window with neither can be awkward to move on "
+"some desktops."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

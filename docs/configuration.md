@@ -444,6 +444,15 @@ You can use the config file to enable and disable features.
   - The playback HUD grows the same three buttons and the same corner, so a windowed video is not a window you can only get out of by pressing ESC first.
   - `always` and `never` override the detection. `never` is the escape hatch if your compositor decorates windows in a way MPV does not report.
   - **Dragging needs MPV 0.39.** MPV refuses to drag its window while the pointer is inside a script's input section, and the only way to say "except for this one" also re-arms MPV's own drag-from-anywhere — which over a UI moves the window instead of dragging a scrollbar. Turning that off is `--input-builtin-dragging`, added in 0.39, so on 0.38 the buttons and the resize grip work but the bar does not drag. Resizing and the buttons need nothing special.
+- `window_controls_fullscreen` - Keep those buttons on screen in full screen. Default: `false`
+  - Off, because full screen has no title bar anywhere and nothing to move, maximize or drag — so the buttons are furniture over the picture.
+  - On is for anyone who wants a way out of full screen that is not a keyboard shortcut, which matters most with `hide_title_bar` also on.
+  - In-window UI only. A classic OSC decides its own window buttons from `border` and never asks about full screen, so this cannot be passed on to it.
+- `hide_title_bar` - Ask the desktop for no title bar on the player window, so the browser's own top bar is the only one. Default: `false`
+  - This is MPV's `border` option, set at startup, so changing it needs a restart.
+  - It pairs with `window_controls`: on `auto`, the buttons appear as soon as this is on, because `auto` reads the same `border` property.
+  - Set only when it is on. Leaving it alone otherwise is what lets someone who put `border=no` in their own `mpv.conf` keep the buttons — writing `border=yes` for them would take the title bar back *and* the replacement with it.
+  - Leave both off unless you want them: a window with neither a title bar nor the top-bar buttons can be awkward to move on some desktops.
 - `display_mirror_summon` - Let casting *open* the window when it is closed to the tray. Default: `false`
   - Mirroring itself is always on; this only controls whether idly browsing on a phone can pop the window open.
 - `library_image_cache_mb` - Memory budget for **decoded** library artwork. Default: `96`
