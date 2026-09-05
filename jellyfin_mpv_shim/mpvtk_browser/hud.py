@@ -15,6 +15,7 @@ from typing import Optional
 
 from ..conf import settings
 from ..i18n import _
+from ..mpvtk.layout import natural_size
 from ..mpvtk.widgets import (
     Box,
     Button,
@@ -196,12 +197,17 @@ def _chapter_jump(b, direction):
     b._ctl(lambda c: c.chapter_seek(direction))
 
 
-def _pickers(b, menu_state, pos, chapters, tiers, icon_size=None):
-    """Right-aligned controls: chapters, audio/subtitle tracks, quality
-    — each only when there is a real choice to make (and the viewport
-    has room for it)."""
+def _pickers(b, menu_state, pos, chapters, icon_size=None):
+    """Right-aligned controls: chapters, audio/subtitle tracks, quality —
+    each only when there is a real choice to make.
+
+    Returns (shed key or None, widget) pairs, in display order: whether
+    there is *room* is no longer decided here but by `_shed`, once the
+    whole row can be measured. The track pickers are None because a file
+    with two audio languages and no way to pick between them is not a
+    narrower bar, it is a broken one."""
     out = []
-    if chapters and tiers["chapters"]:
+    if chapters:
         cur = 0
         for i, ch in enumerate(chapters):
             if ch["time"] <= pos:
@@ -211,28 +217,28 @@ def _pickers(b, menu_state, pos, chapters, tiers, icon_size=None):
                         ch["title"] or _("Chapter %d") % (i + 1))
             for i, ch in enumerate(chapters)
         ]
-        out.append(Dropdown(
+        out.append(("chapters", Dropdown(
             "hud-chapters", labels, selected=cur, force=True,
             trigger_icon="bookmark", tip=_("Chapters"),
             icon_size=icon_size,
             on_select=lambda i, v, chs=chapters: b._ctl(
-                lambda c: c.seek(chs[i]["time"]))))
+                lambda c: c.seek(chs[i]["time"])))))
     st = menu_state if menu_state and menu_state.get("has_media") else None
     if st is None:
         return out
     audio = st.get("audio") or []
     if len(audio) > 1:
-        out.append(_option_picker(b, "hud-audio", "audiotrack",
-                                  _("Audio Track"), audio, "set-audio",
-                                  icon_size=icon_size))
+        out.append((None, _option_picker(
+            b, "hud-audio", "audiotrack", _("Audio Track"), audio,
+            "set-audio", icon_size=icon_size)))
     subs = st.get("subtitles") or []
     if len(subs) > 1:  # more than just "None"
-        out.append(_subtitle_picker(b, st, subs, icon_size))
+        out.append((None, _subtitle_picker(b, st, subs, icon_size)))
     quality = st.get("quality") or {}
-    if quality.get("options") and tiers["quality"]:
-        out.append(_option_picker(b, "hud-quality", "hd",
-                                  _("Video Quality"), quality["options"],
-                                  "set-quality", icon_size=icon_size))
+    if quality.get("options"):
+        out.append(("quality", _option_picker(
+            b, "hud-quality", "hd", _("Video Quality"),
+            quality["options"], "set-quality", icon_size=icon_size)))
     return out
 
 
@@ -289,20 +295,92 @@ def _ctl_get(b, name, default):
         return default
 
 
-#: Width at which the bar grows its own Video Quality button. Read by both
-#: build_hud's tiers and _menu_rows, because "is that button on screen?" is
-#: exactly the question the gear's Quality row has to answer.
-QUALITY_BTN_W = 560
+#: Optional controls, in the order the bar gives them up as it narrows.
+#:
+#: It SHRINKS first -- `build_hud`'s `scale` -- and only sheds once
+#: everything is as small as it is allowed to get, so this is an order of
+#: last resort and not a layout.
+#:
+#: The order is the one the old pixel breakpoints encoded [iw]: `ends_at`
+#: went at 1000, `volbar` at 760, the chapter pair at 700, favourite and
+#: quality at 560, the clock and the seek pair at 500. Where two shared a
+#: breakpoint they are separated here in favour of the more capable one --
+#: the chapter DROPDOWN reaches any chapter and so outlives its two step
+#: buttons, quality outlives favourite, and the seek buttons are the only
+#: precise +-10s without dragging, so they outlive a clock whose reading
+#: the seek bar already gives approximately.
+#:
+#: **A key is a group, not an icon.** `seek_btns` is *both* step buttons
+#: and `ch_btns` is *both* chapter buttons: half of a symmetric pair is
+#: worse than neither of it, and tagging both halves with one key is what
+#: makes that structural instead of remembered.
+SHED_ORDER = ("ends_at", "volbar", "ch_btns", "chapters",
+              "favorite", "quality", "clock", "seek_btns")
 
 
-def _menu_rows(b, st, w=None):
+def _shed(items, avail, gap):
+    """Which of ``items``' optional controls to give up so the row fits.
+
+    ``items`` is the whole transport row as (shed key or None, widget) in
+    display order; the answer is the shortest prefix of `SHED_ORDER` that
+    makes it fit, so nothing is sacrificed for room that was already
+    there.
+
+    **This replaced five hand-tuned pixel breakpoints, which had drifted
+    out of true.** Measured across 400-1400px, the bar overflowed its own
+    window at every width between ~700 and ~1000 -- by up to 113px --
+    because controls were added to it over time and the numbers never
+    moved. Nothing showed it, because the overflow was being absorbed by
+    the four track pickers (the only children of the row with no shrink
+    floor), which collapsed to zero width while the renderer went on
+    drawing their full-size glyphs across each other: #721.
+
+    `natural_size` exists for exactly this and says so -- "no hardcoded
+    breakpoints" -- and this bar was the one that never took it up.
+
+    **The now-playing bar already worked this way** (`music._np_plan`,
+    whose docstring reports the same discovery: "thresholds are guesses
+    about a sum, and they were wrong"). Two bars, one lesson, learnt once
+    -- which is why the second one still had the bug. That bar estimates
+    the sum from per-control width constants rather than measuring; it
+    fits at every width today, so it is left alone, but the constants are
+    a second authority on how wide a control is and would drift the same
+    way the breakpoints did.
+    """
+    width = {}
+    for _key, el in items:
+        width[id(el)] = natural_size(el)[0]
+
+    def fits(dropped):
+        keep = [el for key, el in items if key not in dropped]
+        if not keep:
+            return True
+        return (sum(width[id(el)] for el in keep)
+                + gap * (len(keep) - 1)) <= avail
+
+    present = {key for key, _el in items if key}
+    dropped = set()
+    for key in SHED_ORDER:
+        if fits(dropped):
+            break
+        if key in present:
+            dropped.add(key)
+    return dropped
+
+
+def _menu_rows(b, st, shed=None):
     """(label, icon, action) rows for the open settings-menu level.
     ``st`` is the osc_bridge state blob ({} when unavailable).
 
-    ``w`` is the window width, for the one row whose presence depends on
-    whether the bar already has a button for it. Without it (a caller that
-    does not know) the row is kept: an unreachable setting is worse than a
-    duplicated one."""
+    ``shed`` is what the bar gave up on its last build (`_shed`), for the
+    one row whose presence depends on whether the bar already has a button
+    for it. ``None`` means a caller that does not know, and then the row is
+    kept: an unreachable setting is worse than a duplicated one.
+
+    The window width used to answer this, against the breakpoint that
+    decided the button. There is no such breakpoint now, and width was
+    always the weaker question -- at 600px it said the Video Quality button
+    was on screen while the bar it sat in overflowed by 36."""
     kind = b.hud.menu
     rows = []
     # Declared up front because the name is reused by two loops with
@@ -331,10 +409,10 @@ def _menu_rows(b, st, w=None):
     if kind == "root":
         quality = st.get("quality") or {}
         # Only when the bar's own Video Quality button is NOT on screen.
-        # It drops out below QUALITY_BTN_W, and there the gear is the only
-        # way to reach the setting; above it, this row is a second door to
-        # a sheet whose button is a few pixels away.
-        if quality.get("options") and (w is None or w < QUALITY_BTN_W):
+        # Where it has been shed the gear is the only way to reach the
+        # setting; where it survives, this row is a second door to a sheet
+        # whose button is a few pixels away.
+        if quality.get("options") and (shed is None or "quality" in shed):
             rows.append((with_current(_("Change Video Quality"),
                                       quality.get("current")), None,
                          lambda: _open_hud_menu(b, "quality")))
@@ -477,7 +555,7 @@ def _settings_menu(b, menu_state, size):
         return None
     st = menu_state if menu_state and menu_state.get("has_media") else {}
     w, h = size
-    rows = _menu_rows(b, st, w)
+    rows = _menu_rows(b, st, b.hud.shed)
     if not rows:
         return None
     x, y = w - 300, h - 160
@@ -784,17 +862,6 @@ def build_hud(b, size):
     # What survives is what an album needs: pause (stop it moving on), and
     # prev/next (move through it).
     photo = bool(st.get("is_photo"))
-    tiers = {
-        "seek_btns": w >= 500 and not photo,   # ±10s/±30s step buttons
-        "clock": w >= 500 and not photo,
-        "quality": w >= QUALITY_BTN_W,
-        "favorite": w >= 560,
-        "ch_btns": w >= 700,     # chapter prev/next buttons
-        "chapters": w >= 700,    # chapter list dropdown
-        "volume": not photo,     # mute button
-        "volbar": w >= 760 and not photo,      # volume slider
-        "ends_at": w >= 1000 and not photo,    # wall-clock end time
-    }
 
     def tbtn(icon, node_id, cb, autofocus=False, icon_size=HUD_ICON,
              tip=None,
@@ -839,20 +906,28 @@ def build_hud(b, size):
         except Exception:
             menu_state = None
 
-    controls = [
-        tbtn("skip_previous", "hud-prev",
-             lambda: b._ctl(lambda c: c.prev()), tip=_("Previous")),
-    ]
-    if chapters and tiers["ch_btns"]:
-        controls.append(tbtn(
+    # The whole transport row, tagged: a key is what `_shed` may give up
+    # when the row does not fit, None is not up for negotiation. Every
+    # optional control is BUILT either way -- shedding is decided by
+    # measuring them, so they have to exist first. They are cheap objects
+    # and this runs once per repaint.
+    #
+    # A condition that is not about ROOM stays a condition: a photo has no
+    # seek row and no sound, and there are no chapter buttons for a file
+    # with no chapters.
+    items = [(None, tbtn("skip_previous", "hud-prev",
+                         lambda: b._ctl(lambda c: c.prev()),
+                         tip=_("Previous")))]
+    if chapters:
+        items.append(("ch_btns", tbtn(
             "undo", "hud-ch-prev",
             lambda: _chapter_jump(b, -1),
-            tip=_("Previous chapter")))
-    if tiers["seek_btns"]:
-        controls.append(tbtn(
+            tip=_("Previous chapter"))))
+    if not photo:
+        items.append(("seek_btns", tbtn(
             "replay_10", "hud-seek-back",
             lambda: b._ctl(lambda c: c.seek_relative(-10)),
-            tip=_("Back 10 Seconds"), repeat=True))
+            tip=_("Back 10 Seconds"), repeat=True)))
     # DOWN off the seek bar lands here, whatever else the current width
     # is drawing beside it. Without the gravity the arrow picks whichever
     # button happens to sit nearest the middle, and which one that is
@@ -867,77 +942,93 @@ def build_hud(b, size):
     # pixels left onto play/pause, and UP would not bring it back. The
     # rationale for the gravity is the full-width seek bar; where there
     # is no seek bar there is nothing to disambiguate.
-    controls.append(tbtn(
+    items.append((None, tbtn(
         pp, "hud-pp", lambda: b._ctl(lambda c: c.toggle_pause()),
-        icon_size=36, nav_gravity=not photo))
-    if tiers["seek_btns"]:
-        controls.append(tbtn(
+        icon_size=36, nav_gravity=not photo)))
+    if not photo:
+        items.append(("seek_btns", tbtn(
             "forward_30", "hud-seek-fwd",
             lambda: b._ctl(lambda c: c.seek_relative(30)),
-            tip=_("Forward 30 Seconds"), repeat=True))
-    if chapters and tiers["ch_btns"]:
-        controls.append(tbtn(
+            tip=_("Forward 30 Seconds"), repeat=True)))
+    if chapters:
+        items.append(("ch_btns", tbtn(
             "redo", "hud-ch-next",
             lambda: _chapter_jump(b, 1),
-            tip=_("Next chapter")))
-    controls.append(tbtn(
+            tip=_("Next chapter"))))
+    items.append((None, tbtn(
         "skip_next", "hud-next",
-        lambda: b._ctl(lambda c: c.next()), tip=_("Next")))
+        lambda: b._ctl(lambda c: c.next()), tip=_("Next"))))
     # (no stop button: the top bar's back arrow yields to the library)
     shown_pos = pos if scrub is None else scrub
-    if tiers["clock"]:
+    if not photo:
         # click toggles total <-> negative-remaining (the lua tc_right)
         if b.hud.tc_remaining and dur > 0:
             end_part = "-" + _clock(max(0.0, dur - shown_pos))
         else:
             end_part = _clock(dur)
-        controls.append(Box(
+        # **Sized for the widest reading it can ever have**, not for the
+        # one it currently shows. The clock is the only control whose
+        # width changes DURING an item -- "59:59 / 2:00:00" gains two
+        # characters at the hour mark -- and it is measured like
+        # everything else, so that shift flipped a shed decision: the
+        # favourite button vanished at 1:00:00 with nothing on screen to
+        # explain it. Position can only reach the duration and the
+        # remaining form only adds a minus, so this is the ceiling. It
+        # also stops the whole bar shifting once a second.
+        clock_pad = 4
+        widest = "%s / -%s" % (_clock(dur), _clock(dur))
+        items.append(("clock", Box(
             [Text("%s / %s" % (_clock(shown_pos), end_part),
                   size=sz(17),
                   color="ffffff" if scrub is not None else "dddddd")],
-            id="hud-clock", pad=4, align="center", direction="row",
-            on_click=lambda: _toggle_tc(b)))
-    if tiers["ends_at"] and dur > 0:
+            id="hud-clock", pad=clock_pad, align="center", direction="row",
+            w=natural_size(Text(widest, size=sz(17)))[0] + 2 * clock_pad,
+            on_click=lambda: _toggle_tc(b))))
+    if dur > 0 and not photo:
         speed = max(0.01, float(_ctl_get(b, "get_speed", 1.0)))
         ends = timefmt.clock_epoch(
             time.time() + max(0.0, dur - pos) / speed)
-        controls.append(Text(_("Ends at {0}").format(ends),
-                             size=sz(16), color="aaaaaa"))
-    controls.append(Spacer())
+        items.append(("ends_at", Text(_("Ends at {0}").format(ends),
+                                      size=sz(16), color="aaaaaa")))
+    items.append((None, Spacer()))
 
-    right = []
-    if tiers["favorite"]:
-        fav = bool(st.get("favorite"))
-        right.append(tbtn(
-            "favorite" if fav else "favorite_border", "hud-fav",
-            lambda: _toggle_hud_favorite(b),
-            tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee"))
-    right.extend(_pickers(b, menu_state, pos, chapters, tiers,
-                          picker_icon))
+    fav = bool(st.get("favorite"))
+    items.append(("favorite", tbtn(
+        "favorite" if fav else "favorite_border", "hud-fav",
+        lambda: _toggle_hud_favorite(b),
+        tip=_("Favorite"), fg=theme.FAV_RED if fav else "eeeeee")))
+    items.extend(_pickers(b, menu_state, pos, chapters, picker_icon))
     muted = bool(st.get("muted"))
     vol = st.get("volume", 100) or 0
-    if tiers["volume"]:
-        right.append(tbtn(
+    if not photo:
+        items.append((None, tbtn(
             "volume_off" if muted else
             ("volume_up" if vol >= 50 else "volume_down"),
             "hud-mute", lambda: _toggle_hud_mute(b),
-            tip=_("Mute")))
-    if tiers["volbar"]:
-        right.append(Slider(
+            tip=_("Mute"))))
+        items.append(("volbar", Slider(
             "hud-vol", value=0 if muted else vol, min=0, max=100,
             on_video=True,   # drawn over the picture; see widgets.Slider
             w=sz(110), force=True,
-            on_change=lambda v: b._ctl(lambda c: c.set_volume(v))))
-    right.append(tbtn(
+            on_change=lambda v: b._ctl(lambda c: c.set_volume(v)))))
+    items.append((None, tbtn(
         "settings", "hud-settings",
         lambda: _open_hud_menu(b, "root", anchor="hud-settings"),
-        tip=_("Settings")))
-    right.append(tbtn(
+        tip=_("Settings"))))
+    items.append((None, tbtn(
         "fullscreen_exit" if st.get("fullscreen") else "fullscreen",
         "hud-fs", lambda: b._ctl(lambda c: c.toggle_fullscreen()),
-        tip=_("Fullscreen")))
+        tip=_("Fullscreen"))))
 
-    transport = Row(controls + right, gap=sz(6), align="center")
+    # `pad` is (x, y) -- layout._pad2 -- so the row gets the bar's width
+    # less its horizontal padding, and the gap it is about to be built
+    # with. Recorded on the HUD state because the gear menu asks what was
+    # given up (see `_menu_rows`); it is read later in THIS build, so it
+    # cannot be stale for the menu that reads it.
+    gap = sz(6)
+    b.hud.shed = _shed(items, w - 2 * sz(24), gap)
+    transport = Row([el for key, el in items if key not in b.hud.shed],
+                    gap=gap, align="center")
 
     # A photo has a duration -- mpv's --image-display-duration, i.e. when the
     # next one arrives -- but scrubbing inside it means nothing, and a

@@ -199,14 +199,14 @@ class HudUsesOneSizeTest(unittest.TestCase):
                                  "selected": True},
                                 {"id": "b", "label": "720"}]},
     }
-    TIERS = {"chapters": True, "quality": True, "audio": True,
-             "subs": True, "fav": True}
-
     def _pickers(self, size):
-        return [p for p in hud._pickers(
+        """`_pickers` returns (shed key, widget) pairs now: whether there
+        is room is decided by `_shed` once the whole row can be measured,
+        not by a breakpoint inside the builder."""
+        return [w for _key, w in hud._pickers(
             None, dict(self.STATE), 0,
             [{"time": 0, "title": "One"}, {"time": 90, "title": "Two"}],
-            self.TIERS, size) if getattr(p, "trigger_icon", None)]
+            size) if getattr(w, "trigger_icon", None)]
 
     def test_every_picker_takes_the_size_it_is_given(self):
         got = self._pickers(30)
@@ -241,6 +241,81 @@ class TriggerColourTest(unittest.TestCase):
                       "the HUD's track pickers are drawn with a muted "
                       "chrome token over video")
         self.assertNotIn("on_surface_muted", call)
+
+
+class TriggerBoxNeverSmallerThanItsGlyphTest(unittest.TestCase):
+    """A squeezed trigger draws its glyph outside itself (#721, part 2).
+
+    The transport row overflows on a narrow window -- that is what the
+    width tiers exist to manage, and they do not manage it completely.
+    When it overflows, `layout`'s flex-shrink pass distributes the
+    negative slack among the children that have no floor, and the floor
+    rule reads:
+
+        if lo is None and isinstance(c, Box) and (c.on_click or c.on_dbl):
+            lo = s      # "buttons floor at natural"
+
+    `Button` is a `Box`. `Dropdown` is an `Element`, so the four track
+    pickers -- which are buttons in every way a user can perceive -- have
+    **no floor at all** and absorb the entire overflow, down to and
+    including zero width. Their glyph does not shrink with them: the
+    renderer centres `isz` in the box (`draw_dropdown`), so at w=0 a
+    60px glyph is drawn 30px either side of nothing, straight across its
+    neighbour.
+
+    Measured before the repair, at the real HUD: 34x47 at 900px, 26x34 at
+    640, and at `ui_scale` 2 a 0x68 trigger with a 60px glyph overlapping
+    the next one by 36px. The scaling fix earlier in this file is what
+    made it visible -- the glyph used to stay small while the box
+    collapsed -- which is why it arrives as a second part of the same
+    issue rather than a regression of it.
+
+    The invariant is asserted in LOGICAL space, before `scale_scene`,
+    because that is where it is decided; `ui_scale` then multiplies both
+    sides equally and can neither cause nor cure it.
+    """
+
+    def _triggers(self, width):
+        from tests._shell_harness import HudController, FakeSource, build_scene
+        from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=HudController())
+        b._browsing = False
+        b.hud.shown = True
+        b.hud.state = {"stopped": False, "is_audio": False,
+                       "title": "Movie", "position": 50.0,
+                       "duration": 100.0, "paused": False}
+        nodes, _handlers = build_scene(b, (width, 720))
+        return [n for n in nodes
+                if n.get("t") == "dropdown" and n.get("isz")]
+
+    def test_the_box_always_contains_the_glyph(self):
+        for width in (1920, 1280, 1024, 960, 900, 800, 760, 720, 640, 560):
+            triggers = self._triggers(width)
+            self.assertTrue(triggers,
+                            "no icon triggers at %dpx; fixture drifted"
+                            % width)
+            for n in triggers:
+                with self.subTest(width=width, id=n.get("id")):
+                    self.assertGreaterEqual(
+                        n["w"], n["isz"],
+                        "%s is %sx%s around a %spx glyph -- it spills "
+                        "%.1fpx each side onto its neighbours"
+                        % (n.get("id"), n["w"], n["h"], n["isz"],
+                           (n["isz"] - n["w"]) / 2))
+
+    def test_and_stays_square_like_the_buttons_beside_it(self):
+        """The box is `int(glyph / 1.2 * 1.9)` on BOTH axes
+        (widgets.Dropdown). A row shrinks the main axis only, so a
+        trigger that is taller than it is wide is the squeeze, visible
+        before any glyph spills."""
+        for width in (1920, 1280, 1024, 960, 900, 800, 720, 640):
+            for n in self._triggers(width):
+                with self.subTest(width=width, id=n.get("id")):
+                    self.assertEqual(n["w"], n["h"],
+                                     "%s squeezed to %sx%s"
+                                     % (n.get("id"), n["w"], n["h"]))
 
 
 if __name__ == "__main__":

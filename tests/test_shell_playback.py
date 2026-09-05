@@ -172,6 +172,165 @@ class TestPlaybackHudLayout(unittest.TestCase):
                              for n in nodes),
                          "ends-at must drop below 1000px")
 
+    # ------------------------------------------------ the measured fit
+
+    #: Every optional control, by the shed key that owns it. Two of them
+    #: own a PAIR, which is the point: half of a symmetric pair is worse
+    #: than neither half.
+    OPTIONAL = {
+        "ends_at": (),                  # a Text, matched by its words
+        "volbar": ("hud-vol",),
+        "ch_btns": ("hud-ch-prev", "hud-ch-next"),
+        "chapters": ("hud-chapters",),
+        "favorite": ("hud-fav",),
+        "quality": ("hud-quality",),
+        "clock": ("hud-clock",),
+        "seek_btns": ("hud-seek-back", "hud-seek-fwd"),
+    }
+
+    #: Never given up at any width: without these the bar is not a
+    #: transport, it is a decoration.
+    MANDATORY = ("hud-pp", "hud-prev", "hud-next", "hud-settings",
+                 "hud-fs", "hud-audio", "hud-sub", "hud-mute")
+
+    WIDTHS = (1920, 1400, 1280, 1100, 1000, 960, 900, 840, 800, 760,
+              720, 680, 640, 600, 560, 520, 480, 440, 400)
+
+    def _bar_extent(self, nodes):
+        """(rightmost edge, bar inner right edge) of the transport row."""
+        bar = next(n for n in nodes if n.get("id") == "hud-bar")
+        right = 0.0
+        for n in nodes:
+            if n.get("t") in ("icon", "dropdown", "slider", "text") \
+                    and n.get("x") is not None \
+                    and n.get("y", 0) > bar["y"]:
+                right = max(right, n["x"] + (n.get("w") or 0))
+        return right, bar["x"] + bar["w"]
+
+    def test_the_bar_fits_at_every_width(self):
+        """The invariant the pixel breakpoints were standing in for, and
+        did not deliver: measured across 400-1400px before this, the bar
+        overflowed its own window at every width between ~700 and ~1000,
+        by up to 113px. Nothing showed it because the four track pickers
+        absorbed the overflow -- they were the only children of the row
+        with no shrink floor -- collapsing to zero width while the
+        renderer drew their full-size glyphs across each other (#721)."""
+        for width in self.WIDTHS:
+            b, _ctl = self._browser()
+            nodes, _h = build_scene(b, (width, 720))
+            right, limit = self._bar_extent(nodes)
+            with self.subTest(width=width):
+                self.assertLessEqual(
+                    right, limit + 0.5,
+                    "the transport row runs %.0fpx past the bar"
+                    % (right - limit))
+
+    def test_nothing_is_given_up_that_did_not_need_to_be(self):
+        """Shedding is a last resort, so a bar with room keeps
+        everything. The half this guards is a `_shed` that drops the
+        whole order the moment one control does not fit."""
+        b, _ctl = self._browser()
+        nodes, _h = build_scene(b, (1920, 720))
+        present = ids(nodes)
+        for key, node_ids in self.OPTIONAL.items():
+            for nid in node_ids:
+                with self.subTest(key=key, id=nid):
+                    self.assertIn(nid, present)
+        self.assertEqual(b.hud.shed, set())
+
+    def test_the_mandatory_controls_survive_any_width(self):
+        for width in self.WIDTHS:
+            b, _ctl = self._browser()
+            nodes, _h = build_scene(b, (width, 720))
+            present = ids(nodes)
+            for nid in self.MANDATORY:
+                with self.subTest(width=width, id=nid):
+                    self.assertIn(nid, present)
+
+    def test_a_pair_is_never_half_present(self):
+        """`seek_btns` and `ch_btns` each tag TWO buttons. A bar with
+        Back-10 and no Forward-30 is worse than a bar with neither, and
+        the shared key is what makes that structural rather than
+        remembered [iw]."""
+        for width in self.WIDTHS:
+            b, _ctl = self._browser()
+            nodes, _h = build_scene(b, (width, 720))
+            present = ids(nodes)
+            for key in ("seek_btns", "ch_btns"):
+                got = [nid for nid in self.OPTIONAL[key]
+                       if nid in present]
+                with self.subTest(width=width, key=key):
+                    self.assertIn(len(got), (0, 2),
+                                  "%s is half there: %s" % (key, got))
+
+    def test_controls_go_in_the_documented_order(self):
+        """As the window narrows a control may leave and must not come
+        back, and what leaves is a prefix of `SHED_ORDER` -- the priority
+        the old breakpoints encoded [iw]. Asserted over the whole sweep
+        rather than at one width: the failure this is named for is an
+        order that is right at 900 and inverted at 600."""
+        from jellyfin_mpv_shim.mpvtk_browser.hud import SHED_ORDER
+
+        previous = set()
+        for width in self.WIDTHS:      # widest first
+            b, _ctl = self._browser()
+            build_scene(b, (width, 720))
+            shed = b.hud.shed
+            with self.subTest(width=width):
+                self.assertTrue(
+                    previous <= shed,
+                    "%s came back at %dpx"
+                    % (sorted(previous - shed), width))
+                order = [k for k in SHED_ORDER if k in shed]
+                self.assertEqual(
+                    order, list(SHED_ORDER)[:len(order)],
+                    "shed %s, which is not a prefix of the order"
+                    % sorted(shed))
+            previous = shed
+
+    def test_the_set_does_not_flicker_as_the_clock_ticks(self):
+        """The clock is the one control whose width changes DURING an
+        item -- "50:00 / 1:30:00" gains two characters at the hour mark --
+        and it is measured like everything else. If that ever decides a
+        shed, a control vanishes mid-film at no boundary the user can
+        see."""
+        for width in self.WIDTHS:
+            sheds = []
+            for pos in (0.0, 59.0, 3599.0, 3601.0, 7000.0):
+                b, _ctl = self._browser()
+                b.hud.state = dict(b.hud.state, position=pos,
+                                   duration=7200.0)
+                build_scene(b, (width, 720))
+                sheds.append(b.hud.shed)
+            with self.subTest(width=width):
+                self.assertEqual(
+                    [sorted(x) for x in sheds],
+                    [sorted(sheds[0])] * len(sheds),
+                    "the shed set moved as the position advanced")
+
+    def test_the_gear_offers_quality_exactly_when_the_bar_lost_it(self):
+        """The row used to appear below a pixel breakpoint. Width was
+        always the weaker question -- at 600px it said the button was on
+        screen while the bar it sat in overflowed by 36 -- and there is no
+        breakpoint left to ask."""
+        for width in self.WIDTHS:
+            b, _ctl = self._browser()
+            b.hud.menu = "root"
+            nodes, _h = build_scene(b, (width, 720))
+            # The gear menu is one renderer-drawn node carrying its rows
+            # in `items`; there are no Text nodes to search.
+            menu = next((n for n in nodes if n.get("t") == "menu"), None)
+            self.assertIsNotNone(menu, "the gear menu did not render")
+            offered = any("Change Video Quality" in row
+                          for row in menu.get("items") or [])
+            on_bar = "hud-quality" in ids(nodes)
+            with self.subTest(width=width):
+                self.assertNotEqual(
+                    offered, on_bar,
+                    "Video Quality is %s at %dpx"
+                    % ("in both places" if offered else "in neither",
+                       width))
+
     def test_volume_mute_fullscreen_and_clock_toggle(self):
         b, ctl = self._browser()
         nodes, handlers = build_scene(b, (1280, 720))

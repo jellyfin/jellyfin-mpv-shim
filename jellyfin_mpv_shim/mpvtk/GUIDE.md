@@ -141,7 +141,15 @@ flex-shrink on overflow: fixed/natural children squeeze proportionally
 down to their min (bitmaps/icons AND clickable Boxes — buttons — floor
 at natural; a squeezed "E…" button is garbage, so plain Text absorbs
 the shrink and re-ellipsizes); columns still overflow on purpose
-(vertical overflow is pre-scroll content, not an error). `layout.natural_size(tree)` is
+(vertical overflow is pre-scroll content, not an error).
+**The floor is by class, and the class list has been wrong once**: it is
+`isinstance`-based, so an interactive control that is not a `Box` gets
+none. An icon-trigger `Dropdown` is a `Button` in everything but its base
+class, and it sets its own `min_w` for that reason — without it the four
+playback-HUD track pickers were the only floorless children of a row that
+overflows, collapsed to zero width, and had their full-size glyphs drawn
+across each other (#721). **A new control whose content cannot degrade —
+a glyph, a bitmap — must say so; only text may absorb a shrink.** `layout.natural_size(tree)` is
 the build-time fit probe: measure a candidate (e.g. the labelled
 chrome bar) against the window and pick a layout — no hardcoded
 breakpoints.

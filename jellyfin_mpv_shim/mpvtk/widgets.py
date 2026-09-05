@@ -903,6 +903,17 @@ class Dropdown(Element):
             box = int(glyph / 1.2 * 1.9)
             kw.setdefault("w", box)
             kw.setdefault("h", box)
+            # ...and a FLOOR, because this is a button and layout's
+            # shrink pass only knows that about `Box` subclasses (see
+            # layout.py, "buttons floor at natural"). A Dropdown is an
+            # Element, so without this the four HUD track pickers were
+            # the only floorless children of a row that overflows -- they
+            # absorbed the whole overflow, down to zero width, while the
+            # renderer went on centring a full-size `isz` glyph in them.
+            # A glyph is a path, not text: it has no smaller reading, so
+            # it spilled over its neighbours (#721).
+            if isinstance(kw.get("w"), (int, float)):
+                kw.setdefault("min_w", kw["w"])
         super().__init__(id=id, **kw)
         self.items = list(items)
         self.selected = selected
