@@ -93,16 +93,27 @@ class UserInterface:
         self.activate()
         self._browser.open_settings(tab)
 
+    @staticmethod
+    def _server_uuid(client):
+        """Which connected server a websocket event came from, or None.
+
+        Identity, not equality: `clientManager.clients` is keyed by uuid and
+        the values are the `JellyfinClient` objects the events are raised
+        on.
+        """
+        if client is None:
+            return None
+        return next((u for u, c in clientManager.clients.items()
+                     if c is client), None)
+
     def _display_content(self, client, item_id):
         """Route a remote's DisplayContent to the browser, resolving which
         connected server it came from."""
         if self._browser is None:
             return
-        uuid = next((u for u, c in clientManager.clients.items()
-                     if c is client), None)
         # display_item decides whether to take the window — it must not
         # interrupt playback, so waking the client is its call, not ours.
-        self._browser.display_item(uuid, item_id)
+        self._browser.display_item(self._server_uuid(client), item_id)
 
     def _live_tv_changed(self, _client=None):
         """Forward a timer websocket event to the browser.
@@ -117,16 +128,25 @@ class UserInterface:
             return
         self._browser.refresh_live_tv()
 
-    def _user_data_changed(self, _client=None):
+    def _user_data_changed(self, client=None):
         """Forward a UserDataChanged websocket event to the browser.
 
-        Unfiltered by server for the same reason as the timer events above:
-        the browser refreshes whatever is on screen, and the event only ever
-        comes from a server this client is logged into.
+        **Filtered by server, unlike the timer events above**, and the
+        difference is which screens answer. A timer event only ever affects
+        Live TV, which is one screen. This one now re-reads a series or a
+        season as well as Home (#722), and those belong to ONE server -- so
+        in a two-server session, activity on A would otherwise re-fetch a
+        Series page on B: a wasted round trip at best, and at worst an
+        unrelated event driving the screen into the offline fallback when B
+        is unreachable. Home is exempt inside `_refresh_current`, because it
+        is assembled from every logged-in server.
+
+        A client we cannot resolve gives None, which refreshes as before --
+        no worse than the unfiltered behaviour this replaces.
         """
         if self._browser is None:
             return
-        self._browser.refresh_home()
+        self._browser.refresh_userdata(self._server_uuid(client))
 
     def _open_config_folder(self):
         PlayerGateway().open_config_folder()
