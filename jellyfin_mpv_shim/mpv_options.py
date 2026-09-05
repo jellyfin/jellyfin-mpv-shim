@@ -188,11 +188,19 @@ def resolve_osc_style():
 
 
 def mpv_scripts(osc_style, trickplay):
-    """Lua scripts to load, in load order.
+    """Lua scripts to load at construction, in load order.
 
     ``trickplay`` is whether the TrickPlay worker actually started -- not
     whether it was asked to. thumbfast is the script side of that feature, so
     a worker that failed to come up must not advertise it to mpv.
+
+    **The classic OSC is deliberately not here.** Which one to load depends
+    on the mpv that is about to be built -- the stock OSC where it can drive
+    our previews (0.41+, the OSC Preview API), our fork where it cannot --
+    and the version is not knowable until the player exists. The libmpv
+    client API cannot stand in for it either: 0.40 and 0.41 both report 2.5.
+    So `PlayerManager._load_classic_osc` picks one and `load-script`s it
+    right after construction, while nothing is on screen yet.
     """
     scripts = []
     if settings.menu_mouse:
@@ -202,8 +210,6 @@ def mpv_scripts(osc_style, trickplay):
         # it, and thumbfast-aware user OSCs (e.g. uosc) benefit
         # under "default" too.
         scripts.append(get_resource("thumbfast.lua"))
-    if osc_style == "mpv":
-        scripts.append(get_resource("trickplay-osc.lua"))
     return scripts
 
 

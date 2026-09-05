@@ -296,6 +296,42 @@ def runtime_force_window_works(version):
     return (int(m.group(1)), int(m.group(2))) >= (0, 41)
 
 
+#: mpv's own name for the builtin OSC (`player/scripting.c`:
+#: `load_builtin_script(..., "@osc.lua")`). `load-script` takes it, which is
+#: how the stock OSC can be loaded *after* construction even though `--osc=no`
+#: stopped it loading itself. Not a documented public API, which is why the
+#: caller falls back to our fork rather than trusting it.
+BUILTIN_OSC = "@osc.lua"
+
+
+def osc_preview_api_works(version):
+    """Whether mpv's own OSC can drive our seek previews.
+
+    mpv 0.41 added the **OSC Preview API** (``DOCS/man/osc.rst``): the OSC
+    publishes ``user-data/osc/draw-preview`` -- ``{x, y, w, h, hover-sec,
+    ass}`` -- and any thumbnailer script draws into it, clearing when the
+    property goes nil.
+
+    That is the hook `trickplay-osc.lua` was forked to work around; its own
+    header says "sadly there is no way to do this without forking the entire
+    OSC script", and as of 0.41 there is. So on a new enough mpv we load the
+    STOCK OSC and answer its requests, and the fork is only for older ones --
+    Debian and others still ship 0.40.
+
+    Same threshold as `runtime_force_window_works` and deliberately its own
+    predicate: they are two different questions that happen to share an
+    answer today, and folding them would make a backport of either a silent
+    lie about the other.
+
+    An unreadable version is treated as old, which costs a fork that works
+    everywhere (measured on 0.41+) rather than an OSC with no previews.
+    """
+    m = re.search(r"(\d+)\.(\d+)", version or "")
+    if not m:
+        return False
+    return (int(m.group(1)), int(m.group(2))) >= (0, 41)
+
+
 SUBTITLE_POS = {
     "top": 0,
     "bottom": 100,
@@ -1052,6 +1088,12 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log.info("This mpv cannot give up its window on request "
                      "(needs 0.41+); minimizing will quit mpv instead.")
 
+        # The classic OSC, chosen against this mpv rather than at option-build
+        # time -- which is why it is a `load-script` here and not an entry in
+        # `mpv_scripts`. Nothing is on screen yet, so the gap costs nothing.
+        if osc_style == "mpv":
+            self._load_classic_osc()
+
         # The menu object must survive mpv re-creation (crash recovery,
         # idle-quit): its is_menu_shown state gates idle_quit, and callers
         # outside this class hold on to it. A fresh OSDMenu here used to reset
@@ -1198,6 +1240,66 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         token; nothing here unregisters, because mpv is torn down whole.
         """
         return observe_property(self._player, prop, handler)
+
+    def _load_classic_osc(self):
+        """Load the OSC for ``osc_style`` "mpv": the stock one where it can
+        drive our previews, our fork where it cannot.
+
+        `trickplay-osc.lua` is a fork of mpv 0.38's `osc.lua` whose only
+        purpose is seek-bar thumbnails -- its whole patch set is six
+        thumbfast blocks and one compatibility fix. mpv 0.41 made that
+        unnecessary by publishing the OSC Preview API, so a modern mpv gets
+        its own OSC (upstream fixes, upstream look) and `thumbfast.lua`
+        answers the property instead.
+
+        The fork stays for older builds, and it is also the fallback if the
+        builtin name is ever refused: `@osc.lua` is mpv's internal spelling
+        rather than a documented one, so the failure it could produce -- an
+        OSC style with no OSC at all -- is caught rather than shipped.
+        """
+        # **Before the script loads, as an OPTION, not after it as a message.**
+        # `enable_osc` broadcasts `osc-idlescreen no` and says in its own
+        # comment that it "has to land BEFORE the OSC's first draw" -- but
+        # `load-script` is asynchronous, so a message sent after it races the
+        # script's `register_script_message`. Lose that race and mpv's "Drop
+        # files or URLs to play" logo is drawn once and then sits behind the
+        # library for the session.
+        #
+        # Every osc.lua and every fork of it reads `script-opts` under the
+        # `osc` prefix at startup, so setting it first is read by
+        # construction rather than in time. Measured: without it the OSC
+        # starts with `idlescreen = true`, with it `false`.
+        #
+        # `change-list ... append`, never a whole-property write:
+        # `script-opts` is shared with the user's own scripts, and replacing
+        # it would take their options with it (verified: an unrelated entry
+        # survives the append). Same rule as never writing over their
+        # `mpv.conf`.
+        try:
+            self._player.command("change-list", "script-opts", "append",
+                                 "osc-idlescreen=no")
+        except Exception:
+            log.debug("could not pre-set osc-idlescreen", exc_info=True)
+        if osc_preview_api_works(getattr(self._player, "mpv_version", "")):
+            try:
+                self._player.command("load-script", BUILTIN_OSC)
+                log.info("Using mpv's own OSC; previews go through its "
+                         "Preview API.")
+                return
+            except Exception:
+                log.warning("mpv refused %s; falling back to the bundled OSC.",
+                            BUILTIN_OSC, exc_info=True)
+        else:
+            log.info("This mpv has no OSC Preview API (needs 0.41+); using "
+                     "the bundled OSC so seek previews still work.")
+        try:
+            self._player.command("load-script",
+                                 get_resource("trickplay-osc.lua"))
+        except Exception:
+            # An OSC style with no OSC is a worse outcome than a logged
+            # failure, but there is nothing further to try.
+            log.error("Could not load an OSC for the 'mpv' style.",
+                      exc_info=True)
 
     def _bind_mpv_handlers(self):
         """Attach every key binding and event handler to the current mpv."""

@@ -179,3 +179,59 @@ function client_message_handler(event)
     end
 end
 mp.register_event("client-message", client_message_handler)
+
+-- mpv's OSC Preview API (0.41+, DOCS/man/osc.rst).
+--
+-- The stock OSC publishes `user-data/osc/draw-preview` -- a table of
+-- {x, y, w, h, hover-sec, ass} -- when the pointer is over the seekbar, and
+-- sets it to nil to say "take it down". That is exactly the hook
+-- trickplay-osc.lua was forked to work around, so on a new enough mpv the
+-- player loads mpv's OWN OSC and we answer this instead.
+--
+-- Both paths live side by side on purpose and cannot both be live: the
+-- property only ever appears when the stock OSC is running, and the
+-- client-messages only ever arrive from our fork, which is loaded only when
+-- the stock one cannot do this. Neither needs to know about the other.
+--
+-- The coordinates are OSD pixels, which is what `overlay-add` wants -- the
+-- fork had to divide by the virtual scale factor to get here. `w`/`h` are
+-- the box the OSC reserved, and the docs say "the actual backing thumbnail
+-- size may differ", so our own frame is centred in it rather than stretched
+-- to it.
+--
+-- `ass` (a border to draw around the preview) is deliberately ignored: it is
+-- sized to the OSC's box rather than to our frame, so drawing it would put a
+-- rectangle around something the wrong size. A preview without a border is
+-- the lesser of the two.
+local function on_draw_preview(_, req)
+    dbg("draw-preview -> " .. type(req))
+    if type(req) ~= "table" then
+        if img_is_shown then
+            mp.commandv("overlay-remove", img_overlay_id)
+            img_is_shown = false
+            img_last_frame = -1
+            img_last_x = nil
+            img_last_y = nil
+        end
+        return
+    end
+    local secs = tonumber(req["hover-sec"])
+    local x, y = tonumber(req.x), tonumber(req.y)
+    if secs == nil or x == nil or y == nil then
+        return
+    end
+    local w, h = tonumber(req.w) or 0, tonumber(req.h) or 0
+    if img_width > 0 and w > 0 then
+        x = x + math.floor((w - img_width) / 2)
+    end
+    if img_height > 0 and h > 0 then
+        y = y + math.floor((h - img_height) / 2)
+    end
+    -- Straight into the handler the fork's message lands in, so there is one
+    -- implementation of "draw the frame for this timestamp here" and the two
+    -- front doors cannot drift.
+    client_message_handler({args = {"thumb", tostring(secs),
+                                    tostring(x), tostring(y)}})
+end
+
+mp.observe_property("user-data/osc/draw-preview", "native", on_draw_preview)

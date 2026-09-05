@@ -116,15 +116,26 @@ class ScriptListTest(SettingsCase):
         import os
         return [os.path.basename(p) for p in mpv_options.mpv_scripts(*a, **kw)]
 
-    def test_load_order_is_mouse_then_thumbfast_then_osc(self):
+    def test_load_order_is_mouse_then_thumbfast(self):
         self.set(menu_mouse=True)
         self.assertEqual(self.names("mpv", True),
-                         ["mouse.lua", "thumbfast.lua", "trickplay-osc.lua"])
+                         ["mouse.lua", "thumbfast.lua"])
 
-    def test_only_the_mpv_style_loads_an_osc_script(self):
+    def test_no_osc_script_is_chosen_here_any_more(self):
+        """Which classic OSC to load depends on the mpv about to be built --
+        the stock one on 0.41+, where its Preview API can drive our seek
+        previews, and the bundled fork below that. The version is not
+        knowable until the player exists (and the libmpv client API cannot
+        stand in: 0.40 and 0.41 both report 2.5), so the choice moved to
+        `PlayerManager._load_classic_osc`, right after construction.
+
+        Asserted for every style, including "mpv": a construction-time entry
+        would load the fork on top of whatever that method then chooses,
+        which is two OSCs at once."""
         self.set(menu_mouse=False)
-        for style in ("mpvtk", "default"):
-            self.assertNotIn("trickplay-osc.lua", self.names(style, True))
+        for style in ("mpv", "mpvtk", "default", "none"):
+            with self.subTest(style=style):
+                self.assertNotIn("trickplay-osc.lua", self.names(style, True))
 
     def test_thumbfast_follows_the_worker_not_the_setting(self):
         # A TrickPlay worker that failed to start must not advertise
