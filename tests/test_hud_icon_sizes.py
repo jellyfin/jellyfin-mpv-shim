@@ -32,6 +32,7 @@ import unittest
 
 sys.argv = [sys.argv[0]]
 
+from jellyfin_mpv_shim.mpvtk import scaling                      # noqa: E402
 from jellyfin_mpv_shim.mpvtk import theme as tk                  # noqa: E402
 from jellyfin_mpv_shim.mpvtk import widgets                      # noqa: E402
 from jellyfin_mpv_shim.mpvtk.layout import layout                # noqa: E402
@@ -97,6 +98,92 @@ class TriggerGlyphTest(unittest.TestCase):
         # behaviour, so this fix is additive.
         tk.set_type_scale(None)
         self.assertIsNone(_glyph("d").get("isz"))
+
+
+class TriggerGlyphUiScaleTest(unittest.TestCase):
+    """The glyph follows `ui_scale`, which is the axis the rest of this
+    file does not test -- and #721 is what lived in the gap.
+
+    The three tests above assert `isz` is 30 no matter what the TYPE scale
+    or the text multiplier does, which is right and is what this file is
+    named after. But they all read `layout()` output *before*
+    `scale_scene`, so none of them can see the logical -> physical
+    conversion, and `isz` was in none of `scaling.py`'s tables. At
+    `ui_scale` 2 the trigger's box went 47 -> 94 and the glyph stayed 30:
+    three HUD controls drawing a small icon in a big hit box, on exactly
+    the HiDPI displays the setting exists for.
+    """
+
+    def tearDown(self):
+        tk.set_type_scale(None)
+        scaling.set_scale(1.0)
+
+    @staticmethod
+    def _physical(scale, icon_size=30):
+        """The dropdown trigger and a Button's icon, in PHYSICAL px.
+
+        Laid out inside a Row because a widget laid out alone stretches to
+        the viewport, and the trigger's box is the number under test.
+        """
+        scaling.set_scale(scale)
+        try:
+            row = widgets.Row([
+                widgets.Dropdown("dd", ["a", "b"], trigger_icon="bookmark",
+                                 icon_size=icon_size),
+                widgets.Button("", icon="hd", icon_size=icon_size, id="btn",
+                               on_click=lambda: None),
+            ], gap=6, align="center")
+            nodes, _h = layout(row, 900, 400)
+            scaling.scale_scene(nodes)
+            dd = next(n for n in nodes if n.get("t") == "dropdown")
+            icon = next(n for n in nodes if n.get("t") == "icon")
+            return dd, icon
+        finally:
+            scaling.set_scale(1.0)
+
+    def test_the_glyph_grows_with_the_interface(self):
+        for scale in (1.0, 1.5, 2.0, 3.5):
+            with self.subTest(scale=scale):
+                dd, _icon = self._physical(scale)
+                self.assertAlmostEqual(dd["isz"], 30 * scale, delta=1.0)
+
+    def test_the_glyph_still_fits_the_box_it_sits_in(self):
+        """The visible symptom, stated as a ratio rather than a number.
+
+        The renderer centres the glyph in the trigger
+        (`renderer.lua`: `ex + (node.w - isz) / 2`), so what the eye reads
+        is `isz / w`. That ratio is what went from 0.64 to 0.32.
+        """
+        base = None
+        for scale in (1.0, 1.5, 2.0, 3.5):
+            with self.subTest(scale=scale):
+                dd, _icon = self._physical(scale)
+                ratio = dd["isz"] / dd["w"]
+                if base is None:
+                    base = ratio
+                self.assertAlmostEqual(ratio, base, delta=0.03)
+
+    def test_it_still_matches_a_button_icon_after_conversion(self):
+        """The same claim `test_it_matches_a_button_icon_at_every_setting`
+        makes about the type scale, one axis over -- and this is the one
+        that has to survive rounding, since a Button's icon goes through
+        `_PX_KEYS` and must land on the same integer."""
+        for scale in (1.0, 1.5, 2.0, 3.5):
+            with self.subTest(scale=scale):
+                dd, icon = self._physical(scale)
+                self.assertEqual(dd["isz"], icon["w"])
+
+    def test_an_odd_size_rounds_the_way_a_box_does(self):
+        """`isz` is a BOX, not a font size: 17 at 1.5x is 25.5, and the
+        renderer floors whatever it is handed. Rounded (26) it matches the
+        Button's icon; left exact (25.5) the renderer floors to 25 and the
+        two families are one pixel apart again -- which is the bug this
+        file exists for, in miniature. This is why `isz` belongs in
+        `_PX_KEYS` and not in `_EXACT_KEYS`.
+        """
+        dd, icon = self._physical(1.5, icon_size=17)
+        self.assertEqual(dd["isz"], icon["w"])
+        self.assertEqual(dd["isz"], int(dd["isz"]), "a box is a whole pixel")
 
 
 class HudUsesOneSizeTest(unittest.TestCase):

@@ -64,8 +64,14 @@ def _tree():
         Dropdown("dd", ["a", "b"], selected=1, size=18, w=160),
         # An icon-trigger dropdown is what emits `pw` (the popup is sized
         # to its items rather than to the trigger).
+        #
+        # `icon_size` is what emits `isz`, and it is here because leaving it
+        # out is how `isz` escaped this test for two releases: the field the
+        # guard is about simply had nowhere to live, so the drift check
+        # passed while the playback HUD's track pickers drew a fixed 30px
+        # glyph inside a box that doubled with the interface scale (#721).
         Dropdown("dd2", ["alpha", "beta"], selected=0, size=18,
-                 trigger_icon="menu"),
+                 trigger_icon="menu", icon_size=30),
         TextBox("tb", text="typed", size=17, w=220, h=34),
         Icon("play", size=24),
         # A Menu is what emits `rh`, its row height. That field used to
