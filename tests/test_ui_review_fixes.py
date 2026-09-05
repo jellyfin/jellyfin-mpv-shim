@@ -17,6 +17,16 @@ Each test class is anchored to one confirmed finding:
 * backdrop_spec keys header art by the real backdrop tag per source.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import os
 import shutil
@@ -75,7 +85,7 @@ class AtomicSaveTest(UserManagerTestBase):
         path = os.path.join(self.tmp, "users.json")
         self.assertTrue(os.path.exists(path))
         self.assertFalse(os.path.exists(path + ".tmp"))
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             json.load(f)  # must be valid JSON
 
     def test_settings_save_is_atomic_and_serialized(self):
@@ -91,7 +101,7 @@ class AtomicSaveTest(UserManagerTestBase):
                 t.start()
             for t in threads:
                 t.join()
-            with open(cfg) as f:
+            with open(cfg, encoding="utf-8") as f:
                 data = json.load(f)
             self.assertIn("player_name", data)
             self.assertFalse(os.path.exists(cfg + ".tmp"))

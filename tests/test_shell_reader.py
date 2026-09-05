@@ -12,6 +12,16 @@ is up and gives them back when it is not" is a property with no other
 observable.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import tempfile
 import unittest
@@ -689,3 +699,48 @@ class DownloadToastDismissalTest(unittest.TestCase):
         b.set_status(b._actions.downloading_message(None))
         b._actions.clear_downloading_toast({})
         self.assertEqual(b.status, "")
+
+
+class TestAStaleFrameDoesNotReclaimTheKeys(ReaderHarness):
+    """Yielding to video mid-render must not leave the reader holding SPACE.
+
+    `build()` returns early on `not self._browsing`, but playback updates
+    arrive on a foreign thread: the flag can flip *during* `_render_route`,
+    and `_claim_page_keys` runs unconditionally after it. Yield releases the
+    claims and deactivates the renderer, and then the frame already in flight
+    reinstalls them -- Lua accepts a claim from an inactive renderer. Every
+    later playback build returns before the claim update, so nothing repairs
+    it: SPACE stops pausing the video for the rest of the session.
+
+    The unconditional call is deliberate and stays -- it is what makes leaving
+    a page drop its claim (see the test above). What changes is WHAT a frame
+    claims once the browser is no longer on screen: nothing, which is a
+    release rather than a reinstall.
+    """
+
+    def test_a_frame_finishing_after_a_yield_claims_nothing(self):
+        browser = self.open_reader()
+        build_scene(browser)
+        self.assertIn("SPACE", browser.app.claims[-1],
+                      "the reader should hold SPACE while it is up")
+
+        # What the yield does, from the playback thread, while a frame is
+        # mid-flight: the route is untouched and still the reader's.
+        browser._browsing = False
+        browser._claim_page_keys(browser.route)
+
+        self.assertEqual(
+            browser.app.claims[-1], (),
+            "a frame that finished after the yield put the reader's keys "
+            "back, so SPACE no longer pauses the video")
+
+    def test_the_claim_returns_when_browsing_resumes(self):
+        """The control: releasing on yield must not make the keys
+        unreclaimable when the library comes back."""
+        browser = self.open_reader()
+        build_scene(browser)
+        browser._browsing = False
+        browser._claim_page_keys(browser.route)
+        browser._browsing = True
+        browser._claim_page_keys(browser.route)
+        self.assertIn("SPACE", browser.app.claims[-1])

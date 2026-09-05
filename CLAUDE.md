@@ -17,12 +17,16 @@ the line you are about to add, so an inline comment cannot warn you.
 | Editing `player.py` or its mixins (`player_audio.py`, `player_reporting.py`, `player_window.py`, `mpv_options.py`, `mpv_events.py`) | [docs/mpv-backends.md](docs/mpv-backends.md) |
 | Any browser shell work — routes, pages, loading, navigation (`mpvtk_browser/`) | [docs/browser-shell.md](docs/browser-shell.md) |
 | Drawing anything new with the toolkit (widgets, layout, overlays) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) |
+| Baking text into a bitmap — captions, the mirror, the epub reader (`mpvtk/pilfont.py`) | [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) section 12 |
 | Adding or changing a server query or `Fields` list | [docs/jellyfin-api-notes.md](docs/jellyfin-api-notes.md) |
 | Anything about startup, shutdown, the tray, single-instance or the gamepad | [docs/architecture.md](docs/architecture.md) |
 | Adding a config key, or moving one between settings tabs | [docs/settings-curation.md](docs/settings-curation.md) |
 | Touching watched/played state, or the download catalog (`sync/`) | [docs/offline-sync.md](docs/offline-sync.md) |
 | Trickplay, the seek-preview bubble, or anything handing mpv a file to `overlay-add` (`trickplay.py`, `bifdecode.py`, `thumbfast.lua`) | [docs/artwork-pipeline.md](docs/artwork-pipeline.md) §11 |
+| Anything that resolves an audio or subtitle track (`media.py`, `sync/offline_media.py`, `_apply_remembered_tracks`, `configure_streams`) | [docs/track-selection.md](docs/track-selection.md) |
+| Anything that hands mpv a URL or a header, or fetches from the server outside the apiclient | [docs/auth-headers.md](docs/auth-headers.md) |
 | Writing a test, or adding/extending a fake | [docs/testing.md](docs/testing.md) |
+| Acting on a review finding, or anything that looks obviously wrong in an old file | [docs/do-not-fix.md](docs/do-not-fix.md) |
 
 **`docs/mpv-backends.md` is essential before any player work.** Three examples of
 what is in it and cannot be inlined: mpv is **not re-created between queue items**, so
@@ -338,10 +342,13 @@ discards every existing translation of it. Known cases: `Record`, `Channels`,
 | [docs/readers.md](docs/readers.md) | books, audiobooks, the epub reader and the comic reader |
 | [docs/live-tv.md](docs/live-tv.md) | the Live TV screens, guide, timers and self-refresh |
 | [docs/offline-sync.md](docs/offline-sync.md) | who may write watched state and in which direction; the sweep schedule; what `UserDataChanged` does and does not announce |
+| [docs/track-selection.md](docs/track-selection.md) | the four things that decide a track and the order between them; why `-1` and `None` are different memories |
+| [docs/auth-headers.md](docs/auth-headers.md) | when mpv gets the `Authorization` header vs a token in the URL, and the sidecar rule that spans both |
 | [docs/testing.md](docs/testing.md) | the SyncPlay suites, the fakes discipline and its case histories, the journal |
 | [docs/packaging.md](docs/packaging.md) | Windows/FriBiDi, the ARM64 job, `tools/msgfmt.py`, Flatpak, version spelling |
 | [docs/i18n.md](docs/i18n.md) | xgettext, location granularity, `--merge`, seeding from jellyfin-web |
 | [docs/settings-curation.md](docs/settings-curation.md) | adding a config key, which tab and why, and **whether a change takes effect before a restart** |
 | [docs/configuration.md](docs/configuration.md) | the user-facing settings reference (enforced by a test) |
+| [docs/do-not-fix.md](docs/do-not-fix.md) | code that reads as a defect and is not, ground already traced clean, settled decisions, and what is still open |
 | [docs/PERMISSION_GAPS.md](docs/PERMISSION_GAPS.md) | what breaks without each Jellyfin user permission |
-| [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) | the mpvtk toolkit itself: widgets, layout, the ASS/bitmap z-order constraint |
+| [jellyfin_mpv_shim/mpvtk/GUIDE.md](jellyfin_mpv_shim/mpvtk/GUIDE.md) | the mpvtk toolkit itself: widgets, layout, the ASS/bitmap z-order constraint; text faces, bidi and colour emoji (12) |

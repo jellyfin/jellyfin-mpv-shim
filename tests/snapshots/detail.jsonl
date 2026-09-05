@@ -51,9 +51,9 @@
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.9.2.1", "sc": "detail", "size": 16, "t": "text", "text": "Trakt", "w": 36.8, "x": 281.5, "y": 886.6}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.1.0", "sc": "detail", "size": 24, "t": "text", "text": "Cast & Crew", "w": 152.7, "x": 16.0, "y": 934.6}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "detail-people", "sc": "detail", "t": "scroll", "w": 182.0, "x": 0.0, "y": 968.6}
-{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 150, "sc": "detail-people", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 16.0, "y": 973.6}
+{"h": 271.0, "id": "detail-people#strip", "ih": 271, "iw": 150, "sc": "detail-people", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 150.0, "x": 16.0, "y": 973.6}
 {"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "detail-people-pp1", "ring": true, "sc": "detail-people", "t": "rect", "w": 150, "x": 16.0, "y": 973.6}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1.0", "sc": "detail", "size": 24, "t": "text", "text": "More Like This", "w": 182.5, "x": 16.0, "y": 1267.6}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "detail-similar", "sc": "detail", "t": "scroll", "w": 182.0, "x": 0.0, "y": 1301.6}
-{"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "detail-similar", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 1306.6}
+{"h": 271.0, "id": "detail-similar#strip", "ih": 271, "iw": 150, "sc": "detail-similar", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 1306.6}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "detail-similar-s1", "ring": true, "sc": "detail-similar", "t": "rect", "w": 150, "x": 16.0, "y": 1306.6}

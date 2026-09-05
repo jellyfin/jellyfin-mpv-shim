@@ -7,6 +7,17 @@ real store sizes decoded images as width*height*4.
 (Ported from the Tk browser's identical cache when that browser was
 removed. The eviction policy is the same and so are these tests.)
 """
+
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import sys
 import unittest
@@ -302,11 +313,16 @@ class DiskCacheLocationTest(unittest.TestCase):
 
         home = tempfile.mkdtemp(prefix="jms-cachehome-")
         self.addCleanup(shutil.rmtree, home, ignore_errors=True)
-        old = os.environ.get("XDG_CACHE_HOME")
-        os.environ["XDG_CACHE_HOME"] = home
-        self.addCleanup(lambda: os.environ.__setitem__("XDG_CACHE_HOME", old)
-                        if old is not None
-                        else os.environ.pop("XDG_CACHE_HOME", None))
+        # LOCALAPPDATA as well as XDG_CACHE_HOME: conffile.win32_cache reads
+        # the former and knows nothing about the latter, so on Windows this
+        # redirected nothing and the assertion was made against the real
+        # user cache directory.
+        for var in ("XDG_CACHE_HOME", "LOCALAPPDATA"):
+            old = os.environ.get(var)
+            os.environ[var] = home
+            self.addCleanup(
+                lambda v=var, o=old: os.environ.__setitem__(v, o)
+                if o is not None else os.environ.pop(v, None))
         path, budget = thumbnails.disk_cache("jms-test-app")
         self.assertTrue(path.startswith(home + os.sep), path)
         self.assertEqual(budget, thumbnails.DEFAULT_DISK_MB)

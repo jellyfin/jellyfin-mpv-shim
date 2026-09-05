@@ -149,12 +149,34 @@ def winning(bindings):
     best = {}
     for entry in bindings or []:
         key = entry.get("key")
-        if not key:
+        if not key or _inactive(entry):
             continue
         current = best.get(key)
         if current is None or _rank(entry) >= _rank(current):
             best[key] = entry
     return best
+
+
+def _inactive(entry):
+    """Whether mpv is currently ignoring this binding.
+
+    A section that is *defined but not enabled* is reported with a negative
+    priority, and its bindings are not in effect. Ranking them was how a
+    disabled binding came to win: non-weak beats weak before priority is
+    consulted, so a disabled non-weak entry ranks (1, -1) and beats mpv's
+    live builtin at (0, 0) -- and the sweep copied a binding mpv correctly
+    ignores into the shim's own ACTIVE claim.
+
+    Measured on a real mpv: of 206 builtin bindings, 194 are priority 0 and
+    the only 12 at -1 are the inactive `encode` and `discnav` sections --
+    and `discnav` binds LEFT/RIGHT/UP/DOWN, which is precisely what the seek
+    sweep is looking for. The shim defines-and-disables sections of its own
+    too (the OSD menu's `jms_menu`, the renderer's mouse sections), which is
+    where the non-weak case comes from.
+
+    A missing priority is 0, not inactive: only an explicit negative says so.
+    """
+    return (entry.get("priority") or 0) < 0
 
 
 def _rank(entry):

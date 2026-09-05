@@ -110,6 +110,15 @@ class AuthMixin:
                 self._locked = False
                 self.show_login()
                 return
+            # Also here, not only on the branch above: switching user is the
+            # OTHER way off the lock screen, and `_render_locked` offers it
+            # precisely so a locked user cannot lock the whole client out.
+            # `set_source` stopped clearing the flag (a server connecting must
+            # not open the gate), so without this the switch lands back on the
+            # lock screen -- and if the new user has no PIN, `verify_pin`
+            # answers False for every entry, so nothing can ever unlock it
+            # again for the life of the process.
+            self._locked = False
             self.set_source(source)
         self.run_async(work, done, ep)
 
@@ -597,6 +606,12 @@ class AuthMixin:
                 else:
                     self.show_login()
                 return
+            # Here, not in set_source: answering the PIN is what unlocks, and
+            # set_source is also reached by a server connecting or the health
+            # check reconnecting -- which used to clear the gate on its own.
+            # Before set_source, because navigation is refused while the flag
+            # is up and set_source lands on a route.
+            self._locked = False
             self.set_source(source)
         self.run_async(work, done, ep)
 

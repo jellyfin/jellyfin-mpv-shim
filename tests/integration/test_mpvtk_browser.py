@@ -16,6 +16,16 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
+# ...and the repo root, BEFORE `_harness` reaches for jellyfin_mpv_shim.
+# Run as a script (`python3 tests/integration/test_mpvtk_browser.py`, which
+# the __main__ block below invites) `sys.path[0]` is tests/integration and
+# the root is on the path nowhere, so the package resolves to whatever is
+# pip-installed -- silently, and it *runs*, against the previous release.
+# Measured: it loads that copy's renderer.lua, and the overlay-traffic test
+# then fails for a reason that has nothing to do with the tree. Same trap
+# tools/run_tests_parallel.py documents from the other direction.
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import _harness as h  # noqa: E402
 
 
@@ -163,6 +173,68 @@ class TestMpvtkBrowserOnRealMpv(unittest.TestCase):
             time.sleep(0.2)
         self.assertEqual(self.browser.route["kind"], "grid")
         self.assertEqual(self.browser.route["parent_id"], "lib1")
+
+    def test_a_hover_re_issues_the_chip_and_not_the_row(self):
+        """A tile row is ONE bitmap, and hovering changes a chip the size of
+        a coin. The renderer's overlay slots are sticky so that a repaint
+        re-issues only what changed -- but stickiness is keyed by node id,
+        and a node with no id of its own is keyed by its PATH in the tree.
+        The Stack that floats the chip therefore renamed the row under it,
+        and the whole strip went over again on every hover in and out.
+
+        Measured through this path before the row was named: 2.9
+        overlay-adds and 1.52 MiB per pointer move on Windows, 2.17 MiB on
+        Linux, against 1 add and 0.01 MiB after. A 4K row is up to 31 MiB
+        (StripStore.MAX_BYTES).
+
+        Asserted against the row's own size rather than a byte count, so it
+        keeps meaning what it says at any tile geometry. The Lua suite
+        cannot cover this: it pushes the scene itself, so it can only ever
+        test the ids it chose to send. `tools/probe_hover_overlay_cost.py`
+        is the same measurement with a number at the end.
+        """
+        self.assertTrue(self.app.ready.wait(15))
+        deadline = time.time() + 6
+        st = None
+        while time.time() < deadline:
+            st = self.app.debug_state()
+            if st and st.get("overlays", 0) >= 1:
+                break
+            time.sleep(0.2)
+        self._assert_usable_window(st)
+        self.assertIsNotNone(st.get("ov_bytes"),
+                             "the renderer is not reporting overlay traffic")
+
+        from jellyfin_mpv_shim.mpvtk.layout import layout
+
+        size = (st["w"], st["h"])
+        nodes, _h = layout(self.browser.build(size), *size)
+        tiles = [n["id"] for n in nodes if n.get("hev")]
+        self.assertTrue(tiles, "no hoverable tile on the home screen")
+        rows = [n for n in nodes if n["t"] == "img" and n.get("iw")]
+        self.assertTrue(rows, "no strip bitmap on the home screen")
+        row_bytes = min(n["iw"] * n["ih"] * 4 for n in rows)
+
+        before = self.app.debug_state()["ov_bytes"]
+        self.browser.tiles.set_hover(tiles[0])
+        chip = tiles[0] + "-play#"
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            st = self.app.debug_state() or {}
+            if any(str(k).startswith(chip) for k in (st.get("ov") or {})):
+                break
+            time.sleep(0.1)
+        self.assertTrue(
+            any(str(k).startswith(chip) for k in (st.get("ov") or {})),
+            "the hover chip never reached the renderer")
+        added = st["ov_bytes"] - before
+
+        self.assertLess(
+            added, row_bytes // 4,
+            "showing the hover chip cost %d bytes, against a row bitmap of "
+            "%d -- the row was re-issued, not just the chip. Something "
+            "changed the row's identity between the two scenes (see "
+            "TileRenderer.image_map's named id)." % (added, row_bytes))
 
     def test_the_ui_takes_mpvs_own_window_dragging(self):
         """The renderer's half of the client-side title bar, against a real

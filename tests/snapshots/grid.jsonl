@@ -82,7 +82,7 @@
 {"click": true, "h": 26.0, "hover": {"fill": "2e3138"}, "id": "grid-l-Z", "radius": 4, "sc": "grid", "t": "rect", "w": 26.0, "x": 744.0, "y": 176.0}
 {"align": "center", "c": "9aa0a6", "h": 18.8, "id": "r.1.0.1.1.26.0", "sc": "grid", "size": 15, "t": "text", "text": "Z", "w": 26.0, "x": 744.0, "y": 179.6}
 {"align": "left", "c": "9aa0a6", "h": 17.5, "id": "r.1.0.2", "sc": "grid", "size": 14, "t": "text", "text": "30 items", "w": 1238.0, "x": 16.0, "y": 214.0}
-{"h": 271.0, "id": "r.1.0.3", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 243.5}
+{"h": 271.0, "id": "grid-0#strip", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 243.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g0", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 243.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g1", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 190.0, "y": 243.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g2", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 364.0, "y": 243.5}
@@ -90,7 +90,7 @@
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g4", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 712.0, "y": 243.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g5", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 886.0, "y": 243.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-0-g6", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1060.0, "y": 243.5}
-{"h": 271.0, "id": "r.1.0.4", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 526.5}
+{"h": 271.0, "id": "grid-7#strip", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 526.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g7", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 526.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g8", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 190.0, "y": 526.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g9", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 364.0, "y": 526.5}
@@ -98,12 +98,12 @@
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g11", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 712.0, "y": 526.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g12", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 886.0, "y": 526.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-7-g13", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 1060.0, "y": 526.5}
-{"h": 271.0, "id": "r.1.0.5", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 809.5}
+{"h": 271.0, "id": "grid-14#strip", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g14", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 16.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g15", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 190.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g16", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 364.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g17", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 538.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g18", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 712.0, "y": 809.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "grid-14-g19", "ring": true, "sc": "grid", "t": "rect", "w": 150, "x": 886.0, "y": 809.5}
-{"h": 271.0, "id": "r.1.0.6", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 1092.5}
-{"h": 271.0, "id": "r.1.0.7", "ih": 271, "iw": 324, "sc": "grid", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 324.0, "x": 16.0, "y": 1375.5}
+{"h": 271.0, "id": "grid-21#strip", "ih": 271, "iw": 1194, "sc": "grid", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 1194.0, "x": 16.0, "y": 1092.5}
+{"h": 271.0, "id": "grid-28#strip", "ih": 271, "iw": 324, "sc": "grid", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 324.0, "x": 16.0, "y": 1375.5}

@@ -288,6 +288,7 @@ class Paginator:
             route["_page_size"] = ps
             route["_pages"] = {}
             route["_page_loading"] = set()
+            route["_page_tried"] = set()
         pages = route["_pages"]
         npages = self.page_count(route, ps)
         cur = route.get("_page") or 0
@@ -309,7 +310,20 @@ class Paginator:
     def _fetch(self, route, page, ps, fetch, prefetch=False):
         pages = route["_pages"]
         loading = route["_page_loading"]
-        if page in pages or page in loading:
+        # `_page_tried` is the fixed-page twin of `_win_tried`, and it is
+        # what stops a failure retrying itself forever. On a failed fetch
+        # neither guard below is set -- `done` never ran, and `always=clear`
+        # dropped the in-flight marker -- while AsyncRunner invalidates after
+        # EVERY outcome, so the next render asks again immediately. Against a
+        # fast 503 that is a continuous request/repaint loop with no user
+        # input, on the pool every route load queues behind.
+        #
+        # Only failures go in it, so an evicted-but-successful page is still
+        # re-fetched normally. Cleared by `go` (the user moving pages, as
+        # `rewindow` clears `_win_tried` on a scroll), by `reset`, and by a
+        # page-size change.
+        if page in pages or page in loading or page in route.get(
+                "_page_tried", ()):
             return
         loading.add(page)
         ep = self.run.epoch
@@ -334,6 +348,10 @@ class Paginator:
                 route["_total"] = total
 
         def failed(_exc):
+            # Remember it, or the next repaint asks again. setdefault-shaped
+            # like `clear` below, because `reset` may have replaced the route's
+            # keys while this was in flight.
+            route.setdefault("_page_tried", set()).add(page)
             # A prefetch nobody asked for stays silent; a page the user is
             # waiting on says so (mirrors more()'s toast rule).
             if not prefetch and self._is_current(route):
@@ -353,15 +371,21 @@ class Paginator:
         """Drop the page cache and return to page 1. Called whenever the
         underlying result set changes (sort, filter, collections toggle, music
         tab) — page 3 of one ordering is nothing like page 3 of another."""
-        for k in ("_pages", "_page_size", "_page_loading", "_npages",
-                  "_win_tried", "_win_load"):
+        for k in ("_pages", "_page_size", "_page_loading", "_page_tried",
+                  "_npages", "_win_tried", "_win_load"):
             route.pop(k, None)
         route["_page"] = 0
 
     def go(self, route, page):
         """Jump to a page (0-based); ``ensure`` clamps into range next frame,
-        so an out-of-range target from Last/typing is harmless."""
+        so an out-of-range target from Last/typing is harmless.
+
+        Forgets failed attempts, exactly as ``rewindow`` does on a scroll: a
+        deliberate move is the user asking again, and without this a page that
+        failed once is dead for the rest of the session.
+        """
         route["_page"] = page
+        route.pop("_page_tried", None)
         self._invalidate()
 
     def jump(self, route, text):

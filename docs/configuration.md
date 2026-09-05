@@ -79,6 +79,16 @@ You can adjust the basic transcoder settings via the menu.
       of an episode you may not have watched yet, on the page you opened to
       decide whether to watch it. Somebody avoiding spoilers wants this off and
       the posters left alone.
+- `clock_12h` - Print times of day as `8:30 PM` rather than `20:30`. Default:
+      `false`
+  - Covers everywhere the app shows a time of day: the Live TV guide's column
+      headings, air times on programme, timer and recording tiles, and the
+      "Ends at" label on both a detail page and the player controls.
+  - Not derived from your locale. Python only reads `LC_TIME` after a
+      `setlocale` this app never makes, so a "follow the system" option would
+      have been a guess in a Windows-shaped and a POSIX-shaped half; the switch
+      says which you want instead.
+  - Applies immediately, Live TV tiles included.
 - `mouse_click_pauses` - Left click on the video toggles pause. Default: `true`
   - This is what this client has always done (the same "click anywhere" the MPV
       OSC has). Turning it off gives MPV's own mouse behaviour back: nothing

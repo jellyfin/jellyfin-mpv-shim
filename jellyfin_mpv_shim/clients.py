@@ -201,6 +201,14 @@ class ClientManager(object):
         # credential under the wrong user. RLock: switch_user holds it while
         # calling helpers that also take it. Never held across network I/O.
         self._switch_lock = threading.RLock()
+        # Bumped by every user switch, and captured by a connect when it
+        # reserves its uuid. A connect is mostly time spent inside
+        # authenticate(), so it routinely spans a switch -- and neither guard
+        # at the publish point could see that: `is_stopping` is about
+        # shutdown, and `_removed_uuids` is CLEARED by the switch itself.
+        # Comparing the generation is what makes "is this still the user who
+        # asked for it" answerable at the moment the answer is needed.
+        self._user_generation = 0
 
         self.health_check = None
         if settings.health_check_interval is not None:
@@ -912,6 +920,9 @@ class ClientManager(object):
             if uuid in self._connecting:
                 return False  # another thread is already on it
             self._connecting.add(uuid)
+            # Whose connect this is. Read under the lock the switch also
+            # takes, so it cannot straddle one.
+            generation = self._user_generation
 
         try:
             client = self.client_factory()
@@ -931,15 +942,21 @@ class ClientManager(object):
             self.setup_client(client, server, do_retries)
             registered = False
             with self._client_lock:
-                if not self.is_stopping and uuid not in self._removed_uuids:
+                if (not self.is_stopping
+                        and uuid not in self._removed_uuids
+                        and generation == self._user_generation):
                     self.clients[uuid] = client
                     if server.get("username"):
                         self.usernames[uuid] = server["username"]
                     registered = True
             if not registered:
-                # stop() drained the registry while we were connecting, or
-                # the user removed this server mid-connect; don't resurrect a
-                # client nothing can see or that was just deleted.
+                # stop() drained the registry while we were connecting, the
+                # user removed this server mid-connect, or a user switch
+                # landed while we were authenticating -- in the last case this
+                # client belongs to the PREVIOUS account, and registering it
+                # would expose it under the new user, in the server list and
+                # on the home screen. Don't resurrect a client nothing can
+                # see, that was just deleted, or that is no longer ours.
                 client.stop()
                 return False
             return True
@@ -997,6 +1014,14 @@ class ClientManager(object):
 
             self._switching.set()
             try:
+                # BEFORE the drain, not after the swap: a connect that
+                # completes between stop_all_clients() and the bump would
+                # otherwise still match the generation it captured, register
+                # into the just-emptied registry, and survive -- nothing
+                # drains it a second time. Bumping first makes every connect
+                # already in flight stale for the whole of the switch.
+                with self._client_lock:
+                    self._user_generation += 1
                 # Persist whatever the active user currently has, then tear its
                 # live clients down.
                 self.save_credentials()

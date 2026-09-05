@@ -37,7 +37,14 @@ sys.argv = [sys.argv[0]]      # importing the shim reaches args.get_args()
 from tests._scene_snapshot import dumps, load, snapshot, store  # noqa: E402
 from tests._shell_harness import FakeSource  # noqa: E402
 
+from jellyfin_mpv_shim.conf import settings  # noqa: E402
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser  # noqa: E402
+
+# `player_name` defaults to socket.gethostname(), and the settings screen
+# draws it -- so the committed snapshot held whichever machine captured
+# it and could not match on any other. Pinned here rather than in the
+# test, so `--update` bakes the same value it asserts.
+settings.player_name = "jms-test-host"
 
 
 # name -> route. Chosen to cover the distinct layout shapes rather than every

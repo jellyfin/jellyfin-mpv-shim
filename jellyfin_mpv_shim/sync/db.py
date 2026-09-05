@@ -213,6 +213,65 @@ class SyncDB:
             # reads origin), but existing downloads and playback still work.
             log.error("Catalog migration failed", exc_info=True)
 
+    def healthy(self):
+        """Can the catalog's own rows actually be read?
+
+        Every read here answers ``[]`` on a ``sqlite3.Error`` so a caller
+        cannot crash on a bad catalog -- which means "unreadable" and "empty"
+        arrive as the same value. That is survivable for a screen and is
+        **not** survivable for `SyncManager._reconcile_disk`, which reads an
+        empty catalog as "none of this media is known" and deletes all of it.
+        One corrupted 4 KiB page (the `downloads` b-tree root) is enough: the
+        file still opens, the schema still reads, and every download on disk
+        is swept.
+
+        So the distinction has to exist somewhere, and this is it -- the one
+        read that reports failure instead of absorbing it.
+        """
+        try:
+            self.list(strict=True)
+            return True
+        except sqlite3.Error:
+            log.warning("The catalog at %s is unreadable.", self.path)
+            return False
+
+    def backup(self, dest):
+        """Snapshot the catalog to ``dest``. Returns whether it was written.
+
+        The catalog is not a cache: it is the only record of what the files
+        on disk *are*, and losing it turns a download folder into unlabelled
+        media that the UI cannot list, play or delete. sqlite's own backup
+        API rather than a file copy, because a plain copy of a WAL database
+        mid-write is how you manufacture the corruption this exists for.
+
+        Written to a temporary file and renamed, so an interrupted backup
+        cannot leave a half-written one where a good one used to be.
+        """
+        with self._lock:
+            if self._conn is None or self.read_only:
+                return False
+            tmp = dest + ".tmp"
+            out = None
+            try:
+                out = sqlite3.connect(tmp)
+                self._conn.backup(out)
+                out.close()
+                out = None
+                os.replace(tmp, dest)
+                return True
+            except (sqlite3.Error, OSError):
+                log.debug("Could not back up the catalog", exc_info=True)
+                if out is not None:
+                    try:
+                        out.close()
+                    except sqlite3.Error:
+                        pass
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                return False
+
     def close(self):
         with self._lock:
             if self._conn is None:
@@ -298,19 +357,81 @@ class SyncDB:
     def replace_playlist_items(self, playlist_id, entries):
         """Set a playlist's membership to ``entries`` (list of
         ``(item_id, sort_index, owned)``), replacing any prior membership so a
-        re-download reflects the current order and removals."""
+        re-download reflects the current order and removals.
+
+        **An entry is only written for an item the catalog actually has, and
+        the check is part of THIS transaction** -- the caller cannot do it,
+        because nothing serialises `_record_playlist`'s `pre_existing` snapshot
+        against a concurrent delete (docs/offline-sync.md section 5, "Ownership
+        never outlives its row").
+
+        **And therefore this decides whether the playlist exists offline at
+        all.** Filtering can write zero rows for a non-empty `entries`, which
+        no caller can predict, and `list_playlists` needs a member -- so an
+        emptied `playlists` row is a record nothing lists and nothing deletes,
+        holding its cached poster art. It goes in the same transaction. The
+        count returned lets a caller skip work; the invariant does not depend
+        on it being read.
+        """
         with self._lock:
             if self._conn is None:
-                return
+                return 0
             try:
                 self._conn.execute(
                     "DELETE FROM playlist_items WHERE playlist_id=?", (playlist_id,))
                 self._conn.executemany(
                     "INSERT INTO playlist_items "
-                    "(playlist_id, item_id, sort_index, owned) VALUES (?,?,?,?)",
-                    [(playlist_id, iid, idx, 1 if owned else 0)
+                    "(playlist_id, item_id, sort_index, owned) "
+                    "SELECT ?,?,?,? WHERE EXISTS "
+                    "(SELECT 1 FROM downloads WHERE item_id=?)",
+                    [(playlist_id, iid, idx, 1 if owned else 0, iid)
                      for iid, idx, owned in entries])
+                written = self._conn.execute(
+                    "SELECT COUNT(*) FROM playlist_items WHERE playlist_id=?",
+                    (playlist_id,)).fetchone()[0]
+                if not written:
+                    self._conn.execute(
+                        "DELETE FROM playlists WHERE playlist_id=?",
+                        (playlist_id,))
                 self._conn.commit()
+                return written
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
+    def delete_if_auto(self, item_id):
+        """Delete ``item_id`` only while it is *still* an auto-download.
+
+        Returns the row that was deleted, or None if it no longer qualifies
+        (promoted to user-owned, or already gone).
+
+        The check and the delete share ONE lock acquisition, because the
+        window between them is the entire bug. The reaper reads a row, then
+        spends seconds on the network deciding about it -- one
+        get_userdata_for_item per row -- and `enqueue` can promote that row
+        with `set_origin` at any point in there. Re-reading the origin
+        without holding the lock only makes the window smaller; holding it
+        makes the claim atomic against every writer, since `update` takes the
+        same lock.
+        """
+        with self._lock:
+            if self._conn is None:
+                return None
+            try:
+                found = self._conn.execute(
+                    "SELECT * FROM downloads WHERE item_id=?",
+                    (item_id,)).fetchone()
+                if found is None:
+                    return None
+                row = dict(found)
+                if not is_auto(row.get("origin")):
+                    return None
+                self._conn.execute("DELETE FROM downloads WHERE item_id=?",
+                                   (item_id,))
+                self._conn.execute("DELETE FROM playlist_items WHERE item_id=?",
+                                   (item_id,))
+                self._conn.commit()
+                return row
             except sqlite3.Error:
                 self._conn.rollback()
                 raise
@@ -329,10 +450,44 @@ class SyncDB:
                 self._conn.rollback()
                 raise
 
+    def disown_playlist_items(self, item_id):
+        """Drop every playlist's *ownership* of ``item_id``, keeping the
+        membership rows so the item still lists under the playlist offline.
+
+        Ownership answers one question only: may deleting the playlist delete
+        this file. Asking for the item by hand answers it -- no.
+        """
+        with self._lock:
+            if self._conn is None:
+                return
+            try:
+                self._conn.execute(
+                    "UPDATE playlist_items SET owned=0 WHERE item_id=?",
+                    (item_id,))
+                self._conn.commit()
+            except sqlite3.Error:
+                self._conn.rollback()
+                raise
+
     def playlist_owned_ids(self, playlist_id):
-        """Item ids this playlist download is responsible for (owned=1)."""
+        """Item ids this playlist download is responsible for (owned=1).
+
+        **Joined, like every other read of this table.** `owned=1` answers
+        "may deleting this playlist delete this file", and a claim over an
+        item the catalog does not have is a claim on whatever writes that row
+        next. `replace_playlist_items` will not write one, but that binds only
+        the rows this build wrote: a catalog older than it, or one an older
+        build opens afterwards, holds whatever it holds. The join is on the
+        row's existence and not on its status, because a playlist owns what it
+        is still fetching -- `_record_playlist` reads this mid-download.
+
+        A repair tool that needs to *see* dangling claims needs its own query
+        and should say so in its name; this one exists to be acted on.
+        """
         return {r["item_id"] for r in self._query(
-            "SELECT item_id FROM playlist_items WHERE playlist_id=? AND owned=1",
+            "SELECT pi.item_id FROM playlist_items pi "
+            "JOIN downloads d ON d.item_id = pi.item_id "
+            "WHERE pi.playlist_id=? AND pi.owned=1",
             (playlist_id,))}
 
     def list_playlists(self):
@@ -357,9 +512,13 @@ class SyncDB:
 
     def playlist_ownership(self):
         """Map of item_id -> playlist_id for owned items (for grouping the
-        Downloads screen). Only one owner per item."""
+        Downloads screen). Only one owner per item.
+
+        Joined for the same reason as `playlist_owned_ids` above."""
         return {r["item_id"]: r["playlist_id"] for r in self._query(
-            "SELECT item_id, playlist_id FROM playlist_items WHERE owned=1")}
+            "SELECT pi.item_id, pi.playlist_id FROM playlist_items pi "
+            "JOIN downloads d ON d.item_id = pi.item_id "
+            "WHERE pi.owned=1")}
 
     def upsert_playstate(self, server_uuid, item_id, position_ticks=None,
                          played=None):
@@ -573,15 +732,34 @@ class SyncDB:
                 self._conn.rollback()
                 raise
 
-    def clear_playstate(self, ids):
-        if not ids:
+    def clear_playstate(self, entries):
+        """Retire replayed rows -- but only those still holding the values
+        that were actually sent.
+
+        Acknowledged **by value, not by id**. There is one row per item and
+        `upsert_playstate` advances it in place, so a report landing while the
+        replay is on the network leaves the same id holding data nobody has
+        uploaded. Deleting by id alone discarded exactly that: the newer
+        position, and a final watched mark, neither of which the server ever
+        heard. A row that moved on simply stays pending and goes out on the
+        next sweep.
+
+        ``entries`` is an iterable of ``(id, position_ticks, played)`` as they
+        were read. ``IS`` rather than ``=`` because both columns are nullable
+        and ``NULL = NULL`` is NULL in SQL, which would match nothing and
+        leave the queue undrainable.
+        """
+        entries = [tuple(e) for e in (entries or ())]
+        if not entries:
             return
         with self._lock:
             if self._conn is None:
                 return
             try:
                 self._conn.executemany(
-                    "DELETE FROM pending_playstate WHERE id=?", [(i,) for i in ids])
+                    "DELETE FROM pending_playstate "
+                    "WHERE id=? AND position_ticks IS ? AND played IS ?",
+                    entries)
                 self._conn.commit()
             except sqlite3.Error:
                 self._conn.rollback()
@@ -589,7 +767,7 @@ class SyncDB:
 
     # -- reads (either process) -------------------------------------------
 
-    def _query(self, sql, params=()):
+    def _query(self, sql, params=(), strict=False):
         # Reads share the one connection with the writer thread; take the lock
         # so a read can't interleave with an in-flight write/commit.
         #
@@ -599,6 +777,8 @@ class SyncDB:
         # does not catch, so it escaped to whichever thread was reading.
         with self._lock:
             if self._conn is None:
+                if strict:
+                    raise sqlite3.ProgrammingError("the catalog is closed")
                 return []
             try:
                 return [dict(r) for r in self._conn.execute(sql, params).fetchall()]
@@ -607,7 +787,12 @@ class SyncDB:
                 # (that reads as "nothing downloaded" and can trigger silent
                 # re-downloads) — surface it loudly, but still return [] so
                 # callers don't crash.
+                #
+                # `strict` is for the one caller that cannot survive the lie:
+                # see healthy().
                 log.warning("Catalog query failed: %s", sql, exc_info=True)
+                if strict:
+                    raise
                 return []
 
     def library_id(self, lookup):
@@ -638,7 +823,7 @@ class SyncDB:
         rows = self._query("SELECT * FROM downloads WHERE item_id=?", (item_id,))
         return rows[0] if rows else None
 
-    def list(self, status=None, series_id=None):
+    def list(self, status=None, series_id=None, strict=False):
         sql = "SELECT * FROM downloads"
         clauses, params = [], []
         if status is not None:
@@ -658,7 +843,7 @@ class SyncDB:
             sql += " ORDER BY added_at, rowid"
         else:
             sql += " ORDER BY series_name, parent_index, index_number, name"
-        return self._query(sql, tuple(params))
+        return self._query(sql, tuple(params), strict=strict)
 
     def downloaded_item_ids(self):
         return {r["item_id"] for r in

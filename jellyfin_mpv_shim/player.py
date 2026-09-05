@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Optional
 from . import conffile
 import threading
 
-from .utils import synchronous, Timer, get_resource
+from .utils import same_origin, synchronous, Timer, get_resource
 from .media import segment_labels
 from .mpv_events import observe as observe_property
 from .mpv_events import wait_property
@@ -459,6 +459,17 @@ if sys.platform.startswith("win32") or sys.platform.startswith("cygwin"):
 # A: Some calls to python-mpv require event processing.
 #    put_task is used to deal with the events originating from
 #    the event thread, which would cause deadlock if they run there.
+
+
+def _item_is_audio(video):
+    """Whether ``video`` is an audio item, from its metadata.
+
+    Takes the video rather than reading ``self._video`` so it can be asked
+    during a start, before the player has adopted the new item. Metadata, not
+    mpv's track list, so it answers before a byte has been demuxed.
+    """
+    item = getattr(video, "item", None) or {} if video is not None else {}
+    return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
 
 
 def _rank_stream(prev_source, prev_index, streams, stream_type):
@@ -2100,23 +2111,30 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         frames, so the open is done and the demuxer has what it needs. Falls
         back to a positive playback_time for backends that don't expose
         core-idle. Runs on the action thread, once per playback.
+
+        **A PAUSE satisfies it too, and has to.** mpv reports a paused core as
+        `core-idle yes` indefinitely, with `playback_time` frozen where it
+        stopped -- 0.0 for someone who paused at the start (measured on 0.41).
+        Waiting on core-idle alone left a viewer who paused in the first
+        second with no scrub thumbnails for the rest of the item: nothing here
+        fires again, and the renderer's lazy re-ask only runs once a first
+        window has arrived. A stopped core is also the one moment nothing is
+        competing with the fetch.
         """
         if not self._trickplay_pending or self.trickplay is None:
             return
         try:
             idle = self._player.core_idle
+            paused = self._player.pause
             position = self._player.playback_time or 0
-            if idle is None:
-                live = position > 0
-            else:
-                live = not idle
+            live = (position > 0) if idle is None else not idle
         except _mpv_errors:
             return          # mpv went away; the next play re-arms this
         except Exception:
             log.debug("Could not read playback state for trickplay.",
                       exc_info=True)
             return
-        if not live:
+        if not live and not paused:
             return
         self._trickplay_pending = False
         log.debug("Playback is live; starting the trickplay fetch.")
@@ -2292,9 +2310,76 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             # BEFORE the url is built: whether the header took decides
             # whether the url has to carry the token itself.
             video.auth_via_header = self._apply_auth_headers(video)
+            # Also before the url: the aid handed to PlaybackInfo is what the
+            # server bakes into a transcode, so a track settled afterwards
+            # cannot be heard. The rule first, then the remembered choice over
+            # it -- the precedence the old ordering gave for free, when the
+            # rule ran in map_streams and memory overwrote it in _play_media.
+            video.resolve_tracks_for_negotiation()
+            if is_initial_play:
+                self._track_memory = None  # new queue; start fresh
+            elif apply_memory and self._track_memory is not None:
+                self._apply_remembered_tracks(video)
             url = video.get_playback_url()
             if not url:
                 log.error("PlayerManager::play no URL found")
+                # Even so: the header we just installed is a GLOBAL option
+                # that outlives this attempt, so it must not sit there
+                # pointing at whatever plays next.
+                self._revoke_auth_header(video)
+                return
+            # ...and AFTER, because only now is the stream's host known.
+            # `_apply_auth_headers` can only ask about subtitles -- the media
+            # host does not exist until the negotiation above has run. This
+            # order is deliberate in both directions and neither half can move:
+            # the install has to precede the url so the url knows whether to
+            # carry a token, and the origin check has to follow it.
+            if video.auth_via_header and not same_origin(
+                    url, video.client.config.data.get("auth.server")):
+                # A direct path to somebody else's host: an http `.strm`
+                # source, or a path substitution. The url is left as the
+                # server gave it and never gains a token, which is correct --
+                # it has nothing to lose (docs/auth-headers.md section 3).
+                log.info("Not sending the auth header to mpv: this item "
+                         "streams from another host.")
+                self._revoke_auth_header(video)
+            if not video.auth_via_header:
+                # The subtitles are still OURS: map_streams built their urls
+                # without a token because the header was going to carry it.
+                #
+                # **Keyed on the OUTCOME, never on a branch above it** -- the
+                # header ends up off several ways, and per-branch this misses
+                # exactly the likeliest one. `reauthorize_sidecars` is
+                # same-origin-gated and idempotent, which is what makes
+                # saying it once safe (docs/auth-headers.md section 3).
+                try:
+                    video.reauthorize_sidecars()
+                except Exception:
+                    log.debug("could not re-authorize subtitle urls",
+                              exc_info=True)
+            # Last thing before _play_media, which holds the player lock and
+            # writes `hwdec` there -- read by mpv when the decoder is
+            # initialised, so a library-scope profile naming a decoder has to
+            # be known by then. Resolving the library is a request, so it
+            # cannot go inside the lock (run_action's non-blocking fast path
+            # is built on that lock being free, and the apiclient will retry
+            # an unresponsive server for minutes). It used to be deferred to
+            # the action thread for exactly that reason, which put it after
+            # the decoder had already started.
+            #
+            # AFTER the url, deliberately: this is optional and PlaybackInfo
+            # is not, so an extra round trip must not delay the negotiation
+            # the start actually depends on. It costs nothing at all unless a
+            # library-scope override exists, and the id is cached after the
+            # first lookup (and comes from the catalog for anything
+            # downloaded).
+            self._warm_shader_scope(video)
+            if self._load_cancelled:
+                # The warm above is bounded but not instant, and cancel is a
+                # button on the loading screen. Without this it appears dead
+                # for the length of the lookup.
+                log.info("Playback start cancelled during the profile lookup.")
+                self._load_cancelled = False
                 return
             self._play_media(video, url, offset, no_initial_timeline,
                              is_initial_play, apply_memory, pause_stills)
@@ -2369,6 +2454,75 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                         "to a token in the URL", exc_info=True)
             return False
         return True
+
+    #: How long a start will wait for the shader library lookup before going
+    #: on without it. Measured at 15-19 ms locally; a remote server is tens to
+    #: low hundreds. The cap is not for the normal case -- it is for a server
+    #: that ACCEPTS and then hangs, where the apiclient spends 5 x 30 s with a
+    #: second between each, about two and a half minutes, on a request the
+    #: start does not depend on and after the url is already in hand.
+    SHADER_SCOPE_WAIT_SECS = 2.0
+
+    def _warm_shader_scope(self, video):
+        """Resolve this item's library id, bounded, before _play_media.
+
+        `hwdec` is written under the player lock and read when the decoder is
+        initialised, so a library-scope profile naming a decoder has to be
+        known by then -- but the lookup is a request, and a request on the
+        start path must not be able to hold it open indefinitely.
+
+        So: run it on a thread and wait a moment. A server that answers gets
+        the profile applied to the first item, which is the whole point; one
+        that hangs costs the start `SHADER_SCOPE_WAIT_SECS` and then plays
+        without it, which is exactly the behaviour before this was moved off
+        the action thread. The lookup keeps running and caches its answer for
+        the next item either way.
+        """
+        try:
+            profiles = self.menu.profile_manager if self.menu else None
+        except Exception:
+            # No menu at all is CLI mode; anything else here is a player that
+            # is not fully wired, and neither is a reason to fail a start.
+            return
+        warm = getattr(profiles, "warm_library_scope", None)
+        if warm is None:
+            return
+        item = getattr(video, "item", None) or {}
+        client = getattr(video, "client", None)
+
+        def work():
+            try:
+                warm(item, client)
+            except Exception:
+                log.debug("could not warm the shader library scope",
+                          exc_info=True)
+
+        try:
+            thread = threading.Thread(target=work, daemon=True,
+                                      name="shader-scope-warm")
+            thread.start()
+            thread.join(self.SHADER_SCOPE_WAIT_SECS)
+            if thread.is_alive():
+                log.info("The shader library lookup is slow; starting without "
+                         "it. The profile applies from the next item.")
+        except Exception:
+            log.debug("could not run the shader library lookup", exc_info=True)
+
+    def _revoke_auth_header(self, video=None):
+        """Take back a header installed before the stream's host was known.
+
+        ``http-header-fields`` is global and outlives the item it was set for
+        (docs/mpv-backends.md section 6), so "do not send it to this host" has
+        to mean clearing it, not merely declining to set it again.
+        """
+        if video is not None:
+            video.auth_via_header = False
+        if not self._mpv_alive:
+            return
+        try:
+            self._player.http_header_fields = []
+        except Exception:
+            log.debug("could not clear http-header-fields", exc_info=True)
 
     def _forced_hwdec(self):
         """Whether a shader profile has named the decoder it requires.
@@ -2573,6 +2727,29 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             except (_mpv_errors, ValueError, TypeError):
                 log.debug("could not set the photo display duration",
                           exc_info=True)
+        # Repeat-one loops the current file, and only audio may do that.
+        #
+        # BEFORE play(), not after the load: `loop-file` is a global option
+        # that outlives the item it was set for (docs/mpv-backends.md), and
+        # this used to be written at the very end of the start -- past the
+        # `if not loaded: return` above it. So a video whose load failed left
+        # whatever the previous item set, and if that was a track playing
+        # under repeat-one it stayed "inf". Neutralising it here means a video
+        # cannot inherit a loop from anything, however the start ends.
+        #
+        # `_current_is_audio` reads the ITEM's metadata, not mpv's track list,
+        # so it answers correctly before a single byte has been demuxed.
+        try:
+            # `video`, NOT self._video: this runs before `self._video = video`
+            # further down, so asking the player would answer about the
+            # OUTGOING item -- setting loop-file "inf" on a film started after
+            # a track under repeat-one, which is the exact thing the write
+            # exists to prevent, and "no" on the first track after a film.
+            self._player.loop_file = (
+                "inf" if self.repeat_mode == "one" and _item_is_audio(video)
+                else "no")
+        except _mpv_errors:
+            pass
         # Arm load-failure detection before play(): mpv can report the file
         # unloadable before the duration wait below even starts.
         self._load_generation += 1
@@ -2699,10 +2876,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.external_subtitles_rev = {}
 
         self.upd_player_hide()
-        if is_initial_play:
-            self._track_memory = None  # new queue; start fresh
-        elif apply_memory and self._track_memory is not None:
-            self._apply_remembered_tracks(video)
+        # The remembered track is applied in play(), before the url: doing it
+        # here was after the negotiation AND after the load, and
+        # configure_streams skips audio on a transcode because the audio is
+        # already encoded into the stream. What is left here is the capture.
         self.configure_streams()
         self._capture_track_memory(video)
         self.update_subtitle_visuals()
@@ -2741,22 +2918,20 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # the field symptom being intermittent TLS errors and opens dragging
         # out to tens of seconds. update() fires this once playback is
         # genuinely live (see _pump_trickplay).
-        self._trickplay_pending = bool(self.trickplay and not v_audio)
+        # A photo is not audio, so it used to arm -- and then never fired,
+        # because `pause_stills` holds it paused and the gate above waited
+        # for a core that was never going to run. Now that a pause satisfies
+        # that gate, saying so is what keeps a slideshow from asking the
+        # server for a trickplay manifest per picture: a still has no
+        # timeline to scrub and nothing to preview.
+        self._trickplay_pending = bool(
+            self.trickplay and not v_audio
+            and not getattr(video, "is_photo", False))
 
         self.should_send_timeline = True
         # Fresh offline-record throttle window for each newly playing item.
         self._last_offline_record = float("-inf")
         self.do_not_handle_pause = False
-        # Repeat-one loops the current file, but only for audio — re-apply per
-        # track so a video started while repeat="one" is held over never loops.
-        # (Volume was already applied before play(); set_paused above already
-        # pushed the now-playing state to the music bar.)
-        try:
-            self._player.loop_file = (
-                "inf" if self.repeat_mode == "one" and self._current_is_audio()
-                else "no")
-        except _mpv_errors:
-            pass
         if self._finished_lock.locked():
             self._finished_lock.release()
 
@@ -2964,30 +3139,16 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         hands back: mpv's defaults as modified by the user's ``mpv.conf``,
         and nothing else.
 
-        **Called the moment the handle exists, before anything else touches
-        it**, because the shader pack gets there first in two different
-        ways and both would poison this:
-
-        - at construction, ``menu.update_player`` (and the first
-          ``OSDMenu``) builds a ``VideoProfileManager``, whose ``__init__``
-          re-applies the remembered profile. ``default-setting-groups``
-          writes ``deband`` and, through ``profile=gpu-hq``, every property
-          ``render_quality`` owns. ``shader_pack_remember`` defaults on, so
-          this is the ordinary path for anyone who has picked a profile
-          once;
-        - per item, ``apply_for_item`` runs earlier in ``_play_media`` than
-          the settings do.
-
-        Snapshotted after either, "the user's own value" is the pack's, and
-        turning the setting off hands the pack's values back over the user's
-        ``mpv.conf`` -- permanently, with no profile loaded, and with
-        ``deband-grain: 0`` that only made sense beside the pack's grain
-        shaders.
+        **Call it the moment the handle exists, before anything else touches
+        it.** The shader pack gets there first two different ways -- a
+        remembered profile re-applied by ``VideoProfileManager.__init__`` at
+        construction, and ``apply_for_item`` running earlier in
+        ``_play_media`` than the settings do -- and snapshotted after either,
+        "the user's own value" is the pack's (docs/mpv-backends.md section 6).
 
         A property this mpv does not have is simply absent, and the restore
-        skips it. That is the right answer rather than an error: an older
-        build without ``hdr-contrast-recovery`` cannot have a value of it to
-        put back, and the preset write for it will fail on its own terms.
+        skips it: an older build cannot have a value to put back, and the
+        preset write for it will fail on its own terms.
         """
         from .mpv_options import PRESET_SETTINGS, preset_keys
 
@@ -3017,27 +3178,19 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def _apply_render_preset(self, key):
         """Write ``key``'s configured preset, or undo ours.
 
-        **"Off" writes nothing until we have written something.** Every
-        property these settings touch is one somebody may have set in their
-        own mpv.conf, and all of them default to off -- so an off that wrote
-        its idea of "not doing this" would reach out on the first item and
-        undo the user's config, with no setting here to put it back.
-        (``hwdec_pinned_by_config`` exists to avoid the same mistake, the
-        other way round: hwdec's off is a real value that HAS to be written,
-        so it cannot buy the protection by staying silent and needs a pin.)
+        **"Off" writes nothing until we have written something**, or the
+        first item would reach out and undo the user's own ``mpv.conf`` with
+        no setting here to put it back. The undo is symmetric with the do:
+        off restores every property any preset of this key touches, not just
+        this preset's.
 
-        The undo is symmetric with the do: off restores the pristine value of
-        every property any preset of this key touches -- not just this
-        preset's, so switching presets before turning it off still restores
-        all of them.
+        ``_render_written`` carries the second meaning of off -- with a shader
+        profile loaded, off is "I have no opinion, leave the pack's value
+        alone" rather than "undo the pack". Only a key we wrote is a key we
+        may take back.
 
-        ``_render_written`` is the "have we ever written this" record, and
-        the second thing off has to mean: with a shader profile loaded, off
-        is "I have no opinion, leave the pack's value alone" rather than
-        "undo the pack". Only a key we wrote is a key we may take back.
-
-        Why preserving ``video-sync`` alone is worse than useless:
-        docs/mpv-backends.md section 6.
+        The full account, including why preserving ``video-sync`` alone is
+        worse than useless: docs/mpv-backends.md section 6.
         """
         from .mpv_options import preset_keys, preset_props
 
@@ -3180,31 +3333,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     def reapply_render_presets(self):
         """Write the preset-driven settings again, now.
 
-        For the shader pack, which writes some of the same properties and
-        then puts them back. ``pack.json`` lists ``deband-default`` under
-        ``default-setting-groups``, so **loading any profile turns debanding
-        on and unloading one turns it off again** -- and the value unload
-        restores is whatever mpv had when ``VideoProfileManager`` snapshotted
-        it, which is not this setting. Without this, picking an upscaler
-        mid-film and dropping it again would silently take the user's
-        debanding with it for the rest of the film; ``_play_media`` would not
-        put it back until the next item.
+        Called after every profile load and unload, because **loading any
+        profile turns debanding on and unloading one turns it off again** --
+        so without this, picking an upscaler mid-film and dropping it again
+        takes the user's debanding with it for the rest of the film. The rule
+        it enforces: a preset that is not "off" outranks the pack, and "off"
+        means whatever the pack (or mpv.conf) wrote stands.
 
-        The rule it enforces is the one the settings are documented with: a
-        preset that is not "off" is the authority, and "off" means we have no
-        opinion and whatever the pack (or mpv.conf) wrote stands.
-
-        ``@synchronous`` because it arrives from two threads that are not the
-        one applying settings for the next item: the shader menu's
-        ``put_task`` on the action thread, and ``kb_kill_shader`` straight
-        from mpv's key handler. Every one of the settings it writes is also
-        written by ``_play_media``, so without the lock the two loops
-        interleave and the item ends up wearing half of each -- and the
-        pack's values it reads through ``_pack_applied`` are being rewritten
-        by ``unload_profile`` at the same time. Blocking a key handler on
-        this lock is what ``toggle_pause`` and ``toggle_fullscreen`` already
-        do, and ``wait_property``'s poll thread and hard timeout are what
-        keep a playback start from holding it for ever.
+        ``@synchronous`` because it arrives from threads that are not the one
+        applying settings for the next item, and every property it writes
+        ``_play_media`` writes too -- unlocked, the item wears half of each.
+        Why blocking a key handler here is safe: docs/mpv-backends.md section 6.
         """
         if self._player is None or not self._mpv_alive:
             return
@@ -3404,7 +3543,15 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         # Only mark played on a genuine end-of-file. An errored/aborted stream
         # (playback-abort far from the end) must not be recorded as watched.
         if settings.force_set_played and self._finished_at_eof(video):
-            video.set_played()
+            # Queued, not called -- but note this is submitted BEFORE the
+            # advance's stop report, unlike watched_skip and unwatched_quit
+            # where the mark deliberately follows it. That is the pre-existing
+            # order (the inline set_played was here too) and it is safe at a
+            # genuine EOF: the stop carries a position at the end of the item,
+            # which Jellyfin does not read as "unwatched". What the queue buys
+            # here is ordering behind reports ALREADY in flight, not ordering
+            # against the stop below.
+            self.queue_played_mark(video)
         # Repeat-all wraps back to the first track when the queue runs out
         # (repeat-one loops in mpv and never reaches here). SyncPlay drives its
         # own advance, so wrap only applies to normal local playback.
@@ -3483,16 +3630,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         # Advance (which sends the final stop report at the current position)
         # BEFORE marking played: the other order let the stop report land
-        # after set_played and overwrite the fully-watched state with
+        # after the mark and overwrite the fully-watched state with
         # mid-episode progress. unwatched_quit uses the same stop-then-mark
         # order for the same reason. finally: the user's explicit mark must
         # not be lost just because the advance failed (e.g. the next item's
         # playback-info errored).
+        #
+        # Calling them in this order is no longer enough to deliver them in
+        # it. The stop goes onto the SessionReporter's FIFO and an inline mark
+        # would overtake anything already queued, so the mark goes on the same
+        # queue -- which is what makes the paragraph above true again rather
+        # than merely intended.
         video = self._video
         try:
             self.play_next()
         finally:
-            video.set_played()
+            self.queue_played_mark(video)
 
     @synchronous("_lock")
     def unwatched_quit(self):
@@ -3501,7 +3654,10 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
         video = self._video
         self.stop_and_close()
-        video.set_played(False)
+        # Behind the stop that stop_and_close queued: an inline mark would
+        # arrive first and the stop's position would restore a resume point
+        # on the item the user just asked to forget.
+        self.queue_played_mark(video, False)
 
     @synchronous("_lock")
     def play_next(self):
@@ -3876,9 +4032,28 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
 
     def _apply_remembered_tracks(self, video):
         """Carry the previous episode's audio/subtitle choice into this one,
-        matching by language/title/codec/position (jellyfin-web heuristic)."""
+        matching by language/title/codec/position (jellyfin-web heuristic).
+
+        One step of a four-step chain; `docs/track-selection.md` has the whole
+        table and `tests/test_track_truth_table.py` enforces it.
+        """
+        # **Deliberately does NOT check `explicit_tracks`**, unlike the other
+        # three steps of the chain. This step is how a deliberate pick reaches
+        # the next episode at all: the memory holds what the user last chose
+        # and `_rank_stream` re-matches it against *this* item's streams by
+        # language, title, codec and position. A forwarded `explicit_tracks`
+        # would instead carry the previous item's raw stream index, which
+        # indexes into a different source and is stale by construction.
+        #
+        # What protects a pick on the item it was made for is the caller:
+        # `is_initial_play` clears the memory (the browser's pick), and
+        # `apply_memory=False` skips this entirely (a restart after
+        # `set_streams`). See docs/track-selection.md section 4.
         prev_source, prev_aid, prev_sid = self._track_memory
-        streams = (video.media_source or {}).get("MediaStreams") or []
+        # source_for_track_rules, not media_source: this now runs before
+        # PlaybackInfo, where there is no negotiated source yet. It answers
+        # with the negotiated one once there is.
+        streams = (video.source_for_track_rules() or {}).get("MediaStreams") or []
 
         if settings.remember_audio_track and prev_aid is not None:
             match = _rank_stream(prev_source, prev_aid, streams, "Audio")
@@ -3886,9 +4061,22 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
                 video.aid = match
 
         if settings.remember_subtitle_track:
-            if prev_sid is None or prev_sid == -1:
-                video.sid = -1  # subtitles were off — keep them off
-            else:
+            # **-1 and None are not the same memory.** -1 is what the OSD
+            # menu's "None" entry and the HUD's "Off" entry send (menu.py,
+            # osc_bridge.py): a decision, and one worth carrying. None is
+            # what `video.sid` holds when nothing ever resolved a subtitle --
+            # the previous episode had no subtitle track, or no rule matched
+            # and the source named no default. That is an absence, and
+            # promoting it to "off" overwrites a language_config rule that
+            # HAS resolved a subtitle for this episode.
+            #
+            # Which turned one episode with no subtitle track into subtitles
+            # off for the rest of the season -- defeating the Subbed/Dubbed
+            # preset on precisely the run of episodes it exists to cover. The
+            # audio branch above has always distinguished the two.
+            if prev_sid == -1:
+                video.sid = -1  # subtitles were switched off — keep them off
+            elif prev_sid is not None:
                 match = _rank_stream(prev_source, prev_sid, streams, "Subtitle")
                 if match is not None:
                     video.sid = match
@@ -4084,11 +4272,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         self.timeline_handle()
 
     def _current_is_audio(self):
-        video = self._video
-        if video is None:
-            return False
-        item = getattr(video, "item", None) or {}
-        return item.get("MediaType") == "Audio" or item.get("Type") == "Audio"
+        """Whether the item now playing is audio. See :func:`_item_is_audio`.
+
+        Anything asking this BEFORE `self._video` is assigned must call
+        `_item_is_audio(video)` with the incoming item instead -- this answers
+        about the outgoing one.
+        """
+        return _item_is_audio(self._video)
 
     def _maybe_save_volume(self):
         """Persist the current volume into its per-type bucket if it changed.
@@ -4509,12 +4699,21 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         from . import keysweep
 
         try:
-            for key, semantic, cmd in self._swept_keys():
-                if semantic != "seek" or key != action:
+            for key, semantic, arg in self._swept_keys():
+                # `key.lower()`: the sweep reports mpv's key names (`RIGHT`)
+                # and the remote's actions are lowercase (`right`), so a
+                # direct comparison never matched and every arrow silently
+                # took the stock distance below.
+                if semantic != keysweep.SEEK or key.lower() != action.lower():
                     continue
-                got = keysweep.action(cmd)
-                if got is not None:
-                    return got[1]
+                # `sweep` has ALREADY parsed the command: its third element is
+                # `action()`'s argument, which for a seek is exactly the
+                # `(seconds, exact)` this method returns. Feeding it back to
+                # `action()` -- which takes a command string -- was the second
+                # of the two bugs here, and either one alone was enough to
+                # land on the default.
+                if isinstance(arg, tuple) and len(arg) == 2:
+                    return arg
         except Exception:
             log.debug("could not read mpv's seek binding for %r", action,
                       exc_info=True)

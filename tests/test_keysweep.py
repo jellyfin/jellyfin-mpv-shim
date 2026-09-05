@@ -12,6 +12,16 @@ carry the command that was already bound so re-issuing it preserves the
 user's meaning.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import sys
 import unittest
 
@@ -22,9 +32,30 @@ from jellyfin_mpv_shim.keysweep import (                      # noqa: E402
     FULLSCREEN, PAUSE, SEEK)
 
 
-def weak(key, cmd, priority=-1):
+def weak(key, cmd, priority=0):
+    """mpv's own builtin binding.
+
+    ``priority=0``, measured: of 206 builtins on a real mpv, 194 report
+    priority 0 and the only 12 at -1 are the *inactive* `encode` and
+    `discnav` sections. The default here was -1, which modelled every builtin
+    as though it came from a disabled section -- the one state that must be
+    excluded from ranking. See ``inactive()`` in keysweep.
+    """
     return {"key": key, "cmd": cmd, "section": "default",
             "is_weak": True, "priority": priority}
+
+
+def inactive(key, cmd, weak_binding=False):
+    """A binding from a section that is defined but NOT enabled.
+
+    mpv reports these with a negative priority, and they are exactly what a
+    sweep must ignore: the shim defines and disables its own sections (the
+    OSD menu's ``jms_menu``, the renderer's mouse sections), and mpv itself
+    ships ``encode`` and ``discnav`` -- the latter binding LEFT/RIGHT/UP/DOWN,
+    which is what the seek sweep is looking for.
+    """
+    return {"key": key, "cmd": cmd, "section": "jms_menu",
+            "is_weak": weak_binding, "priority": -1}
 
 
 def strong(key, cmd, priority=0):
@@ -241,3 +272,113 @@ class AgainstRealMpvTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InactiveSectionsTest(unittest.TestCase):
+    """A binding from a disabled section must not win.
+
+    ``_rank`` ordered non-weak before weak and then by priority, and never
+    looked at whether the entry was live at all. A disabled non-weak binding
+    ranks (1, -1), which beats mpv's live builtin at (0, 0) -- so the sweep
+    copied a binding mpv is correctly ignoring into the shim's own ACTIVE
+    claim, and dead behaviour came back to life.
+
+    Measured on real mpv: 12 of 206 builtin bindings sit at priority -1, all
+    of them in the inactive `encode` and `discnav` sections, and `discnav`
+    binds LEFT/RIGHT/UP/DOWN -- the seek keys this sweep exists to find. The
+    shim also defines-and-disables sections of its own (`jms_menu`, the
+    renderer's mouse sections), which is the non-weak case.
+    """
+
+    def test_a_disabled_binding_does_not_beat_the_live_default(self):
+        bindings = [inactive("f", "set fullscreen no"),
+                    weak("f", "cycle fullscreen")]
+        self.assertTrue(
+            keysweep.is_mpv_default(bindings, "f"),
+            "a binding from a disabled section won, so the sweep claims "
+            "behaviour mpv is ignoring")
+        got = dict((k, s) for k, s, _c in
+                   keysweep.sweep(bindings, {FULLSCREEN}))
+        self.assertEqual(got, {"f": FULLSCREEN})
+
+    def test_mpvs_own_inactive_sections_are_ignored(self):
+        """`discnav` binds the arrow keys and is inactive in an ordinary
+        session; its `discnav left` must not shadow `seek -5`."""
+        bindings = [
+            {"key": "LEFT", "cmd": "discnav left", "section": "discnav",
+             "is_weak": True, "priority": -1},
+            weak("LEFT", "seek -5"),
+        ]
+        got = dict((k, s) for k, s, _c in keysweep.sweep(bindings, {SEEK}))
+        self.assertEqual(got, {"LEFT": SEEK})
+
+    def test_a_disabled_binding_alone_claims_nothing(self):
+        """Not "fall back to it" -- it is not in effect, so the key means
+        whatever mpv says it means, which here is nothing."""
+        self.assertEqual(keysweep.sweep([inactive("f", "cycle fullscreen")],
+                                        {FULLSCREEN}), [])
+
+    def test_an_enabled_user_binding_still_wins(self):
+        """The control: filtering inactive entries must not stop a real
+        input.conf binding beating the default, which is the whole feature."""
+        bindings = [strong("f", "cycle mute"), weak("f", "cycle fullscreen")]
+        self.assertEqual(keysweep.sweep(bindings, {FULLSCREEN}), [])
+
+
+class RemoteSeekMatchesTheKeyboardTest(unittest.TestCase):
+    """A Jellyfin remote's arrows must seek the distance the arrow key does.
+
+    `_seek_like_the_keyboard` exists because the seek distances left the
+    config in version 4: the only place a distance lives is the user's
+    input.conf, and the keyboard reads it from there. Its docstring is
+    explicit -- "A remote that kept its own number would seek a different
+    distance from the arrow key beside it on the same machine".
+
+    It never worked. Two independent bugs, and neither is a race:
+
+      * it compared mpv's key name (`RIGHT`) with the lowercase action name
+        (`right`), so the loop never matched;
+      * and it passed `sweep`'s third element to `keysweep.action`, which
+        takes a command STRING -- but `sweep` has already parsed it and hands
+        back the argument, `(seconds, exact)`.
+
+    Both land on `_DEFAULT_SEEK`, so the remote always used stock distances
+    while the keyboard beside it honoured input.conf.
+    """
+
+    def _pm(self, swept):
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._swept_keys = lambda: swept
+        return pm
+
+    def test_a_custom_distance_reaches_the_remote(self):
+        pm = self._pm([("RIGHT", keysweep.SEEK, (30.0, True))])
+        self.assertEqual(pm._seek_like_the_keyboard("right"), (30.0, True),
+                         "the remote ignored the seek distance the arrow key "
+                         "beside it uses")
+
+    def test_the_other_arrows_too(self):
+        swept = [("LEFT", keysweep.SEEK, (-15.0, False)),
+                 ("UP", keysweep.SEEK, (120.0, False)),
+                 ("DOWN", keysweep.SEEK, (-120.0, False))]
+        pm = self._pm(swept)
+        self.assertEqual(pm._seek_like_the_keyboard("left"), (-15.0, False))
+        self.assertEqual(pm._seek_like_the_keyboard("up"), (120.0, False))
+        self.assertEqual(pm._seek_like_the_keyboard("down"), (-120.0, False))
+
+    def test_an_unbound_arrow_falls_back_to_the_stock_distance(self):
+        """The control: with nothing swept for that key the stock number is
+        the right answer, and it must still be reachable."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = self._pm([("RIGHT", keysweep.SEEK, (30.0, True))])
+        self.assertEqual(pm._seek_like_the_keyboard("left"),
+                         PlayerManager._DEFAULT_SEEK["left"])
+
+    def test_a_non_seek_binding_is_not_mistaken_for_one(self):
+        pm = self._pm([("RIGHT", keysweep.PAUSE, None)])
+        from jellyfin_mpv_shim.player import PlayerManager
+        self.assertEqual(pm._seek_like_the_keyboard("right"),
+                         PlayerManager._DEFAULT_SEEK["right"])

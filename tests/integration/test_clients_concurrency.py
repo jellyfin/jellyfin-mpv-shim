@@ -20,6 +20,14 @@ from unittest import mock
 from jellyfin_apiclient_python.connection_manager import CONNECTION_STATE
 
 sys.path.insert(0, os.path.dirname(__file__))
+# ...and the repo root. Run as a script -- which the __main__ block at the
+# bottom invites -- `sys.path[0]` is this directory and the root is on the
+# path nowhere, so `jellyfin_mpv_shim` resolves to whatever is pip-installed:
+# silently, and it *runs*, against the previous release. Measured once as a
+# renderer.lua from a fortnight ago failing a test about this tree.
+# run_integration.py is unaffected (it spawns -m unittest with cwd=root).
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import _harness as h  # noqa: E402
 
 from jellyfin_mpv_shim import clients as clients_module  # noqa: E402
@@ -672,6 +680,153 @@ class OneClientPerServerTest(unittest.TestCase):
         pending = next(s for s in cm.credentials if s["uuid"] not in live)
         self.assertTrue(cm._server_is_connected(pending),
                         "the other route to a connected server reads as down")
+
+
+class SwitchUserInvalidatesInFlightAuthTest(unittest.TestCase):
+    """A connect that completes AFTER a user switch must not register.
+
+    `switch_user` drains the registry and swaps the credentials, but an
+    authenticate already in flight knows nothing about it: `connect_client`
+    publishes its result checking only `is_stopping` and `_removed_uuids` --
+    and the switch CLEARS `_removed_uuids` itself, so by the time the old
+    connect lands neither guard can refuse it.
+
+    `_switching` does not cover this either. It makes the health check and the
+    websocket redial loops stand down before they *start* a tick; a connect
+    already blocked inside `authenticate` is past that check, and authenticate
+    is where the seconds are.
+
+    The result is the previous account's authenticated client registered under
+    the new user, reachable from `_collect_servers` and therefore from the
+    server list and the home screen.
+    """
+
+    def setUp(self):
+        self._p = mock.patch.object(clients_module.settings, "client_uuid",
+                                    DEVICE_ID)
+        self._p.start()
+        self.addCleanup(self._p.stop)
+
+    def _users(self):
+        from jellyfin_mpv_shim.users import UserManager
+
+        users = UserManager()
+        users.save = lambda: None
+        return users
+
+    def test_a_connect_landing_after_the_switch_is_refused(self):
+        users = self._users()
+        old = users.add_user("Old user")
+        new = users.add_user("New user")
+        users.set_active(old["id"])
+        users.set_active_credentials([server("old-credential")])
+
+        started, release = threading.Event(), threading.Event()
+
+        def authenticate(_client):
+            started.set()
+            self.assertTrue(release.wait(5))
+
+        fake = FakeClient(on_authenticate=authenticate)
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            pending = threading.Thread(target=cm.connect_client,
+                                       args=(cm.credentials[0],))
+            pending.start()
+            self.assertTrue(started.wait(5), "the connect never started")
+
+            self.assertTrue(cm.switch_user(new["id"]))
+            self.assertEqual(cm.credentials, [],
+                             "the new user should have no servers")
+
+            release.set()
+            pending.join(5)
+            self.assertFalse(pending.is_alive())
+
+        self.assertEqual(list(cm.clients), [],
+                         "the previous user's client was registered after the "
+                         "switch, so their account is reachable as the new user")
+        self.assertTrue(fake.stopped,
+                        "the refused client was left running, holding a "
+                        "websocket and a server session")
+
+    def test_a_connect_landing_between_the_drain_and_the_swap_is_refused(self):
+        """The interval the first version of this test could not see.
+
+        It released authentication only after the WHOLE switch, so it
+        exercised the interleaving the fix already handled. The generation was
+        bumped after `stop_all_clients()`, so a connect completing in between
+        still matched the generation it captured, registered into the
+        just-emptied registry, and survived -- nothing drains it twice.
+        """
+        users = self._users()
+        old = users.add_user("Old user")
+        new = users.add_user("New user")
+        users.set_active(old["id"])
+        users.set_active_credentials([server("old-credential")])
+
+        entered, release = threading.Event(), threading.Event()
+        drained, resume = threading.Event(), threading.Event()
+
+        def authenticate(_client):
+            entered.set()
+            self.assertTrue(release.wait(5))
+
+        fake = FakeClient(on_authenticate=authenticate)
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+        original_drain = cm.stop_all_clients
+
+        def drain_then_pause():
+            original_drain()
+            drained.set()
+            self.assertTrue(resume.wait(5))
+
+        cm.stop_all_clients = drain_then_pause
+
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            connector = threading.Thread(target=cm.connect_client,
+                                         args=(cm.credentials[0],))
+            connector.start()
+            self.assertTrue(entered.wait(5))
+
+            switcher = threading.Thread(target=cm.switch_user,
+                                        args=(new["id"],))
+            switcher.start()
+            self.assertTrue(drained.wait(5), "the drain never ran")
+
+            release.set()
+            connector.join(5)
+            resume.set()
+            switcher.join(5)
+            self.assertFalse(switcher.is_alive())
+
+        self.assertEqual(
+            list(cm.clients), [],
+            "a connect that landed between the drain and the identity swap "
+            "registered the previous user's client, and nothing drains twice")
+
+    def test_a_connect_with_no_switch_still_registers(self):
+        """The control. Refusing everything would pass the test above and
+        break connecting altogether."""
+        users = self._users()
+        only = users.add_user("Only user")
+        users.set_active(only["id"])
+        users.set_active_credentials([server("s1")])
+
+        fake = FakeClient()
+        cm = make_manager(lambda: fake)
+        self.addCleanup(cm.stop)
+        with mock.patch.object(clients_module, "userManager", users):
+            cm._adopt_active_user()
+            self.assertTrue(cm.connect_client(cm.credentials[0]))
+        self.assertEqual(list(cm.clients), ["s1"])
+        self.assertFalse(fake.stopped)
+
 
 
 if __name__ == "__main__":

@@ -40,6 +40,14 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# ...and the repo root. Run as a script -- which the __main__ block at the
+# bottom invites -- `sys.path[0]` is this directory and the root is on the
+# path nowhere, so `jellyfin_mpv_shim` resolves to whatever is pip-installed:
+# silently, and it *runs*, against the previous release. Measured once as a
+# renderer.lua from a fortnight ago failing a test about this tree.
+# run_integration.py is unaffected (it spawns -m unittest with cwd=root).
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import _harness as h  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -123,7 +131,7 @@ def _run_child(config, delay=START_DELAY, wedge=None):
                               timeout=TIMEOUT, env=env,
                               stdin=subprocess.DEVNULL,
                               stdout=out, stderr=subprocess.STDOUT)
-    with open(log_path, "r", errors="replace") as fh:
+    with open(log_path, "r", errors="replace", encoding="utf-8") as fh:
         return fh.read(), proc.returncode
 
 
@@ -179,7 +187,7 @@ class RestartRelaunchTest(unittest.TestCase):
         directory, with different servers and different settings, and
         nothing says anything went wrong."""
         self.assertTrue(self.relaunched, "no replacement app appeared")
-        with open(self.marker) as fh:
+        with open(self.marker, encoding="utf-8") as fh:
             argv = fh.read().split("\n")
         self.assertIn("--config", argv)
         self.assertEqual(argv[argv.index("--config") + 1], self.config)
@@ -195,7 +203,7 @@ class RestartRelaunchTest(unittest.TestCase):
         primary.
         """
         self.assertTrue(self.relaunched, "no replacement app appeared")
-        with open(os.path.join(self.config, "generation")) as fh:
+        with open(os.path.join(self.config, "generation"), encoding="utf-8") as fh:
             self.assertGreaterEqual(int(fh.read().strip()), 2)
 
 
@@ -214,7 +222,7 @@ class OrdinaryQuitTest(unittest.TestCase):
         self.addCleanup(_cleanup, config)
         # Generation 1 already used up, so the child records a marker and
         # arms nothing -- exactly an ordinary quit.
-        with open(os.path.join(config, "generation"), "w") as fh:
+        with open(os.path.join(config, "generation"), "w", encoding="utf-8") as fh:
             fh.write("1")
         marker = os.path.join(config, "relaunched")
         output, _rc = _run_child(config, delay=START_DELAY)

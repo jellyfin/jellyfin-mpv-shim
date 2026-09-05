@@ -206,6 +206,23 @@ rather than addressed to a node: history belongs to the app, not to
 whatever the pointer happens to be over. An app that registers no
 `on_forward` ignores it.
 
+**The wheel is scoped the same way, and one layer finer.** The full UI
+holds it — every browse screen scrolls — but a summoned playback HUD
+holds it only while a notch would actually be *spent*: an open dropdown
+popup, a page that claimed `WHEEL_UP`/`WHEEL_DOWN`, or a `scroll`
+container the dialog on top allows and that has somewhere to go
+(`scroll_max > 0` — the same gate `scroll_at` applies, so the two must
+change together). **Not everything that looks interactive**: a gear or
+context menu draws all of its items, so it can never spend a notch, and a
+modal is not itself a claimant — the scroller inside it is. Over a bare
+control bar the section is disabled, so the user's own
+`WHEEL_UP`/`WHEEL_DOWN` (volume, in the usual `input.conf`) and mpv's
+`WHEEL_LEFT`/`WHEEL_RIGHT` keep working while the controls are up rather
+than dying with the bar's arrival (jellyfin-mpv-shim#711). It is decided
+on every render, so a HUD that grows a list gets the wheel by drawing
+one; a key claim syncs it itself, since a claim over an already-drawn bar
+invalidates nothing and no frame is coming.
+
 ## 3. Scene protocol (Python → Lua)
 
 `script-message mpvtk-scene <json>`:
@@ -612,7 +629,9 @@ empty scene is *not* enough, because the bindings are what swallow the
 clicks. HUD mode keeps the renderer attached during playback with only a
 lightweight summon surface bound (the wake key + mouse motion). Summoning
 rebinds the full input sections and fires `on_hud(True)`; the inactivity
-timer drops back to idle with `on_hud(False)`. `set_active` in either
+timer drops back to idle with `on_hud(False)`. "Full" is everything but
+the thumb buttons and, unless the scene has something that scrolls, the
+wheel — both stay with the player (§2). `set_active` in either
 direction also leaves HUD mode. A summoned HUD lands its focus on whatever
 the scene marks `af` (§3); `MpvtkApp.summon_hud()` wakes an idle one as if
 a nav key were pressed, with no pause toggle.
@@ -703,3 +722,135 @@ reaching parity). The migration's own write-ups (`MIGRATION.md`,
 them; the comments that cited those files were cleaned up on 2026-08-07, so
 a fresh citation of either is a dead pointer rather than a doc you have not
 found.
+
+## 12. Text: faces, metrics, bidi and colour emoji
+
+Two text paths, and only one of them has font fallback.
+
+- **ASS text** (Text/Icon nodes) goes through **libass**, which does its own
+  fontconfig fallback — CJK, Arabic and emoji all just work.
+- **Text baked into bitmaps** (tile captions in `mpvtk_browser.strips`, the
+  display mirror's title block, the epub reader) goes through **Pillow**, and
+  Pillow has **no fallback at all**: one TrueType face draws the whole string
+  and anything it lacks is tofu (□□□).
+
+`mpvtk/pilfont.py` is the whole of the second path: it splits a string into
+same-script runs, resolves a face per run, and draws them along a shared
+baseline. This section is the measured evidence behind its tables; the rules
+themselves are stated at the code. Everything below was measured on 2026-09-02
+with Pillow 12.3 / FreeType 2.14.3, on Debian and the Windows VM.
+
+### 12.1 An RTL face must carry the whole line
+
+Pillow (through Raqm) reorders bidi **within** one `draw.text` call and cannot
+across several, so a right-to-left line has to be drawn with a **single face**.
+That makes an RTL candidate list a different question from every other script's:
+the face must cover the *line*, not just the script, because there is no Latin
+run to fall back to for the full stop, the comma or the year.
+
+| face | Hebrew (of 88) | pres. forms | printable ASCII |
+|---|---|---|---|
+| `NotoSansHebrew-Regular.ttf` | 87 | 46/46 | **2/95** |
+| `DejaVuSans.ttf` | 54 | 46/46 | 95/95 |
+| `FreeSans.ttf` | 56 | 46/46 | 95/95 |
+| `LiberationSans-Regular.ttf` | **87** | 46/46 | **95/95** |
+
+**Liberation Sans is the one with no trade** — everything Noto Hebrew has (all
+but U+05EF) plus full Latin, and `hebr` in both GSUB and GPOS so the points
+still stack. That is why the Hebrew list is ordered the opposite way from every
+other list in the file: putting Noto Hebrew first drew "שלום עולם." with the
+stop as a box and every year in a title as four more.
+
+**Arabic has no such face, and that is a knowing loss.** `NotoSansArabic` is
+255/256 of the block and 751/772 presentation forms but has no A-Z, so an
+Arabic line with a Latin word in it draws that word as boxes. DejaVu *does*
+have Arabic — 165/256, with `arab` shaping in both GSUB and GPOS — but only
+249/772 presentation forms, and Arabic is a script of presentation forms. That
+is the wrong three quarters to give up for the occasional Latin word.
+
+When adding or reordering an RTL candidate, check ASCII coverage and the
+OpenType script tags, not just the letters.
+
+### 12.2 Colour emoji, and why Linux needs a scaling path
+
+- **`NotoColorEmoji.ttf` loads at 109px and no other size.** It is a CBDT
+  bitmap face; `ImageFont.truetype(path, 20)` raises `OSError: invalid pixel
+  size`. Adding it to a candidate list and moving on when the load fails is a
+  fix that changes nothing.
+- **Windows `seguiemj.ttf` is COLR-outlined and loads at any size**, in colour.
+  The awkward path is Linux-only.
+- **The only route at an arbitrary size is render-at-the-strike and shrink**:
+  draw into an RGBA scratch at 109, `resize(..., LANCZOS)`, composite. **Do not
+  premultiply first** — the glyphs are already antialiased into transparent
+  black, so the naive resize has no halo to remove (checked against both a
+  white and a dark plate) and premultiplying without dividing back out darkens
+  every edge. Composite with the alpha in the *mask* and not the source, or a
+  transparent plate squares it and the run comes out thin.
+- **Colour requires `embedded_color=True` and an RGB/RGBA target**; Pillow
+  raises `ValueError: Embedded color supported only in RGB and RGBA modes`
+  otherwise. On a *monochrome* face it renders the same picture but **not the
+  same bytes**, so it is not free to pass unconditionally where byte-identity
+  is asserted.
+- **A space in a colour-emoji face is emoji-WIDE**: 135.7 of a 109px em,
+  against DejaVu's 6.4 at 20px. Any "whitespace is neutral" run-splitting rule
+  has to stop at an emoji run, or captions get four-space holes.
+- **Emoji font cmaps are the `Emoji` property, not `Emoji_Presentation`.**
+  NotoColorEmoji carries ❤ ▶ ☀; it does **not** carry U+2605 ★ or U+2713 ✓, and
+  neither does seguiemj. Routing the text-presentation symbols to an emoji face
+  trades one tofu for another — which is why the BMP half of the emoji table is
+  small ranges rather than whole blocks.
+- The Apple Color Emoji strike list (20/26/32/40/48/52/64/96/160) is a **probe
+  set, not a verified inventory** — nobody on this project has a Mac, and 26 and
+  52 in particular are unconfirmed. Being wrong either way is cheap: an unlisted
+  strike just means the face is not used.
+  `TTCollection(path).fonts[0]["sbix"].strikes` settles it on a Mac.
+
+### 12.3 Shaping does not cross a run boundary
+
+A run boundary is a separate `draw.text` call. With Raqm present, VS16 is
+consumed, and ZWJ sequences, flag pairs and keycaps all shape to one glyph of
+the same advance as one emoji — but split "👩‍💻" at the joiner and Raqm sees
+three strings instead of one, drawing two emoji where the font has a single
+glyph. ZWJ, VS15, VS16 and U+20E3 are therefore neutral in the run splitter,
+and U+20E3 rides with the digit *before* it so "1️⃣" comes out as a keycap.
+
+### 12.4 The symbol face is not a script
+
+A Latin face is not a symbol face: the one Windows lands on (Arial) has no
+U+2605, which is the whole of #713's Pillow half. **The ASS half needed no
+fix** — libass falls back through DirectWrite and drew the star already.
+
+A symbol only wins a whole string when there is nothing else in it. Segoe UI
+Symbol's Latin is not Arial's and it carries no Arabic or Hebrew at all, so one
+star choosing it would re-typeset whole paragraphs — and for an RTL line, which
+cannot be split at all, draw every word as a box.
+
+Mixed lines cost a little vertical room: PIL's default vertical anchor is the
+*ascender* and two faces do not share one, so runs are drawn from a shared
+baseline set by the tallest ascent. A caller reserving from `script_of`'s face
+can therefore sit ~3px short — on Windows the symbol face is (22, 6) against
+Arial's (19, 5) at 20px.
+
+### 12.5 Two things that look like premature optimisation
+
+- **The flattened codepoint sets.** `script_of_char` runs per character and
+  `strips._ellipsize` re-measures a caption once per character while it trims,
+  so walking 48 emoji ranges to reject one CJK character showed up: 1.2 µs a
+  character against 0.017 µs for a set membership — 25 µs against 2 µs for one
+  Japanese caption, and milliseconds across a grid. The range tables stay as
+  ranges because that is the form a human can check against `emoji-data.txt`.
+- **Splitting at all.** A face named for a script is very often a face for
+  *only* that script: DroidSansFallback (what a Debian box without Noto CJK
+  lands on), NotoSansThai and NotoSansArabic all draw the letter A as `.notdef`,
+  so "進撃の巨人 (2013)" came out with the year as four tofu boxes.
+
+### 12.6 Where the Unicode data actually is
+
+Debian's `unicode-data` package ships
+`/usr/share/unicode/emoji/emoji-data.txt` — the authoritative
+`Emoji_Presentation` list, which a test checks the BMP table against — plus
+`UnicodeData.txt`, `Scripts.txt` and the rest under `/usr/share/unicode/`.
+Check for it before transcribing any Unicode property by hand: validating a
+transcription against a font's cmap instead is unsound in one direction, since
+a cmap is the `Emoji` property and therefore a **superset** — it can catch an
+omission but never a wrong inclusion.

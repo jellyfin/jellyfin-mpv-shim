@@ -220,6 +220,21 @@ def segment_labels(segment_type):
 
 
 class Video(object):
+    #: Class-level, NOT only set in __init__: OfflineVideo deliberately does
+    #: not call super().__init__ (that would hit the server), and every test
+    #: helper that builds a Video with __new__ skips it too. An instance
+    #: attribute alone made `map_streams` raise AttributeError on exactly
+    #: those paths -- i.e. on offline playback.
+    _tracks_resolved = False
+
+    #: Class attributes for the same reason as `_tracks_resolved` above, and
+    #: they are read on the same paths. `explicit_tracks` in particular is now
+    #: consulted by all four steps of the track chain (docs/track-selection.md),
+    #: the first of which runs before the url is built -- so on a Video built
+    #: without `__init__` its absence is not a gap in coverage, it is an
+    #: AttributeError out of the middle of a start.
+    explicit_tracks = False
+
     def __init__(
         self,
         item_id: str,
@@ -284,6 +299,11 @@ class Video(object):
         self.srcid = srcid
         self.intros: List[Intro] = []
         self.intro_tried = False
+        #: Whether language_config has already had its say for this item.
+        #: Set by resolve_tracks_for_negotiation, read by map_streams so the
+        #: rule is not applied a second time -- which would overwrite a
+        #: remembered track chosen after it. See that method.
+        self._tracks_resolved = False
 
     def foreign_subtitle_hosts(self):
         """Hosts, other than our server, that mpv would fetch a subtitle from.
@@ -301,12 +321,16 @@ class Video(object):
         (StreamInfo.cs:1264-1274), so the same test on Path is the honest
         pre-check.
         """
+        from .utils import same_origin
+
         try:
-            base = urllib.parse.urlparse(
-                self.client.config.data.get("auth.server") or "")
+            server = self.client.config.data.get("auth.server") or ""
         except Exception:
-            return set()
-        mine = (base.scheme, base.hostname, base.port)
+            # Fail CLOSED, and here rather than at the caller: this swallows
+            # the failure, so an empty answer reaches `_apply_auth_headers` as
+            # "nothing foreign" and it installs the header. No guard above can
+            # supply what never gets raised.
+            return {"unknown"}
         foreign = set()
         for source in self.item.get("MediaSources") or []:
             for stream in source.get("MediaStreams") or []:
@@ -315,13 +339,103 @@ class Video(object):
                 path = stream.get("Path") or ""
                 if not path.lower().startswith(("http://", "https://")):
                     continue
-                try:
-                    parts = urllib.parse.urlparse(path)
-                except Exception:
-                    continue
-                if (parts.scheme, parts.hostname, parts.port) != mine:
-                    foreign.add(parts.hostname)
+                # `same_origin`, not a second copy of the tuple comparison.
+                # The copy that used to live here read raw ports, so our own
+                # sidecar written `https://host:443` was foreign -- and
+                # `reauthorize_sidecars` agreed, so it got no token either.
+                if not same_origin(path, server):
+                    try:
+                        host = urllib.parse.urlparse(path).hostname
+                    except Exception:
+                        host = None
+                    foreign.add(host or "unknown")
         return foreign
+
+    def source_for_track_rules(self):
+        """The media source to resolve track rules against, before there is a
+        negotiated one.
+
+        The item's own MediaSources, which is what the details page already
+        uses to default its pickers (`pages/detail.py`), so the screen and the
+        stream agree. Once PlaybackInfo has run, the negotiated source is the
+        better answer and is preferred.
+        """
+        if self.media_source:
+            return self.media_source
+        sources = (self.item or {}).get("MediaSources") or []
+        if not sources:
+            return None
+        if self.srcid:
+            for src in sources:
+                if src.get("Id") == self.srcid:
+                    return src
+        return sources[0]
+
+    def resolve_tracks_for_negotiation(self):
+        """Settle aid/sid from language_config BEFORE PlaybackInfo.
+
+        `get_play_info` is sent `self.aid`/`self.sid`, and for a transcode the
+        server bakes the audio index it is given into `TranscodingUrl` -- so
+        this must precede the negotiation it exists to influence, and
+        `configure_streams` cannot repair it afterwards (it skips audio on a
+        transcode, correctly). Step 1 of docs/track-selection.md section 2.
+
+        Idempotent, because `get_playback_url` runs again on a quality change
+        or a forced-transcode retry, and because `play()` calls this first so
+        it can apply a remembered track *over* the rule.
+
+        **Only the rule.** A source default is deliberately NOT resolved here:
+        posting nothing is what makes Jellyfin fall back to
+        DefaultAudioStreamIndex itself, so client and server agree. Resolving
+        one client-side and posting it would be a behaviour change, and
+        `map_streams` fills it in afterwards for the UI regardless.
+        """
+        if self.explicit_tracks or self._tracks_resolved:
+            return
+        source = self.source_for_track_rules()
+        if not source:
+            return
+        self._tracks_resolved = True
+        rule_aid, rule_sid = apply_language_config(
+            settings.language_config, source, self.item)
+        if rule_aid is not None:
+            self.aid = rule_aid
+        if rule_sid is not None:
+            self.sid = rule_sid
+
+    def reauthorize_sidecars(self):
+        """Put a token back into our own subtitle urls after the mpv header
+        has been revoked.
+
+        `map_streams` builds an external subtitle's url from its DeliveryUrl
+        and does NOT add a token: with the Authorization header installed it
+        does not need one. But the header is revoked when the *media* turns
+        out to live on somebody else's host -- and the subtitle is still ours,
+        so it is left with no credential at all and comes back 401, i.e. no
+        captions on exactly the items that take the direct-path route.
+
+        Only same-origin urls: a sidecar hosted elsewhere (IsExternalUrl) must
+        not be handed our token, which is the rule the revoke exists to
+        enforce in the first place.
+        """
+        from .utils import same_origin
+
+        if not self.subtitle_url:
+            return
+        try:
+            server = self.client.config.data["auth.server"]
+            token = self.client.config.data["auth.token"]
+        except Exception:
+            return
+        if not token:
+            return
+        for index, url in list(self.subtitle_url.items()):
+            if not url or not same_origin(url, server):
+                continue
+            if "ApiKey=" in url or "api_key=" in url:
+                continue
+            sep = "&" if "?" in url else "?"
+            self.subtitle_url[index] = "%s%sApiKey=%s" % (url, sep, token)
 
     def map_streams(self):
         self.subtitle_seq = {}
@@ -384,13 +498,21 @@ class Video(object):
 
         # language_config overrides cast-time aid/sid; the user explicitly
         # opted into preferences and the menu is the runtime escape hatch.
-        rule_aid, rule_sid = apply_language_config(
-            settings.language_config, self.media_source, self.item
-        )
-        if rule_aid is not None:
-            self.aid = rule_aid
-        if rule_sid is not None:
-            self.sid = rule_sid
+        #
+        # Skipped once resolve_tracks_for_negotiation has run, and that guard
+        # is load-bearing rather than an optimisation: a remembered episode
+        # track is applied *after* the rule and before the negotiation, so
+        # re-running the rule here would overwrite the user's carried-over
+        # choice with it and invert a precedence that has always gone the
+        # other way.
+        if not self._tracks_resolved:
+            rule_aid, rule_sid = apply_language_config(
+                settings.language_config, self.media_source, self.item
+            )
+            if rule_aid is not None:
+                self.aid = rule_aid
+            if rule_sid is not None:
+                self.sid = rule_sid
 
         user_aid = self.media_source.get("DefaultAudioStreamIndex")
         user_sid = self.media_source.get("DefaultSubtitleStreamIndex")
@@ -827,8 +949,34 @@ class Video(object):
             )
         )
         profile = get_profile(not self.parent.is_local, video_bitrate, force_transcode)
+        # Before the negotiation, not after it: the aid below is what the
+        # server bakes into a transcode.
+        self.resolve_tracks_for_negotiation()
+        # A stream index means nothing without the source it indexes into, and
+        # the server treats it that way: measured on Jellyfin 12.0, PlaybackInfo
+        # **silently ignores AudioStreamIndex unless MediaSourceId is sent with
+        # it** and falls back to the source's DefaultAudioStreamIndex. Asking
+        # for six different tracks returned the default six times; adding the
+        # id returned each one. (docs/jellyfin-api-notes.md: the server drops
+        # what it cannot use, and a dropped parameter looks like a working
+        # client.) So track selection on a transcode was inert for every
+        # ordinary play, where srcid is None.
+        #
+        # Only when we are actually asking for a track. With no aid/sid there
+        # is nothing to pin and the server should keep choosing the source
+        # itself, which is what multi-version items rely on.
+        srcid = self.srcid
+        # Only for an index that actually INDEXES INTO a source. `sid = -1` is
+        # "no subtitles", which is source-independent -- and the remembered
+        # track sets it on every advance whose previous item had subs off, so
+        # keying off "not None" pinned MediaSources[0] for almost every play
+        # and took the source choice away from the server on multi-version
+        # items, which is the opposite of what this is for.
+        if srcid is None and ((self.aid is not None and self.aid >= 0)
+                              or (self.sid is not None and self.sid >= 0)):
+            srcid = (self.source_for_track_rules() or {}).get("Id")
         self.playback_info = self.client.jellyfin.get_play_info(
-            self.item_id, profile, self.aid, self.sid, media_source_id=self.srcid
+            self.item_id, profile, self.aid, self.sid, media_source_id=srcid
         )
 
         self.media_source = self.get_best_media_source(self.srcid)
@@ -907,7 +1055,18 @@ class Video(object):
                       self.item_id, exc_info=True)
 
     def set_streams(self, aid: Optional[int], sid: Optional[int]):
+        """A deliberate pick from the menu or the HUD.
+
+        Marked explicit, which is what stops language_config re-deciding it.
+        A transcode restarts through `play()` and negotiates again, and the
+        rule used to win that second pass -- so the stream carried the track
+        the user asked for while `video.aid`, the HUD and the progress report
+        all named the rule's. The user consciously overrode the rule; that is
+        exactly what `explicit_tracks` means.
+        """
         need_restart = False
+        if aid is not None or sid is not None:
+            self.explicit_tracks = True
 
         if aid is not None and self.aid != aid:
             self.aid = aid
@@ -915,8 +1074,15 @@ class Video(object):
                 need_restart = True
 
         if sid is not None and self.sid != sid:
+            # The subtitle being LEFT counts as much as the one being taken.
+            # A "Encode" subtitle is painted into the video by the server, so
+            # a fresh stream is needed to stop showing it just as much as to
+            # start. Testing only the new sid moved `video.sid`, the HUD and
+            # the progress report while the picture kept the old subtitle
+            # burnt into it, with no way back short of another restart.
+            was_burned_in = self.sid in self.subtitle_enc
             self.sid = sid
-            if sid in self.subtitle_enc:
+            if sid in self.subtitle_enc or was_burned_in:
                 need_restart = True
 
         return need_restart

@@ -201,7 +201,16 @@ def audit_function(fn, stateful):
 
 
 def scan_file(path, rel):
-    """Findings in one file, as (key, detail) pairs."""
+    """Findings in one file, as (key, detail) pairs.
+
+    ``rel`` is normalised to forward slashes here rather than by the caller,
+    because there are two callers -- main() below and
+    tests/test_no_stale_captures.py, which walks the tree itself -- and
+    ``rel`` becomes half of the ACCEPTED key. Fixing only one of them left
+    the other reporting every accepted finding as new on Windows, and every
+    ACCEPTED entry as stale.
+    """
+    rel = rel.replace(os.sep, "/")
     try:
         tree = ast.parse(open(path, encoding="utf-8").read())
     except SyntaxError as exc:
@@ -248,7 +257,7 @@ def main(argv=None):
                 if not f.endswith(".py"):
                     continue
                 path = os.path.join(dirpath, f)
-                rel = os.path.relpath(path, base)
+                rel = os.path.relpath(path, base)   # scan_file normalises
                 for key, detail in scan_file(path, rel):
                     if key in ACCEPTED and not args.all:
                         accepted.append((key, detail))

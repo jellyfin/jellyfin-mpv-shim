@@ -1449,7 +1449,22 @@ class TileRenderer:
             ))
             if playable and self._hover == rid:
                 chip = self._play_chip(rid, it, r, geom)
+        # **A named id, because the renderer keys its overlay slots by it.**
+        # An unnamed node is identified by its PATH in the tree, and the chip
+        # below wraps this one in a Stack -- so the row's id changed the
+        # moment the pointer arrived on it. To the renderer that is a bitmap
+        # departing and an unrelated one arriving, not a row that is still
+        # there: the whole strip is re-issued into a fresh slot on every
+        # hover in and out. Crossing from one row to the next re-uploaded
+        # both of them -- up to 31 MiB each at 4K (see StripStore.MAX_BYTES)
+        # -- for a visual change the size of a coin.
+        #
+        # Not `prefix + "-strip"`: a region is `prefix + "-" + tile key`, so
+        # a hyphen puts the row's own node in the same namespace as the
+        # tiles in it -- both for a collision and for everything that reads
+        # a row's ids back by that prefix.
         node = ImageMap(s["src"], s["iw"], s["ih"], regions=regions,
+                        id="%s#strip" % prefix,
                         v=s.get("v", 0), w=s["lw"], h=s["lh"])
         if chip is None:
             return node

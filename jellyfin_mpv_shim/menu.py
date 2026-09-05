@@ -145,11 +145,6 @@ class OSDMenu(object):
 
     def show_menu(self):
         self.is_menu_shown = True
-        # #16: the arrows are mpv's while this is not on screen, so the menu
-        # takes them for exactly as long as it is up. A no-op when they are
-        # still bound in Python.
-        self.playerManager.claim_menu_keys(True)
-
         self.menu_title = _("Main Menu")
         self.menu_selection = 0
         self.mouse_back = False
@@ -212,6 +207,18 @@ class OSDMenu(object):
         # Ensure mpv window is available when not playing.
         if self.playerManager.playback_is_aborted():
             self.playerManager.force_window(True)
+
+        # #16: the arrows are mpv's while this is not on screen, so the menu
+        # takes them for exactly as long as it is up. A no-op when they are
+        # still bound in Python.
+        #
+        # AFTER force_window, which is what notices a dead mpv and re-creates
+        # it. Claiming first sent the define-section/enable-section to the
+        # OUTGOING handle, and the replacement got no `jms_menu` at all -- the
+        # menu appeared with arrows that did nothing until it was closed and
+        # reopened. Reachable through a remote's GoToSettings in CLI/classic-
+        # OSC mode after an idle-quit.
+        self.playerManager.claim_menu_keys(True)
 
         self.playerManager.set_osd_settings("#CC333333", 40, "background-box")
         self.playerManager.enable_osc(False)

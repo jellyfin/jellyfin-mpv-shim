@@ -128,7 +128,13 @@ TAB_SECTIONS = {
                                 "detail_poster",
                                 "detail_episode_image",
                                 "logo_legibility_live_tv",
-                                "logo_legibility_library"]),
+                                "logo_legibility_library",
+                                # Last, and not between the two detail-page
+                                # image switches or the two logo ones: both
+                                # of those pairs read as a pair, and a
+                                # setting about clocks wedged into either
+                                # makes them look unrelated.
+                                "clock_12h"]),
         # The epub reader. On this tab rather than Playback because a book
         # is not played -- and next to the browser's look because that is
         # what these are: how a page is set, in a window the same size.
@@ -209,31 +215,15 @@ TAB_SECTIONS = {
 #: Settings that do nothing until the app is started again.
 #:
 #: **"Requires restart" means literally nothing happened**, and the settings
-#: form marks exactly these rows and no others. Everything else is assumed
-#: to apply now or to the next thing you play, which is why no setting says
-#: so in its own note any more -- that sentence used to be repeated across
-#: nine of them, in three different phrasings, and was the only thing a
-#: reader had to reconcile them by.
+#: form marks exactly these rows and no others. This is **not** the same
+#: question as "does it apply right now": a third group applies to the next
+#: thing you play, which is neither. docs/settings-curation.md section 3 is
+#: the full table, including the keys that look like candidates and are not.
 #:
-#: **Deliberately conservative, and under-listing is the safe direction.**
-#: A key missing from here costs a banner nobody sees; a key wrongly IN here
-#: asks somebody to restart for a change that had already taken effect,
-#: which teaches them to ignore the banner. So every entry below was read
-#: from its call site rather than assumed, and the ones that looked like
-#: candidates and are not (`window_controls`, `shader_pack_subtype`,
-#: `log_decisions`, `mpv_idle_quit`, `playback_timeout`, `paginated`) are
-#: absent because they are re-read as they are used.
-#:
-#: This is **not** the same question as "does it apply right now". A third
-#: group -- `hwdec`, `deband`, `deinterlace_auto` and the rest of
-#: `mpv_options.PRESET_SETTINGS` -- applies to the next thing you play,
-#: which is neither live nor a restart, and a banner for those would be
-#: asking for a restart that is not needed. docs/settings-curation.md
-#: section 3 is the full table.
-#:
-#: `start_minimized` and the tray pair are absent for a related reason:
-#: nothing about them is *pending*. They are settings whose whole subject is
-#: the next launch, so they have already taken full effect.
+#: **Under-listing is the safe direction.** A key missing here costs a banner
+#: nobody sees; a key wrongly IN here asks for a restart that was not needed,
+#: which teaches people to ignore the banner. Read each entry from its call
+#: site rather than assuming.
 RESTART_REQUIRED = frozenset({
     # The whole interface geometry is derived once, at startup.
     "ui_scale",
@@ -562,6 +552,7 @@ LABEL_OVERRIDES = {
     "theme": _("Theme"),
     "poster_scale": _("Cover Size"),
     "backdrop_full_width": _("Full-Width Backdrops"),
+    "clock_12h": _("12-Hour Clock"),
     "grid_fill": _("Grid Spacing"),
     "logo_legibility_live_tv": _("Make Live TV logos more legible"),
     "logo_legibility_library": _("Make library logos more legible"),
@@ -821,6 +812,13 @@ NOTES = {
                              "any more vertical space."),
     "poster_scale": _("Overrides the theme's cover size. Also on the View "
                       "menu of any library."),
+    # "am"/"pm" and "24 hour" are what somebody types; none of them is in
+    # the label, and the note is the searchable half (docs/settings-
+    # curation.md section 2.5).
+    "clock_12h": _("Show times of day as \"8:30 PM\" rather than "
+                   "\"20:30\" \u2014 the Live TV guide and its air times, "
+                   "and the \"Ends at\" labels on a detail page and the "
+                   "player controls."),
     "hud_scrim": _("The controls have to stay legible over any frame. "
                    "\"None\" gives the text a drop shadow instead of "
                    "shading the picture behind it."),
@@ -998,6 +996,9 @@ SEARCH_ALIASES = {
     "ui_scale": "hidpi dpi",
     "audio_mode": "surround 5.1 7.1",
     "motion_interpolation": "stutter",
+    # "am" and "24" are what somebody types and neither is in the label or
+    # the note; "pm", "clock" and "time" would be redundant with them.
+    "clock_12h": "am 24 format",
 }
 
 

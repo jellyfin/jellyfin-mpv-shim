@@ -16,6 +16,7 @@ Not named ``test_*`` so unittest discovery ignores it; imported as
 pattern).
 """
 
+import copy
 import threading
 import time
 import unittest
@@ -104,8 +105,13 @@ class FakeSource:
             {"Id": "lib1", "Name": "Movies", "Type": "CollectionFolder",
              "CollectionType": "movies"},
         ]
+        #: `slot` is the row's position in the user's home layout. The
+        #: repository stamps one on every row it returns, and `HomePage`
+        #: builds the scroll-container id out of it -- so a row without one
+        #: here lands on the same id as its neighbour and exercises the
+        #: collision backstop instead of the ids production actually draws.
         self.home_rows = [
-            {"title": "Continue Watching", "items": [
+            {"title": "Continue Watching", "slot": 0, "items": [
                 {"Id": "m1", "Name": "Alpha", "Type": "Movie",
                  "ProductionYear": 2001}],
              "collection_type": None},
@@ -115,7 +121,7 @@ class FakeSource:
         #: them; a fake that answered the same list for both made the whole
         #: staging invisible to the tests.
         self.home_latest_rows = [
-            {"title": "Latest Movies", "items": [
+            {"title": "Latest Movies", "slot": 1, "items": [
                 {"Id": "m2", "Name": "Beta", "Type": "Movie",
                  "ProductionYear": 2002}],
              "collection_type": "movies"},
@@ -155,6 +161,13 @@ class FakeSource:
 
     def servers(self):
         return [{"uuid": "srv1", "name": "Home Server"}]
+
+    def server_address(self, server_uuid):
+        """A real address per server, not one constant: the jellyfin-web link
+        names the server the item came from, and a fake with one address
+        cannot tell a right answer from a wrong one on a two-server setup."""
+        return {"srv1": "https://home.example",
+                "srv2": "https://remote.example"}.get(server_uuid)
 
     def get_libraries(self, server_uuid):
         return list(self.libraries)
@@ -292,6 +305,10 @@ class FakeSource:
             return dict(self.items[item_id])
         return {"Id": item_id, "Name": "Detail %s" % item_id, "Type": "Movie",
                 "Overview": "A short overview. " * 8, "ProductionYear": 2010,
+                # Every DTO a real server sends carries one, and the
+                # jellyfin-web link puts it in the query string -- a fixture
+                # without it can only exercise the omitted-serverId branch.
+                "ServerId": "SRVID",
                 # The server fills ExternalUrls in unconditionally on the
                 # single-item routes, so the real detail screen essentially
                 # always has some. Modelled here rather than on one fixture
@@ -353,13 +370,21 @@ class FakeSource:
         # omit ExternalUrls unless asked; the single-item routes do not).
         # A stand-in without them makes that row unreachable while the
         # tests around it still pass.
+        # ServerId for the same reason as on get_item: every DTO a real
+        # server sends carries one and the jellyfin-web link puts it in the
+        # query string, so a season fixture without it can only ever
+        # exercise the omitted-serverId branch -- and would stay green if
+        # this screen started composing its link from something other than
+        # the season's own DTO.
         return [{"Id": "se1", "Name": "Season 1", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
+                 "ServerId": "SRVID",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/1"}]},
                 {"Id": "se2", "Name": "Season 2", "Type": "Season",
                  "SeriesId": series_id, "SeriesName": "A Show",
+                 "ServerId": "SRVID",
                  "ExternalUrls": [
                      {"Name": "TheTVDB",
                       "Url": "https://thetvdb.example/series/1/seasons/2"}]}]
@@ -884,6 +909,48 @@ class FakeController:
 
         return record
 
+
+#: What the playback-info panel reads, and the mpv counters beside it.
+#:
+#: Module constants rather than literals in ``HudController.__init__``
+#: because the integration HUD suite needs the same two blobs against a
+#: real mpv (tests/integration/test_mpvtk_hud.py), and a second copy of a
+#: fixture is a second thing to keep true. Deep-copied per instance: tests
+#: mutate these to put the panel in its other states.
+#:
+#: A *transcode* with real streams on it, for the reason
+#: :meth:`HudController.playback_info` gives -- and long enough that the
+#: panel's body overflows at 1280x720 (measured: 754px of content in a
+#: 420px viewport), which is what gives the integration wheel test
+#: something to scroll.
+HUD_PLAYER_STATS = {
+    "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
+    "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
+    "buffered": 42.5, "cache_speed": 1_500_000,
+}
+
+HUD_PLAYBACK_INFO = {
+    "title": "Movie", "item_type": "Movie", "media_type": "Video",
+    "play_method": "Transcode",
+    "transcode_reasons": ["VideoCodecNotSupported"],
+    "direct_path": False, "offline": False,
+    "aid": 1, "sid": None,
+    "source": {
+        "Container": "mkv", "Size": 8400000000,
+        "Path": "/media/Films/Film (2017)/film.mkv",
+        "MediaStreams": [
+            {"Type": "Video", "Index": 0, "Codec": "hevc",
+             "Width": 3840, "Height": 2160, "BitDepth": 10},
+            {"Type": "Audio", "Index": 1, "Codec": "truehd",
+             "Channels": 8, "ChannelLayout": "7.1",
+             "IsDefault": True},
+            {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
+             "Language": "eng", "IsExternal": True},
+        ],
+    },
+}
+
+
 class HudController(FakeController):
     """FakeController with real HUD data (the catch-all recorder would
     return None for the data getters)."""
@@ -930,31 +997,8 @@ class HudController(FakeController):
             {"title": "Middle", "time": 40.0},
             {"title": "End", "time": 80.0},
         ]
-        self.player_stats_blob = {
-            "hwdec": "no", "vo": "gpu-next", "fps": 23.974,
-            "drops_vo": 0, "drops_dec": 3, "avsync": -0.012,
-            "buffered": 42.5, "cache_speed": 1_500_000,
-        }
-        self.playback_info_blob = {
-            "title": "Movie", "item_type": "Movie", "media_type": "Video",
-            "play_method": "Transcode",
-            "transcode_reasons": ["VideoCodecNotSupported"],
-            "direct_path": False, "offline": False,
-            "aid": 1, "sid": None,
-            "source": {
-                "Container": "mkv", "Size": 8400000000,
-                "Path": "/media/Films/Film (2017)/film.mkv",
-                "MediaStreams": [
-                    {"Type": "Video", "Index": 0, "Codec": "hevc",
-                     "Width": 3840, "Height": 2160, "BitDepth": 10},
-                    {"Type": "Audio", "Index": 1, "Codec": "truehd",
-                     "Channels": 8, "ChannelLayout": "7.1",
-                     "IsDefault": True},
-                    {"Type": "Subtitle", "Index": 2, "Codec": "subrip",
-                     "Language": "eng", "IsExternal": True},
-                ],
-            },
-        }
+        self.player_stats_blob = copy.deepcopy(HUD_PLAYER_STATS)
+        self.playback_info_blob = copy.deepcopy(HUD_PLAYBACK_INFO)
 
     def use_hud(self):
         return True

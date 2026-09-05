@@ -1,12 +1,24 @@
 """Browsing video libraries: tiles, grids, detail pages and their actions.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import re
 import unittest
 from jellyfin_mpv_shim.mpvtk.layout import layout
 from jellyfin_mpv_shim.mpvtk_browser import components
 from jellyfin_mpv_shim.mpvtk_browser import theme, tile_renderer
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
+from jellyfin_mpv_shim.mpvtk_browser.pages.home import HomePage
+from jellyfin_mpv_shim.mpvtk_browser.repository import OFFLINE_ROW_KIND
 
 from tests._shell_harness import (
     FakeController,
@@ -939,15 +951,22 @@ class TestCarouselRestore(unittest.TestCase):
         self.assertAlmostEqual(by_id[self.ROW]["off0"], 720)
         self.assertIn("hover", by_id[self.ROW + "-pl"])
 
+    #: One ``latestmedia`` section fans out to a row per library, so every
+    #: row here shares the section's slot -- and keeps it when a sibling
+    #: library empties. Numbering them by position would renumber the
+    #: survivor and hide the very thing the test below is about.
+    LATEST_SLOT = 3
+
     def _latest_rows(self, *libs):
         """A home screen with one Latest row per named library."""
         self.b.route["_data"] = {
             "libraries": [], "rows": [
                 {"title": "Latest %s" % name, "kind": "latestmedia",
-                 "parent_id": lib, "collection_type": "movies", "slot": i,
+                 "parent_id": lib, "collection_type": "movies",
+                 "slot": self.LATEST_SLOT,
                  "items": [{"Id": "%s-i%d" % (lib, j), "Name": "N%d" % j,
                             "Type": "Movie"} for j in range(30)]}
-                for i, (lib, name) in enumerate(libs)]}
+                for lib, name in libs]}
         nodes, _h = build_scene(self.b)
         return {n["id"]: n for n in nodes}
 
@@ -959,7 +978,7 @@ class TestCarouselRestore(unittest.TestCase):
         another's carousel. Invisible until the restore existed: the same
         shift used to mis-light the page buttons for a single frame."""
         by_id = self._latest_rows(("lib1", "Movies"), ("lib2", "Shows"))
-        shows = "row-latestmedia-lib2"
+        shows = "row-latestmedia-lib2#%d" % self.LATEST_SLOT
         self.assertIn(shows, by_id, "the id does not identify the library")
 
         self.r.on_screen.add(shows)
@@ -971,24 +990,147 @@ class TestCarouselRestore(unittest.TestCase):
         self.assertAlmostEqual(by_id[shows]["off0"], 840,
                                "the Shows row lost its own scroll position")
 
-    def test_a_singleton_row_is_still_keyed_by_its_ordinal(self):
-        """The change is scoped to the kinds that can appear more than once;
-        every other id is what it always was.
-
-        Asserted on the Live TV row specifically, because that id is
-        load-bearing rather than cosmetic: the button row is drawn for
-        ``row-livetv-0`` and nothing else. And it is the singleton that DOES
-        carry a collection_type, so a rule that keyed every row by whatever
-        field it happened to have would rename this one."""
+    def _live_tv_home(self, slot):
         self.b.route["_data"] = {
             "libraries": [], "rows": [
-                {"title": "On Now", "kind": "livetv", "slot": 0,
+                {"title": "On Now", "kind": "livetv", "slot": slot,
                  "collection_type": "livetv",
                  "items": [{"Id": "p1", "Name": "A", "Type": "Program"}]}]}
         nodes, _h = build_scene(self.b)
-        self.assertIn("row-livetv-0", ids(nodes))
-        self.assertIn("home-lt-guide", ids(nodes),
-                      "the Live TV button row keys off that exact id")
+        return ids(nodes)
+
+    def test_a_singleton_row_is_keyed_by_its_slot(self):
+        """A section that appears once is named by the slot it sits in, and
+        nothing else — it is the singleton that DOES carry a collection_type,
+        so a rule that keyed every row by whatever field it happened to have
+        would rename this one."""
+        drawn = self._live_tv_home(0)
+        self.assertIn("row-livetv-0", drawn)
+        self.assertIn("home-lt-guide", drawn)
+
+    def test_the_live_tv_buttons_do_not_depend_on_the_section_being_first(self):
+        """The button row used to be drawn for the row whose id was literally
+        ``row-livetv-0``. That read as "the first Live TV row" only while the
+        id carried a position among the surviving rows; once it carries the
+        slot, the same literal means "Live TV is section zero" — and anyone
+        who had moved the section down their layout would have lost the
+        guide, the recordings and the schedule with no way back to them but
+        the library tile."""
+        drawn = self._live_tv_home(5)
+        self.assertIn("row-livetv-5", drawn)
+        self.assertIn("home-lt-guide", drawn,
+                      "the Live TV buttons vanished because the section was "
+                      "not first in the layout")
+
+    def test_a_section_held_twice_does_not_collide_its_row_ids(self):
+        """Nothing stops a layout from holding ``latestmedia`` in two slots —
+        jellyfin-web's settings screen offers every type in every slot — and
+        the repository then builds one Latest row per library PER SLOT. Keyed
+        by library alone, both rows claimed ``row-latestmedia-<lib>``, and
+        ``layout()`` warns it targets "only the last occurrence": the first
+        row's tiles were unreachable by keyboard and its clicks landed on the
+        second row's.
+
+        Counted off the node list rather than ``ids()``, which is a set and
+        so cannot see a duplicate at all. Found on the QA server, where a
+        stale home layout did exactly this and read as a keyboard-nav
+        regression with nothing pointing at the layout.
+        """
+        self.b.route["_data"] = {
+            "libraries": [], "rows": [
+                {"title": "Latest Movies", "kind": "latestmedia",
+                 "parent_id": "lib1", "collection_type": "movies",
+                 "slot": slot,
+                 "items": [{"Id": "lib1-i%d" % j, "Name": "N%d" % j,
+                            "Type": "Movie"} for j in range(30)]}
+                for slot in (6, 8)]}
+        nodes, _h = build_scene(self.b)
+        drawn = [n["id"] for n in nodes if n.get("id")]
+        dupes = sorted({i for i in drawn if drawn.count(i) > 1})
+        self.assertEqual(
+            dupes, [],
+            "two latestmedia slots drew colliding node ids, so the renderer "
+            "reaches only the last of each: %s" % dupes[:5])
+        # Each occurrence is named by the slot it came from, so neither can
+        # be renumbered into the other's id -- and its parked scroll offset
+        # -- by the other one going away.
+        self.assertIn("row-latestmedia-lib1#6", drawn)
+        self.assertIn("row-latestmedia-lib1#8", drawn)
+
+    def _held_twice(self, kind, slots, empty=(), **extra):
+        """One section in several slots, with `empty` slots contributing no
+        row -- which is what the repository does when a row's own request
+        fails (`One dead row must not cost the whole home screen`) or comes
+        back with nothing."""
+        self.b.route["_data"] = {
+            "libraries": [], "rows": [
+                dict({"title": "Row %d" % slot, "kind": kind, "slot": slot,
+                      "items": [{"Id": "i%d" % j, "Name": "N%d" % j,
+                                 "Type": "Movie"} for j in range(30)]},
+                     **extra)
+                for slot in slots if slot not in empty]}
+        nodes, _h = build_scene(self.b)
+        return [n["id"] for n in nodes if n.get("id")]
+
+    def test_a_repeated_row_keeps_its_id_when_its_twin_empties(self):
+        """The id may not depend on which *other* rows survived this render.
+
+        Both halves of the numbering did. The ordinal counts rows that have
+        items, and the ``#`` suffix counts occurrences already used -- so
+        either way the second occurrence is renumbered into the first's id
+        the moment the first contributes nothing, and inherits the scroll
+        offset parked under it.
+        """
+        for kind, extra in (("latestmedia", {"parent_id": "lib1",
+                                             "collection_type": "movies"}),
+                            ("nextup", {})):
+            with self.subTest(kind):
+                both = self._held_twice(kind, (6, 8), **extra)
+                second = [i for i in both if i.startswith("row-%s" % kind)][-1]
+
+                alone = self._held_twice(kind, (6, 8), empty=(6,), **extra)
+                self.assertIn(
+                    second, alone,
+                    "the row in slot 8 was renumbered when slot 6 dropped "
+                    "out, so it now answers to the id slot 6's offset is "
+                    "parked under. ids with both: %r; with only slot 8: %r"
+                    % (both, alone))
+
+    def test_the_backstop_is_unreachable_through_the_real_producers(self):
+        """`_unique` renumbers a colliding id, and renumbering IS positional
+        -- which is the one thing a row id may not be. It stays anyway,
+        because the alternative when it fires is worse (duplicate node ids:
+        `layout()` warns and "renderer state and events target only the last
+        occurrence", so the first row's tiles go unreachable). What makes
+        that acceptable is that it cannot fire, and this is where that is
+        checked rather than argued.
+
+        `_row_id` drops the key when it is falsy, so two rows of one
+        `MULTI_ROW_KEYS` kind collide only when they share a slot AND both
+        keys are falsy. The two producers' keys are `parent_id`, which is a
+        library's `Id`, and `collection_type`, which is one of four literals.
+
+        Measured against the QA server (12.0.0) rather than assumed: 19 of 19
+        views carry an `Id`, and `BaseItemDto` marks 152 of its 155
+        properties `nullable: true` -- `Id` is one of the three it does not.
+        So a falsy key needs a server contradicting its own schema, and the
+        backstop is what covers that rather than a crash.
+        """
+        libs = [{"Id": "lib%d" % i, "Name": "L%d" % i} for i in range(3)]
+        rows = [{"title": "Latest %s" % lib["Name"], "kind": "latestmedia",
+                 "parent_id": lib["Id"], "collection_type": "movies",
+                 "slot": slot, "items": [{"Id": "i", "Type": "Movie"}]}
+                for slot in (2, 6, 8) for lib in libs]
+        rows += [{"title": "Downloaded", "kind": OFFLINE_ROW_KIND,
+                  "collection_type": ct, "slot": i,
+                  "items": [{"Id": "d", "Type": "Movie"}]}
+                 for i, ct in enumerate(
+                     ("movies", "homevideos", "tvshows", "books"))]
+        ids = [HomePage._row_id(r["kind"], r) for r in rows]
+        self.assertEqual(len(set(ids)), len(ids),
+                         "two rows the producers can really emit share a row "
+                         "id, so `_unique` is reachable after all and its "
+                         "renumbering decides which one keeps its offset")
 
     def test_parking_is_refused_while_the_browser_is_yielded(self):
         """A yielded scene holds no containers, so ``scroll_offsets()``

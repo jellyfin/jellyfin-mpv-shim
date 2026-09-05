@@ -432,6 +432,39 @@ Non-Latin scripts fall back to `mpvtk.pilfont`, which offers regular and bold
 only, so a Japanese book renders italic as regular — which is what Japanese
 typography does anyway.
 
+**A book is set in more than one face, and the split is pilfont's.** A serif
+family is a Latin family: measured, DejaVuSerif has no CJK, no Hebrew and
+neither U+2605 nor U+2713, so an English book quoting a line of Japanese — or a
+star or an emoji anywhere in the prose — drew the minority script as boxes until
+F32. `paint._draw_line` draws through `pilfont.draw_text` and `Measurer.width`
+measures through `pilfont.length`, both handed `Measurer.faces`, a
+`script → face` resolver. The reader supplies that rather than borrowing
+pilfont's own faces because it sets a book in a serif family it resolved itself,
+in four weight/slant combinations; pilfont supplies the splitting. Three
+consequences worth knowing before touching any of it:
+
+- **Measuring and drawing must stay two walks over the same runs.** The line
+  breaker only ever sees the measurement. At 21px the serif reports 63px for
+  「進撃の巨人」 — five .notdef boxes — where the CJK face draws 105, so a breaker
+  measuring with the book's face alone packs a third more onto every mixed line
+  than fits and the overflow is drawn off the page.
+- **A line's height is asked with its text in hand** (`Measurer.line_height`,
+  `Measurer.ascent`, both taking an optional `text`). NotoSansCJK is 25/7 at 21px
+  against DejaVuSerif's 20/5, so a Japanese word inside an English paragraph
+  overlaps the line below when the band is reserved from the serif alone. A line
+  of nothing but the book's own script gets exactly the answer it always did.
+- **Face metrics are read through `pilfont.metrics`, never `getmetrics()`.** A
+  bitmap-strike colour-emoji face reports its strike's 101 and 27 whatever size
+  it is being used at, and a line reserved from those unscaled is 192px tall in a
+  21px book.
+
+`"symbol"` and `"emoji"` are the two answers a **book-level** face may not take
+(`Measurer.__init__` folds both to latin). They are what pilfont says about a
+string merely *containing* a star or a 🎬, so a book whose title has one would
+otherwise be set in a symbol face from cover to cover — or, for emoji, in a face
+that may only exist at 109px. Both are perfectly good answers for a *run*, which
+is what `fonts.face` now serves.
+
 ### 4.7 Type size, colour and the measure
 
 **Type size and page colour are settings, not page state** (`conf.reader_font_size`

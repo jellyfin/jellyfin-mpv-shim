@@ -10,6 +10,16 @@ So `command()` is built from an allowlist of parsed arguments, and these
 tests are mostly about what does **not** survive.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import ast
 import os
 import sys
@@ -557,7 +567,7 @@ class LogPreservationTest(unittest.TestCase):
         from types import SimpleNamespace
 
         if create:
-            with open(self.log, "w") as fh:
+            with open(self.log, "w", encoding="utf-8") as fh:
                 fh.write("Restarting: /usr/bin/python3 app\n")
         with mock.patch("jellyfin_mpv_shim.conffile.get",
                         return_value=self.log), \
@@ -569,7 +579,7 @@ class LogPreservationTest(unittest.TestCase):
         self._preserve()
         moved = os.path.join(self.dir, restart.PREVIOUS_LOG)
         self.assertTrue(os.path.exists(moved), os.listdir(self.dir))
-        with open(moved) as fh:
+        with open(moved, encoding="utf-8") as fh:
             self.assertIn("Restarting:", fh.read())
         # Moved, not copied: the successor opens `log.txt` with mode="w" and
         # a leftover would just be truncated again.

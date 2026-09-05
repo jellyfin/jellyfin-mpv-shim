@@ -148,6 +148,13 @@ class ComicPage(Page):
         and the extracted pages are files, which nothing else will delete.
         """
         self.route.pop("_showing", None)
+        # The error described a page of the archive we are about to give up,
+        # and the re-open on the way back in is `_error`-guarded. Keeping it
+        # here meant leaving a comic on a bad page -- the natural reaction to
+        # one -- made it unopenable for the rest of the session, with the
+        # in-place recovery (`done` clears `_error` on the first page that
+        # reads) unreachable because nothing would re-open the archive.
+        self.route.pop("_error", None)
         archive = self.route.pop("_comic", None)
         if archive is not None:
             try:
@@ -461,13 +468,23 @@ class ComicPage(Page):
             path = (data.get("state") or (None, None))[1]
             if path:
                 self._open_comic(path)
-        elif self.archive is not None and not route.get("_showing"):
+        elif (self.archive is not None and not route.get("_showing")
+                and not route.get("_error")):
             # The archive is still open but the window is not showing the
             # page: the browser yielded (playback, or being minimized),
             # which issues `stop`, and came back. Nothing else notices —
             # the route was never retired, so the re-open above does not
             # fire — and the bars would repaint over an empty window until
             # the user pressed Next.
+            #
+            # `_error` is checked here for the same reason the re-open above
+            # checks it. Only `done` sets `_showing`, so after a failed
+            # extraction this condition is still true on the very next
+            # render — and `_show_page` dispatches unconditionally, so it
+            # asked again every repaint, one pool job per frame on the
+            # shared api pool. The failure is already on screen with the
+            # bars around it; the way out of it is Next/Prev, which calls
+            # `_show_page` directly.
             self._show_page(route.get("_page", 0))
         # The window in the units mpv measures in. Kept on the route so the
         # placement maths can run from a button press, which has no size.

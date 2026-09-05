@@ -10,6 +10,16 @@ checked nothing.
 These cover the accounting, not the tests it runs.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import sys
 import unittest
@@ -114,6 +124,12 @@ class TestOutputStreamsWhileTheLegRuns(unittest.TestCase):
         captured = {}
 
         class FakeProc:
+            # `pid` is not decoration: `_run` ends by cleaning up the leg's
+            # process group, and a fake without one would make that call
+            # unreachable while still reporting a pass. Negative so that a
+            # real killpg escaping the guards cannot name a live group.
+            pid = -999999
+
             def __init__(self):
                 self.stdout = iter(TestOutputStreamsWhileTheLegRuns.LINES)
 
@@ -164,3 +180,216 @@ class TestStrictIsWired(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestALegThatLeaksAProcessStillEnds(unittest.TestCase):
+    """A leg that exits while something still holds its output pipe.
+
+    This wedged the whole matrix indefinitely, *after the leg had passed*: a
+    test mpv outliving its leg is reparented to init still holding the write
+    end of the pipe `_run` was reading to EOF, so EOF could never arrive. The
+    leg's own `Ran 324 tests ... OK` was already in the log; only the exit was
+    missing, and the run sat there until the mpv was killed by hand.
+
+    `tools/run_tests_parallel.py` has had the process-group discipline from
+    the start. This runner had not.
+    """
+
+    # The grandchild outlives its parent holding stdout -- exactly what a
+    # leaked mpv does. If `_run` waits for EOF it waits this long.
+    LEAK_SECONDS = 60
+    # Generous next to OUTPUT_DRAIN_SECS, tight next to LEAK_SECONDS: the
+    # point is only to tell "returned" from "waited for the grandchild".
+    PATIENCE = 25
+
+    LEAK_SRC = (
+        "import os, sys, time\n"
+        "if os.fork() == 0:\n"
+        "    time.sleep({leak})\n"        # holds fd 1 open
+        "    os._exit(0)\n"
+        "sys.stdout.write('Ran 1 test in 0.0s\\n')\n"
+        "sys.stdout.write('OK\\n')\n"
+        "sys.stdout.flush()\n"
+        "os._exit(0)\n"
+    )
+
+    @unittest.skipUnless(hasattr(os, "fork"), "needs fork")
+    def test_it_ends_when_the_leg_ends_not_when_the_pipe_closes(self):
+        import subprocess
+        import threading
+
+        orig_popen = subprocess.Popen
+        leak_cmd = [sys.executable, "-c",
+                    self.LEAK_SRC.format(leak=self.LEAK_SECONDS)]
+
+        def fake_popen(cmd, **kwargs):
+            # The runner's own kwargs are kept -- start_new_session is the
+            # half of the fix this exercises.
+            return orig_popen(leak_cmd, **kwargs)
+
+        result = {}
+
+        def drive():
+            try:
+                result["value"] = runner._run(["tests.integration.whatever"])
+            except BaseException as exc:            # pragma: no cover
+                result["error"] = exc
+
+        subprocess.Popen = fake_popen
+        try:
+            t = threading.Thread(target=drive, daemon=True)
+            t.start()
+            t.join(self.PATIENCE)
+            # A regression must FAIL here rather than hang the suite.
+            self.assertFalse(
+                t.is_alive(),
+                "_run did not return within %ds: it is waiting for the "
+                "leaked grandchild to close the pipe instead of for the leg "
+                "to exit, which is the hang this guards" % self.PATIENCE)
+        finally:
+            subprocess.Popen = orig_popen
+
+        self.assertNotIn("error", result, repr(result.get("error")))
+        _label, rc, (ran, _skipped) = result["value"]
+        self.assertEqual(rc, 0)
+        # The leg's real output was still captured, not lost to the shortcut.
+        self.assertEqual(ran, 1)
+
+
+class TestTheHarnessMakesAModuleRunnableAlone(unittest.TestCase):
+    """`python -m unittest -v tests.integration.test_mpvtk_hud` must work.
+
+    Importing almost anything under `jellyfin_mpv_shim` eventually reaches
+    `args.get_args()`, which parses the REAL argv -- so a runner's `-v` and
+    the module path leave the app's argparse printing its usage line and
+    exiting, which reads as a broken test module and is not. `_harness`
+    primes the parser at import for exactly this, and the integration
+    modules used to depend on a *sibling* in the same leg having done it:
+    each one passed in the matrix and died on its own.
+
+    A subprocess with a runner-shaped argv, because in-process this file
+    has already scrubbed sys.argv (see the top) and could not see the bug.
+    """
+
+    PROBE = (
+        "import sys, os\n"
+        "sys.path.insert(0, %r)\n"
+        "sys.path.insert(0, os.path.join(%r, 'tests', 'integration'))\n"
+        "import _harness\n"
+        "from jellyfin_mpv_shim import conffile\n"
+        "print('CONFDIR', conffile.confdir('jellyfin-mpv-shim'))\n"
+    )
+
+    def test_a_dirty_argv_no_longer_reaches_the_app_parser(self):
+        import subprocess
+        import tempfile
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        out = subprocess.run(
+            [sys.executable, "-c", self.PROBE % (root, root),
+             "-v", "tests.integration.test_mpvtk_hud"],
+            capture_output=True, text=True, cwd=root, timeout=120)
+        self.assertEqual(out.returncode, 0,
+                         "importing the harness under a runner argv exits: %s"
+                         % out.stderr[-800:])
+        line = [ln for ln in out.stdout.splitlines()
+                if ln.startswith("CONFDIR ")]
+        self.assertTrue(line, "no config dir resolved: %r" % out.stdout)
+        confdir = line[0].split(" ", 1)[1]
+        # ...and at a throwaway. The prime pins one so a leg cannot read or
+        # write the developer's own config; a prime that resolved to the
+        # real directory would satisfy the check above and be worse than
+        # the crash it replaced.
+        self.assertTrue(
+            confdir.startswith(tempfile.gettempdir()),
+            "the harness primed the arg parser at the real config dir: %r"
+            % confdir)
+
+
+
+class TestEveryModuleRunAsAScriptGetsThisTree(unittest.TestCase):
+    """`python3 tests/integration/test_foo.py` must import THIS repo.
+
+    Every module here ends in a `__main__` block, which invites exactly
+    that -- and run that way `sys.path[0]` is `tests/integration` and the
+    repo root is on the path nowhere, so `jellyfin_mpv_shim` resolves to
+    whatever is pip-installed. Silently, and it *runs*: measured once as a
+    `renderer.lua` a fortnight old failing a test about this tree, and a
+    stale install can as easily produce a false pass.
+
+    Asserted for **every** module rather than the one that was noticed:
+    nineteen of them had the same preamble, and a guard pasted into one is
+    the one the next round reports. `run_integration.py` itself is not
+    affected -- it spawns `-m unittest` with `cwd` at the root -- so
+    nothing in the matrix would ever have gone red over this.
+    """
+
+    #: Modules with no `__main__` block are not making the invitation.
+    @staticmethod
+    def _modules():
+        here = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "tests", "integration")
+        for name in sorted(os.listdir(here)):
+            if not (name.startswith("test_") and name.endswith(".py")):
+                continue
+            path = os.path.join(here, name)
+            with open(path, encoding="utf-8") as fh:
+                if 'if __name__ == "__main__"' in fh.read():
+                    yield name, path
+
+    def test_there_are_modules_to_check(self):
+        """The guard on the guard: a listing that finds nothing would make
+        every subTest below vacuous and report a pass."""
+        self.assertGreater(len(list(self._modules())), 10)
+
+    def test_the_repo_root_is_on_the_path_before_the_package_is_imported(self):
+        """Executed, not grepped for.
+
+        The module's own preamble runs up to the first `jellyfin_mpv_shim`
+        import and then reports which copy it would get, from a cwd that
+        cannot put the root on the path by accident.
+        """
+        import subprocess
+        import tempfile
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        expected = os.path.join(root, "jellyfin_mpv_shim")
+        for name, path in self._modules():
+            with self.subTest(module=name):
+                probe = (
+                    "import sys, runpy\n"
+                    # argv as `python3 path/to/test_foo.py` leaves it, and
+                    # sys.path[0] as the interpreter would set it.
+                    "sys.argv = [%r]\n"
+                    "sys.path.insert(0, %r)\n"
+                    "import ast\n"
+                    "src = open(%r, encoding='utf-8').read()\n"
+                    # Everything above the first class or def -- the imports
+                    # and the path preamble -- without running a test. Cut
+                    # with ast rather than by splitting on 'class ', because
+                    # the first one here is often decorated.
+                    "tree = ast.parse(src)\n"
+                    "tops = [n for n in tree.body if isinstance(n, "
+                    "(ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))]\n"
+                    "stop = min([tops[0].lineno] + "
+                    "[d.lineno for d in tops[0].decorator_list]) "
+                    "if tops else len(src.splitlines()) + 1\n"
+                    "head = chr(10).join(src.splitlines()[:stop - 1])\n"
+                    "exec(compile(head, %r, 'exec'), "
+                    "{'__file__': %r, '__name__': 'not_main'})\n"
+                    "import jellyfin_mpv_shim as j\n"
+                    "print('PKG', j.__file__)\n"
+                    % (path, os.path.dirname(path), path, path, path))
+                out = subprocess.run(
+                    [sys.executable, "-c", probe],
+                    capture_output=True, text=True,
+                    cwd=tempfile.gettempdir(), timeout=180)
+                line = [ln for ln in out.stdout.splitlines()
+                        if ln.startswith("PKG ")]
+                self.assertTrue(
+                    line, "%s did not resolve the package: %s"
+                    % (name, out.stderr[-600:]))
+                self.assertTrue(
+                    line[0].split(" ", 1)[1].startswith(expected),
+                    "%s would run against %s, not this tree"
+                    % (name, line[0].split(" ", 1)[1]))

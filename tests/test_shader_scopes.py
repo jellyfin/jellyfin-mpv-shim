@@ -11,6 +11,20 @@ their own tests, and the multi-step ones exist because the failure shape
 this codebase keeps producing is state feeding back into its own input.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
+import errno
+import os
+import errno
+import os
 import sys
 import unittest
 
@@ -163,7 +177,7 @@ class StoreTest(unittest.TestCase):
         import tempfile
 
         path = _tmpdirs.tmpfile("shader_profiles.json", "jms-shaderscope-")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             fh.write("{ not json")
         o = ShaderOverrides(path)
         self.assertEqual(o.resolve({"series": "srv/show1"}, "a"),
@@ -445,3 +459,90 @@ class SettingsKeepTheLastWordTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SavingIsAtomicTest(unittest.TestCase):
+    """A failed save must not destroy the overrides that were already there.
+
+    `open(path, "w")` truncates the existing file before a byte is written, so
+    ENOSPC -- or a crash, or a kill -- mid-`json.dump` left an empty or
+    fragmentary file. `load()` then treats it as unreadable and silently
+    ignores EVERY override: the blast radius is the whole store, not the key
+    being written, and the user finds out at the next launch.
+
+    `conf.py:save` and `users.py:save` have written tmp-then-replace all
+    along, and `input_conf.py` carries a comment warning about exactly this
+    hazard. This was the last non-atomic whole-file write in the tree.
+
+    `tests/test_shader_scopes.py::test_a_broken_file_is_not_fatal` covers
+    `load()` against an already-corrupt file. Nothing covered `save()` being
+    able to *produce* one.
+    """
+
+    def _store(self):
+        from jellyfin_mpv_shim import shader_overrides
+
+        path = os.path.join(_tmpdirs.tmpdir(), "shader_profiles.json")
+        store = shader_overrides.ShaderOverrides(path)
+        store.set("series", "s1", "anime4k")
+        store.set("library", "lib1", "rtx-vsr")
+        return store, path
+
+    def test_a_failed_write_leaves_the_previous_overrides_intact(self):
+        from unittest import mock
+
+        from jellyfin_mpv_shim import shader_overrides
+
+        store, path = self._store()
+
+        def boom(*_a, **_k):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        with mock.patch("json.dump", side_effect=boom):
+            store.set("series", "s2", "nnedi3")
+
+        reopened = shader_overrides.ShaderOverrides(path)
+        self.assertEqual(reopened.get("series", "s1"), "anime4k",
+                         "a failed save destroyed the whole override store")
+        self.assertEqual(reopened.get("library", "lib1"), "rtx-vsr")
+
+    def test_a_failed_write_leaves_no_debris(self):
+        from unittest import mock
+
+        store, path = self._store()
+
+        def boom(*_a, **_k):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        with mock.patch("json.dump", side_effect=boom):
+            store.set("series", "s2", "nnedi3")
+        leftovers = [n for n in os.listdir(os.path.dirname(path))
+                     if n != os.path.basename(path)]
+        self.assertEqual(leftovers, [],
+                         "a half-written temp file was left behind")
+
+    def test_a_failed_save_is_reported(self):
+        """`set`/`clear` returned True unconditionally, so the menu confirmed
+        a change that never reached disk."""
+        from unittest import mock
+
+        store, _path = self._store()
+
+        def boom(*_a, **_k):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        with mock.patch("json.dump", side_effect=boom):
+            self.assertFalse(store.set("series", "s2", "nnedi3"))
+
+    def test_an_ordinary_save_still_round_trips(self):
+        """The control: atomicity must not cost the feature."""
+        from jellyfin_mpv_shim import shader_overrides
+
+        store, path = self._store()
+        self.assertTrue(store.set("series", "s3", "fsr"))
+        reopened = shader_overrides.ShaderOverrides(path)
+        self.assertEqual(reopened.get("series", "s3"), "fsr")
+        self.assertTrue(store.clear("series", "s3"))
+        self.assertEqual(
+            shader_overrides.ShaderOverrides(path).get("series", "s3"),
+            shader_overrides.UNSET)

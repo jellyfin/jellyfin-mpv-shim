@@ -91,6 +91,7 @@ picked was the wrong one or whether the control does nothing.
 | `poster_scale` (Cover Size) | `apply_cover_size()` |
 | `ui_text_scale`, `ui_text_min` | toolkit type scale **and** `apply_cover_size()` |
 | `logo_legibility_*` | `apply_logo_legibility()` → `StripStore.retag()` |
+| `clock_12h` | nothing — the air time is *in* the tile's cache key, so the row recomposites by itself; see below |
 | `theme` | colours only — see below |
 | `reader_font_size`, `reader_theme`, `reader_justify` | re-read every frame by the reader |
 | `comic_fit` | read per call |
@@ -216,6 +217,14 @@ Anything baked into a **composited bitmap** (tile captions, logo plates, theme
 colours) needs `StripStore.retag()` rather than a repaint, or the rows on screen
 do not change until they age out of the LRU. `retag`, never `clear` — see
 `docs/artwork-pipeline.md` §1.
+
+**But check the key first.** That rule is about a setting which changes how a
+tile is *drawn*; a setting which changes what a tile *says* needs nothing,
+because the caption text is part of `StripStore._tile_key`. `clock_12h` was
+given a `retag` on the first reading of the rule above, and it made every
+cached row in the app — movie posters with no clock anywhere in them —
+recomposite on the way back from Settings. The question to ask is which side
+of `_tile_key` the setting falls on.
 
 ## 4. Help text is translated, and two things about it bite
 

@@ -121,8 +121,27 @@ The case histories, because the abstract rule is easy to nod at and hard to appl
   observer APIs at once, which is the thing `mpv_events` dispatches on, so the matrix
   leg named "libmpv" was exercising jsonipc's.
 
+- **The Lua suite's `strip_page` gave every row a fixed id**, which is a *value* the
+  app did not send rather than a field left out — and it is the same failure with a
+  different surface. The row bitmaps the browser pushes were keyed by their path in
+  the widget tree, so the Stack that floats the hover play chip renamed the row under
+  it; the fake pushed the scene itself, so it could only ever measure the ids it
+  chose. Its whole "overlay slot order" block was therefore asserting the cheap case
+  while every hover re-uploaded a whole strip. Where a fake supplies the *input*
+  rather than standing in for a collaborator, ask what the real producer sends, and
+  pin it on that side: `tests/test_tile_play_chip.py` is what holds the id still now,
+  and `tests/integration/test_mpvtk_browser.py` asserts the cost against a real mpv.
+
 `tests/integration/test_playback_start.py` is what fixing `FakeMPV` unlocked: the
 three ways a start fails, which a real mpv cannot be asked to perform on cue.
+
+`tools/probe_hover_overlay_cost.py` is the number behind that last one: it drives a
+real mpv, sweeps the pointer across a grid, and prints the overlay traffic per move
+from the renderer's own `ov_adds` / `ov_bytes`. Measured on Windows (d3d11/WARP,
+1000x740): 1 overlay-add and 0.01 MiB per move with the rows named, against 2.9 and
+1.52 MiB with the name taken away — the same shape on Linux at 2.17 MiB. It is a
+probe rather than a test for the usual reason (§7): it wants a window and a number
+to read, not a threshold.
 
 The cheap half of this is checkable from the source, so it is:
 `tools/audit_fake_contracts.py` diffs what production code reaches on a collaborator
@@ -181,6 +200,13 @@ Anything a scheduler, poller, health check or websocket can re-run gets a **loop
 - **Tautological** — asserts the code against itself.
 - **Self-agreeing** — a fake written to agree with the code under test, so it cannot
   disagree.
+
+**Uncollected is checked mechanically** by `tests/test_no_uncollected_tests.py`:
+a `test_*` inside the `__main__` guard, anything after `unittest.main()` (which
+raises `SystemExit`), or a `test_*` on a class no loader collects. It was written
+after `test_player_auth_scope` was found collecting **5 of 7** — four members had
+drifted inside the guard, after the `main()` call, and the two tests among them
+described a credential rule that had gone unenforced for as long as it existed.
 
 ## 8. Firing `ready` poisons scene snapshots
 
@@ -246,6 +272,23 @@ module it silently skips reports exactly like a module that passed.
 runs everything in one process specifically to catch cross-module interference.
 Parallelizing it would remove the thing it is for — and it drives real mpv
 through the keyboard, which is where contention bites hardest.
+
+## 9b. When the matrix hangs after the last leg passed
+
+**Signature:** the runner sits at `WCHAN=pipe_read` and 0% CPU, its `xvfb-run`
+child is `<defunct>`, and some surviving mpv's `/proc/<pid>/fd/1` points at the
+very inode the runner is blocked on. A test mpv that outlives its leg is
+reparented to PID 1 while still holding the write end of that leg's
+stdout/stderr pipe, so the runner's read to EOF can never return — after the
+leg has already passed.
+
+**Unwedge it by `kill <mpv pid>`, by PID.** Never `pkill -f`: the pattern
+matches the killing shell's own command line (see the global CLAUDE.md), and
+`~/.claude/bin/safe-pkill` is the tool if a pattern is unavoidable.
+
+Costs a ~7-minute run whenever it fires and would hang CI forever. The real fix
+is to reap the child and then read with a deadline, or to give mpv its own
+process group with closed fds.
 
 ## 10. Driving real mouse input against a real mpv
 
@@ -318,3 +361,49 @@ string node reads back as nil under `MPV_FORMAT_FLAG` — which is the format
 writes. A test that sets it the obvious way sets nothing the renderer can see and
 then passes whatever the code does (§7). Write it with `MPV_FORMAT_FLAG` through
 ctypes on libmpv; jsonipc's JSON `true` arrives as a bool already.
+
+## 11. The e2e fixture account is shared, mutable state
+
+The QA server is not a fresh fixture per run. It is one long-lived account
+that every e2e run on every machine authenticates as, so **anything a test
+writes there is read by every later run, on both platforms, until something
+overwrites it.** A module that reads such state without normalising it first
+is measuring the last run that touched it — including a run that died
+halfway and never reached its cleanup.
+
+This has cost two sessions. Three e2e tests were recorded as "pre-existing
+failures" in code nobody had changed, and were suspected defects in the
+browser shell. They were three days of accumulated home-screen layout. On a
+freshly rebuilt server the same tree ran 49/49.
+
+**Restoring is not normalising, and the difference is the whole trap.**
+`test_home_layout` — the only module that *writes* the layout — already
+normalised in `setUp` and restored on cleanup, and its docstring had even
+predicted this failure. But restoring writes back whatever was *found*, so
+residue is preserved faithfully rather than decaying. The state cannot
+recover on its own; only a reader that normalises can clear it.
+
+So the rule is on the **readers**, where it is easy to forget because they
+never write anything:
+
+> Every module that renders the home screen calls
+> `_e2e.normalise_home_layout(session)` before it builds a browser.
+
+It writes `""` — "use this slot's default" — to every slot in
+`home_sections.SLOT_COUNT`, touching no other key, since the guide settings
+share the document. It deliberately does **not** restore afterwards.
+
+Two symptoms to recognise, because neither names the layout:
+
+* `latestmedia` in two slots makes the repository build one Latest row per
+  library **per slot**. Those rows are keyed by library, so the ids collide
+  and `test_keyboard_nav` fails on duplicate node ids. (The renderer-side
+  half of that is a real bug and is fixed separately — see `HomePage`'s
+  `_unique`.)
+* A layout without `smalllibrarytiles` has no library-tiles row at all, and
+  the same module fails with "no node id containing &lt;guid&gt;".
+
+**Waiting for the server is part of this.** `/System/Info/Public` answers
+long before the library is usable, and `stdjflib serve` runs a rescan at the
+end. Poll `/ScheduledTasks` for `RefreshLibrary` to reach `State == "Idle"`
+before trusting any result; alive is not correct.

@@ -6,6 +6,16 @@ config: the repo has no linter, and each rule here exists because the defect
 it catches is invisible in a diff.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import ast
 import os
 import unittest
@@ -464,7 +474,15 @@ class TestNoTopLevelMutableClassState(unittest.TestCase):
     after the refactor that introduces one.
     """
 
-    ALLOWED = {"ROUTES", "HEADLESS_ROUTES", "MODULES"}
+    #: `_PREFS_LOCKS` is shared ACROSS instances on purpose, which is the one
+    #: thing this test exists to catch -- so it is declared here rather than
+    #: silently exempted. The DisplayPreferences document belongs to the
+    #: server, not to whichever LibrarySource holds a connection to it, and a
+    #: reconnect builds a new source while async work still holds a writer
+    #: bound to the old one. Per-instance locks would be two locks for one
+    #: document, i.e. the lost update the lock exists to prevent.
+    ALLOWED = {"ROUTES", "HEADLESS_ROUTES", "LOCKED_ROUTES", "MODULES",
+               "_PREFS_LOCKS"}
 
     @staticmethod
     def _is_settings_schema(cls):

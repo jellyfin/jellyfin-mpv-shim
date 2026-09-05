@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-30 22:19-0400\n"
+"POT-Creation-Date: 2026-09-02 16:20-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -503,6 +503,11 @@ msgid "Night Mode (Auto Volume Adj)"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/app.py
+#: jellyfin_mpv_shim/mpvtk_browser/auth.py
+msgid "Locked"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/app.py
 msgid "Failed to load. Check the connection."
 msgstr ""
 
@@ -743,10 +748,6 @@ msgid "Could not connect. Please check your details."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/auth.py
-msgid "Locked"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/auth.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/home.py
 msgid "Connecting to your server…"
 msgstr ""
@@ -816,6 +817,10 @@ msgstr ""
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
 #: jellyfin_mpv_shim/mpvtk_browser/pages/books.py
 msgid "Favorite"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/components/detail.py
+msgid "Web"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
@@ -1691,6 +1696,10 @@ msgid "Full-Width Backdrops"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid "12-Hour Clock"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Grid Spacing"
 msgstr ""
 
@@ -2036,6 +2045,13 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
 msgid "Overrides the theme's cover size. Also on the View menu of any library."
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/config.py
+msgid ""
+"Show times of day as \"8:30 PM\" rather than \"20:30\" — the Live TV guide "
+"and its air times, and the \"Ends at\" labels on a detail page and the "
+"player controls."
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
@@ -4374,6 +4390,22 @@ msgstr ""
 msgid "There is nothing here to queue."
 msgstr ""
 
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+#, python-brace-format
+msgctxt "12-hour clock"
+msgid "{time} {period}"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+msgctxt "12-hour clock"
+msgid "AM"
+msgstr ""
+
+#: jellyfin_mpv_shim/mpvtk_browser/timefmt.py
+msgctxt "12-hour clock"
+msgid "PM"
+msgstr ""
+
 #: jellyfin_mpv_shim/mpvtk_browser/views.py
 #: jellyfin_mpv_shim/mpvtk_browser/window_chrome.py
 msgid "Search"
@@ -4539,6 +4571,12 @@ msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
 msgid "A download is still finishing. Wait for it to stop, then try again."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"There isn't enough space on that drive to move the downloads. Free some "
+"space and try again — nothing was moved."
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py

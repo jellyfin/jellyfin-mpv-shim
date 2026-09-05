@@ -245,7 +245,7 @@ if __name__ == "__main__":
     for tid, spec in THEMES.items():
         theme = build(spec)
         path = os.path.join(OUT, tid + ".json")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             json.dump(theme, fh, indent=4)
             fh.write("\n")
         p = theme["palette"]

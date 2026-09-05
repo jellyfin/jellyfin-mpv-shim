@@ -24,13 +24,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: itself a citation -- the guard reads every tracked file INCLUDING
 #: this one, which it could not do while it was still untracked (that is
 #: why it passed before it was committed and failed straight after).
-#: Anchored to a path separator so bare prose like "the MIGRATION.md
-#: write-up" is not a citation -- those are handled by NAMED_AS_GONE.
+#: Anchored to a path separator, so bare prose like "the MIGRATION.md
+#: write-up" never becomes a finding and needs no excusing.
 CITE = re.compile(r'(?<![\w./-])((?:[A-Za-z_][\w-]*/)+[A-Za-z_][\w.-]*\.md)')
 
 #: Documents that are GONE and are cited to say so. A pointer that
 #: explains its own absence is not a dead pointer.
-NAMED_AS_GONE = {"MIGRATION.md", "PARITY.md", "HEADLESS.md"}
+#:
+#: Every entry has to be reached by a real citation -- see
+#: `test_every_excused_basename_is_actually_cited`. It held two more that
+#: were reached by nothing, on the strength of the bare-prose reading the
+#: comment above used to carry.
+NAMED_AS_GONE = {"HEADLESS.md"}
 
 #: Documents belonging to ANOTHER repository, named with the repo they
 #: live in. Not ours to keep in step, and their absence here is not rot.
@@ -84,6 +89,35 @@ class DocPointersTest(unittest.TestCase):
             "citations of documents that do not exist. Fix the path, or "
             "add the basename to NAMED_AS_GONE if the point IS that it is "
             "gone.")
+
+    def test_every_excused_basename_is_actually_cited(self):
+        """The inverse direction, which the three sibling allowlists in
+        `tools/audit_*.py` and `tests/test_docs_coverage.py` all carry.
+
+        An entry that excuses nothing is not harmless: it is a standing
+        pre-authorisation for the defect the check exists to catch, and it
+        reads as evidence that somebody checked. `MIGRATION.md` and
+        `PARITY.md` sat here reached by no citation at all -- `CITE` is
+        anchored to a path separator, so the bare-prose mentions the comment
+        above blames were never findings in the first place -- and would have
+        silenced the first path-shaped citation anyone wrote of either.
+        """
+        cited = set()
+        for rel in _tracked():
+            try:
+                with open(os.path.join(ROOT, rel), encoding="utf-8") as fh:
+                    text = fh.read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            cited.update(os.path.basename(c) for c in CITE.findall(text))
+        for group, name in ((NAMED_AS_GONE, "NAMED_AS_GONE"),
+                            (set(EXTERNAL), "EXTERNAL")):
+            unused = sorted(group - cited)
+            self.assertEqual(
+                unused, [],
+                "%s excuses a basename nothing cites: %s. Drop the entry -- "
+                "it exempts nothing today and exempts whatever is written "
+                "tomorrow." % (name, ", ".join(unused)))
 
     def test_the_matcher_finds_a_citation_at_all(self):
         """Guard on the guard: a regex that matched nothing would make

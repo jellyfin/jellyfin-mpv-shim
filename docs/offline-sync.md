@@ -262,3 +262,113 @@ it just deleted.
 - `get_episodes(start_item_id=…)` is **inclusive** — the first entry is the anchor.
 - Only the server knows what other clients have done, which is why the planner
   asks rather than inferring from the catalog.
+
+## 5. The file store, and the one place it deletes
+
+The tree is `<root>/catalog.db`, its `catalog.db.bak`, and
+`<root>/<server_id>/<item_id>/` per download — plus `series/`, `season/` and
+`playlist/` under each server directory, which are *shared artwork caches* and
+not items. `<root>` is owned by the store: `relocate` moves every entry out of
+it and refuses a destination that is non-empty or inside the current root, and
+the sweep below deletes inside it.
+
+`SyncManager._reconcile_disk` is the only code that deletes media the user did
+not ask to delete, and every one of its four tests is load-bearing. It acts on
+a directory only when:
+
+1. **the catalog is readable** — `SyncDB.healthy()`, the one strict read;
+2. **its server directory is one the catalog names** — never everything in the
+   root;
+3. **its name is shaped like an item id** — `_looks_like_item_id`;
+4. **and it is not a live row**, nor one `_adopt_orphan` can rebuild.
+
+Each of those exists because inferring instead deleted something. An
+unreadable catalog answers `[]` to every query, and one zeroed 4 KiB page (the
+`downloads` b-tree root) of a 64 KiB catalog therefore deleted 60 of 60
+downloads on startup. A download folder pointed at a directory the user
+already had files in lost `~/Videos/Holidays/2019 Italy` on the *second*
+launch — the first was covered by the empty-catalog guard in `_open_and_run`
+and no launch after it.
+
+### The catalog is the only thing that says what the files are
+
+Names on disk are ids, so without it the UI cannot list, play or delete a
+download: the folder stops being an offline library and becomes unlabelled
+weight only a file manager can clear. Four mechanisms keep it:
+
+- **A read-only probe before anything opens it writable.** Opening writable is
+  not a read: the constructor runs the schema and the migration, so on a
+  zero-byte file it *creates* the tables and `healthy()` then says yes of a
+  catalog with nothing in it — trusted, empty, and never restored from. The
+  probe is `SyncDB(read_only=True).healthy()`, the same strict read, so there
+  is only ever one answer to "can the rows be read". A writable open can still
+  fail where the probe passed (the schema touches every table, the probe reads
+  `downloads`), and that failure is a verdict, never an exception past the
+  caller.
+- **`catalog.db.bak`**, written after every clean open. An **empty** catalog
+  never replaces a backup that has rows — otherwise the backup deletes itself
+  on precisely the launch it exists for.
+- **Restore**, when the catalog is unreadable *or missing* — **one function
+  for both**, since they differ only in whether there is a bad file to set
+  aside. Written as two branches it drifted at once, and the second copy had
+  neither of the steps below. The copy is staged and renamed, so a restore
+  that fails on a full disk has changed nothing and the next start tries
+  again; the old file is kept as `catalog.db.corrupt-<ts>` because it is
+  still the better copy of anything the backup predates, and its
+  `-wal`/`-shm` move aside with it — left at the live name they replay the
+  bad pages into the restored file, and a catalog that went *missing* can
+  still have its WAL beside it. **A failed restore leaves no catalog at
+  all**: the launch runs on a read-only handle rather than letting sqlite
+  create the empty one, which is *readable*, so every later launch would find
+  nothing wrong with it and never retry.
+- **`_adopt_orphan`**, which rebuilds a row from the download's own
+  `item.json` + media. This is what stops a restore being a *delayed* wipe:
+  everything downloaded after the snapshot has files and no row, which is the
+  orphan shape. A restored catalog is known stale, so its launch does not
+  sweep at all — that is what protects a part-downloaded item, which cannot be
+  adopted.
+
+A download that cannot be described — an unparseable `item.json` — is
+**left alone**, not deleted. The recoverable error is keeping something the
+user could remove by hand; the unrecoverable one is the reverse.
+
+### Two ownerships, and both must be released together
+
+A row is protected from the reaper by `origin` and from a playlist delete by
+`playlist_items.owned`. Asking for an item by hand releases **both**
+(`set_origin` and `_claim_from_playlists`); releasing only the first meant
+deleting the playlist still deleted a film the user had separately downloaded.
+
+**Releasing is a property of row creation, not of who asked for it.**
+`_add_row` releases any claim standing over an item the catalog does not have,
+on every origin — while only the user's own request released one, a scheduled
+auto-download wrote its row straight into a claim and handed the playlist a
+file it never pulled in. The exception is a playlist download re-queuing a
+member it already holds a row for, which `enqueue` decides
+(`claims_its_members`) because it is a fact about the *request*:
+`_record_playlist` recomputes ownership from `pre_existing` a few lines later,
+so dropping the claim first would disown the copy the playlist pulled in
+itself. `_claim_from_playlists` therefore states one proposition and takes no
+exception of its own — it used to read the type out of `_adopt_orphan`'s
+manifest, a file some other build may have written.
+
+`_adopt_orphan` releases both too — and not because it is a user gesture.
+`ORIGIN_USER` there means only "the reaper may not take this", since a row this
+method invented has no evidence the download was ever scheduled; it does not
+mean the user claimed the item, and `_delete_playlist` does not consult
+`origin` at all. Releasing one claim and not the other protects the file from
+whichever deleter happens not to run first.
+
+**Ownership never outlives its row.** `replace_playlist_items` writes an entry
+only for an item the catalog has, and checks that *inside* the transaction that
+writes it. The caller cannot: `_record_playlist` decides membership from a
+`pre_existing` snapshot taken before it queued anything, and nothing serialises
+it against a delete — `enqueue`, `delete_item` and `delete` take no
+manager-wide lock and the browser runs them on a worker pool. A claim left
+standing over an item with no row is a claim on whatever writes that row next,
+which is `_adopt_orphan`, on a file it is trying to keep.
+
+`_cancelled` is a third, transient claim — a delete waiting for the worker to
+notice between chunks, which can take the 60 s read timeout. `enqueue`
+withdraws it (`_uncancel`), or changing your mind inside that window queued
+the item and had the worker's unwind delete it underneath.

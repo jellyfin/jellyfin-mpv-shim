@@ -75,7 +75,7 @@ def collect(path, hashed, tagged, branched, visited):
     visited.add(path)
     base = os.path.dirname(path)
     try:
-        with open(path) as handle:
+        with open(path, encoding="utf-8") as handle:
             doc = json.load(handle)
     except (OSError, ValueError) as error:
         print(f"skip  {path}: {error}", file=sys.stderr)

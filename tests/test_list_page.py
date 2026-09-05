@@ -5,6 +5,16 @@ way to see the rest. This is the rest, and the chevron on the heading is
 the only route to it.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import re
 import sys
 import unittest
@@ -230,10 +240,11 @@ class LatestAndOnNowSeeAllTest(unittest.TestCase):
         from jellyfin_mpv_shim.mpvtk_browser.pages.grid import SORTS
         b = self._home(self.LATEST)
         _n, handlers = build_scene(b)
-        # Keyed by the library, not by an ordinal: a Latest row's position
-        # among its siblings shifts when one of them empties (see
-        # HomePage.MULTI_ROW_KEYS), and these ids key the scroll containers.
-        handlers["row-latestmedia-lib9-more"]["click"]()
+        # Keyed by the library and the slot, never by a position among the
+        # rows that survived: a Latest row's siblings come and go as their
+        # libraries empty (see HomePage._row_id), and these ids key the
+        # scroll containers.
+        handlers["row-latestmedia-lib9#0-more"]["click"]()
         self.assertEqual(b.route.get("kind"), "grid")
         self.assertEqual(b.route.get("parent_id"), "lib9")
         self.assertEqual(SORTS[b.route["_sort"]][1:], ("DateCreated",
@@ -246,7 +257,7 @@ class LatestAndOnNowSeeAllTest(unittest.TestCase):
         del rows[0]["parent_id"]
         b = self._home(rows)
         nodes, _h = build_scene(b)
-        # With no library to key on, the id falls back to the ordinal.
+        # With no library to key on, the id is the section's slot alone.
         self.assertIn("row-latestmedia-0", ids(nodes), "test premise")
         self.assertNotIn("row-latestmedia-0-more", ids(nodes))
 

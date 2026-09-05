@@ -23,6 +23,7 @@ broken, because it sat below a call that never returns.
 
 import os
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -40,11 +41,11 @@ def main():
     os.makedirs(config_dir, exist_ok=True)
     gen_file = _state_path(config_dir, "generation")
     try:
-        with open(gen_file) as fh:
+        with open(gen_file, encoding="utf-8") as fh:
             generation = int(fh.read().strip() or "0")
     except Exception:
         generation = 0
-    with open(gen_file, "w") as fh:
+    with open(gen_file, "w", encoding="utf-8") as fh:
         fh.write(str(generation + 1))
 
     if generation:
@@ -52,7 +53,7 @@ def main():
         # the argv is the half most likely to be wrong, and a marker that
         # only said "something started" would pass for a copy launched
         # against the default config directory.
-        with open(_state_path(config_dir, "relaunched"), "w") as fh:
+        with open(_state_path(config_dir, "relaunched"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(sys.argv))
 
     wedge = os.environ.get("JMS_RESTART_WEDGE")
@@ -84,11 +85,25 @@ def main():
             from jellyfin_mpv_shim import restart
 
             restart.request()
-        # SIGTERM rather than the UI's quit: it reaches `main`'s halt event
-        # through the handler the app installs itself, so the shutdown is
-        # the same orderly one a `stop` command or a session logout gets,
-        # with nothing test-shaped in the middle of it.
-        os.kill(os.getpid(), signal.SIGTERM)
+        # Ask the app to stop the way something outside it would, so the
+        # shutdown under test is the orderly one with nothing test-shaped in
+        # the middle of it. Both routes below reach the SAME halt event --
+        # mpv_shim.main wires `single.on_stop` and its SIGTERM handler to
+        # `halt.set` alike -- so this is one property measured through
+        # whichever door the platform actually has.
+        if os.name == "nt":
+            # os.kill(pid, SIGTERM) is not a signal on Windows: any sig but
+            # CTRL_C/CTRL_BREAK_EVENT is TerminateProcess, nothing can
+            # handle it, and the exit code becomes the signal number. So the
+            # app died where it stood -- no shutdown, no relaunch, and a
+            # wedge test that saw rc 15 instead of the forced 1. The `stop`
+            # subcommand exists precisely because stopping is a message and
+            # not a signal (single_instance's module docstring).
+            subprocess.run([sys.executable, os.path.join(REPO, "run.py"),
+                            "--config", config_dir, "stop"],
+                           timeout=60, capture_output=True)
+        else:
+            os.kill(os.getpid(), signal.SIGTERM)
 
     threading.Thread(target=drive, daemon=True).start()
 

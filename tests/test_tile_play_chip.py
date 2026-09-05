@@ -15,6 +15,16 @@ a way it could silently stop working:
   chip takes itself away the instant it is touched.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import sys
 import unittest
 
@@ -154,6 +164,41 @@ class ChipTest(unittest.TestCase):
         got = ids(build_scene(b)[0])
         self.assertIn(second + "-play", got)
         self.assertNotIn(first + "-play", got)
+
+    # -- what it costs to show one -----------------------------------------
+
+    def _strip_id(self, nodes, y):
+        """The id of the row bitmap the tile at ``y`` is drawn in."""
+        for n in nodes:
+            if (n["t"] == "img" and not str(n["id"]).endswith("-play")
+                    and n["y"] <= y < n["y"] + n["h"]):
+                return n["id"]
+        self.fail("no strip node covering y=%s" % y)
+
+    def test_the_chip_does_not_rename_the_row_it_lands_on(self):
+        """The renderer keys its overlay slots by node id, and a node with
+        no id of its own is identified by its PATH in the tree -- so the
+        Stack that floats the chip renamed the row underneath it.
+
+        To the renderer that is one bitmap leaving and an unrelated one
+        arriving, so the whole row is re-issued into a different slot on
+        every hover in and out. Driven through the real renderer with the
+        ids the app actually sends, 334 of 400 pointer moves between rows
+        re-issued a whole strip -- both rows, the one left and the one
+        entered -- against 0 with the id held still. A strip is up to 31 MiB
+        at 4K, and the change on screen is a chip the size of a coin.
+
+        The Lua suite could not catch this: its ``strip_page`` fake gives
+        each row a fixed id, which is the thing that was not true.
+        """
+        b, _src = self._browser()
+        tid = self._tile_id(b)
+        nodes, _h = build_scene(b)
+        tile = [n for n in nodes if n.get("id") == tid][0]
+        before = self._strip_id(nodes, tile["y"])
+        hovered, _h = self._hover(b, tid)
+        self.assertEqual(self._strip_id(hovered, tile["y"]), before,
+                         "hovering renamed the row's bitmap")
 
     def test_navigating_away_clears_it(self):
         """A click navigates without moving the pointer, so the renderer has

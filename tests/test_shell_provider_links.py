@@ -14,6 +14,16 @@ these links are composed by the *server*, and a desktop opener hands
 ``file://`` or a registered application scheme to whatever claims it.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import sys
 import unittest
 
@@ -148,17 +158,21 @@ class ProviderLinkTest(unittest.TestCase):
             {"Name": "AniDB", "Url": "https://anidb.example/3"}])
         self.assertEqual(self._labels(nodes), ["IMDb", "TheTVDB", "AniDB"])
 
-    def test_an_item_with_no_links_draws_no_row(self):
+    def test_an_item_with_no_links_draws_no_provider_buttons(self):
+        """The Jellyfin Web link is not a provider and stays -- it is
+        composed from the item's own id rather than matched by anybody."""
         _b, nodes, _h = self._scene(None)
         self.assertEqual([i for i in ids(nodes)
                           if (i or "").startswith("detail-link-")], [])
+        self.assertIn("detail-web-link", ids(nodes))
 
-    def test_an_empty_list_draws_no_row(self):
+    def test_an_empty_list_draws_no_provider_buttons(self):
         """Not the same input as a missing key, and the server sends it --
         an item nothing has matched answers ``ExternalUrls: []``."""
         _b, nodes, _h = self._scene([])
         self.assertEqual([i for i in ids(nodes)
                           if (i or "").startswith("detail-link-")], [])
+        self.assertIn("detail-web-link", ids(nodes))
 
     # -- pressing them -----------------------------------------------------
 
@@ -409,7 +423,11 @@ class SeasonHeaderSpacingTest(unittest.TestCase):
         """
         def is_button(node):
             nid = node.get("id") or ""
-            return nid == "season-to-series" or nid.startswith("detail-link-")
+            # detail-web-link included deliberately: it draws in the middle
+            # of this group, so a helper that skipped it would measure a gap
+            # straight over it and report the whole row as unevenly spaced.
+            return (nid in ("season-to-series", "detail-web-link")
+                    or nid.startswith("detail-link-"))
 
         buttons = sorted((n for n in nodes if is_button(n)),
                          key=lambda n: (round(n["y"]), n["x"]))
@@ -508,3 +526,146 @@ class SeasonsQueryTest(unittest.TestCase):
         api = NoShows()
         seasons = self._source(api).get_seasons("srv1", "sh1")
         self.assertEqual([s["Id"] for s in seasons], ["fallback"])
+
+
+class NoAddressSource(FakeSource):
+    """A source that cannot name a server address — what the offline one is.
+
+    ``OfflineLibrarySource.server_address`` answers None by construction:
+    there is no server to send anybody to. Modelled as its own class rather
+    than by patching, because the offline case is the one where a link that
+    still drew would be an offer to open a page that cannot load.
+    """
+
+    def server_address(self, server_uuid):
+        return None
+
+
+class JellyfinWebLinkTest(unittest.TestCase):
+    """#714 — a link back to the item's own page in jellyfin-web.
+
+    Every test that cares about *where* the button goes presses it, for the
+    reason the file exists: a row whose captions and layout are right can
+    still send every button to the wrong url.
+    """
+
+    def _scene(self, route, source=None, size=(1280, 720)):
+        b = MpvtkBrowser(app=None, source=source or FakeSource())
+        b._pool = _SyncPool()
+        b.controller = FakeController()
+        b.server = "srv1"
+        b.nav_stack = [dict(route)]
+        b._load_route(b.route)
+        nodes, handlers = build_scene(b, size=size)
+        return b, nodes, handlers
+
+    # -- the url -----------------------------------------------------------
+
+    def test_the_detail_button_opens_this_items_web_page(self):
+        b, _nodes, handlers = self._scene(DETAIL)
+        handlers["detail-web-link"]["click"]()
+        self.assertEqual(
+            b.controller.opened_urls,
+            ["https://home.example/web/#/details?id=m1&serverId=SRVID"])
+
+    def test_it_names_the_server_the_item_came_from(self):
+        """Not "a server": with two connected, a link composed from the
+        wrong address looks right and opens somebody else's library."""
+        from tests._shell_harness import MultiServerSource
+
+        b, _nodes, handlers = self._scene(
+            {"kind": "detail", "item_id": "m1", "server": "srv2"},
+            source=MultiServerSource())
+        handlers["detail-web-link"]["click"]()
+        self.assertEqual(
+            b.controller.opened_urls,
+            ["https://remote.example/web/#/details?id=m1&serverId=SRVID"])
+
+    def test_a_source_with_no_address_draws_no_button(self):
+        _b, nodes, _h = self._scene(DETAIL, source=NoAddressSource())
+        self.assertNotIn("detail-web-link", ids(nodes))
+        self.assertTrue([i for i in ids(nodes)
+                         if (i or "").startswith("detail-link-")],
+                        "the provider links went with it")
+
+    # -- the other two screens --------------------------------------------
+
+    def test_a_series_page_carries_it(self):
+        b, _nodes, handlers = self._scene(
+            {"kind": "series", "item_id": "sh1", "server": "srv1"})
+        handlers["detail-web-link"]["click"]()
+        self.assertEqual(len(b.controller.opened_urls), 1)
+        self.assertIn("id=sh1", b.controller.opened_urls[0])
+
+    def test_a_season_page_links_to_the_season_not_the_show(self):
+        """The same trap the provider links have on this screen: the season
+        is browsed through the series, and the id in scope is the wrong one
+        by default."""
+        b, _nodes, handlers = self._scene(
+            {"kind": "season", "item_id": "se2", "series_id": "sh1",
+             "server": "srv1"})
+        handlers["detail-web-link"]["click"]()
+        self.assertEqual(
+            b.controller.opened_urls,
+            ["https://home.example/web/#/details?id=se2&serverId=SRVID"])
+
+    # -- where it sits -----------------------------------------------------
+
+    def test_it_leads_the_row_rather_than_joining_the_tail(self):
+        _b, nodes, _h = self._scene(DETAIL)
+        web = [n for n in nodes if n.get("id") == "detail-web-link"]
+        first = [n for n in nodes if n.get("id") == "detail-link-0"]
+        self.assertTrue(web and first)
+        self.assertEqual(round(web[0]["y"]), round(first[0]["y"]),
+                         "it dropped onto a row of its own")
+        self.assertLess(web[0]["x"], first[0]["x"])
+
+    def test_it_is_captioned_like_its_neighbours(self):
+        """One word, so it reads as another entry in a row of links rather
+        than as a different kind of control [iw]. Asserted because the
+        caption is the whole of what tells the user where it goes."""
+        _b, nodes, _h = self._scene(DETAIL)
+        web = next(i for i, n in enumerate(nodes)
+                   if n.get("id") == "detail-web-link")
+        caption = next(n["text"] for n in nodes[web:web + 4]
+                       if n.get("t") == "text" and n.get("text"))
+        self.assertEqual(caption, "Web")
+
+    def test_it_does_not_renumber_the_provider_buttons(self):
+        """``detail-link-0`` still means the server's first provider. The
+        ids are read by the remote-control tests and by anything that
+        clicks one, so shifting them by one is a silent rename."""
+        b, _nodes, handlers = self._scene(DETAIL)
+        handlers["detail-link-0"]["click"]()
+        self.assertEqual(b.controller.opened_urls,
+                         ["https://www.imdb.com/title/tt1/"])
+
+
+class JellyfinWebUrlTest(unittest.TestCase):
+    """The composition on its own, including the shapes a page cannot make."""
+
+    def url(self, address, item):
+        return detail_components.jellyfin_web_url(address, item)
+
+    def test_the_route_web_actually_uses(self):
+        self.assertEqual(
+            self.url("https://jf.example", {"Id": "abc", "ServerId": "s1"}),
+            "https://jf.example/web/#/details?id=abc&serverId=s1")
+
+    def test_a_trailing_slash_does_not_double_up(self):
+        self.assertEqual(
+            self.url("https://jf.example/", {"Id": "abc"}),
+            "https://jf.example/web/#/details?id=abc")
+
+    def test_a_dto_without_a_server_id_leaves_it_off(self):
+        """Rather than sending ``serverId=None``. web falls back to the
+        server the browser is signed in to, which is the right answer for a
+        synthesized offline DTO."""
+        self.assertEqual(self.url("https://jf.example", {"Id": "abc"}),
+                         "https://jf.example/web/#/details?id=abc")
+
+    def test_no_address_and_no_id_are_both_no_link(self):
+        self.assertIsNone(self.url(None, {"Id": "abc"}))
+        self.assertIsNone(self.url("", {"Id": "abc"}))
+        self.assertIsNone(self.url("https://jf.example", {}))
+        self.assertIsNone(self.url("https://jf.example", None))

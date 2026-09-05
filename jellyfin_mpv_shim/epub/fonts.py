@@ -113,6 +113,11 @@ def face(kind, size, bold=False, italic=False, script="latin"):
     :mod:`~jellyfin_mpv_shim.mpvtk.pilfont` script name, and anything other
     than latin is served by that module (which has the CJK/Arabic/Indic
     candidate lists) rather than duplicating them here.
+
+    **This answers for one RUN, not for a book.** "symbol" and "emoji" are
+    legal answers here and are the faces for a star or a 🎬 in the prose --
+    they would be catastrophic as a whole book's face, and the caller that
+    picks that one keeps them out: see :class:`~.layout.Measurer`.
     """
     size = max(6, int(size))
     key = (kind, size, bool(bold), bool(italic), script)
@@ -150,13 +155,15 @@ def face(kind, size, bold=False, italic=False, script="latin"):
 
 def metrics(font):
     """``(ascent, descent)`` in pixels, with a usable answer for the
-    bitmap default (which has no ``getmetrics``)."""
-    try:
-        ascent, descent = font.getmetrics()
-        return ascent, descent
-    except AttributeError:
-        size = getattr(font, "size", 11)
-        return int(size * 0.8), int(size * 0.2)
+    bitmap default (which has no ``getmetrics``).
+
+    Through pilfont, which is the only thing that knows a face may be
+    *drawn* at a different size than it was opened at -- a bitmap-strike
+    emoji face reports 101 and 27 for a 20px run.
+    """
+    from ..mpvtk import pilfont
+
+    return pilfont.metrics(font)
 
 
 def clear_cache():

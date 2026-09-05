@@ -165,6 +165,20 @@ class Page:
         if not ok:
             self.ctx.status(_("Could not open that link."))
 
+    def web_url(self, item):
+        """This item's page in jellyfin-web, or None (#714).
+
+        Beside :meth:`open_link` and for the same reason: the three screens
+        that draw the provider row all want it, and the composition —
+        which server, and what web calls the route — is one answer, not
+        three. ``None`` offline, where there is no server to send anyone to.
+        """
+        from ..components import detail
+
+        source = self.ctx.source
+        server = self.route.get("server") or self.ctx.server
+        return detail.jellyfin_web_url(source.server_address(server), item)
+
     def route_async(self, work, on_done, epoch) -> None:
         """``ctx.run`` for this page's data, recording a failure on the route
         so the view can offer a retry instead of spinning forever."""

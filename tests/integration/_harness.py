@@ -309,19 +309,27 @@ class ShutdownError(Exception):
 #: line the user wrote; the seek distances and the fullscreen toggle are
 #: mpv's real defaults, character for character, because ``_seek_is_ours``
 #: compares against exactly those.
+#: mpv's builtin bindings, as `input-bindings` actually reports them.
+#:
+#: `priority: 0`, measured on a real mpv (and again on the shim's own): of 206
+#: builtins, 194 are priority 0 and the only 12 at -1 are the INACTIVE
+#: `encode` and `discnav` sections. This fixture said -1 throughout, i.e. it
+#: modelled every builtin as coming from a disabled section -- the one state a
+#: sweep must ignore. FOUR test fixtures carried that wrong model, which is
+#: why nothing noticed `winning()` ranking disabled bindings as live.
 DEFAULT_BINDINGS = [
-    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": -1},
-    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": -1},
-    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": -1},
-    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": -1},
-    {"key": "RIGHT", "cmd": "seek 5", "is_weak": True, "priority": -1},
-    {"key": "UP", "cmd": "seek 60", "is_weak": True, "priority": -1},
-    {"key": "DOWN", "cmd": "seek -60", "is_weak": True, "priority": -1},
-    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": -1},
+    {"key": "SPACE", "cmd": "cycle pause", "is_weak": True, "priority": 0},
+    {"key": "p", "cmd": "cycle pause", "is_weak": True, "priority": 0},
+    {"key": "f", "cmd": "cycle fullscreen", "is_weak": True, "priority": 0},
+    {"key": "LEFT", "cmd": "seek -5", "is_weak": True, "priority": 0},
+    {"key": "RIGHT", "cmd": "seek 5", "is_weak": True, "priority": 0},
+    {"key": "UP", "cmd": "seek 60", "is_weak": True, "priority": 0},
+    {"key": "DOWN", "cmd": "seek -60", "is_weak": True, "priority": 0},
+    {"key": "m", "cmd": "cycle mute", "is_weak": True, "priority": 0},
     {"key": "WHEEL_LEFT", "cmd": "seek -10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
     {"key": "WHEEL_RIGHT", "cmd": "seek 10", "is_weak": True,
-     "priority": -1},
+     "priority": 0},
 ]
 
 
@@ -901,17 +909,32 @@ def prime_args(config_dir=None):
 
     The app parses ``sys.argv`` the first time any module resolves the config
     dir; under a test runner ``sys.argv`` carries pytest/unittest tokens the
-    app's argparse rejects. Parsing once here against a clean argv (optionally
-    pinning ``--config`` to a temp dir) caches a valid Namespace for the rest of
-    the process, matching how the fast suite's single_instance test sidesteps
-    the same trap by mocking ``conffile.get``.
+    app's argparse rejects. Parsing once here against a clean argv, pinned to
+    a config dir, caches a valid Namespace for the rest of the process --
+    matching how the fast suite's single_instance test sidesteps the same trap
+    by mocking ``conffile.get``.
+
+    ``config_dir`` defaults to a throwaway rather than to the real one; see
+    below for what that cost.
     """
     import jellyfin_mpv_shim.args as args_mod
     if args_mod._args is not None:
         return args_mod._args
-    argv = ["jellyfin-mpv-shim"]
-    if config_dir is not None:
-        argv += ["--config", config_dir]
+    if config_dir is None:
+        # Never the developer's real config. Four of the five callers pass
+        # nothing, and that used to mean "whatever confdir resolves to" --
+        # which on Windows is %APPDATA%, because conffile.win32 knows nothing
+        # about XDG_CONFIG_HOME. The real-mpv legs then launched mpv with
+        # --config-dir pointing at the user's own jellyfin-mpv-shim
+        # directory, reading their mpv.conf and writing their state.
+        config_dir = tempfile.mkdtemp(prefix="jms-itest-conf-")
+        atexit.register(shutil.rmtree, config_dir, ignore_errors=True)
+    # Both, because the two platforms read different ones and --config only
+    # covers what goes through conffile. Same pairing as
+    # test_single_instance_multiproc._spawn.
+    os.environ["XDG_CONFIG_HOME"] = config_dir
+    os.environ["APPDATA"] = config_dir
+    argv = ["jellyfin-mpv-shim", "--config", config_dir]
     saved = sys.argv
     sys.argv = argv
     try:
@@ -919,6 +942,18 @@ def prime_args(config_dir=None):
     finally:
         sys.argv = saved
 
+
+# Primed HERE, at import, and not left to whichever module happens to call it
+# first. Every integration module imports this one before it touches the app,
+# so this is the earliest point that covers all of them -- and it is what makes
+# a module runnable ON ITS OWN. Without it, `python -m unittest -v
+# tests.integration.test_mpvtk_hud` dies on the app's own usage line the moment
+# a test resolves the config dir (argparse rejects the runner's `-v` and the
+# module path), which reads as a broken test module and is not; the modules
+# passed only because a sibling earlier in the leg had primed the cache. The
+# same trap the tree-wide `-k, never a module name` rule is about, one layer
+# down. See prime_args.
+prime_args()
 
 _PLAYER_MODULE = None
 
@@ -946,14 +981,12 @@ def import_player_with_fake_mpv():
             "import_player_with_fake_mpv must run first."
         )
 
-    # Keep config writes out of the user's real ~/.config, and pin the arg
-    # parser to it so confdir resolution doesn't choke on the runner's argv.
-    tmp_conf = tempfile.mkdtemp(prefix="jms-itest-conf-")
-    # This process owns it for its whole life, so atexit is the matching
-    # scope. Without it every leg left one behind: 176 had accumulated.
-    atexit.register(shutil.rmtree, tmp_conf, ignore_errors=True)
-    os.environ["XDG_CONFIG_HOME"] = tmp_conf
-    prime_args(tmp_conf)
+    # Config writes go to the throwaway the import-time prime above pinned:
+    # `confdir` returns `get_args().config` whenever it is set, so the FIRST
+    # parse decides the config dir for the whole process and a second dir made
+    # here could never become it. (It used to make one anyway, which is why
+    # this says so rather than saying nothing.)
+    prime_args()
 
     from jellyfin_mpv_shim.conf import settings
     # Disable the heavyweight optional features so _init_mpv / OSDMenu build

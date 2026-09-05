@@ -7,6 +7,16 @@ of "tested but never reaches the screen" this UI keeps producing. These
 tests come at it from the other side.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import sys
 import unittest
 from unittest import mock
@@ -897,3 +907,107 @@ class TestSegmentSettingsMigration(unittest.TestCase):
 
         cfg = self._migrated(skip_intro_enable=False)
         self.assertEqual(cfg.config_version, CONFIG_VERSION)
+
+
+class LoopFileNeverOutlivesAudioTest(unittest.TestCase):
+    """`loop-file` is a global mpv option that outlives the item it was set
+    for (docs/mpv-backends.md), and only audio may loop.
+
+    It used to be written at the very end of `_play_media` -- past the
+    `if not loaded: return` that a failed start takes. So a video whose load
+    failed kept whatever the previous item had set, and if that was a track
+    playing under repeat-one it stayed "inf". Setting it before mpv is handed
+    the file means a video cannot inherit a loop however the start ends.
+    """
+
+    #: Needles are the STATEMENTS, with their indentation -- not bare
+    #: substrings. The prose around this code names `if not loaded:` and
+    #: `loop-file`, so a looser match found the comment instead of the line
+    #: and the test measured the wording rather than the order.
+    WRITE = "\n            self._player.loop_file ="
+    PLAY = "\n                self._player.play(self.url)"
+    RETURN = "\n        if not loaded:"
+
+    def _src(self):
+        import inspect
+
+        from jellyfin_mpv_shim import player as player_mod
+
+        src = inspect.getsource(player_mod.PlayerManager._play_media)
+        for needle in (self.WRITE, self.PLAY, self.RETURN):
+            self.assertIn(needle, src,
+                          "the statement this test orders has moved or been "
+                          "reworded; the ordering is the point, so re-anchor "
+                          "it rather than deleting the test")
+        return src
+
+    def test_it_is_neutralised_before_mpv_opens_the_file(self):
+        src = self._src()
+        self.assertLess(
+            src.index(self.WRITE), src.index(self.PLAY),
+            "loop-file is written after mpv has the file, so a video can "
+            "start under a loop inherited from the previous item")
+
+    def test_it_is_neutralised_before_a_failed_load_can_return(self):
+        """The half that actually bit: the early return, not the play call."""
+        src = self._src()
+        self.assertLess(
+            src.index(self.WRITE), src.index(self.RETURN),
+            "a failed load returns before loop-file is written, leaving the "
+            "previous item's value set")
+
+    def test_the_audio_test_does_not_depend_on_mpv_state(self):
+        """`_current_is_audio` reads the ITEM, not mpv's track list, which is
+        what lets the write happen before anything has been demuxed. If it
+        ever starts asking mpv, the write above has to move back."""
+        from jellyfin_mpv_shim.player import PlayerManager
+
+        pm = PlayerManager.__new__(PlayerManager)
+        pm._video = type("V", (), {"item": {"Type": "Episode",
+                                            "MediaType": "Video"}})()
+        self.assertFalse(pm._current_is_audio())
+        pm._video = type("V", (), {"item": {"Type": "Audio",
+                                            "MediaType": "Audio"}})()
+        self.assertTrue(pm._current_is_audio())
+
+    def test_the_decision_is_about_the_INCOMING_item(self):
+        """The half the ordering tests above cannot see.
+
+        The write happens before `self._video = video`, so asking the player
+        answers about the OUTGOING item: a film started after a track under
+        repeat-one got loop-file "inf" -- the exact case the write exists to
+        prevent -- and the first track after a film got "no", so repeat-one
+        silently did nothing. Asserting the ORDER of the statements, and that
+        `_current_is_audio` reads metadata, both pass against that.
+        """
+        from jellyfin_mpv_shim.player import PlayerManager, _item_is_audio
+
+        pm = PlayerManager.__new__(PlayerManager)
+        audio = type("V", (), {"item": {"Type": "Audio",
+                                        "MediaType": "Audio"}})()
+        film = type("V", (), {"item": {"Type": "Movie",
+                                       "MediaType": "Video"}})()
+
+        # The player still holds the track; the film is what is starting.
+        pm._video = audio
+        self.assertTrue(pm._current_is_audio())
+        self.assertFalse(
+            _item_is_audio(film),
+            "the loop decision would be made from the outgoing track, so a "
+            "film started under repeat-one loops")
+        pm._video = film
+        self.assertTrue(
+            _item_is_audio(audio),
+            "the first track after a film would not loop under repeat-one")
+
+    def test_the_write_asks_about_the_incoming_video(self):
+        """...and the production line actually uses it."""
+        import inspect
+
+        from jellyfin_mpv_shim import player as player_mod
+
+        src = inspect.getsource(player_mod.PlayerManager._play_media)
+        write = src[src.index("self._player.loop_file"):][:220]
+        self.assertIn("_item_is_audio(video)", write,
+                      "the loop-file write asks the player, which still holds "
+                      "the previous item at this point in the start")

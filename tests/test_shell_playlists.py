@@ -4,6 +4,16 @@ Includes the optimistic-update rollback path, which is where reordering and
 removal get their responsiveness and their failure modes.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import unittest
 from jellyfin_mpv_shim.mpvtk_browser.app import MpvtkBrowser
 
@@ -1214,3 +1224,142 @@ class TestRollbackSurvivesNavigation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BackToAnUnfinishedLoadRefetchesTest(unittest.TestCase):
+    """Going Back to a page whose fetch never landed must re-issue it.
+
+    A page can be left before its load returns -- the always-visible search
+    field submits, which bumps the epoch and drops the in-flight result on the
+    floor. Nothing then re-issues it: the render path spins on a route with no
+    data, no error and no outstanding request, forever.
+
+    `_land_forward` has had this recovery, and its comment argued the Back
+    case was impossible -- "going *back* to such a page is impossible (it was
+    never below you)". True only when the epoch bump came from *leaving* the
+    page; the search field bumps it while the page is still below you.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _SyncPool()
+        b.server = "srv1"
+        b.navigate({"kind": "home", "server": "srv1"}, reset=True)
+        return b
+
+    def test_back_to_a_page_that_never_loaded_re_issues_it(self):
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        # The grid's fetch was dropped by an epoch bump: no data, no items,
+        # no error, and no request outstanding.
+        for key in ("_data", "_items", "_error", "_loading"):
+            b.route.pop(key, None)
+        b.navigate({"kind": "search", "server": "srv1"})
+        b.go_back()
+
+        self.assertEqual(b.route["kind"], "grid")
+        self.assertTrue(
+            b.route.get("_items") is not None or b.route.get("_data")
+            is not None or b.route.get("_loading") or b.route.get("_error"),
+            "Back landed on a page with no data, no error and nothing in "
+            "flight -- a spinner that never resolves")
+
+    def test_a_page_holding_an_error_is_left_alone(self):
+        """The other direction. `_route_async`'s failure handler is
+        deliberately NOT epoch-gated, because an error is a rollback and a
+        route you navigated away from must still be holding it when you come
+        back. Refetching here would discard exactly that."""
+        b = self._browser()
+        b.navigate({"kind": "grid", "server": "srv1", "parent_id": "lib1"})
+        for key in ("_data", "_items", "_loading"):
+            b.route.pop(key, None)
+        b.route["_error"] = "Failed to load."
+        b.navigate({"kind": "search", "server": "srv1"})
+        b.go_back()
+
+        self.assertEqual(b.route.get("_error"), "Failed to load.",
+                         "Back threw away the error the page was holding")
+
+
+class TwoLoadsAtOneEpochAreDistinguishableTest(unittest.TestCase):
+    """A load that fails late must not write over a newer one that succeeded.
+
+    `_route_async` stamped the ASYNC EPOCH as "which load owns this route's
+    outcome". Its own comment explains what that guard is for: a hung server's
+    request timing out half a minute later must not write an error over a home
+    screen that has since loaded fine, and -- for anyone with downloads --
+    drop them onto the offline catalog from a working screen.
+
+    But §4's refresh is deliberately a load, not a *re*load: `refresh_home`
+    calls `_load_route` with no `_bump_epoch()`, because bumping would cancel
+    everything else in flight. Two such loads therefore stamp the same value,
+    the guard compares equal, and it does not fire. Its only other overlap
+    check is `route.get("_loading")`, and the sole writer of that in the tree
+    is `pagination.py` (infinite scroll) -- Home does not page, so it is
+    vacuous. `refresh_live_tv` has its own `_refreshing` marker for exactly
+    this.
+    """
+
+    def _browser(self):
+        b = MpvtkBrowser(app=None, source=FakeSource(),
+                         controller=FakeController())
+        b._pool = _DeferredPool()
+        b.server = "srv1"
+        return b
+
+    def test_a_late_failure_does_not_overwrite_a_newer_success(self):
+        b = self._browser()
+        route = b.route
+        epoch = b._epoch
+
+        boom = RuntimeError("the server hung, then gave up")
+        # Load A: dispatched first, answers last. Load B: the refresh that
+        # follows it at the SAME epoch, which is what refresh_home does.
+        b._route_async(route, lambda: (_ for _ in ()).throw(boom),
+                       lambda data: route.update(_data=data), epoch)
+        b._route_async(route, lambda: {"ok": True},
+                       lambda data: route.update(_data=data), epoch)
+
+        b._pool.release(1)          # B lands: the screen is correct
+        self.assertEqual(route.get("_data"), {"ok": True})
+
+        b._pool.release(0)          # A finally fails
+        self.assertIsNone(
+            route.get("_error"),
+            "the older load's failure was written over a screen that had "
+            "already loaded fine")
+        self.assertEqual(route.get("_data"), {"ok": True})
+
+    def test_an_older_SUCCESS_does_not_overwrite_a_newer_one(self):
+        """The mirror of the case above, and the half the first fix missed.
+
+        `run_async` gates on_done by EPOCH, and a refresh deliberately shares
+        one -- so gating only the failure left the success path open: an older
+        load answering after a newer one put its stale rows back. That is
+        #560's just-watched episode reappearing in Continue Watching.
+        """
+        b = self._browser()
+        route, epoch = b.route, b._epoch
+        b._route_async(route, lambda: {"version": "old"},
+                       lambda d: route.update(_data=d), epoch)
+        b._route_async(route, lambda: {"version": "new"},
+                       lambda d: route.update(_data=d), epoch)
+        b._pool.release(1)
+        b._pool.release(0)
+        self.assertEqual(
+            route.get("_data"), {"version": "new"},
+            "an older load's result overwrote the newer refresh")
+
+    def test_the_newest_load_can_still_report_its_own_failure(self):
+        """The control: distinguishing the two must not stop a genuine
+        failure being shown, or the view spins instead of offering a retry."""
+        b = self._browser()
+        route = b.route
+        boom = RuntimeError("nope")
+        b._route_async(route, lambda: (_ for _ in ()).throw(boom),
+                       lambda data: route.update(_data=data), b._epoch)
+        b._pool.release(0)
+        self.assertTrue(route.get("_error"),
+                        "a failing load reported nothing, so the view has no "
+                        "error to show and no retry to offer")

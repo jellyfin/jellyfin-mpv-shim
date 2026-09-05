@@ -187,7 +187,8 @@ def make_dummy_sink():
             ["pactl", "load-module", "module-null-sink",
              "sink_name=" + SINK_NAME,
              "sink_properties=device.description=" + SINK_NAME],
-            capture_output=True, text=True, timeout=20)
+            capture_output=True, text=True, timeout=20,
+            encoding="utf-8", errors="replace")
     except (OSError, subprocess.SubprocessError):
         return None, None
     module_id = (out.stdout or "").strip()
@@ -206,6 +207,11 @@ def make_dummy_sink():
 
 def run_leg(module, backend, use_xvfb, verbosity):
     env = dict(os.environ)
+    # A leg's own stdout is cp1252 on Windows, so a test whose docstring
+    # holds a character outside it dies in print() rather than in anything
+    # it was testing. Children cannot reconfigure themselves here (they are
+    # plain `python -m unittest`), so it goes in the environment.
+    env["PYTHONIOENCODING"] = "utf-8:backslashreplace"
     if backend:
         env["JMS_TEST_BACKEND"] = backend
     cmd = [sys.executable, "-m", "unittest", module]

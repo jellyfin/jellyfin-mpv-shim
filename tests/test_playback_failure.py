@@ -8,6 +8,16 @@ actually fine. So the tests below pin both directions — every shape that
 means error, and every shape that must NOT.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import os
 import queue
@@ -127,11 +137,11 @@ class DolbyVisionMigrationTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "conf.json")
-            with open(path, "w") as fh:
+            with open(path, "w", encoding="utf-8") as fh:
                 json.dump(payload, fh)
             settings = Settings()
             settings.load(path)
-            with open(path) as fh:
+            with open(path, encoding="utf-8") as fh:
                 return settings, json.load(fh)
 
     def test_an_old_config_is_migrated_off_dolby_vision_transcoding(self):

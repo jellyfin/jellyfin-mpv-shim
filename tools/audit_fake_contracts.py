@@ -43,7 +43,11 @@ XDG_CONFIG_HOME) and because a constructor-assigned attribute is invisible to
 the fake would have to do to be faithful (``FakeThumbs`` had ``get_cached``;
 it was the behaviour that was a lie). A finding is not automatically a bug:
 add the name to that pair's ``accepted`` with the reason it does not need
-modelling. What it does catch is the cheap half, statically, for free.
+modelling -- and only once something reaches it. A name excused before then
+is an excuse the audit will still be honouring on the day the code does reach
+it, so `accepted` describes what is, exactly as `owners` does in
+``tools/audit_owned_state.py``. What it does catch is the cheap half,
+statically, for free.
 
 Usage:  tools/audit_fake_contracts.py [--verbose]
 Exit 1 if any stand-in is missing something. tests/test_no_fake_gaps.py runs
@@ -88,10 +92,11 @@ PAIRS = [
         "tests/_shell_harness.py", "FakeThumbs",
         reads=("self.art.thumbs", "self.thumbs", "self.shell.thumbs"),
         accepted={
-            # Lifecycle the browser owns and no view test drives.
-            "shutdown", "close",
-            # Disk-cache internals; the fake never touches a disk.
-            "cache_dir", "prune", "_prune_disk",
+            # Lifecycle the browser owns and no view test drives. `close`,
+            # `cache_dir`, `prune` and `_prune_disk` sat here too, excused
+            # before anything reached them -- which is the pre-authorisation
+            # `tests/test_no_fake_gaps.py` now refuses.
+            "shutdown",
         },
         notes="the renderer reads decoded images *through* this cache",
     ),
@@ -169,7 +174,7 @@ _ast_cache = {}
 
 def parse(path):
     if path not in _ast_cache:
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             _ast_cache[path] = ast.parse(fh.read(), filename=path)
     return _ast_cache[path]
 

@@ -14,6 +14,16 @@ Three properties, and each has already been a bug somewhere in this app:
   while this machine still plays it.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import unittest
 from unittest import mock
 
@@ -242,8 +252,14 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
         """
         b = self._browser()
         _nodes, handlers = build_scene(b, (1280, 720))
-        # Pretend the grid underneath has already loaded its items.
+        # Pretend the grid underneath has already loaded its items -- AND
+        # its page cache. Seeding only `_items` is what made the two
+        # assertions below pass for nothing: `_pages` was never there to
+        # survive.
         b.nav_stack[0]["_items"] = [{"Id": "m1", "Name": "The Film"}]
+        b.nav_stack[0]["_pages"] = {0: [{"Id": "m1", "Name": "The Film"}]}
+        b.nav_stack[0]["_page_size"] = 12
+        b.nav_stack[0]["_win_tried"] = {0}
         handlers["act-delete"]["click"]()
         _nodes, handlers = build_scene(b, (1280, 720))
         handlers["dlg-ok"]["click"]()
@@ -252,6 +268,19 @@ class DeleteFromTheDetailPageTest(unittest.TestCase):
             "_items", b.route,
             "the grid kept its cached items, so the deleted tile is still "
             "on screen")
+        # ...and the PAGE CACHE with them. `_items` alone is one step of two:
+        # in Paginated mode `ensure()` only rebuilds when the page SIZE
+        # changes, so `_pages` left behind is served straight back and the
+        # deleted tile is drawn from it -- with `_items` correctly missing.
+        # Every other place that replaces a result set resets the paginator
+        # (`_retry_route`, `after_playlist_deleted`, `grid.py`); `_land_back`
+        # was the one that did not.
+        self.assertNotIn("_pages", b.route,
+                         "the stale page cache survives, so the deleted tile "
+                         "is still served from it")
+        self.assertNotIn("_win_tried", b.route,
+                         "the windowed-mode fetch ledger survives, so the "
+                         "rows it already tried stay blank")
 
     def test_confirming_deletes_and_leaves_the_page(self):
         b = self._browser()

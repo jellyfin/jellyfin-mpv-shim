@@ -43,14 +43,14 @@
 {"align": "left", "c": "e8e8e8", "h": 20.0, "id": "r.1.0.0.5.2.1", "sc": "series", "size": 16, "t": "text", "text": "Trakt", "w": 36.8, "x": 281.5, "y": 700.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.1.0.1.0", "sc": "series", "size": 24, "t": "text", "text": "Seasons", "w": 101.6, "x": 16.0, "y": 748.5}
 {"axis": "x", "ch": 281.0, "cw": 346.0, "h": 281.0, "id": "series-seasons", "sc": "series", "t": "scroll", "w": 346.0, "x": 0.0, "y": 782.5}
-{"h": 271.0, "id": "r.1.0.1.1.0.0.0", "ih": 271, "iw": 314, "sc": "series-seasons", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 314.0, "x": 16.0, "y": 787.5}
+{"h": 271.0, "id": "series-seasons#strip", "ih": 271, "iw": 314, "sc": "series-seasons", "src": "bitmap#0", "t": "img", "v": "v#1", "w": 314.0, "x": 16.0, "y": 787.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "series-seasons-se1", "ring": true, "sc": "series-seasons", "t": "rect", "w": 150, "x": 16.0, "y": 787.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "series-seasons-se2", "ring": true, "sc": "series-seasons", "t": "rect", "w": 150, "x": 180.0, "y": 787.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.2.0.1.0", "sc": "series", "size": 24, "t": "text", "text": "Cast & Crew", "w": 152.7, "x": 16.0, "y": 1081.5}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "detail-people", "sc": "series", "t": "scroll", "w": 182.0, "x": 0.0, "y": 1115.5}
-{"h": 271.0, "id": "r.1.0.2.1.0.0.0", "ih": 271, "iw": 150, "sc": "detail-people", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 1120.5}
+{"h": 271.0, "id": "detail-people#strip", "ih": 271, "iw": 150, "sc": "detail-people", "src": "bitmap#1", "t": "img", "v": "v#2", "w": 150.0, "x": 16.0, "y": 1120.5}
 {"click": true, "ctx": true, "h": 271, "hover": {"bc": "00a4dc", "bw": 3}, "id": "detail-people-pp1", "ring": true, "sc": "detail-people", "t": "rect", "w": 150, "x": 16.0, "y": 1120.5}
 {"align": "left", "bold": true, "c": "e8e8e8", "h": 30.0, "id": "r.1.0.3.0.1.0", "sc": "series", "size": 24, "t": "text", "text": "More Like This", "w": 182.5, "x": 16.0, "y": 1414.5}
 {"axis": "x", "ch": 281.0, "cw": 182.0, "h": 281.0, "id": "series-similar", "sc": "series", "t": "scroll", "w": 182.0, "x": 0.0, "y": 1448.5}
-{"h": 271.0, "id": "r.1.0.3.1.0.0.0", "ih": 271, "iw": 150, "sc": "series-similar", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 1453.5}
+{"h": 271.0, "id": "series-similar#strip", "ih": 271, "iw": 150, "sc": "series-similar", "src": "bitmap#2", "t": "img", "v": "v#3", "w": 150.0, "x": 16.0, "y": 1453.5}
 {"click": true, "ctx": true, "h": 271, "hev": true, "hover": {"bc": "00a4dc", "bw": 3}, "id": "series-similar-s1", "ring": true, "sc": "series-similar", "t": "rect", "w": 150, "x": 16.0, "y": 1453.5}

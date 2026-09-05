@@ -19,6 +19,16 @@ and that is the point: nothing short of a real fork/terminate can fail the
 way this failed.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import multiprocessing
 import os
 import signal
@@ -157,6 +167,12 @@ class DeafTrayProcess(multiprocessing.Process):
         _deaf_child()
 
 
+@unittest.skipIf(
+    os.name == "nt",
+    "the escalation under test is SIGTERM-then-SIGKILL, and a child that "
+    "IGNORES the polite signal is the premise. Windows has no such child: "
+    "Process.terminate() is TerminateProcess, which cannot be caught or "
+    "ignored, so there is nothing to escalate from")
 class TrayStopEscalationTest(unittest.TestCase):
     """`stop()` is the last line of defence, so it may not merely ask."""
 
@@ -236,7 +252,7 @@ def _alive(pid):
     except OSError:
         return False
     try:
-        with open("/proc/%d/stat" % pid) as handle:
+        with open("/proc/%d/stat" % pid, encoding="utf-8") as handle:
             return handle.read().rsplit(")", 1)[1].split()[0] != "Z"
     except OSError:
         return True

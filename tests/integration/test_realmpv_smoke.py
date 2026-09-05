@@ -26,6 +26,14 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(__file__))
+# ...and the repo root. Run as a script -- which the __main__ block at the
+# bottom invites -- `sys.path[0]` is this directory and the root is on the
+# path nowhere, so `jellyfin_mpv_shim` resolves to whatever is pip-installed:
+# silently, and it *runs*, against the previous release. Measured once as a
+# renderer.lua from a fortnight ago failing a test about this tree.
+# run_integration.py is unaffected (it spawns -m unittest with cwd=root).
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import _harness as h  # noqa: E402
 
 
@@ -159,6 +167,13 @@ class RealVideo:
         self.parent = RealParent(next_video)
         self.aid = None
         self.sid = -1                    # subtitles off -> configure_streams noop
+        #: Read by all four steps of the track chain, the first of which runs
+        #: before the url. The third field on this fake to carry that warning
+        #: (see the two methods below): a `Video` field omitted here does not
+        #: leave a path untested, it makes every start that reaches the field
+        #: an AttributeError -- and the symptom is "EOF did not auto-advance",
+        #: five frames from the cause. docs/track-selection.md.
+        self.explicit_tracks = False
         self.is_transcode = False
         self.media_source = {"Id": "ms-%s" % item_id, "MediaStreams": []}
         self.playback_info = {"PlaySessionId": "ps-%s" % item_id}
@@ -167,6 +182,26 @@ class RealVideo:
         self.subtitle_url = {}
         self.subtitle_enc = set()
         self.played = []
+
+    def source_for_track_rules(self):
+        """The source track rules resolve against. `Video` prefers the
+        negotiated one and falls back to the item's; there is only one here.
+
+        Called by `_apply_remembered_tracks`, which now runs BEFORE the url --
+        so, like the method below, omitting it does not leave a path uncovered,
+        it breaks every start that carries track memory.
+        """
+        return self.media_source
+
+    def resolve_tracks_for_negotiation(self):
+        """No-op, like OfflineVideo's: nothing here is negotiated.
+
+        Modelled rather than omitted because `play()` calls it on every video
+        before the url -- that is where the audio index handed to PlaybackInfo
+        is settled -- so a stand-in without it does not leave a path untested,
+        it makes the whole start unreachable. See docs/testing.md on fakes.
+        """
+        return
 
     def get_transcode_bitrate(self):
         return "none"

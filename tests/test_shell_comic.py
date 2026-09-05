@@ -12,6 +12,16 @@ without a window; here the question is only whether this page feeds it the
 right numbers and at the right moments.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import io
 import os
 import tempfile
@@ -849,3 +859,58 @@ class TestChrome(ComicHarness):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FailedPageDoesNotRetryForeverTest(ComicHarness):
+    """The comic reader's re-show guard is wrong on both arms.
+
+    The `elif archive is not None and not _showing` arm -- the one that
+    re-shows a page after the browser yielded to playback and came back --
+    has no `_error` guard and no in-flight marker. `_show_page`'s `failed`
+    sets `_error` and invalidates; `done` is what sets `_showing`. So on a
+    failure `_showing` stays False, the next render re-enters the same arm,
+    and it dispatches again: one pool job and one full scene build per
+    iteration, at render-loop rate, on the shared api pool.
+
+    And `close()` pops `_showing` and `_comic` but keeps `_error` -- while the
+    OTHER arm, the re-open, is `_error`-guarded. So leaving a comic on a bad
+    page and coming back finds the archive gone and the re-open refused: the
+    in-place recovery (`done` clears `_error` on the first page that reads)
+    becomes unreachable the moment the user does the natural thing and leaves.
+    """
+
+    def test_a_failing_page_is_not_re_extracted_every_repaint(self):
+        browser = self.open_comic()
+        build_scene(browser)
+        page = self.page(browser)
+        calls = []
+
+        def boom(index):
+            calls.append(index)
+            raise OSError("No space left on device")
+
+        browser.route["_comic"].page_path = boom
+        browser.route.pop("_showing", None)      # as a yield leaves it
+        browser.route["_error"] = "page 2 is corrupt"
+
+        for _ in range(5):
+            build_scene(browser)
+
+        self.assertLessEqual(
+            len(calls), 1,
+            "the failing page was re-extracted on every repaint: %d "
+            "extractions across five renders" % len(calls))
+
+    def test_leaving_and_returning_can_recover(self):
+        """`close()` gives up the archive, so the error it left describes a
+        page of a comic we are no longer holding."""
+        browser = self.open_comic()
+        build_scene(browser)
+        route = browser.route
+        route["_error"] = "page 2 is corrupt"
+
+        self.page(browser).close()
+        self.assertIsNone(route.get("_error"),
+                          "the error outlived the archive it described, so "
+                          "the re-open on the way back in is refused and the "
+                          "comic is dead for the session")

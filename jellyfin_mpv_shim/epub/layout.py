@@ -103,23 +103,56 @@ class Measurer:
 
     def __init__(self, style, script="latin"):
         self.style = style
-        self.script = script
+        # The book's own face, and it may not be a pseudo-script. `script`
+        # comes from the title, and a title of "★" or "🎬 Dune" answers
+        # "symbol" -- which is a face for the odd glyph, and would set the
+        # whole book in Segoe UI Symbol. A pseudo-script reaches a run
+        # through `_face`, never through this.
+        self.script = ("latin" if script in ("symbol", "emoji", "", None)
+                       else script)
         self._widths = {}
         self._fonts = {}
+        self._resolvers = {}
+        self._scripts = {}
+        self._metrics_cache = {}
 
     def size_for(self, span_style):
         return max(8, int(round(self.style.font_px * span_style.scale)))
 
-    def font(self, span_style):
-        key = (span_style.key(), self.script)
+    def _face(self, span_style, script):
+        key = (span_style.key(), script)
         hit = self._fonts.get(key)
         if hit is None:
             from . import fonts
 
             kind = "mono" if span_style.mono else self.style.font_kind
             hit = fonts.face(kind, self.size_for(span_style),
-                             span_style.bold, span_style.italic, self.script)
+                             span_style.bold, span_style.italic, script)
             self._fonts[key] = hit
+        return hit
+
+    def font(self, span_style):
+        """The face for this book's own script — the base a line is set
+        in, and the one whose weight and slant the CSS asked for."""
+        return self._face(span_style, self.script)
+
+    def faces(self, span_style):
+        """A ``script -> face`` resolver for
+        :func:`~jellyfin_mpv_shim.mpvtk.pilfont.draw_text`.
+
+        The reader cannot borrow pilfont's own faces: it sets a book in a
+        *serif* family it resolved itself, in four weight/slant
+        combinations. So it supplies where each run's face comes from and
+        pilfont supplies the splitting. Cached per span style, because
+        `width` is called tens of thousands of times to paginate a chapter
+        and a fresh closure each time is the cache this class exists to be.
+        """
+        key = span_style.key()
+        hit = self._resolvers.get(key)
+        if hit is None:
+            def hit(script, _style=span_style):
+                return self._face(_style, script)
+            self._resolvers[key] = hit
         return hit
 
     def width(self, text, span_style):
@@ -128,9 +161,11 @@ class Measurer:
         key = (text, span_style.key())
         hit = self._widths.get(key)
         if hit is None:
-            font = self.font(span_style)
+            from ..mpvtk import pilfont
+
             try:
-                hit = float(font.getlength(text))
+                hit = float(pilfont.length(text, self.font(span_style),
+                                           faces=self.faces(span_style)))
             except (AttributeError, OSError, ValueError):
                 # Pillow's bitmap default, or a face that cannot measure a
                 # string it has no glyphs for. Half an em per character is
@@ -146,16 +181,55 @@ class Measurer:
             self._widths[key] = hit
         return hit
 
-    def line_height(self, span_style):
+    def _scripts_of(self, text):
+        """The set of scripts in ``text``, cached per string.
+
+        `_place_line` asks every token on a line for both its height and
+        its ascent, so this runs twice per token over a whole chapter --
+        and pagination is most of the time opening a book takes. Bounded
+        the same way `_widths` is, and for the same reason.
+        """
+        hit = self._scripts.get(text)
+        if hit is None:
+            from ..mpvtk import pilfont
+
+            hit = frozenset(script for script, _chunk in pilfont.runs(text))
+            if len(self._scripts) > 80000:
+                self._scripts.clear()
+            self._scripts[text] = hit
+        return hit
+
+    def _metrics(self, span_style, text=None):
+        """``(ascent, descent)`` for a line, over every face it needs.
+
+        ``text`` is what makes this per line rather than per style, and it
+        has to be: NotoSansCJK is 25/7 at 21px against DejaVuSerif's 20/5
+        (measured), so a line carrying a Japanese word inside an English
+        book overlaps the line below it if the band is reserved from the
+        serif alone. A line with nothing but the book's own script gets
+        exactly the answer it got before, from the same cache entry --
+        which is what keeps an all-English chapter paying nothing for this.
+        """
         from . import fonts
 
-        ascent, descent = fonts.metrics(self.font(span_style))
+        scripts = frozenset({self.script})
+        if text:
+            scripts |= self._scripts_of(text)
+        key = (span_style.key(), scripts)
+        hit = self._metrics_cache.get(key)
+        if hit is None:
+            pairs = [fonts.metrics(self._face(span_style, script))
+                     for script in scripts]
+            hit = (max(a for a, _d in pairs), max(d for _a, d in pairs))
+            self._metrics_cache[key] = hit
+        return hit
+
+    def line_height(self, span_style, text=None):
+        ascent, descent = self._metrics(span_style, text)
         return int(round((ascent + descent) * self.style.line_spacing))
 
-    def ascent(self, span_style):
-        from . import fonts
-
-        return fonts.metrics(self.font(span_style))[0]
+    def ascent(self, span_style, text=None):
+        return self._metrics(span_style, text)[0]
 
 
 class Piece:
@@ -750,8 +824,10 @@ def _place_line(tokens, used, start_x, limit, align, last, measurer,
     sets every indented block (list item, quotation, verse) ragged one
     indent short. See ``docs/readers.md`` §4.8.
     """
-    height = max(measurer.line_height(t.style) for t in tokens)
-    ascent = max(measurer.ascent(t.style) for t in tokens)
+    # Per token TEXT as well as per style: a run needing a taller face
+    # than the book's own is the reason `_metrics` takes the text at all.
+    height = max(measurer.line_height(t.style, t.text) for t in tokens)
+    ascent = max(measurer.ascent(t.style, t.text) for t in tokens)
     slack = max(0.0, limit - start_x - used)
     x = float(start_x)
     stretch = 0.0

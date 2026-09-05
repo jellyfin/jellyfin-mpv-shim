@@ -10,6 +10,16 @@ the library). This pins which of the two answers each surface gets, plus the
 one stop that never halts: the window closing.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import ast
 import os
 import sys
@@ -159,7 +169,8 @@ class WhichPredicateThePlayerAsks(unittest.TestCase):
         """(enclosing function, method) for every ``self.syncplay.x()`` in
         player.py."""
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(root, "jellyfin_mpv_shim", "player.py")) as fh:
+        with open(os.path.join(root, "jellyfin_mpv_shim", "player.py"),
+                       encoding="utf-8") as fh:
             tree = ast.parse(fh.read())
         parent = {}
         for node in ast.walk(tree):

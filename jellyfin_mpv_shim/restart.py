@@ -1,26 +1,16 @@
 """Restarting the app in place, for settings that only apply at startup.
 
 **The relaunch happens as the process's last act**, registered with
-``exit_watchdog.set_final_action`` so it runs on *both* ways out -- the
-orderly ``finish()`` and the deadline that force-kills a wedged shutdown --
-rather than as an ``exec`` from wherever the button was pressed.
+``exit_watchdog.set_final_action`` so it runs on *both* ways out and not as an
+``exec`` from wherever the button was pressed. A line at the end of ``main``
+would be dead code below ``os._exit`` and would miss the wedged exit -- which
+is exactly when a user who pressed *Restart Now* needs the app to come back.
+See docs/architecture.md section 4.
 
-It is deliberately **not** a line at the end of ``main``: that placement was
-dead code below ``os._exit``, and it would also miss the wedged exit, which
-is exactly when a user who pressed *Restart Now* most needs the app to come
-back. See docs/architecture.md section 4. What that buys:
-
-- the shutdown sequence still runs, so the final progress report is posted,
-  the window geometry is saved and credentials are flushed;
-- the lock is already free when the new process starts, so it does not find
-  the old copy still holding it and hand off to a process that is exiting;
-- the tray child, the mpv window and the worker threads are all gone, so
-  nothing is inherited or orphaned;
-- there is no ``execv`` from a multithreaded process, and no platform where
-  that behaves differently.
-
-The cost is that the app really does go away and come back, which is what
-the user asked for.
+So the new process starts with the shutdown finished: state flushed, the
+instance lock free, the tray child and mpv gone, and no ``execv`` from a
+multithreaded process. The cost is that the app really does go away and come
+back, which is what the user asked for.
 
 ``command()`` rebuilds the launch from **parsed** arguments rather than
 copying ``sys.argv``, and the allowlist there is deliberate: a flag nobody
@@ -166,13 +156,12 @@ def child_env():
     """The environment to start the new copy with.
 
     A plain copy of ours, **except** under a frozen build, where the
-    PyInstaller bootloader has left marks in the environment that describe
-    *this* launch and would misdirect the next one. See the two tables above.
+    PyInstaller bootloader has left marks describing *this* launch that would
+    misdirect the next one (see the two tables above).
 
-    Gated on ``sys.frozen`` rather than applied everywhere, and that gate is
-    load-bearing: run from source, `LD_LIBRARY_PATH` is the user's own and
-    there is no `_ORIG` to restore it from, so the same code would silently
-    delete it.
+    **Gated on ``sys.frozen``, and that gate is load-bearing**: run from
+    source, `LD_LIBRARY_PATH` is the user's own and there is no `_ORIG` to
+    restore it from, so the same code would silently delete it.
     """
     env = dict(os.environ)
     if not getattr(sys, "frozen", False):
@@ -195,14 +184,13 @@ def supported():
     """Whether the restart button can be offered at all.
 
     Asked **before** anything is shut down, so a machine this cannot work on
-    gets a banner that says "restart to apply" rather than a button that
-    quietly does nothing after taking the app away.
+    gets a banner saying "restart to apply" rather than a button that quietly
+    does nothing after taking the app away.
 
-    Deliberately NOT memoized here. It reads `sys.argv[0]` and the
-    filesystem, both of which a test legitimately patches, and a module-level
-    memo made the answer stick across tests -- caching a value computed under
-    one patch and handing it to the next. The per-frame cost this avoids is
-    cached by the caller instead, where the scope is one browser session
+    **Deliberately not memoized here.** It reads `sys.argv[0]` and the
+    filesystem, both of which a test legitimately patches, so a module-level
+    memo would hand a value computed under one patch to the next. The caller
+    caches it instead, where the scope is one browser session
     (`MpvtkBrowser.can_restart`).
     """
     return command() is not None
@@ -249,19 +237,15 @@ PREVIOUS_LOG = "log.prev.txt"
 def _preserve_log():
     """Move this run's log aside so the replacement does not truncate it.
 
-    ``configure_log_file`` opens ``log.txt`` with ``mode="w"``: one run per
-    file, which is right for an app that starts once. A restart is two runs
-    telling one story, and the half that matters -- "Restart armed",
-    "Restarting: ..." and whatever went wrong before it -- is the half the
-    successor would overwrite. The case where anyone reads it is precisely
-    the case where the replacement failed to come up, so the evidence would
-    be gone exactly when it is wanted.
+    ``configure_log_file`` opens ``log.txt`` with ``mode="w"`` -- right for an
+    app that starts once, but a restart is two runs telling one story and the
+    successor would overwrite the half that matters. Anyone reading it is
+    reading it precisely because the replacement failed to come up.
 
-    Renaming rather than copying: the parent's handler keeps writing to the
-    same inode, so the rest of its shutdown lands in the preserved file
-    where it belongs. Best-effort -- on Windows an open file cannot be
-    renamed, and losing the previous log is not a reason to skip the
-    restart.
+    Renamed rather than copied, so the parent's handler keeps writing to the
+    same inode and the rest of its shutdown lands in the preserved file.
+    Best-effort: on Windows an open file cannot be renamed, and losing the
+    previous log is not a reason to skip the restart.
     """
     try:
         from . import conffile

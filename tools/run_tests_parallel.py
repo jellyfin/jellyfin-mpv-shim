@@ -43,6 +43,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -54,8 +55,26 @@ TESTS = os.path.join(ROOT, "tests")
 RESULT = "JMS-RESULT"
 
 
+def _utf8(stream):
+    """Make *stream* carry any test output at all.
+
+    A redirected stdout on Windows is cp1252, and a test whose name or
+    docstring holds a character outside it (this suite uses arrows and box
+    drawing) makes `print` raise UnicodeEncodeError. In a worker that loses
+    the module; in the parent it lost the entire run -- 18 modules in, at the
+    first failure detail, with no summary and no traceback, because the
+    traceback could not be printed either.
+    """
+    try:
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+    except (AttributeError, ValueError):
+        pass                        # already wrapped, or not a text stream
+
+
 def _worker(pattern):
     """Run one module's tests and report on stdout. Never returns."""
+    _utf8(sys.stdout)
+    _utf8(sys.stderr)
     # Before importing anything under jellyfin_mpv_shim -- see the module
     # docstring. Both lines are load-bearing.
     sys.argv = [sys.argv[0]]
@@ -93,6 +112,19 @@ def _worker(pattern):
         _tmpdirs.cleanup_all()
     except Exception:
         pass
+
+    # Same reason, different owner: the mpvtk scratch cache is product code
+    # and cleans up via its own atexit hook, which this exit path skips too.
+    # Only if the module was actually imported -- most workers never build a
+    # browser and there is nothing to remove. Left out, a run leaked one
+    # cache dir per worker that imported it, and on Windows nothing reclaims
+    # those (rawimage._process_alive cannot tell a dead pid from a live one).
+    rawimage = sys.modules.get("jellyfin_mpv_shim.mpvtk.rawimage")
+    if rawimage is not None:
+        try:
+            rawimage.cleanup_this_process()
+        except Exception:
+            pass
 
     sys.stderr.flush()
     os._exit(0 if result.wasSuccessful() else 1)
@@ -150,9 +182,16 @@ def main():
     if args.worker:
         return _worker(args.worker)
 
+    _utf8(sys.stdout)
+    _utf8(sys.stderr)
     modules = _modules()
     jobs = args.jobs or _default_jobs()
-    if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+    # os.name: Windows has a desktop and no DISPLAY, so the bare check told
+    # every Windows run to go and find xvfb. Kept in step with
+    # run_integration._have_display and _harness.HAVE_DISPLAY, which answer
+    # the same question for the other two suites.
+    if (os.name != "nt" and not os.environ.get("DISPLAY")
+            and not os.environ.get("WAYLAND_DISPLAY")):
         print("warning: no DISPLAY. Importing player.py opens a real mpv "
               "window, so run this under `xvfb-run -a`.", file=sys.stderr)
 
@@ -167,7 +206,10 @@ def main():
             proc = subprocess.Popen(
                 [sys.executable, os.path.abspath(__file__), "--worker", mod],
                 cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True,
+                # Explicit, not text=True: that decodes with the locale
+                # encoding, and cp1252 has undefined bytes -- so the parent
+                # could fail to READ output the worker managed to write.
+                text=True, encoding="utf-8", errors="replace",
                 # Its own process group, so killing a worker takes the mpv
                 # it started with it. A killed run that leaves mpv and Xvfb
                 # children behind is how a machine accumulates a graveyard
@@ -175,10 +217,42 @@ def main():
                 # run by five days -- and the waste is what made a *serial*
                 # suite look like it needed OOM headroom.
                 start_new_session=True)
-            running[proc] = (mod, time.time())
+            # Drain the pipe NOW, in its own thread, rather than after the
+            # worker exits. Nothing was reading it until then, so a worker
+            # that outran the pipe buffer blocked in write() and never
+            # exited -- and the parent, waiting for it to exit before
+            # reading, waited out the full --timeout. Latent on Linux,
+            # where the buffer is 64K and a passing module prints almost
+            # nothing; reached on Windows, where one module's failure
+            # tracebacks are enough. run_integration.py's pump() has always
+            # done this.
+            sink = []
+            pump = threading.Thread(target=_drain, args=(proc, sink),
+                                    daemon=True)
+            pump.start()
+            running[proc] = (mod, time.time(), sink, pump)
+
+    def _drain(proc, sink):
+        """Copy one worker's output into ``sink`` as it is produced."""
+        try:
+            for line in proc.stdout:
+                sink.append(line)
+        except (ValueError, OSError):
+            pass                     # killed worker: the pipe went away
+        finally:
+            try:
+                proc.stdout.close()
+            except (ValueError, OSError):
+                pass
 
     def reap(proc):
         """Kill a worker and everything it started."""
+        if os.name != "posix":
+            # No process groups to kill, and os.getpgid does not exist -- an
+            # AttributeError here is not caught below and takes the runner
+            # down instead of the worker it was asked to time out.
+            proc.kill()
+            return
         try:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
         except (ProcessLookupError, PermissionError):
@@ -195,9 +269,10 @@ def main():
                     # them racing for one X server can block in creation.
                     reap(proc)
                 continue
-            mod, t0 = running.pop(proc)
-            out = proc.stdout.read()
-            proc.stdout.close()
+            mod, t0, sink, pump = running.pop(proc)
+            # The writer is gone, so the reader is at EOF or a breath away.
+            pump.join(timeout=30)
+            out = "".join(sink)
             count, bad, reported = 0, 0, False
             for line in out.splitlines():
                 if line.startswith(RESULT + " "):
@@ -210,7 +285,8 @@ def main():
             if not reported and time.time() - t0 >= args.timeout:
                 out += ("\n*** killed after %.0fs (--timeout). It passes "
                         "alone; suspect contention for the X server or for "
-                        "mpv.\n" % args.timeout)
+                        "mpv, or a real hang inside the module.\n"
+                        % args.timeout)
             done.append((mod, rc, time.time() - t0, out, count))
             if not args.quiet:
                 print("%-4s %5.1fs %4d  %s"

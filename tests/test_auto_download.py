@@ -7,6 +7,16 @@ playing, and it will not reap an item whose watched state it could not
 confirm.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import shutil
 import sys
@@ -121,9 +131,18 @@ class FakeManager:
                 SyncManager._record_permanent_failure(
                     self, self.db.get(pending["item_id"]))
 
-    def delete(self, item_id=None, **kw):
+    def delete(self, item_id=None, only_if_auto=False, **kw):
+        """Models `only_if_auto`, which is the whole subject of the reaper's
+        claim: a fake that ignored it would delete rows the real manager
+        refuses to, making the race untestable while reporting a pass."""
+        if only_if_auto:
+            if self.db.delete_if_auto(item_id) is None:
+                return False
+            self.deleted.append(item_id)
+            return True
         self.deleted.append(item_id)
         self.db.delete(item_id)
+        return True
 
 
 def row(item_id, origin=ORIGIN_AUTO_NEXT_UP, size=1 * GB, status=STATUS_COMPLETE,
@@ -234,6 +253,58 @@ class ReapProtectionTest(AutoTest):
         self.db.upsert(row("a1", status=STATUS_PENDING, played=True))
         self._auto().reap()
         self.assertEqual(self.mgr.deleted, [])
+
+
+    def test_a_download_claimed_mid_pass_is_not_reaped(self):
+        """The user presses Download while the reaper is already walking.
+
+        `reap()` snapshots the complete auto rows and then spends *seconds* in
+        the retention loop -- one blocking get_userdata_for_item per row, tens
+        of round trips on a real Next Up list. `_delete` then deletes by
+        item_id, re-reading nothing. Meanwhile `enqueue` promotes an already
+        complete auto row with `set_origin(iid, ORIGIN_USER)`, whose own
+        comment states the contract: "A user asking for something the
+        scheduler already fetched takes ownership of it, so the reaper stops
+        considering it."
+
+        Nothing enforced that. The snapshot still said `auto:` and the episode
+        was deleted out from under a user who had just been told it was
+        downloading -- with one INFO line as the only trace.
+
+        The promotion here happens inside the fake's userdata call, which is
+        exactly where the real window is: the reaper is blocked on the network
+        with a stale row in hand.
+        """
+        self.db.upsert(row("a1", played=True))
+        self.db.upsert(row("a2", played=True))
+        api = FakeApi()
+
+        def userdata(item_id):
+            # The user claims a2 while a1 is being asked about.
+            if item_id == "a1":
+                self.db.set_origin("a2", ORIGIN_USER)
+            return {"Played": True}
+
+        api.get_userdata_for_item = userdata
+        auto = self._auto(clients={"srv": FakeClient(api)})
+        auto.reap()
+
+        self.assertIsNone(self.db.get("a1"),
+                          "the watched auto-download should still be reaped")
+        self.assertIsNotNone(
+            self.db.get("a2"),
+            "the reaper deleted a download the user claimed mid-pass, on the "
+            "strength of an origin it read before the claim")
+
+    def test_a_row_promoted_before_the_pass_is_still_safe(self):
+        """The static case, kept distinct: this one the snapshot already sees,
+        so it passes with or without the atomic re-check and is not evidence
+        about the race above."""
+        self.db.upsert(row("a1", origin=ORIGIN_USER, played=True))
+        api = FakeApi()
+        api.get_userdata_for_item = lambda item_id: {"Played": True}
+        self._auto(clients={"srv": FakeClient(api)}).reap()
+        self.assertIsNotNone(self.db.get("a1"))
 
 
 class ReapPolicyTest(AutoTest):

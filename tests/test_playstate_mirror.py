@@ -17,6 +17,16 @@ that produced it is the bug shape here, so the tests drive several reports
 and assert the stored value tracks rather than latching.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import os
 import sys
@@ -1236,3 +1246,258 @@ class HomeAsksForAFreshPullTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReplayAcknowledgesOnlyWhatItSentTest(unittest.TestCase):
+    """Offline playstate replay must not delete progress it never uploaded.
+
+    `_sync_playstate` snapshots the pending rows, does its network I/O, then
+    deletes the ids it finished. `upsert_playstate` keeps **one row per item**
+    and updates it in place -- same id, advanced values -- so a report landing
+    during the upload changed the row the replay was about to delete by id.
+    The newer position and a final `played` went with it, and the server never
+    heard either.
+
+    This is reachable without any thread scheduling luck: playback starts
+    offline, the server comes back mid-session, and `OfflineVideo.client`
+    stays the captured None while the sync worker has a live client.
+
+    `app.py`'s `clear_status_if` is the in-tree model -- it acks **by value**.
+    """
+
+    SERVER = "srv-uuid"
+
+    def _manager(self, db, client):
+        from jellyfin_mpv_shim.sync import manager as sync_manager
+        mgr = sync_manager.SyncManager.__new__(sync_manager.SyncManager)
+        mgr.db = db
+        mgr.get_client = lambda uuid: client
+        return mgr
+
+    def _db(self):
+        import tempfile, shutil
+        from jellyfin_mpv_shim.sync.db import SyncDB
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        db = SyncDB(os.path.join(tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        return db
+
+    def test_a_report_during_the_upload_is_not_acknowledged_away(self):
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        pushed = []
+        test = self
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                # The window: playback writes newer progress while the replay
+                # is still talking to the server about the old value.
+                db.upsert_playstate(test.SERVER, "ep1",
+                                    position_ticks=100, played=True)
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pushed.append((item_id, dict(data)))
+
+        class Client:
+            jellyfin = Api()
+
+        self._manager(db, Client())._sync_playstate()
+
+        self.assertEqual(pushed, [("ep1", {"PlaybackPositionTicks": 10})],
+                         "the replay should have sent the value it snapshotted")
+        pending = db.list_playstate()
+        self.assertEqual(len(pending), 1,
+                         "the replay deleted a row that had moved on, so the "
+                         "newer position and the watched mark are gone and "
+                         "the server will never hear them")
+        self.assertEqual(pending[0]["position_ticks"], 100)
+        self.assertTrue(pending[0]["played"])
+
+    def test_an_untouched_row_is_still_cleared(self):
+        """The other half. Acking by value must not turn the queue into one
+        that never drains -- that would re-push the same mark on every
+        reconnect, forever."""
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", played=True)
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pass
+
+        class Client:
+            jellyfin = Api()
+
+        self._manager(db, Client())._sync_playstate()
+        self.assertEqual(db.list_playstate(), [],
+                         "an unchanged row was not cleared, so it will be "
+                         "re-pushed on every reconnect")
+
+    def test_it_drains_over_repeated_sweeps(self):
+        """Multi-step, per the standing rule: the row is rewritten during the
+        first sweep and must still leave the queue on a later one rather than
+        being replayed forever."""
+        db = self._db()
+        db.upsert_playstate(self.SERVER, "ep1", position_ticks=10)
+        pushed = []
+        test = self
+        state = {"disturb": True}
+
+        class Api:
+            def get_userdata_for_item(self, item_id):
+                if state["disturb"]:
+                    state["disturb"] = False
+                    db.upsert_playstate(test.SERVER, "ep1",
+                                        position_ticks=100, played=True)
+                return {}
+
+            def update_userdata_for_item(self, item_id, data):
+                pushed.append((item_id, dict(data)))
+
+        class Client:
+            jellyfin = Api()
+
+        mgr = self._manager(db, Client())
+        for _ in range(3):
+            mgr._sync_playstate()
+
+        self.assertEqual(db.list_playstate(), [],
+                         "the queue never drained: acking by value must not "
+                         "leave a row that is replayed on every sweep")
+        self.assertIn(("ep1", {"Played": True,
+                               "PlaybackPositionTicks": 100}), pushed)
+
+
+class ExplicitMarksLandAfterTheStopReportTest(unittest.TestCase):
+    """"Quit and Mark Unwatched" must not be undone by the stop it follows.
+
+    `player.py`'s own comment states the contract: "Advance (which sends the
+    final stop report at the current position) BEFORE marking played: the
+    other order let the stop report land after set_played and overwrite the
+    fully-watched state with mid-episode progress."
+
+    That held while both were synchronous. `session_stop` now goes through the
+    shared `SessionReporter` FIFO while `set_played` still calls
+    `item_played` inline, so the *Python* order is preserved and the delivery
+    order is not: with anything already queued -- a slow progress report, an
+    unreachable server -- the mark is sent first and the stop overwrites it.
+
+    A REAL reporter, deliberately. `tests/test_playstate_mirror.py`'s other
+    helper sets `pm._reporter = mock.Mock()`, so the queued lambda never runs
+    and the assertion there is over Python call order -- which is exactly the
+    thing that is no longer the guarantee.
+    """
+
+    def _pm(self, sent):
+        import threading
+
+        from jellyfin_mpv_shim.player_reporting import ReportingMixin
+        from jellyfin_mpv_shim.session_reporter import SessionReporter
+
+        pm = ReportingMixin.__new__(ReportingMixin)
+        pm._tl_lock = threading.RLock()
+        pm._lock = threading.RLock()
+        pm.should_send_timeline = True
+        pm._last_offline_record = 0.0
+        pm._reporter = SessionReporter("test-report")
+        self.addCleanup(pm._reporter.stop)
+        pm.syncplay = mock.Mock()
+        pm.syncplay.is_enabled.return_value = False
+
+        jf = mock.Mock()
+        jf.session_stop = lambda opts: sent.append("stop")
+        jf.item_played = lambda item_id, watched: sent.append(
+            "mark(%s)" % watched)
+
+        video = mock.Mock()
+        video.client = mock.Mock()
+        video.client.jellyfin = jf
+        video.is_photo = False
+        video.playback_info = {"PlaySessionId": "s"}
+        video.item_id = "ep1"
+        video.is_transcode = False
+        video.record_offline_progress = mock.Mock()
+        # The real one, so the mark goes wherever production sends it.
+        from jellyfin_mpv_shim.media import Video
+        video.set_played = lambda watched=True: Video.set_played(video, watched)
+        pm._video = video
+        pm.last_seek = 900.0
+        pm.start_time = 0.0
+        pm.get_timeline_options = mock.Mock(
+            return_value={"PositionTicks": 950_000_000})
+        return pm, video
+
+    def _block_the_worker(self, pm):
+        """Put a slow report in front, which is the whole point: with an empty
+        queue the race cannot be observed and the old code passes."""
+        import threading
+
+        gate = threading.Event()
+        pm._reporter.submit(lambda: gate.wait(5), "slow-earlier-report")
+        return gate
+
+    def test_an_unwatched_mark_is_delivered_after_the_stop(self):
+        sent = []
+        pm, video = self._pm(sent)
+        gate = self._block_the_worker(pm)
+
+        pm.send_timeline_stopped(finished=False)   # queues the stop
+        pm.queue_played_mark(video, False)         # the explicit mark
+        gate.set()
+        self.assertTrue(pm._reporter.drain(5))
+
+        self.assertEqual(
+            sent, ["stop", "mark(False)"],
+            "the mark reached the server before the stop it was meant to "
+            "follow, so the stop's progress overwrites it")
+
+    def test_a_watched_mark_is_too(self):
+        sent = []
+        pm, video = self._pm(sent)
+        gate = self._block_the_worker(pm)
+
+        pm.send_timeline_stopped(finished=True)
+        pm.queue_played_mark(video, True)
+        gate.set()
+        self.assertTrue(pm._reporter.drain(5))
+
+        self.assertEqual(sent, ["stop", "mark(True)"])
+
+    def test_the_mark_still_arrives_with_nothing_queued(self):
+        """The control: routing through the FIFO must not lose the mark when
+        the queue is empty, which is the ordinary case."""
+        sent = []
+        pm, video = self._pm(sent)
+        pm.send_timeline_stopped(finished=False)
+        pm.queue_played_mark(video, False)
+        self.assertTrue(pm._reporter.drain(5))
+        self.assertIn("mark(False)", sent)
+
+    def test_the_player_never_marks_inline(self):
+        """The ordering above is only worth anything if the production paths
+        actually go through the queue. Three of them mark deliberately -- the
+        force_set_played finish, "Mark Watched and Skip", "Quit and Mark
+        Unwatched" -- and each is preceded by a stop report on the FIFO.
+
+        Source, because the property is "does not call it directly": an
+        inline `video.set_played(...)` restores the bug while every ordering
+        test above still passes, since those drive the helper.
+        """
+        import inspect
+
+        from jellyfin_mpv_shim import player as player_mod
+
+        for name in ("finished_callback", "watched_skip", "unwatched_quit"):
+            src = inspect.getsource(getattr(player_mod.PlayerManager, name))
+            self.assertNotIn(
+                "video.set_played(", src,
+                "%s marks the item inline, so it can overtake the stop "
+                "report queued beside it; use queue_played_mark" % name)
+            self.assertIn(
+                "queue_played_mark", src,
+                "%s no longer marks at all -- if that is deliberate, this "
+                "test should go with it" % name)

@@ -171,19 +171,10 @@ class Settings(SettingsBase):
     #: Debanding -- ``off``, ``light``, ``standard`` or ``strong``. See
     #: mpv_options.DEBAND_PRESETS for what each writes.
     #:
-    #: **Off by default, and off writes nothing at all**, which is what
-    #: makes "leave this off and tune deband in mpv.conf" a supported
-    #: configuration rather than a setting fighting a config file. It is
-    #: also why there is no mpv.conf pin here of the kind ``hwdec`` needs:
-    #: hwdec's off is a real value (``no``) that has to be written, so
-    #: silence was not available to it.
-    #:
-    #: Debanding is not free on live action even though it mostly no-ops
-    #: there -- it costs a GPU pass per iteration, which is felt on the
-    #: integrated and embedded hardware this app is often run on. Anime is
-    #: where flat gradients make it worth paying for, which is why the
-    #: preset labels name the content rather than the strength.
-    #: See docs/mpv-backends.md section 10.
+    #: **Off by default, and off writes nothing at all**, which is what makes
+    #: "leave this off and tune deband in mpv.conf" supported rather than a
+    #: setting fighting a config file -- and why there is no mpv.conf pin of
+    #: the kind ``hwdec`` needs. See docs/mpv-backends.md section 10.
     deband: str = "off"
     #: The HDR-to-SDR tone mapping curve, or ``auto`` to leave mpv's own
     #: choice alone. **Inert while HDR is being passed through to an HDR
@@ -298,12 +289,10 @@ class Settings(SettingsBase):
     #   row         one wheel notch moves exactly one row or section, and the
     #               scrollbar steps with it. An accessibility escape hatch.
     #
-    # Replaces snapped_scrolling and force_scroll_snapping. Both old keys
-    # load as "ignored" (logged) and everyone starts on continuous --
-    # deliberately NOT migrated, because people set them to work around
-    # continuous scrolling being unavailable, so carrying them forward would
-    # pin exactly those users to the workaround with the fix one dropdown
-    # away.
+    # Replaces snapped_scrolling and force_scroll_snapping, which load as
+    # "ignored" (logged). **Deliberately NOT migrated**: those keys were set
+    # to work around continuous scrolling being unavailable, so carrying them
+    # forward would pin exactly those users to the workaround.
     scroll_mode: str = "continuous"
     # Accessibility: page the library and music tile grids instead of scrolling.
     # Each page is one screenful (no scrolling within it) with a bottom bar to
@@ -653,6 +642,18 @@ class Settings(SettingsBase):
     #: scrollbar gutter reserved on only one side of the layout) and both
     #: are fixed. docs/configuration.md and docs/artwork-pipeline.md §7.
     backdrop_full_width: bool = True
+    #: Print times of day as "8:30 PM" instead of "20:30" -- the Live TV
+    #: guide and its air times, and both "Ends at" labels
+    #: (``mpvtk_browser.timefmt``).
+    #:
+    #: Off, i.e. 24-hour, because that is what every one of those call sites
+    #: has always drawn; this exists to offer the other one, not to guess
+    #: which is wanted. Not locale-derived either -- see timefmt.
+    #:
+    #: Applies live and needs nothing to make it: a tile's air time is part
+    #: of the caption, which is part of `StripStore._tile_key`, so a flipped
+    #: value misses the cache on its own.
+    clock_12h: bool = False
     #: Left-click on the video toggles pause (#669).
     #:
     #: On -- the default, and what this client has always done -- the
@@ -786,15 +787,34 @@ class Settings(SettingsBase):
             changed = True
         return changed
 
+    #: **Stated, on both ends, and `-sig` on the way in.** This file is one a
+    #: person edits by hand (`docs/configuration.md` says so), which is where
+    #: a non-ASCII character enters -- a `sync_path` under `D:/Filme/
+    #: Übersicht`, an `mpv_ext_path` inside a profile directory with an
+    #: umlaut. Without an encoding, `open()` decodes with the *locale's*
+    #: codec, cp1252 on a Western Windows install, and the read raises
+    #: `UnicodeDecodeError` where nothing catches it: a traceback at startup,
+    #: before anything is on screen. `utf-8-sig` is identical to utf-8 except
+    #: that it tolerates the BOM Notepad adds -- left in, that BOM reaches
+    #: `json.loads`, which rejects the file, and the whole config is
+    #: discarded as "not valid JSON".
+    #:
+    #: Writing plain utf-8 is deliberate: we do not add a BOM, we only
+    #: forgive one.
+    READ_ENCODING = "utf-8-sig"
+    WRITE_ENCODING = "utf-8"
+
     def __get_file(self, path: str, mode: str = "r", create: bool = True):
         created = False
+        encoding = (self.WRITE_ENCODING if "w" in mode or "a" in mode
+                    else self.READ_ENCODING)
 
         if not os.path.exists(path):
             try:
-                _fh = open(path, mode)
+                _fh = open(path, mode, encoding=encoding)
             except IOError as e:
                 if e.errno == 2 and create:
-                    fh = open(path, "w")
+                    fh = open(path, "w", encoding=self.WRITE_ENCODING)
                     json.dump(self.dict(), fh, indent=4, sort_keys=True)
                     fh.close()
                     created = True
@@ -805,12 +825,22 @@ class Settings(SettingsBase):
                 return None
 
         # This should work now
-        return open(path, mode), created
+        return open(path, mode, encoding=encoding), created
 
     def load(self, path: str, create: bool = True):
         global config_path  # Don't want in model.
         fh, created = self.__get_file(path, "r", create)
         config_path = path
+        # Read it all in and CLOSE it before anything below can write it
+        # back. save() os.replace()s this very path, and on Windows that
+        # fails with "Access is denied" (WinError 5) while we still hold the
+        # destination open -- so both save-backs here were lost, silently
+        # except for a logged error, and the migration re-ran every launch.
+        # POSIX renames over an open file happily, which is why this stood.
+        try:
+            raw = None if created else fh.read()
+        finally:
+            fh.close()
         if created:
             # A config written from the current defaults is already current;
             # stamp it so _migrate() never re-runs against a fresh install.
@@ -818,7 +848,7 @@ class Settings(SettingsBase):
             self.save()
         if not created:
             try:
-                data = json.load(fh)
+                data = json.loads(raw)
                 safe_data = self.parse_obj(data)
 
                 # Copy and count items
@@ -854,10 +884,8 @@ class Settings(SettingsBase):
                     self.save()
             except Exception as e:
                 log.error("Error loading settings from json: %s" % e)
-                fh.close()
                 return False
 
-        fh.close()
         return True
 
     def save(self):
@@ -870,7 +898,7 @@ class Settings(SettingsBase):
         with _save_lock:
             tmp = config_path + ".tmp"
             try:
-                with open(tmp, "w") as fh:
+                with open(tmp, "w", encoding=self.WRITE_ENCODING) as fh:
                     json.dump(self.dict(), fh, indent=4, sort_keys=True)
                     fh.flush()
                 os.replace(tmp, config_path)

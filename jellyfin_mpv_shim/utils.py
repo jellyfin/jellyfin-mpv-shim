@@ -105,6 +105,45 @@ def is_local_domain(client: "JellyfinClient_type"):
         return False
 
 
+#: Ports a URL need not spell out. `https://h` and `https://h:443` are one
+#: origin to a browser and to Jellyfin, and comparing raw ports made them two
+#: -- so a sidecar on our own server, written with its port, was classified as
+#: somebody else's and then got neither the header nor a token in its url.
+_DEFAULT_PORTS = {"http": 80, "https": 443, "ws": 80, "wss": 443}
+
+
+def _origin(url):
+    """``(scheme, host, port)`` with the default port filled in, or None."""
+    parts = urllib.parse.urlparse(url)
+    if not parts.hostname:
+        return None
+    return (parts.scheme, parts.hostname,
+            parts.port or _DEFAULT_PORTS.get(parts.scheme))
+
+
+def same_origin(url, server):
+    """Whether ``url`` is on the same host as ``server``.
+
+    Scheme and port count: an http URL is not the same origin as the https
+    server we authenticated to, and sending a bearer token over the first
+    would hand it to anyone on the path.
+
+    One implementation, used by both the sync downloader and the player's
+    mpv header. It lived in sync/manager.py, where its own comment predicted
+    the player's defect: "'true by construction today' is exactly what stops
+    being true when someone threads a server-supplied path through one of
+    these."
+    """
+    try:
+        mine, theirs = _origin(server), _origin(url)
+    except Exception:
+        # Includes the malformed port: `urlparse` is lazy, so `.port` raises
+        # here and not at the parse. Answering False is failing closed --
+        # every caller treats "not ours" as "send it no credential".
+        return False
+    return mine is not None and theirs == mine
+
+
 def mpv_color_to_plex(color: str):
     return "#" + color.lower()[3:]
 

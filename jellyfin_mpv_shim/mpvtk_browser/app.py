@@ -287,6 +287,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # by the navigation itself rather than derived from the async epoch;
         # see _shed_caches_on_screen_change.
         self._screen_seq = 0
+        # Unique per dispatched route load; see LOAD_ID_KEY. Only ever
+        # touched on the loop thread, which is where loads are dispatched.
+        self._load_seq = 0
         self._shed_seq = 0
         #: The Page currently on screen, so the one before it can be told
         #: it is not. See _retire_page.
@@ -431,7 +434,8 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._size = None         # last window size seen by build()
 
         self._nav = Navigator(self._default_route,
-                              is_headless=lambda: self.headless)
+                              is_headless=lambda: self.headless,
+                              is_locked=lambda: self._locked)
         self._load_route(self.route)
 
     # ------------------------------------------------------------ routing
@@ -451,6 +455,12 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         Navigator, so the warning is an invariant instead
         (``tests/test_source_invariants.py``).
         """
+        if self._locked:
+            # Before headless: a locked cast box must land on the gate, not
+            # on the cast screen. Every stack-emptying path backfills through
+            # here, which is what stops set_source's reset landing on Home
+            # while the PIN is still unanswered.
+            return {"kind": "locked", "title": _("Locked")}
         if self.headless:
             return {"kind": "cast"}
         return {"kind": "home", "server": self.server}
@@ -476,6 +486,9 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
     #: Kept as a class attribute: tests/test_mpvtk_headless.py reads it, and
     #: it is the published name for "what headless still allows".
     HEADLESS_ROUTES = navigator.HEADLESS_ROUTES
+
+    #: The same, for the startup PIN. tests/test_mpvtk_locked.py reads it.
+    LOCKED_ROUTES = navigator.LOCKED_ROUTES
 
     def navigate(self, route, reset=False, force=False):
         """Go to ``route``, then load and repaint it.
@@ -700,10 +713,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # editor from further in.
         elif (any((r or {}).get("kind") == "playlist_edit" for r in left)
               and self.route.get("kind") in ("playlist", "grid")):
-            self.route.pop("_data", None)
-            self.route.pop("_items", None)
-            self.route.pop("_loading", None)
-            self._load_route(self.route)
+            self._refetch_underneath(self.route)
         # The page we left was DELETED out from under itself. Whatever is
         # underneath still lists it, so it draws a tile pointing at nothing
         # — which invites a second press, and the second press 404s.
@@ -715,10 +725,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # every route left, like the playlist-editor case above, so a jump
         # through the history menu behaves the same as one Back press.
         elif any((r or {}).get("_deleted") for r in left):
-            self.route.pop("_data", None)
-            self.route.pop("_items", None)
-            self.route.pop("_loading", None)
-            self._load_route(self.route)
+            self._refetch_underneath(self.route)
         # Coming out of a reader: the position moved while it was open, and
         # it moved on the READER's copy of the DTO. The book page below
         # holds its own dict, fetched before any of that, so without this
@@ -726,9 +733,47 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # under a Resume button that resumes at 61%.
         elif (any((r or {}).get("kind") in ("reader", "comic") for r in left)
               and self.route.get("kind") == "book"):
+            # Only `_data`: a book page holds a DTO, not a paged list, so
+            # there is no result set to reset.
             self.route.pop("_data", None)
             self._load_route(self.route)
+        # A page can be left before its fetch ever landed -- the always-visible
+        # search field submits, which bumps the epoch and drops the in-flight
+        # result -- and nothing else re-issues it, so the render path spins on
+        # a route with no data and no request outstanding, for the rest of the
+        # session. `_land_forward` has had this recovery; its comment argued
+        # the Back case was impossible because such a page "was never below
+        # you", which holds only when the epoch bump came from LEAVING the
+        # page.
+        #
+        # `_error` is checked here and not there, deliberately: `_route_async`
+        # does not epoch-gate its failure handler because an error is a
+        # rollback and a route you navigated away from must still be holding
+        # it when you come back. Refetching would discard exactly that;
+        # `_retry_route` is the way out of an error, and it is a button.
+        elif (self.route.get("_data") is None
+                and not self.route.get("_items")
+                and not self.route.get("_error")
+                and not self.route.get("_loading")):
+            self._refetch_underneath(self.route)
         self.invalidate()
+
+    def _refetch_underneath(self, route):
+        """Drop a route's cached result set and load it again.
+
+        The paginator goes with the items. `ensure()` only rebuilds `_pages`
+        when the page SIZE changes, so a cache left behind is served straight
+        back -- the deleted tile still drawn, from a page dict, with `_items`
+        correctly gone. Every other place that replaces a result set resets it
+        (`_retry_route`, `after_playlist_deleted`, `grid.py`); `_land_back`
+        was the one that did not, which is the same one-step-of-two the test
+        for it made: it asserted `_items` and nothing else.
+        """
+        route.pop("_data", None)
+        route.pop("_items", None)
+        route.pop("_loading", None)
+        self._pages.reset(route)
+        self._load_route(route)
 
     def go_forward(self):
         """Return to a page ``go_back`` left. Mouse-only (the thumb button),
@@ -1254,8 +1299,19 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         self._async.run(work, on_done, epoch,
                         on_error=on_error, always=always)
 
-    #: Epoch of the newest load dispatched for a route, stamped on its dict.
-    LOAD_EP_KEY = "_load_ep"
+    #: Id of the newest load dispatched for a route, stamped on its dict.
+    #:
+    #: NOT the epoch, and the old name (`_load_ep`) is what invited stamping
+    #: one. A refresh is deliberately a load rather than a *re*load --
+    #: `refresh_home` calls `_load_route` with no `_bump_epoch()`, since
+    #: bumping would cancel everything else in flight -- so two loads of the
+    #: same route routinely share an epoch, and a guard comparing epochs
+    #: cannot tell them apart. This is unique per dispatch.
+    LOAD_ID_KEY = "_load_id"
+
+    def _next_load_id(self):
+        self._load_seq += 1
+        return self._load_seq
 
     def _route_async(self, route, work, on_done, ep):
         """run_async for a route's data, recording a failure on the route so
@@ -1267,7 +1323,20 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # the user had navigated AWAY from. The Home button now re-navigates
         # the dict it finds in the stack (see go_home), so a stale load can
         # be holding the route that is the screen again.
-        route[self.LOAD_EP_KEY] = ep
+        load_id = self._next_load_id()
+        route[self.LOAD_ID_KEY] = load_id
+
+        def landed(data):
+            # The success half of the same guard. `run_async` gates on_done by
+            # EPOCH, and a refresh deliberately shares one (`refresh_home`
+            # loads without bumping) -- so an older load answering after a
+            # newer one was still applied, putting stale rows back. That is
+            # the mirror of the failure case below, and gating only the
+            # failure fixed half a bug: #560's just-watched episode
+            # reappearing in Continue Watching is this half.
+            if route.get(self.LOAD_ID_KEY) != load_id:
+                return
+            on_done(data)
 
         def failed(exc):
             # Paging guards must not survive the failure or the view stops
@@ -1275,7 +1344,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # like before: the guard belongs to the request, not the screen.
             route.pop("_loading", None)
             log.info("route %r failed to load: %s", route.get("kind"), exc)
-            if route.get(self.LOAD_EP_KEY) != ep:
+            if route.get(self.LOAD_ID_KEY) != load_id:
                 # A newer load owns this route, and the screen should reflect
                 # that one's outcome. Without this, a hung server's request
                 # timing out half a minute later writes an error over a home
@@ -1305,7 +1374,7 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
             # which runs neither callback. A marker left set would stop the
             # screen refreshing for the rest of its life.
             route.pop("_refreshing", None)
-        self.run_async(work, on_done, ep, on_error=failed, always=settled)
+        self.run_async(work, landed, ep, on_error=failed, always=settled)
 
     # Paging moved to pagination.Paginator (step 6c prep 3). These stay as
     # thin forwarders while unconverted routes still call them as methods.
@@ -1653,7 +1722,23 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         claim = getattr(self.app, "claim_keys", None)
         if claim is None:
             return
-        page = self._page_for(route)
+        # Nothing at all once the library is off screen, and this is the
+        # whole of the fix for a stale frame reinstalling a page's keys.
+        #
+        # `build()` returns early on `not self._browsing`, but a playback
+        # update arrives on a foreign thread and can flip that flag DURING
+        # `_render_route` -- and this call is unconditional, deliberately,
+        # because it is what makes leaving a page drop its claim. So a frame
+        # already in flight when the browser yielded put the reader's keys
+        # back, Lua accepted them from a renderer that is no longer active,
+        # and every later playback build returned before reaching here. SPACE
+        # stopped pausing the video for the rest of the session.
+        #
+        # Answering "no keys" keeps the call unconditional and turns the
+        # stale frame into a release instead of a reinstall. Guarding the
+        # CALL instead would have broken the release-on-leave the comment
+        # above describes.
+        page = self._page_for(route) if self._browsing else None
         try:
             claim(getattr(page, "claimed_keys", ()) or ())
         except Exception:
@@ -2448,7 +2533,15 @@ class MpvtkBrowser(DialogsMixin, LiveTvDialogsMixin, AuthMixin, SettingsMixin,
         # assigned here directly, which left set_offline with no production
         # caller at all — a public method only the tests reached.
         self.set_offline(isinstance(source, OfflineLibrarySource))
-        self._locked = False
+        # NOT `self._locked = False`. Connections are deliberately not
+        # deferred until unlock -- the gate is about what is on screen, not
+        # about the network -- so a server coming up while the PIN is
+        # unanswered is the ordinary case, and the periodic health check
+        # reconnects on its own schedule and arrives here with no user action
+        # at all. Clearing the flag here handed the library to whoever was in
+        # the room, and left it cleared, so `show_locked`'s idempotence guard
+        # then made every later `maybe_relock()` a no-op and the gate could
+        # not be raised again for the life of the process.
         self.source = source
         self._publish_auth_origins()
         try:

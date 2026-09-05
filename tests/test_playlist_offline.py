@@ -6,6 +6,16 @@ rows (the download worker isn't started), so ownership and membership are
 exercised directly.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import os
 import shutil
@@ -146,6 +156,11 @@ class PlaylistOwnershipTest(TmpTest):
     def test_unsupported_playlist_records_nothing(self):
         # A playlist of only unsupported types (e.g. MusicVideo, not in
         # PLAYLIST_SUPPORTED_TYPES) expands to nothing, so no playlist is made.
+        #
+        # This is the GENUINELY-empty case and dropping the record is correct.
+        # It is not evidence about the failed-expansion case, which looked
+        # identical from inside enqueue until _expand learned to raise -- see
+        # PlaylistExpansionFailureTest.
         jf = FakeJellyfin([{"Id": "s1", "Type": "MusicVideo",
                             "MediaSources": [{"Id": "ms", "Size": 1}],
                             "UserData": {}}])
@@ -154,6 +169,77 @@ class PlaylistOwnershipTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("PL"), set())
         self.assertEqual(m.db.list_playlists(), [])
         m.db.close()
+
+
+class PlaylistExpansionFailureTest(TmpTest):
+    """A server error while listing a playlist must not be read as "this
+    playlist is empty now".
+
+    `_expand` caught everything and returned [], so a 500 on the ordinary
+    top-up gesture -- press Download on a playlist you already have -- reached
+    `_record_playlist(member_ids=[])`, which deletes the playlist row and every
+    ownership row with it. `enqueue` then returned 0 without raising, so the
+    dialog ran its `on_ok` and told the user it had worked.
+
+    The ownership loss outlived the outage: with the rows gone, the next
+    successful download sees an empty `already_owned` and a full
+    `pre_existing`, marks every track unowned, and "Delete playlist" from then
+    on removes the record and no files at all.
+    """
+
+    class AngryJellyfin(FakeJellyfin):
+        def get_playlist_items(self, playlist_id, fields=None):
+            raise RuntimeError("500 Internal Server Error")
+
+    def _downloaded_playlist(self):
+        """A playlist actually *downloaded*, not merely queued.
+
+        `list_playlists()` only returns playlists holding at least one
+        COMPLETE item, so leaving these PENDING would make its assertion pass
+        trivially -- it would read [] both before and after.
+        """
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        for iid in ("a", "b"):
+            m.db.update(iid, status=STATUS_COMPLETE)
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"})
+        self.assertEqual([p["playlist_id"] for p in m.db.list_playlists()],
+                         ["PL"], "the fixture did not record a playlist")
+        return m
+
+    def test_a_failed_listing_keeps_the_playlist_and_its_ownership(self):
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.enqueue("uuid", "PL", "Playlist")
+        self.assertEqual([p["playlist_id"] for p in m.db.list_playlists()],
+                         ["PL"], "a server error deleted the playlist record")
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"},
+                         "a server error dropped playlist ownership, so a "
+                         "later delete would remove the record and no files")
+
+    def test_the_failure_reaches_the_caller(self):
+        """`gateway.download_enqueue` documents "Raises on failure" and the
+        dialog's `_edit_call` deliberately does not swallow, so the whole
+        chain above this already reports it -- once enqueue stops returning
+        0 as though it had succeeded."""
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.enqueue("uuid", "PL", "Playlist")
+
+    def test_estimate_also_reports_the_failure(self):
+        """Same swallow, second victim: `download_estimate` says returning a
+        zero estimate made failure indistinguishable from "already fully
+        downloaded", and the dialog then hides the retry control."""
+        m = self._downloaded_playlist()
+        self.addCleanup(m.db.close)
+        m.get_client = lambda uuid: FakeClient(self.AngryJellyfin([]))
+        with self.assertRaises(Exception):
+            m.estimate("uuid", "PL", "Playlist")
 
 
 class PlaylistDeleteTest(TmpTest):
@@ -179,6 +265,94 @@ class PlaylistDeleteTest(TmpTest):
         self.assertEqual(m.db.playlist_owned_ids("PL"), {"b"})
         m.db.close()
 
+    def test_reaping_an_auto_row_cascades_membership(self):
+        """The other statement that deletes a download row.
+
+        There is no foreign key: the schema declares none, so the cascade is
+        hand-written at each `DELETE FROM downloads`, and `delete_if_auto` --
+        the reaper's -- had no test at all. A row deleted without its
+        membership leaves `owned=1` over an item the catalog no longer has,
+        which is a claim on whatever writes that row next.
+
+        (An `ON DELETE CASCADE` is not the shortcut it looks like: sqlite
+        implements `INSERT OR REPLACE` as delete-then-insert, so an ordinary
+        `upsert` of an existing row would take the membership with it.)
+        """
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        m.db.set_origin("a", "auto:nextup")
+        self.assertIsNotNone(m.db.delete_if_auto("a"),
+                             "the reap declined, so this test proves nothing")
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"b"})
+        m.db.close()
+
+    def test_a_reap_that_declines_leaves_the_membership_alone(self):
+        """The other half: `delete_if_auto` deletes nothing for a user row,
+        so it must take no membership with it either."""
+        jf = FakeJellyfin([pl_item("a"), pl_item("b")])
+        m = make_manager(self.tmp, jf)
+        m.enqueue("uuid", "PL", "Playlist")
+        self.assertIsNone(m.db.delete_if_auto("a"))
+        self.assertEqual(m.db.playlist_owned_ids("PL"), {"a", "b"})
+        m.db.close()
+
+
+class OwnershipReadsRequireTheRowTest(TmpTest):
+    """`owned=1` means "deleting this playlist may delete this file", so every
+    reader of it has to require the file's row.
+
+    The writer checks -- `replace_playlist_items` writes an entry only for an
+    item the catalog has, inside the transaction -- but that only holds for
+    rows *this build* wrote. A catalog written before it, or by an older build
+    afterwards (`_migrate` promises those still open), still holds claims with
+    no row, and the readers are what decide whether one is acted on.
+    """
+
+    def _catalog(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        return db
+
+    def _dangling(self, db, item_id="gone"):
+        """A claim with no `downloads` row, written the only way a catalog can
+        hold one: straight into the table, as an older build left it."""
+        db._conn.execute(
+            "INSERT INTO playlist_items (playlist_id, item_id, sort_index, "
+            "owned) VALUES (?,?,?,1)", ("P", item_id, 0))
+        db._conn.commit()
+
+    def test_owned_ids_does_not_answer_with_a_claim_that_has_no_row(self):
+        db = self._catalog()
+        self._dangling(db)
+        self.assertEqual(db.playlist_owned_ids("P"), set())
+
+    def test_the_ownership_map_does_not_answer_with_one_either(self):
+        db = self._catalog()
+        self._dangling(db)
+        self.assertEqual(db.playlist_ownership(), {})
+
+    def test_a_claim_that_has_its_row_is_still_answered(self):
+        """The join constrains; it must not filter. Ownership applies to a
+        download that is still being fetched, so it cannot key on status --
+        `_delete_playlist` and `_record_playlist` both read it mid-download.
+        """
+        db = self._catalog()
+        db.upsert(make_row("done", status=STATUS_COMPLETE))
+        db.upsert(make_row("busy", status=STATUS_PENDING))
+        db.replace_playlist_items("P", [("done", 0, 1), ("busy", 1, 1)])
+        self.assertEqual(db.playlist_owned_ids("P"), {"done", "busy"})
+        self.assertEqual(db.playlist_ownership(),
+                         {"done": "P", "busy": "P"})
+
+    def test_an_unowned_membership_is_still_not_ownership(self):
+        db = self._catalog()
+        db.upsert(make_row("shared", status=STATUS_COMPLETE))
+        db.replace_playlist_items("P", [("shared", 0, 0)])
+        self.assertEqual(db.playlist_owned_ids("P"), set())
+        self.assertEqual(db.playlist_ownership(), {})
+
 
 class ListPlaylistsTest(TmpTest):
     def test_only_playlists_with_complete_items_listed(self):
@@ -203,6 +377,69 @@ class ListPlaylistsTest(TmpTest):
         ids = [r["item_id"] for r in db.playlist_item_rows("P")]
         self.assertEqual(ids, ["a", "b"])
         db.close()
+
+
+class AnEmptyMembershipLeavesNoPlaylistTest(TmpTest):
+    """"This playlist has nothing offline" is answered by the statement that
+    filters the members, not by a caller looking at the list it is about to
+    hand over.
+
+    `replace_playlist_items` writes an entry only for an item the catalog
+    has -- so it can write zero rows for a non-empty `entries`, and the
+    caller's own `if not member_ids` never sees it. The `playlists` row is
+    already committed by then, and `list_playlists` requires a member, so what
+    is left is a record nothing lists, nothing deletes, and whose cached
+    poster art no path reaches again.
+    """
+
+    @staticmethod
+    def _records(db):
+        """The `playlists` table itself. `list_playlists` requires a completed
+        member, so it answers empty for a row that is merely invisible -- the
+        very state this is about."""
+        return {r[0] for r in db._conn.execute(
+            "SELECT playlist_id FROM playlists")}
+
+    def test_a_membership_that_filters_to_nothing_takes_the_record_with_it(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        db.replace_playlist_items("P", [("no-such-row", 0, 1)])
+        self.assertEqual(db.list_playlists(), [])
+        self.assertEqual(self._records(db), set(),
+                         "an invisible playlist row survived the write that "
+                         "found it has no members")
+
+    def test_a_membership_that_writes_something_keeps_the_record(self):
+        db = SyncDB(os.path.join(self.tmp, "catalog.db"))
+        self.addCleanup(db.close)
+        db.upsert(make_row("a", status=STATUS_COMPLETE))
+        db.upsert_playlist("P", "srv", "uuid", "P")
+        db.replace_playlist_items("P", [("a", 0, 1), ("no-such-row", 1, 1)])
+        self.assertEqual(self._records(db), {"P"})
+        self.assertEqual([r["item_id"] for r in db.playlist_item_rows("P")],
+                         ["a"])
+
+    def test_a_delete_that_empties_the_playlist_mid_download(self):
+        """Through the manager, on the ordering that produces it: every member
+        loses its row between the snapshot `_record_playlist` decides from and
+        the membership it writes."""
+        jf = FakeJellyfin([pl_item("a")])
+        m = make_manager(self.tmp, jf)
+        self.addCleanup(m.db.close)
+        real = m.db.replace_playlist_items
+
+        def racing_replace(playlist_id, entries):
+            m.db.delete("a")          # the other worker's delete lands here
+            return real(playlist_id, entries)
+
+        m.db.replace_playlist_items = racing_replace
+        m.enqueue("uuid", "PL", "Playlist")
+
+        self.assertIsNone(m.db.get("a"), "the racing delete did not land")
+        self.assertEqual(m.db.list_playlists(), [])
+        self.assertEqual(self._records(m.db), set(),
+                         "the playlist record outlived every member it had")
 
 
 class OfflinePlaylistBrowseTest(TmpTest):

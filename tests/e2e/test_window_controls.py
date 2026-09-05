@@ -62,6 +62,8 @@ class WindowControlsTest(unittest.TestCase):
         settings.window_controls = "auto"
 
         self.session = _e2e.Session()
+        # Navigates to the home screen and renders it.
+        _e2e.normalise_home_layout(self.session)
         self.addCleanup(self.session.stop)
         self.source = self.session.library_source()
         self.addCleanup(self.source.stop)

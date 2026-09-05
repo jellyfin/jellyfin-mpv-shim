@@ -16,6 +16,16 @@ session has sent ``Ready``. A client that does not answer stops the group for
 everyone, and the failure is silent on both ends.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import sys
 import unittest
 from datetime import datetime, timedelta
@@ -232,7 +242,8 @@ class TestBufferingIsReported(unittest.TestCase):
         import os
 
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        src = open(os.path.join(root, "jellyfin_mpv_shim", "player.py")).read()
+        src = open(os.path.join(root, "jellyfin_mpv_shim", "player.py"),
+                   encoding="utf-8").read()
         observed = set()
         for node in ast.walk(ast.parse(src)):
             if isinstance(node, ast.Call):

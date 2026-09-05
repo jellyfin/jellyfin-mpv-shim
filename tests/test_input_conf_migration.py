@@ -11,6 +11,16 @@ writes, what it declines to write at all, and the split between a MENU key
 mpv's own arrow, because it is).
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import sys
 import tempfile
@@ -254,7 +264,7 @@ class FieldsSetSurvivesLoadTest(unittest.TestCase):
         import json
 
         path = _tmpdirs.tmpfile("conf.json", "jms-inputconf-")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             json.dump({"kb_menu_up": "a", "config_version": 4}, fh)
         s = Settings()
         s.load(path)

@@ -14,6 +14,16 @@ produced it — and both are how the two real bugs found while writing this
 showed up.
 """
 
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import os
 import tempfile
 import unittest
@@ -589,6 +599,163 @@ class TestDocumentPosition(unittest.TestCase):
         turned = self.doc.page_key()
         self.doc.set_style(layout.ReaderStyle(font_px=30))
         self.assertNotEqual(self.doc.page_key(), turned)
+
+
+class TestMixedScriptPages(unittest.TestCase):
+    """F32: the reader drew a whole book with one face.
+
+    ``epub/fonts.face`` resolves a serif family, and a serif family is a
+    Latin family: measured, DejaVuSerif has no CJK, no Hebrew, and neither
+    U+2605 nor U+2713. So an English book quoting a line of Japanese, or a
+    Japanese book with an English name in it, drew the minority script as
+    boxes -- on every host, whatever was installed. The reader now measures
+    and draws through ``pilfont``, with its own faces.
+    """
+
+    def render(self, body, width=600, height=400, **style):
+        from jellyfin_mpv_shim.epub.paint import render_page
+
+        blocks = blocks_of(body)
+        m = layout.Measurer(layout.ReaderStyle(**style))
+        pages = layout.paginate(blocks, width, height, m)
+        return render_page(pages[0], (width + 80, height), m.style, m,
+                           palette("light"), origin=(40, 30)), m
+
+    def test_a_japanese_quotation_in_an_english_book_is_not_tofu(self):
+        """Tofu is one shape repeated, so two bodies differing only in
+        their CJK characters composite identically when the serif is drawing
+        them. No font names and no reference render needed.
+        """
+        m = layout.Measurer(layout.ReaderStyle())
+        from jellyfin_mpv_shim.epub import fonts
+        if (fonts.face("serif", 21, script="cjk")
+                is fonts.face("serif", 21, script="latin")):
+            self.skipTest("no separate CJK face installed on this host")
+        a = self.render("<p>He said <em>進撃</em> and left the room.</p>")[0]
+        b = self.render("<p>He said <em>東京</em> and left the room.</p>")[0]
+        self.assertTrue(a.tobytes() != b.tobytes(),
+                        "changing the Japanese changed nothing on the page, "
+                        "so both drew as identical .notdef boxes")
+
+    def test_the_control_case_differs_too(self):
+        """A guard on the detector above: two plainly different Latin
+        paragraphs must of course differ, or it proves nothing."""
+        a = self.render("<p>He said hello and left the room.</p>")[0]
+        b = self.render("<p>He said howdy and left the room.</p>")[0]
+        self.assertTrue(a.tobytes() != b.tobytes())
+
+    def test_a_line_carrying_a_taller_face_reserves_the_room_for_it(self):
+        """Measured: NotoSansCJK is 24/6 at 20px against DejaVuSerif's
+        19/5. Reserving the band from the book's own face alone is how a
+        Japanese word inside an English paragraph overlaps the line under
+        it -- and it is invisible in a layout test that never asks for the
+        line's height with the text in hand.
+        """
+        from jellyfin_mpv_shim.epub import fonts
+        m = layout.Measurer(layout.ReaderStyle(font_px=21))
+        style = content.Style()
+        cjk = sum(fonts.metrics(fonts.face("serif", 21, script="cjk")))
+        latin = sum(fonts.metrics(fonts.face("serif", 21, script="latin")))
+        if cjk <= latin:
+            # assertGreater below needs the CJK face to BE the taller one.
+            # "they differ" is not the same guard, and passes the mutation
+            # that drops the text from the answer entirely.
+            self.skipTest("no CJK face taller than the serif on this host")
+        plain = m.line_height(style, "plain english")
+        mixed = m.line_height(style, "plain 進撃 english")
+        self.assertGreater(mixed, plain)
+        self.assertEqual(plain, m.line_height(style),
+                         "a line of the book's own script changed height")
+
+    def test_the_book_face_is_never_a_pseudo_script(self):
+        """`reader.py` picks the book's face from the *title's* script, and
+        a title of "★ Dune" answers "symbol" -- a face for the odd glyph,
+        which would set the whole book in it. "emoji" is worse: that face
+        may only exist at 109px."""
+        for script in ("symbol", "emoji", "", None):
+            self.assertEqual(
+                layout.Measurer(layout.ReaderStyle(), script).script,
+                "latin", "%r became the book's face" % (script,))
+        self.assertEqual(
+            layout.Measurer(layout.ReaderStyle(), "cjk").script, "cjk")
+
+    def test_a_mixed_paragraph_never_draws_past_its_column(self):
+        """Measuring and drawing are two walks over the same runs, and the
+        line breaker only ever sees the first one.
+
+        Measured at 21px: the serif reports 63px for "進撃の巨人" -- five
+        .notdef boxes -- where the CJK face draws 105, and 12.6px for an
+        emoji the colour face draws at 26. So a breaker measuring with the
+        book's face alone packs a third more onto every mixed line than
+        fits, and the overflow is drawn off the edge of the page. Asserted
+        against the ink, because a second call to the same measurement
+        would agree with itself whatever it said.
+        """
+        width, origin = 600, 40
+        image, _m = self.render(
+            "<p>" + "He said 進撃の巨人 to \U0001F600 the room. " * 6
+            + "</p>", width=width, height=600)
+        grey = image.convert("L")
+        columns = [x for x in range(grey.width)
+                   if any(grey.getpixel((x, y)) < 200
+                          for y in range(grey.height))]
+        self.assertTrue(columns, "nothing was drawn at all")
+        self.assertLessEqual(max(columns), origin + width,
+                             "a line was drawn %dpx past its column"
+                             % (max(columns) - origin - width))
+
+    def test_an_emoji_does_not_blow_up_the_line_it_is_on(self):
+        """The emoji face's own metrics are its STRIKE's.
+
+        ``NotoColorEmoji`` reports 101 and 27 whatever size it is being
+        used at, so a line reserved from them unscaled is 192px tall for a
+        21px book -- one line to a page, with the emoji drawn full size in
+        the middle of it. Over three type sizes, because at one size a
+        wrong answer can look like a plausible one.
+        """
+        from jellyfin_mpv_shim.mpvtk import pilfont
+
+        if pilfont._scale_of(pilfont.font("emoji", 21)) == 1.0:
+            self.skipTest("the emoji face here needs no scaling")
+        style = content.Style()
+        for size in (14, 21, 34):
+            m = layout.Measurer(layout.ReaderStyle(font_px=size))
+            plain = m.line_height(style, "a book")
+            mixed = m.line_height(style, "a book \U0001F600")
+            self.assertLessEqual(
+                mixed, plain * 1.5,
+                "at %dpx an emoji made the line %dpx against %dpx"
+                % (size, mixed, plain))
+
+    def test_an_emoji_in_the_prose_is_drawn_in_colour(self):
+        """A book with an emoji in it. The reader's own faces are serif
+        families with no emoji anywhere in them, so this can only come from
+        the run split reaching pilfont's emoji face."""
+        from jellyfin_mpv_shim.mpvtk import pilfont
+
+        name = pilfont._resolved.get(("emoji", False))
+        if name is None:
+            pilfont.font("emoji", 21)
+            name = pilfont._resolved.get(("emoji", False))
+        if name is None or name not in pilfont._CANDIDATES["emoji"]:
+            self.skipTest("no emoji face installed on this host")
+
+        def coloured(img):
+            rgba = img.convert("RGBA")
+            return {px[:3] for px in rgba.get_flattened_data()
+                    if max(px[:3]) - min(px[:3]) >= 60}
+
+        from PIL import Image, ImageDraw
+        probe = Image.new("RGBA", (60, 60), (0, 0, 0, 0))
+        ImageDraw.Draw(probe).text((2, 2), "\U0001F600",
+                                   font=pilfont.font("emoji", 21),
+                                   fill=(255, 255, 255, 255),
+                                   embedded_color=True)
+        if not coloured(probe):
+            self.skipTest("the emoji face on this host is monochrome")
+        page = self.render("<p>A book with \U0001F600 in it.</p>")[0]
+        self.assertTrue(coloured(page),
+                        "the emoji in the prose is a grey box")
 
 
 if __name__ == "__main__":

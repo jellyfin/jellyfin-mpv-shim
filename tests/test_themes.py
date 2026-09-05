@@ -5,6 +5,17 @@ The whole feature is opt-in, and the guarantee that makes it safe is that
 guarantee (palette values, no glow, no rounded cards, stock sizes) as well as
 the switch itself, so a new theme cannot quietly redefine the default.
 """
+
+# Run as a script, this is what puts the repo root on sys.path -- without
+# it `jellyfin_mpv_shim` resolves to whatever is pip-installed. A no-op
+# under `discover`; tests/test_module_paths.py is the guard.
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import os
 import tempfile
@@ -324,7 +335,8 @@ class ThemeDirectoryTest(unittest.TestCase):
     def test_the_builtin_default_survives_a_broken_default_file(self):
         """``default`` is the fallback, so it is the one id that has to
         resolve no matter what is on disk."""
-        with open(os.path.join(self.user.name, "default.json"), "w") as fh:
+        with open(os.path.join(self.user.name, "default.json"), "w",
+                       encoding="utf-8") as fh:
             fh.write("{ this is not json")
         with self.assertLogs("mpvtk_browser.themes", "WARNING"):
             loaded = themes.load(force=True)
@@ -335,7 +347,8 @@ class ThemeDirectoryTest(unittest.TestCase):
         """You edit a theme, save it mid-thought, and the app must not lose
         the theme you are actually using."""
         self.write(self.user.name, "good.json", {"name": "Good"})
-        with open(os.path.join(self.user.name, "broken.json"), "w") as fh:
+        with open(os.path.join(self.user.name, "broken.json"), "w",
+                       encoding="utf-8") as fh:
             fh.write("{,,,")
         with self.assertLogs("mpvtk_browser.themes", "WARNING"):
             loaded = themes.load(force=True)
@@ -349,7 +362,8 @@ class ThemeDirectoryTest(unittest.TestCase):
                          "midnight")
 
     def test_non_json_files_are_ignored(self):
-        with open(os.path.join(self.user.name, "notes.txt"), "w") as fh:
+        with open(os.path.join(self.user.name, "notes.txt"), "w",
+                       encoding="utf-8") as fh:
             fh.write("hello")
         self.assertNotIn("notes", themes.load(force=True))
 

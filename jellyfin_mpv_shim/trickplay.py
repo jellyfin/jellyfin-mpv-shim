@@ -58,22 +58,15 @@ def _img_path(seq):
 
 #: Decoded BGRA one window may occupy.
 #:
-#: A frame is ``Width * Height * 4`` bytes. The download is not the
-#: expensive half -- the server hands trickplay out as JPEG mosaics of
-#: ``TileWidth * TileHeight`` thumbnails, a few hundred KB each -- but
-#: decoded, one of those tiles is 17 MB at the server's default 320px and
-#: 68 MB at 640px, and a two-hour film is eight of them. **[iw]**: "if it's
-#: in ram I would say stay below 25 MB if possible as this is for one
-#: feature, unless the user requests the trickplay fast mode where it just
-#: hands the entire file to mpv where it can seek faster."
+#: A frame is ``Width * Height * 4`` bytes. **[iw]**: "if it's in ram I would
+#: say stay below 25 MB if possible as this is for one feature, unless the
+#: user requests the trickplay fast mode where it just hands the entire file
+#: to mpv where it can seek faster."
 #:
-#: What this bounds is the FILE, the work done before a preview appears,
-#: and -- on an mpv old enough to still mmap what it is handed -- resident
-#: memory too. A current mpv reads out the one rectangle it needs and keeps
-#: `w * h * 4`, so the file's size no longer reaches its RSS; the budget
-#: earns its keep on the other two regardless. The peak this does NOT bound
-#: is Python's, which is per TILE and belongs to `bifdecode`. Both measured:
-#: docs/artwork-pipeline.md section 11.
+#: This bounds the FILE and the work done before a preview appears -- plus
+#: resident memory on an mpv old enough to still mmap what it is handed. The
+#: peak it does **not** bound is Python's, which is per TILE and belongs to
+#: `bifdecode`. Both measured: docs/artwork-pipeline.md section 11.0.
 #:
 #: Held constant in BYTES rather than in minutes deliberately: what is
 #: scarce scales with the frame, so a library with big thumbnails should get
@@ -230,15 +223,11 @@ class TrickPlay(threading.Thread):
     def _publish(self, path):
         """Adopt `path` as the live frame file and retire the previous one.
 
-        The previous file is dropped **one publish later**, not now.
-        `script_message` returns when the message is queued to the script's
-        event loop, not when lua has run it, so a render timer that fires in
-        between still issues `overlay-add` against the OLD path -- and
-        unlinking it here is what turns that into a missing thumbnail. One
-        cycle of grace costs at most a second window on disk and makes the
-        promise this used to make ("only after the renderer has been pointed
-        elsewhere") actually true. Windowing is why it is worth paying: it
-        turned this from once per video into once per window swap.
+        The previous file is dropped **one publish later**, not now:
+        `script_message` returns when the message is queued, not when lua has
+        run it, so a render timer firing in between still issues `overlay-add`
+        against the OLD path (docs/artwork-pipeline.md section 11.4). One
+        cycle of grace costs at most a second window on disk.
         """
         with self._file_lock:
             old, self._current = self._current, path
@@ -443,14 +432,10 @@ class TrickPlay(threading.Thread):
                         # playback HUD's scrub preview.
                         #
                         # `first` and `total` are what make the file a
-                        # WINDOW rather than the video: a consumer turns a
-                        # position into a frame number against `total` (the
-                        # cadence is the whole video's), then subtracts
-                        # `first` to reach the file. Without them a
+                        # WINDOW rather than the video; without them a
                         # consumer indexes a 30-frame file with a frame
-                        # number the video's length justifies, which reads
-                        # past the end of it (docs/artwork-pipeline.md
-                        # section 11).
+                        # number the video's length justifies
+                        # (docs/artwork-pipeline.md section 11.2).
                         total = int(data["ThumbnailCount"])
                         self.player.script_message(
                             "shim-trickplay-bif",
@@ -487,25 +472,17 @@ class TrickPlay(threading.Thread):
                     if path and path != self._current:
                         _unlink(path)
                     if windowing:
-                        # This item HAS trickplay and one window of it
-                        # failed -- a dropped tile request, a 504, a TLS
-                        # hiccup. Retry-by-scrubbing, not a downgrade: the
-                        # published window is still live and still correct,
-                        # and the next position the consumer cannot draw
-                        # asks again.
+                        # One window failed on an item that HAS trickplay:
+                        # retry-by-scrubbing, not a downgrade. The published
+                        # window is still correct, and the next position the
+                        # consumer cannot draw asks again.
                         #
-                        # Falling through to the chapter images is what
-                        # this `continue` prevents, and it is not a
-                        # graceful degradation here -- it is a one-way
-                        # door. Publishing `shim-trickplay-chapters` puts
-                        # both consumers on the chapter branch, where
-                        # neither can ever send `shim-trickplay-need`
-                        # again (renderer.lua takes `tp.times`;
-                        # thumbfast.lua gates the whole window block on
-                        # `img_is_bif`). One dropped tile mid-film would
-                        # have meant chapter stills for the rest of the
-                        # item. The fallback belongs to "this item has no
-                        # trickplay at all", which is the branch above.
+                        # This `continue` prevents falling through to the
+                        # chapter images, which is a **one-way door**: once
+                        # `shim-trickplay-chapters` is published neither
+                        # consumer can ask for a window again, so one dropped
+                        # tile would mean chapter stills for the rest of the
+                        # item (docs/artwork-pipeline.md section 11.5).
                         log.error("Could not load a trickplay window.",
                                   exc_info=True)
                         continue

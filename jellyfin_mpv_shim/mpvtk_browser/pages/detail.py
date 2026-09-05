@@ -15,7 +15,7 @@ import logging
 from ...i18n import _
 from ...mpvtk.scaling import px
 from ...mpvtk.widgets import Dropdown, Row, Text, VScroll
-from .. import components, theme
+from .. import components, theme, timefmt
 from ..components import (chrome, controls, detail as detail_components,
                           media_info)
 from .base import Page
@@ -104,7 +104,8 @@ class DetailPage(Page):
         # action on the item. No headless gate -- a detail page is already
         # unreachable in that mode (MpvtkBrowser.navigate).
         links = detail_components.provider_links(item, tiles.body_w(w),
-                                                 self.open_link)
+                                                 self.open_link,
+                                                 web_url=self.web_url(item))
         if links is not None:
             blocks.append(links)
         scenes = self._scenes_row(item, server)
@@ -457,5 +458,5 @@ class DetailPage(Page):
             remaining = max(runtime - pos, 0) // 10000000
             ends = (datetime.datetime.now()
                     + datetime.timedelta(seconds=remaining))
-            parts.append(_("Ends at %s") % ends.strftime("%H:%M"))
+            parts.append(_("Ends at %s") % timefmt.clock(ends))
         return "   ·   ".join(p for p in parts if p)
