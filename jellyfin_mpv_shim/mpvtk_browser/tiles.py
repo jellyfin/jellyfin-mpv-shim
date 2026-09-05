@@ -612,13 +612,52 @@ class TilesMixin:
             if t == "MusicGenre":
                 return [i.get("Id") for i in self.source.get_genre_songs(
                     server, parent_id, iid)]
-            if t in ("Series", "Season"):
+            if t == "Season":
+                return [i.get("Id") for i in
+                        self._season_queue(item, server)]
+            if t == "Series":
                 return [i.get("Id") for i in
                         self.source.get_series_queue(server, iid)]
         except Exception:
             log.warning("could not resolve %s for playback", t, exc_info=True)
             return []
         return [iid]
+
+    def _season_queue(self, item, server):
+        """A season's episodes, in order. Runs off the loop thread.
+
+        **A Season is not a Series id.** This used to go through
+        `get_series_queue`, which asks `Shows/{id}/Episodes` -- and a season
+        id there is not a series, so the server answered with nothing, and
+        `_menu_play`'s empty-result branch fell through to `_open_item`. The
+        play chip on a season opened the season, which is #720.
+        """
+        series_id = item.get("SeriesId")
+        if not series_id:
+            # Nothing to scope the query by. Better an empty queue (the
+            # caller says so) than the whole show under a season's button.
+            log.warning("season %s carries no SeriesId", item.get("Id"))
+            return []
+        return self.source.get_season_queue(server, series_id, item.get("Id"))
+
+    @staticmethod
+    def _first_unplayed(items):
+        """Index of the first unwatched entry, or 0 if they all are.
+
+        jellyfin-web's rule for a season's Play button
+        (`playbackmanager.js`, `getSeriesOrSeasonPlaybackPromise`): a season
+        queues WHOLE and starts at the first unplayed episode. Deliberately
+        not Next Up -- web skips that lookup when a season is named, because
+        "play this season" and "carry on with this show" are different
+        questions and only the second one may leave the season.
+
+        Web spells the fallback `StartIndex || seasonStartIndex || 0`, which
+        works only because index 0 is falsy; this returns the real index.
+        """
+        for i, e in enumerate(items or ()):
+            if not ((e.get("UserData") or {}).get("Played")):
+                return i
+        return 0
 
     def _menu_play(self, item, server, resume=True):
         t = item.get("Type")
@@ -644,6 +683,15 @@ class TilesMixin:
                           .get("PlaybackPositionTicks")) or None
             self._play(item, server, offset_ticks=offset)
             return
+        if t == "Season":
+            # The one container whose queue does not start at the top: the
+            # season plays whole, from its first unplayed episode. Its own
+            # path because it needs the DTOs, not just the ids -- both to
+            # find that episode and to carry its resume offset -- and
+            # `_resolve_play_ids` cannot hand those back: `_menu_queue`
+            # shares it and passes the result straight to `_queue_items`.
+            self._play_season(item, server)
+            return
         # A container: resolve it to its items and play those, rather than
         # navigating (a "Play" that browses instead is just a lie).
         ep = self._epoch
@@ -658,6 +706,31 @@ class TilesMixin:
                 self._play_list(ids, server, 0, audio=audio)
             else:
                 self._open_item(item)
+        self.run_async(work, done, ep)
+
+    def _play_season(self, item, server):
+        """Play a whole season from its first unplayed episode (#720)."""
+        ep = self._epoch
+
+        def work():
+            try:
+                return self._season_queue(item, server)
+            except Exception:
+                log.warning("could not resolve the season for playback",
+                            exc_info=True)
+                return []
+
+        def done(eps):
+            eps = [e for e in (eps or ()) if e.get("Id")]
+            if not eps:
+                # Same fallback as every other container: opening it is at
+                # least honest about having nothing to play.
+                self._open_item(item)
+                return
+            # `items=` is what gives the started episode its resume offset,
+            # exactly as it does for a playlist entry.
+            self._play_list([e["Id"] for e in eps], server,
+                            self._first_unplayed(eps), items=eps)
         self.run_async(work, done, ep)
 
 

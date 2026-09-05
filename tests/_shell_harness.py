@@ -393,6 +393,28 @@ class FakeSource:
         return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
                  "ParentIndexNumber": 1, "IndexNumber": i} for i in range(5)]
 
+    #: How many of `get_season_queue`'s episodes come back watched. A test
+    #: moves it to put the first unplayed episode somewhere specific.
+    season_watched = 2
+
+    def get_season_queue(self, server_uuid, series_id, season_id):
+        """A season, as a play queue.
+
+        **UserData.Played is on every row on purpose.** The season play
+        chip's whole behaviour is "start at the first unplayed episode"
+        (#720), so a stand-in without that field would make the rule
+        unreachable while a test named after it still passed -- and
+        `get_series_queue` above, which this one is NOT, is exactly that
+        shape. `SeasonId` for the same reason: it is what distinguishes
+        this query from the series-wide one.
+        """
+        return [{"Id": "e%d" % i, "Name": "Ep %d" % i, "Type": "Episode",
+                 "SeriesId": series_id, "SeasonId": season_id,
+                 "ParentIndexNumber": 1, "IndexNumber": i,
+                 "UserData": {"Played": i < self.season_watched,
+                              "PlaybackPositionTicks": 0}}
+                for i in range(5)]
+
     def search(self, server_uuid, term, limit=60):
         return [{"Id": "r1", "Name": "Movie " + term, "Type": "Movie"},
                 {"Id": "r2", "Name": "Ep", "Type": "Episode"},

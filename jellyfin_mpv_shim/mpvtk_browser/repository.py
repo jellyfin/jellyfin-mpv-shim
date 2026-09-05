@@ -2492,6 +2492,32 @@ class LibrarySource:
                                   fields=LIST_FIELDS, limit=limit) or {}
         return result.get("Items", [])
 
+    def get_season_queue(self, server_uuid, series_id, season_id):
+        """One season's episodes, in aired order, as a play queue.
+
+        Separate from :meth:`get_episodes`, which the season SCREEN uses,
+        because the two want different rows: a listing shows missing and
+        unaired episodes so you can see the gaps, and a queue must not try to
+        play them. Those are jellyfin-web's own filters for this exact
+        gesture (``playbackmanager.js``'s ``getSeriesOrSeasonPlaybackPromise``
+        sends ``IsVirtualUnaired: false, IsMissing: false``), and folding
+        them into the shared method would quietly hide the gaps from the
+        screen.
+
+        Issued through ``api.shows`` rather than ``api.get_episodes`` for the
+        same reason :meth:`get_seasons` is: the apiclient helper takes no
+        filter arguments, and this is the same request with two more.
+        """
+        api = self._conn(server_uuid).api
+        result = api.shows("/%s/Episodes" % series_id, params={
+            "UserId": "{UserId}",
+            "SeasonId": season_id,
+            "IsVirtualUnaired": False,
+            "IsMissing": False,
+            "Fields": LIST_FIELDS,
+        }) or {}
+        return result.get("Items", [])
+
     def get_next_up(self, server_uuid, series_id):
         """The next episode to watch for a series (resume or next unwatched)."""
         api = self._conn(server_uuid).api
@@ -3485,6 +3511,13 @@ class OfflineLibrarySource:
             if start_item_id in ids:
                 eps = eps[ids.index(start_item_id):]
         return eps[:limit]
+
+    def get_season_queue(self, server_uuid, series_id, season_id):
+        """Signature parity with the live source. The catalog holds only what
+        was actually downloaded, so there is nothing missing or unaired in it
+        to filter out -- `get_episodes` already returns the season in order.
+        """
+        return self.get_episodes(server_uuid, series_id, season_id)
 
     def get_by_name_sections(self, server_uuid, spec, limit=20):
         """Empty offline: every row is a server-side predicate over the
