@@ -5,6 +5,7 @@ directly. Adding a new flag means editing this file and nothing else.
 """
 
 import argparse
+from typing import NamedTuple, Optional
 
 from .constants import APP_NAME, CLIENT_VERSION
 
@@ -13,6 +14,45 @@ _args = None
 #: Accepted values for the positional command. Not passed to argparse as
 #: choices= — see _build_parser.
 COMMANDS = ("add", "clear", "stop")
+
+
+class CliOverride(NamedTuple):
+    """A flag that shadows a `conf.Settings` field for one run."""
+
+    #: Attribute on the parsed args.
+    dest: str
+    #: The settings field it shadows.
+    key: str
+    #: How to spell it back on a command line.
+    flag: str
+    #: The negative spelling, for a `BooleanOptionalAction` flag.
+    off: Optional[str] = None
+
+    def spell(self, value):
+        """This override, as command-line arguments."""
+        if self.off is not None:
+            return [self.flag if value else self.off]
+        return [self.flag, str(value)]
+
+
+#: The flags that OVERRIDE a config key, and the key each one shadows.
+#:
+#: One table because three places need the same pairing and they must not
+#: drift: `mpv_shim.main` applies them after the config loads,
+#: `settings_base` keeps them out of the file they would otherwise be
+#: written to (#718), and `restart._durable_flags` re-passes them across a
+#: self-restart -- except for the setting the restart is FOR, since
+#: re-passing that one would overwrite what the user just saved.
+#:
+#: A flag added here is covered by all three by construction. A flag added
+#: to only one of them was the bug.
+CLI_OVERRIDES = (
+    CliOverride("enable_gui", "enable_gui", "--gui", "--no-gui"),
+    CliOverride("start_minimized", "start_minimized",
+                "--minimized", "--no-minimized"),
+    CliOverride("mpv_loglevel", "mpv_log_level", "--mpv-loglevel"),
+    CliOverride("ui_scale", "ui_scale", "--scale"),
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:

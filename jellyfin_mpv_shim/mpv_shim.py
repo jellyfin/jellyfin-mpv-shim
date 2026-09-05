@@ -11,7 +11,7 @@ from threading import Event
 
 from . import conffile
 from . import i18n
-from .args import get_args
+from .args import CLI_OVERRIDES, get_args
 from .conf import settings
 from .constants import APP_NAME
 from .log_utils import (
@@ -133,18 +133,15 @@ def main():
     load_success = settings.load(conf_file)
     i18n.configure()
 
-    # CLI overrides applied after config load so they win.
-    if args.enable_gui is not None:
-        settings.enable_gui = args.enable_gui
-    if args.start_minimized is not None:
-        settings.start_minimized = args.start_minimized
-    if args.mpv_loglevel is not None:
-        settings.mpv_log_level = args.mpv_loglevel
-    if args.ui_scale is not None:
-        # In-memory only: settings.save() elsewhere would otherwise persist
-        # a scale the user asked for on ONE run. Resolved on the mpvtk
-        # ready event (app._resolve_scale), which reads settings.ui_scale.
-        settings.ui_scale = args.ui_scale
+    # CLI overrides applied after config load so they win -- and through
+    # `apply_cli_override`, not assignment, so they win for THIS RUN only.
+    # `save()` writes every field, so a flag assigned onto `settings` is
+    # persisted by the next save from anywhere (see settings_base). Only
+    # `--scale` used to dodge that, and only by asking in a comment.
+    for override in CLI_OVERRIDES:
+        value = getattr(args, override.dest, None)
+        if value is not None:
+            settings.apply_cli_override(override.key, value)
 
     if settings.sanitize_output:
         enable_sanitization()
