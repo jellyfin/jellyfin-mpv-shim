@@ -627,6 +627,20 @@ You can use the config file to enable and disable features.
   driving while they are hidden, and that takes keyboard control of controls
   already showing (mpv key name syntax). ENTER also toggles pause/play when
   it wakes them. Default: `ENTER`
+- `ui_select_key` - The key that **activates** whatever the in-window
+  interface has focused — a tile in the library, a button on the player
+  controls (mpv key name syntax). Default: `ENTER`
+  - Not the same as `hud_wake_key`, which *summons* hidden controls, nor as
+    `kb_menu_ok`, which is the legacy OSD menu's OK and reaches neither the
+    library nor the player controls.
+  - The gamepad's Confirm button and a Jellyfin remote's Select both send
+    this key, so remapping it moves all three together rather than leaving
+    two of them on a key nothing listens for.
+  - **Not yet offered in the settings screen, and changing it by hand does
+    nothing useful yet.** Yielding `ENTER` back needs the in-window
+    renderer to stop binding it, which has not landed; until then the value
+    is read by the gamepad and the remote but not by the keyboard. See
+    `docs/ISSUES_2026-09.md` (#717).
 - `hud_scrim` - How the picture is shaded behind the player controls, so they
   stay legible over any frame. One of `default`, `panel`, `none`.
   Default: `default`
@@ -816,7 +830,8 @@ You can reconfigure the custom keyboard shortcuts. You can also set them to `nul
 - `kb_unwatched` - Mark the video as unwatched and quit. (Default: `u`)
 - `kb_menu` - Open the configuration menu. (Default: `c`)
 - `kb_menu_esc` - Leave the menu. Exits fullscreen otherwise. (Default: `esc`)
-- `kb_menu_ok` - "ok" for menu. (Default: `enter`)
+- `kb_menu_ok` - "ok" for the **legacy OSD menu only** — not the library and
+  not the player controls, which use `ui_select_key`. (Default: `enter`)
 - `kb_menu_left` - "left" for menu. Seeks otherwise. (Default: `left`)
 - `kb_menu_right` - "right" for menu. Seeks otherwise. (Default: `right`)
 - `kb_menu_up` - "up" for menu. Seeks otherwise. (Default: `up`)

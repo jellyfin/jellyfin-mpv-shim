@@ -26,6 +26,13 @@ Pure data plus one function: no mpv, no settings import, no I/O.
 #: to it answer.
 KEY = "key"
 
+#: Stands in for "the key that activates the focused control" in
+#: :data:`DEFAULT_BINDS`, replaced by :func:`bindings`. A placeholder rather
+#: than a settings read, because this module is pure (see the header) -- and
+#: because a caller that has to pass the key cannot forget that Confirm and
+#: the keyboard have to name the same one.
+SELECT = object()
+
 #: Seek the way that arrow key seeks. The third field is a ``kb_seek``
 #: direction ("up" / "down" / "left" / "right").
 SEEK = "seek"
@@ -71,12 +78,15 @@ DEFAULT_BINDS = (
     ("GAMEPAD_LEFT_STICK_LEFT", KEY, "LEFT", DIRECTION_REPEAT),
     ("GAMEPAD_LEFT_STICK_RIGHT", KEY, "RIGHT", DIRECTION_REPEAT),
 
-    # Confirm and back. ENTER because that is what the browser's nav
-    # activates on and what the hidden HUD wakes on; ESC because it already
-    # steps out exactly one layer -- page, dialog, menu, playback -- and a
-    # second implementation of that ladder would drift from it. The mouse's
-    # back button is routed the same way for the same reason.
-    (CONFIRM_BUTTON, KEY, "ENTER", NO_REPEAT),
+    # Confirm and back. Confirm's key is a PLACEHOLDER here and is
+    # substituted by `bindings()` -- it is whatever activates the focused
+    # control, which the user may remap (`ui_select_key`), and the three
+    # things that synthesize it have to agree or two of them stop working.
+    # ESC is a literal because it already steps out exactly one layer --
+    # page, dialog, menu, playback -- and a second implementation of that
+    # ladder would drift from it. The mouse's back button is routed the
+    # same way for the same reason.
+    (CONFIRM_BUTTON, KEY, SELECT, NO_REPEAT),
     (BACK_BUTTON, KEY, "ESC", NO_REPEAT),
 
     # Play/pause. SPACE rather than `cycle pause`, so it lands on the shim's
@@ -103,8 +113,15 @@ DEFAULT_BINDS = (
 )
 
 
-def bindings(swap_confirm=False):
+def bindings(swap_confirm=False, select_key="ENTER"):
     """The binding table as a list of ``[key, kind, argument, repeat]``.
+
+    ``select_key`` is what Confirm sends: the key that activates the focused
+    control, which the user may remap. It is a PARAMETER and not a settings
+    read, so this module stays pure (see the header) and so a caller cannot
+    quietly leave the pad naming a different key from the keyboard -- the
+    failure mode #717's repair is most likely to produce, since a test that
+    only presses the keyboard cannot see it.
 
     Lists rather than tuples because this is JSON on the way to the renderer,
     and a tuple would come back as a list anyway -- pinning the shape here
@@ -116,5 +133,6 @@ def bindings(swap_confirm=False):
         swapped = {CONFIRM_BUTTON: BACK_BUTTON, BACK_BUTTON: CONFIRM_BUTTON}
     out = []
     for key, kind, arg, rate in DEFAULT_BINDS:
-        out.append([swapped.get(key, key), kind, arg, rate])
+        out.append([swapped.get(key, key), kind,
+                    select_key if arg is SELECT else arg, rate])
     return out

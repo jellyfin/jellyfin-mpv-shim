@@ -84,6 +84,25 @@ SCROLL_MODES = ("continuous", "aligned", "row")
 _save_lock = threading.Lock()
 
 
+def select_key():
+    """The key that activates whatever the in-window UI has focused.
+
+    **One reader for three producers.** The gamepad's Confirm button, a
+    Jellyfin remote's "ok" and the renderer's own binding all have to name
+    this same key: each of the first two synthesizes a KEYPRESS, so a
+    remap that moves one and not the others leaves that one pressing a key
+    nothing listens for. `gamepad.bindings` takes it as a parameter (that
+    module is pure), the player reads it per press, and the fallback lives
+    here rather than at each call site -- two spellings of a default is
+    how they come to differ.
+
+    Falls back when cleared: a config with no select key is an interface
+    that cannot be operated by anything but the mouse, and the settings
+    screen that would fix it is inside that interface.
+    """
+    return getattr(settings, "ui_select_key", None) or "ENTER"
+
+
 def get_default_sdir():
     if sys.platform.startswith("win32"):
         if os.environ.get("USERPROFILE"):
@@ -692,6 +711,21 @@ class Settings(SettingsBase):
     # The key that summons the HUD for keyboard driving while it is
     # hidden (mpv key name syntax). ENTER also toggles pause on wake.
     hud_wake_key: str = "ENTER"
+    # The key that ACTIVATES whatever the in-window UI has focused -- the
+    # library's tiles and the player controls both. An mpv key name, and
+    # uppercase like hud_wake_key beside it rather than lowercase like the
+    # kb_* family, because it is bound by the renderer and not by
+    # _bind_key.
+    #
+    # Distinct from kb_menu_ok, which is the LEGACY OSD menu's OK and
+    # reaches nothing else -- the confusion behind #717.
+    #
+    # **Not yet reachable from the settings screen, on purpose.** It is a
+    # replacement and not an alias: the renderer has to stop force-binding
+    # ENTER for the old key to be yielded, and until it does, changing
+    # this would move the gamepad and the remote onto a key nothing
+    # listens for. See docs/ISSUES_2026-09.md #717.
+    ui_select_key: str = "ENTER"
     thumbnail_preferred_size: int = 320
     #: Load every trickplay preview frame at once instead of a window
     #: around where you are seeking.

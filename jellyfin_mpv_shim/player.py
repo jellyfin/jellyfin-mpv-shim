@@ -4866,8 +4866,13 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
     # client) -> mpv key names. While the mpvtk browser owns input its
     # forced nav bindings catch these; during video playback they fall
     # through to kb_seek as before.
+    #: The remote's directional verbs as the keys the renderer's spatial
+    #: navigation is bound to. "ok" is absent on purpose: it is the one
+    #: the user may remap, so it is resolved per press by
+    #: `_nav_select_key` rather than frozen into a class attribute that
+    #: is built once at import.
     _NAV_KEYPRESS = {"up": "UP", "down": "DOWN", "left": "LEFT",
-                     "right": "RIGHT", "ok": "ENTER", "back": "ESC",
+                     "right": "RIGHT", "back": "ESC",
                      # jellyfin-web's hamburger, while the library is up:
                      # the context menu of whatever is focused. That menu
                      # holds Play / Queue / Watched / Favorite / Download,
@@ -4991,11 +4996,17 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             self.menu.menu_action(self._MENU_ALIAS.get(action, action))
         elif action in self._NAV_COMMANDS and self._nav_command(action):
             pass    # the in-window UI has its own home / settings pages
-        elif action in self._NAV_KEYPRESS and self._mpvtk_input_active():
+        elif ((action in self._NAV_KEYPRESS or action == "ok")
+                and self._mpvtk_input_active()):
             # remote drives the UI's spatial navigation
             try:
+                # `select_key()` per press, not a `_NAV_KEYPRESS` entry:
+                # that dict is a class attribute built at import, so a
+                # value read there would be whatever the setting said when
+                # `player` was first imported.
                 self._player.command(
-                    "keypress", self._NAV_KEYPRESS[action])
+                    "keypress",
+                    self._NAV_KEYPRESS.get(action) or conf.select_key())
             except Exception:
                 log.debug("nav keypress failed", exc_info=True)
         elif action == "settings":

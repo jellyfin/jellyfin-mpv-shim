@@ -478,13 +478,14 @@ class MpvtkApp:
         bindings are inert without it, and a user turning the setting on has
         to restart anyway, so a gate could make nothing correct.
         """
-        from ..conf import settings
+        from ..conf import select_key, settings
         from ..gamepad import bindings
 
         self.backend.command(
             "script-message", "mpvtk-gamepad",
             json.dumps(bindings(
-                bool(getattr(settings, "gamepad_swap_confirm", False))))
+                bool(getattr(settings, "gamepad_swap_confirm", False)),
+                select_key()))
         )
 
     def push_scroll_config(self):
