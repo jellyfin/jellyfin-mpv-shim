@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-05 13:27-0400\n"
+"POT-Creation-Date: 2026-09-05 14:16-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1326,11 +1326,7 @@ msgid "Jellyfin UI"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "MPV UI with thumbnails"
-msgstr ""
-
-#: jellyfin_mpv_shim/mpvtk_browser/config.py
-msgid "MPV built-in default"
+msgid "MPV UI"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/config.py

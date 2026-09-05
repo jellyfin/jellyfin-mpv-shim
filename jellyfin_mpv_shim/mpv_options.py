@@ -26,12 +26,18 @@ from .utils import get_resource
 
 log = logging.getLogger("mpv_options")
 
-#: Styles that must not leave mpv's built-in OSC on: two that replace it
-#: with something of ours, one that replaces it with nothing, and one where
-#: the replacement is a script of the user's that we never see.
+#: Styles that must not leave mpv's built-in OSC to load itself.
 #:
-#: "default" is deliberately absent -- there mpv's own OSC is the answer, and
-#: whether to have it is the user's to say in their mpv.conf (section 12 of
+#: Since CONFIG_VERSION 5 that is every style there is, and for three
+#: different reasons: "mpvtk" replaces it with the in-window HUD, "none" with
+#: nothing, "custom" with a script of the user's that we never see, and "mpv"
+#: loads mpv's OWN OSC -- but by hand, after construction, so the version can
+#: be checked and the idle logo suppressed first
+#: (`player._load_classic_osc`).
+#:
+#: The `elif` below is therefore no longer reachable from a configured value.
+#: It stays for a hand-edited `osc_style` nobody recognises, where behaving
+#: like mpv normally would is the right answer (section 12 of
 #: docs/mpv-backends.md).
 REPLACES_OSC = ("mpv", "mpvtk", "none", "custom")
 
@@ -161,11 +167,12 @@ def resolve_osc_style():
     """
     # Which in-player UI to load: the in-window mpvtk playback HUD
     # ("mpvtk"; no lua script — the browser renders it, see
-    # mpvtk_browser/hud.py), the stock mpv OSC patched with
-    # trickplay previews ("mpv"), whatever the mpv binary ships and
-    # the user's own scripts ("default"), or nothing at all ("none").
-    # "jellyfin" is a legacy alias for the HUD — the jellyfin-styled
-    # lua OSC it used to name was retired once the HUD reached parity.
+    # mpvtk_browser/hud.py), mpv's own OSC ("mpv"), a script of the
+    # user's that we leave alone ("custom"), or nothing at all
+    # ("none"). Two legacy aliases: "jellyfin" for the HUD — the
+    # jellyfin-styled lua OSC it named was retired once the HUD reached
+    # parity — and "default", which folded into "mpv" at
+    # CONFIG_VERSION 5.
     #
     # "none" is where the old enable_osc setting went. That was a
     # separate switch that only ever reached mpv's OWN controls, so
@@ -175,6 +182,16 @@ def resolve_osc_style():
     osc_style = settings.osc_style
     if osc_style == "jellyfin":
         osc_style = "mpvtk"
+    if osc_style == "default":
+        # Legacy alias since CONFIG_VERSION 5. "MPV built-in default" and
+        # "MPV UI with thumbnails" collapsed into one "MPV UI": they only
+        # differed in who loaded the OSC, and once the shim started loading
+        # mpv's own (`player._load_classic_osc`) the difference showed up
+        # only as a bug -- nothing suppressed the idle logo under "default",
+        # so it sat behind the library. `_migrate` rewrites the stored
+        # value; this covers a hand-edited conf.json and a config from the
+        # future that was never migrated.
+        osc_style = "mpv"
     if osc_style == "mpvtk" and not settings.enable_gui:
         # The playback HUD is rendered by the library browser; with the
         # GUI disabled there is nothing to render it, so the patched
@@ -183,6 +200,22 @@ def resolve_osc_style():
     if osc_style == "mpvtk" and not settings.thumbnail_osc_builtin:
         # Legacy opt-out: thumbnail_osc_builtin=False used to mean
         # "don't replace my OSC" (e.g. users running uosc).
+        #
+        # **"default" survives here as an internal resolution, and only
+        # here.** It is gone from the settings screen and migrated out of
+        # conf.json (CONFIG_VERSION 5), but it is the only value that leaves
+        # mpv's own OSC to load itself -- everything else is in
+        # `REPLACES_OSC` and turns it off.
+        #
+        # That matters because of who reaches this line. `custom` was tried
+        # and is wrong: it sets `osc=False` and loads nothing, which is
+        # right for someone who really is running uosc and leaves anyone
+        # else **with no OSC at all**. The flag is a legacy default-off
+        # switch, not proof that a replacement exists, so the safe reading
+        # is "let mpv decide", which is what it has always done.
+        #
+        # Note the ordering: the "default" -> "mpv" alias above has already
+        # run, so this assignment is not folded back into "mpv".
         osc_style = "default"
     return osc_style
 

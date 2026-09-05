@@ -426,10 +426,16 @@ LABELED_ENUMS = {
         (_("Large (20 seconds)"), "large"),
         (_("Very large (60 seconds)"), "huge"),
     ],
+    # "MPV built-in default" is gone: it and "MPV UI with thumbnails" only
+    # differed in who loaded the OSC, and since the shim uses mpv's OWN OSC
+    # for this style (the 0.41 Preview API) there is one thing to offer.
+    # Whether it shows seek previews is `thumbnail_enable`, which is a
+    # question about trickplay rather than about which controls you want.
+    # Migrated at CONFIG_VERSION 5; `resolve_osc_style` still accepts the
+    # old value.
     "osc_style": [
         (_("Jellyfin UI"), "mpvtk"),
-        (_("MPV UI with thumbnails"), "mpv"),
-        (_("MPV built-in default"), "default"),
+        (_("MPV UI"), "mpv"),
         (_("Custom OSC"), "custom"),
         (_("No player controls"), "none"),
     ],

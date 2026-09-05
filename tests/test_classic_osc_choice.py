@@ -157,38 +157,41 @@ class IdleScreenTest(unittest.TestCase):
             __file__).resolve().parent.parent.joinpath(
                 "jellyfin_mpv_shim", "player.py").read_text()
 
-    def test_the_option_is_set_before_the_script_is_loaded(self):
+    def _init_mpv_body(self):
         src = self._src()
-        body = src[src.index("def _load_classic_osc"):]
-        body = body[:body.index("def _bind_mpv_handlers")]
-        # The CALL, not the word: the comment above it explains why
-        # `load-script` being asynchronous is the problem, and matching the
-        # prose found that sentence instead of the code.
+        body = src[src.index("    def _init_mpv(self):"):]
+        return body[:body.index("\n    def ")]
+
+    def test_the_option_is_set_before_any_osc_is_chosen(self):
+        body = self._init_mpv_body()
         opt = body.index('"osc-idlescreen=no"')
-        load = body.index('command("load-script"')
+        load = body.index("_load_classic_osc()")
         self.assertLess(opt, load,
-                        "the idlescreen option must be set before either "
-                        "OSC is loaded, or it races the script's handlers")
+                        "the idlescreen option must be set before an OSC is "
+                        "loaded, or it races the script's own startup")
+
+    def test_it_is_set_for_every_style_not_just_the_one_we_load(self):
+        """The styles where MPV loads the OSC itself need it most -- there
+        is no `load-script` of ours to order against, so the broadcast has
+        nothing to beat the race with. Asserted structurally: the call sits
+        outside the `if osc_style ==` guard."""
+        body = self._init_mpv_body()
+        opt = body.index('"osc-idlescreen=no"')
+        guard = body.index('if osc_style == "mpv":')
+        self.assertLess(opt, guard,
+                        "the option is inside the style guard, so a style "
+                        "that loads its own OSC never gets it")
 
     def test_it_appends_rather_than_replacing_script_opts(self):
         """`script-opts` is shared with the user's own scripts. A whole
         write would take their options with it -- the same rule as never
         writing over their mpv.conf."""
-        src = self._src()
-        body = src[src.index("def _load_classic_osc"):]
-        body = body[:body.index("def _bind_mpv_handlers")]
-        self.assertIn('"change-list", "script-opts", "append"', body)
+        self.assertIn('"change-list", "script-opts", "append"',
+                      self._init_mpv_body())
 
-    def test_it_covers_the_fork_path_too(self):
-        """Both OSCs read the same prefix, so the option is set once above
-        the branch rather than in each arm -- and the fork had the same race
-        the moment it stopped being a construction-time script."""
-        src = self._src()
-        body = src[src.index("def _load_classic_osc"):]
-        body = body[:body.index("def _bind_mpv_handlers")]
-        self.assertEqual(body.count("osc-idlescreen=no"), 1)
-        self.assertLess(body.index("osc-idlescreen=no"),
-                        body.index("osc_preview_api_works"))
+    def test_it_is_set_exactly_once(self):
+        """One place that knows, so the two OSC paths cannot drift."""
+        self.assertEqual(self._src().count('"osc-idlescreen=no"'), 1)
 
 
 class ThumbfastAnswersBothDoorsTest(unittest.TestCase):

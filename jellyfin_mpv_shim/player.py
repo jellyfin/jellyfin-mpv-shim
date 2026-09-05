@@ -1088,6 +1088,40 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
             log.info("This mpv cannot give up its window on request "
                      "(needs 0.41+); minimizing will quit mpv instead.")
 
+        # **Before any OSC draws, as an OPTION, not after it as a message.**
+        #
+        # `enable_osc` broadcasts `osc-idlescreen no` and says in its own
+        # comment that it "has to land BEFORE the OSC's first draw". A
+        # message cannot promise that: against an OSC mpv loaded at
+        # construction it races the script's own startup, and against one we
+        # `load-script` it races that too, because `load-script` is
+        # asynchronous. Lose either race and mpv's "Drop files or URLs to
+        # play" logo is drawn once and then sits behind the library for the
+        # session -- which is what [iw] hit under the styles that let mpv
+        # load its own OSC.
+        #
+        # Every osc.lua and every fork of it reads `script-opts` under the
+        # `osc` prefix at startup, so setting it here is read by
+        # construction rather than in time. Measured: the OSC starts with
+        # `idlescreen = true` without it and `false` with it.
+        #
+        # Unconditional, and that is the point -- it has to cover the styles
+        # where mpv loads the OSC itself (the legacy `thumbnail_osc_builtin`
+        # resolution) as well as the one we load by hand. It is inert for a
+        # style with no OSC and for a third-party one that reads a different
+        # prefix.
+        #
+        # `change-list ... append`, never a whole-property write:
+        # `script-opts` is shared with the user's own scripts, and replacing
+        # it would take their options with it (verified: an unrelated entry
+        # survives the append). Same rule as never writing over their
+        # `mpv.conf`.
+        try:
+            self._player.command("change-list", "script-opts", "append",
+                                 "osc-idlescreen=no")
+        except Exception:
+            log.debug("could not pre-set osc-idlescreen", exc_info=True)
+
         # The classic OSC, chosen against this mpv rather than at option-build
         # time -- which is why it is a `load-script` here and not an entry in
         # `mpv_scripts`. Nothing is on screen yet, so the gap costs nothing.
@@ -1257,29 +1291,6 @@ class PlayerManager(AudioMixin, ReportingMixin, WindowMixin):
         rather than a documented one, so the failure it could produce -- an
         OSC style with no OSC at all -- is caught rather than shipped.
         """
-        # **Before the script loads, as an OPTION, not after it as a message.**
-        # `enable_osc` broadcasts `osc-idlescreen no` and says in its own
-        # comment that it "has to land BEFORE the OSC's first draw" -- but
-        # `load-script` is asynchronous, so a message sent after it races the
-        # script's `register_script_message`. Lose that race and mpv's "Drop
-        # files or URLs to play" logo is drawn once and then sits behind the
-        # library for the session.
-        #
-        # Every osc.lua and every fork of it reads `script-opts` under the
-        # `osc` prefix at startup, so setting it first is read by
-        # construction rather than in time. Measured: without it the OSC
-        # starts with `idlescreen = true`, with it `false`.
-        #
-        # `change-list ... append`, never a whole-property write:
-        # `script-opts` is shared with the user's own scripts, and replacing
-        # it would take their options with it (verified: an unrelated entry
-        # survives the append). Same rule as never writing over their
-        # `mpv.conf`.
-        try:
-            self._player.command("change-list", "script-opts", "append",
-                                 "osc-idlescreen=no")
-        except Exception:
-            log.debug("could not pre-set osc-idlescreen", exc_info=True)
         if osc_preview_api_works(getattr(self._player, "mpv_version", "")):
             try:
                 self._player.command("load-script", BUILTIN_OSC)

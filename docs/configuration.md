@@ -423,7 +423,7 @@ You can use the config file to enable and disable features.
   - The library browser and the player share one window, so playback no longer takes over the screen unless you ask it to.
 - `enable_gui` - Enable the system tray icon and GUI features. Default: `true`
   - Turning this off puts the app in command-line mode: no window, no system tray and no settings screen, so on Windows the only way back is editing `conf.json` by hand. It is listed under "Advanced" in the settings form for that reason.
-  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` (or `default`) and leave this on.
+  - It is *not* how you get MPV's own on-screen controls back — set `osc_style` to `mpv` and leave this on.
   - For the classic "sit in the background and play what is cast to me" setup, enable `close_to_tray` (or `allow_background` where there is no tray), `start_minimized` and `fullscreen`; closing the video with `q` or the back button returns to waiting.
 - `browser_fullscreen` - Run the in-window library browser fullscreen. Default: `false`
   - Browsing is a desktop activity, so it opens windowed even when `fullscreen` is set. `fullscreen` still applies when playback starts.
@@ -548,14 +548,21 @@ You can use the config file to enable and disable features.
     navigable with a keyboard or a Jellyfin remote. Needs `enable_gui`
     (falls back to `mpv` otherwise). `jellyfin` is accepted as a legacy
     alias.
-  - `mpv` - The stock mpv controls, patched with trickplay preview support.
-  - `default` - Whatever OSC is built into your mpv, or your own OSC scripts.
-    Thumbnail data is still published for thumbfast-aware OSCs like uosc.
-    - **Running your own OSC:** drop the script in the `scripts/` folder beside
-      `conf.json` (see the paths at the top of this file) and any font it needs
-      in `fonts/`, then put `osc=no` in `mpv.conf` there so mpv's built-in one
-      does not draw underneath it. That line is honoured — `default` is the one
-      style where the shim never overrides the option.
+  - `mpv` - MPV's own on-screen controls, with seek previews where your mpv
+    can show them. Turn previews on or off with `thumbnail_enable`.
+    - On **mpv 0.41 and newer** this is mpv's stock OSC, driven through its
+      OSC Preview API (`user-data/osc/draw-preview`) — you get upstream's
+      controls, upstream's fixes, and our trickplay images in them.
+    - On **older mpv** the shim loads a bundled fork of mpv 0.38's OSC
+      instead, because the Preview API does not exist there and that fork is
+      the only way to get previews. Which one you get is an implementation
+      detail; the controls look and behave the same either way.
+    - `default` is accepted as a legacy alias. It used to be a separate
+      choice — "whatever OSC is built into your mpv" — and folded into `mpv`
+      once the shim started using mpv's own OSC for both. It is migrated
+      automatically.
+    - Thumbnail data is still published for thumbfast-aware OSCs like uosc;
+      to run one of those, use `custom`.
     - The shim asks the OSC to get out of the way when the library browser
       opens, and when you choose `none`, with the `osc-visibility` and
       `osc-idlescreen` script-messages. Mpv's own OSC and the scripts forked
@@ -571,8 +578,12 @@ You can use the config file to enable and disable features.
       paints itself can.
     - This style also lets the library draw above the OSC's own layer, which
       uosc in particular needs. That is why it is a separate choice rather
-      than something `default` does for everyone: the same layer is used by
+      than something `mpv` does for everyone: the same layer is used by
       MPV's console when it is showing a menu.
+    - **Running your own OSC:** drop the script in the `scripts/` folder beside
+      `conf.json` (see the paths at the top of this file) and any font it needs
+      in `fonts/`, then put `osc=no` in `mpv.conf` there. This style already
+      turns MPV's built-in controls off, so nothing draws underneath yours.
     - **Two things a third-party OSC cannot do, and will not.** Both apply to
       `default` as well; trickplay previews are the part that does work.
       - **Tracks.** Its subtitle and audio pickers see only what MPV has, and
@@ -1012,7 +1023,7 @@ older versions did — every preview is then instant, at the cost of the full
 download and the full memory.
 
 - `thumbnail_enable` - Enable thumbnail feature. (Default: `true`)
-- `thumbnail_osc_builtin` - Legacy alias: disabling this behaves like `osc_style: default` (use your own OSC but leave trickplay enabled). Prefer `osc_style`. (Default: `true`)
+- `thumbnail_osc_builtin` - Legacy alias: disabling this behaves like `osc_style: custom` (use your own OSC but leave trickplay enabled). Prefer `osc_style`. (Default: `true`)
 - `thumbnail_preferred_size` - The ideal size for thumbnails. (Default: `320`)
 - `trickplay_fast_mode` - Load every preview frame at once instead of a window around the seek position. Previews never wait, but a long video costs hundreds of megabytes of memory. Turning it *on* applies to the video you are watching, the next time you scrub outside the part already loaded; turning it *off* applies to the next video. (Default: `false`)
 

@@ -28,7 +28,9 @@ config_path = None
 #      "None" and been saved back verbatim; those become real nulls.
 #   4: the seek_* settings leave conf.json -- the keys the user CHANGED
 #      become real bindings in their input.conf (see input_conf.py).
-CONFIG_VERSION = 4
+#   5: osc_style "default" folds into "mpv" -- one "MPV UI" instead of two
+#      that only differed in who loaded the OSC.
+CONFIG_VERSION = 5
 
 # Media segment types the server publishes, and the setting that decides what
 # each one does. Jellyfin's enum also has "Unknown", which has no meaning to
@@ -766,6 +768,28 @@ class Settings(SettingsBase):
                     "(mpv now supports Dolby Vision natively)."
                 )
                 self.transcode_dolby_vision = False
+        if self.config_version < 5:
+            # "MPV built-in default" and "MPV UI with thumbnails" collapse
+            # into one "MPV UI". They only ever differed in who loaded the
+            # OSC -- mpv itself, or us -- and once the shim started using
+            # mpv's OWN OSC for both (the 0.41 Preview API, see
+            # `player._load_classic_osc`) the difference stopped being
+            # visible except as a bug: under "default" nothing suppressed
+            # mpv's "Drop files or URLs to play" logo, so it sat behind the
+            # library.
+            #
+            # [iw]: "we already have a custom and no osc option for people
+            # who want that" -- `custom` leaves the user's own OSC to run
+            # and `none` turns controls off, so nothing is lost by the shim
+            # owning this one.
+            #
+            # A RENAME-shaped step: it carries a real choice across rather
+            # than overriding one.
+            if self.osc_style == "default":
+                log.info("Config migration: osc_style \"default\" -> "
+                         "\"mpv\" (one MPV UI; see CONFIG_VERSION 5).")
+                self.osc_style = "mpv"
+                changed = True
         if self.config_version < 4:
             # #16: the keys the user CHANGED become real mpv bindings, and
             # the settings are cleared so nothing binds them twice. The
