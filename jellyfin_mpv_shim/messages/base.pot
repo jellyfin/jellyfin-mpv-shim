@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jellyfin-mpv-shim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 16:20-0400\n"
+"POT-Creation-Date: 2026-09-05 10:25-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3396,6 +3396,7 @@ msgid "More Like This"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/detail.py
+#: jellyfin_mpv_shim/mpvtk_browser/tiles.py
 msgid "Go to Series"
 msgstr ""
 
@@ -4562,7 +4563,22 @@ msgid ""
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"That folder is inside the current download folder. Choose one outside it."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid "Can't read that folder. Check the path and its permissions."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
 msgid "That folder already contains downloads. Choose an empty folder."
+msgstr ""
+
+#: jellyfin_mpv_shim/sync/manager.py
+msgid ""
+"That folder isn't empty. Choose an empty folder — the download folder is "
+"managed by this app and anything else in it can be moved or removed."
 msgstr ""
 
 #: jellyfin_mpv_shim/sync/manager.py

@@ -310,6 +310,28 @@ class TilesMixin:
             # queue can empty between the menu being drawn and pressed.
             if self._is_playing():
                 out.append((_("Play next"), "queue_play_next", "queuenext"))
+        # jellyfin-web's card has three hit regions -- the play chip, the
+        # image, and the series title -- and ours has the first two: our
+        # captions are BAKED into the strip bitmap, so the series name an
+        # episode tile already draws (components.episode_subtitle) is not a
+        # node anything can click. This is the reachable version of that
+        # third region (#719).
+        #
+        # Gated on SeriesId rather than on Type == "Episode": a Season
+        # carries one too, and "go up to the show" is as wanted from a
+        # season tile. The detail page gates on Episode only because that
+        # is the one type it renders.
+        #
+        # Suppressed when the show is already the page you are on, where
+        # the entry would navigate to where you are.
+        #
+        # Same verb and icon as `pages/detail.py`'s button, deliberately:
+        # gettext keys on the English, so a second spelling would be a
+        # second entry for every translator to find.
+        if (item.get("SeriesId")
+                and not (self.route.get("kind") == "series"
+                         and self.route.get("item_id") == item["SeriesId"])):
+            out.append((_("Go to Series"), "movie", "goseries"))
         if t in self.MENU_WATCHED:
             out.append((_("Mark unplayed") if watched
                         else _("Mark played"), "check", "watched"))
@@ -412,6 +434,10 @@ class TilesMixin:
             self._close_menu()
             self._open_add_to(item)
             return
+        elif action == "goseries":
+            self._close_menu()
+            self._go_to_series(item, server)
+            return
         elif action == "read":
             self._close_menu()
             self._menu_read(item, server)
@@ -445,6 +471,18 @@ class TilesMixin:
             self._live_menu_action(action, item, server)
             return
         self._close_menu()
+
+    def _go_to_series(self, item, server):
+        """Open the show an episode or season belongs to (#719).
+
+        The same route `pages/detail.py`'s "Go to Series" button builds, so
+        the two doors land on the same page -- and `SeriesName` for the
+        title, because the route's title is what the top bar shows before
+        the series DTO has loaded.
+        """
+        self.navigate({"kind": "series", "server": server,
+                       "item_id": item["SeriesId"],
+                       "title": item.get("SeriesName", "")})
 
     def _menu_read(self, item, server):
         """Open a book from its tile.
