@@ -56,6 +56,31 @@ produce a finding a third time:
 
 ## 3. Settled design decisions
 
+- **`enable_osc` from a 2.9.0 config is ignored on purpose, and must not be
+  migrated to `osc_style: none`.** It is gone from the schema, so an upgrader
+  who had it off gets `Config item enable_osc was ignored` in the log and
+  lands on the `mpvtk` default. That reads exactly like a missing migration
+  and is the intended destination.
+
+  In 2.9.0 mpv's OSC was the only OSC, so turning it off meant "this OSC is
+  not good enough". The Jellyfin UI is new in v3 and is markedly better than
+  every other option because the shim integrates with it at the player level
+  — so the upgrade *answers* that complaint rather than contradicting it.
+  Mapping the old flag to "no controls at all" would take the new one away
+  from precisely the users it was built for. [iw].
+
+  `resolve_osc_style`'s comment that "none is where the old enable_osc
+  setting went" is about where the *switch* went as a user-facing choice, not
+  about migrating anyone onto it.
+- **`osc_style: "default"` no longer being offered is not a lost feature.**
+  It folded into "MPV UI" at CONFIG_VERSION 5 — the two only differed in who
+  loaded the OSC, and once the shim used mpv's own for both, `default` was
+  just the one that forgot to suppress the idle logo. `custom` covers "I run
+  my own OSC" and `none` covers "no controls". The value survives as an
+  internal resolution for the legacy `thumbnail_osc_builtin` opt-out, which
+  is the only path that still needs "let mpv decide"; see
+  `mpv_options.resolve_osc_style` and the property test that no fallback may
+  land on a style drawing no controls.
 - **The startup PIN is parental control, not a security boundary.** It stops a
   kid on an HTPC opening R-rated films. So the work is enumerating the doors and
   a catch-all test — *not* deferring connection until unlock.
