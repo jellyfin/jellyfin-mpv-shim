@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-08-30 22:19-0400\n"
-"PO-Revision-Date: 2026-09-05 10:48+0000\n"
+"PO-Revision-Date: 2026-09-05 13:42+0000\n"
 "Last-Translator: AlphaBeta <mangahadplae@gmail.com>\n"
 "Language-Team: Thai <https://translate.jellyfin.org/projects/jellyfin/"
 "jellyfin-mpv-shim/th/>\n"
@@ -1125,7 +1125,7 @@ msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 msgid "DV bl signal compatibility id"
-msgstr ""
+msgstr "รหัสความเข้ากันได้ของสัญญาณ DV Base Layer"
 
 #: jellyfin_mpv_shim/mpvtk_browser/components/media_info.py
 #: jellyfin_mpv_shim/mpvtk_browser/hud.py
@@ -3742,10 +3742,8 @@ msgid "Networks"
 msgstr ""
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
-#, fuzzy
-#| msgid "Remove Server"
 msgid "Collections"
-msgstr "ลบเซิร์ฟเวอร์"
+msgstr "คอลเลกชัน"
 
 #: jellyfin_mpv_shim/mpvtk_browser/pages/grid.py
 #, python-format
