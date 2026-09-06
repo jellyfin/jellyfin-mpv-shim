@@ -138,6 +138,12 @@ PER_BACKEND = [
     "tests.e2e.test_chapters",
     "tests.e2e.test_photos",
     "tests.e2e.test_mpv_reopen",
+    # Music, played for real. The one content type the suite never played:
+    # video, audiobooks, books, photos, comics and Live TV all had a leg and
+    # audio had none. Per backend because it is a real player, and because
+    # the seam it pins -- audio keeps `_video` set and keeps the library up
+    # -- is asked of the PLAYER, whose backend selection happens at import.
+    "tests.e2e.test_music_playback",
     "tests.e2e.test_input_routing",
     # The mouse half of the same question. `test_input_routing` presses real
     # keys because declaring a binding and enabling its section are different
