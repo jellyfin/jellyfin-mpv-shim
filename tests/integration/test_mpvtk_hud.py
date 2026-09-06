@@ -440,6 +440,17 @@ class TestPlaybackHudLifecycle(h.TmpDirTest):
         self._wait(lambda: self._state().get("preview") is not None,
                    msg="the preview never followed the drag")
 
+        # Wait for the scrub to FOLLOW the drag before releasing, rather
+        # than snapshotting whatever has arrived by now. The renderer pushes
+        # it to Python asynchronously: on the Windows VM's venv the release
+        # committed a correct 21.07s while this line had still only seen the
+        # press position of 5.87s, which failed the cross-check below and
+        # read as a seek to the wrong place. Waiting also makes the drag's
+        # propagation an assertion instead of an assumption.
+        self._wait(lambda: self.browser.hud.scrub is not None
+                   and abs(self.browser.hud.scrub - 0.70 * 30.0) < 4.0,
+                   msg="the scrub never followed the drag to the release "
+                       "point (got %r)" % (self.browser.hud.scrub,))
         target = self.browser.hud.scrub
         self.handle.command("keyup", "MBTN_LEFT")
         self._wait(lambda: any(isinstance(c, tuple) and c[0] == "seek"
