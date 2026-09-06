@@ -276,5 +276,88 @@ class ScrollRecoveryTest(unittest.TestCase):
             "while visibly not at the end" % (max(loaded), total))
 
 
+    def _bar(self):
+        """The grid's scrollbar thumb geometry, as the renderer drew it."""
+        bars = self._state().get("bars") or {}
+        bar = bars.get(GRID)
+        self.assertTrue(
+            bar and bar.get("h"),
+            "the grid drew no scrollbar, so there is no thumb to drag "
+            "(bars=%r)" % (list(bars),))
+        return bar
+
+    def _thumb_fraction(self):
+        """How far down the track the thumb sits, 0..1.
+
+        Read from the thumb rather than from the offset because it is what
+        the user aimed at, and because it needs no second opinion about the
+        scroll range.
+        """
+        bar = self._bar()
+        travel = bar["h"] - bar["thumb_h"]
+        if travel <= 0:
+            return 0.0
+        return (bar["thumb_y"] - bar["y"]) / travel
+
+    def test_dragging_the_thumb_to_the_middle_loads_that_neighbourhood(self):
+        """`docs/E2E_PLAN.md` item 19, and the last of the mouse gestures
+        with no test: `state.drag` -- the scrollbar branch -- is exercised
+        only against a dropdown's popup in the toolkit suite, never against
+        a page of a thousand real items.
+
+        The assertion is deliberately about the ITEMS, not about the offset.
+        A scroll offset agreeing with a thumb position only says the
+        renderer is self-consistent; what #617 is about is whether the
+        window that gets FETCHED follows the thumb, or whether the grid
+        walks from the top and leaves the middle empty. So this drags to the
+        middle and asks the browser what it loaded there.
+        """
+        self._settle("nothing composited at the top to begin with")
+        self.assertLess(self._thumb_fraction(), 0.05,
+                        "the thumb did not start at the top, so a drag to "
+                        "the middle would not be a drag to the middle")
+
+        bar = self._bar()
+        x = int(bar["x"] + bar["w"] / 2)
+        grab = int(bar["thumb_y"] + bar["thumb_h"] / 2)
+        target = int(bar["y"] + bar["h"] / 2)
+
+        self.handle.command("mouse", x, grab)
+        time.sleep(0.3)
+        self.handle.command("keydown", "MBTN_LEFT")
+        # In steps, as a hand moves: one jump is a track click, and a track
+        # click is a different branch of the renderer from a drag.
+        for frac in (0.25, 0.5, 0.75, 1.0):
+            self.handle.command("mouse", x,
+                                int(grab + (target - grab) * frac))
+            time.sleep(0.12)
+        self.handle.command("keyup", "MBTN_LEFT")
+
+        landed = self._thumb_fraction()
+        self.assertGreater(landed, 0.25,
+                           "dragging the thumb to the middle of the track "
+                           "left it at %.3f -- the drag never moved the "
+                           "grid" % landed)
+        self.assertLess(landed, 0.75,
+                        "the thumb ended at %.3f, which is not the middle: "
+                        "the drag was read as a jump to the end" % landed)
+        self._settle("nothing composited after dragging to the middle")
+
+        items = self.browser.route.get("_items") or []
+        self.assertGreater(len(items), 500,
+                           "only %d items, so this is not the bulk library "
+                           "this test is about" % len(items))
+        idx = int(landed * len(items))
+        window = items[max(0, idx - 6):idx + 18]
+        loaded = sum(1 for i in window if i is not None)
+        self.assertGreaterEqual(
+            loaded, max(1, len(window) // 2),
+            "the thumb is %.0f%% down %d items, so the screen is showing "
+            "around index %d -- and only %d of the %d slots there are "
+            "loaded. The grid followed the thumb on screen and fetched "
+            "somewhere else."
+            % (landed * 100, len(items), idx, loaded, len(window)))
+
+
 if __name__ == "__main__":
     unittest.main()
