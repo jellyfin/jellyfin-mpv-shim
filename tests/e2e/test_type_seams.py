@@ -26,6 +26,24 @@ declared once in `EXPECTED` and checked after every predecessor, which is the
 part a vertical test cannot do: `test_photos` proves a photo is correct after
 the BROWSER, and says nothing about a photo after a film or after a track.
 
+**Why these three types, and not the others.** Checked rather than assumed:
+
+* **epub is not a seam producer.** The reader draws with Pillow and pushes a
+  bitmap like a tile strip; the only thing `pages/reader.py` asks of the
+  player is `book_download_state`, which reads. It mutates no mpv option, so
+  "a film after a book" is just "a film after the browser" -- already the
+  control row. (Contrast `pages/comic.py`, which calls `show_picture`,
+  `set_picture_view` and `clear_picture`.)
+* **Live TV is not distinguishable as a predecessor.** There is no
+  live-specific mpv state anywhere in `player*.py` -- no `is_live` concept in
+  `media.py` at all -- so a channel leaves exactly what a film leaves. A row
+  for it would cost a minute of wall clock and assert nothing the video row
+  does not.
+
+Both were on the list of gaps until they were looked at. Adding either would
+have been a test that cannot fail; this note is here so the next person does
+not re-derive it.
+
 **Scope, deliberately.** These are the properties `play()` itself owns.
 `keepaspect` and the zoom/pan reset are owned by the browser handoff
 (`browse_yield`, `_release_page_grabs`) and not by the player, so asserting
