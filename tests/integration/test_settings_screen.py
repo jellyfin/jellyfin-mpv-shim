@@ -333,6 +333,57 @@ class RealSettingsClickTest(unittest.TestCase):
                 out.append(n["fill"])
         return out
 
+    def test_a_keyboard_activation_toggles_the_setting_and_shows_it(self):
+        """The keyboard twin of the click test: a settings toggle reached
+        by focus and ENTER, which is how a remote or a keyboard user gets
+        there and which nothing else covers.
+
+        **It was written to pin the Checkbox repaint footgun and it does
+        not, so the docstring says so rather than the name implying it.**
+        The footgun is real -- a Checkbox is Box-plus-tick coloured from
+        `checked` and, unlike the renderer's optimistic Dropdown and
+        TextBox, only a redraw moves its tick, so a handler that writes and
+        asks for no repaint leaves the form showing the old value. The
+        theory was that a keyless activation would expose it where a
+        pointer press could not.
+
+        Measured: a control removing `set_status`'s `self.invalidate()`
+        leaves BOTH this and the click test green. `nav_activate` calls
+        `request_render()` on every branch that activates something, and
+        `on_mouse_up` does the same -- **the renderer repaints on any
+        activation, pointer or key**. So this footgun cannot be reached
+        from any input path at all; it can only bite a state change with
+        nothing driving it -- a poller, a websocket event, a timer -- and a
+        test for that belongs where such a change happens, asserting
+        `invalidate` was called, per CLAUDE.md. Nothing on this screen has
+        one, which is why no such test is added here.
+        """
+        from jellyfin_mpv_shim.conf import settings
+
+        nid, key, row = self._checkbox()
+        before_value = getattr(settings, key)
+        before_fills = self._tick_fills(nid)
+        self.addCleanup(setattr, settings, key, before_value)
+
+        # Park focus, and let that repaint settle BEFORE the activation --
+        # moving focus draws a ring, which is a repaint of its own and would
+        # otherwise be the one this test mistook for the handler's.
+        self.app.debug(cmd="nav", id=nid)
+        self._wait(lambda: self._state().get("nav") == nid,
+                   "focus never landed on %s" % nid)
+        time.sleep(0.5)
+        settled = self._tick_fills(nid)
+
+        self.handle.command("keypress", "ENTER")
+        self._wait(lambda: getattr(settings, key) != before_value,
+                   "ENTER on the focused checkbox did not toggle %s" % key)
+        self._wait(
+            lambda: self._tick_fills(nid) not in (None, settled),
+            "%s toggled to %r and the tick never moved -- the handler wrote "
+            "the setting without asking for a repaint, and with no pointer "
+            "gesture to repaint on its behalf the form now shows the wrong "
+            "value" % (key, getattr(settings, key)))
+
     def test_a_real_click_toggles_the_setting_and_moves_the_tick(self):
         from jellyfin_mpv_shim.conf import settings
 
