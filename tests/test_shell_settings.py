@@ -1095,6 +1095,43 @@ class TestGamepadSwapAppliesLive(unittest.TestCase):
         b.app.push_gamepad.assert_not_called()
 
 
+class TestSelectKeyAppliesLive(unittest.TestCase):
+    """Moving the select key re-pushes BOTH producers of it.
+
+    The keyboard's binding and the game controller's are two spellings of
+    one key (`conf.select_key`), and the pad's is a literal baked into the
+    table it was last pushed with. Re-push one without the other and the
+    pad is pressing a key nothing listens for -- which is #717 again, in
+    the code that closed it.
+    """
+
+    def _browser(self):
+        from unittest import mock
+
+        cfg = FakeConfig()
+        cfg.schema["ui_select_key"] = "str"
+        cfg.values["ui_select_key"] = "ENTER"
+        cfg.schema["player_name"] = "str"
+        cfg.values["player_name"] = "x"
+        b = MpvtkBrowser(app=mock.Mock(), source=FakeSource(),
+                         controller=mock.Mock(), config=cfg)
+        b._pool = _SyncPool()
+        b.app.push_select_key.reset_mock()
+        b.app.push_gamepad.reset_mock()
+        return b
+
+    def test_saving_it_re_pushes_both(self):
+        b = self._browser()
+        b._set_setting("ui_select_key", "KP_ENTER")
+        b.app.push_select_key.assert_called_once_with()
+        b.app.push_gamepad.assert_called_once_with()
+
+    def test_an_unrelated_setting_does_not(self):
+        b = self._browser()
+        b._set_setting("player_name", "Bud")
+        b.app.push_select_key.assert_not_called()
+
+
 class TestPinStartupSeeding(unittest.TestCase):
     """Changing a PIN silently cleared "require at startup": the dialog
     always opened with the box unticked and saved that back."""

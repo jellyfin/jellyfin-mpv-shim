@@ -476,8 +476,15 @@ stick **wakes a hidden playback HUD** rather than falling through to mpv's arrow
 way the keyboard does under the default `hud_grab_keys`: a keyboard has one set of
 arrows and has to share them, and a controller does not.
 
-Confirm is ENTER (what the browser's nav activates on and what the hidden HUD wakes
-on) and back is ESC (it already steps out exactly one layer — page, dialog, menu,
+Confirm is `conf.select_key()` — whatever the browser's nav activates on, ENTER
+until `ui_select_key` says otherwise. That is a **parameter** to `bindings()` and a
+`SELECT` sentinel in `DEFAULT_BINDS`, not a literal: this module imports no settings,
+and a caller who cannot supply the key cannot silently ship the old one. Three things
+send that key (this, a Jellyfin remote's Select, the keyboard) and one reader holds
+it, because a remap that moves one leaves the others pressing a key nothing listens
+for — #717 and `tests/test_ui_select_key.py`.
+
+Back is ESC (it already steps out exactly one layer — page, dialog, menu,
 playback — and a second implementation of that ladder would drift from it; the
 mouse's back button is routed the same way for the same reason). Play/pause is SPACE
 rather than `cycle pause`, so it lands on the shim's claim of that key: in a SyncPlay

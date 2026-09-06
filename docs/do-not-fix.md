@@ -131,6 +131,7 @@ then dropped in the same commit).
 | F25 | `sync/manager.py`, `sync/auto.py` | A live `work_offline` toggle leaves the download worker streaming on a metered link. Low priority per section 3; "won't fix" and removing the setting are both on the table. |
 | F26 | `cast.py` | Cast parks the last composite. |
 | F29 | `player.py` load gate / `_on_cache_pause` | Field report, below. |
+| F35 | `renderer.lua` `phud_skip_bind` | Binds literal `'ENTER'` for the Skip button whatever `hud_wake_key` says, so a moved wake key leaves ENTER accepting a skip. Found while doing #717 and deliberately left: it is a `hud_wake_key` bug, and it wants a decision about whether the idle Skip offer follows the wake key or `ui_select_key`. |
 
 ### F29 — sleeping NAS, not reproduced
 

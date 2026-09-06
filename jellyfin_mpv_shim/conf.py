@@ -720,11 +720,9 @@ class Settings(SettingsBase):
     # Distinct from kb_menu_ok, which is the LEGACY OSD menu's OK and
     # reaches nothing else -- the confusion behind #717.
     #
-    # **Not yet reachable from the settings screen, on purpose.** It is a
-    # replacement and not an alias: the renderer has to stop force-binding
-    # ENTER for the old key to be yielded, and until it does, changing
-    # this would move the gamepad and the remote onto a key nothing
-    # listens for. See docs/ISSUES_2026-09.md #717.
+    # A replacement and not an alias [iw]: the renderer stops force-binding
+    # ENTER when this moves, which is the point -- the request was to get
+    # ENTER back for mpv's own use.
     ui_select_key: str = "ENTER"
     thumbnail_preferred_size: int = 320
     #: Load every trickplay preview frame at once instead of a window

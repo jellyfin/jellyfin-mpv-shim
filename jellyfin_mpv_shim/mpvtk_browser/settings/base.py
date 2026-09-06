@@ -118,6 +118,17 @@ class SettingsBase:
             # need a restart; mpv reads that one once, at startup.)
             if self.app is not None and hasattr(self.app, "push_gamepad"):
                 self.app.push_gamepad()
+        if ok and key == "ui_select_key":
+            # BOTH pushes, always. The keyboard's binding and the pad's
+            # are two spellings of one key (`conf.select_key`), and the
+            # pad's is a literal baked into the table it was pushed with
+            # -- so a re-push of one without the other is exactly the
+            # disagreement #717 is about, with the gamepad left pressing
+            # a key nothing listens for.
+            for name in ("push_select_key", "push_gamepad"):
+                push = getattr(self.app, name, None) if self.app else None
+                if push is not None:
+                    push()
         if ok and key == "poster_scale":
             # Applies live, unlike the theme's own cover size below: this
             # control is *labelled* Cover Size, so watching it happen is the

@@ -488,6 +488,27 @@ class MpvtkApp:
                 select_key()))
         )
 
+    def push_select_key(self):
+        """Forward the key that activates whatever the UI has focused.
+
+        The third producer of ``conf.select_key`` -- the keyboard. The
+        gamepad's Confirm and a Jellyfin remote's Select synthesize a
+        keypress of the same name, so this has to be pushed *with*
+        :meth:`push_gamepad`, never instead of it: the pad's binding
+        table carries the key as a literal.
+
+        Its own message rather than a field on the ``mpvtk-hud`` opts
+        blob, which is where the HUD's own keyboard policy travels: that
+        blob only arrives on HUD engage, while the same bindings are
+        installed for browsing by ``mpvtk-active``, which carries no opts
+        at all. See docs/ISSUES_2026-09.md (#717).
+        """
+        from ..conf import select_key
+
+        self.backend.command(
+            "script-message", "mpvtk-select-key", select_key()
+        )
+
     def push_scroll_config(self):
         """Forward the wheel step (px per notch) and what ``scroll_mode``
         means to the renderer. All are safe to re-push live: the renderer
@@ -673,6 +694,7 @@ class MpvtkApp:
                 self.push_scale()
                 self.push_scroll_config()
                 self.push_gamepad()
+                self.push_select_key()
                 self.push_overlay_z()
                 self.ready.set()
             return

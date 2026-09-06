@@ -152,7 +152,12 @@ TAB_SECTIONS = {
         # people are looking for, and on Linux desktops that route media
         # keys through MPRIS it is likely broken anyway. Promoting it would
         # be offering a switch we cannot say works.
-        (_("Input"), ["input_gamepad", "gamepad_swap_confirm"]),
+        # `ui_select_key` is here and NOT in HUD_ONLY beside `hud_wake_key`:
+        # it governs the library as much as the player controls, and the
+        # library exists under every osc_style. Under "MPV built-in default"
+        # the row still means something.
+        (_("Input"), ["input_gamepad", "gamepad_swap_confirm",
+                      "ui_select_key"]),
         # Everything about the window itself, in the order you meet it:
         # how it opens, whether it remembers, what closing it means.
         (_("Window"), ["fullscreen", "browser_fullscreen",
@@ -628,6 +633,7 @@ LABEL_OVERRIDES = {
     "browser_fullscreen": _("Fullscreen Library Browser"),
     "hud_grab_keys": _("Always Bind Arrow Keys to Player Controls"),
     "hud_wake_key": _("Player Controls Activation Key"),
+    "ui_select_key": _("Select Key"),
     "segment_intro": _("Skip Intros"),
     # The one segment label that collides with its own Skip BUTTON:
     # gettext keys on the English, the other four are pluralised ("Skip
@@ -692,6 +698,14 @@ NOTES = {
     "gamepad_swap_confirm": _("Turn this on for a controller whose A button "
                               "is on the right rather than at the bottom "
                               "(Switch Pro, most 8BitDo pads)."),
+    # Two things the label cannot carry: that this REPLACES Enter (which is
+    # the reason to change it -- getting Enter back for mpv), and that the
+    # controller and the phone follow it, so nothing is left behind.
+    "ui_select_key": _("Activates whatever is highlighted, in the library "
+                       "and on the player controls. An mpv key name; "
+                       "changing it hands Enter back to MPV. The game "
+                       "controller's Confirm button and a phone's Select "
+                       "follow it."),
     # A blank numeric field meaning "use the setting above" is not
     # guessable from a label, and these three are the ones where leaving
     # them alone is the right answer for almost everybody.

@@ -636,11 +636,15 @@ You can use the config file to enable and disable features.
   - The gamepad's Confirm button and a Jellyfin remote's Select both send
     this key, so remapping it moves all three together rather than leaving
     two of them on a key nothing listens for.
-  - **Not yet offered in the settings screen, and changing it by hand does
-    nothing useful yet.** Yielding `ENTER` back needs the in-window
-    renderer to stop binding it, which has not landed; until then the value
-    is read by the gamepad and the remote but not by the keyboard. See
-    `docs/ISSUES_2026-09.md` (#717).
+  - A **replacement**, not an alias: point it somewhere else and `ENTER`
+    stops being taken in the library and on the player controls, which is
+    the reason to change it. Applies without a restart. Also in Settings →
+    General → Input.
+  - Two keys it does *not* move with it. While the controls are hidden,
+    `hud_wake_key` still holds its own key — move that one too if you want
+    `ENTER` free during playback. And `kb_menu_ok` stays where it is, so a
+    game controller's Confirm stops reaching the legacy OSD menu once these
+    two disagree.
 - `hud_scrim` - How the picture is shaded behind the player controls, so they
   stay legible over any frame. One of `default`, `panel`, `none`.
   Default: `default`

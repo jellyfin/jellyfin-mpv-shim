@@ -18,13 +18,12 @@ and phone/web Select. From the plan's exit predicate:
 So the assertions below are about AGREEMENT between the three, not about
 any one of them.
 
-**Half-landed on purpose.** The two synthetic producers read
-`ui_select_key`; the renderer still force-binds ENTER, so the setting is
-not offered in the settings screen and the docs say so. It is a
-replacement, not an alias -- yielding ENTER back is the whole request
-[iw] -- and that cannot happen until `renderer.lua`'s `NAV_KEYS` binds the
-configured name and rebuilds `keyclaim.nav_names` with it. The last two
-cases here are the tripwires for that work.
+It is a replacement, not an alias [iw]: pointing it elsewhere hands ENTER
+back to mpv, which is the whole request. `renderer.lua` resolves the name
+when it installs the bindings and rebuilds `keyclaim.nav_names` with it;
+the half of that no source-reading test can see -- the rebinding itself --
+is driven through the real script-message boundary in
+`tests/lua/test_renderer.lua`.
 """
 
 # Run as a script, this is what puts the repo root on sys.path -- without
@@ -78,14 +77,30 @@ def remote_ok_key():
 
 
 def renderer_activate_key():
-    """The key `renderer.lua` binds to `nav_activate` in `NAV_KEYS`."""
+    """The default `renderer.lua` activates on, from its `NAV_KEYS` row.
+
+    A DEFAULT and no longer a hardcode: the row carries a third field
+    marking it as following `state.select_key`, which `mpvtk-select-key`
+    moves. That the renderer really does resolve it -- and yields ENTER
+    when it does -- is driven through the real binding in
+    `tests/lua/test_renderer.lua`; what belongs here is only the fallback
+    the three producers have to agree on. The marker is asserted so a
+    row that quietly went back to a literal fails as a disagreement
+    rather than passing as one.
+    """
     src = ROOT.joinpath("jellyfin_mpv_shim", "mpvtk",
                         "renderer.lua").read_text()
     block = src[src.index("local NAV_KEYS = {"):]
     block = block[:block.index("\n}")]
-    row = next(line for line in block.splitlines()
-               if "nav_activate()" in line)
-    return re.search(r"\{\s*'([^']+)'", row).group(1)
+    marker = re.search(r"end,\s*true\s*\},", block)
+    assert marker is not None, (
+        "no NAV_KEYS row is marked as following state.select_key")
+    # Back to the start of that row, not forward from the block: every row
+    # opens the same way, so a forward match spans from the first one.
+    row = block[block.rindex("{ '", 0, marker.start()):marker.end()]
+    assert "nav_activate()" in row, (
+        "the row marked configurable is not the activation one")
+    return re.match(r"\{\s*'([^']+)'", row).group(1)
 
 
 class AgreementTest(unittest.TestCase):
@@ -139,43 +154,49 @@ class AgreementTest(unittest.TestCase):
                 self.assertEqual(remote_ok_key(), "ENTER")
 
 
-class NotYetOfferedTest(unittest.TestCase):
-    """The tripwires for the renderer half. Both are meant to fail when
-    that work lands -- read this file's header, then delete them."""
+class OfferedTest(unittest.TestCase):
+    """The renderer half landed, so the setting is reachable -- and the
+    keyboard is now the third thing that has to keep agreeing.
 
-    def test_the_renderer_still_hardcodes_it(self):
-        """When `NAV_KEYS` stops naming ENTER literally, the setting has a
-        keyboard behind it and the two cases here are obsolete.
+    These replace the tripwires this file shipped with. What they cannot
+    see is the renderer actually rebinding: that is driven through the
+    real script-message boundary in `tests/lua/test_renderer.lua`, which
+    presses the moved key and checks ENTER was handed back.
+    """
 
-        The rest of the repair is not visible from this line, and is the
-        reason it is called out rather than just deleted: the bound name
-        also has to reach `keyclaim.nav_names`, whose comment warns that a
-        claimed key OUTSIDE that set needs its own binding *and* its own
-        removal -- and the opts blob only reaches the renderer on
-        `mpvtk-hud` engage, while browse-mode nav is installed by
-        `mpvtk-active`, which carries no opts.
-        """
-        self.assertEqual(
-            renderer_activate_key(), "ENTER",
-            "the renderer now resolves the activation key -- if it reads "
-            "ui_select_key, delete this class and offer the setting")
-
-    def test_so_the_setting_is_not_offered_yet(self):
-        """Offering it while the renderer ignores it would let a user move
-        the gamepad and the remote onto a key nothing listens for, while
-        the keyboard kept ENTER. Worse than the bug being fixed."""
+    def test_it_is_on_the_settings_screen(self):
+        """Under Input, not with the HUD keys: it governs the library too,
+        and the library exists under every `osc_style`. A key you can only
+        reach by editing conf.json is what #717 reported."""
         curated = {key for _title, keys in cfg.SECTIONS for key in keys}
-        self.assertNotIn("ui_select_key", curated,
-                         "ui_select_key is on the settings screen; the "
-                         "renderer must read it first")
+        self.assertIn("ui_select_key", curated)
+        self.assertNotIn("ui_select_key", cfg.HUD_ONLY,
+                         "hiding it under a non-mpvtk OSC would hide the "
+                         "library's own select key")
 
-    def test_and_it_is_documented_as_such(self):
-        """Someone will find it in conf.json. The docs entry is what stops
-        them concluding the feature is broken."""
-        doc = ROOT.joinpath("docs", "configuration.md").read_text()
-        entry = doc[doc.index("- `ui_select_key`"):]
-        entry = entry[:entry.index("\n- `")]
-        self.assertIn("Not yet offered in the settings screen", entry)
+    def test_the_keyboard_is_pushed_the_value(self):
+        """The keyboard's third of the agreement, at its one source.
+
+        Read from source rather than executed, for the reason
+        `remote_ok_key` above gives: building an `MpvtkApp` opens a real
+        window. Scoped to the METHOD, so it says something -- `select_key`
+        already appears in `push_gamepad` a few lines up, and a whole-file
+        search for it would pass whatever this method did.
+
+        That the settings screen re-pushes it, and re-pushes the gamepad
+        table with it because a pad's Confirm carries the key as a
+        literal, is executed instead:
+        `tests/test_shell_settings.py:TestSelectKeyAppliesLive`.
+        """
+        src = ROOT.joinpath("jellyfin_mpv_shim", "mpvtk",
+                            "app.py").read_text()
+        body = src[src.index("    def push_select_key"):]
+        body = body[:body.index("\n    def ", 10)]
+        self.assertIn("mpvtk-select-key", body)
+        self.assertIn("select_key()", body,
+                      "push_select_key reads the setting itself instead "
+                      "of going through the one reader, so a cleared key "
+                      "unbinds the keyboard while the pad falls back")
 
 
 class DistinctFromTheMenuKeyTest(unittest.TestCase):
