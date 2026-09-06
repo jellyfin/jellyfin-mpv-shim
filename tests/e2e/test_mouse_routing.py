@@ -50,6 +50,7 @@ class MouseRoutingTest(unittest.TestCase):
         self.addCleanup(self.session.stop)
         self.source = self.session.library_source()
         self.addCleanup(self.source.stop)
+        self.libraries = self.source.get_libraries(_e2e.SOURCE_UUID)
 
         self.handle, ext = _spawn_handle()
         self.app = MpvtkApp.attach(self.handle, ext=ext)
@@ -132,9 +133,35 @@ class MouseRoutingTest(unittest.TestCase):
             self.fail("no on-screen %s in the pushed scene" % what)
         return found
 
+    def _scroll_offset(self):
+        """How far the page has been scrolled, in the units the pushed
+        coordinates are NOT in.
+
+        **A pushed node's `y` is its unscrolled position.** The renderer
+        applies the container's offset itself (`eff`), so a page scrolled
+        240px still reports every node where it would sit at rest --
+        measured: wheeling a series page moved `scroll` to 240 while the
+        seasons row stayed at y=702.0 in `app._nodes`. Aiming at the raw
+        coordinate lands 240px off, which the hover gate in `_click`
+        reports rather than clicking whatever is really there.
+
+        Returns None when more than one container is scrolled, because then
+        this cannot say which one a given node is in without the tree; the
+        caller treats that as "cannot aim here".
+        """
+        sc = self._state().get("scroll")
+        if not isinstance(sc, dict) or not sc:
+            return 0
+        if len(sc) > 1:
+            return None
+        return list(sc.values())[0]
+
     def _find_tile(self, prefix):
         state = self._state()
         ww, wh = state.get("w") or 0, state.get("h") or 0
+        offset = self._scroll_offset()
+        if offset is None:
+            return None
         for n in (self.app._nodes or []):
             if not str(n.get("id") or "").startswith(prefix):
                 continue
@@ -148,7 +175,7 @@ class MouseRoutingTest(unittest.TestCase):
             # chip -- a different control with a different job. Aiming at
             # the poster is also what a user does.
             cx = int(n["x"] + n["w"] / 2)
-            cy = int(n["y"] + n["h"] * 0.25)
+            cy = int(n["y"] + n["h"] * 0.25 - offset)
             if 0 <= cx < ww and 0 <= cy < wh:
                 return n["id"], cx, cy
         return None
@@ -376,6 +403,111 @@ class MouseRoutingTest(unittest.TestCase):
             "a real left click is dead after the browser's own resume, with "
             "no repaint from the test -- enter_browse left the renderer with "
             "no node table and pointer input cannot recover it")
+
+
+    def _navigate(self, label, route):
+        """Go to a screen by route, then wait for the renderer to hold it.
+
+        Navigation by `navigate()` rather than by clicking through: what is
+        under test is the right button on the page, and reaching a season
+        three real clicks deep would make an unrelated failure look like a
+        dead mouse.
+        """
+        self.browser.navigate(dict(route))
+        self.assertEqual(self.browser.route.get("kind"), route["kind"],
+                         "%s did not become the current route" % label)
+        self._wait(lambda: not self.browser.route.get("_loading"),
+                   "%s never finished loading, so its scene is a spinner "
+                   "and a right click would land on nothing" % label)
+        self._repaint()
+
+    def _scroll_to(self, prefix, label):
+        """Wheel down until a `prefix` tile has an aim point on screen.
+
+        A detail page is taller than the window -- the seasons row starts
+        18px above the bottom edge on a 720px window and runs 271px down --
+        so the tile is in the tree and unreachable by pointer. A user
+        scrolls to it, and so does this.
+
+        The pointer is parked first because **a wheel event goes to whatever
+        is under it**, and under Xvfb nothing has ever moved a mouse: the
+        position sits at (-1, -1), the notch is delivered to nobody, and the
+        page never moves. See `tests/e2e/README.md`.
+        """
+        st = self._state()
+        self.handle.command("mouse", int((st.get("w") or 2) / 2),
+                            int((st.get("h") or 2) / 2))
+        time.sleep(0.3)
+        for _ in range(30):
+            if self._find_tile(prefix) is not None:
+                return
+            self.handle.command("keypress", "WHEEL_DOWN")
+            time.sleep(0.2)
+        self.fail("wheeling never brought a %s tile on screen on %s"
+                  % (prefix, label))
+
+    def _assert_right_click_opens_a_menu(self, label, prefix):
+        self._scroll_to(prefix, label)
+        tile = self._find_tile(prefix)
+        if tile is None:
+            self.fail("no on-screen %s tile to right-click on %s"
+                      % (prefix, label))
+        node_id, x, y = tile
+        self._click("MBTN_RIGHT", node_id, x, y)
+        self._wait(lambda: self._state().get("menu_open"),
+                   "a real right click on %s (%s) opened no menu"
+                   % (node_id, label))
+        self.browser._close_menu()
+
+    def test_a_real_right_click_opens_a_menu_on_detail_and_music(self):
+        """The two screens `tests/e2e/README.md` names as unproven, after
+        the grid.
+
+        Its `_interact` sweep fires `on_context` from the scene's handler
+        map and a negative control that made `_open_tile_menu` raise "is
+        caught on the home rows and NOT on the grid, detail or music
+        screens". Every tile context handler in the browser does route to
+        `_open_tile_menu` -- `app.py` assigns `self.tiles.on_context` once
+        and nothing else assigns it -- so the gap is not that these pages
+        wire something different: it is that the sweep never reaches a
+        context handler on them at all. Pressing the button reaches it.
+
+        One test over both screens, and over a series as well as an album,
+        because the shared handler means the interesting variable is the
+        PAGE that draws the tiles rather than the item type -- and between
+        them they cover both wirings that reach it, an image_map tile and a
+        Table row.
+        """
+        series = self.session.find_all(library="Shows", item_type="Series",
+                                       Limit=1)
+        if not series:
+            self.skipTest("no Series to open")
+        self._navigate("series", {"server": _e2e.SOURCE_UUID,
+                                  "item_id": series[0]["Id"],
+                                  "title": series[0].get("Name", ""),
+                                  "kind": "series"})
+        # A SEASON tile, not one of the `detail-people-*` cast tiles beside
+        # it: `_open_tile_menu` deliberately opens nothing for a type with
+        # no entries on offer, so a cast member is a legitimate no-menu and
+        # would fail this as though the button were dead.
+        self._assert_right_click_opens_a_menu("series", "series-seasons-")
+
+        libs = {lib["Name"]: lib for lib in self.libraries}
+        music = libs.get("Music")
+        if music is None:
+            self.skipTest("no Music library")
+        albums = self.source.get_music_albums(
+            _e2e.SOURCE_UUID, music["Id"], start_index=0, limit=1)[0]
+        if not albums:
+            self.skipTest("no albums")
+        self._navigate("album", {"server": _e2e.SOURCE_UUID,
+                                 "item_id": albums[0]["Id"],
+                                 "title": albums[0].get("Name", ""),
+                                 "kind": "album"})
+        # A track ROW, which reaches `on_context` through Table rather than
+        # through `TileRenderer.image_map`'s lambda -- a third wiring, and
+        # the one an album page actually offers.
+        self._assert_right_click_opens_a_menu("album", "trk-")
 
 
 if __name__ == "__main__":
